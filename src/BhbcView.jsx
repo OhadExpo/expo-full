@@ -371,6 +371,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   useEffect(() => { trackRef.current('open', 'opened the club zone'); }, []);
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
+  // Which already-landed athlete has had their date re-opened for editing in
+  // Manage roster. Null = none; a past date shows as one muted word until it is
+  // clicked (see the LANDS block).
+  const [editArrival, setEditArrival] = useState(null);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   // The staff brief's COPY, now that the two reports are one card.
@@ -1604,16 +1608,30 @@ function attendance28(rec, days) {
                 {on && (
                   <span className="bhbc-manage-meta">
                     <span style={{ minWidth: 0, fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(t.position) || ''}</span>
-                    {/* LABEL ABOVE THE FIELD, not beside it (Ohad, 21.9: "they
-                        should stack vertically one above each other"). Side by
-                        side, the label ate horizontal room the position needed
-                        and the pair read as two loose items; stacked, the label
-                        names the field under it and the field keeps its own
-                        column edge. */}
-                    <span style={{ flexShrink: 0, display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }} title={tr('Landing / arrival date')}>
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr('Lands')}</span>
-                      <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 6px' }} />
-                    </span>
+                    {/* A LANDING DATE ONLY MATTERS UNTIL THEY LAND.
+                        Ohad, 21.9: "make sure that i only see when the players
+                        landed where it matters... its old news and it's showing
+                        everywhere right now". This modal put a date field on
+                        every row, so twenty players who arrived months ago each
+                        carried a stale date at full strength. Future or unset ->
+                        the field, because it is a fact still ahead of you or one
+                        to record. Already landed -> one muted word, and clicking
+                        it brings the field back so a wrong date is still
+                        fixable. The roster-card badge was already future-only.
+
+                        LABEL ABOVE THE FIELD, not beside it (Ohad, same day:
+                        "they should stack vertically one above each other").
+                        Side by side the label ate the width the position needed
+                        and the pair read as two loose items. */}
+                    {(!t.arrival || t.arrival > todayISO() || editArrival === t.id) ? (
+                      <span style={{ flexShrink: 0, display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }} title={tr('Landing / arrival date')}>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr('Lands')}</span>
+                        <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 6px' }} />
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setEditArrival(t.id)} title={tr('Landing / arrival date')}
+                        style={{ flexShrink: 0, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>{tr('Landed')}</button>
+                    )}
                   </span>
                 )}
               </div>
@@ -3890,7 +3908,14 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                   const since = ll && today ? dayDiff(today, ll) : null;
                   const col = since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C';
                   return (
-                    <div data-lbl="last lift" style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                    // THE DATE IS A COLUMN, so the part in front of it gets a
+                    // fixed width. The relative age runs from "2d" to
+                    // "yesterday", and with the two laid out as a plain flex row
+                    // the date behind it moved with that length - measured
+                    // across ten rows, "7 Sep" and friends started at 811, 807,
+                    // 807, 866 and 807. 64px holds the longest of them
+                    // ("yesterday" / "אתמול") at 11px Nord.
+                    <div data-lbl="last lift" style={{ display: 'grid', gridTemplateColumns: '64px auto', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                       </span>

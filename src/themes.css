@@ -1216,7 +1216,15 @@ html.theme-switching *::after {
 /* MANAGE ROSTER row: one line on a desktop, two on a phone - and the second
    line starts on the NAME column, not under the checkbox. */
 .bhbc-manage-row{display:grid;grid-template-columns:16px 24px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:7px}
-.bhbc-manage-meta{display:flex;align-items:center;gap:12px;justify-content:flex-end;min-width:0}
+/* The trailing LANDS block gets a FIXED track, not `auto`. Rows differ in what
+   they put there - a date field (124px) on someone still to arrive, one muted
+   LANDED word (46px) on someone already here - and an auto track is the width
+   of its own content, so the two kinds started 77px apart at 1500 and 83px
+   apart at 390. Ohad: "lands and date boxes need to be lined in the same
+   horizontal spot from one row to another." 136 clears the widest of the two
+   at both widths. */
+.bhbc-manage-meta{display:grid;grid-template-columns:minmax(0,1fr) 136px;align-items:center;gap:12px;min-width:0}
+.bhbc-manage-meta>:last-child{justify-self:start}
 @media (max-width:620px){
   .bhbc-manage-row{grid-template-columns:16px 24px minmax(0,1fr)}
   /* WRAP RATHER THAN TRUNCATE THE POSITION.
@@ -1237,7 +1245,7 @@ html.theme-switching *::after {
      Two tracks: the position takes the space and wraps inside it, the LANDS
      block keeps its own track at the end. Every row's date input then starts
      at the same x whether the position fits on one line or two. */
-  .bhbc-manage-meta{grid-column:3;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
+  .bhbc-manage-meta{grid-column:3;display:grid;grid-template-columns:minmax(0,1fr) 136px;align-items:center;gap:8px}
   .bhbc-manage-meta>:first-child{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word}
 }
 
