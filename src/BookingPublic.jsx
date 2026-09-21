@@ -222,7 +222,13 @@ export default function BookingPublic() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const { data: s, error: se } = await supabase.from('coach_booking_settings').select('*').eq('slug', slug).maybeSingle();
+      // NAME THE COLUMNS. This runs on the anon seat, on a page anyone with the
+      // link can open: `*` publishes whatever the table happens to hold today AND
+      // whatever is added to it tomorrow. These eight are every field the page
+      // renders (grepped, not guessed); id, created_at and updated_at are not used.
+      const { data: s, error: se } = await supabase.from('coach_booking_settings')
+        .select('coach_email, slug, display_name, bio, duration_min, buffer_min, lead_time_hours, zoom_url, cancellation_policy')
+        .eq('slug', slug).maybeSingle();
       if (!alive) return;
       // NO RAW DB TEXT ON A PUBLIC PAGE. The submit path already knew this; the
       // load path printed se.message verbatim, which is schema detail on an
@@ -230,7 +236,7 @@ export default function BookingPublic() {
       if (se) { console.error('[booking] settings load failed', se); setError(tr(readLang(), 'Could not load this booking page. Please try again.')); setLoading(false); return; }
       if (!s) { setError(tr(readLang(), 'That booking page doesn’t exist.')); setLoading(false); return; }
       setSettings(s);
-      const { data: r } = await supabase.from('availability_rules').select('*').eq('coach_email', s.coach_email);
+      const { data: r } = await supabase.from('availability_rules').select('day_of_week, start_time, end_time').eq('coach_email', s.coach_email);
       if (!alive) return;
       setRules(r || []);
       setLoading(false);

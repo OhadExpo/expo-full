@@ -870,7 +870,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <TraineeCRM
           trainee={td}
           clientWorkouts={clientWorkouts}
-          payments={tPay}
+          /* A club athlete has no payments ANYWHERE, and the CRM is the last
+             place they leaked: the activity feed renders a "Payment" event and
+             deriveHealth reads payments for its health pill, so the card was
+             still saying money about someone the club pays for. */
+          payments={isClubAthleteRow(td) ? [] : tPay}
           planIndex={tp}
           onOpenTasksTab={onOpenTasksTab}
           onCreatePlanForTask={onCreatePlanForTask}
@@ -1148,7 +1152,11 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
   const [hasDraft, setHasDraft] = useState(false);
   // Bnei Herzliya players are CLUB athletes — the club pays. Read from the live
   // form so switching Format to/from Bnei Herzliya updates the fields at once.
-  const isClubAthlete = editForm?.format === 'Bnei Herzliya' || editForm?.branch === 'Bnei Herzliya';
+  // THE FIFTH COPY. This one gated the EDIT FORM's billing fields and it was
+  // missing `team === 'BHBC'` — the tag Manage roster actually writes — so an
+  // athlete tagged only from the club zone still got Package / Sessions Left /
+  // Monthly / Per Session inputs to fill in. One predicate, imported.
+  const isClubAthlete = isClubAthleteRow(editForm);
 
   useEffect(() => {
     let restored = null;
