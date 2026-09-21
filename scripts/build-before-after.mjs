@@ -235,8 +235,8 @@ const PAIRS = [
     file: 'src/DashboardView.jsx',
     // justifyContent is the fix; textAlign is the dead code it replaced.
     undo: [["justifyContent: he ? 'flex-end' : 'flex-start' }}>{s.value}", "textAlign: he ? 'right' : 'left' }}>{s.value}"]],
-    url: PREVIEW + '/coach/dashboard', w: 645, h: 700, auth: true, built: true, appLang: 'he',
-    crop: [0, 80, 645, 300],
+    url: PREVIEW + '/coach/dashboard', w: 484, h: 700, auth: true, built: true, appLang: 'he',
+    crop: [0, 80, 484, 320],
   },
 ];
 
@@ -296,6 +296,15 @@ async function shoot(job, label) {
     // The install prompt mounts a few seconds after load and covers a phone-width
     // view; snoozing it in storage keeps it out of every shot.
     await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+    // PICK THE COACH SEAT BEFORE THE PAGE ASKS.
+    //
+    // signIn() clears storage, which throws away the portal choice — and this
+    // account is dual-role, so the app quite correctly stops at "CHOOSE YOUR
+    // PORTAL / HEY אוהד" instead of the URL that was asked for. The first
+    // tap-targets pair photographed that picker twice and looked like a
+    // working before/after of nothing. sessionStorage, because that is where
+    // PORTAL_CHOICE_KEY lives (src/auth.jsx).
+    if (job.auth) await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); } catch (e) {} });
     await setWidth(pg, job.w, job.h);
     await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     if (job.cutBackend) {
