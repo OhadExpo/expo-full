@@ -607,10 +607,16 @@ function Team({ heb }) {
 }
 
 // ─── Trial callout ───────────────────────────────────────────────────
-// Pre-calendar nudge: the founder business plan defines a paid trial
-// (₪200 — assessment + intro session) as the standard on-ramp. Putting
-// it directly above the calendar lowers the booking barrier: visitors
-// know what they're committing to before they click a slot.
+// Pre-calendar nudge: the business plan defines a paid trial (assessment +
+// intro session) as the standard on-ramp. Putting it directly above the
+// calendar lowers the booking barrier: visitors know what they're committing
+// to before they click a slot.
+//
+// The figure itself is deliberately NOT written here. Gym pricing is private
+// (his rule), and this repository is PUBLIC — a price in a comment is a
+// published price, even though no visitor ever renders it. The page tells
+// people a price sheet follows the first message, which is the same answer
+// the comment used to give away.
 function TrialCallout({ heb, onBookClick }) {
   return (
     <section data-fade className="gym-section" style={{ paddingTop: 24, paddingBottom: 24 }}>
