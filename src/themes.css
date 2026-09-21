@@ -1441,3 +1441,15 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    on a phone they hide and the gap separates instead. */
 .seg-run { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
 @media (max-width: 620px) { .seg-run { gap: 2px 10px; } .seg-run .seg-dot { display: none; } }
+
+/* The public booking page's session facts — what the session IS, stated before
+   a stranger is asked to pick an hour for it. */
+.bk-facts { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 16px; }
+.bk-facts > span {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--c-cardBd); padding: 5px 10px;
+  font-family: 'Nord', 'Heebo', system-ui, sans-serif;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--c-tm); white-space: nowrap;
+}
+.bk-facts > span b { color: var(--c-tx); font-weight: 800; }

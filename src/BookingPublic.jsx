@@ -7,7 +7,7 @@
 // present. Occupied slots come from get_occupied_slots() SECURITY
 // DEFINER (no PII).
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
@@ -57,6 +57,16 @@ function coachTzCivil(date) {
   const dtf = new Intl.DateTimeFormat('en-US', { timeZone: COACH_TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
   const p = Object.fromEntries(dtf.formatToParts(date).map(x => [x.type, x.value]));
   return { y: +p.year, mo: +p.month - 1, da: +p.day };
+}
+
+// "28/09/2026 AT 10:15" is a receipt, not a sentence. And en-GB was hardcoded
+// under dir=rtl, so a Hebrew client got an English date on the one line that
+// has to be unambiguous.
+function prettyWhen(d) {
+  if (!d) return '';
+  const loc = readLang() === 'he' ? 'he-IL' : 'en-GB';
+  const day = d.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEnd, occupied) {
@@ -189,10 +199,6 @@ export default function BookingPublic() {
     return () => { alive = false; };
   }, [settings, weekOffset]);
 
-  // A slot picked in one week must not stay selected into another - the confirm
-  // panel used to sit under a different week's grid showing a date the visitor
-  // was no longer looking at.
-  useEffect(() => { setSelectedSlot(null); }, [weekOffset]);
 
   const slots = useMemo(() => {
     if (!settings) return [];
@@ -200,6 +206,18 @@ export default function BookingPublic() {
     const wEnd = new Date(wStart.getTime() + 7 * 86400000);
     return generateSlots(rules, settings.duration_min, settings.buffer_min, settings.lead_time_hours, wStart, wEnd, occupied);
   }, [rules, settings, weekOffset, occupied]);
+
+  // "WEEK OF2026-09-20" - a missing space and a raw ISO date on a page meant for
+  // clients. A week is easier to recognise by its span than by its Monday.
+  const weekLabel = useMemo(() => {
+    const a = startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000));
+    const b = new Date(a.getTime() + 6 * 86400000);
+    const loc = readLang() === 'he' ? 'he-IL' : 'en-GB';
+    const d = (x, withMonth) => x.toLocaleDateString(loc, withMonth ? { day: 'numeric', month: 'short' } : { day: 'numeric' });
+    const sameMonth = a.getMonth() === b.getMonth();
+    if (weekOffset === 0) return tr(readLang(), 'THIS WEEK') + ' · ' + d(a, !sameMonth) + ' – ' + d(b, true);
+    return d(a, !sameMonth) + ' – ' + d(b, true);
+  }, [weekOffset]);
 
   const groupedByDay = useMemo(() => {
     const out = {};
@@ -209,6 +227,60 @@ export default function BookingPublic() {
       out[key].push(s);
     }
     return out;
+  }, [slots]);
+
+  // THE NEXT REAL OPENING, looked for only when this week has none.
+  //
+  // One extra RPC, 8 weeks wide, run lazily - the common case (a week with
+  // slots) costs nothing. Generating slots week by week against the same rules
+  // the grid uses means the answer is the same answer, not an estimate.
+  const [nextOpen, setNextOpen] = useState(null);
+  const [searchedAhead, setSearchedAhead] = useState(false);
+  // A REF, NOT STATE. As state it was a dependency of the clear-on-week-change
+  // effect below, so the moment the pick was consumed and set back to null that
+  // effect re-ran and wiped the very selection the jump had just made - the
+  // week changed correctly and nothing was selected.
+  const pendingPickRef = useRef(null);
+  const weekIsEmpty = Object.keys(groupedByDay).length === 0;
+  useEffect(() => {
+    if (!settings || !weekIsEmpty) { setNextOpen(null); setSearchedAhead(false); return; }
+    let alive = true;
+    (async () => {
+      const from = startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000));
+      const to = new Date(from.getTime() + 8 * 7 * 86400000);
+      const { data: occ } = await supabase.rpc('get_occupied_slots', {
+        p_coach_email: settings.coach_email,
+        p_from: new Date(from.getTime() - 86400000).toISOString(),
+        p_to: to.toISOString(),
+      });
+      if (!alive) return;
+      for (let w = weekOffset + 1; w <= weekOffset + 8; w++) {
+        const a = startOfWeek(new Date(Date.now() + w * 7 * 86400000));
+        const found = generateSlots(rules, settings.duration_min, settings.buffer_min,
+          settings.lead_time_hours, a, new Date(a.getTime() + 7 * 86400000), occ || []);
+        if (found.length) { setNextOpen({ offset: w, at: found[0] }); setSearchedAhead(true); return; }
+      }
+      setNextOpen(null); setSearchedAhead(true);
+    })();
+    return () => { alive = false; };
+  }, [settings, rules, weekOffset, weekIsEmpty]);
+
+
+  // A slot picked in one week must not stay selected into another - the confirm
+  // panel used to sit under a different week's grid showing a date the visitor
+  // was no longer looking at.
+  // ...unless the week changed BECAUSE the visitor tapped "next opening", in
+  // which case the pick is the whole point of the jump. React runs effects in
+  // declaration order within a commit, so without this guard the clear below
+  // would undo the selection the jump had just made.
+  useEffect(() => { if (pendingPickRef.current == null) setSelectedSlot(null); }, [weekOffset]);
+
+  // Jumping to the next opening should land on it, not just on its week.
+  useEffect(() => {
+    const want = pendingPickRef.current;
+    if (want == null) return;
+    const hit = slots.find((x) => x.getTime() === want);
+    if (hit) { setSelectedSlot(hit); pendingPickRef.current = null; }
   }, [slots]);
 
   const submit = async () => {
@@ -267,7 +339,7 @@ export default function BookingPublic() {
         <div style={{ padding: 30, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 16 }}>✓ {tr(readLang(), 'BOOKED')}</div>
           <div style={{ fontSize: 16, color: C.tx, marginBottom: 8 }}>
-            {confirmation.when.toLocaleDateString('en-GB')} · {pad(confirmation.when.getHours())}:{pad(confirmation.when.getMinutes())}
+            {prettyWhen(confirmation.when)}
           </div>
           <div style={{ fontSize: 13, color: C.tm, marginBottom: 16 }}>
             with {settings.display_name || 'your coach'}
@@ -292,13 +364,23 @@ export default function BookingPublic() {
         <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 18, color: C.tx, letterSpacing: '0.02em' }}>
           {settings.display_name || 'Book a session'}
         </h1>
-        {settings.bio && <p style={{ margin: '0 0 14px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
+        {settings.bio && <p style={{ margin: '0 0 12px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
+        {/* WHAT THE SESSION IS, before they are asked to pick a time. The page
+            used to open straight onto a week grid: a stranger was choosing an
+            hour without being told how long it runs or where it happens. */}
+        <div className="bk-facts">
+          <span><b>{settings.duration_min || 60}</b> {tr(readLang(), 'minutes')}</span>
+          <span>{settings.zoom_url ? tr(readLang(), 'Online session') : tr(readLang(), 'In person')}</span>
+          {settings.lead_time_hours > 0 && (
+            <span>{tr(readLang(), 'Book at least')} {settings.lead_time_hours}{tr(readLang(), 'h ahead')}</span>
+          )}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em' }}>
           <button onClick={() => setWeekOffset(o => Math.max(0, o - 1))} disabled={weekOffset === 0}
-            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← {tr(readLang(), 'PREV')}</button>
-          <span style={{ flex: 1, textAlign: 'center' }}>{tr(readLang(), 'WEEK OF')}{ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
+            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: weekOffset === 0 ? '1px solid transparent' : `1px solid ${C.ac}`, color: weekOffset === 0 ? C.td : C.ac, opacity: weekOffset === 0 ? 0.45 : 1, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← {tr(readLang(), 'PREV')}</button>
+          <span style={{ flex: 1, textAlign: 'center' }}>{weekLabel}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
-            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
+            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
         </div>
 
         {/* SAY WHICH CLOCK. Every time on this page is rendered with the
@@ -312,7 +394,29 @@ export default function BookingPublic() {
         </div>
 
         {Object.keys(groupedByDay).length === 0 ? (
-          <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'No available slots this week. Try next week →')}</div>
+          /* AN EMPTY WEEK MUST NOT BE A DEAD END.
+             It used to say "try next week" and leave the visitor clicking NEXT
+             and guessing. With one availability rule (Mondays) that is the most
+             likely first impression of the whole page. It now finds the next
+             real opening and offers it as one tap. */
+          <div style={{ padding: '26px 8px', textAlign: 'center' }}>
+            <div style={{ color: C.td, fontSize: 13, marginBottom: nextOpen ? 14 : 0 }}>
+              {tr(readLang(), 'Nothing free this week.')}
+            </div>
+            {nextOpen && (
+              <button onClick={() => { pendingPickRef.current = nextOpen.at.getTime(); setWeekOffset(nextOpen.offset); }}
+                style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0,
+                  padding: '0 16px', minHeight: 'var(--btn-h)', fontFamily: FN, fontSize: 11.5, fontWeight: 700,
+                  letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                {tr(readLang(), 'Next opening')} · {nextOpen.at.toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} {pad(nextOpen.at.getHours())}:{pad(nextOpen.at.getMinutes())} →
+              </button>
+            )}
+            {!nextOpen && searchedAhead && (
+              <div style={{ color: C.td, fontSize: 12.5, marginTop: 6 }}>
+                {tr(readLang(), 'No openings in the next 8 weeks — message us and we will find a time.')}
+              </div>
+            )}
+          </div>
         ) : Object.entries(groupedByDay).map(([day, daySlots]) => (
           <div key={day} style={{ marginBottom: 14 }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 6 }}>
@@ -338,9 +442,9 @@ export default function BookingPublic() {
 
         {selectedSlot && (
           <div style={{ marginTop: 20, padding: 14, background: 'var(--c-sf)', border: `1px solid ${C.ac}` }}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>{tr(readLang(), 'CONFIRM ·')}{selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>{tr(readLang(), 'Confirm')} · {prettyWhen(selectedSlot)}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8, marginBottom: 8 }}>
               <input placeholder={tr(readLang(), 'Your name *')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                 style={inputStyle} />
               <input placeholder={tr(readLang(), 'Email')} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
