@@ -16,8 +16,9 @@ Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found al
 |------|-----------|-------|
 | `/` (browser) | `EntryChooser` | split-screen SIGN IN / FOR COACHES. PWA → `LoginScreen` |
 | `/login` | `LoginScreen` | dual-role; fallback for any unmatched authed path |
-| `/demo`, `/demo/` | `CoachLanding` (en) | SaaS marketing landing + waitlist. `/coaches*` legacy → redirects here |
+| `/demo`, `/demo/` | `CoachLanding` (follows the reader) | SaaS marketing landing + waitlist. Renders in the language the visitor is already reading the app in (`readLang()`), which falls back to the browser language and then to English. `/coaches*` legacy -> redirects here |
 | `/demo/he`, `/he/demo` | `CoachLanding` (he) | Hebrew landing (`/he/demo` redirects to `/demo/he`) |
+| `/demo/en`, `/demo/en/` | `CoachLanding` (en) | English landing, forced. The counterpart of `/demo/he`, for sharing one language on purpose |
 | `/demo/coach`, `/demo/coach/*` | `CoachDemo` | full coach-side tour, all mock data |
 | `/demo/athlete`, `/demo/trainee` | `DemoTraineePortal` | real `ClientPortal` in `demoMode` + fixture data |
 | `/demo/sandbox` | `TrySandbox` (pov=trainee) | legacy alias |
