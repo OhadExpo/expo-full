@@ -19,7 +19,11 @@ const ROUTES = process.argv.length > 4 ? process.argv.slice(4) : [
 
 const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), protocolTimeout: 180000 });
 const page = await b.newPage();
-await setWidth(page, 1440, 950);
+// WIDTH from the environment. The sweep only ever ran at 1440, and a theme
+// fault that only exists in the phone layout (a strip that becomes a column,
+// a chip that wraps onto a different background) could never be seen there.
+const W = Number(process.env.W) || 1440;
+await setWidth(page, W, W < 700 ? 844 : 950);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Load the route with ?theme=… so public/boot-theme.js applies it BEFORE paint.
@@ -29,7 +33,16 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // completely meaningless.
 // Sample the element count and document height until two consecutive samples
 // agree. Cheap, and it is the actual property that matters: nothing has moved.
-const settle = async (tries = 15, gapMs = 350) => {
+//
+// AND IT SAYS WHEN IT GAVE UP. The first version returned the last sample after
+// 15 tries with no signal that the page had never stopped moving, so the
+// comparison went ahead on a half-rendered page and reported it as drift.
+// Measured 22.9 at 390: /coach/review-tools came back moved=2, countDelta=-93,
+// root 844 tall in dark and 950 in light — which is not a theme fault at all,
+// it is the pose lab still mounting in one of the two passes. A phantom finding
+// is worse than no finding: it is indistinguishable from a real one.
+let settledOk = true;
+const settle = async (tries = 26, gapMs = 400) => {
   let prev = null;
   for (let i = 0; i < tries; i++) {
     const sig = await page.evaluate(() => document.querySelectorAll('*').length + ':' + Math.round(document.body.scrollHeight) + ':' + Math.round(document.body.scrollWidth));
@@ -37,10 +50,13 @@ const settle = async (tries = 15, gapMs = 350) => {
     prev = sig;
     await wait(gapMs);
   }
+  settledOk = false;
   return prev;
 };
 
 const loadIn = async (route, theme) => {
+  // settledOk is per ROUTE: it is cleared before the dark pass and read after the
+  // light one, so either pass failing to settle disqualifies the comparison.
   const url = `${BASE}${route}${route.includes('?') ? '&' : '?'}theme=${theme}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
   await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
@@ -158,6 +174,7 @@ if (ROUTES.length) {
 const report = [];
 for (const route of ROUTES) {
   try {
+    settledOk = true;                 // per route; either pass failing clears it
     const dInfo = await loadIn(route, 'dark');
     const gDark = await settledGeometry();
     const cDark = await contrast();
@@ -202,8 +219,11 @@ for (const route of ROUTES) {
     const onlyDark = Object.keys(gDark).length - Object.keys(gLight).length;
     const noisy = noise.size;
 
-    const status = (moved.length || cLight.length || cDark.length) ? 'DRIFT' : 'ok';
-    console.log(`${status.padEnd(6)} ${route.padEnd(26)} moved=${moved.length} countDelta=${onlyDark} noise=${noisy} lowContrast(light)=${cLight.length} (dark)=${cDark.length}`);
+    // UNSETTLED is not DRIFT. If either pass never stopped mutating, the two
+    // samples are of two different pages and any difference between them says
+    // nothing about the theme.
+    const status = !settledOk ? 'UNSET' : ((moved.length || cLight.length || cDark.length) ? 'DRIFT' : 'ok');
+    console.log(`${status.padEnd(6)} ${route.padEnd(26)} ${!settledOk ? 'the page never stopped changing — NOT COMPARED' : `moved=${moved.length} countDelta=${onlyDark} noise=${noisy} lowContrast(light)=${cLight.length} (dark)=${cDark.length}`}`);
     if (moved.length) console.log('        worst:', JSON.stringify(moved.slice(0, 2)));
     if (cLight.length) console.log('        light:', JSON.stringify(cLight.slice(0, 3)));
     if (cDark.length) console.log('        dark: ', JSON.stringify(cDark.slice(0, 3)));
