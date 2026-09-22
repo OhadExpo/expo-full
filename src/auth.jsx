@@ -330,6 +330,52 @@ const netMessage = (e) => {
   return raw ? `${tr(readLang(), 'Connection error:')} ${raw}` : tr(readLang(), 'Connection error. Try again.');
 };
 
+// WHERE AN OAUTH ROUND-TRIP STARTED, so the return leg can say what went wrong.
+// sessionStorage on purpose: it is per-tab and per-window, which is precisely
+// the thing being tested — if the code comes back to a window that never set
+// this, the flow changed browsers and PKCE cannot possibly complete.
+const OAUTH_STARTED_KEY = 'expo-oauth-started';
+
+// READ THE URL ONCE, AT IMPORT, BEFORE ANYONE CLEANS IT.
+//
+// supabase-js with detectSessionInUrl strips ?code= from the address bar as
+// soon as it has read it. A component effect that looks for the payload on
+// mount therefore races it and usually loses: the first break test of this
+// diagnostic cleared the URL and then showed no message at all, because by the
+// time the effect re-ran there was nothing left to find. App.jsx already
+// solves this the same way with CAME_BACK_FROM_OAUTH; importing that here
+// would be a cycle, so it is computed again, once.
+const RETURNED_FROM_OAUTH = (() => {
+  try {
+    if (typeof window === 'undefined') return false;
+    return /[?&](code|token_hash)=/.test(window.location.search || '')
+      || /(access_token|refresh_token)=/.test(window.location.hash || '');
+  } catch { return false; }
+})();
+
+// GOOGLE REFUSES TO SIGN ANYONE IN INSIDE AN IN-APP BROWSER.
+//
+// #154, "every platform available on earth". Google's policy blocks OAuth in
+// embedded user-agents and answers 403 disallowed_useragent — so a prospect who
+// taps an EXPO link from Instagram, Facebook, TikTok or WhatsApp's own browser
+// gets a Google error page, not a sign-in. Nothing in the app said so; it just
+// sent them there. The markers are the vendor's own UA tokens, plus `wv` which
+// is how an Android WebView identifies itself.
+const EMBEDDED_BROWSER = /(FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|MicroMessenger|Snapchat|Twitter|; ?wv\))/i;
+export function inEmbeddedBrowser() {
+  try { return EMBEDDED_BROWSER.test(navigator.userAgent || ''); } catch { return false; }
+}
+
+// Is this the INSTALLED app rather than a browser tab? Both spellings: the
+// media query is the standard, navigator.standalone is iOS's older one.
+export function isStandalone() {
+  try {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.navigator && window.navigator.standalone) return true;
+  } catch { /* no matchMedia */ }
+  return false;
+}
+
 export function LoginScreen({ brand = 'expo' } = {}) {
   const bc = LOGIN_BRANDS[brand] || null;
   const AC = bc ? bc.accent : C.ac;
@@ -382,8 +428,54 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   // install button (adversarial-review H1: two surfaces sharing one non-reusable
   // event silently broke the post-login install).
 
+  // THE RETURN LEG SAYS WHAT HAPPENED.
+  //
+  // #137/#154. Ohad, 21.9, on the installed app: "sign in with google isnt
+  // working" — and the screen he photographed was just the login screen again.
+  // That is the whole failure mode: supabase-js uses PKCE, the code that comes
+  // back can only be exchanged by the storage that holds the verifier, and when
+  // it cannot be exchanged nothing anywhere says so. The user taps Google,
+  // watches Google succeed, and lands back where they started.
+  //
+  // If this component is still mounted with an auth payload in the URL, the
+  // exchange did not produce a session — LoginScreen only renders when there is
+  // none. So: name the cause, and give them a way through.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!RETURNED_FROM_OAUTH) return;
+    let started = null;
+    try { started = JSON.parse(sessionStorage.getItem(OAUTH_STARTED_KEY) || 'null'); } catch { /* blocked */ }
+    const id = setTimeout(() => {
+      // Still here, with a code in the URL: the exchange failed.
+      if (!started) {
+        // Nothing in THIS window started it, so the flow finished somewhere
+        // else. PKCE cannot complete across that gap, by design.
+        setError(tt('Google sent you back to a different window than the one you started in, so the sign-in could not finish. Open EXPO the same way you started — app or browser — and try again, or use your email and password below.'));
+      } else if (started.standalone !== isStandalone()) {
+        // TWO WHOLE SENTENCES, not one with a slot in it. Hebrew needs the
+        // preposition attached to the word (באפליקציה / בדפדפן), so a
+        // templated "in the {a}" cannot be translated without mangling it.
+        setError(started.standalone
+          ? tt('The sign-in started in the installed app and came back to the browser, so it could not finish. Open the app and try again there, or use your email and password below.')
+          : tt('The sign-in started in the browser and came back to the installed app, so it could not finish. Try again in the browser, or use your email and password below.'));
+      } else {
+        setError(tt('Google signed you in but EXPO could not finish it. Try again, or use your email and password below.'));
+      }
+      try { sessionStorage.removeItem(OAUTH_STARTED_KEY); } catch { /* blocked */ }
+      // Drop the spent code so a refresh is a clean attempt, not a replay.
+      try { window.history.replaceState(null, '', window.location.pathname); } catch { /* blocked */ }
+    }, 9000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleOAuth = async (provider) => {
     setError('');
+    // Say it BEFORE the round trip, not after Google has refused.
+    if (inEmbeddedBrowser()) {
+      setError(tt('This is an in-app browser, and Google will not sign you in here. Open this page in Chrome or Safari, or use your email and password below.'));
+      return;
+    }
     setSubmitting(true);
     try {
       // skipBrowserRedirect lets us handle the redirect manually; without it
@@ -399,16 +491,29 @@ export function LoginScreen({ brand = 'expo' } = {}) {
       });
       if (authError) { setError(authError.message); setSubmitting(false); return; }
       if (!data?.url) { setError(`${provider} ${tt('sign-in is not configured yet.')}`); setSubmitting(false); return; }
-      // Pre-flight: HEAD the authorize URL to detect "provider not enabled"
-      // before redirecting. Supabase returns 400 JSON in that case.
+      // THE PRE-FLIGHT PROBE IS GONE. It fetched the authorize URL to catch
+      // "provider not enabled" early, and it could never work: the URL is
+      // cross-origin, so with redirect:'manual' the response is an
+      // opaqueredirect with status 0 (never >= 400), and a real 400 rejects
+      // the fetch outright and lands in the empty catch. Either way it fell
+      // through to the redirect. What it DID do was start a second authorize
+      // round-trip on every sign-in attempt, from a page that is about to
+      // navigate away — pure latency on the slowest moment of the flow.
+      //
+      // REMEMBER WHERE THE FLOW STARTED. Supabase uses PKCE, so the code that
+      // comes back can only be exchanged by the browser storage that holds the
+      // verifier. If the round-trip completes somewhere else — an installed
+      // PWA handing off to the browser, or the other way round — the exchange
+      // fails and the app just shows the login screen again with no reason
+      // given, which is exactly what Ohad photographed on 21.9 (#137/#154).
+      // This breadcrumb is what the return leg reads to say so.
       try {
-        const probe = await fetch(data.url, { method: 'GET', redirect: 'manual' });
-        if (probe.status >= 400 && probe.status < 500) {
-          let msg = `${provider} sign-in is not configured.`;
-          try { const body = await probe.json(); if (body?.msg) msg = body.msg; } catch {}
-          setError(msg); setSubmitting(false); return;
-        }
-      } catch {} // Opaque/CORS failures are fine — the real redirect will work.
+        sessionStorage.setItem(OAUTH_STARTED_KEY, JSON.stringify({
+          at: Date.now(),
+          provider,
+          standalone: isStandalone(),
+        }));
+      } catch { /* storage blocked — the flow still works, the diagnosis does not */ }
       window.location.href = data.url;
     } catch (e) {
       setError(netMessage(e));

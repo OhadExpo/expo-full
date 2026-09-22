@@ -529,10 +529,16 @@ export const HE = {
   // The public booking page's standing footer (#144/#145). Spoken, second
   // person, masculine singular - a client is reading it, not a form.
   "AFTER YOU BOOK": "אחרי שתקבע",
+  "This is an in-app browser, and Google will not sign you in here. Open this page in Chrome or Safari, or use your email and password below.": "זה דפדפן של אפליקציה אחרת, וגוגל לא תכניס אותך מפה. תפתח את הדף בכרום או בספארי, או תיכנס עם מייל וסיסמה למטה.",
+  // #154. What a failed Google round-trip says instead of silently showing
+  // the login screen again. Spoken, second person, masculine singular.
+  "Google sent you back to a different window than the one you started in, so the sign-in could not finish. Open EXPO the same way you started — app or browser — and try again, or use your email and password below.": "גוגל החזיר אותך לחלון אחר מזה שבו התחלת, ולכן הכניסה לא הושלמה. תפתח את EXPO באותה דרך שהתחלת — אפליקציה או דפדפן — ותנסה שוב, או תיכנס עם מייל וסיסמה למטה.",
+  "The sign-in started in the installed app and came back to the browser, so it could not finish. Open the app and try again there, or use your email and password below.": "הכניסה התחילה באפליקציה וחזרה לדפדפן, ולכן היא לא הושלמה. תפתח את האפליקציה ותנסה שוב משם, או תיכנס עם מייל וסיסמה למטה.",
+  "The sign-in started in the browser and came back to the installed app, so it could not finish. Try again in the browser, or use your email and password below.": "הכניסה התחילה בדפדפן וחזרה לאפליקציה, ולכן היא לא הושלמה. תנסה שוב מהדפדפן, או תיכנס עם מייל וסיסמה למטה.",
+  "Google signed you in but EXPO could not finish it. Try again, or use your email and password below.": "גוגל אישר אותך אבל EXPO לא הצליחה לסגור את הכניסה. תנסה שוב, או תיכנס עם מייל וסיסמה למטה.",
   // The four values bookings_status_check allows, as the coach's list shows them.
   "CONFIRMED": "נקבע",
   "BUSY": "תפוס",
-  "CANCELED": "בוטל",
   "COMPLETED": "התקיים",
   "The time is yours. It is already in my calendar — nobody needs to confirm it.": "הזמן שלך. זה כבר ביומן שלי — אף אחד לא צריך לאשר את זה.",
   "You get a confirmation on this screen, with a file you can add straight to your calendar.": "מופיע לך אישור על המסך, עם קובץ שאפשר להוסיף ישיר ליומן שלך.",
