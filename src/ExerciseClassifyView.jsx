@@ -65,7 +65,10 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1150, margin: '0 auto', padding: '4px 0 60px' }}>
       <Card leftStripe={C.ac} header={tt('Classify Library')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: '#fff' }}>{items.length} {tt('unclassified')}</span>
+          {/* --c-stripTx: this sits on the header strip, which is #E3F4FE in light.
+              Measured 1.39:1 by light-dark-parity once /coach/exercise-classify
+              was added to its routes. */}
+          <span style={{ ...th, color: 'var(--c-stripTx)' }}>{items.length} {tt('unclassified')}</span>
           <Btn variant="ghost" onClick={acceptAllComplete}>{tt('Fill all fully-guessed')}</Btn>
           <Btn disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ background: pending.length ? C.ac : undefined, borderColor: pending.length ? C.ac : undefined, color: pending.length ? '#04121f' : undefined }}>
             {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}

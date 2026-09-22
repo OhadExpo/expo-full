@@ -10,12 +10,18 @@ import { CONTRAST_FN } from './lib/contrast.mjs';
 
 const OUT = process.env.AUDIT_OUT || (process.argv[2] || '.');
 const BASE = process.argv[3] || 'http://localhost:5199';
-const ROUTES = process.argv.length > 4 ? process.argv.slice(4) : [
-  '/coach/dashboard', '/coach/athletes', '/coach/programs', '/coach/exercises',
-  '/coach/exercise-matching', '/coach/exercise-cleanup', '/coach/review',
-  '/coach/review-tools', '/coach/workouts', '/coach/sessions', '/coach/tasks',
-  '/coach/billing', '/coach/bhbc', '/athlete', '/demo/coach', '/demo/athlete', '/try',
-];
+// THE ROUTES COME FROM THE MANIFEST, not from a list that falls behind it.
+// A hand-written list had 17 entries while docs/SURFACES.md names 23 coach
+// routes, and /coach/calendar was one of the six it never covered — which is
+// exactly where a white button on a pale-cyan strip survived all day.
+const coachRoutes = () => {
+  try {
+    const md = fs.readFileSync('docs/SURFACES.md', 'utf8');
+    return [...new Set([...md.matchAll(/`(\/coach(?![a-z])[a-z0-9/-]*)`/gi)].map((m) => m[1]))].filter((r) => !/:|\/$/.test(r));
+  } catch (e) { return ['/coach/dashboard']; }
+};
+const ROUTES = process.argv.length > 4 ? process.argv.slice(4)
+  : [...coachRoutes(), '/athlete', '/demo/coach', '/demo/athlete', '/try'];
 
 const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), protocolTimeout: 180000 });
 const page = await b.newPage();
@@ -45,7 +51,18 @@ let settledOk = true;
 const settle = async (tries = 26, gapMs = 400) => {
   let prev = null;
   for (let i = 0; i < tries; i++) {
-    const sig = await page.evaluate(() => document.querySelectorAll('*').length + ':' + Math.round(document.body.scrollHeight) + ':' + Math.round(document.body.scrollWidth));
+    // AND NOTHING IS STILL ANIMATING. Element count and page height both go
+    // still while a section is part-way through its 260ms grid-template-rows
+    // transition, so the old signature could call a page settled mid-animation
+    // — /coach/dashboard reported moved=20 with a 1517px delta once in four
+    // runs and was clean the other three. getAnimations() is the actual signal.
+    const sig = await page.evaluate(() => {
+      const running = document.getAnimations
+        ? document.getAnimations().filter((a) => a.playState === 'running').length
+        : 0;
+      return document.querySelectorAll('*').length + ':' + Math.round(document.body.scrollHeight)
+        + ':' + Math.round(document.body.scrollWidth) + ':anim' + running;
+    });
     if (sig === prev) return sig;
     prev = sig;
     await wait(gapMs);

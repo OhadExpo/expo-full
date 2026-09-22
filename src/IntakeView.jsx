@@ -181,7 +181,9 @@ export default function IntakeView({ trainees }) {
       {/* Header — counts + Generate Link CTA */}
       <div style={{ marginBottom: 18, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}` }}>
         <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('INTAKE')}</SectionLabel>
+          {/* --c-stripTx, not white: the strip is #E3F4FE in light and this read at
+              1.13:1 — the section's own title, invisible. */}
+          <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('INTAKE')}</SectionLabel>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>

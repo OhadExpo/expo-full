@@ -41,4 +41,24 @@ export function langForName(name, uiLang = 'en') {
 // come out "אוהד היי" (17.9: it did).
 export const dirForName = (name, uiLang = 'en') => (langForName(name, uiLang) === 'he' ? 'rtl' : 'ltr');
 
+// A LINE MUST NOT END ON A SEPARATOR.
+//
+// Ohad's DANGLE rule, and the OCD sweep counts them: "THIS MONTH ·" wrapping so
+// the dot is the last glyph on the line, "BB Zercher RDL (W1-2) |", "Gym ·".
+// Twenty across the platform at 390.
+//
+// The fix is a break OPPORTUNITY, not a rewrite: bind the separator to the word
+// that FOLLOWS it by making the space after it non-breaking. "A · B" can then
+// still wrap — before the dot — but can never leave the dot stranded at the end
+// of a line. The text reads identically; only where it may break changes.
+//
+// Display only. It puts U+00A0 in the string, so never feed the result to
+// anything that compares, searches or stores text — pass the original there.
+const SEPARATORS = '·|/–—';
+export function noDangle(text) {
+  const t = String(text == null ? '' : text);
+  if (!t) return t;
+  return t.replace(new RegExp('([' + SEPARATORS + '])[ \t]+', 'g'), '$1 ');
+}
+
 export default isHebrew;

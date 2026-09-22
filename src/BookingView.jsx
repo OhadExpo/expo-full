@@ -324,9 +324,15 @@ export default function BookingView({ trainees }) {
       </CollapsibleSection>
 
       {/* AVAILABILITY */}
+      {/* --c-stripTx, not #FFFFFF, on the + ADD RULE button below.
+          stripBtnBase is transparent and the button sits on the header strip,
+          whose background in LIGHT is #E3F4FE — so a white button was a white
+          control on pale cyan. Third instance of that bug today (the dashboard
+          and plan-editor chevrons were the other two), and this one survived
+          because /coach/calendar was not in the light/dark sweep's routes. */}
       <CollapsibleSection title={tt('Weekly Availability')} count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
         right={<button onClick={addRule}
-          style={{ ...stripBtnBase, border: '1px solid #FFFFFF', color: '#FFFFFF' }}>{tb('+ ADD RULE')}</button>}>
+          style={{ ...stripBtnBase, border: '1px solid var(--c-stripTx)', color: 'var(--c-stripTx)' }}>{tb('+ ADD RULE')}</button>}>
         {/* WHAT THE CALENDAR ALREADY OWNS. The rules say when he CAN be booked;
             his calendar says when he already is. Both have to be true before a
             slot is offered to a stranger. */}
