@@ -526,6 +526,12 @@ export const HE = {
   // "לא מוקצה" — the plan is not assigned to anyone yet.
   "Unassigned / other": "לא משויך / אחר",
   "Club": "מועדון",
+  // The public booking page's standing footer (#144/#145). Spoken, second
+  // person, masculine singular - a client is reading it, not a form.
+  "AFTER YOU BOOK": "אחרי שתקבע",
+  "You get a confirmation on this screen, with a file you can add straight to your calendar.": "מופיע לך אישור על המסך, עם קובץ שאפשר להוסיף ישיר ליומן שלך.",
+  "It lands in my calendar at the same moment — no one has to confirm it by hand.": "זה נכנס ליומן שלי באותו רגע — אף אחד לא צריך לאשר ידנית.",
+  "Need to cancel? The confirmation carries a cancel link. One tap, no message needed.": "צריך לבטל? באישור יש קישור ביטול. לחיצה אחת, בלי לשלוח הודעה.",
   // Exercise-matching reason codes. The word-level diffs beside them
   // ("+single +arm", "machine↔cable") quote the English exercise words
   // themselves and must NOT be translated - tr() returns an unknown key

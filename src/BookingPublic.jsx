@@ -601,6 +601,43 @@ export default function BookingPublic() {
             )}
           </div>
         )}
+
+        {/* WHAT HAPPENS AFTER YOU BOOK — always on, not only after a slot is
+            picked.
+            Two reasons. The obvious one: a first-time visitor is being asked to
+            hand over a name and a phone number with nothing on the page saying
+            what comes back. The policy was written and it only appeared AFTER
+            they had already chosen a time, which is the wrong order.
+            The other is what the page looks like. With one availability rule the
+            most likely first view is an empty week, and at 390 that view ended
+            360px down a 844px screen — the bottom 57% of a client-facing page
+            was nothing at all. This is not padding: it is the three facts a
+            client needs, in the space that was empty. */}
+        <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${C.cardBd}` }}>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', fontWeight: 700, marginBottom: 10 }}>
+            {tr(readLang(), 'AFTER YOU BOOK')}
+          </div>
+          {/* Dots, not <ol> numerals. An ordered list's marker is bidi-neutral,
+              so in an RTL line "1." renders with the period leading and reads as
+              a Hebrew letter, not a number — photographed at 390, the first
+              marker came out as ".ו". These are three facts, not a sequence
+              anyone counts, so the number was carrying nothing. */}
+          <div style={{ display: 'grid', gap: 7 }}>
+            {[
+              'You get a confirmation on this screen, with a file you can add straight to your calendar.',
+              'It lands in my calendar at the same moment — no one has to confirm it by hand.',
+              'Need to cancel? The confirmation carries a cancel link. One tap, no message needed.',
+            ].map((k) => (
+              <div key={k} style={{ display: 'flex', gap: 9, alignItems: 'baseline', color: C.td, fontSize: 12.5, lineHeight: 1.6 }}>
+                <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: C.ac, flexShrink: 0, transform: 'translateY(-2px)' }} />
+                <span style={{ minWidth: 0 }}>{tr(readLang(), k)}</span>
+              </div>
+            ))}
+          </div>
+          {settings.cancellation_policy && (
+            <div style={{ marginTop: 12, fontSize: 11.5, color: C.td, lineHeight: 1.55 }}>{settings.cancellation_policy}</div>
+          )}
+        </div>
       </div>
     </Wrapper>
   );
