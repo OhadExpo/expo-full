@@ -28,6 +28,7 @@ import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
 import { LangCtx, BodyLang } from './i18n';
+import { isClubAthlete } from './clubAthlete';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -416,8 +417,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const canLog = (!asCoach || canLogLoad) && !previewCoach;
   const effCanMedical = canMedical && !previewCoach;
 
+  // THE LAST PLACE WITH ITS OWN CLUB PREDICATE, and it was the narrow one.
+  //
+  // `team === 'BHBC'` is what Manage roster writes today. Fifteen athletes carry
+  // a club tag; only ten carry THAT one. The other five — tagged by an older
+  // import path with format/branch 'Bnei Herzliya' — were filtered out of the
+  // zone's roster while their logged sessions stayed in it, so the club's own
+  // session cards rendered their names as the fallback string "המתאמן לא ברשימה
+  // הזאת". Photographed at 390 on the אימונים tab, twice on one card.
+  // Counted in production 22.9: team 10, format 15, branch 2, club-but-not-team 5.
   const roster = useMemo(
-    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
+    () => trainees.filter((t) => isClubAthlete(t) && t.status !== 'Archived')
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
     [trainees]
   );
@@ -1509,7 +1519,7 @@ function attendance28(rec, days) {
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('Logs each athlete’s work to their history & portal — synced with EXPO.')}</span>
                 </div>
                 <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: C.td, fontFamily: FB }}>{tr('Loading session logger…')}</div>}>
-                  <SessionsView mode={sessionMode} trainees={roster} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={onDecrementSession} />
+                  <SessionsView mode={sessionMode} rosterOnly trainees={roster} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={onDecrementSession} />
                 </Suspense>
               </>
             )}

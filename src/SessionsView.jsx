@@ -76,7 +76,7 @@ function InlineVideo({ url }) {
 // SESSIONS — the mode comes from the nav dropdown (Sessions ▾ → Group | Single),
 // not an in-page menu. GROUP = 4–7 grid (big-screen, no camera). SINGLE = the
 // existing coach logger + the camera/Movement tools for the 1-on-1.
-export default function SessionsView({ mode = 'group', ...props }) {
+export default function SessionsView({ mode = 'group', rosterOnly = false, ...props }) {
   if (mode === 'single') {
     return (
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -88,10 +88,10 @@ export default function SessionsView({ mode = 'group', ...props }) {
       </div>
     );
   }
-  return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} clientWorkouts={props.clientWorkouts} setClientWorkouts={props.setClientWorkouts} workouts={props.workouts} />;
+  return <GroupSessions rosterOnly={rosterOnly} trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} clientWorkouts={props.clientWorkouts} setClientWorkouts={props.setClientWorkouts} workouts={props.workouts} />;
 }
 
-function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], onBack }) {
+function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], onBack, rosterOnly = false }) {
   const tt = useAppT();
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
@@ -566,12 +566,27 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   }
 
   // ---- live floor (no camera tools here — group runs on a shared screen) ----
-  const checkedIn = session.athletes.filter(a => a.checkedIn).length;
+  // ONE LIVE SESSION, TWO SURFACES. The active session is a single store key
+  // (expo-gym-session), and this component is mounted both on /coach/sessions —
+  // where `trainees` is the whole roster — and inside the club zone, where it is
+  // the Bnei Herzliya squad. So a session started with a PRIVATE client was
+  // rendering inside the club zone, on a tab the club's own staff seat can open.
+  // Its name came out as the fallback string "Athlete not on this roster",
+  // which is how it was found (photographed at 390, 22.9) and is also the only
+  // reason the name was not simply on display there.
+  //
+  // rosterOnly drops athletes the mounted roster does not contain, rather than
+  // naming them. The session itself is untouched — /coach/sessions still shows
+  // every athlete on the floor.
+  const visibleAthletes = rosterOnly
+    ? session.athletes.filter((a) => traineeById[a.traineeId])
+    : session.athletes;
+  const checkedIn = visibleAthletes.filter(a => a.checkedIn).length;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <FloorBar session={session} checkedIn={checkedIn} traineeById={traineeById}
+      <FloorBar session={session} athletes={visibleAthletes} checkedIn={checkedIn} traineeById={traineeById}
         onAdd={() => setPicking(true)} onFinish={finishSession} />
-      {session.athletes.length === 0 ? (
+      {visibleAthletes.length === 0 ? (
         // Empty floor — guide the coach to add athletes instead of a blank box.
         <div style={{ marginTop: 12, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', boxShadow: C.cardShadow, padding: '54px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
           <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
@@ -583,7 +598,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         </div>
       ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
-        {session.athletes.map((a, ai) => (
+        {visibleAthletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={traineeName(traineeById, a.traineeId, tt('Athlete not on this roster'))}
             prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}|${(Number(a.week) || 1) - 1}`]} exDetail={exDetail}
             onToggleIn={() => mutate(d => { const x = d.athletes.find(z => z.rowId === a.rowId); if (x) x.checkedIn = !x.checkedIn; })}
@@ -636,14 +651,18 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 // name them.
 const traineeName = (traineeById, id, fallback) => (traineeById && traineeById[id] && traineeById[id].name) || fallback;
 
-function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
+function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }) {
+  // `athletes` is the list the cards below are rendering, which in the club zone
+  // is the roster-scoped one. Reading session.athletes here instead left the
+  // private client's chip in the header after his card was gone.
+  const list = athletes || session.athletes;
   const tt = useAppT();
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
-            {tt('ON THE FLOOR')} · {checkedIn}/{session.athletes.length} {tt('CHECKED IN')}
+            {tt('ON THE FLOOR')} · {checkedIn}/{list.length} {tt('CHECKED IN')}
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
             <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
@@ -651,9 +670,9 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           </div>
         </div>
       </RefinedHeaderStrip>
-      {session.athletes.length > 0 && (
+      {list.length > 0 && (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 12 }}>
-        {session.athletes.map(a => {
+        {list.map(a => {
           const cur = a.exercises[a.curEx];
           return (
             // The fallback name is a SENTENCE, not a name - "Athlete not on this
