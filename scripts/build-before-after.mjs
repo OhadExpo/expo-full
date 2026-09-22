@@ -296,6 +296,33 @@ const PAIRS = [
     // The tally and the filter field - the two things that changed.
     crop: [0, 100, 390, 190],
   },
+  {
+    id: 'demo-hebrew',
+    title: 'The coach demo · 91 English strings on a page whose Hebrew was already written',
+    file: 'src/App.jsx',
+    // Both call sites — the route table is walked twice, once before the auth
+    // gate (so a signed-in coach can open the demo for a prospect) and once
+    // after. Undoing only one of them leaves the other serving the fix, and the
+    // "before" comes back identical to the "after".
+    undo: [['<CoachLanding lang={readLang()} />', '<CoachLanding lang="en" />']],
+    // appLang, not lang: `lang` sets the MARKETING site's language key. /demo is
+    // the app, and the whole point of the fix is that it now follows expo-lang.
+    url: APP + '/demo', w: 390, h: 900, appLang: 'he', built: true, mobile: true,
+    // The hero: the kicker, the headline and the first paragraph.
+    crop: [0, 60, 390, 330],
+  },
+  {
+    id: 'greeting-script',
+    title: 'Portal picker · "HEY אוהד" was two languages in four characters',
+    file: 'src/auth.jsx',
+    // Shot with the app in ENGLISH on purpose: that is the state where the bug
+    // showed. With the UI already Hebrew both versions render היי and the pair
+    // would prove nothing.
+    undo: [["direction: dirForName(name, readLang())", "direction: readLang() === 'he' ? 'rtl' : 'ltr'"],
+           ["tr(langForName(name, readLang()), 'HEY')", "tr(readLang(), 'HEY')"]],
+    url: APP + '/', w: 390, h: 800, appLang: 'en', auth: true, noPortalChoice: true, built: true, mobile: true,
+    crop: [0, 100, 390, 80],
+  },
 ];
 
 const only = process.argv.slice(2);
@@ -362,7 +389,9 @@ async function shoot(job, label) {
     // tap-targets pair photographed that picker twice and looked like a
     // working before/after of nothing. sessionStorage, because that is where
     // PORTAL_CHOICE_KEY lives (src/auth.jsx).
-    if (job.auth) await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); } catch (e) {} });
+    // noPortalChoice: the picker IS the view being photographed (the greeting
+    // lives on it), so pre-choosing a portal would skip straight past it.
+    if (job.auth && !job.noPortalChoice) await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); } catch (e) {} });
     await setWidth(pg, job.w, job.h);
     await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     if (job.cutBackend) {

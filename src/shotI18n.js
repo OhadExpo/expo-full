@@ -219,7 +219,7 @@ export const SHOT_I18N = {
       anyway: 'לנתח בכל זאת',
       keys: {
         'no-body': 'לא זוהה אף אחד',
-        'rarely-seen': 'לא כל הגוף בפריים',
+        'rarely-seen': 'נראה במעט מדי פריימים',
         'no-headroom': 'אין מקום מעל הראש',
         'head-cut': 'הראש חתוך',
         'too-far': 'רחוק מדי',
