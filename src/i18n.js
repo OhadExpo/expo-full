@@ -304,7 +304,7 @@ export const HE = {
   "CONFIRM ·": "אישור ·",
   "WEEK OF": "שבוע של",
   "Need to cancel?": "צריך לבטל?",
-  "That time is free again. You are welcome to book another.": "הזמן התפנה. אתם מוזמנים לקבוע מועד אחר.",
+  "That time is free again. You are welcome to book another.": "הזמן התפנה. אפשר לקבוע מועד אחר.",
   "Book another time": "לקבוע מועד אחר",
   "We could not cancel that one — it may have already passed. Please message us.": "לא הצלחנו לבטל — ייתכן שהמועד כבר עבר. כתבו לנו.",
   "minutes": "דקות",
@@ -529,6 +529,7 @@ export const HE = {
   // The public booking page's standing footer (#144/#145). Spoken, second
   // person, masculine singular - a client is reading it, not a form.
   "AFTER YOU BOOK": "אחרי שתקבע",
+  "The time is yours. It is already in my calendar — nobody needs to confirm it.": "הזמן שלך. זה כבר ביומן שלי — אף אחד לא צריך לאשר את זה.",
   "You get a confirmation on this screen, with a file you can add straight to your calendar.": "מופיע לך אישור על המסך, עם קובץ שאפשר להוסיף ישיר ליומן שלך.",
   "It lands in my calendar at the same moment — no one has to confirm it by hand.": "זה נכנס ליומן שלי באותו רגע — אף אחד לא צריך לאשר ידנית.",
   "Need to cancel? The confirmation carries a cancel link. One tap, no message needed.": "צריך לבטל? באישור יש קישור ביטול. לחיצה אחת, בלי לשלוח הודעה.",

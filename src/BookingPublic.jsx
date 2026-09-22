@@ -355,7 +355,30 @@ export default function BookingPublic() {
     if (!form.email.trim() && !form.phone.trim()) { toast('Please give us an email or phone so we can confirm.', 'error'); return; }
     setSubmitting(true);
     try {
+      // THE ID IS MADE HERE, NOT RETURNED.
+      //
+      // This was the bug that made the whole feature dead: the insert used
+      // `.select('id').single()`, and PostgREST's RETURNING needs a SELECT
+      // policy. Anon has none on `bookings` — correctly, because one would let
+      // any visitor read every client's name and phone number. So Postgres
+      // refused the RETURNING with 42501 "new row violates row-level security
+      // policy", the client saw the generic error, and no booking was ever
+      // written. Proven at the database: the same INSERT succeeds without
+      // RETURNING and fails with it.
+      //
+      // Generating the uuid here removes the need to read anything back. It is
+      // also the cancel token, so it must be unguessable — randomUUID is 122
+      // bits of CSPRNG. The Date.now fallback is only for a browser without
+      // crypto.randomUUID, and it never reaches a modern phone.
+      const id = (() => {
+        try { return crypto.randomUUID(); } catch (e) { /* older browser */ }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+        });
+      })();
       const row = {
+        id,
         coach_email: settings.coach_email,
         contact_name: form.name.trim(),
         contact_email: form.email.trim() || null,
@@ -366,14 +389,12 @@ export default function BookingPublic() {
         notes: form.notes.trim() || null,
         source: 'public',
       };
-      // Return the row so the confirmation can hand back a cancel link. Without
-      // the id the client has no way out except messaging him.
-      const { data: made, error } = await supabase.from('bookings').insert(row).select('id').single();
+      const { error } = await supabase.from('bookings').insert(row);
       if (error) throw error;
       setConfirmation({
         when: selectedSlot,
         zoom: settings.zoom_url,
-        id: made?.id || null,
+        id,
       });
     } catch (e) {
       // Public page — keep the detail in the console, show the anon visitor a
@@ -475,7 +496,12 @@ export default function BookingPublic() {
               {tr(readLang(), 'Add to calendar')}
             </a>
             <div style={{ fontSize: 12.5, color: C.tm, lineHeight: 1.6, maxWidth: 360 }}>
-              {tr(readLang(), 'Your time is held. We will be in touch to confirm the details.')}
+              {/* NOT "we will be in touch to confirm". The booking IS confirmed —
+                  it is written as status='confirmed' and it reaches his calendar
+                  in the same moment. Saying someone will confirm it contradicts
+                  the three lines on the page the client just read, and leaves
+                  them waiting for a message that is never coming. */}
+              {tr(readLang(), 'The time is yours. It is already in my calendar — nobody needs to confirm it.')}
             </div>
             {confirmation.id && (
               <a href={`/book/cancel/${confirmation.id}`}
