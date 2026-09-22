@@ -94,6 +94,7 @@ export const hasAuthPayload = () => {
   } catch { return false; }
 };
 import { parseTraineeId } from './traineeUtils';
+import { logAppOpen } from './logAppOpen';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
@@ -833,6 +834,14 @@ function AuthGate() {
 }
 
 function AuthedApp() {
+  // ONE ROW PER APP OPEN. Until 22.9 nothing recorded that an athlete had used
+  // EXPO at all, so "when did he use the app" had no answer and a week of a
+  // player's lifts had to be inferred from what the rest of the squad did.
+  // Here rather than in ClientPortal because the portal is held back from the
+  // deploy tree — a log that only starts when the portal ships answers nothing
+  // in the meantime — and because "the app was opened" is true of either seat.
+  React.useEffect(() => { logAppOpen(window.location.pathname); }, []);
+
   // (no useT() here: AuthedApp RENDERS the LangCtx provider, so a hook would read
   //  the context from above it - always English. Use `t`, declared with `lang` below.)
   // Keep the ACTIVE destination in view. The header is a horizontal scroller
