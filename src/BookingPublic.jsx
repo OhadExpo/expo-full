@@ -188,6 +188,19 @@ export default function BookingPublic() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   // The one thing that must not fade: why a booking did not happen.
   const [notice, setNotice] = useState('');
+  // THE COACH'S OWN WORDS, IN THE READER'S LANGUAGE.
+  //
+  // display_name / bio / cancellation_policy are one column each, and the page
+  // is bilingual. Writing Hebrew into them fixed the Hebrew page and put Hebrew
+  // on the English one — the same fault mirrored, with an RTL policy paragraph
+  // rendering inside an LTR column and its em-dash stranded at the start of a
+  // line. There are now optional *_en columns; this falls back to the base one,
+  // so a coach who writes only one language sees no change.
+  const say = (field) => {
+    const base = settings && settings[field];
+    if (readLang() !== 'en') return base;
+    return (settings && settings[field + '_en']) || base;
+  };
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
@@ -229,7 +242,7 @@ export default function BookingPublic() {
       // whatever is added to it tomorrow. These eight are every field the page
       // renders (grepped, not guessed); id, created_at and updated_at are not used.
       const { data: s, error: se } = await supabase.from('coach_booking_settings')
-        .select('coach_email, slug, display_name, bio, duration_min, buffer_min, lead_time_hours, zoom_url, cancellation_policy')
+        .select('coach_email, slug, display_name, display_name_en, bio, bio_en, duration_min, buffer_min, lead_time_hours, zoom_url, cancellation_policy, cancellation_policy_en')
         .eq('slug', slug).maybeSingle();
       if (!alive) return;
       // NO RAW DB TEXT ON A PUBLIC PAGE. The submit path already knew this; the
@@ -484,7 +497,7 @@ export default function BookingPublic() {
             {prettyWhen(confirmation.when)}
           </div>
           <div style={{ fontSize: 13, color: C.tm, marginBottom: 16 }}>
-            {tr(readLang(), 'with')} {settings.display_name || tr(readLang(), 'your coach')}
+            {tr(readLang(), 'with')} {say('display_name') || tr(readLang(), 'your coach')}
           </div>
           {safeUrl(confirmation.zoom) && (
             <a href={safeUrl(confirmation.zoom)} target="_blank" rel="noopener noreferrer"
@@ -498,9 +511,9 @@ export default function BookingPublic() {
               calendar entry and with the next step spelled out. */}
           <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <a href={icsFor(confirmation.when, settings.duration_min,
-                  `${tr(readLang(), 'Session')} · ${settings.display_name || 'EXPO'}`,
+                  `${tr(readLang(), 'Session')} · ${say('display_name') || 'EXPO'}`,
                   safeUrl(confirmation.zoom) || '',
-                  [settings.bio || '', confirmation.id ? `${tr(readLang(), 'Cancel')}: ${window.location.origin}/book/cancel/${confirmation.id}` : ''].filter(Boolean).join(' '))}
+                  [say('bio') || '', confirmation.id ? `${tr(readLang(), 'Cancel')}: ${window.location.origin}/book/cancel/${confirmation.id}` : ''].filter(Boolean).join(' '))}
               download="expo-session.ics"
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 'var(--btn-h)', padding: '0 16px',
                 background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, textDecoration: 'none',
@@ -522,8 +535,8 @@ export default function BookingPublic() {
               </a>
             )}
           </div>
-          {settings.cancellation_policy && (
-            <div style={{ marginTop: 20, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>
+          {say('cancellation_policy') && (
+            <div style={{ marginTop: 20, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{say('cancellation_policy')}</div>
           )}
         </div>
       </Wrapper>
@@ -534,9 +547,9 @@ export default function BookingPublic() {
     <Wrapper>
       <div style={{ padding: '20px 24px' }}>
         <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 18, color: C.tx, letterSpacing: '0.02em' }}>
-          {settings.display_name || 'Book a session'}
+          {say('display_name') || 'Book a session'}
         </h1>
-        {settings.bio && <p dir="auto" style={{ margin: '0 0 12px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
+        {say('bio') && <p dir="auto" style={{ margin: '0 0 12px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{say('bio')}</p>}
         {/* WHAT THE SESSION IS, before they are asked to pick a time. The page
             used to open straight onto a week grid: a stranger was choosing an
             hour without being told how long it runs or where it happens. */}
@@ -641,8 +654,8 @@ export default function BookingPublic() {
                 cursor: submitting ? 'wait' : (form.name.trim() ? 'pointer' : 'default'),
                 minWidth: 168, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               }}>{tr(readLang(), submitting ? 'BOOKING…' : 'CONFIRM BOOKING')}</button>
-            {settings.cancellation_policy && (
-              <div style={{ marginTop: 10, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>
+            {say('cancellation_policy') && (
+              <div style={{ marginTop: 10, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{say('cancellation_policy')}</div>
             )}
           </div>
         )}
@@ -679,8 +692,8 @@ export default function BookingPublic() {
               </div>
             ))}
           </div>
-          {settings.cancellation_policy && (
-            <div style={{ marginTop: 12, fontSize: 11.5, color: C.td, lineHeight: 1.55 }}>{settings.cancellation_policy}</div>
+          {say('cancellation_policy') && (
+            <div style={{ marginTop: 12, fontSize: 11.5, color: C.td, lineHeight: 1.55 }}>{say('cancellation_policy')}</div>
           )}
         </div>
       </div>
