@@ -291,6 +291,13 @@ export default function BookingView({ trainees }) {
           <Input label={tt('Duration (min)')} type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: clampSetting(e.target.value, 60, 5, 8 * 60) })} />
           <Input label={tt('Buffer (min)')} type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: clampSetting(e.target.value, 0, 0, 4 * 60) })} />
           <Input label={tt('Lead time (hrs)')} type="number" value={draftSettings?.lead_time_hours || 4} onChange={e => setDraftSettings({ ...draftSettings, lead_time_hours: clampSetting(e.target.value, 4, 0, 24 * 30) })} />
+          {/* THE ENGLISH HALF. display_name / bio / cancellation_policy are one
+              column each and the public page is bilingual, so three optional
+              *_en columns carry the English. Empty means "use the one above",
+              which is why these say OPTIONAL rather than being required —
+              nothing changes for a coach who writes one language. Shipping the
+              columns without these inputs would have been half a feature. */}
+          <Input label={tt('Display name (EN, optional)')} value={draftSettings?.display_name_en || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name_en: e.target.value })} placeholder={draftSettings?.display_name || ''} />
           <Input label={tt('Zoom URL')} style={{ textAlign: 'start' }} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
         </div>
         <div style={{ marginBottom: 10 }}>
@@ -298,6 +305,13 @@ export default function BookingView({ trainees }) {
           <textarea dir="auto" rows={2} value={draftSettings?.cancellation_policy || ''}
             onChange={e => setDraftSettings({ ...draftSettings, cancellation_policy: e.target.value })}
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('CANCELLATION POLICY (EN, OPTIONAL)')}</label>
+          <textarea dir="auto" rows={2} value={draftSettings?.cancellation_policy_en || ''}
+            onChange={e => setDraftSettings({ ...draftSettings, cancellation_policy_en: e.target.value })}
+            placeholder={draftSettings?.cancellation_policy || ''}
+            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>{tt('PUBLIC URL:')}</span>

@@ -529,6 +529,8 @@ export const HE = {
   // The public booking page's standing footer (#144/#145). Spoken, second
   // person, masculine singular - a client is reading it, not a form.
   "AFTER YOU BOOK": "אחרי שתקבע",
+  "Display name (EN, optional)": "שם לתצוגה (אנגלית, לא חובה)",
+  "CANCELLATION POLICY (EN, OPTIONAL)": "מדיניות ביטול (אנגלית, לא חובה)",
   "This is an in-app browser, and Google will not sign you in here. Open this page in Chrome or Safari, or use your email and password below.": "זה דפדפן של אפליקציה אחרת, וגוגל לא תכניס אותך מפה. תפתח את הדף בכרום או בספארי, או תיכנס עם מייל וסיסמה למטה.",
   // #154. What a failed Google round-trip says instead of silently showing
   // the login screen again. Spoken, second person, masculine singular.
