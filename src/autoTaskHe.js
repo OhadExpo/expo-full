@@ -18,9 +18,9 @@ const days = (d) => (Number(d) === 1 ? 'יום אחד' : `${d} ימים`);
 
 // The merged outreach card lists its reasons by AUTO_KIND_LABEL; those codes were showing
 // in Hebrew on the dashboard ('2 reasons: • WEEK SKIPPED • PAYMENT OVERDUE', 17.9).
-const KIND_HE = { 'WEEK SKIPPED': 'שבוע שדולג', 'PAYMENT OVERDUE': 'תשלום באיחור', 'AT RISK': 'בסיכון',
+const KIND_HE = { 'WEEK SKIPPED': 'דילג על שבוע', 'PAYMENT OVERDUE': 'תשלום באיחור', 'AT RISK': 'בסיכון',
   'NEEDS OUTREACH': 'צריך ליצור קשר', 'BLOCK ENDING': 'בלוק נגמר', 'VIDEO PENDING': 'סרטון לבדיקה',
-  'NEW INTAKE': 'שאלון חדש', 'EVAL DUE': 'הערכה ממתינה', 'NEW LEAD': 'ליד חדש', 'PLAN DUE': 'צריך תוכנית' };
+  'NEW INTAKE': 'שאלון חדש', 'EVAL DUE': 'צריך הערכה', 'NEW LEAD': 'ליד חדש', 'PLAN DUE': 'צריך תוכנית' };
 const reasonsHe = (block) => block.split(String.fromCharCode(10)).map((l) => l.replace(/^\s*•\s*/, '')).filter(Boolean)
   .map((r) => '• ' + (KIND_HE[r.trim()] || r.trim())).join(String.fromCharCode(10));
 const RULES = [

@@ -40,7 +40,7 @@ const STRINGS = {
   // ─── Hero ─────────────────────────────────────────────────────────
   'hero.badge':          { en: 'PROGRAMMED TRAINING', he: 'אימון לפי תוכנית' },
   'hero.h1.line1':       { en: 'Programs that',  he: 'תוכניות' },
-  'hero.h1.line2':       { en: 'actually work',  he: 'שעובדות' },
+  'hero.h1.line2':       { en: 'actually work',  he: 'שבאמת עובדות' },
   'hero.subhead': {
     en: 'Block-periodised templates for hypertrophy, strength, rehab, and time-poor schedules. Same engine I use with the athletes I coach — now available as standalone purchases you can run yourself.',
     he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן — עכשיו אתה יכול לקנות אותה ולעבוד איתה לבד.',
@@ -126,7 +126,7 @@ const STRINGS = {
   'inside.pose.h':       { en: 'Pose detection',    he: 'זיהוי תנוחה' },
   'inside.pose.d': {
     en: 'MediaPipe Pose Landmarker tracks 33 joints in real time on any phone. Knee angle, hip depth, bar path — visible the moment you finish the set.',
-    he: 'MediaPipe Pose Landmarker עוקב אחרי 33 נקודות בגוף בזמן אמת. בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — הכל מופיע ברגע שסיימת את הסט.',
+    he: 'MediaPipe Pose Landmarker עוקב אחרי 33 מפרקים בזמן אמת. בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — הכל מופיע ברגע שסיימת את הסט.',
   },
   'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך: 87 מעלות' },
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
@@ -147,7 +147,7 @@ const STRINGS = {
   'inside.rep.h':        { en: 'Auto rep counter',  he: 'ספירת חזרות אוטומטית' },
   'inside.rep.d': {
     en: 'Detects troughs in the bar path, not peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
-    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ ברגע שהקליפ עולה.',
+    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות רגילה ברגע שההעלאה נגמרת.',
   },
   'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
   'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
@@ -170,7 +170,7 @@ const STRINGS = {
   // Counts the cards in WhatsInside — keep it in step when a card is added.
   'inside.note': {
     en: 'All four are included in every program — no separate add-on, no extra charge.',
-    he: 'כל הארבעה כלולים בכל תוכנית. בלי תשלום נוסף.',
+    he: 'כל הארבעה כלולים בכל תוכנית. בלי תוספת נפרדת, בלי תשלום נוסף.',
   },
 
   // CTA from WhatsInside section to the public sandbox at expo-app.co.il/demo/trainee.
@@ -301,7 +301,7 @@ const STRINGS = {
     en: "WhatsApp is the fastest — replies inside the same day, usually within a couple of hours. Tell me what you train for, your equipment, and how many days a week you can give me, and I'll point you at the right program.",
     he: 'וואטסאפ הכי מהיר. אני עונה באותו יום, בדרך כלל תוך כמה שעות. תספר לי לאיזו מטרה אתה מתאמן, איזה ציוד יש לך, וכמה ימים בשבוע אתה יכול להתאמן — ואני אכוון אותך לתוכנית הנכונה.',
   },
-  'contact.hours':       { en: 'Reply window: Sun–Thu 09:00–20:00 (Israel time). Friday/Saturday — slower but I read everything.', he: 'שעות מענה: א׳–ה׳, 09:00–20:00. שישי-שבת איטי יותר אבל אני קורא הכל.' },
+  'contact.hours':       { en: 'Reply window: Sun–Thu 09:00–20:00 (Israel time). Friday/Saturday — slower but I read everything.', he: 'שעות מענה: א׳–ה׳, 09:00–20:00 שעון ישראל. שישי–שבת איטי יותר אבל אני קורא הכל.' },
   'contact.cta.whatsapp': { en: 'WHATSAPP',      he: 'וואטסאפ' },
   'contact.cta.email':    { en: 'EMAIL',         he: 'אימייל' },
   'contact.cta.instagram': { en: 'INSTAGRAM',    he: 'אינסטגרם' },
@@ -319,7 +319,7 @@ const STRINGS = {
   'detail.section.sample':    { en: 'SAMPLE WEEK',      he: 'שבוע לדוגמה' },
   'detail.sample.body.tmpl': {
     en: 'A look at one full microcycle. The full block escalates and varies these patterns across {weeks} weeks.',
-    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מעלה את הרמה ומגוון את התרגילים האלה לאורך {weeks} שבועות.',
+    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מעלה את הרמה ומגוון את תבניות התנועה האלה לאורך {weeks} שבועות.',
   },
   'detail.sample.empty':      { en: 'SAMPLE WEEK COMING SOON', he: 'שבוע לדוגמה בקרוב' },
   'detail.day.label.tmpl':    { en: 'DAY {x}',          he: 'יום {x}' },
@@ -342,7 +342,7 @@ const STRINGS = {
   'doc.title.accessibility': { en: 'EXPO · Accessibility statement', he: 'EXPO · הצהרת נגישות' },
   'footer.privacy':      { en: 'Privacy',                            he: 'פרטיות' },
   'lead.consent':        { en: 'Your email is used to reply to you and nothing else.',
-                           he: 'האימייל שלך משמש כדי לחזור אליך, ולא לשום דבר אחר.' },
+                           he: 'אני משתמש באימייל שלך רק כדי לחזור אליך. לשום דבר אחר.' },
   'footer.terms':        { en: 'Terms',                              he: 'תנאים' },
   'footer.accessibility':{ en: 'Accessibility',                      he: 'נגישות' },
 
@@ -358,7 +358,7 @@ const STRINGS = {
   // ─── Buy on WhatsApp prefill (program-specific) ───────────────────
   'wa.buy.tmpl': {
     en: 'Hi Ohad, I want to buy "{title}" ({id}). What are the next steps?',
-    he: 'היי אוהד, אני רוצה את "{title}" ({id}). מה הצעד הבא?',
+    he: 'היי אוהד, אני רוצה לקנות את "{title}" ({id}). מה הצעד הבא?',
   },
 
   // ─── Lead capture (hero + footer email forms) ─────────────────────
@@ -373,7 +373,7 @@ const STRINGS = {
   // ─── Testimonials ─────────────────────────────────────────────────
   'testi.badge':      { en: 'ATHLETE VOICES',  he: 'מהספורטאים' },
   'testi.h2':         { en: 'What people say after a block', he: 'מה אומרים אחרי בלוק' },
-  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each athlete.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום והרשאה עם כל ספורטאי.' },
+  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each athlete.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום ואישור עם כל ספורטאי.' },
 
   // ─── Israeli trust signals strip ──────────────────────────────────
   'trust.badge':      { en: 'WHY IT IS SAFE TO BUY', he: 'למה זה בטוח לקנות' },
@@ -403,7 +403,7 @@ const STRINGS = {
   'faq.q2':           { en: 'Do I need a gym, or can I run this at home?', he: 'צריך חדר כושר או שאפשר בבית?' },
   'faq.a2': {
     en: 'Depends on the program — every card lists the equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag or use the quiz to see only what fits your setup.',
-    he: 'תלוי בתוכנית. בכל כרטיס יש את הציוד המדויק. תסנן בקטלוג לפי תגית או תעבור על הקוויז ותראה רק מה שמתאים לסטאפ שלך.',
+    he: 'תלוי בתוכנית. בכל כרטיס רשום הציוד (בית, חדר כושר מלא, מינימלי). תסנן בקטלוג לפי תגית או תעבור על השאלון ותראה רק מה שמתאים לסטאפ שלך.',
   },
   'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל מאפס. זה יהיה גבוה מדי בשבילי?' },
   'faq.a3': {
@@ -453,17 +453,17 @@ const STRINGS = {
   'quiz.restart':     { en: '↺ RESTART',             he: '↺ התחלה מחדש' },
 
   // Q1 — couple
-  'quiz.q1':          { en: 'Are you buying for one person or for two?', he: 'אתה קונה ליחיד או לשניים?' },
+  'quiz.q1':          { en: 'Are you buying for one person or for two?', he: 'אתה קונה לעצמך או לשניים?' },
   'quiz.q1.solo':     { en: 'Just me',               he: 'רק אני' },
   'quiz.q1.couple':   { en: 'Two of us, same gym',   he: 'שניים, אותו חדר כושר' },
 
   // Q2 — first-timer
-  'quiz.q2':          { en: 'Have you trained in a gym before?', he: 'התאמנת בעבר בחדר כושר?' },
+  'quiz.q2':          { en: 'Have you trained in a gym before?', he: 'התאמנת פעם בחדר כושר?' },
   'quiz.q2.never':    { en: 'No — total beginner',   he: 'לא, מתחיל לגמרי' },
   'quiz.q2.before':   { en: 'Yes — I have a base',   he: 'כן, יש לי בסיס' },
 
   // Q3 — experience length (only if Q2=before)
-  'quiz.q3':          { en: 'How long was your longest continuous training stretch?', he: 'מה התקופה הכי ארוכה ברצף שהתאמנת?' },
+  'quiz.q3':          { en: 'How long was your longest continuous training stretch?', he: 'מה הזמן הכי ארוך שהתאמנת ברצף?' },
   'quiz.q3.lt6':      { en: 'Less than 6 months',    he: 'פחות מ-6 חודשים' },
   'quiz.q3.6to12':    { en: '6 to 12 months',        he: '6 עד 12 חודשים' },
   'quiz.q3.1to3':     { en: '1 to 3 years',          he: '1 עד 3 שנים' },
@@ -521,7 +521,7 @@ const STRINGS = {
   'exit.close':       { en: 'Close',                he: 'סגירה' },
 
   // ─── Interactive demo modals (clickable PhoneFrame) ───────────────
-  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ תלחץ לנסות' },
+  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ תלחץ כדי לנסות' },
   'demo.close':       { en: 'Close demo',           he: 'סגור את הדמו' },
   'demo.pose.h':      { en: 'Pose detection · interactive', he: 'זיהוי תנוחה · אינטראקטיבי' },
   'demo.pose.body': {
