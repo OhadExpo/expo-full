@@ -195,5 +195,12 @@ try {
 
 console.log('');
 for (const p of [...new Set(problems)]) console.log('FAIL  ' + p);
-console.log(problems.length ? `\n${problems.length} thing(s) cut off at ${W}px` : `\n0 - nothing is cut off at ${W}px`);
+// SAY WHICH KIND OF FAILURE. A wrong seat is not a clipped element, and
+// reporting it as "2 things cut off" sends the reader looking at CSS. Proven by
+// break test 22.9: with the expo-rt cookie delete removed, asking for the
+// athlete seat lands on the owner and this line used to say "2 thing(s) cut off".
+const seatFail = problems.some((p) => /WRONG SEAT/.test(p));
+console.log(seatFail
+  ? `\nNOTHING WAS MEASURED — the browser was on the wrong seat.`
+  : (problems.length ? `\n${problems.length} thing(s) cut off at ${W}px` : `\n0 - nothing is cut off at ${W}px`));
 process.exit(problems.length ? 1 : 0);
