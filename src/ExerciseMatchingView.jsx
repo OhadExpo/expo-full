@@ -11,7 +11,7 @@ import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, EmptyState, toast } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
-import { useT, readLang } from './i18n';
+import { useT, readLang, tr } from './i18n';
 
 // Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
 // "similar"). These are small UPPERCASE labels printed directly on the card, so
@@ -264,7 +264,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
-                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{s.why}</span>
+                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{tr(readLang(), s.why)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
                             style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>

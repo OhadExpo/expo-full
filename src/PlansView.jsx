@@ -2393,7 +2393,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               field from the row below). */}
           <AthleteCombo
             value={plan.traineeId||""}
-            options={[{value:'',label:'Unassigned'}, ...trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}])]}
+            options={[{value:'',label:tt('Unassigned')}, ...trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}])]}
             title={tt("Assigns THIS program when it has no athlete yet; otherwise switches to that athlete's program — type to search")}
             onPick={async (tid, label)=>{
                 const theirs = tid ? (planIndex||[]).filter(p=>p.traineeId===tid).slice().sort(sortProgramsRecent) : [];
@@ -2526,7 +2526,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> }] : []),
             ...(onDuplicate && plan?.id ? [{ key:'duplicate', label:'Duplicate', onClick: async () => { if (await flushAutosave()) onDuplicate(); else toast('Save failed — not duplicating a stale copy. Check your connection and retry.', 'error'); },
               icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> }] : []),
-            ...(onNewProgramFor && plan?.traineeId ? [{ key:'new', label:'New Program', onClick: async () => {
+            ...(onNewProgramFor && plan?.traineeId ? [{ key:'new', label:tt('New Program'), onClick: async () => {
                 await flushAutosave();
                 const base = String(plan.traineeId).split('__')[0];
                 const t = (trainees || []).find(x => x.id === base);
@@ -3089,7 +3089,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
     const targets = (planIndex || []).filter(p => p.id !== currentPlanId);
     const tids = new Set(targets.map(p => p.traineeId));
     const list = (athleteOptions || []).filter(o => tids.has(o.value));
-    if (targets.some(p => !known.has(p.traineeId))) list.push({ value: UNASSIGNED_TARGETS, label: 'Unassigned / other' });
+    if (targets.some(p => !known.has(p.traineeId))) list.push({ value: UNASSIGNED_TARGETS, label: tr(readLang(), 'Unassigned / other') });
     return list;
   }, [athleteOptions, planIndex, currentPlanId]);
   // That athlete's programs (excluding the open one) = the second picker. The

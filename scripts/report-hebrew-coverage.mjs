@@ -106,7 +106,7 @@ const ROUTES = process.argv.slice(3).length ? process.argv.slice(3) : routesFrom
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 const misses = new Map();     // string -> Set(routes)
-let He = 0, En = 0, Data = 0, dead = 0;
+let He = 0, En = 0, Data = 0, dead = 0, measured = 0;
 const seen = new Map();       // page signature -> the route that rendered it first
 try {
   // FRESH=1 drops whatever session the persistent debug profile is already
@@ -142,16 +142,21 @@ try {
   });
   await setWidth(pg, W, 1100);
 
-  for (const route of ROUTES) {
-    await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await wait(8000);
-    // #149 - see the ENTIRE page before judging it.
-    await pg.evaluate(async () => {
-      for (let i = 0; i < 14; i++) { window.scrollBy(0, window.innerHeight); await new Promise((r) => setTimeout(r, 110)); }
-      window.scrollTo(0, 0);
-    });
-    await wait(700);
-    const r = await pg.evaluate(() => {
+  // TABS=1 also walks the tab strip. The athlete portal is ONE route with six
+  // tabs (BW, meal log, history, PRs, messages) and a route-only sweep reported
+  // 30 strings for the whole portal - the tabs are most of what an athlete
+  // actually reads, and none of them were measured.
+  // NO \b AFTER A HEBREW WORD. JS word boundaries are ASCII-only, so /^משקל\b/
+  // never matches the משקל tab — the first run reported "no tab strip found"
+  // on a portal with six visible Hebrew tabs.
+  const TAB_RE = /^[▸▾•\s]*(bw|bodyweight|meal|history|prs?|messages|plan|workouts?|משקל|יומן|תפריט|היסטוריה|שיאים|הודעות|תוכנית|אימונים)/i;
+
+  const scrollAll = () => pg.evaluate(async () => {
+    for (let i = 0; i < 14; i++) { window.scrollBy(0, window.innerHeight); await new Promise((r) => setTimeout(r, 110)); }
+    window.scrollTo(0, 0);
+  });
+
+  const snap = () => pg.evaluate(() => {
       const out = [];
       const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       let n;
@@ -170,13 +175,16 @@ try {
       const txt = (document.body.innerText || '');
       return { out, shell: txt.length, sig: txt.replace(/\s+/g, ' ').trim().slice(0, 120) };
     });
+  // One screen, counted and reported. Returns false when the screen was not a
+  // real, new one - so a caller knows the label produced no measurement.
+  const record = (label, r) => {
     // NOT A CHARACTER FLOOR. A 300-char floor called /coach/challenges and
     // /coach/bugs dead when they were merely EMPTY, and it calls the login
     // screen dead too - a short page is still a page. What actually means
     // "nothing rendered" is the boot splash, or a body with almost no text
     // nodes at all.
     if (r.out.length < 4 || /^(LOADING|טוען)/i.test(r.sig)) {
-      console.log(`${route.padEnd(26)} still on the splash / ${r.out.length} text node(s) - NOT MEASURED`); dead++; continue;
+      console.log(`${label.padEnd(30)} still on the splash / ${r.out.length} text node(s) - NOT MEASURED`); dead++; return false;
     }
     // TWO ROUTES THAT RENDER THE SAME PAGE ARE ONE MEASUREMENT.
     //
@@ -184,8 +192,8 @@ try {
     // three of them were the SAME athlete portal: a leftover session meant every
     // path redirected there, and the per-route percentages read like coverage.
     // Identical page text now says so instead of being counted twice.
-    if (seen.has(r.sig)) { console.log(`${route.padEnd(26)} SAME PAGE AS ${seen.get(r.sig)} - NOT COUNTED (a redirect, not a route)`); dead++; continue; }
-    seen.set(r.sig, route);
+    if (seen.has(r.sig)) { console.log(`${label.padEnd(30)} SAME PAGE AS ${seen.get(r.sig)} - NOT COUNTED (a redirect, not a route)`); dead++; return false; }
+    seen.set(r.sig, label);
     let he = 0, en = 0, data = 0;
     for (const t of r.out) {
       if (/[֐-׿]/.test(t)) { he++; continue; }
@@ -197,19 +205,51 @@ try {
         en++;
         const key = (I18N_KEYS.has(t) ? 'UNWIRED  ' : 'MISSING  ') + t;
         if (!misses.has(key)) misses.set(key, new Set());
-        misses.get(key).add(route);
+        misses.get(key).add(label);
       } else data++;
     }
-    He += he; En += en; Data += data;
+    He += he; En += en; Data += data; measured++;
     const pct = he + en ? Math.round((he / (he + en)) * 100) : null;
-    console.log(`${route.padEnd(26)} ${String(pct === null ? '  -' : pct + '%').padStart(4)} hebrew   ${String(he).padStart(4)} he / ${String(en).padStart(4)} en   (${data} not-ours)`);
+    console.log(`${label.padEnd(30)} ${String(pct === null ? '  -' : pct + '%').padStart(4)} hebrew   ${String(he).padStart(4)} he / ${String(en).padStart(4)} en   (${data} not-ours)`);
+    return true;
+  };
+
+  for (const route of ROUTES) {
+    await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await wait(8000);
+    await scrollAll();                         // #149 - see the ENTIRE page.
+    await wait(700);
+    record(route, await snap());
+
+    if (!process.env.TABS) continue;
+    const tabs = await pg.evaluate((src) => {
+      const re = new RegExp(src, 'i');
+      return [...document.querySelectorAll('button,[role=tab]')]
+        .map((b, i) => ({ i, t: (b.textContent || '').replace(/\s+/g, ' ').trim() }))
+        .filter((x) => x.t && x.t.length < 22 && re.test(x.t)).slice(0, 8);
+    }, TAB_RE.source);
+    for (const tab of tabs) {
+      const hit = await pg.evaluate((i) => {
+        const b = [...document.querySelectorAll('button,[role=tab]')][i];
+        if (!b) return false; b.click(); return true;
+      }, tab.i);
+      if (!hit) continue;
+      await wait(3500);
+      await scrollAll();
+      await wait(500);
+      record(`${route} · ${tab.t}`, await snap());
+    }
+    if (!tabs.length) console.log(`${route.padEnd(30)} (no tab strip found)`);
   }
 } catch (e) {
   console.log('THREW: ' + String(e.message || e).slice(0, 200));
 } finally { await pg.close().catch(() => {}); b.disconnect(); }
 
 const total = He + En;
-console.log(`\n${ROUTES.length - dead} of ${ROUTES.length} routes at ${W}px, app language HEBREW.`);
+// SCREENS, not routes: with TABS=1 one route is several screens, and
+// subtracting skipped tabs from ROUTES.length once printed "0 of 1 routes"
+// under six measured tabs.
+console.log(`\n${measured} screen(s) measured across ${ROUTES.length} route(s) at ${W}px, app language HEBREW. ${dead} screen(s) were a splash, a redirect or a repeat and were NOT counted.`);
 console.log(`COVERAGE: ${total ? Math.round((He / total) * 100) : 0}% hebrew - ${He} hebrew string(s) vs ${En} untranslated UI string(s). ${Data} Latin string(s) were data (names, emails, exercise and plan titles) and are excluded from both sides.`);
 console.log(`${misses.size} DISTINCT untranslated UI string(s).`);
 if (!total) console.log('MEASURED NOTHING - do not read a number into this run.');

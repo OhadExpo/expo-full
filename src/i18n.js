@@ -521,6 +521,20 @@ export const HE = {
   "Comments + audit log pending": "תגובות ויומן שינויים — בקרוב",
   "Enter to add": "אנטר להוספה",
   "Club athlete — no billing": "שחקן מועדון — בלי חיוב",
+  // #151 (22.9). Roster and plan-editor labels that had no Hebrew at all, so
+  // they stayed English on a Hebrew screen. "ללא שיוך" is what a coach says, not
+  // "לא מוקצה" — the plan is not assigned to anyone yet.
+  "Unassigned": "ללא שיוך",
+  "Unassigned / other": "ללא שיוך / אחר",
+  "Club": "מועדון",
+  // Exercise-matching reason codes. The word-level diffs beside them
+  // ("+single +arm", "machine↔cable") quote the English exercise words
+  // themselves and must NOT be translated - tr() returns an unknown key
+  // unchanged, so only these four are touched.
+  "exact match": "התאמה מדויקת",
+  "same words": "אותן המילים",
+  "same meaning": "אותה משמעות",
+  "similar": "דומה",
   "This cannot be undone.": "אי אפשר לבטל את זה.",
   "This will permanently remove": "זה ימחק לצמיתות",
   "This will unassign": "זה יבטל את השיוך של",

@@ -375,7 +375,7 @@ function FinancialsBlock({ pay, monthly, center = false, clubAthlete = false }) 
   // whole pass has been about.
   if (clubAthlete) {
     return (
-      <CardSection label="Club" center={center}>
+      <CardSection label={tt('Club')} center={center}>
         <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{tt('Bnei Herzliya')}</span>
         </div>
