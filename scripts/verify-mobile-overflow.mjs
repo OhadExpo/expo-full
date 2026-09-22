@@ -89,6 +89,12 @@ const look = () => pg.evaluate(() => {
 
 try {
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  // THE COOKIE IS THE SEAT. src/supabase.js keeps a refresh token in `expo-rt`
+  // and reviveSession() trades it for a new session on the next document, so
+  // clearing localStorage alone signs you straight back in as whoever you
+  // already were — and SEAT=athlete then measures the owner's screens. Found
+  // 22.9 in the Hebrew coverage gate; the same hole was here.
+  await pg.deleteCookie({ name: 'expo-rt', url: BASE });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* ignore */ } });
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(3500);
@@ -109,6 +115,18 @@ try {
   });
   await wait(9000);
   await setWidth(pg, W, 800);
+  // AND PROVE THE SEAT before measuring anything from it.
+  const seatEmail = await pg.evaluate((key) => {
+    try {
+      const j = JSON.parse(localStorage.getItem(key) || 'null');
+      return (j && j.user && j.user.email) || (j && j.currentSession && j.currentSession.user && j.currentSession.user.email) || null;
+    } catch (e) { return null; }
+  }, 'sb-gtcbfglttoiyfsnfbhdy-auth-token');
+  if (seatEmail && seatEmail.toLowerCase() !== who.email.toLowerCase()) {
+    problems.push(`WRONG SEAT: asked for ${who.email}, got ${seatEmail}. Nothing was measured.`);
+    throw new Error('wrong seat');
+  }
+  console.log(`signed in as ${seatEmail || '(no session read)'}`);
   console.log(`seat ${SEAT} at ${W}px - ${ROUTES.length} route(s)
 `);
 
