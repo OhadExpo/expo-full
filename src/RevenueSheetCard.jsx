@@ -27,6 +27,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip, ScrollFade } from './ui';
 import { fmtNumericDate, monthAbbr } from './dates';
+import { noDangle } from './script';
 
 // Nord cannot draw U+25BE — the fallback paints a short dash at 10px, which is
 // what verify-brand-glyphs forbids. Same inline chevron the strip headers use,
@@ -233,7 +234,10 @@ export default function RevenueSheetCard() {
       </RefinedHeaderStrip>
       {health && (
         <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em', marginBottom: 12 }}>
-          {tt('History')}: {health.cells.toLocaleString()} {tt('cells')} · {tt('newest revision')} r{health.newestRev}{health.newestTime ? ' · ' + fmtNumericDate(health.newestTime) : ''} · {tt('last harvested')} {fmtNumericDate(health.harvestedAt)}
+          {/* One string, then noDangle: built as JSX fragments the separators
+              were plain text nodes and a wrap could land straight after one.
+              Two DANGLE findings on this line alone (en and he). */}
+          {noDangle(`${tt('History')}: ${health.cells.toLocaleString()} ${tt('cells')} · ${tt('newest revision')} r${health.newestRev}${health.newestTime ? ' · ' + fmtNumericDate(health.newestTime) : ''}`)} · {tt('last harvested')} {fmtNumericDate(health.harvestedAt)}
         </div>
       )}
 
@@ -251,12 +255,12 @@ export default function RevenueSheetCard() {
               <tr>
                 <th style={th}>{tt('Month')}</th>
                 {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => (
-                  <th key={c} style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL[c])}</th>
+                  <th key={c} style={{ ...th, textAlign: 'end' }}>{noDangle(tt(CHANNEL_LABEL[c]))}</th>
                 ))}
                 <th style={{ ...th, textAlign: 'end', color: C.ac }}>{tt('Coaching income')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt('Roster estimate')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt('Gap')}</th>
-                <th style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL.national_insurance)}</th>
+                <th style={{ ...th, textAlign: 'end' }}>{noDangle(tt(CHANNEL_LABEL.national_insurance))}</th>
               </tr>
             </thead>
             <tbody>

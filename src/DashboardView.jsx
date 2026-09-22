@@ -17,6 +17,7 @@ import { syncAutoTasks } from './autoTasks';
 // who have neither. Any of the three markers counts (format / branch / team).
 // Moved to src/clubAthlete.js - it was defined four times.
 import { isClubAthlete } from './clubAthlete';
+import { noDangle } from './script';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
@@ -1027,7 +1028,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             <span style={subStyle}>{tt('Recurring committed')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{tt(sheet ? 'THIS MONTH · SHEET' : '30D COLLECTED')}</span>
+            <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH · SHEET' : '30D COLLECTED'))}</span>
             <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
             {sheet && <span style={{ ...subStyle, color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null ? tt('Synced from the sheet twice a day') : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}` : sheet.syncAgeH < 1 ? tt('Synced from the sheet just now') : tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))}</span>}
             {!sheet && delta30 !== null && (
@@ -1037,7 +1038,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{tt(sheet ? 'LAST 3 MONTHS · SHEET' : '90D COLLECTED')}</span>
+            <span style={labelStyle}>{noDangle(tt(sheet ? 'LAST 3 MONTHS · SHEET' : '90D COLLECTED'))}</span>
             <span style={numStyle}>{sheet ? `₪${Math.round(sheet.last3).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
             <span style={subStyle}>{sheet ? tt('From the sheets') : tt('Trailing 3 months')}</span>
           </div>

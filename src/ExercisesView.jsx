@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
+import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
@@ -420,7 +421,13 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     now the card shows the thumbnail + cues directly (Ohad). */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', minWidth: 0 }}>
                   <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
-                  <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{ex.title}</bdi>
+                  {/* --c-stripTx. The strip behind this is stripBg mixed 90% with the accent,
+                      which in LIGHT is a pale cyan — hard white on it is the same
+                      invisible-control bug as the dashboard chevron, the plan-editor
+                      chevron, + ADD RULE, the classify count and the intake title.
+                      Sixth today. The light/dark sweep missed this one because the
+                      exercise CARDS are not what /coach/exercises renders by default. */}
+                  <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{noDangle(ex.title)}</bdi>
                 </div>
                 {/* body — half YouTube thumbnail (inline, no fullscreen), half
                     coaching notes (Ohad). Classification recedes to a single meta
@@ -489,7 +496,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     <td className="ex-name" style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         {statusDot(ex)}
-                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{ex.title}</span>
+                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{noDangle(ex.title)}</span>
                       </div>
                     </td>
                     {oneCell(ex.resistanceType)}

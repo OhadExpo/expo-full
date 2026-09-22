@@ -315,7 +315,7 @@ const PERIODIZATION_MODELS = {
 const MODEL_LIST = ['Linear', 'Block', 'Undulating', 'Conjugate', 'Triphasic'];
 
 const stripHead = (label) => (
-  <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
+  <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
 );
 const kpi = (label, value, sub, accent) => {
   // Long text values (e.g. "65–80% 1RM", "hold prior reps") shrink + wrap instead
@@ -441,7 +441,7 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
 
   const topStrip = (
     <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0 }}>
-      <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span>{tt('Next Block Report')}</span>
         <span style={{ color: C.tm }}>·</span>
         <span style={{ fontFamily: heb ? FH : FN, color: '#39BDFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{traineeName}</span>
