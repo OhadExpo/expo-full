@@ -110,10 +110,20 @@ async function signInOnce(page, base) {
     }
     // Someone else is holding the seat. Drop the session and sign in properly
     // rather than measuring their pages.
+    // AND THE COOKIE, OR THE OTHER SEAT COMES STRAIGHT BACK.
+    //
+    // 2026-09-22: src/supabase.js keeps a refresh token in the `expo-rt` cookie
+    // and reviveSession() trades it for a new session on boot — deliberately, so
+    // an athlete whose storage was evicted never sees a login screen. Clearing
+    // only localStorage therefore did nothing: the very next document restored
+    // the seat we had just dropped, the login form never appeared, and this
+    // function raised WRONG SEAT twice and gave up. Every gate run after an
+    // athlete-seat gate hit it.
     await safeEval(page, (key) => {
       try {
         localStorage.removeItem(key);
         for (const k of Object.keys(localStorage)) if (/^sb-.*-auth-token$/.test(k)) localStorage.removeItem(k);
+        document.cookie = 'expo-rt=; Max-Age=0; Path=/';
       } catch (e) {}
     }, AUTH_TOKEN_KEY);
     await page.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});

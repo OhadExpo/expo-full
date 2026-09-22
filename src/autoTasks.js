@@ -17,6 +17,7 @@
 import { supabase } from './supabase';
 import { toast } from './ui';
 import { traineeIdsFor } from './traineeUtils';
+import { isClubAthlete } from './clubAthlete';
 // Labels, per-kind actions and the outreach throttle live in their own module
 // so they can be unit-tested without this file's supabase import.
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, throttleWhatsAppTasks } from './autoTaskCards';
@@ -377,6 +378,13 @@ const rulePaymentOverdue = {
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
       if (isGhostTrainee(t, ctx)) continue;
+      // A CLUB ATHLETE NEVER OWES ANYTHING. Bnei Herzliya pays for its players,
+      // so "never paid after 21 days" is true of all twelve of them and means
+      // nothing - it generated a standing CHASE PAYMENT alert against each of
+      // their names, which is exactly what Ohad asked to be gone from club
+      // athletes "anywhere" (21.9). Found by verify-club-no-money, on a club
+      // athlete's own page.
+      if (isClubAthlete(t)) continue;
       const tPay = (payments || []).filter(p => traineeIdsFor(t.id).includes(p.traineeId) && p.status === 'Paid');
       const monthly = parseFloat(t.monthly) || 0;
       if (tPay.length === 0) {
@@ -420,6 +428,13 @@ const rulePaymentOverdue = {
       // They match today (auto_ref === t.id) but the sync layer compares
       // against auto_ref; future rule changes mustn't drift the two apart.
       if (!t) { closing.add(row.auto_ref); continue; }
+      // AND CLOSE THE ONES ALREADY OPEN AGAINST A CLUB ATHLETE. Skipping them in
+      // detect() only stops NEW ones; the rows this rule wrote before the club
+      // tag existed sit open on the athlete's own page forever, because a club
+      // athlete has no payments and so can never satisfy the close condition
+      // below. Resolving here means the next sync clears them - no data script,
+      // no manual delete.
+      if (isClubAthlete(t)) { closing.add(row.auto_ref); continue; }
       const tPay = (payments || []).filter(p => traineeIdsFor(t.id).includes(p.traineeId) && p.status === 'Paid');
       if (tPay.length === 0) continue;
       const latest = tPay.reduce((a, b) =>
