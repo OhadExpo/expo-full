@@ -6,11 +6,11 @@
     "tab": "history|היסטוריה",
     "before": {
       "file": "audit-out\\pairs\\history-phone-he-live.png",
-      "chars": 1080
+      "chars": 12831
     },
     "after": {
       "file": "audit-out\\pairs\\history-phone-he-branch.png",
-      "chars": 1080
+      "chars": 12794
     }
   },
   {
@@ -24,7 +24,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\prs-phone-he-branch.png",
-      "chars": 382
+      "chars": 383
     }
   },
   {
@@ -34,11 +34,11 @@
     "tab": "messages|הודעות",
     "before": {
       "file": "audit-out\\pairs\\messages-phone-he-live.png",
-      "chars": 136
+      "chars": 285
     },
     "after": {
       "file": "audit-out\\pairs\\messages-phone-he-branch.png",
-      "chars": 136
+      "chars": 265
     }
   },
   {
@@ -48,11 +48,11 @@
     "tab": "^(bw|משקל)$",
     "before": {
       "file": "audit-out\\pairs\\bw-phone-he-live.png",
-      "chars": 136
+      "chars": 376
     },
     "after": {
       "file": "audit-out\\pairs\\bw-phone-he-branch.png",
-      "chars": 236
+      "chars": 377
     }
   }
 ]

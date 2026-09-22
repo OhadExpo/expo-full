@@ -1,44 +1,5 @@
 [
   {
-    "seat": "pt",
-    "route": "/coach/bhbc",
-    "name": "pt-zone",
-    "before": {
-      "file": "audit-out\\pairs\\pt-zone-he-live.png",
-      "chars": 1692
-    },
-    "after": {
-      "file": "audit-out\\pairs\\pt-zone-he-branch.png",
-      "chars": 1676
-    }
-  },
-  {
-    "seat": "owner",
-    "route": "/coach/bhbc",
-    "name": "bhbc",
-    "before": {
-      "file": "audit-out\\pairs\\bhbc-he-live.png",
-      "chars": 1796
-    },
-    "after": {
-      "file": "audit-out\\pairs\\bhbc-he-branch.png",
-      "chars": 1780
-    }
-  },
-  {
-    "seat": "owner",
-    "route": "/coach",
-    "name": "dashboard",
-    "before": {
-      "file": "audit-out\\pairs\\dashboard-he-live.png",
-      "chars": 3355
-    },
-    "after": {
-      "file": "audit-out\\pairs\\dashboard-he-branch.png",
-      "chars": 3439
-    }
-  },
-  {
     "seat": "athlete",
     "route": "/athlete",
     "name": "portal",

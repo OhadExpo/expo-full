@@ -1,0 +1,15 @@
+[
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "hold-portal-phone",
+    "before": {
+      "file": "audit-out\\pairs\\hold-portal-phone-he-live.png",
+      "chars": 1166
+    },
+    "after": {
+      "file": "audit-out\\pairs\\hold-portal-phone-he-branch.png",
+      "chars": 1125
+    }
+  }
+]
