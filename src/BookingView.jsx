@@ -396,7 +396,11 @@ export default function BookingView({ trainees }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: sevColor, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${sevColor}`, padding: '3px 8px', width: 96, boxSizing: 'border-box', flexShrink: 0 }}>
-                  {(b.status||'').toUpperCase()}
+                  {/* The one English word left on this screen in Hebrew:
+                      the raw DB status, upper-cased. tr() on the uppercase
+                      form so the four CHECK-constrained values each have a
+                      Hebrew label and anything new falls through unchanged. */}
+                  {tr(readLang(), (b.status||'').toUpperCase())}
                 </span>
                 <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{trainee?.name || b.contact_name}</span>
                 <span style={{ flex: 1 }} />
