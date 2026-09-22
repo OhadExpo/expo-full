@@ -1765,6 +1765,18 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
   const [poseOn, setPoseOn] = useState(true);
   const [repsOn, setRepsOn] = useState(true);
   const [poseLoading, setPoseLoading] = useState(false);
+  // THE LANDMARKER IS A REF, SO NOTHING RE-RENDERS WHEN IT ARRIVES.
+  //
+  // The detection effect below is keyed [poseOn, repsOn] and both are already
+  // true at mount, so it ran ONCE, found landmarkerRef.current still null
+  // (ensureModel is async and the model is a ~3MB download), bailed, and was
+  // never re-run. The visitor uploaded a clip and got a plain video: no
+  // skeleton, no rep count, the HUD stuck on "—". On the sandbox that is the
+  // entire product being demonstrated.
+  //
+  // A state flag flipped when the model lands gives the effect something to
+  // depend on. Found 22.9 auditing the demo for his first client meeting.
+  const [modelReady, setModelReady] = useState(false);
   const [poseError, setPoseError] = useState('');
   const [angles, setAngles] = useState({});
   const [reps, setReps] = useState(0);
@@ -1798,6 +1810,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       } catch {
         landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('CPU'));
       }
+      setModelReady(true);        // wakes the detection effect — see the note above
     } catch (e) {
       console.error('Pose load failed:', e);
       setPoseError('Model load failed — refresh and retry');
@@ -1819,6 +1832,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
     if (landmarkerRef.current) {
       try { landmarkerRef.current.close(); } catch {}
       landmarkerRef.current = null;
+      setModelReady(false);       // the ref and the flag must never disagree
     }
   }, []);
 
@@ -1988,7 +2002,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       v.removeEventListener('loadeddata', onNeedFrame);
       v.removeEventListener('play', onPlay);
     };
-  }, [poseOn, repsOn]);
+  }, [poseOn, repsOn, modelReady]);
 
   const togglePose = async () => {
     if (poseOn) { setPoseOn(false); return; }

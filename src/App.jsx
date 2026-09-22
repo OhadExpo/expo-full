@@ -755,13 +755,18 @@ function AuthGate() {
       // LangCtx: the demo embeds REAL components (the Training Analysis page)
       // that read the language from context; without a provider they rendered
       // English on a Hebrew demo, the same miss /try had.
-      return <LangCtx.Provider value={readLang()}><BodyLang lang={readLang()} /><Suspense fallback={<BootSplash />}><CoachDemo /></Suspense></LangCtx.Provider>;
+      return <LangCtx.Provider value={readLang()}><BodyLang lang={readLang()} /><Suspense fallback={<BootSplash />}><CoachDemo /></Suspense><ToastHost /></LangCtx.Provider>;
     }
+    // EVERY DEMO ROUTE NEEDS THE TOAST HOST. /book and /sign mount it and so
+    // does the authed app; the demo routes did not, so every toast() on them
+    // was swallowed. That is what made SEND, RECORD and the rest look like
+    // dead buttons — they DID fire and the confirmation had nowhere to go.
+    // Found auditing for his first client demo, 22.9.
     if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
-      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense></LangCtx.Provider>;
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense><ToastHost /></LangCtx.Provider>;
     }
     if (path === '/demo/sandbox') {
-      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense></LangCtx.Provider>;
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense><ToastHost /></LangCtx.Provider>;
     }
     // The coaches' demo LANDING (/demo, /demo/he) is public too — render it
     // BEFORE the auth gate so a signed-in coach can still open the demo to show

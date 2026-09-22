@@ -108,8 +108,8 @@ const STRINGS = {
   'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי נעילה' },
   'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך — אתה מחליט' },
   'feat.export.body': {
-    en: 'Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library — xlsx, sheets, or whatever export your previous app gave you, bulk import is part of onboarding.',
-    he: 'אפשר לייצא כל תוכנית, תרגיל ולוג אימון ל-xlsx בכל רגע. תביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף.',
+    en: 'Export everything in one file, anytime — every plan, exercise and workout log. Bring your existing exercise library in: xlsx, sheets, or whatever export your previous app gave you. Bulk import is part of onboarding.',
+    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף.',
   },
 
   // About
@@ -592,7 +592,10 @@ export default function CoachLanding({ lang = 'en' }) {
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
-          <a href={isHe ? '/demo' : '/demo/he'} style={{
+          {/* /demo/en, not /demo: since /demo started following the reader's
+              language, pointing the EN toggle at it sent an Israeli visitor
+              straight back to Hebrew and the button did nothing at all. */}
+          <a href={isHe ? '/demo/en' : '/demo/he'} style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '0 10px', fontSize: 10,
             letterSpacing: '0.18em', fontWeight: 700,

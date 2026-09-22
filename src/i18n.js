@@ -529,6 +529,12 @@ export const HE = {
   // The public booking page's standing footer (#144/#145). Spoken, second
   // person, masculine singular - a client is reading it, not a form.
   "AFTER YOU BOOK": "אחרי שתקבע",
+  // Lead source/context on the demo's Incoming panel. EXPO-IL is the site's
+  // own name and stays Latin; the other two had no key at all.
+  "QUIZ-FINISH": "סיום השאלון",
+  // The coach demo's auto-task board (mock athletes, not real ones).
+  "Omer — no workout logged in 6 days": "עומר — לא נרשם אימון כבר 6 ימים",
+  "Gal — payment overdue 12 days": "גל — תשלום באיחור של 12 ימים",
   "Display name (EN, optional)": "שם לתצוגה (אנגלית, לא חובה)",
   "CANCELLATION POLICY (EN, OPTIONAL)": "מדיניות ביטול (אנגלית, לא חובה)",
   "This is an in-app browser, and Google will not sign you in here. Open this page in Chrome or Safari, or use your email and password below.": "זה דפדפן של אפליקציה אחרת, וגוגל לא תכניס אותך מפה. תפתח את הדף בכרום או בספארי, או תיכנס עם מייל וסיסמה למטה.",

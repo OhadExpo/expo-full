@@ -2116,7 +2116,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
   const tt = useAppT();
   const tb = useTB();
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
@@ -2436,7 +2436,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // demoMode = coach-side preview. Writes must never touch the real
     // trainee's record. Bail before any setter so a future refactor that
     // wires real (non-noop) setters into preview can't leak through.
-    if (demoMode) { setLg(null); return; }
+    // demoMode alone is not enough to decide this: the coach-side preview is
+    // ALSO demoMode, and there the setters are the real ones. localWrites is
+    // set only by DemoTraineePortal, whose setters are its own useState.
+    if (demoMode && !localWrites) { setLg(null); return; }
     setClientWorkouts(prev => [...prev, w]);
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.

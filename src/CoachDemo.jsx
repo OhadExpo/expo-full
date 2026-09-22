@@ -492,7 +492,12 @@ function DemoDashboard({ onJumpToTrainee }) {
                   <span style={{ width: 46, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>{T('COACH')}</span>}</span>
                   <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{l.email}</div>
                 </div>
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{/* Through T(): the Hebrew for these context labels already exists
+                    ("PRICING CTA" → כפתור תמחור, "EXIT-INTENT" → יציאה מהדף) and the
+                    call site was shouting the raw value instead. Internal funnel
+                    jargon in English is the last thing a Hebrew prospect should
+                    read on the screen he is being sold. */}
+                  {T(l.source.toUpperCase())} · {T(l.context.toUpperCase())}</div>
               </div>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{RT(l.when)}</span>
               <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? T('Mark not contacted (demo)') : T('Mark contacted (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
@@ -3740,8 +3745,11 @@ const DEMO_TASKS = [
   { id: 3, src: 'athlete', title: 'Noa — deload week, cut volume 30%', due: 'Today', status: 'open', who: 'OHAD' },
   { id: 4, src: 'athlete', title: 'Gal — check knee after last squat session', due: 'OVERDUE · YESTERDAY', status: 'waiting', who: 'YUVAL' },
   { id: 5, src: 'manual', title: 'Film 3 exercise demos for the library', due: 'This week', status: 'open', who: 'SHARED' },
-  { id: 6, src: 'auto', title: 'Amit — no workout logged in 6 days', due: 'Auto', status: 'open', who: 'OHAD' },
-  { id: 7, src: 'auto', title: 'Roey — payment overdue 12 days', due: 'Auto', status: 'stuck', who: 'OHAD' },
+  // Was 'Amit — …' and 'Roey — …': two of Ohad's REAL athletes, on a board
+  // where every other person is an invented Hebrew name — and one of them
+  // labelled as not paying. Swapped to the demo roster (t8 and t2).
+  { id: 6, src: 'auto', title: 'Omer — no workout logged in 6 days', due: 'Auto', status: 'open', who: 'OHAD' },
+  { id: 7, src: 'auto', title: 'Gal — payment overdue 12 days', due: 'Auto', status: 'stuck', who: 'OHAD' },
   { id: 8, src: 'manual', title: 'Plan Q3 athlete testing day', due: 'Aug 1', status: 'done', who: 'SHARED' },
   { id: 9, src: 'center', title: 'Fix the cable machine pulley', due: 'This week', status: 'working', who: 'YUVAL' },
 ];
@@ -3865,6 +3873,17 @@ const DEMO_PAYMENTS = [
 const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
+  // THE PAYMENT ROW HAS TO WRAP ON A PHONE.
+  //
+  // Photographed at 390 for the client demo (22.9): the actions block is
+  // flexShrink:0 and holds four things — the overdue badge, the status pill,
+  // the WhatsApp button and MARK PAID — so it kept its full width and squeezed
+  // the name/reference block to almost nothing. The row came out as
+  // "JUNE / + / 21D OVERDUE / PENDING / PLAN / · / 15TH / OF / JUNE / 2026",
+  // one word per line, with the athlete's name broken mid-name above it. That
+  // is the phone fault he called "unusable" in August, on the screen he plans
+  // to show a client.
+  const { narrow } = useNarrowRail();
   const [showReq, setShowReq] = useState(false);
   const [amount, setAmount] = useState('600');
   const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
@@ -3902,12 +3921,12 @@ function DemoBilling() {
           {DEMO_PAYMENTS.map(p => {
             const st = PAY_STATUS[p.status];
             return (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: p.status === 'pending' ? `3px solid ${C.rd}` : '3px solid transparent' }}>
-                <div style={{ minWidth: 0 }}>
+              <div key={p.id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: narrow ? 'flex-start' : 'center', gap: narrow ? 8 : 12, rowGap: 8, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: p.status === 'pending' ? `3px solid ${C.rd}` : '3px solid transparent' }}>
+                <div style={{ minWidth: 0, flex: narrow ? '1 1 100%' : '1 1 auto' }}>
                   <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: p.status === 'pending' ? C.rd : C.tx }}>{p.name} · {fmtIls(p.amount)}</div>
                   <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{T(p.ref)} · {fmtPrettyDate(p.date)}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? 'באיחור של 21 יום' : '21D OVERDUE'}</span>}
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
                   {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
@@ -4198,13 +4217,12 @@ export default function CoachDemo() {
       </div>
 
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
-        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
-        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
-        {tab === 'programs'  && <DemoPrograms resetToken={programsReset} />}
-        {tab === 'exercises' && <DemoExercises />}
-        {tab === 'sessions'  && <DemoSessions />}
-        {tab === 'tasks'     && <DemoTasks />}
-        {tab === 'billing'   && <DemoBilling />}
+        {/* THE SUB-NAV GOES ABOVE THE CONTENT IT SWITCHES.
+            It was rendered AFTER every tab body, so on ROSTER it sat at the
+            bottom of the page under eight athlete cards — and PROGRAMS and
+            EXERCISES are in no other nav, so two of the biggest surfaces in
+            the product were effectively undiscoverable in the demo. Found
+            auditing for his first client meeting, 22.9. */}
         {/* Athletes ▾ — ROSTER | PROGRAMS | EXERCISES, the real app's grouping. */}
         {ATHLETE_GROUP.includes(tab) && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -4221,6 +4239,13 @@ export default function CoachDemo() {
             ))}
           </div>
         )}
+        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
+        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
+        {tab === 'programs'  && <DemoPrograms resetToken={programsReset} />}
+        {tab === 'exercises' && <DemoExercises />}
+        {tab === 'sessions'  && <DemoSessions />}
+        {tab === 'tasks'     && <DemoTasks />}
+        {tab === 'billing'   && <DemoBilling />}
         {/* Review WORKOUTS is ALWAYS mounted — display:none otherwise — so the
             /demo iframe loads its wasm + pose model in the background while the
             visitor explores. By the time they click Review, the engine is warm. */}

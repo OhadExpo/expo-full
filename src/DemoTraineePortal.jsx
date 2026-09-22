@@ -51,7 +51,15 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
           {tt("DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST")}
         </div>
       )}
+      {/* localWrites: every setter below is this component's own useState, so a
+          write cannot reach Supabase or a real trainee. The coach-side PREVIEW
+          also runs ClientPortal in demoMode but with the REAL setters, which is
+          why handleComplete bails on demoMode alone — this flag is what tells
+          the portal it is the standalone demo and may keep what the visitor does.
+          Without it, finishing a workout in the demo discarded the whole session:
+          no tick on the day, no History row, no PR. */}
       <ClientPortal
+        localWrites
         clientId={DEMO_CLIENT_ID}
         signOut={signOut}
         clientWorkouts={clientWorkouts}
