@@ -297,6 +297,25 @@ const PAIRS = [
     crop: [0, 100, 390, 190],
   },
   {
+    id: 'strip-chevron-light',
+    title: 'Light theme · the collapse chevron was white on a pale cyan strip',
+    file: 'src/DashboardView.jsx',
+    undo: [["<span aria-hidden style={{ color: 'var(--c-stripTx)', fontSize: 12, lineHeight: 1, transform: allAthletesOpen",
+            "<span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: allAthletesOpen"]],
+    // LIGHT on purpose: in dark the strip is dark and white is correct, so the
+    // pair would show the same picture twice. Measured at 1.13:1 by
+    // light-dark-parity — the label beside it was already on --c-stripTx and
+    // only the chevron was hard-coded.
+    // ?theme=light, not a localStorage key: public/boot-theme.js reads the query
+    // and applies it BEFORE paint. Writing a storage key does not hold — the
+    // app's own theme hook overwrites it on mount, and the first version of
+    // this pair came back byte-identical because both shots rendered DARK,
+    // where a white chevron is correct and the fix changes nothing.
+    url: APP + '/coach/dashboard?theme=light', w: 390, h: 844, auth: true, built: true, mobile: true,
+    scrollTo: 3200,
+    crop: [300, 228, 82, 58],
+  },
+  {
     id: 'demo-hebrew',
     title: 'The coach demo · 91 English strings on a page whose Hebrew was already written',
     file: 'src/App.jsx',
@@ -378,6 +397,7 @@ async function shoot(job, label) {
     // English login only) and BEFORE the first document of the view: App reads
     // it at mount and writes it straight back.
     if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, job.appLang);
+
     // The install prompt mounts a few seconds after load and covers a phone-width
     // view; snoozing it in storage keeps it out of every shot.
     await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
@@ -517,6 +537,14 @@ async function shoot(job, label) {
         if (c) c.click();
       });
       await wait(3000);
+    }
+    // scrollTo: the shot is the VIEWPORT, not the full page. A crop aimed at
+    // y=3439 on a 4814px dashboard photographed the top 844px twice and the
+    // pair came back byte-identical — "the undo never reached the page" when in
+    // fact the fix was simply off-screen. Scroll first; crop viewport-relative.
+    if (job.scrollTo != null) {
+      await pg.evaluate((y) => window.scrollTo(0, y), job.scrollTo);
+      await wait(900);
     }
     await wait(1200);
     const f = path.join(OUT, `${job.id}-${label}.png`);
