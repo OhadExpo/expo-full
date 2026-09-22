@@ -186,6 +186,8 @@ export default function BookingPublic() {
   const [cancelState, setCancelState] = useState('working');
   const [cancelWhen, setCancelWhen] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  // The one thing that must not fade: why a booking did not happen.
+  const [notice, setNotice] = useState('');
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
@@ -351,8 +353,9 @@ export default function BookingPublic() {
 
   const submit = async () => {
     if (!selectedSlot) return;
-    if (!form.name.trim()) { toast('Name is required.', 'error'); return; }
-    if (!form.email.trim() && !form.phone.trim()) { toast('Please give us an email or phone so we can confirm.', 'error'); return; }
+    setNotice('');
+    if (!form.name.trim()) { setNotice(tr(readLang(), 'Name is required.')); toast(tr(readLang(), 'Name is required.'), 'error'); return; }
+    if (!form.email.trim() && !form.phone.trim()) { setNotice(tr(readLang(), 'Please give us an email or phone so we can confirm.')); toast(tr(readLang(), 'Please give us an email or phone so we can confirm.'), 'error'); return; }
     setSubmitting(true);
     try {
       // THE ID IS MADE HERE, NOT RETURNED.
@@ -406,11 +409,20 @@ export default function BookingPublic() {
       // the slot occupied so it greys out, instead of a generic "try again".
       const dup = /duplicate key|23505|already exists|unique/i.test(`${e?.message || ''} ${e?.code || ''}`);
       if (dup) {
-        toast('That time was just booked — please pick another slot.', 'error');
+        // A TOAST IS NOT ENOUGH ON A PUBLIC PAGE. This is the one message a
+        // client MUST see: their time went to someone else between opening the
+        // page and pressing the button. A toast fades, and a client who looked
+        // away is left staring at the grid not knowing whether it worked.
+        // Found by racing two real browsers (#152): the refusal was correct —
+        // uq_bookings_confirmed_slot did its job — and the page said nothing
+        // that survived seven seconds.
+        setNotice(tr(readLang(), 'That time was just booked — please pick another slot.'));
+        toast(tr(readLang(), 'That time was just booked — please pick another slot.'), 'error');
         setOccupied(prev => [...prev, { start_at: selectedSlot.toISOString() }]);
         setSelectedSlot(null);
       } else {
-        toast('Booking failed — please try again, or contact us directly.', 'error');
+        setNotice(tr(readLang(), 'Booking failed — please try again, or contact us directly.'));
+        toast(tr(readLang(), 'Booking failed — please try again, or contact us directly.'), 'error');
       }
     } finally {
       setSubmitting(false);
@@ -552,6 +564,13 @@ export default function BookingPublic() {
           {tr(readLang(), 'Times are shown in your own timezone')}
           {(() => { try { return ' · ' + Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })()}
         </div>
+
+        {notice && (
+          <div role="alert" style={{
+            border: `1px solid ${C.ac}`, background: 'var(--c-sf)', color: C.tx,
+            padding: '10px 12px', marginBottom: 12, fontSize: 13, lineHeight: 1.5,
+          }}>{notice}</div>
+        )}
 
         {Object.keys(groupedByDay).length === 0 ? (
           /* AN EMPTY WEEK MUST NOT BE A DEAD END.
