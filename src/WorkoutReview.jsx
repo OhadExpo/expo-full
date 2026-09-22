@@ -2201,7 +2201,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {/* Workout header */}
         <div style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:16}}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('WORKOUT')}</SectionLabel>
+            <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('WORKOUT')}</SectionLabel>
           </div>
           <div style={{padding:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>

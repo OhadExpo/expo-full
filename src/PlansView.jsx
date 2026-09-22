@@ -5104,7 +5104,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           return <div key={p.id} className="prog-card" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,minWidth:0,opacity:openingId===p.id?0.55:1,transition:'opacity 0.12s'}}>
             <div style={{display:'flex',alignItems:'center',gap:9,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
               <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
-              <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tName}</bdi>
+              <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'var(--c-stripTx)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tName}</bdi>
             </div>
             <div onClick={()=>handleOpenPlan(p.id)} role="button" tabIndex={0}
               onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(p.id); } }}
