@@ -159,6 +159,23 @@ export const PROBE = () => {
       left = Math.min(left, x.left);
       right = Math.max(right, x.right);
     }
+    // AND INK THAT IS CLIPPED IS NOT PAINTED.
+    //
+    // Range.getClientRects() reports the FULL text, so a label with
+    // `overflow:hidden; text-overflow:ellipsis` measures at its untruncated
+    // width — text the user never sees. Measured 22.9: a name in the club
+    // zone's weight-room chip was reported as overlapping the age beside it by
+    // 11px while the rendered boxes were 34..135 and 141..183, six pixels
+    // apart. Clamp to the element's own box whenever it clips.
+    const cb = el.getBoundingClientRect();
+    if (/hidden|clip|auto|scroll/.test(cs.overflowX + cs.overflow)) {
+      left = Math.max(left, cb.left);
+      right = Math.min(right, cb.right);
+    }
+    if (/hidden|clip|auto|scroll/.test(cs.overflowY + cs.overflow)) {
+      top = Math.max(top, cb.top);
+      bottom = Math.min(bottom, cb.bottom);
+    }
     if (!(bottom > top) || !(right > left)) return null;
     return { top, bottom, left, right, width: right - left, height: bottom - top };
   };

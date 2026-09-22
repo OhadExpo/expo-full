@@ -3809,7 +3809,13 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
                 starts the next row where the others start. */}
             <span style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, minWidth: 0, flex: '1 1 100%' }}>
               {due.map(({ t, since }) => (
-                <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ unicodeBidi: 'isolate' }}>{t.name}</span><span style={{ color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
+                <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>{/* THE NAME IS THE PART THAT GIVES WAY. The chip is a fixed-height nowrap
+    box in a minmax(150px, 1fr) grid, and with nothing allowed to shrink a
+    long name simply pushed the age out of the chip — measured at 390 once
+    the squad widened to fifteen: "never" sat at 354..397 inside a cell
+    ending at 366, seven pixels off the screen (OCD sweep, 22.9). The age
+    is the number being read here; the name can be trimmed. */}
+<span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
               ))}
             </span>
           </div>
@@ -3870,7 +3876,14 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
                       )}
                     </span>
                   ))}
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10 }}>
+                  {/* flexShrink:0 and marginInlineStart:auto, not padding.
+                      The chip strip beside this is free to grow, and with this
+                      run allowed to shrink its two nowrap children were laid out
+                      past its own right edge — measured at 390: a 42px span at
+                      354..397 inside a box ending at 366, 7px off the screen
+                      (OCD sweep, 22.9). Pinned to the end and unshrinkable, the
+                      chips give way instead. */}
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
                     <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
@@ -3987,11 +4000,18 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     // across ten rows, "7 Sep" and friends started at 811, 807,
                     // 807, 866 and 807. 64px holds the longest of them
                     // ("yesterday" / "אתמול") at 11px Nord.
-                    <div data-lbl="last lift" style={{ display: 'grid', gridTemplateColumns: '64px auto', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                    // `auto` on the second column lets a nowrap date push the
+                    // whole pair past its own parent — measured at 390 with the
+                    // widened squad (OCD sweep, 22.9): a chip ran 31px outside
+                    // its 167px container and 7px off the screen. minmax(0,1fr)
+                    // makes that column give way instead of shoving, and the
+                    // date is the half that can afford to be trimmed: the AGE
+                    // is the number a coach reads.
+                    <div data-lbl="last lift" style={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr)', alignItems: 'baseline', gap: 6, minWidth: 0, maxWidth: '100%' }}>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                       </span>
-                      {ll && <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{monDay(ll)}</span>}
+                      {ll && <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{monDay(ll)}</span>}
                     </div>
                   );
                 })()}
