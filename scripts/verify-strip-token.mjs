@@ -24,7 +24,14 @@ const WHITE = /(?:color|borderColor|border)\s*:\s*['"`][^'"`]*(?:#fff(?:fff)?\b|
 // ORANGE solids where white is correct — two false positives out of the
 // first sixteen, and a gate that cries wolf about a brand colour is a gate
 // people stop reading.
-const STRIP = /--c-stripBg|stripBg,|stripBg\)/;
+const STRIP = /--c-stripBg|stripBg,|stripBg\)|RefinedHeaderStrip/;
+// ...but NOT the club zone's Card headers. `leftStripe={NAVY}` / `{ORANGE}`
+// means a brand solid, where white IS the correct colour. Dropping
+// RefinedHeaderStrip from the trigger to dodge those two was an
+// over-correction: it also stopped catching two REAL ones on the dashboard,
+// both hard white inside a <RefinedHeaderStrip>. Exclude the brand solids by
+// name instead of excluding the component.
+const BRAND_SOLID = /leftStripe=\{(NAVY|ORANGE)/;
 // How far a style object can run past the line that names the strip background.
 const REACH = 4;
 
@@ -44,6 +51,7 @@ for (const p of files) {
   scanned++;
   for (let i = 0; i < lines.length; i++) {
     if (!STRIP.test(lines[i])) continue;
+    if (BRAND_SOLID.test(lines[i])) continue;
     for (let j = i; j < Math.min(i + REACH, lines.length); j++) {
       if (!WHITE.test(lines[j])) continue;
       // A comment explaining the history is not a style.

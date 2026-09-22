@@ -1253,7 +1253,9 @@ html.theme-switching *::after {
    GRID of cards lines up. At phone width the grid is one column wide - there is
    nothing to line up with and the reserve is just dead air. */
 @media (max-width:620px){
-  .bhbc-roster-grid{--rc-h:auto;--rc-name:0px;--rc-stat:0px}
+  /* Below this width the card stops reserving slots and flows naturally, so
+     the footer slot is released with the others. */
+  .bhbc-roster-grid{--rc-h:auto;--rc-name:0px;--rc-stat:0px;--rc-foot:0px}
   /* The big ghost jersey is a flourish for a tall card. On the short phone card
      it sits behind the last letter of the name, and the #number is printed
      above it anyway. */

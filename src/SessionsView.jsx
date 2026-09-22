@@ -936,7 +936,7 @@ function Card({ title, children }) {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 14, boxShadow: C.cardShadow }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={12}>
-        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF' }}>{title}</span>
+        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{title}</span>
       </RefinedHeaderStrip>
       {children}
     </div>

@@ -859,7 +859,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
                   <span title={readLang() === 'he' ? (gateOpen ? 'הסף עבר — זה הזמן להריץ את המיגרציה לכמה מאמנים' : `המיגרציה לכמה מאמנים רצה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: 'var(--c-stripTx)', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                     🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
                   </span>
                 </div>
@@ -985,7 +985,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
           <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:'14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
             <RefinedHeaderStrip padY={14} padX={20} marginBottom={12}>
-              <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>{tt('Total Collected · All Time')}</div>
+              <div style={{fontSize:10, fontFamily:FN, color:'var(--c-stripTx)', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>{tt('Total Collected · All Time')}</div>
             </RefinedHeaderStrip>
             <div style={{fontSize:22, fontWeight:800, fontFamily:FN, color:C.tx, letterSpacing:'-0.01em'}}><span style={{color:C.ac}}>₪</span>{totalAllPaid.toLocaleString()}</div>
           </div>

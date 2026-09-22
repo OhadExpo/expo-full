@@ -4095,7 +4095,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
             // borders don't align from card to card".
             // The footer is now PINNED to the bottom of the card, so the
             // hairline lands on the same y in every card whatever is above it.
-            height: 'var(--rc-h, 162px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
+            height: 'var(--rc-h, 170px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
@@ -4120,7 +4120,17 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                 );
               })()}
               {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><Plane size={9} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</div>}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
+              {/* #63, the unfinished half of "borders don't align from card to card"
+                  (02.09). The card reserves a slot for the NAME and for the STAT
+                  row but never for the FOOTER, so the one card whose footer wraps
+                  to two lines is 8px taller and its hairline sits 8px higher than
+                  its neighbours'. Measured 18.9 at 900px: two footers at top 636.8
+                  and one at 628.8; same again at 620px.
+                  A reserved slot fixes the hairline, and the card height goes up
+                  by the same 8px so nothing above it loses room — the card was
+                  rebuilt in September precisely because a fixed height with
+                  top-down flow pushed the footer through the bottom border. */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, minHeight: 'var(--rc-foot, 52px)', boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.

@@ -237,7 +237,7 @@ export default function RevenueSheetCard() {
           {/* One string, then noDangle: built as JSX fragments the separators
               were plain text nodes and a wrap could land straight after one.
               Two DANGLE findings on this line alone (en and he). */}
-          {noDangle(`${tt('History')}: ${health.cells.toLocaleString()} ${tt('cells')} · ${tt('newest revision')} r${health.newestRev}${health.newestTime ? ' · ' + fmtNumericDate(health.newestTime) : ''}`)} · {tt('last harvested')} {fmtNumericDate(health.harvestedAt)}
+          {noDangle(`${tt('History')}: ${health.cells.toLocaleString()} ${tt('cells')} · ${tt('newest revision')} r${health.newestRev}${health.newestTime ? ' · ' + fmtNumericDate(health.newestTime) : ''} · ${tt('last harvested')} ${fmtNumericDate(health.harvestedAt)}`)}
         </div>
       )}
 
