@@ -314,8 +314,14 @@ function DemoEmbed({ t }) {
         <style>{`
           .cl-embed { min-height: 720px; }
           .cl-embed iframe { height: 720px; }
-          @media (max-width: 720px) { .cl-embed { min-height: 560px; } .cl-embed iframe { height: 560px; } }
-          @media (max-width: 480px) { .cl-embed { min-height: 480px; } .cl-embed iframe { height: 480px; } }
+          /* The embed was shortened on phones to 560 and then 480, but the
+             engine's first screen needs 670px at 390 in English and 592 in
+             Hebrew — measured. So the proof section cut its own call to action
+             off: "NOT THIS LIFT? OVERRIDE" sat 153px below the fold INSIDE the
+             iframe, where a visitor has to discover a nested scroll to reach
+             it. The frame is the same height everywhere now; the page scrolls,
+             which is what a phone visitor already expects. */
+          @media (max-width: 720px) { .cl-embed { min-height: 720px; } .cl-embed iframe { height: 720px; } }
           @keyframes cl-spin { to { transform: rotate(360deg); } }
         `}</style>
         {!loaded && (
