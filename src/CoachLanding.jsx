@@ -259,7 +259,12 @@ function WaitlistForm({ t }) {
     );
   }
   return (
-    <form onSubmit={submit} style={{
+    // noValidate: the handler below already validates and sets a HEBREW error,
+    // but type="email" inside a validating form makes Chrome show its own
+    // bubble first — in the browser's language, not the page's — and submit()
+    // never runs, so wl.err.email was unreachable. type="email" stays for the
+    // phone keyboard; only the browser's blocking UI is turned off.
+    <form onSubmit={submit} noValidate style={{
       display: 'flex', flexDirection: 'column', gap: 8,
       maxWidth: 460, margin: '0 auto', width: '100%',
     }}>

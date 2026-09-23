@@ -1419,8 +1419,8 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
         fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
       }}>{isCoach
-        ? <>{T("Drop in your client's")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{exercise?.label || 'set'}</span></>
-        : <>{T('Drop in a clip of your')}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{exercise?.label || 'set'}</span></>}</h1>
+        ? <>{T("Drop in your client's")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: String(exercise?.label || '').length <= 18 ? 'nowrap' : undefined }}>{exercise?.label || 'set'}</span></>
+        : <>{T('Drop in a clip of your')}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: String(exercise?.label || '').length <= 18 ? 'nowrap' : undefined }}>{exercise?.label || 'set'}</span></>}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
@@ -1507,7 +1507,7 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare, hideEn
         fontFamily:FB, fontSize:'clamp(22px, 3.2vw, 28px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
       }}>{readLang() === 'he'
-        ? <>{T(pov === 'coach' ? "Reviewing your client's set" : 'Pose detection on your set')}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{exercise?.label}</span></>
+        ? <>{T(pov === 'coach' ? "Reviewing your client's set" : 'Pose detection on your set')}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: String(exercise?.label || '').length <= 18 ? 'nowrap' : undefined }}>{exercise?.label}</span></>
         : (pov === 'coach'
           ? <>Reviewing your client&apos;s <span style={{ color: C.ac }}>{exercise?.label}</span>.</>
           : <>Pose detection on your <span style={{ color: C.ac }}>{exercise?.label}</span>.</>)}</h1>
