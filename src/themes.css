@@ -1409,8 +1409,14 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
    Scoped to real <button> elements. Cards, task rows, plan cards and
    collapsible strip headers carry role="button" and are NOT buttons; 87 of the
    599 controls at 390 were those, and sizing them would be wrong. */
-:root { --btn-h: 32px; --rail-row-h: 28px; }
-@media (max-width: 620px) { :root { --btn-h: 40px; --rail-row-h: 40px; } }   /* the tap-target floor */
+/* ONE CONTROL HEIGHT. Ohad, 23.9: "all the buttons, tags, and search
+   bars/text boxes (everything that we have with borders - anywhere) is the
+   same vertical height." This token was 32 on desktop and 40 on a phone while
+   the demo had already settled on 36 — so the product ran three control
+   heights at once, and every "32 vs 36" and "40 vs 36" the gate reported on
+   24.9 was this split. 36 clears the 24px AA tap floor and matches the demo.
+   Rows follow the same rule: never under the control height. */
+:root { --btn-h: 36px; --rail-row-h: 36px; }
 button {
   min-height: var(--btn-h);
   padding-block: 0;
@@ -1449,7 +1455,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .bk-facts { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 16px; }
 .bk-facts > span {
   display: inline-flex; align-items: center; gap: 5px;
-  border: 1px solid var(--c-cardBd); padding: 5px 10px;
+  border: 1px solid var(--c-cardBd); padding: 0 10px; min-height: var(--btn-h); box-sizing: border-box;
   font-family: 'Nord', 'Heebo', system-ui, sans-serif;
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--c-tm); white-space: nowrap;

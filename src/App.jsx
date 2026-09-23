@@ -556,7 +556,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
 }
 
 // One box for every icon control in the coach header row.
-const HDR_ICON_H = 32;
+const HDR_ICON_H = 36;   // the one control height (was 32; see themes.css --btn-h)
 
 export default function App() {
   return (

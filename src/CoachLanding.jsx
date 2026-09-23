@@ -273,7 +273,7 @@ function WaitlistForm({ t }) {
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('wl.placeholder')}
           style={{
-            height: 46, boxSizing: 'border-box',
+            height: 36, boxSizing: 'border-box',
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
             borderRadius: 0, padding: '0 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
@@ -387,7 +387,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
           // reads as strikethrough on the one tier the page is pushing.
           fontFamily: FN, fontSize: 9, color: C.ac, background: C.bg,
           letterSpacing: '0.18em', fontWeight: 700, padding: '3px 8px', borderRadius: 0,
-          border: `1px solid ${C.ac}`,
+          border: 'none',
         }}>{popularLabel}</div>
       )}
       <div style={{
@@ -615,7 +615,7 @@ export default function CoachLanding({ lang = 'en' }) {
           </a>
           <span className="cl-header-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
-            padding: '4px 8px', background: 'transparent', borderRadius: 0,
+            padding: '0 8px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', background: 'transparent', borderRadius: 0,
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />

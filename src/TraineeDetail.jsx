@@ -654,10 +654,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
-            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '0 0 auto', marginInlineStart: 'auto' }} className="td-notif">
+            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '0 0 auto', marginInlineStart: 'auto' }} className="td-notif">
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('NOTIFICATION')}</span>
-            <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? C.sf3 : 'rgba(57,189,255,0.22)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(57,189,255,0.38)'}`, position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
-              <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.td : C.ac, position: 'absolute', top: 1, left: td.notifOff ? 1 : 17, transition: 'all .15s' }} />
+            <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? C.bd2 : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
+              <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.td : C.ac, position: 'absolute', top: 2, left: td.notifOff ? 2 : 18, transition: 'all .15s' }} />
             </span>
           </button>
         </div></div>

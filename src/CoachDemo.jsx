@@ -249,7 +249,7 @@ const baseBtn = {
 // baseInput; CoachDemo has no import of the real one).
 const baseInput = {
   background: 'var(--c-sf)', border: `1px solid ${C.bd2}`, borderRadius: 0,
-  padding: '0 12px', minHeight: 'var(--btn-h)', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+  padding: '0 12px', minHeight: CTRL_H, color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
 };
 
 // Glowing dot identical to the real coach app's OnlineDot — pulses green
@@ -503,8 +503,11 @@ function DemoDashboard({ onJumpToTrainee }) {
                 <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
                   {rows.map(t => {
                     const meta = TASK_SRC[t.src];
+                    // A bordered tile 26px tall among 36px controls. It has a
+                    // border, so it stands at the one control height; a title
+                    // that wraps makes it taller, which the rule allows.
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
                     );
                   })}
                   {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
@@ -633,8 +636,13 @@ function DemoDashboard({ onJumpToTrainee }) {
                   <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
                     onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s' }}>
-                    <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
+                    // Ohad, 24.9: "no way the rows borders in the table are smaller
+                    // vertically than the universal button vertical size. either the
+                    // same for minimum or bigger" — and the text centred in them. A
+                    // <tr> height is a floor, not a fixed size, so wrapped text still
+                    // grows the row; it just never goes under the control height.
+                    style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
+                    <td style={{ padding: '12px', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
                     <td style={{ padding: '12px' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
                     <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
                     <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
@@ -2473,7 +2481,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
                               title={readLang() === 'he' ? (expanded ? 'הסתרת הבלוקים הקודמים' : (row.earlier.length === 1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`)) : (expanded ? `Hide ${row.earlier.length} previous` : `Show ${row.earlier.length} previous block${row.earlier.length === 1 ? '' : 's'}`)}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                               {readLang() === 'he' ? (row.earlier.length === 1 ? 'בלוק קודם אחד' : `${row.earlier.length} קודמים`) : `${row.earlier.length} previous`}
                               <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                             </button>
@@ -2490,8 +2498,8 @@ function DemoPrograms({ resetToken = 0 }) {
                               title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: on ? C.gn : C.td }}>{T('PORTAL')}</span>
-                              <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border: `1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position: 'relative', transition: 'background .15s, border-color .15s', flexShrink: 0 }}>
-                                <span style={{ width: 14, height: 14, borderRadius: 7, background: on ? C.gn : C.td, position: 'absolute', top: 1, left: on ? 15 : 1, transition: 'left .15s' }} />
+                              <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.35)' : C.bd2, position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
+                                <span style={{ width: 14, height: 14, borderRadius: 7, background: on ? C.gn : C.td, position: 'absolute', top: 2, left: on ? 16 : 2, transition: 'left .15s' }} />
                               </span>
                             </button>
                             <div className="cd-spacer" style={{ flex: 1, minWidth: 8 }} />
@@ -3327,7 +3335,7 @@ function DemoExercises() {
                 // which is what an Israeli S&C coach actually says.
                 const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
-                  <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent' }}>
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H }}>
                     <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{e.name}</td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
                   </tr>
@@ -3417,7 +3425,7 @@ function DemoReview() {
   // 2026-05-28 (in-person logging moved out), so Review is a SINGLE surface —
   // the demo drops the invented subtab + "REVIEW QUEUE" banner to match.
   const weeklyFocus = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '10px 14px', marginBottom: 14 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', marginBottom: 14 }}>
       <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}>{T('WEEKLY FOCUS · NO UPLOAD NEEDED')}</span>
       <span style={{ color: C.tm, fontSize: 12 }}>▾</span>
     </div>
@@ -4230,7 +4238,8 @@ function DemoTasks() {
         />
         <div style={{ flex: 1, minWidth: 0 }}>
       {/* Composer (collapsed affordance) */}
-      <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10 }) }}>
+      {/* An input in all but tag, and 57px tall beside 36px controls. */}
+      <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box' }) }}>
         <span style={{ color: C.ac, fontSize: 16, fontWeight: 700 }}>+</span>
         <span style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Add a task…')}</span>
       </div>
@@ -4252,9 +4261,9 @@ function DemoTasks() {
                     const meta = TASK_SRC[t.src];
                     const overdue = /OVERDUE/i.test(t.due);
                     return (
-                      <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
+                      <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5, justifyContent: 'center', minHeight: CTRL_H, boxSizing: 'border-box' })}>
                         <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{taskTitle(t)}</span>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: 'none', padding: 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
                       </div>
                     );
                   })}

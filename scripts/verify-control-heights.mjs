@@ -31,9 +31,11 @@
 //   node scripts/verify-control-heights.mjs [--only <substring>] [--tolerance N]
 import fs from 'node:fs';
 import P from 'puppeteer-core';
+import { signIn, looksLikeLogin } from './lib/authed-page.mjs';
 
 const SITE = (() => { const i = process.argv.indexOf('--site'); return i > 0 ? process.argv[i + 1] : 'app'; })();
 const BASE = process.env.BASE || (SITE === 'il' ? 'http://127.0.0.1:5174' : 'http://127.0.0.1:5199');
+const AUTHED = SITE === 'coach';
 const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
 const TOL = (() => { const i = process.argv.indexOf('--tolerance'); return i > 0 ? Number(process.argv[i + 1]) : 1; })();
 const OUT = 'audit-out/control-heights';
@@ -45,6 +47,29 @@ const IL_SURFACES = [
   ['il-online', '/#/online'],
   ['il-coaches', '/#/coaches'],
   ['il-chooser', '/#/'],
+  ['il-gym', '/#/gym'],
+];
+// --site coach: the REAL coach app, signed in as the owner, and the BHBC zone.
+// His scope list (23.9) names "expo" and "bhbc" beside the demos and the
+// sales site; a gate that only reached the public pages was measuring a
+// third of the product. These need a seat, so the page is signed in ONCE per
+// language x width x theme and the surfaces are visited in that page.
+const COACH_SURFACES = [
+  ['coach-dashboard', '/coach'],
+  ['coach-athletes', '/coach/athletes'],
+  ['coach-programs', '/coach/programs'],
+  ['coach-exercises', '/coach/exercises'],
+  ['coach-sessions', '/coach/sessions'],
+  ['coach-review', '/coach/review'],
+  ['coach-review-tools', '/coach/review-tools'],
+  ['coach-tasks', '/coach/tasks'],
+  ['coach-billing', '/coach/billing'],
+  ['coach-calendar', '/coach/calendar'],
+  ['coach-waitlist', '/coach/waitlist'],
+  ['coach-intake', '/coach/intake'],
+  ['coach-workouts', '/coach/workouts'],
+  ['coach-challenges', '/coach/challenges'],
+  ['bhbc', '/coach/bhbc'],
 ];
 const APP_SURFACES = [
   ['landing', '/demo'],
@@ -52,10 +77,15 @@ const APP_SURFACES = [
   ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],
-  ['booking', '/book'],
-  ['intake', '/intake'],
+  // /book and /intake WITHOUT their slug / locale fall through to the login
+  // page. The first runs of this gate listed them bare, so "booking" and
+  // "intake" were the login fields measured twice and the booking page was
+  // never measured at all (24.9). The login page is a surface in its own right.
+  ['booking', '/book/preview-9f3a2c7b'],
+  ['intake', '/intake/he'],
+  ['login', '/login'],
 ];
-const SURFACES = (SITE === 'il' ? IL_SURFACES : APP_SURFACES).filter(([n]) => !ONLY || n.includes(ONLY));
+const SURFACES = (SITE === 'il' ? IL_SURFACES : SITE === 'coach' ? COACH_SURFACES : APP_SURFACES).filter(([n]) => !ONLY || n.includes(ONLY));
 
 const LANGS = ['en', 'he'];
 const WIDTHS = [[390, 844], [1440, 950]];
@@ -66,6 +96,7 @@ const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(8)} ${o.id.p
 
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, controls = 0, rowsSeen = 0;
+const seats = new Map();   // --site coach: one signed-in page per lang x width x theme
 const tolRow = 1;
 
 for (const [name, route] of SURFACES) {
@@ -73,28 +104,46 @@ for (const [name, route] of SURFACES) {
     for (const [w, h] of WIDTHS) {
       for (const theme of THEMES) {
         const id = `${name}/${lang}/${w}/${theme}`;
-        const ctx = await b.createBrowserContext();
-        const pg = await ctx.newPage();
+        const seatKey = `${lang}/${w}/${theme}`;
+        let ctx, pg;
         try {
-          await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 700, hasTouch: w < 700 });
-          await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
-          await pg.evaluateOnNewDocument((L, T) => {
-            try {
-              localStorage.setItem('expo-lang', L);
-              localStorage.setItem('expo-theme', T);
-              localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
-            } catch (e) { /* private mode */ }
-          }, lang, theme);
+          if (AUTHED && seats.has(seatKey)) {
+            ({ ctx, pg } = seats.get(seatKey));
+          } else {
+            ctx = await b.createBrowserContext();
+            pg = await ctx.newPage();
+            await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 700, hasTouch: w < 700 });
+            await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
+            await pg.evaluateOnNewDocument((L, T) => {
+              try {
+                localStorage.setItem('expo-lang', L);
+                localStorage.setItem('expo-theme', T);
+                localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
+              } catch (e) { /* private mode */ }
+            }, lang, theme);
+            if (AUTHED) {
+              const who = await signIn(pg, BASE);
+              if (!who || !who.signedIn) { add({ kind: 'NOSEAT', id, detail: 'could not sign in: ' + ((who && who.note) || '?') + ' — NOT judged' }); continue; }
+              seats.set(seatKey, { ctx, pg });
+            }
+          }
           await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
+          // The real app loads its data after boot; give it longer to settle.
           let prev = -1, settled = false;
-          for (let i = 0; i < 22; i++) {
+          for (let i = 0; i < (AUTHED ? 45 : 22); i++) {
             await wait(600);
             const len = await pg.evaluate(() => (document.body.innerText || '').length);
             if (len === prev && len > 0) { settled = true; break; }
             prev = len;
           }
           if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
+          if (AUTHED) {
+            // A zero must say what it measured: a coach route that came back as
+            // the login screen is not a clean coach route.
+            const txt = await pg.evaluate(() => (document.body.innerText || '').slice(0, 600));
+            if (looksLikeLogin(txt)) { add({ kind: 'NOSEAT', id, detail: 'the login screen came back — NOT judged' }); continue; }
+          }
 
           const r = await pg.evaluate((tol) => {
             const px = (v) => Math.round(parseFloat(v) || 0);
@@ -137,6 +186,9 @@ for (const [name, route] of SURFACES) {
               if (bb.bottom < -2000 || bb.top > 20000) continue;
               if (cs.aspectRatio && cs.aspectRatio !== 'auto') continue;
               if (Math.abs(bb.width - bb.height) <= 2) continue;    // square by intent
+              // A bordered box whose only content is a drawing (a sparkline
+              // tile, a framed logo) is a picture frame, not a control.
+              if (!(el.textContent || '').trim() && el.querySelector('svg,canvas,img,video')) continue;
               // A box that contains another painted box is a container, not a control.
               if ([...el.querySelectorAll('*')].some((c) => {
                 const k = getComputedStyle(c);
@@ -195,9 +247,25 @@ for (const [name, route] of SURFACES) {
               if (bb.height < 4 || bb.width < 40) continue;
               if (bb.bottom < -2000 || bb.top > 20000) continue;
               if (tr.closest('thead')) continue;
-              const rng = document.createRange();
-              rng.selectNodeContents(tr);
-              const rects = [...rng.getClientRects()].filter((x) => x.height > 0 && x.width > 0);
+              // TEXT NODES ONLY. A Range over the whole row returns the border
+              // boxes of the CELLS as well as the glyph rects, so "ink" spanned
+              // the full row height and the offset was 0.0 on every row — the
+              // check passed a roster whose name cell was pinned to the top with
+              // 42px of air under it (break test, 24.9). The glyphs are the ink;
+              // walk them.
+              const rects = [];
+              const tw = document.createTreeWalker(tr, NodeFilter.SHOW_TEXT);
+              let node;
+              while ((node = tw.nextNode())) {
+                if (!node.nodeValue || !node.nodeValue.trim()) continue;
+                const pe = node.parentElement;
+                if (!pe) continue;
+                const pcs = getComputedStyle(pe);
+                if (pcs.display === 'none' || pcs.visibility === 'hidden') continue;
+                const rg = document.createRange();
+                rg.selectNodeContents(node);
+                for (const x of rg.getClientRects()) if (x.height > 0 && x.width > 0) rects.push(x);
+              }
               if (!rects.length) continue;
               const inkT = Math.min(...rects.map((x) => x.top)), inkB = Math.max(...rects.map((x) => x.bottom));
               const off = ((inkT + inkB) / 2) - ((bb.top + bb.bottom) / 2);
@@ -238,13 +306,13 @@ for (const [name, route] of SURFACES) {
         } catch (e) {
           add({ kind: 'ERROR', id, detail: 'harness: ' + String(e.message || e).slice(0, 110) });
         } finally {
-          await pg.close().catch(() => {});
-          await ctx.close().catch(() => {});
+          if (!AUTHED && pg) { await pg.close().catch(() => {}); await ctx.close().catch(() => {}); }
         }
       }
     }
   }
 }
+for (const { ctx, pg } of seats.values()) { await pg.close().catch(() => {}); await ctx.close().catch(() => {}); }
 b.disconnect();
 
 fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));
