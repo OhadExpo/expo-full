@@ -681,7 +681,10 @@ function WhatsIncluded({ heb }) {
         kicker={heb ? 'מה כלול' : "WHAT'S INCLUDED"}
         title={heb ? 'הכל ארוז יחד' : 'Everything in the package'} />
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 1,
+        // Six tiles. At 220px the grid made four columns at 1440 and left two
+        // empty cells in the second row, one of them painted as a dark slab.
+        // 300px makes three columns there (3 x 2 = 6) and two on a tablet.
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 1,
         background: `${C.ac}26`, border: `1px solid ${C.ac}26`, marginTop: 32,
       }}>
         {items.map((it, i) => (

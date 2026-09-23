@@ -855,7 +855,7 @@ function ProgramCard({ p }) {
             onClick={() => trackAndOpen('buy_click', { programId: p.id, source: 'catalog_card' })}
             style={{
               ...baseBtn,
-              background: C.ac, color: '#000', padding: '8px 16px',
+              background: C.ac, color: '#000', padding: '0 16px', whiteSpace: 'nowrap',
               fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
             }}>
             {t('card.buy')}
