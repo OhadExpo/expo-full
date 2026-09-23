@@ -44,6 +44,14 @@ const SURFACES = [
   ['landing-he', '/demo/he'],
   ['landing-en', '/demo/en'],
   ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
+  // CLICK-GATED SCREENS MUST BE IN THE LIST. The athlete drill-in is the
+  // deepest screen in the demo, and every gate walked past it because a sweep
+  // loads a route and reads the page — this one only appeared after you opened
+  // an athlete. That is how it kept a fabricated assessment, an English
+  // payments ledger and a hardcoded April date. It has a URL; use it.
+  ['athlete-detail', '/demo/coach/trainees/t1'],
+  ['athlete-couple', '/demo/coach/trainees/t3'],
+  ['athlete-overdue', '/demo/coach/trainees/t2'],
   ['athlete', '/demo/athlete'],
   ['sandbox', '/demo/sandbox'],
   ['try', '/try'],
