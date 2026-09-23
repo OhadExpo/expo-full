@@ -810,6 +810,18 @@ export const HE = {
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
   'SCALE FROM': 'תחתית הסקאלה',
+  // The athlete-detail payments ledger was an English table on the Hebrew page.
+  'Amount': 'סכום',
+  'Monthly package': 'חבילה חודשית',
+  // The athlete-detail message thread. It had no Hebrew at all, so it sat in
+  // English on the Hebrew screen — behind a click, which is why the language
+  // sweep never reached it.
+  'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.':
+    'עבודה יפה בבנץ׳ השבוע — ההחזקות האיזומטריות עושות את שלהן. שמור על ירידה מבוקרת במשיכות בטראפ-בר.',
+  'Thanks! Felt strong — no niggles this week.':
+    'תודה! הרגשתי חזק — בלי כאבים השבוע.',
+  'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.':
+    'מעולה. מעלה את הסט העליון של יום A בשבוע הבא — מלא מוכנות (כאב / שינה / אנרגיה) לפני האימון כדי שאוכל להתאים את העומס.',
   'LAST 6 MONTHS · COLLECTED': 'נכנס · 6 חודשים',
   'NO PAYMENTS MARKED COLLECTED IN THE LAST 6 MONTHS': 'אין תשלומים שסומנו כמשולמים בחצי השנה האחרונה',
   STORAGE: 'אחסון',

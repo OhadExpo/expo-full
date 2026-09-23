@@ -1293,10 +1293,22 @@ function DemoTrendChart({ values, color, height = 90 }) {
 }
 
 // MESSAGES — coach↔athlete thread (bubbles) + static composer.
+// Three faults in three lines, all on the Hebrew screen too because none of
+// this text ever went through T(): the thread was dated two months ago, and
+// the athlete replied "Knee held up fine on legs day" on the page of a woman
+// whose own record says L4-L5 disc bulge and on the page of a man whose says
+// shoulder impingement. The reply is now injury-neutral — it cannot contradict
+// a record it does not name — and the timestamps resolve from today.
+const msgTime = (daysAgo, hhmm) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${hhmm}`;
+};
 const DEMO_MESSAGES = [
-  { role: 'coach',   time: '30/07/2026 09:14', text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
-  { role: 'athlete', time: '30/07/2026 18:02', text: 'Thanks! Felt strong. Knee held up fine on legs day.' },
-  { role: 'coach',   time: '31/07/2026 08:40', text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
+  { role: 'coach',   time: msgTime(4, '09:14'), text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
+  { role: 'athlete', time: msgTime(4, '18:02'), text: 'Thanks! Felt strong — no niggles this week.' },
+  { role: 'coach',   time: msgTime(3, '08:40'), text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
 ];
 function DemoMessages() {
   return (
@@ -1307,7 +1319,7 @@ function DemoMessages() {
           return (
             <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
               <div style={{ maxWidth: '78%', minWidth: 0, borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
-                <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · {m.time}</div>
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{m.time}</span></div>
                 {/* overflowWrap so a pasted URL or a long word cannot push past the
                     bubble. Defensive only: I first added this believing the gate's
                     "SPILLING by 4px" on this bubble was real. It was not - that was
@@ -1732,13 +1744,13 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         {/* SHARED panels — one row, full width */}
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }}>
           <Panel title={T('SHARED · HOUSEHOLD TERMS')} tint={C.tm}>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>12 Sessions</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{T(String(trainee.format || '').replace(', ', ' · '))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.isCouple ? T('12 Sessions') : T('8 Sessions')}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{readLang() === 'he' ? sessionsLeftHe(trainee.sessionsLeft) : `${trainee.sessionsLeft} ${T('LEFT')}`}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('MONTHLY')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PER SESSION')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 12)}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="ltr">{trainee.payment === 'NEVER PAID' ? '—' : fmtPrettyDate(dAgo(paidAgo))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="ltr">{fmtPrettyDate(trainee.startDate)}</span></Row>
           </Panel>
 
           <Panel title={T('SHARED · PROGRAMS')} tint={C.ac}>
@@ -1861,12 +1873,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
                 <tbody>{payments.map((p, i) => (<tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                   <td style={{ padding: '8px 10px', color: C.tm, textAlign: 'center' }}>{fmtPrettyDate(p.date)}</td>
                   <td style={{ padding: '8px 10px', color: C.gn, fontWeight: 600, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>₪{p.amount.toLocaleString()}</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{p.status.toUpperCase()}</Badge></td>
-                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{p.notes}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{T(p.status).toUpperCase()}</Badge></td>
+                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{T(p.notes)}</td>
                 </tr>))}</tbody>
               </table>
             </div>
