@@ -3048,12 +3048,22 @@ function DemoExercises() {
         </div>
       ) : (
         // TABLE — full-width, every sheet parameter a column (real ExercisesView).
-        <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
+        <div className="cd-ex-table-wrap" style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
+          <style>{`
+            /* Mirrors src/ExercisesView.jsx: below 701px the taxonomy columns
+               go, leaving the name. Keeping them turned every cell into one
+               word per line at 390. */
+            @media (max-width: 700px) {
+              .cd-ex-table-wrap { overflow-x: visible !important; }
+              .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
+              .cd-ex-table-wrap table { table-layout: auto !important; width: 100% !important; }
+            }
+          `}</style>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr>
                 {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
-                  <th key={h} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T(h)}</th>
+                  <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T(h)}</th>
                 ))}
               </tr>
             </thead>
@@ -3062,10 +3072,10 @@ function DemoExercises() {
                 // taxo: the six CLOSED lists get their Hebrew name; the anatomy
                 // columns pass through taxoHe untouched and stay English,
                 // which is what an Israeli S&C coach actually says.
-                const cell = (v, max = 210) => <td style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'nowrap', maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' }}>{taxoHe(v, readLang()) || '·'}</td>;
+                const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
                   <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent' }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</td>
+                    <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{e.name}</td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
                   </tr>
                 );
