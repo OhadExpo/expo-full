@@ -810,6 +810,21 @@ export const HE = {
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
   'SCALE FROM': 'תחתית הסקאלה',
+  // Coach-history feed, now derived from the athlete rather than fixed.
+  'Check in re:': 'לבדוק לגבי',
+  'Check in after the last session': 'לבדוק אחרי האימון האחרון',
+  'Confirm payment for next month': 'לאשר תשלום לחודש הבא',
+  'Checked in about': 'שאל לגבי',
+  'Checked in — feeling good': 'שאל לשלומו — מרגיש טוב',
+  'monthly package': 'חבילה חודשית',
+  'Assigned': 'הוקצה',
+  // The injury field is shown to the coach in their own words. Kept clinical
+  // and descriptive — never "cure", "diagnose" or "fix".
+  'L4-L5 disc bulge': 'בלט דיסק L4-L5',
+  'R shoulder impingement': 'צביטה בכתף ימין',
+  'R knee — patellofemoral': 'ברך ימין — פטלופמורלי',
+  'Lower-back stiffness': 'נוקשות בגב תחתון',
+  'None': 'אין',
   // The athlete-detail payments ledger was an English table on the Hebrew page.
   'Amount': 'סכום',
   'Monthly package': 'חבילה חודשית',

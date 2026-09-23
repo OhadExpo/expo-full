@@ -1309,14 +1309,31 @@ function DemoMessages() {
 }
 
 // CRM — health strip + coach-history (ACTIONS / ACTIVITY tabs).
-function DemoCRM() {
+// The coach-history feed was identical on every athlete and quoted two facts
+// that belonged to nobody on the page: ₪1,200, which is only the couple's
+// monthly, and "Block #12", which appears in no athlete's plan list at all.
+// It also opened with "check in re: right shoulder" and "checked in about
+// knee" on the records of people whose injuries are a lumbar disc, a
+// patellofemoral knee, and none — and it was dated two months ago.
+// Now: the amount is the athlete's own monthly, the block is the newest one in
+// their own plans array, the note names their own injury, and every timestamp
+// resolves from today.
+function DemoCRM({ trainee }) {
   const [tab, setTab] = useState('activity');
-  const actions = [T('Check in re: right shoulder after Day B'), T('Send updated nutrition targets'), T('Confirm payment for August')];
+  const t = trainee || {};
+  const hurt = t.injuries && t.injuries !== 'None' ? t.injuries : null;
+  const block = (t.plans && t.plans[0]) || '—';
+  const when = (d, hhmm) => `${dAgoLabel(d).replace(/ \d{4}$/, '')} · ${hhmm}`;
+  const actions = [
+    hurt ? `${T('Check in re:')} ${T(hurt)}` : T('Check in after the last session'),
+    T('Send updated nutrition targets'),
+    T('Confirm payment for next month'),
+  ];
   const activity = [
-    { kind: T('SESSION'), color: C.gn, when: '30 Jul · 14:20', auto: true,  text: T('Completed Upper A — 6 exercises logged') },
-    { kind: T('WHATSAPP'), color: C.gn, when: '29 Jul · 09:10', auto: false, text: T('Checked in about knee — cleared for legs') },
-    { kind: T('PAYMENT'), color: C.gn, when: '25 Jul · 08:00', auto: true,  text: T('₪1,200 — monthly package') },
-    { kind: T('PLAN'), color: C.ac, when: '22 Jul · 17:45', auto: true,  text: T('Assigned Block #12 (hypertrophy)') },
+    { kind: T('SESSION'), color: C.gn, when: when(2, '14:20'), auto: true,  text: T('Completed Upper A — 6 exercises logged') },
+    { kind: T('WHATSAPP'), color: C.gn, when: when(3, '09:10'), auto: false, text: hurt ? `${T('Checked in about')} ${T(hurt)}` : T('Checked in — feeling good') },
+    { kind: T('PAYMENT'), color: C.gn, when: when(t.paidDaysAgo != null ? t.paidDaysAgo : 30, '08:00'), auto: true,  text: <><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{'₪' + (t.monthly || 0).toLocaleString()}</span> — {T('monthly package')}</> },
+    { kind: T('PLAN'), color: C.ac, when: when(12, '17:45'), auto: true,  text: `${T('Assigned')} ${block}` },
   ];
   return (
     <div>
@@ -1541,7 +1558,11 @@ function DemoOverload({ trainee }) {
                   <tr onClick={() => setOpenEid(open ? '' : ex.eid)} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
                     <td style={{ padding: '9px 10px', color: C.tx, fontWeight: 600 }}>{open ? '▾' : '▸'} {ex.name}</td>
                     <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: C.tx }}>{st.last}kg</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}>{arrow}</td>
+                    {/* The sign is class ES: with nothing numeric before it,
+                        UAX#9 hands it the paragraph direction and it jumps to
+                        the other end — "+10.5%" painted as "10.5%+" on every
+                        row of the showpiece table. Isolated. */}
+                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{arrow}</span></td>
                     <td style={{ padding: '9px 10px', textAlign: 'center', color: C.tm }}>{st.sessions}</td>
                     <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[ex.dates.length - 1]}</td>
                   </tr>
@@ -1554,7 +1575,7 @@ function DemoOverload({ trainee }) {
                           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}>{ex.dates[st.prIdx]}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 18 }}>
-                          {[[T('LATEST'), `${st.last}kg`, C.tx], [T('Δ ALL-TIME'), `${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], [T('SESSIONS'), String(st.sessions), C.tx]].map(([l, v, c]) => (
+                          {[[T('LATEST'), `${st.last}kg`, C.tx], [T('Δ ALL-TIME'), <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`}</span>, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], [T('SESSIONS'), String(st.sessions), C.tx]].map(([l, v, c]) => (
                             <div key={l} style={{ textAlign: 'center' }}><div style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, color: c, marginTop: 2 }}>{v}</div></div>
                           ))}
                         </div>
@@ -1856,7 +1877,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
-          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM trainee={trainee} /></DemoDetailCard>}
 
           {/* BODYWEIGHT */}
           {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
@@ -1885,7 +1906,11 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
             {trainee.plans.map((name, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                {/* Was nowrap + ellipsis, so at 360 "Block #4 — Pull
+                    Specialization" lost 36px of itself to a "…". A program's
+                    NAME is the one thing a coach reads on this row, and his
+                    standing rule is that a word never gets cut. It wraps. */}
+                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{name}</span>
                 <Badge color={i === 0 ? C.gn : C.td}>{tr(readLang(), i === 0 ? 'ACTIVE' : 'ARCHIVED')}</Badge>
               </div>
             ))}
