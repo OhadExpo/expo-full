@@ -120,7 +120,15 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
   return (
     // /try sandbox is a public marketing surface — force dark while light
     // mode is gated to the coach app only.
-    <div data-theme="dark" style={{
+    //
+    // dir: the engine had NO base direction at all — nine isolating spans and
+    // nothing setting the paragraph. So on the Hebrew screen the h1 computed
+    // `direction: ltr` and every Hebrew paragraph sat flush LEFT, ragged on
+    // the right, which is the wrong way round for Hebrew. This is the screen
+    // the demo run sheet calls the best in the product, sold to Israeli
+    // coaches. Direction belongs in markup, not CSS, and on the container —
+    // per-span isolation cannot supply it.
+    <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} data-theme="dark" style={{
       background: C.bg, color: C.tx, minHeight:'100vh',
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
@@ -1283,7 +1291,14 @@ function ExercisePicker({ pov, onPick }) {
         marginBottom: 10, letterSpacing: -0.3,
       }}>{isCoach
         ? <>{T("You're reviewing")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{auto.label}</span></>
-        : <>{T("We already know — it's your")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{auto.label}</span></>}</h1>
+        : <>{T("We already know — it's your")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate', display: 'inline-block',
+            // The isolate keeps the name in LTR order; it does not keep it on
+            // one line. At 390 "BACK SQUAT" broke after BACK and put SQUAT
+            // alone on the next line, with the two halves at opposite ends of
+            // an RTL paragraph — on the first screen of the engine demo.
+            // nowrap only while the name is short enough to be safe; a long
+            // one still wraps rather than overflowing the heading.
+            whiteSpace: String(auto.label || '').length <= 18 ? 'nowrap' : undefined }}>{auto.label}</span></>}</h1>
       <p style={{
         fontFamily: FB, color: C.tx, fontSize: 15, lineHeight: 1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
