@@ -14,7 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
-import { C, FN, FB, FH } from './theme';
+import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
@@ -218,8 +218,13 @@ const MOCK_EXERCISES = [
 
 // ─── Shared bits ──────────────────────────────────────────────────────────
 const baseBtn = {
+  // minHeight, not height: a fixed height breaks the moment a Hebrew label
+  // wraps, and the vertical padding is zero so the flex centring sets the box.
+  // Before this a single coach tab could show 32px, 38px and 40px controls at
+  // once, and 40 only at phone width.
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-  padding: '8px 14px', borderRadius: 0, border: 'none',
+  minHeight: CTRL_H, boxSizing: 'border-box',
+  padding: '0 14px', borderRadius: 0, border: 'none',
   fontFamily: FB, fontSize: 12, fontWeight: 700, letterSpacing: 1.2,
   cursor: 'pointer', transition: 'all 0.15s', textDecoration: 'none',
 };
@@ -508,7 +513,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         <Panel title={`${T('New Leads')} (3)`} tint={C.ac} icon="mail" cyanBorder>
           {leads.length === 0 && (
             <Row><div style={{ flex: 1, color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1 }}>{T('ALL LEADS CLEARED')}</div>
-              <button onClick={() => { setLeads(DEMO_LEADS); setContacted({}); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '2px 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}>{T('RESET')}</button>
+              <button onClick={() => { setLeads(DEMO_LEADS); setContacted({}); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}>{T('RESET')}</button>
             </Row>
           )}
           {leads.map((l, i) => (
@@ -528,8 +533,8 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {T(l.source.toUpperCase())} · {T(l.context.toUpperCase())}</div>
               </div>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{RT(l.when)}</span>
-              <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? T('Mark not contacted (demo)') : T('Mark contacted (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
-              <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title={T('Delete lead (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginInlineStart: 4, flexShrink: 0 }}>✕</button>
+              <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? T('Mark not contacted (demo)') : T('Mark contacted (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
+              <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title={T('Delete lead (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginInlineStart: 4, flexShrink: 0 }}>✕</button>
             </Row>
           ))}
         </Panel>
@@ -645,7 +650,9 @@ function FakeWaButton() {
   return (
     <button onClick={e => { e.stopPropagation(); }} title={T('Send WhatsApp check-in')} style={{
       background: '#25d36620', border: `1px solid #25d36655`, color: '#25d366',
-      borderRadius: 0, padding: '4px 6px', cursor: 'pointer',
+      // An icon-only control is still a control: it sits in a row beside
+      // labelled ones and has to match their height. It was 32px against 36.
+      borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 8px', cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366" aria-hidden="true">
@@ -969,10 +976,10 @@ function TraineeCard({ t, onClick }) {
       <BodyweightBlock weight={t.weight} center />
       {/* Bottom action row — PORTAL / EDIT (demo, mirrors the real card). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 8, gap: 8 }}>
-        <button onClick={e => e.stopPropagation()} title={T("Preview this athlete's portal (demo only)")} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', height: 26, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={e => e.stopPropagation()} title={T("Preview this athlete's portal (demo only)")} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{T('PORTAL')}
         </button>
-        <button onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', height: 26, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('EDIT')}</button>
+        <button onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('EDIT')}</button>
       </div>
     </div>
   );
@@ -1100,11 +1107,11 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
   const color = COLORS[status] || C.tm;
   return (
     <span style={{ position: 'relative', display: 'inline-block' }}>
-      <button onClick={() => setOpen(o => !o)} title={T('Change status')} style={{ ...baseBtn, height: 34, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${color}`, color, padding: '0 12px', fontSize: 11, letterSpacing: '0.12em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T(status).toUpperCase()} <span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none' }}>▾</span></button>
+      <button onClick={() => setOpen(o => !o)} title={T('Change status')} style={{ ...baseBtn, minHeight: CTRL_H, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${color}`, color, padding: '0 12px', fontSize: 11, letterSpacing: '0.12em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T(status).toUpperCase()} <span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none' }}>▾</span></button>
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, minWidth: 124 }}>
           {['Active', 'On Hold', 'Inactive', 'Trial'].map(s => (
-            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? C.acD : 'transparent', border: `1px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{T(s)}</button>
+            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'start', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', background: s === status ? C.acD : 'transparent', border: `1px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{T(s)}</button>
           ))}
         </div>
       )}
@@ -1149,7 +1156,7 @@ function DemoNotifToggle() {
   const [off, setOff] = useState(false);
   return (
     <button onClick={() => setOff(o => !o)} title={T("Demo only — mute this athlete's notifications")}
-      style={{ background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 34, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+      style={{ background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: off ? C.td : C.tx }}>{T('NOTIFICATION')}</span>
       <span style={{ width: 36, height: 20, borderRadius: 10, background: off ? C.sf3 : 'rgba(46,213,115,0.251)', border: `1px solid ${off ? C.bd2 : 'rgba(46,213,115,0.376)'}`, position: 'relative', transition: 'all .15s' }}>
         <span style={{ width: 16, height: 16, borderRadius: 8, background: off ? C.td : C.gn, position: 'absolute', top: 1, left: off ? 1 : 18, transition: 'all .15s' }} />
@@ -1293,7 +1300,7 @@ function DemoReadinessTrends() {
     <div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {['pain', 'sleep', 'energy'].map(m => (
-          <button key={m} onClick={() => setMetric(m)} style={{ flex: 1, height: 32, borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: metric === m ? 'rgba(57,189,255,0.12)' : 'transparent', border: `1px solid ${metric === m ? C.ac : C.cardBd}`, boxShadow: metric === m ? `inset 0 2px 0 ${C.ac}` : 'none', color: metric === m ? C.ac : C.tm }}>{T(m)}</button>
+          <button key={m} onClick={() => setMetric(m)} style={{ flex: 1, minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: metric === m ? 'rgba(57,189,255,0.12)' : 'transparent', border: `1px solid ${metric === m ? C.ac : C.cardBd}`, boxShadow: metric === m ? `inset 0 2px 0 ${C.ac}` : 'none', color: metric === m ? C.ac : C.tm }}>{T(m)}</button>
         ))}
       </div>
       <div style={{ border: `1px solid ${C.ac}`, padding: 14, marginBottom: 10 }}>
@@ -1397,7 +1404,7 @@ function DemoOverload() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={T('search exercise')} style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, height: 30, boxSizing: 'border-box', padding: '0 10px', fontSize: 12 }} />
         {[['all', T('ALL')], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([id, lbl]) => (
-          <button key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'transparent' : 'transparent', border: `1px solid ${filter === id ? OV_COLOR[id] : C.cardBd}`, color: filter === id ? OV_COLOR[id] : C.tm, borderRadius: 0, height: 30, boxSizing: 'border-box', cursor: 'pointer', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>{lbl} {counts[id]}</button>
+          <button key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'transparent' : 'transparent', border: `1px solid ${filter === id ? OV_COLOR[id] : C.cardBd}`, color: filter === id ? OV_COLOR[id] : C.tm, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', cursor: 'pointer', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>{lbl} {counts[id]}</button>
         ))}
       </div>
       <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
@@ -1508,20 +1515,20 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         {isCouple && <DemoStatusMenu />}
         <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+          border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('LOG SESSION')}</button>
         <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+          border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('PORTAL')}</button>
         <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+          border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('EDIT')}</button>
         <DemoNotifToggle />
         <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.rd,
-          border: `1px solid rgba(255,71,87,0.251)`, padding: '8px 14px', fontSize: 11,
+          border: `1px solid rgba(255,71,87,0.251)`, padding: '0 14px', fontSize: 11,
         }}>{T('ARCHIVE')}</button>
       </div>
 
@@ -1684,7 +1691,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {[['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['messages', 'Messages'], ['crm', 'Coach History'], ['eval', 'Evaluation'], ['overload', 'Overload']].map(([id, l]) => {
                 const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
-                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{T(l)}</button>;
+                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{T(l)}</button>;
               })}
             </div>
           </div>
@@ -1728,7 +1735,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
-          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
 
           {/* BODYWEIGHT */}
           {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
@@ -2075,7 +2082,7 @@ function DemoPrograms({ resetToken = 0 }) {
           <div style={{ display: 'flex', gap: 6, width: 252 }}>
             {[['table', 'Table'], ['grid', 'Grid'], ['lineage', 'Analysis']].map(([v, label]) => {
               const on = progView === v;
-              return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
+              return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
             })}
           </div>
         </div>
@@ -2348,7 +2355,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 if (nextId && nextId !== selectedProgramId) setSelectedProgramId(nextId);
               }}
                 title={T('Switch to another program for this athlete')}
-                style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, minHeight: CTRL_H, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {athletePrograms.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
               </select>
               <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 12, lineHeight: 1 }}>▾</span>
@@ -2357,7 +2364,7 @@ function DemoPrograms({ resetToken = 0 }) {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>
           {(() => {
-            const tbBtn = (color = C.ac) => ({ background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, height: 42, padding: '0 16px', color, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', whiteSpace: 'nowrap' });
+            const tbBtn = (color = C.ac) => ({ background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, minHeight: CTRL_H, padding: '0 16px', color, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', whiteSpace: 'nowrap' });
             return <>
               <button onClick={() => setCompareOpen(v => !v)} title={T('Compare with a previous program (read-only)')}
                 style={{ ...tbBtn(), background: compareActive ? `${C.ac}1f` : 'var(--c-sf)' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
@@ -2434,7 +2441,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>{T('WARM-UP (')}{block.warmup.length})</span>
               </button>
               <button onClick={e => e.stopPropagation()} title={T('Demo only')}
-                style={{ background: 'var(--c-sf)', border: `1px solid rgba(255,165,2,0.4)`, borderRadius: 0, height: 26, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ {tr(readLang(), 'ADD WARM-UP')}</button>
+                style={{ background: 'var(--c-sf)', border: `1px solid rgba(255,165,2,0.4)`, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ {tr(readLang(), 'ADD WARM-UP')}</button>
             </div>
             {warmOpen && (
               <div style={{ marginTop: 8 }}>
@@ -2614,7 +2621,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   <button onClick={() => { setSelectedDayIdx(dayIdx); setOverview(false); }}
                     title={T('Open this day in the detail editor')}
-                    style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginInlineStart: 'auto' }}>DETAIL ▸</button>
+                    style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginInlineStart: 'auto' }}>DETAIL ▸</button>
                 </div>
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
@@ -2907,7 +2914,7 @@ function DemoExercises() {
   };
 
   // Underline-trigger base (filters = underline text, not solid boxes).
-  const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
+  const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
 
   // Carded multi-select menu — cyan strip header + OCD checkbox grid + tabular
   // faceted counts. 1:1 with src/ExercisesView.jsx FilterPill (#212 redesign).
@@ -2940,7 +2947,7 @@ function DemoExercises() {
               const on = sel.includes(v);
               return (
                 <div key={v} onClick={() => toggleFilter(k, v)}
-                  style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'center', height: 30, padding: '0 11px', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: on ? C.ac : C.tx, background: on ? 'color-mix(in srgb, var(--c-ac) 12%, transparent)' : 'transparent', borderTop: idx === 0 ? 'none' : `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}
+                  style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'center', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 11px', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: on ? C.ac : C.tx, background: on ? 'color-mix(in srgb, var(--c-ac) 12%, transparent)' : 'transparent', borderTop: idx === 0 ? 'none' : `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}
                   onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'rgba(127,127,138,0.08)'; }}
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ width: 13, height: 13, boxSizing: 'border-box', border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? C.ac : 'transparent', color: '#0a0a0b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>{on ? '✓' : ''}</span>
@@ -2966,7 +2973,7 @@ function DemoExercises() {
         <div style={{ display: 'flex', gap: 6, width: 200 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
-            return <button key={v} onClick={() => setView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
+            return <button key={v} onClick={() => setView(v)} style={{ flex: 1, minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
           })}
         </div>
       </div>
@@ -2986,7 +2993,7 @@ function DemoExercises() {
             }}
           />
         </div>
-        <button style={{ height: 30, width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</button>
+        <button style={{ minHeight: CTRL_H, boxSizing: 'border-box', width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</button>
       </div>
 
       {/* Filter rail — carded multi-select FilterPill menus (matches the
@@ -3241,7 +3248,7 @@ function DemoReview() {
                   ))}
                   <div style={{ marginTop: 'auto', display: 'flex', gap: 8, alignItems: 'center', borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
                     <input placeholder={T('Comment at 0:04…')} readOnly style={{ flex: 1, minWidth: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FB, fontSize: 12, padding: '7px 10px', borderRadius: 0, outline: 'none' }} />
-                    <button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', padding: '7px 14px', fontSize: 11 }}>{tr(readLang(), 'Send')}</button>
+                    <button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', padding: '0 14px', fontSize: 11 }}>{tr(readLang(), 'Send')}</button>
                   </div>
                 </div>
               </div>
@@ -3326,7 +3333,7 @@ function DemoReview() {
                 </span>
               </span>
             </span>
-            <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1.5 }}>{T('Athlete page →')}</button>
+            <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>{T('Athlete page →')}</button>
           </div>
           {data.workouts.map(wo => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
@@ -3350,8 +3357,8 @@ function DemoReview() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginInlineStart: 12, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setSelectedId(wo.id)} title={T('Review this workout')} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('REVIEW →')}</button>
-                  <button onClick={e => e.stopPropagation()} title={T('Delete this workout (demo only)')} style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, padding: '5px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
+                  <button onClick={() => setSelectedId(wo.id)} title={T('Review this workout')} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('REVIEW →')}</button>
+                  <button onClick={e => e.stopPropagation()} title={T('Delete this workout (demo only)')} style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
                 </div>
               </div>
             );
@@ -3473,7 +3480,7 @@ function DemoWorkouts() {
               {p.dayNames.map((dn, i) => (
                 <button key={i} onClick={e => e.stopPropagation()} style={{
                   ...baseBtn, background: 'transparent', color: C.tm,
-                  border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 12, fontWeight: 600,
+                  border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 12, fontWeight: 600,
                 }}>▶ {dn}</button>
               ))}
             </div>
@@ -3618,8 +3625,8 @@ function DemoGroupFloor() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>{T('ON THE FLOOR ·')}{Object.values(checkedIn).filter(Boolean).length}/{roster.length} {T('CHECKED IN')}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>+ {tr(readLang(), 'ADD')}</button>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>■ {tr(readLang(), 'FINISH')}</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11 }}>+ {tr(readLang(), 'ADD')}</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11 }}>■ {tr(readLang(), 'FINISH')}</button>
           </div>
         </div>
       </div>
@@ -3634,7 +3641,7 @@ function DemoGroupFloor() {
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A · W4')}</div>
                 </div>
-                <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '4px 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
+                <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
               </div>
               <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {DEMO_SESSION_DAY.map(ex => {
@@ -3676,7 +3683,7 @@ function DemoSingle() {
           </div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-          <button style={{ ...baseBtn, background: C.gn, color: '#06251a', padding: '14px 48px', fontSize: 14, fontWeight: 700 }}>{tr(readLang(), 'Complete Workout')}</button>
+          <button style={{ ...baseBtn, background: C.gn, color: '#06251a', padding: '0 48px', fontSize: 14, fontWeight: 700 }}>{tr(readLang(), 'Complete Workout')}</button>
         </div>
       </div>
     );
@@ -3690,7 +3697,7 @@ function DemoSingle() {
           const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
           return (
             <div key={t.id} style={{ borderTop: i === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
-              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', padding: '12px 14px', textAlign: 'start' }}>
+              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', textAlign: 'start' }}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>BLOCK #4</span>
@@ -3705,7 +3712,7 @@ function DemoSingle() {
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {dayNames.map((dn, di) => (
-                      <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === 0 ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === 0 ? C.ac : C.tm, border: `1px solid ${di === 0 ? 'rgba(57,189,255,0.45)' : C.bd}`, padding: '5px 12px', fontSize: 12 }}>▶ {dn}</button>
+                      <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === 0 ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === 0 ? C.ac : C.tm, border: `1px solid ${di === 0 ? 'rgba(57,189,255,0.45)' : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
                     ))}
                   </div>
                 </div>
@@ -3720,7 +3727,7 @@ function DemoSingle() {
 
 function DemoSessions() {
   const [mode, setMode] = useState('group');
-  const pill = (active) => ({ ...baseBtn, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, border: `1px solid ${active ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 });
+  const pill = (active) => ({ ...baseBtn, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, border: `1px solid ${active ? C.ac : C.bd}`, padding: '0 18px', fontSize: 12, letterSpacing: 1.5 });
   return (
     <section>
       <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
@@ -3785,7 +3792,7 @@ function DemoReviewTools() {
       {note && (
         <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{T('The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.')}</span>
-          <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, flexShrink: 0 }}>{T('DISMISS')}</button>
+          <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, flexShrink: 0 }}>{T('DISMISS')}</button>
         </div>
       )}
     </div>
@@ -3895,7 +3902,7 @@ function DemoTasks() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Tasks')}</h2>
         <div style={{ display: 'inline-flex', border: `1px solid ${C.bd}` }}>
-          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, background: view === v ? C.ac : 'transparent', color: view === v ? '#0E0F12' : C.tm, border: 'none', padding: '7px 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{T(v === 'list' ? 'List' : 'Board')}</button>)}
+          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, background: view === v ? C.ac : 'transparent', color: view === v ? '#0E0F12' : C.tm, border: 'none', padding: '0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{T(v === 'list' ? 'List' : 'Board')}</button>)}
         </div>
       </div>
       {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
@@ -4070,7 +4077,7 @@ function DemoBilling() {
       {panel(<>
         <div style={stripH}>
           <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
         </div>
         <div>
           {DEMO_PAYMENTS.map(p => {
@@ -4084,8 +4091,8 @@ function DemoBilling() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? `באיחור של ${p.overdueDays} ימים` : `${p.overdueDays}D OVERDUE`}</span>}
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
-                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
-                  {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
+                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
+                  {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
               </div>
             );
@@ -4127,8 +4134,8 @@ function DemoBilling() {
               <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder={T('Amount (₪)')} style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '10px 0', fontSize: 11 }}>{T('CANCEL')}</button>
-              <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '10px 0', fontSize: 11 }}>{T('CREATE')}</button>
+              <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0', fontSize: 11 }}>{T('CANCEL')}</button>
+              <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '0', fontSize: 11 }}>{T('CREATE')}</button>
             </div>
           </div>
         </div>
@@ -4327,7 +4334,7 @@ export default function CoachDemo() {
                   alignItems: 'baseline',
                   background: tab === t.key ? C.acD : 'transparent',
                   color: tab === t.key ? C.ac : C.tm,
-                  padding: '6px 12px', fontSize: 11, letterSpacing: 1.5,
+                  padding: '0 12px', fontSize: 11, letterSpacing: 1.5,
                   whiteSpace: 'nowrap', gap: 4,
                 }}>
                 <span>{T(t.label)}</span>
@@ -4339,7 +4346,7 @@ export default function CoachDemo() {
           </nav>
           <a href="/demo#waitlist" className="cd-cta-waitlist" style={{
             ...baseBtn, background: C.ac, color: C.acOnSurface,
-            padding: '6px 14px', fontSize: 11, flex: '0 0 auto',
+            padding: '0 14px', fontSize: 11, flex: '0 0 auto',
           }}>{T('JOIN WAITLIST →')}</a>
         </div>
       </header>
@@ -4375,8 +4382,8 @@ export default function CoachDemo() {
           <a href="/demo/trainee" style={{
             ...baseBtn,
             background: 'transparent', color: C.tm,
-            border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, letterSpacing: 1.5,
-            flex: '0 0 auto', minHeight: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,
+            flex: '0 0 auto', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{T('SEE ATHLETE VIEW →')}</a>
         </div>
       </div>
@@ -4392,7 +4399,7 @@ export default function CoachDemo() {
         {ATHLETE_GROUP.includes(tab) && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {ATHLETE_SUBTABS.map(([k, l]) => (
-              <button key={k} onClick={() => navigateToTab(k)} style={{ ...baseBtn, background: tab === k ? C.acD : 'transparent', color: tab === k ? C.ac : C.tm, border: `1px solid ${tab === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
+              <button key={k} onClick={() => navigateToTab(k)} style={{ ...baseBtn, background: tab === k ? C.acD : 'transparent', color: tab === k ? C.ac : C.tm, border: `1px solid ${tab === k ? C.ac : C.bd}`, padding: '0 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
             ))}
           </div>
         )}
@@ -4400,7 +4407,7 @@ export default function CoachDemo() {
         {tab === 'review' && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {[['workouts', 'WORKOUTS'], ['tools', 'TOOLS']].map(([k, l]) => (
-              <button key={k} onClick={() => setReviewSub(k)} style={{ ...baseBtn, background: reviewSub === k ? C.acD : 'transparent', color: reviewSub === k ? C.ac : C.tm, border: `1px solid ${reviewSub === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
+              <button key={k} onClick={() => setReviewSub(k)} style={{ ...baseBtn, background: reviewSub === k ? C.acD : 'transparent', color: reviewSub === k ? C.ac : C.tm, border: `1px solid ${reviewSub === k ? C.ac : C.bd}`, padding: '0 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
             ))}
           </div>
         )}
@@ -4436,11 +4443,11 @@ export default function CoachDemo() {
           }}>{T('Run your roster on this stack. Locked-in pricing for the first wave.')}</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="/demo#waitlist" style={{
-              ...baseBtn, background: C.ac, color: C.acOnSurface, padding: '11px 22px', fontSize: 12,
+              ...baseBtn, background: C.ac, color: C.acOnSurface, padding: '0 22px', fontSize: 12,
             }}>{T('JOIN THE WAITLIST')}</a>
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
-              border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
+              border: `1px solid ${C.bd2}`, padding: '0 22px', fontSize: 12,
             }}>{T('NOW SEE THE ATHLETE VIEW →')}</a>
           </div>
         </div>

@@ -54,6 +54,28 @@ export const C = {
   cardShadow: "var(--c-cardShadow)", // composite card-elevation shadow (subtle on dark, lift on light)
 };
 
+// ONE HEIGHT FOR EVERY BORDERED CONTROL.
+//
+// Ohad, 23.9: "make sure all the buttons, tags, and search/bars/text boxes
+// (everything that we have with borders - anywhere) is the same vertical
+// height. massive full seep everywhere."
+//
+// Measured across the product before picking the number: 38 sites at 30px, 26
+// at 32, 12 at 34, 8 at 36, 4 at 38 — a control row could hold four different
+// heights at once. 36 is chosen over the more common 32 because 32 is exactly
+// the touch-target floor, so a 32px control fails the phone sweep the moment a
+// border eats a pixel; 36 clears it and sits at the existing centre of mass.
+//
+// HOW TO USE IT: set `minHeight: CTRL_H` and give the control ZERO vertical
+// padding, letting `display:inline-flex; align-items:center` do the centring.
+// A fixed `height` breaks the moment a Hebrew label wraps; a minHeight holds
+// the row steady and still lets a genuinely two-line control grow.
+export const CTRL_H = 36;
+
+// The one exception, and it is not a control: a badge or a count pill that sits
+// INSIDE another control or a table cell, where 36px would blow the row open.
+export const CTRL_H_INLINE = 20;
+
 export const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 // Extract the 11-char video id from any YouTube URL shape a coach might paste:
 // watch?v=, youtu.be/, /embed/, /v/, /live/ and — importantly — /shorts/ (the

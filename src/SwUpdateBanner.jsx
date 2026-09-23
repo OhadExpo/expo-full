@@ -135,11 +135,19 @@ export default function SwUpdateBanner() {
   //
   // Ohad, 17.9: "the 'update' message pop up borders are not perfect. the top is
   // invisible." It was flush against y=0 with `borderTop: 'none'`, so the card
-  // had three sides and read as a clipped box. It now floats 10px down with all
-  // four borders drawn, keeps a 12px gutter on each side so a phone never has it
+  // had three sides and read as a clipped box. It now floats down with all four
+  // borders drawn, keeps a 12px gutter on each side so a phone never has it
   // touching the screen edge, and wraps instead of overflowing at 390.
+  //
+  // Ohad again, 23.9: "sometimes it only shows the lower part". A flat `top:
+  // 10` is enough in a browser tab and not enough in the INSTALLED app: in
+  // standalone PWA mode the viewport starts behind the status bar and the
+  // notch, so the pill's top edge and its top border are drawn underneath
+  // them. That is exactly "only the lower part", and it is why it happens
+  // only sometimes — it depends on how the app was opened. The safe-area
+  // inset resolves to 0 in a normal tab, so this costs nothing there.
   return (
-    <div role="status" style={{ position: 'fixed', top: 10, left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', padding: '0 12px', pointerEvents: 'none' }}>
+    <div role="status" style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', padding: '0 12px', pointerEvents: 'none' }}>
       <div style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 10, maxWidth: '100%', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '9px 14px', boxShadow: `0 10px 30px ${C.shadow}` }}>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{t('NEW VERSION AVAILABLE')}</span>
         <button onClick={onUpdate} style={{ background: C.ac, color: 'var(--c-bg)', border: 'none', borderRadius: 0, padding: '7px 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer' }}>{t('UPDATE')}</button>
