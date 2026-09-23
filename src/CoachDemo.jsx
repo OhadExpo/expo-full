@@ -4344,6 +4344,37 @@ export default function CoachDemo() {
               </button>
             ))}
           </nav>
+          {/* THE DEMO HAD NO WAY TO CHANGE LANGUAGE.
+              Parity check against the signed-in coach app, 23.9: the real nav
+              carries a language switch and the demo did not, so a prospect
+              could not see the product in Hebrew — on the one thing Ohad
+              cares most about, in front of an Israeli buyer, with no way to
+              show it but to edit the URL.
+              A reload rather than state: the demo reads readLang() at dozens
+              of call sites instead of through a context, so flipping a state
+              would leave half the screen in the old language. */}
+          <button
+            onClick={() => {
+              const next = readLang() === 'he' ? 'en' : 'he';
+              try { localStorage.setItem('expo-lang', next); } catch (e) { /* private mode */ }
+              try { window.location.reload(); } catch (e) { /* noop */ }
+            }}
+            title={readLang() === 'he' ? 'Switch to English' : 'עברית'}
+            // The visible label is two stacked spans for width reservation, so
+            // textContent reads "ENעב". Screen readers and tests need a real name.
+            aria-label={readLang() === 'he' ? 'Switch to English' : 'Switch to Hebrew'}
+            style={{
+              ...baseBtn, background: 'transparent', color: C.tm,
+              border: `1px solid ${C.cardBd}`, padding: '0 10px', fontSize: 10,
+              letterSpacing: '0.12em', flex: '0 0 auto',
+            }}>
+            {/* Both labels stacked so the button does not resize when it
+                flips — a control that changes width on click reads as a bug. */}
+            <span style={{ display: 'inline-grid', justifyItems: 'center' }}>
+              <span aria-hidden="true" style={{ gridArea: '1 / 1', visibility: 'hidden' }}>{readLang() === 'he' ? 'עב' : 'EN'}</span>
+              <span style={{ gridArea: '1 / 1' }}>{readLang() === 'he' ? 'EN' : 'עב'}</span>
+            </span>
+          </button>
           <a href="/demo#waitlist" className="cd-cta-waitlist" style={{
             ...baseBtn, background: C.ac, color: C.acOnSurface,
             padding: '0 14px', fontSize: 11, flex: '0 0 auto',
