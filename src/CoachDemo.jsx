@@ -1075,8 +1075,10 @@ function CoupleCard({ t, onClick }) {
                 <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{parsed ? `${member} ${parsed.surname}` : member}</div>
                 <FakeWaButton />
               </div>
-              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{memberMeta[mi].phone}</div>}
-              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{memberMeta[mi].email}</div>}
+              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].phone}</div>}
+              {/* An address wraps rather than being sliced: it was cut by up to
+                  60px, and half an email is not an email. */}
+              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email}</div>}
             </div>
           </React.Fragment>
         ))}
@@ -2202,13 +2204,17 @@ function DemoPrograms({ resetToken = 0 }) {
                   const portalKey = (id) => 'pv_' + id;
                   const isVis = (id) => portalVis[portalKey(id)] !== false;
                   const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
+                  // minWidth 0: a grid item defaults to min-width auto, so it
+                  // refuses to shrink below its content's min-content width. At
+                  // 360 the card stayed 335px inside a 328px track and
+                  // everything in it painted 7px past the edge.
                   return (
-                    <div key={row.tid} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+                    <div key={row.tid} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, minWidth: 0 }}>
                       {/* Redesigned card (Ohad: the boxed-button pile was ugly) —
                           now uses the app's card grammar: cyan STRIP HEADER
                           (athlete + recency dot), calm clickable body (block name +
                           spelled-out meta), and LIGHT text actions. */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 6, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                           <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
                           <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', overflowWrap: 'break-word' }}>{row.name}</bdi>
@@ -2225,7 +2231,7 @@ function DemoPrograms({ resetToken = 0 }) {
                             card WITHOUT the pill is the same height as one WITH it —
                             parity with the real Programs card-height fix (PlansView). */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: 22 }}>
-                          <span style={{ fontWeight: 700, fontSize: 15, color: C.ac, fontFamily: FN, letterSpacing: '0.04em', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cur.name || 'Untitled'}</span>
+                          <span style={{ fontWeight: 700, fontSize: 15, color: C.ac, fontFamily: FN, letterSpacing: '0.04em', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
                               title={readLang() === 'he' ? (expanded ? 'הסתרת הבלוקים הקודמים' : (row.earlier.length === 1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`)) : (expanded ? `Hide ${row.earlier.length} previous` : `Show ${row.earlier.length} previous block${row.earlier.length === 1 ? '' : 's'}`)}
@@ -2264,7 +2270,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           {row.earlier.map(p => (
                             <div key={p.id} onClick={() => setSelectedProgramId(p.id)}
                               style={{ cursor: 'pointer', padding: '7px 14px 7px 32px', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.78, borderTop: `1px solid rgba(57,189,255,0.102)` }}>
-                              <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.ac, opacity: 0.72, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em', fontFamily: FN }}>{p.name || 'Untitled'}</div>
+                              <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.ac, opacity: 0.72, fontWeight: 700, whiteSpace: 'normal', overflowWrap: 'anywhere', letterSpacing: '0.04em', fontFamily: FN }}>{p.name || 'Untitled'}</div>
                               <div style={{ fontSize: 11, color: C.td, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{p.dayCount}d · {p.exerciseCount}ex</div>
                               {(() => {
                                 const txt = (color) => ({ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color });
@@ -3356,14 +3362,24 @@ function DemoReview() {
                 background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '12px 16px', marginBottom: 6, cursor: 'pointer',
                 transition: 'border-color .15s', display: 'flex',
+                // WRAP AT PHONE WIDTH. The two actions are flexShrink 0 and
+                // took ~210px of a 360 screen, leaving the title block 102px —
+                // enough to break "Block #4 — Pull Specialization" over four
+                // lines and push "Day A · Push" 2px past its own edge. Wrapped,
+                // the title gets the full row and the actions sit under it.
+                flexWrap: 'wrap', rowGap: 8,
                 justifyContent: 'space-between', alignItems: 'center',
               }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.cardBd}>
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ minWidth: 0, flex: '1 1 190px' }}>
                   <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    {wo.dayName}
-                    <span style={{ fontWeight: 400, color: C.tm, fontSize: 12 }}>{wo.planName}</span>
+                    {/* A bare text node inside a flex row is an anonymous flex
+                        item and shrinks to its minimum content width: "Day A ·
+                        Push" came out over five lines in 102px. A day title is
+                        four short words and should never break. */}
+                    <span style={{ whiteSpace: 'nowrap' }}>{wo.dayName}</span>
+                    <span style={{ fontWeight: 400, color: C.tm, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere' }}>{wo.planName}</span>
                   </div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
                     W{wo.week} · {RT(wo.date)} · {wo.doneSets}/{wo.totalSets} {T('sets')}
