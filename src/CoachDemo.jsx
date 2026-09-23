@@ -2119,8 +2119,21 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
   } catch { /* demo seed is best-effort */ }
 })();
 
+// The analysis panel fed the SAME seven-block history whoever it was naming,
+// so it read "TRAINING ANALYSIS · נועה לוי — 7 BLOCKS" with the filter rail two
+// columns to its left saying she has 3, and block names (GPP, Str I, Realize)
+// that appear in nobody's record. A contradiction visible without scrolling.
+// The blocks are now the athlete's OWN, newest last: the demo history supplies
+// the shape — the logged sets, the per-lift cells, the trend — and the athlete
+// supplies how many blocks there are and what they are called. An athlete with
+// three plans gets a three-block lineage that matches their row.
 function DemoLineage({ athleteName }) {
-  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={DEMO_LINEAGE_PLANS} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
+  const subject = MOCK_TRAINEES.find((t) => t.name === athleteName);
+  const own = (subject && subject.plans) ? subject.plans.slice().reverse() : null;   // chronological
+  const plans = (!own || !own.length)
+    ? DEMO_LINEAGE_PLANS
+    : DEMO_LINEAGE_PLANS.slice(-own.length).map((p, i) => ({ ...p, name: own[i] }));
+  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
 }
 
 function DemoPrograms({ resetToken = 0 }) {
