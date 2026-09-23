@@ -74,6 +74,8 @@ const DEMO_STRIP_H = { minHeight: 41, boxSizing: 'border-box', display: 'flex', 
 // tour is current whenever he opens it.
 const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 0)); return d.toISOString().slice(0, 10); };
 
+// HEBREW HAS A DUAL. daysAgoHe() already knows היום / אתמול / שלשום and
+// the demo was bypassing it, printing "לפני 1 ימים" — one, plural.
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
 // with Israeli names. Enough variety to show every kind of card + filter
@@ -524,7 +526,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginInlineEnd: 8 }}>{t.dormantDays == null ? T('Never trained') : TN('{n}d ago', t.dormantDays)}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginInlineEnd: 8 }}>{t.dormantDays == null ? T('Never trained') : (readLang() === 'he' ? daysAgoHe(t.dormantDays) : TN('{n}d ago', t.dormantDays))}</span>
               <FakeWaButton />
             </Row>
           ))}
@@ -932,7 +934,7 @@ function FinancialsBlock({ t, center = false }) {
     // overdue panel invented a fourth number for the same people.
     items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>{T('OVERDUE')} · {TN('{n}D', t.overdueDays || 0)}</span>);
   } else if (t.payment === 'PAID') {
-    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {TN('{n}D AGO', t.paidDaysAgo || 0)}</span>);
+    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {(readLang() === 'he' ? daysAgoHe(t.paidDaysAgo || 0) : TN('{n}D AGO', t.paidDaysAgo || 0))}</span>);
   }
   if (t.monthly > 0) {
     items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>{TN('₪{n}/MO', t.monthly)}</span>);
@@ -1840,16 +1842,22 @@ const MOCK_LAST_SESSION_DAYS = Object.fromEntries(MOCK_TRAINEES.map((t) => {
 // beside it said 4 for one of the same people. Every trainee already carries
 // its `plans` array — the block names it is meant to have — so the index is
 // built from that and the two can no longer disagree.
+// Sum of the id's character codes: defined for an id of any length, and
+// stable, so the demo shows the same numbers on every load.
+const idSeed = (id) => String(id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
 const MOCK_PROGRAM_INDEX = MOCK_TRAINEES.flatMap((t) => (t.plans || []).map((name, i) => ({
   // i = 0 is the CURRENT block, and each older one is a block further back.
   id: `${t.id}-p${i}`,
   name,
   traineeId: t.id,
-  dayCount: 3 + ((i + t.id.length) % 2),
-  exerciseCount: 18 + ((i * 4 + t.id.charCodeAt(2)) % 10),
+  // A STABLE HASH OF THE ID, not charCodeAt(2) — the ids are 't1'..'t8', two
+  // characters, so index 2 is undefined and every card printed "NaN תרגילים".
+  dayCount: 3 + ((i + idSeed(t.id)) % 2),
+  exerciseCount: 18 + ((i * 4 + idSeed(t.id)) % 10),
   phase: ['Volume', 'Strength', 'Base', 'Intake'][Math.min(i, 3)],
   created: dAgo(24 + i * 31),
-  updated: dAgo(i === 0 ? 3 + (t.id.charCodeAt(2) % 5) : 24 + i * 31 - 4),
+  updated: dAgo(i === 0 ? 3 + (idSeed(t.id) % 5) : 24 + i * 31 - 4),
 })));
 
 // ─── Training Lineage (demo) ───────────────────────────────────────────────
@@ -2239,7 +2247,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     : C.rd;
                   const tagText = row.daysSince == null ? T('NEVER LOGGED')
                     : row.daysSince === 0 ? T('TRAINED TODAY')
-                    : TN('{n}D AGO', row.daysSince);
+                    : (readLang() === 'he' ? daysAgoHe(row.daysSince) : TN('{n}D AGO', row.daysSince));
                   const portalKey = (id) => 'pv_' + id;
                   const isVis = (id) => portalVis[portalKey(id)] !== false;
                   const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
