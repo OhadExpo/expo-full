@@ -1610,6 +1610,18 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // a paying client's last cycle, an overdue one's last cycle before the
   // one they missed. Every date on this card is measured from it.
   const paidAgo = trainee.payment === 'OVERDUE' ? (trainee.overdueDays || 0) + 30 : (trainee.paidDaysAgo || 0);
+  // The action row was four dead buttons carrying a `title` tooltip. A title
+  // is invisible on a phone (no mobile browser renders one) and unreachable by
+  // keyboard, so on the two surfaces that matter the buttons simply did
+  // nothing — and the run sheet had a line telling him not to click them.
+  // They now say what the full app does, the same way Review → Tools does.
+  const [actionNote, setActionNote] = useState(null);
+  const ACTION_NOTE = {
+    log: 'Demo only — in the full app this opens the session logger for this athlete.',
+    portal: 'Demo only — in the full app this opens what the athlete sees in their portal.',
+    edit: 'Demo only — in the full app this opens the athlete’s record for editing.',
+    archive: 'Demo only — in the full app this archives the athlete and stops their billing.',
+  };
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
   // per-session, last payment, since, payments ledger, programs (assigned
@@ -1656,23 +1668,28 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           border: `1px solid ${C.bd}`,
         }}>{backLabel}</button>
         {isCouple && <DemoStatusMenu />}
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('log')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('LOG SESSION')}</button>
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('portal')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('PORTAL')}</button>
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('edit')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('EDIT')}</button>
         <DemoNotifToggle />
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('archive')} style={{
           ...baseBtn, background: 'transparent', color: C.rd,
           border: `1px solid rgba(255,71,87,0.251)`, padding: '0 14px', fontSize: 11,
         }}>{T('ARCHIVE')}</button>
+        {actionNote && (
+          <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11.5, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8, marginTop: 2 }}>
+            {T(ACTION_NOTE[actionNote])}
+          </div>
+        )}
       </div>
 
       {/* Couple branch: per-member columns first (name/email/phone/age/

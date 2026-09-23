@@ -810,6 +810,19 @@ export const HE = {
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
   'SCALE FROM': 'תחתית הסקאלה',
+  // Athlete action row — the buttons say what the full app would do.
+  'Demo only — in the full app this opens the session logger for this athlete.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את רישום האימון של המתאמן.',
+  'Demo only — in the full app this opens what the athlete sees in their portal.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את מה שהמתאמן רואה בפורטל שלו.',
+  'Demo only — in the full app this opens the athlete’s record for editing.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את כרטיס המתאמן לעריכה.',
+  'Demo only — in the full app this archives the athlete and stops their billing.':
+    'דמו בלבד — באפליקציה המלאה זה מעביר את המתאמן לארכיון ועוצר את החיוב.',
+  'Demo only — in the full app this sends a WhatsApp reminder with a payment link.':
+    'דמו בלבד — באפליקציה המלאה זה שולח תזכורת בוואטסאפ עם קישור לתשלום.',
+  'Demo only — in the full app this marks the request paid and updates the ledger.':
+    'דמו בלבד — באפליקציה המלאה זה מסמן את הבקשה כשולמה ומעדכן את הספר.',
   // Coach-history feed, now derived from the athlete rather than fixed.
   'Check in re:': 'לבדוק לגבי',
   'Check in after the last session': 'לבדוק אחרי האימון האחרון',
