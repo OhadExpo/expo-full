@@ -53,11 +53,11 @@ const STRINGS = {
   // Hero stat band — mirrors the expo-il online/performance-center heroes.
   // Numbers are the real, already-public EXPO figures (same ones on
   // expo-il.co.il), framed as proof the platform runs live, not theory.
-  'hero.stat1.num':      { en: '20+',  he: '+20' },
+  'hero.stat1.num':      { en: '20+',  he: '20+' },
   'hero.stat1.label':    { en: 'ATHLETES RUNNING LIVE', he: 'מתאמנים פעילים' },
-  'hero.stat2.num':      { en: '90+',  he: '+90' },
+  'hero.stat2.num':      { en: '90+',  he: '90+' },
   'hero.stat2.label':    { en: 'PROGRAMS BUILT', he: 'תוכניות שנבנו' },
-  'hero.stat3.num':      { en: '500+', he: '+500' },
+  'hero.stat3.num':      { en: '500+', he: '500+' },
   'hero.stat3.label':    { en: 'EXERCISES IN LIBRARY', he: 'תרגילים בספרייה' },
 
   // Live demo
@@ -696,7 +696,13 @@ export default function CoachLanding({ lang = 'en' }) {
                   fontFamily: FN, color: C.ac, fontSize: 'clamp(26px, 4vw, 34px)',
                   fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1,
                   fontVariantNumeric: 'tabular-nums',
-                }}>{t(`hero.stat${n}.num`)}</div>
+                  // The Hebrew used to be written PRE-FLIPPED ('+20') so that
+                  // the RTL algorithm would paint it as '20+'. It worked, and
+                  // it meant the source said the opposite of the screen — a
+                  // trap for the next person, and one isolate away from
+                  // silently reversing. The string now says what it shows, and
+                  // dir="ltr" is what keeps it that way.
+                }} dir="ltr">{t(`hero.stat${n}.num`)}</div>
                 <div style={{
                   fontFamily: FN, color: C.tm, fontSize: 10, fontWeight: 700,
                   letterSpacing: '0.14em', marginTop: 8, textTransform: 'uppercase',
