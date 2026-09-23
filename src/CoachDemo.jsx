@@ -4328,6 +4328,25 @@ export default function CoachDemo() {
           .cd-badge { display: none !important; }
           .cd-cta-waitlist { padding: 6px 10px !important; }
         }
+        /* THE MENU MUST NOT HIDE HALF OF ITSELF ON A PHONE.
+           Measured at 390: in Hebrew, בדיקה sat at x=-6, משימות at -88,
+           תשלומים at -164 and the language switch at -217 — four of seven
+           controls off the left edge. In English the same four ran off the
+           right. It was a horizontal scroller, so nothing looked broken to a
+           gate and everything was invisible to a person. It wraps now: the
+           brand row on top, the full tab strip under it, nothing hidden. */
+        @media (max-width: 760px) {
+          .cd-hdr { flex-wrap: wrap !important; height: auto !important; overflow-x: visible !important; padding-top: 8px !important; padding-bottom: 8px !important; row-gap: 8px !important; }
+          /* A GRID, NOT A RAGGED WRAP. Letting it wrap put five tabs on one
+             row and תשלומים dangling alone on a second — measurably visible
+             and still ugly. Two tidy rows of three read as a designed menu.
+             1 1 100% with min-width 0, because with shrink 0 the strip kept
+             its content width (426px in Hebrew, 541 in English) and simply
+             hung off the edge again. */
+          .cd-hdr > nav { order: 3; flex: 1 1 100% !important; min-width: 0 !important; max-width: 100% !important; display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; overflow-x: visible !important; }
+          .cd-hdr > nav > * { width: 100% !important; justify-content: center !important; }
+          .cd-cta-waitlist { margin-inline-start: auto !important; }
+        }
         /* Programs table on phones — let it scroll horizontally instead of
            cramping every column. */
         @media (max-width: 540px) {
