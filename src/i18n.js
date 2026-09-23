@@ -729,6 +729,7 @@ export const HE = {
   Trial: 'ניסיון',
   Online: 'אונליין',
   'Payment due': 'ממתין לתשלום',
+  'Payment issue': 'בעיית תשלום',
   'No program': 'בלי תוכנית',
   'Last trained': 'אימון אחרון',
   Payment: 'תשלום',

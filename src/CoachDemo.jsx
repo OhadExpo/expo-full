@@ -762,7 +762,12 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   const attnOf = (t) => ({
     pay: t.payment === 'OVERDUE' || t.payment === 'NEVER PAID',
     dormant: (t.dormantDays || 0) >= 14,
-    lowSessions: (t.sessionsLeft ?? 0) <= 1,
+    // <= 2, not <= 1. The real TraineesView's flagLow is `sessionsRemaining
+    // <= 2` and the dashboard tile counts the same way under a label that
+    // literally reads "2 or fewer" — so the demo's <= 1 was both a parity gap
+    // and a contradiction a buyer could see: the dashboard said 4 low-session
+    // athletes and this rail said 3.
+    lowSessions: (t.sessionsLeft ?? 0) <= 2,
     noProgram: (t.programs ?? 0) === 0,
   });
   const activeAttn = Object.keys(attnFlags).filter(k => attnFlags[k]);
@@ -815,7 +820,12 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
             {
               label: T('Needs Attention'),
               opts: [
-                { key: 'pay', label: T('Payment due') },
+                // "Payment due" was 'ממתין לתשלום' — awaiting payment — which
+                // reads as the same measure as billing's "3 ממתינות" while
+                // counting 4. The predicate is OVERDUE *or* NEVER PAID, which
+                // matches the real app and must not change; the label is what
+                // was wrong. 'בעיית תשלום' covers both and collides with nothing.
+                { key: 'pay', label: T('Payment issue') },
                 { key: 'dormant', label: T('Dormant') },
                 { key: 'lowSessions', label: T('Low sessions') },
                 { key: 'noProgram', label: T('No program') },
