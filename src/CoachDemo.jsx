@@ -18,7 +18,7 @@ import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
-import { tr, readLang, daysAgoHe } from './i18n';
+import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
 
@@ -278,9 +278,17 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{label}</span>
         </span>
       </div>
-      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'start' }}>
-        {value}
-        {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
+      {/* The number needs direction:ltr so "5 / 8" and the shekel sign keep
+          their order — but that used to sit on the BOX, and `textAlign: start`
+          inside an ltr box always resolves to LEFT. So on the Hebrew dashboard
+          every card's label sat right and its big number sat left. The
+          isolation belongs on the numeral, not on the box: the box now
+          inherits the page direction and aligns with its own label. */}
+      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
+        <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' }}>
+          {value}
+          {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
+        </span>
       </div>
       {sub && (
         <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{sub}</div>
@@ -547,7 +555,7 @@ function DemoDashboard({ onJumpToTrainee }) {
             {expiring.map(t => (
               <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
                 <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-                <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsLeft} {T('LEFT')}</span>
+                <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{readLang() === 'he' ? sessionsLeftHe(t.sessionsLeft) : `${t.sessionsLeft} ${T('LEFT')}`}</span>
               </Row>
             ))}
           </Panel>
@@ -1668,7 +1676,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           <Panel title={T('SHARED · HOUSEHOLD TERMS')} tint={C.tm}>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>12 Sessions</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft}{T('LEFT')}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{readLang() === 'he' ? sessionsLeftHe(trainee.sessionsLeft) : `${trainee.sessionsLeft} ${T('LEFT')}`}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('MONTHLY')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PER SESSION')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 12)}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
@@ -4180,7 +4188,11 @@ function DemoBilling() {
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T(label)}</span>
       </div>
       <div style={{ padding: 14 }}>
-        <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', direction: 'ltr' }}>{value}</div>
+        {/* Same rule as StatCard: direction:ltr isolates the NUMERAL, it does
+            not get to decide which side of the card the number sits on. */}
+        <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', textAlign: 'start' }}>
+          <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' }}>{value}</span>
+        </div>
         <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{sub}</div>
       </div>
     </div>

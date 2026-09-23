@@ -2677,6 +2677,14 @@ export function daysAgoHe(n) {
   if (n === 2) return 'שלשום';
   return `לפני ${n} ימים`;
 }
+// Sessions remaining. The compact rails printed `${n} ${T('LEFT')}`, which in
+// Hebrew is "1 נותרו" — a plural verb on a count of one — and one of them had
+// no space at all, so it read "2נותרו". Hebrew agrees the verb with the number.
+export function sessionsLeftHe(n) {
+  if (n <= 0) return 'לא נותרו';
+  if (n === 1) return 'נותר 1';
+  return `נותרו ${n}`;
+}
 // "5d ago" for a timestamp. The three views that show one each had their own
 // ago() returning `5d`, and the Hebrew screen read `לפני 5d`.
 export function agoLabel(iso, lang) {
