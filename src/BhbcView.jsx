@@ -778,7 +778,24 @@ function attendance28(rec, days) {
         const isLift = sessionType === 'Lift';
         const rpe = isLift ? null : Number(e.rpe || teamRpe);
         const load = attended && !isLift ? sessionLoad(minutes, rpe) : 0;
-        if (attended && isLift && Number(minutes) > 0) {
+        // A COURT SESSION WITH NO RPE USED TO SAVE NOTHING AND SAY IT SAVED.
+        //
+        // rpe falls back to Number('') = 0, sessionLoad() guards rpe <= 0 to 0,
+        // and the only non-Lift branch was `else if (load > 0)`. So logging a
+        // practice without typing an RPE wrote no row, no attendance minutes,
+        // nothing — and still fired toast('Practice saved'). Silent loss with a
+        // success message is the worst possible shape for this.
+        //
+        // The RPE is not the point of the record. That the squad trained, on
+        // this date, for these minutes, IS. So an RPE-less court session now
+        // records exactly what is known and leaves the load out: rpe null,
+        // load 0. Blank beats wrong, and the ACWR engine already treats a
+        // missing load as missing rather than as zero effort.
+        const noRpe = !isLift && !(Number(rpe) > 0);
+        if (attended && noRpe && Number(minutes) > 0) {
+          rec.sessions = { ...(rec.sessions || {}) };
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, intensity, note: e.note || note || '', team: true, start, by: currentUser || null }];
+        } else if (attended && isLift && Number(minutes) > 0) {
           rec.sessions = { ...(rec.sessions || {}) };
           rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, note: e.note || note || '', team: true, start, by: currentUser || null }];
         } else if (load > 0) {

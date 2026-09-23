@@ -299,6 +299,7 @@ function DemoDashboard({ onJumpToTrainee }) {
   const [contacted, setContacted] = React.useState({});
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
+  const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
   const onlineNow = MOCK_TRAINEES.filter(t => t.online);
   const overdue = MOCK_TRAINEES.filter(t => t.payment === 'OVERDUE');
   // Derive every headline number from the roster so the dashboard is internally
@@ -313,7 +314,8 @@ function DemoDashboard({ onJumpToTrainee }) {
   const collected30 = paying.reduce((s, t) => s + (t.monthly || 0), 0);
   const outstandingAmt = overdue.reduce((s, t) => s + (t.monthly || 0), 0);
   const avgTicket = paying.length ? collected30 / paying.length : 0;
-  const avgLtv = avgTicket * 10; // ~10-month mean tenure, plenty for a demo
+  const TENURE_MONTHS = 10;              // the assumption, named on screen
+  const avgLtv = avgTicket * TENURE_MONTHS;
   // The axis is the LAST six months, ending with the month he is standing in,
   // named in the reader's language. It used to be a fixed Jan–Jun, so on the
   // night before the first client demo the revenue chart ran out in June and
@@ -339,7 +341,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         gap: 10, marginBottom: 20,
       }}>
         <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
-        <StatCard label={T('Low Sessions')} value={String(expiring.length)} sub={T('≤ 2 LEFT')} accent={C.or} />
+        <StatCard label={T('Low Sessions')} value={String(lowSessions.length)} sub={T('≤ 2 LEFT')} accent={C.or} />
         <StatCard label={T('Estimated Monthly')} value={nis(mrr)} accent={C.ac} />
         <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
       </div>
@@ -371,8 +373,8 @@ function DemoDashboard({ onJumpToTrainee }) {
               [T('30D COLLECTED'), num(collected30), <>{momLabel}{' '}{T('vs prev month')}</>, C.gn],
               [T('90D COLLECTED'), num(collected90), T('trailing 3 months'), C.gn],
               [T('OUTSTANDING'), num(outstandingAmt), `${overdue.length} ${overdue.length === 1 ? T('overdue client') : T('overdue clients')}`, outstandingAmt > 0 ? C.or : C.ac],
-              [T('AVG LTV'), num(avgLtv), T('per paying client'), C.ac],
-              [T('AVG TICKET'), num(avgTicket), T('per paying client'), C.ac],
+              [T('AVG LTV'), num(avgLtv), TN('over {n} months, est.', TENURE_MONTHS), C.ac],
+              [T('AVG TICKET'), num(avgTicket), T('per paying client, per month'), C.ac],
             ].map(([lab, val, sub, col], i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
@@ -3751,11 +3753,16 @@ function DemoReviewTools() {
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>{T('REVIEW · TOOLS')}</div>
       <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>{T('Measure the lift')}</h2>
       <div style={{ color: C.tm, fontSize: 13, marginBottom: 20, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
-        Camera &amp; pose tools to read a set — bar speed, range of motion, jump power, jump-shot mechanics, live coaching. Owner trial; nothing is saved to the athlete.
+        {/* A dotted key returns ITSELF from tr() when there is no entry, so an
+            English visitor would have read the literal string "tools.blurb".
+            Every dotted key in this codebase needs its English side written out. */}
+        {readLang() === 'he'
+          ? T('tools.blurb')
+          : 'Camera and pose tools that read a set — bar speed, range of motion, jump power, jump-shot mechanics, live coaching. Nothing is saved in the demo.'}
       </div>
       <div style={{ marginBottom: 20, maxWidth: 380 }}>
         <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>{T('Exercise · for Lab / Metrics / Live')}</label>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat" style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder={T('e.g. Back Squat')} style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
       </div>
       <div style={{ borderBottom: `1px solid ${C.cardBd}` }}>
         {DEMO_REVIEW_TOOLS.map(t => {
@@ -4369,7 +4376,7 @@ export default function CoachDemo() {
             ...baseBtn,
             background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, letterSpacing: 1.5,
-            flex: '0 0 auto',
+            flex: '0 0 auto', minHeight: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{T('SEE ATHLETE VIEW →')}</a>
         </div>
       </div>
@@ -4452,7 +4459,7 @@ export default function CoachDemo() {
           <span>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>{T('← BACK')}</a>
+          <a href="/demo" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 6px' }}>{T('← BACK')}</a>
         </span>
       </footer>
     </div>

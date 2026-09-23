@@ -1399,20 +1399,22 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>{T('STEP 2 ·')}{isCoach ? 'LOAD THE ATHLETE CLIP' : 'UPLOAD A SET'}</div>
+      }}>{T('STEP 2 ·')}{' '}{T(isCoach ? 'LOAD THE ATHLETE CLIP' : 'UPLOAD A SET')}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
       }}>{isCoach
-        ? <>{T("Drop in your client's")}<span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>
-        : <>{T('Drop in a clip of your')}<span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>}</h1>
+        ? <>{T("Drop in your client's")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{exercise?.label || 'set'}</span></>
+        : <>{T('Drop in a clip of your')}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{exercise?.label || 'set'}</span></>}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
       }}>
-        {isCoach
-          ? 'For this demo, drop in any of your client\'s side-on training clips. In production, the clip arrives in your review queue automatically — you click it from the trainee detail and it loads here.'
-          : 'Side-on phone clip works best. The video stays in your browser — no upload, no account, nothing leaves your device. MP4, MOV, or WebM, ideally 5–60 seconds.'}
+        {readLang() === 'he'
+          ? T(isCoach ? 'engine.upload.coach' : 'engine.upload.trainee')
+          : (isCoach
+            ? 'For this demo, drop in any of your client\'s side-on training clips. In production, the clip arrives in your review queue automatically — you click it from the trainee detail and it loads here.'
+            : 'Side-on phone clip works best. The video stays in your browser — no upload, no account, nothing leaves your device. MP4, MOV, or WebM, ideally 5–60 seconds.')}
       </p>
 
       <div
@@ -1430,7 +1432,7 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
         <div style={{
           fontFamily:FN, fontSize: 11, color: drag ? C.ac : C.td,
           letterSpacing: 2, fontWeight:700, marginBottom: 14,
-        }}>{drag ? 'RELEASE TO LOAD' : 'CLICK OR DROP A CLIP'}</div>
+        }}>{T(drag ? 'RELEASE TO LOAD' : 'CLICK OR DROP A CLIP')}</div>
         <div style={{
           fontFamily:FB, fontSize: 18, fontWeight: 700, color: C.tx,
           marginBottom: 10,
@@ -1446,7 +1448,7 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
         marginTop: 20, fontFamily:FN, fontSize: 11, color: C.td,
         letterSpacing: 1, textAlign:'center',
       }}>
-        TIP · 30FPS PHONE CLIPS WORK GREAT · SLOW & GRINDY REPS STILL COUNT
+        {readLang() === 'he' ? T('engine.upload.tip') : 'TIP · 30FPS PHONE CLIPS WORK GREAT · SLOW & GRINDY REPS STILL COUNT'}
       </p>
       {onChangeExercise && (
         <div style={{ marginTop: 14, textAlign:'center' }}>
@@ -1454,7 +1456,7 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
             ...baseBtn, background:'transparent', color: C.tm,
             border:`1px solid ${C.bd}`, padding:'8px 16px',
             fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 0,
-          }}>← CHANGE EXERCISE</button>
+          }}>{readLang() === 'he' ? '→ ' : '← '}{T('CHANGE EXERCISE')}</button>
         </div>
       )}
     </section>
@@ -1485,20 +1487,24 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare, hideEn
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 3 · ANALYZE</div>
+      }}>{T('STEP 3 ·')}{' '}{T('ANALYZE')}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(22px, 3.2vw, 28px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
-      }}>{pov === 'coach'
-        ? <>Reviewing your client's <span style={{ color: C.ac }}>{exercise?.label}</span>.</>
-        : <>Pose detection on your <span style={{ color: C.ac }}>{exercise?.label}</span>.</>}</h1>
+      }}>{readLang() === 'he'
+        ? <>{T(pov === 'coach' ? "Reviewing your client's set" : 'Pose detection on your set')}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{exercise?.label}</span></>
+        : (pov === 'coach'
+          ? <>Reviewing your client&apos;s <span style={{ color: C.ac }}>{exercise?.label}</span>.</>
+          : <>Pose detection on your <span style={{ color: C.ac }}>{exercise?.label}</span>.</>)}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 720, opacity: 0.85,
         marginBottom: 18,
       }}>
-        {pov === 'coach'
-          ? "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
-          : "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it."}
+        {readLang() === 'he'
+          ? T(pov === 'coach' ? 'engine.analyze.coach' : 'engine.analyze.trainee')
+          : (pov === 'coach'
+            ? "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
+            : "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it.")}
       </p>
       <SandboxPlayer url={videoUrl} exerciseTitle={exercise?.sample || ''} />
 
@@ -1511,11 +1517,11 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare, hideEn
           ...baseBtn, background:'transparent', color: C.tm,
           border:`1px solid ${C.bd}`, padding:'10px 18px', fontWeight:700,
           letterSpacing: 1.2, borderRadius: 0, fontSize: 12,
-        }}>← UPLOAD A DIFFERENT CLIP</button>
+        }}>{readLang() === 'he' ? '→ ' : '← '}{T('UPLOAD A DIFFERENT CLIP')}</button>
         <button onClick={onCompare} style={{
           ...baseBtn, background: C.ac, color:'#000',
           padding:'10px 18px', fontWeight:700, letterSpacing:1.2, borderRadius: 0, fontSize: 12,
-        }}>COMPARE WITH ANOTHER CLIP →</button>
+        }}>{T('COMPARE WITH ANOTHER CLIP')}{readLang() === 'he' ? ' ←' : ' →'}</button>
       </div>
 
       {!hideEndCTA && <BuyCallToAction pov={pov} />}
@@ -1638,18 +1644,18 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 4 · SIDE-BY-SIDE</div>
+      }}>{T('STEP 4 ·')}{' '}{T('SIDE-BY-SIDE')}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(22px, 3.2vw, 28px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
-      }}>Compare two attempts at the same lift.</h1>
+      }}>{readLang() === 'he' ? T('engine.compare.h1') : 'Compare two attempts at the same lift.'}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 720, opacity: 0.85,
         marginBottom: 18,
       }}>
-        Upload a second clip — last week's set, a heavier set, or your warm-up.
-        Both run pose + rep count independently so you can compare ROM, tempo,
-        and rep quality at a glance.
+        {readLang() === 'he'
+          ? T('engine.compare.body')
+          : "Upload a second clip — last week's set, a heavier set, or your warm-up. Both run pose + rep count independently so you can compare ROM, tempo, and rep quality at a glance."}
       </p>
 
       <div style={{
@@ -1658,13 +1664,13 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
       }}>
         <div>
           <div style={{ fontFamily:FN, fontSize:11, color: C.tm, letterSpacing:1.5, fontWeight:700, marginBottom:8, textAlign:'center' }}>
-            CLIP 1 · YOUR FIRST UPLOAD
+            {T('CLIP 1 · YOUR FIRST UPLOAD')}
           </div>
           <SandboxPlayer url={primaryUrl} exerciseTitle={exercise?.sample || ''} compact onVideoRef={setLeftVid} compare={!!secondUrl} />
         </div>
         <div>
           <div style={{ fontFamily:FN, fontSize:11, color: C.tm, letterSpacing:1.5, fontWeight:700, marginBottom:8, textAlign:'center' }}>
-            CLIP 2 · ANOTHER ATTEMPT
+            {T('CLIP 2 · ANOTHER ATTEMPT')}
           </div>
           {secondUrl ? (
             <SandboxPlayer url={secondUrl} exerciseTitle={exercise?.sample || ''} compact onVideoRef={setRightVid} compare />
@@ -1675,10 +1681,10 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
               display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
             }}>
               <div style={{ fontFamily:FN, fontSize:11, color:C.td, letterSpacing:2, fontWeight:700, marginBottom:10 }}>
-                CLICK TO LOAD A SECOND CLIP
+                {T('CLICK TO LOAD A SECOND CLIP')}
               </div>
               <div style={{ fontFamily:FB, fontSize:14, color:C.tm, lineHeight:1.5, maxWidth: 280 }}>
-                MP4 · MOV · WEBM · stays on this device
+                {T('MP4 · MOV · WEBM · stays on this device')}
               </div>
               <input type="file" accept="video/*" ref={inputRef} onChange={onFile}
                 style={{ display:'none' }} />
@@ -1698,7 +1704,7 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
           ...baseBtn, background:'transparent', color: C.tm,
           border:`1px solid ${C.bd}`, padding:'10px 18px', fontWeight:700,
           letterSpacing: 1.2, borderRadius: 0, fontSize: 12,
-        }}>← BACK</button>
+        }}>{readLang() === 'he' ? '→ ' : '← '}{T('BACK')}</button>
       </div>
       {!hideEndCTA && <BuyCallToAction pov={pov} />}
     </section>
@@ -2019,6 +2025,12 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
 
   const speeds = [0.25, 0.5, 1, 1.25];
 
+  // Display-only names for the angle channels. 'L KNE' etc. are KEYS into
+  // the angles map (liftDetect.CHANNELS) and must never be translated at
+  // source — only here, where they are painted.
+  const CH_HE = { 'L KNE': 'ברך שמאל', 'R KNE': 'ברך ימין', 'L HIP': 'ירך שמאל', 'R HIP': 'ירך ימין', 'L ELB': 'מרפק שמאל', 'R ELB': 'מרפק ימין', 'L SHO': 'כתף שמאל', 'R SHO': 'כתף ימין' };
+  const chLabel = (n) => (readLang() === 'he' ? (CH_HE[n] || n) : n);
+
   // Pick which angle to highlight in the HUD based on which channels are
   // active. Rep counter watches one or both — we show the active side(s)
   // in the corner so the viewer sees the signal feeding the count.
@@ -2090,7 +2102,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
               background: C.acD, color: C.ac,
               border: `1px solid ${C.cardBd}`, borderRadius: 0,
               padding:'3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-            }}>{name} {val != null ? `${val}°` : '—'}</span>
+            }}>{chLabel(name)}{' '}<span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{val != null ? `${val}°` : '—'}</span></span>
           ))}
         </div>
         <div style={{
@@ -2123,7 +2135,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
         marginTop: 10, display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10, flexWrap:'wrap',
       }}>
         <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('REP CHANNEL ·')}{' '}{channelKind.toUpperCase()}
-          {activeChannels.length > 0 && ' · ' + activeChannels.join(' / ')}
+          {activeChannels.length > 0 && ' · ' + activeChannels.map(chLabel).join(' / ')}
           {channelKind === 'none' && ' · ISOMETRIC — NO REP COUNT'}
         </span>
         <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('MEDIAPIPE LITE · 33 LANDMARKS')}</span>

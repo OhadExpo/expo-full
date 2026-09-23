@@ -365,7 +365,11 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
       {popular && (
         <div style={{
           position: 'absolute', top: -10, [isHe ? 'left' : 'right']: 14,
-          fontFamily: FN, fontSize: 9, color: C.ac, background: 'transparent',
+          // The badge straddles the card's top edge and its background was
+          // TRANSPARENT, so the card's own cyan border ran straight through the
+          // middle of the letters — measured 9.2px into an 18.8px badge, which
+          // reads as strikethrough on the one tier the page is pushing.
+          fontFamily: FN, fontSize: 9, color: C.ac, background: C.bg,
           letterSpacing: '0.18em', fontWeight: 700, padding: '3px 8px', borderRadius: 0,
           border: `1px solid ${C.ac}`,
         }}>{popularLabel}</div>
@@ -565,9 +569,10 @@ export default function CoachLanding({ lang = 'en' }) {
         .cl-sticky-cta { display: none; }
         @media (max-width: 720px) {
           .cl-sticky-cta { display: flex; }
-          /* Reserve room at the bottom of the page so the sticky bar
-             doesn't cover the footer or last form. */
-          main { padding-bottom: 76px; }
+          main { padding-bottom: 16px; }
+          /* The chat bubble reads this to sit ABOVE the sticky bar rather
+             than on top of it. Only set where the bar actually shows. */
+          :root { --cl-sticky-h: 64px; }
           /* Header items that overcrowd the row on narrow screens. The
              "FOR COACHES" badge is implied by being on /demo, and the
              header "SEE THE DEMO" link is redundant with the hero CTAs
@@ -884,6 +889,10 @@ export default function CoachLanding({ lang = 'en' }) {
 
       <footer style={{
         borderTop: `1px solid ${C.cardBd}`, padding: '20px 16px',
+        // Clear the floating chat bubble (56px + 20px inset) and, on a phone,
+        // the sticky CTA bar as well. An inline `padding` shorthand outranks
+        // any stylesheet rule, so this reserve has to live here too.
+        paddingBottom: 100,
         maxWidth: 1180, margin: '0 auto', width: '100%',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         gap: 12, flexWrap: 'wrap',
@@ -895,10 +904,10 @@ export default function CoachLanding({ lang = 'en' }) {
           <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
           <span>{t('footer.line', { year: new Date().getFullYear() })}</span>
         </span>
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>{t('footer.demo')}</a>
-          <span style={{ margin: '0 8px' }}>·</span>
-          <a href="/login" style={{ color: C.td, textDecoration: 'none' }}>{t('footer.signin')}</a>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, display: 'inline-flex', alignItems: 'center' }}>
+          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 4px' }}>{t('footer.demo')}</a>
+          <span style={{ margin: '0 4px' }}>·</span>
+          <a href="/login" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 4px' }}>{t('footer.signin')}</a>
         </span>
       </footer>
 

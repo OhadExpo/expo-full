@@ -216,7 +216,9 @@ export default function CoachChat() {
       {!open && (
         <button onClick={() => { setOpen(true); trackFunnel('coach_chat_open', {}); }} aria-label={L('Open chat', 'פתיחת צ׳אט')}
           style={{
-            position: 'fixed', bottom: 20, right: 20, zIndex: 80,
+            // insetInlineEnd, not right: in Hebrew the bubble belongs on the
+            // other side. The bottom clears the phone-only sticky CTA bar.
+            position: 'fixed', bottom: 'calc(20px + var(--cl-sticky-h, 0px))', insetInlineEnd: 20, zIndex: 80,
             width: 56, height: 56, borderRadius: '50%',
             background: C.ac, color: C.acOnSurface,
             border: 'none', cursor: 'pointer',
@@ -234,7 +236,7 @@ export default function CoachChat() {
         <div role="dialog" aria-label={L('EXPO chat', 'צ׳אט EXPO')}
           style={{
             position: 'fixed', zIndex: 90,
-            bottom: 20, right: 20,
+            bottom: 'calc(20px + var(--cl-sticky-h, 0px))', insetInlineEnd: 20,
             width: 'min(380px, calc(100vw - 32px))',
             height: 'min(560px, calc(100vh - 100px))',
             background: C.bg, color: C.tx,
