@@ -4335,7 +4335,11 @@ export default function CoachDemo() {
            right. It was a horizontal scroller, so nothing looked broken to a
            gate and everything was invisible to a person. It wraps now: the
            brand row on top, the full tab strip under it, nothing hidden. */
-        @media (max-width: 760px) {
+        /* 860, not 760: the tightened page gate caught the waitlist CTA at
+           x -157..-8 on a 768 tablet — fully off-screen. The nav's own
+           content is ~823px wide, so anything narrower than that plus its
+           padding has to wrap. */
+        @media (max-width: 860px) {
           .cd-hdr { flex-wrap: wrap !important; height: auto !important; overflow-x: visible !important; padding-top: 8px !important; padding-bottom: 8px !important; row-gap: 8px !important; }
           /* A GRID, NOT A RAGGED WRAP. Letting it wrap put five tabs on one
              row and תשלומים dangling alone on a second — measurably visible

@@ -174,7 +174,30 @@ for (const [name, route] of SURFACES) {
                 }
                 continue;
               }
-              if (scrollerOf(el)) continue;             // a rail is a design
+              // A SCROLLER IS A DESIGN — EXCEPT FOR NAVIGATION.
+              //
+              // The first version of this line excused anything inside a
+              // horizontal scroller, and printed green over the demo's top menu
+              // showing half of itself: four of seven controls at negative x in
+              // Hebrew, the same four past the right edge in English.
+              //
+              // My second attempt tried "a scroller is honest if its scrollbar
+              // shows or a tile peeks at the edge". The break test killed it: a
+              // peeking tile is true of EVERY horizontal scroller, including the
+              // broken nav, so it excused exactly what it was meant to catch.
+              //
+              // The real distinction is not how the scroller looks, it is WHAT
+              // IS IN IT. A content rail may hold more than fits — that is the
+              // point of a rail. NAVIGATION may not: a menu that hides half its
+              // items has no way to tell you the other half exists. So a
+              // scroller excuses an off-screen control unless it is navigation.
+              const sc = scrollerOf(el);
+              if (sc) {
+                const isNav = !!(sc.closest('nav,header,[role=tablist],[role=navigation]')
+                  || sc.querySelector('[role=tab]')
+                  || (el.getAttribute && el.getAttribute('role') === 'tab'));
+                if (!isNav) continue;
+              }
               out.offscreen.push({ t: (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 30), l: Math.round(bb.left), r: Math.round(bb.right) });
             }
 
