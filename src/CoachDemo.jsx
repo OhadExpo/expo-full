@@ -1796,7 +1796,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 // in the athlete-grouped list view (≤3 green, ≤7 amber-yellow, ≤14 orange,
 // >14 red, missing = never trained). Picked to make Noa & Gal visibly
 // different so the visitor sees the gradient, not a uniform color.
-const MOCK_LAST_SESSION_DAYS = { t1: 2, t2: 9 };
+// Days since each athlete's last session, taken from the ROSTER rather than a
+// two-entry map: the tag was blank for six of the eight.
+const MOCK_LAST_SESSION_DAYS = Object.fromEntries(MOCK_TRAINEES.map((t) => {
+  const m = /(\d+)\s*day/.exec(String(t.lastWorkout || ''));
+  return [t.id, /today/i.test(String(t.lastWorkout || '')) ? 0 : (m ? Number(m[1]) : (t.dormantDays ?? null))];
+}));
 
 // Trimmed deliberately: 2 athletes, 3 programs total (Noa: 2, Gal: 1).
 // Two athletes is the minimum that lets the filter dropdown demonstrate
@@ -1804,14 +1809,24 @@ const MOCK_LAST_SESSION_DAYS = { t1: 2, t2: 9 };
 // instructive — Gal's lone program forces the visitor to switch the
 // Athlete picker to Noa to see anything in Compare, which is precisely
 // the cross-athlete feature this demo is meant to showcase.
-const MOCK_PROGRAM_INDEX = [
-  // Relative, for the same reason every other demo date is: the ACTIVE block
-  // read "updated 2026-04-29" in September, which tells a prospect the coach
-  // has not written a programme in five months.
-  { id: 'p1', name: 'Block #4 — Push/Pull Volume',    traineeId: 't1', dayCount: 3, exerciseCount: 22, phase: 'Volume',   created: dAgo(24), updated: dAgo(3) },
-  { id: 'p2', name: 'Block #3 — Strength Base',       traineeId: 't1', dayCount: 3, exerciseCount: 18, phase: 'Strength', created: dAgo(86), updated: dAgo(31) },
-  { id: 'p3', name: 'Block #4 — Pull Specialization', traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',   created: dAgo(22), updated: dAgo(6) },
-];
+// DERIVED FROM THE ROSTER, like the billing ledger.
+//
+// This was three hand-written rows for an eight-athlete roster whose own cards
+// advertise twenty-five programs, so the Programs tab showed 2 while the tab
+// beside it said 4 for one of the same people. Every trainee already carries
+// its `plans` array — the block names it is meant to have — so the index is
+// built from that and the two can no longer disagree.
+const MOCK_PROGRAM_INDEX = MOCK_TRAINEES.flatMap((t) => (t.plans || []).map((name, i) => ({
+  // i = 0 is the CURRENT block, and each older one is a block further back.
+  id: `${t.id}-p${i}`,
+  name,
+  traineeId: t.id,
+  dayCount: 3 + ((i + t.id.length) % 2),
+  exerciseCount: 18 + ((i * 4 + t.id.charCodeAt(2)) % 10),
+  phase: ['Volume', 'Strength', 'Base', 'Intake'][Math.min(i, 3)],
+  created: dAgo(24 + i * 31),
+  updated: dAgo(i === 0 ? 3 + (t.id.charCodeAt(2) % 5) : 24 + i * 31 - 4),
+})));
 
 // ─── Training Lineage (demo) ───────────────────────────────────────────────
 // Mirrors the real Programs → Lineage view (src/PlansView.jsx TrainingLineage):
