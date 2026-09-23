@@ -41,7 +41,7 @@ const STRINGS = {
 
   // Hero
   'hero.badge':          { en: 'COACHING PLATFORM',    he: 'פלטפורמת אימון' },
-  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תנהל את כל המתאמנים שלך על אותו מנוע שהם מצלמים איתו.' },
+  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תנהל את כל המתאמנים שלך באותו מנוע שהם מצלמים איתו.' },
   'hero.body': {
     en: 'Pose detection, auto rep counter, side-by-side video review, plan authoring, client portals, and a dormant-client WhatsApp nudge — built by a working coach, running live on real clients.',
     he: 'זיהוי תנוחה, ספירת חזרות אוטומטית, השוואה בין שני סרטונים, בניית תוכניות, פורטל אישי לכל מתאמן ותזכורת וואטסאפ למתאמנים ששקטו — מאמן פעיל בונה את זה, וזה כבר עובד עם מתאמנים אמיתיים.',
@@ -91,13 +91,13 @@ const STRINGS = {
   'feat.portal.title':   { en: 'Branded portal per athlete', he: 'פורטל אישי לכל מתאמן' },
   'feat.portal.body': {
     en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in.',
-    he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בקרות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים.',
+    he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים.',
   },
   'feat.ops.tag':        { en: 'OPS',                  he: 'תפעול' },
   'feat.ops.title':      { en: 'Dormant nudges via WhatsApp', he: 'תזכורות וואטסאפ למתאמנים ששקטו' },
   'feat.ops.body': {
     en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record.",
-    he: 'הדשבורד מציג את המתאמנים שלא התאמנו כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן.',
+    he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן.',
   },
   'feat.review.tag':     { en: 'REVIEW',               he: 'בקרה' },
   'feat.review.title':   { en: 'Per-rep video review', he: 'בקרת וידאו לכל חזרה' },
@@ -152,7 +152,7 @@ const STRINGS = {
   'tier.founding.f4':    { en: 'First access to features as they ship', he: 'ראשון לקבל פיצ׳רים חדשים, ברגע שהם עולים' },
 
   'tier.cta.waitlist':   { en: 'JOIN WAITLIST',        he: 'הצטרפות לרשימה' },
-  'tier.priceSub':       { en: '/ MONTH',              he: '/ חודש' },
+  'tier.priceSub':       { en: '/ MONTH',              he: 'לחודש' },
 
   // Waitlist CTA
   'wl.badge':            { en: 'FOUNDING COACH WAITLIST', he: 'רשימת מאמנים מייסדים' },
@@ -607,7 +607,7 @@ export default function CoachLanding({ lang = 'en' }) {
             letterSpacing: '0.18em', fontWeight: 700,
             height: 34, boxSizing: 'border-box', display: 'inline-flex',
             alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-          }}>{isHe ? 'EN' : 'עבר'}</a>
+          }}>{isHe ? 'EN' : 'עברית'}</a>
           <a href="/demo/coach" className="cl-header-demo-btn" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
             border: `1px solid ${C.bd2}`, padding: '0 14px', fontSize: 11,

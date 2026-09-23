@@ -313,7 +313,7 @@ function ClientPortalMock({ onPick }) {
           <div style={{ background: C.sf2, borderRadius: 0, height: 6, overflow: 'hidden' }}>
             <div style={{ background: pct === 100 ? C.gn : C.ac, height: '100%', width: `${pct}%`, transition: 'width 0.3s', borderRadius: 0 }} />
           </div>
-          <div style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: 1, marginTop: 4, textAlign: 'right' }}>{doneSets} / {totalSets}{T('SETS ·')}{pct}%</div>
+          <div style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: 1, marginTop: 4, textAlign: 'right' }}>{doneSets} / {totalSets}{' '}{T('SETS ·')}{' '}{pct}%</div>
         </div>
 
         <div style={{ padding: '14px 20px 24px' }}>
@@ -424,7 +424,7 @@ function ClientPortalMock({ onPick }) {
             <a href="/demo" style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, textDecoration: 'none' }}>{T('Log Out →')}</a>
           </div>
         </div>
-        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>{T('Hey')}{TRAINEE.firstName} 💪</h1>
+        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>{T('Hey')}{' '}{TRAINEE.firstName} 💪</h1>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -656,7 +656,7 @@ function ClientPortalMock({ onPick }) {
                             }}>{T('FORM VIDEO')}</div>
                             {x.notes > 0 && (
                               <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
-                                💬 {x.notes}{T('COACH NOTE')}{x.notes === 1 ? '' : 'S'}
+                                💬 {x.notes}{' '}{readLang() === 'he' ? (x.notes === 1 ? 'הערת מאמן' : 'הערות מאמן') : (x.notes === 1 ? 'COACH NOTE' : 'COACH NOTES')}
                               </div>
                             )}
                           </div>
@@ -2113,7 +2113,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
               border: `1px solid ${C.cardBd}`, borderRadius: 0,
               padding:'4px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1,
             }}>
-              {tempo.toFixed(2)}{readLang() === 'he' ? 'ש׳/חזרה' : 's/REP'}
+              {tempo.toFixed(2)}{readLang() === 'he' ? ' שנ׳ לחזרה' : 's/REP'}
             </span>
           )}
         </div>
@@ -2122,7 +2122,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       <div style={{
         marginTop: 10, display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10, flexWrap:'wrap',
       }}>
-        <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('REP CHANNEL ·')}{channelKind.toUpperCase()}
+        <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('REP CHANNEL ·')}{' '}{channelKind.toUpperCase()}
           {activeChannels.length > 0 && ' · ' + activeChannels.join(' / ')}
           {channelKind === 'none' && ' · ISOMETRIC — NO REP COUNT'}
         </span>

@@ -79,8 +79,14 @@ export const DEMO_PLANS = [
       {
         name: 'Day A — Push',
         exercises: [
-          ex('e221', 3, '5', { tempo: '3-1-X', wk: ['80kg','82.5kg','85kg','87.5kg'] }),
-          ex('e33',  3, '8',  { tempo: '2-1-1', wk: ['70kg','72.5kg','75kg','77.5kg'] }),
+        // `wk` IS THE PER-WEEK REPS WAVE, NOT A LOAD WAVE. ClientPortal reads
+        // it as reps (pickWk -> repsForDisplay), so filling it with kg made every
+        // plan card read "3 sets x 82.5kg reps" and the logger hero read
+        // "4 sets x +5KG reps" -- while History for the same exercise said 3x5
+        // two taps away. The plan shape has no per-week LOAD field: load is what
+        // the athlete logs per set, and DEMO_WORKOUTS already carries the priors.
+          ex('e221', 3, '5', { tempo: '3-1-X', wk: ['5','5','4','3'] }),
+          ex('e33',  3, '8',  { tempo: '2-1-1', wk: ['8','8','6','6'] }),
           ex('ex_d8yxfmm21mhmo7afevn', 3, '10', { tempo: '2-0-1' }),
           ex('ex_d4vfns0625pmo7afevm', 3, '15'),
         ],
@@ -88,7 +94,7 @@ export const DEMO_PLANS = [
       {
         name: 'Day B — Pull',
         exercises: [
-          ex('e201', 4, '5 E', { tempo: '5-5-5 ISO', wk: ['BW','+5kg','+7.5kg','+10kg'], superset: 'A' }),
+          ex('e201', 4, '5 E', { tempo: '5-5-5 ISO', wk: ['5 E','5 E','4 E','4 E'], superset: 'A' }),
           ex('e63', 3, '12 E', { superset: 'A' }),
           ex('e61',  3, '10 E'),
           ex('ex_jba6g9hgk7kmo7afevm', 3, '6 E'),
@@ -97,7 +103,7 @@ export const DEMO_PLANS = [
       {
         name: 'Day C — Legs',
         exercises: [
-          ex('ex_aiqevttcg7umobz1x89', 4, '5', { tempo: '2-1-X', wk: ['120kg','125kg','130kg','135kg'] }),
+          ex('ex_aiqevttcg7umobz1x89', 4, '5', { tempo: '2-1-X', wk: ['5','5','4','3'] }),
           ex('e69',  3, '10 E'),
           ex('e63',  3, '12', { tempo: '3-0-1' }),
         ],
@@ -163,13 +169,16 @@ export const DEMO_CLIENT_WORKOUTS = [
 
 // Flat array — ClientPortal calls bwLog.filter(b => b.clientId === ci).
 // Each row: { date, clientId, week, bw, blockName, planId }.
+// ONE WEIGH-IN PER BLOCK-WEEK. The log held FOUR week-2 rows, and the save
+// handler correctly replaces every row for (client, block, week) -- so the
+// moment a visitor typed a weight and pressed SAVE, three of the six points
+// vanished from the chart in front of them: 6 records -> 3, +0.9kg -> +4.0kg.
+// The handler is right; the fixture was modelling something that cannot happen.
 export const DEMO_BW_LOG = [
-  { date: daysAgo(13), clientId: DEMO_CLIENT_ID, week: 1, bw: 77.4, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
-  { date: daysAgo(11), clientId: DEMO_CLIENT_ID, week: 1, bw: 77.6, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
-  { date: daysAgo(8),  clientId: DEMO_CLIENT_ID, week: 2, bw: 77.8, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
-  { date: daysAgo(6),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.0, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
-  { date: daysAgo(4),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.1, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
-  { date: daysAgo(1),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.3, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(27), clientId: DEMO_CLIENT_ID, week: 1, bw: 77.4, blockName: 'Block #3 — Volume',      planId: 'plan_demo_prev' },
+  { date: daysAgo(20), clientId: DEMO_CLIENT_ID, week: 2, bw: 77.6, blockName: 'Block #3 — Volume',      planId: 'plan_demo_prev' },
+  { date: daysAgo(13), clientId: DEMO_CLIENT_ID, week: 1, bw: 77.9, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(6),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.3, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
 ];
 
 // Focus is keyed by its SOURCE week = (display human week − 1), 0-based

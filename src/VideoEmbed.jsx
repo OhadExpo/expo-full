@@ -80,7 +80,7 @@ const preconnectYouTube = () => {
     const l = document.createElement('link'); l.rel = 'preconnect'; l.href = href; document.head.appendChild(l);
   }
 };
-export function YouTubeLite({ id, short = false }) {
+export function YouTubeLite({ id, short = false, eager = false }) {
   const [play, setPlay] = useState(false);
   // Ohad, 17.9: "video thumbnail never loads until play" - the poster 404s for
   // some ids (a link whose video was pulled, or a bad id in the library), and a
@@ -98,7 +98,7 @@ export function YouTubeLite({ id, short = false }) {
   return (
     <button type="button" onClick={() => setPlay(true)} onPointerEnter={preconnectYouTube} onTouchStart={preconnectYouTube} aria-label={tr(readLang(), 'Play video')}
       style={{ position: 'relative', width: '100%', height: '100%', padding: 0, border: 'none', background: '#000', cursor: 'pointer', display: 'block' }}>
-      {!posterBad && <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async"
+      {!posterBad && <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async"
         referrerPolicy="no-referrer" onError={() => setPosterBad(true)}
         // A 404 from i.ytimg.com is NOT an error to the browser: it answers with
         // YouTube's grey "no thumbnail" placeholder, which is always 120x90 while

@@ -1615,14 +1615,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const on = checkin[field] === v;
           const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
           return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
-            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{l}</button>;
+            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{tt(l)}</button>;
         })}
       </div>
     );
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
-        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>How are you feeling today? <span style={{color:C.td}}>(optional)</span></div>
+        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
         <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
         <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
         <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>

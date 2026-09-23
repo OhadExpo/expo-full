@@ -23,6 +23,15 @@
 // Applied at the render site in BOTH src/ExercisesView.jsx (the real app) and
 // src/CoachDemo.jsx (its demo clone), so the two stay in parity.
 
+//
+// VETTED 23.9 by a native Israeli S&C reader before it shipped. Ten of the
+// fifty changed, and three of those were meaning errors I could not see:
+//   Kneeling was כריעה, which is CROUCHING — it collided with Squat.
+//   Toss was מסירה, which is a PASS to a team-mate, not a med-ball toss.
+//   Quadruped was עמידת שש, PE-teacher nomenclature a gym coach will not parse.
+// The rest were length (these are dense table cells, read at a glance) and
+// one spelling: the hyphenated values now use a maqaf, matching what i18n.js
+// already ships for the same words.
 const TAXO_HE = {
   // Category
   Chest: 'חזה', Back: 'גב', Shoulders: 'כתפיים', Arms: 'ידיים', Core: 'ליבה',
@@ -30,31 +39,31 @@ const TAXO_HE = {
   Cardio: 'אירובי',
 
   // Resistance type
-  Barbell: 'מוט', Dumbbell: 'משקולות יד', Bodyweight: 'משקל גוף',
+  Barbell: 'מוט', Dumbbell: 'משקולת יד', Bodyweight: 'משקל גוף',
   Machine: 'מכונה', Cable: 'כבל', Band: 'גומייה', Kettlebell: 'קטלבל',
   'Medicine Ball': 'כדור כוח', Landmine: 'לנדמיין', 'TRX/Suspension': 'TRX',
 
   // Body position
-  Standing: 'עמידה', Seated: 'ישיבה', Supine: 'שכיבה על הגב',
-  Prone: 'שכיבה על הבטן', Kneeling: 'כריעה', 'Half-Kneeling': 'כריעה על ברך',
-  Quadruped: 'עמידת שש', 'Side-Lying': 'שכיבה על הצד', Hanging: 'תלייה',
+  Standing: 'עמידה', Seated: 'ישיבה', Supine: 'על הגב',
+  Prone: 'על הבטן', Kneeling: 'על הברכיים', 'Half-Kneeling': 'על ברך אחת',
+  Quadruped: 'על ארבע', 'Side-Lying': 'על הצד', Hanging: 'תלייה',
 
   // Movement type
   Push: 'דחיפה', Pull: 'משיכה', Row: 'חתירה', Curl: 'כפיפה', Extend: 'יישור',
   Squat: 'סקוואט', Hinge: 'הינג׳', Lunge: 'לאנג׳', Rotation: 'סיבוב',
-  'Anti-Rotation': 'אנטי-סיבוב', Carry: 'נשיאה', 'Lateral Raise': 'הרמה לצדדים',
+  'Anti-Rotation': 'אנטי־סיבוב', Carry: 'נשיאה', 'Lateral Raise': 'הרמה לצד',
   'Front Raise': 'הרמה קדימה', Pullover: 'פולאובר', Throw: 'זריקה',
-  Slam: 'סלאם', Toss: 'מסירה', Jump: 'קפיצה', Isometric: 'איזומטרי',
+  Slam: 'סלאם', Toss: 'הטלה', Jump: 'קפיצה', Isometric: 'איזומטרי',
   'Olympic Lift': 'הרמה אולימפית',
 
   // Movement pattern
   'Horizontal Push': 'דחיפה אופקית', 'Horizontal Pull': 'משיכה אופקית',
   'Vertical Push': 'דחיפה אנכית', 'Vertical Pull': 'משיכה אנכית',
   'Hip Hinge': 'הינג׳ ירך', 'Carry/Loaded Locomotion': 'נשיאה',
-  'Rotation/Anti-Rotation': 'סיבוב ואנטי-סיבוב', Isolation: 'בידוד',
+  'Rotation/Anti-Rotation': 'סיבוב / אנטי־סיבוב', Isolation: 'בידוד',
 
   // Laterality
-  Bilateral: 'דו-צדדי', Unilateral: 'חד-צדדי', Alternating: 'לסירוגין',
+  Bilateral: 'דו־צדדי', Unilateral: 'חד־צדדי', Alternating: 'לסירוגין',
 
   // The shared tail of every one of those lists.
   Other: 'אחר',

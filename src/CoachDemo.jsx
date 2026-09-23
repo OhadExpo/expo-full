@@ -20,6 +20,7 @@ import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
+import { YouTubeLite } from './VideoEmbed';
 
 // The demo is many small function components and a few module-level label
 // tables; one module-level helper (no hook) serves them all. Reads the
@@ -3181,10 +3182,14 @@ function DemoReview() {
         <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12, overflow: 'hidden' }}>
           <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('Readiness Check-In')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, padding: 14 }}>
-            {[['Sleep', '7.5h', C.gn], ['Energy', '8 / 10', C.gn], ['Soreness', 'Low', C.gn], ['Pain', '2 / 10 · L knee', C.or]].map(([l, v, c]) => (
+            {[['Sleep', '7.5h', null, C.gn], ['Energy', '8 / 10', null, C.gn], ['Soreness', null, 'Low', C.gn], ['Pain', '2 / 10', 'L knee', C.or]].map(([l, num, word, c]) => (
               <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase' }}>{l}</span>
-                <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: c }}>{v}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase' }}>{T(l)}</span>
+                <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: c }}>
+                  {num && <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{num}</span>}
+                  {num && word ? ' · ' : ''}
+                  {word ? T(word) : ''}
+                </span>
               </div>
             ))}
           </div>
@@ -3209,20 +3214,17 @@ function DemoReview() {
                 <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
                   <div>
                     {vsDemo && <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginBottom: 4 }}>{T('Athlete · this set')}</div>}
-                    <div style={{ position: 'relative', width: 168, aspectRatio: '9 / 16', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(57,189,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#06131b" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                      </div>
+                    <div style={{ position: 'relative', width: 168, aspectRatio: '9 / 16', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 12, textAlign: 'center' }}>
+                      <span style={{ fontFamily: FN, fontSize: 9, lineHeight: 1.5, letterSpacing: '0.06em', color: C.tm }}>{T("The athlete's own clip plays here")}</span>
+                      <a href="/try?embed=1" target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, border: `1px solid ${C.ac}`, padding: '6px 9px', textDecoration: 'none' }}>{T('TRY IT WITH YOUR OWN CLIP')}{readLang() === 'he' ? ' ←' : ' →'}</a>
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.15)' }}><div style={{ width: '38%', height: '100%', background: '#39BDFF' }} /></div>
                     </div>
                   </div>
                   {vsDemo && (
                     <div>
                       <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.ac, marginBottom: 4 }}>{T('Reference demo · library')}</div>
-                      <div style={{ position: 'relative', width: 168, aspectRatio: '9 / 16', background: 'linear-gradient(160deg,#0f1620,#1a2430)', border: `1px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="#06131b" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                        </div>
+                      <div style={{ position: 'relative', width: 168, aspectRatio: '9 / 16', background: '#000', border: `1px solid ${C.ac}`, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                        <YouTubeLite id={DEMO_REFERENCE_CLIP} short eager />
                         <span style={{ position: 'absolute', top: 6, left: 6, fontFamily: FN, fontSize: 8, letterSpacing: '0.06em', color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '2px 5px' }}>{vidEx.name}</span>
                       </div>
                     </div>
@@ -3787,14 +3789,14 @@ function DemoReviewTools() {
 // template key instead of a baked English sentence, so the name is spelled the
 // way the roster spells it and the NUMBER is the roster's number.
 const TASK_LINE = {
-  deload:      { en: (n) => `${n} — deload week, cut volume 30%`,             he: (n) => `${n} — שבוע דלוד, תוריד נפח ב-30%` },
-  checkInjury: { en: (n, t) => `${n} — check the ${t} after the last session`, he: (n, t) => `${n} — תבדוק את ה${t} אחרי האימון האחרון` },
-  dormant:     { en: (n, d) => `${n} — no workout logged in ${d} days`,       he: (n, d) => `${n} — לא נרשם אימון ${d} ימים` },
-  overdue:     { en: (n, d) => `${n} — payment overdue ${d} days`,            he: (n, d) => `${n} — תשלום באיחור ${d} ימים` },
+  deload:      { en: (n) => `${n} — deload week, cut volume 30%`,             he: (n) => `${n} — שבוע דילואד, תוריד נפח ב-30%` },
+  checkInjury: { en: (n, t) => `${n} — check the ${t} after the last session`, he: (n, t) => `${n} — תבדוק את ${t} אחרי האימון האחרון` },
+  dormant:     { en: (n, d) => `${n} — no workout logged in ${d} days`,       he: (n, d) => `${n} — לא נרשם אימון כבר ${d} ימים` },
+  overdue:     { en: (n, d) => `${n} — payment overdue ${d} days`,            he: (n, d) => `${n} — תשלום באיחור של ${d} ימים` },
 };
 // The roster stores the clinical note in English and it is not translated
 // anywhere else, so the body part gets its own pair rather than a T() lookup.
-const INJURY_WORD = { en: { t2: 'right shoulder' }, he: { t2: 'כתף ימין' } };
+const INJURY_WORD = { en: { t2: 'right shoulder' }, he: { t2: 'הכתף הימנית' } };
 function taskTitle(t) {
   if (!t.titleKey) return T(t.title);
   const lang = readLang() === 'he' ? 'he' : 'en';
@@ -3842,7 +3844,12 @@ const STATUS_COLS = [
 ];
 function DemoTasks() {
   const rail = useNarrowRail();
-  const [owner, setOwner] = useState('OHAD');
+  // THE BOARD OPENED ON ONE OWNER AND THE TAB BADGE COUNTED ALL EIGHT.
+  // Photographed at 390: the nav says 8, the board shows 5, and two of its
+  // five columns stand empty with a dash in them - because the Whose rail
+  // defaulted to OHAD and had no "All" option at all, so nothing could ever
+  // fill them. A prospect reads an empty column as a feature that does not work.
+  const [owner, setOwner] = useState('ALL');
   const [view, setView] = useState('board');
   const [quickFilter, setQuickFilter] = useState('all');
   const [sortBy, setSortBy] = useState('soonest');
@@ -3873,7 +3880,7 @@ function DemoTasks() {
     // 'manual' is the order they were entered in — no sort, honestly.
     return rows;
   }, [owner, search, quickFilter, sortBy]);
-  const counts = { OHAD: DEMO_TASKS.filter(t => t.who === 'OHAD').length, YUVAL: DEMO_TASKS.filter(t => t.who === 'YUVAL').length, SHARED: DEMO_TASKS.filter(t => t.who === 'SHARED').length };
+  const counts = { ALL: DEMO_TASKS.length, OHAD: DEMO_TASKS.filter(t => t.who === 'OHAD').length, YUVAL: DEMO_TASKS.filter(t => t.who === 'YUVAL').length, SHARED: DEMO_TASKS.filter(t => t.who === 'SHARED').length };
   const bySrc = (s) => visible.filter(t => t.src === s);
   return (
     <section>
@@ -3889,7 +3896,7 @@ function DemoTasks() {
         <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
           search={search} onSearch={setSearch} searchPlaceholder={T('Search tasks…')}
           groups={[
-            { label: T('Whose'), opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: T(o.charAt(0) + o.slice(1).toLowerCase()), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
+            { label: T('Whose'), opts: ['ALL', 'OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: o === 'ALL' ? T('All') : T(o.charAt(0) + o.slice(1).toLowerCase()), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
             { label: T('Show'), opts: [['all', 'All'], ['today', 'Today'], ['overdue', 'Overdue'], ['stuck', 'Stuck'], ['nodate', 'No date']].map(([k, l]) => ({ key: k, label: T(l), active: quickFilter === k, onClick: () => setQuickFilter(k) })) },
             { label: T('Sort'), opts: [['soonest', '↓ Soonest'], ['newest', 'Newest'], ['urgency', 'Urgency'], ['status', 'Status'], ['az', 'A→Z'], ['manual', 'Manual']].map(([k, l]) => ({ key: k, label: l.startsWith('↓ ') ? `↓ ${T(l.slice(2))}` : T(l), active: sortBy === k, onClick: () => setSortBy(k) })) },
             { label: T('Group by'), opts: [['status', 'By status'], ['category', 'By category']].map(([k, l]) => ({ key: k, label: T(l), active: boardGroup === k, onClick: () => setBoardGroup(k) })) },
@@ -4001,6 +4008,11 @@ const DEMO_PAYMENTS = (() => {
   }
   return rows;
 })();
+// The library reference clip the review panel plays. A real short from the
+// exercise library — the same one demoTraineeData carries for this lift —
+// so the screen shows a video that genuinely exists in the product.
+const DEMO_REFERENCE_CLIP = 'bvaCXyXeBvU';
+
 const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td }, trial: { label: 'TRIAL', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
@@ -4050,7 +4062,7 @@ function DemoBilling() {
       </div>
       {panel(<>
         <div style={stripH}>
-          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? '1 ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
           <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
         </div>
         <div>
