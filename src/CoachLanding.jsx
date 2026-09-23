@@ -681,12 +681,15 @@ export default function CoachLanding({ lang = 'en' }) {
               heroes: bordered cells, big cyan tabular numbers, muted
               uppercase labels, vertical dividers. Real EXPO figures. */}
           <div style={{
-            display: 'flex', marginTop: 40, border: `1px solid ${C.bd2}`,
+            // Three across gives each stat 82px at 360, and
+            // "ATHLETES RUNNING LIVE" then breaks to three lines of one word.
+            // Wrapping lets the band become one column on a narrow phone.
+            display: 'flex', flexWrap: 'wrap', marginTop: 40, border: `1px solid ${C.bd2}`,
             borderRadius: 0, overflow: 'hidden',
           }}>
             {[1, 2, 3].map((n, i) => (
               <div key={n} style={{
-                flex: 1, padding: '22px 12px',
+                flex: '1 1 150px', minWidth: 0, padding: '22px 12px',
                 borderInlineStart: i === 0 ? 'none' : `1px solid ${C.bd2}`,
               }}>
                 <div style={{

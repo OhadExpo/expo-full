@@ -523,7 +523,11 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {/* Reserved leading slot so every email starts at one x whether or not
                       the lead has a COACH source tag. */}
                   <span style={{ width: 46, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>{T('COACH')}</span>}</span>
-                  <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{l.email}</div>
+                  {/* minWidth 0, or the email cannot shrink below its own
+                      content width inside this flex row: measured at 360 it
+                      painted 196px outside its container. break-word alone is
+                      not enough when the flex item refuses to narrow. */}
+                  <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, flex: '1 1 auto' }}>{l.email}</div>
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{/* Through T(): the Hebrew for these context labels already exists
                     ("PRICING CTA" → כפתור תמחור, "EXIT-INTENT" → יציאה מהדף) and the
