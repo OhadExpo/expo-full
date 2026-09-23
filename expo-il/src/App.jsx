@@ -132,8 +132,15 @@ function buildBuyLink(program, t) {
 
 // Same shared base used in the coach app (src/ui.jsx → baseBtn). Inlined
 // here so expo-il stays self-contained.
+// ONE CONTROL HEIGHT ACROSS THE PRODUCT (Ohad, 23.9: "everything that we
+// have with borders - anywhere - is the same vertical height"). The sales
+// site sized every control by padding + font size, which the gate measured
+// as twelve distinct heights on one page (17..50px). Height comes from this
+// token now; padding only sets the horizontal inset.
+const CTRL_H = 36;
 const baseBtn = {
-  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 18px',
+  minHeight: CTRL_H, boxSizing: 'border-box',
   borderRadius: 0, border: 'none', fontFamily: FN, fontSize: 11, fontWeight: 700,
   cursor: 'pointer', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'all 0.15s',
 };
@@ -284,14 +291,14 @@ function LeadCapture({ context = 'hero', compact = false }) {
     );
   }
   const inputStyle = {
-    height: 42, boxSizing: 'border-box',
+    height: CTRL_H, boxSizing: 'border-box',
     background: '#0d0d10', border: `1px solid ${C.bd}`,
     borderRadius: 0, padding: '0 14px', color: C.tx,
     fontFamily: FB, fontSize: 14, outline: 'none',
     flex: 1, minWidth: 0, textAlign: 'center',
   };
   const btnStyle = {
-    height: 42, boxSizing: 'border-box',
+    height: CTRL_H, boxSizing: 'border-box',
     background: state === 'sending' ? C.bd : C.ac,
     color: state === 'sending' ? C.tm : '#000',
     border: 'none', borderRadius: 0,
@@ -366,7 +373,7 @@ function LangToggle() {
     <button onClick={() => setLang(next)} title={ariaLabel} aria-label={ariaLabel} style={{
       ...baseBtn,
       background: 'transparent', color: C.tm,
-      padding: '6px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 1,
+      padding: '0 8px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 1,
       borderRadius: 0, border: `1px solid ${C.bd}`,
     }}>
       {label}
@@ -655,7 +662,7 @@ function Hero({ onOpenQuiz }) {
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <a href="#programs" style={{
           ...baseBtn,
-          background: C.ac, color: '#000', padding: '14px 28px',
+          background: C.ac, color: '#000', padding: '0 28px',
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
         }}>
           {t('hero.cta.browse')}
@@ -666,7 +673,7 @@ function Hero({ onOpenQuiz }) {
            style={{
              ...baseBtn,
              background: 'transparent', color: C.ac,
-             border: `1px solid ${C.ac}`, padding: '14px 28px',
+             border: `1px solid ${C.ac}`, padding: '0 28px',
              fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
              textDecoration: 'none',
            }}>
@@ -727,7 +734,7 @@ function ShareButton({ programId, programTitle, size = 'sm' }) {
       trackAndOpen('program_share', { programId, channel: 'clipboard' });
     } catch {}
   };
-  const dim = size === 'lg' ? { padding: '8px 14px', fontSize: 12 } : { padding: '6px 10px', fontSize: 11 };
+  const dim = size === 'lg' ? { padding: '0 14px', fontSize: 12 } : { padding: '0 10px', fontSize: 11 };
   return (
     <button onClick={handleShare} aria-label={t('card.share')} title={t('card.share')} style={{
       ...baseBtn,
@@ -764,8 +771,8 @@ function ProgramMeta({ p }) {
         <span key={i} style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 0.5,
-          border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 0,
-          background: C.sf2,
+          border: 'none', padding: '3px 0', borderRadius: 0,
+          background: 'transparent',
         }}>{m.toUpperCase()}</span>
       ))}
     </div>
@@ -799,8 +806,8 @@ function ProgramCard({ p }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-          background: 'transparent', color: C.ac, padding: '4px 10px', borderRadius: 0,
-          border: `1px solid ${C.ac}`,
+          background: 'transparent', color: C.ac, padding: '4px 0', borderRadius: 0,
+          border: 'none',
         }}>{(isHe && p.tagHe ? p.tagHe : p.tag).toUpperCase()}</span>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
       </div>
@@ -839,7 +846,7 @@ function ProgramCard({ p }) {
           <a href={`#/programs/${p.id}`} style={{
             ...baseBtn,
             background: 'transparent', color: C.tm,
-            border: `1px solid ${C.bd}`, padding: '8px 14px',
+            border: `1px solid ${C.bd}`, padding: '0 14px',
             fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
             {t('card.view')}
@@ -891,7 +898,7 @@ function Catalog() {
               background: on ? C.acD : 'transparent',
               color: on ? C.ac : C.tm,
               border: on ? `1px solid ${C.ac}` : `1px solid ${C.bd}`,
-              padding: '6px 12px', borderRadius: 0,
+              padding: '0 12px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', borderRadius: 0,
               fontSize: 11, fontWeight: 700, letterSpacing: 1,
               gap: 6,
             }}>
@@ -1080,13 +1087,13 @@ function PoseScreen() {
           position: 'absolute', top: 8, left: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>{depthLabel}</div>
       </div>
       <div style={{
@@ -1341,19 +1348,19 @@ function PoseDemoInteractive() {
           position: 'absolute', top: 10, left: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', top: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>HIP {hipAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>{depthLabel}</div>
       </div>
       <div style={{
@@ -1417,7 +1424,7 @@ function RepDemoInteractive() {
         </div>
       </div>
       <button onClick={inc} aria-label="Add rep" style={{
-        background: C.sf2, border: `1px solid ${C.ac4D}`, borderRadius: 0,
+        background: C.sf2, border: 'none', borderRadius: 0,
         padding: '10px 12px', cursor: 'pointer',
         transition: 'border-color 150ms ease',
       }}>
@@ -1954,7 +1961,7 @@ function Contact() {
           onClick={() => trackAndOpen('contact_click', { channel: 'whatsapp', source: 'contact_section' })}
           style={{
             ...baseBtn,
-            background: C.ac, color: '#000', padding: '10px 20px',
+            background: C.ac, color: '#000', padding: '0 20px',
             fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
           {t('contact.cta.whatsapp')}
@@ -1962,7 +1969,7 @@ function Contact() {
         <a href={`mailto:${CONTACT.email}`} style={{
           ...baseBtn,
           background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`, padding: '10px 20px',
+          border: `1px solid ${C.bd}`, padding: '0 20px',
           fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('contact.cta.email')}
@@ -1970,7 +1977,7 @@ function Contact() {
         <a href={CONTACT.instagram} target="_blank" rel="noopener noreferrer" style={{
           ...baseBtn,
           background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`, padding: '10px 20px',
+          border: `1px solid ${C.bd}`, padding: '0 20px',
           fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('contact.cta.instagram')}
@@ -2437,7 +2444,7 @@ function QuizSection({ onOpen }) {
     <section id="quiz" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
       <div style={{
         background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-        border: `1px solid ${C.ac4D}`, borderRadius: 0,
+        border: 'none', borderRadius: 0,
         padding: '28px 22px', textAlign: 'center',
       }}>
         <div style={{
@@ -2530,7 +2537,7 @@ function TrustStrip() {
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: 0,
-              background: C.acD, border: `1px solid ${C.ac4D}`,
+              background: C.acD, border: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               {it.icon}
@@ -2823,7 +2830,7 @@ function ProgramDetail({ program }) {
           <span style={{
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             background: 'transparent', color: C.ac, padding: '4px 10px', borderRadius: 0,
-            border: `1px solid ${C.ac4D}`,
+            border: 'none',
           }}>{pTag.toUpperCase()}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{pDuration}</span>
         </div>
@@ -2859,7 +2866,7 @@ function ProgramDetail({ program }) {
           {/* Start-aligned (RTL-aware) list rows keep a straight reading edge. */}
           {pHighlights.map((h, i) => (
             <li key={i} style={{
-              background: C.sf, border: `1px solid ${C.ac4D}`, borderRadius: 0,
+              background: C.sf, border: 'none', borderRadius: 0,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
               fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'start',
             }}>

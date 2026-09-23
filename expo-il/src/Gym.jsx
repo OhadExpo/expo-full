@@ -138,7 +138,7 @@ function Header({ heb, onBookClick }) {
           <LangSwitch heb={heb} />
           <button onClick={onBookClick}
             style={{
-              height: 32, padding: '0 18px',
+              height: 36, padding: '0 18px',
               background: C.ac, color: '#000000',
               border: `1px solid ${C.ac}`, borderRadius: 0,
               fontFamily: FN, fontSize: heb ? 13 : 11,
@@ -160,7 +160,7 @@ function LangSwitch({ heb }) {
   const [lang] = useLang();
   return (
     <div style={{
-      display: 'inline-flex', height: 32,
+      display: 'inline-flex', height: 36,
       border: `1px solid ${C.bd2}`, borderRadius: 0,
     }}>
       {['en', 'he'].map((code, i) => {
@@ -217,7 +217,7 @@ function Hero({ heb, onBookClick }) {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onBookClick}
             style={{
-              padding: '14px 32px', background: C.ac, color: '#000000',
+              padding: '0 32px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: C.ac, color: '#000000',
               border: `1px solid ${C.ac}`, borderRadius: 0,
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em',
               cursor: 'pointer', textTransform: 'uppercase',
@@ -225,7 +225,7 @@ function Hero({ heb, onBookClick }) {
             }}>{heb ? 'לקבוע אימון' : 'BOOK A SESSION'} {heb ? '←' : '→'}</button>
           <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noopener"
             style={{
-              padding: '14px 32px', background: 'transparent', color: C.tx,
+              padding: '0 32px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, borderRadius: 0, textDecoration: 'none',
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em',
               textTransform: 'uppercase',
@@ -645,7 +645,7 @@ function TrialCallout({ heb, onBookClick }) {
         </div>
         <button onClick={onBookClick}
           style={{
-            padding: '14px 28px', background: C.ac, color: '#000000',
+            padding: '0 28px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: C.ac, color: '#000000',
             border: `1px solid ${C.ac}`, borderRadius: 0,
             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
             cursor: 'pointer', textTransform: 'uppercase', whiteSpace: 'nowrap',

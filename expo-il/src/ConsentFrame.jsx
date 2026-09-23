@@ -66,8 +66,8 @@ export default function ConsentFrame({ src, title, heb, height, filter }) {
       <button type="button" onClick={show} style={{
         fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.18em',
         textTransform: 'uppercase', color: '#06131b', background: '#39BDFF',
-        border: '1px solid #39BDFF', borderRadius: 0, padding: '14px 26px',
-        minHeight: 44, cursor: 'pointer',
+        border: '1px solid #39BDFF', borderRadius: 0, padding: '0 26px',
+        minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', cursor: 'pointer',
       }}>
         {heb ? 'הצגת היומן' : 'Show the calendar'}
       </button>
