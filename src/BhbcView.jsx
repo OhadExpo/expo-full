@@ -2259,7 +2259,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
     setMinutes(prac ? String(prac.minutes) : '');
     // Default the session type from the day's fixture (game day → Game).
     const g = list.find((f) => f.type === 'game');
-    setSessionType(g ? 'Game' : (list.find((f) => f.type === 'lift') && !prac ? 'Lift' : 'Practice'));
+    setSessionType(g ? 'Game' : (list.find((f) => f.type === 'lift') && !prac ? 'Lift' : 'Conditioning'));
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 32, boxSizing: 'border-box' };
@@ -2336,7 +2336,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
                 const on = (f.start || '') === slotStart;
                 return (
                   <button key={i} type="button"
-                    onClick={() => { setSlotStart(f.start || ''); setMinutes(String(f.minutes || '')); setSessionType(f.type === 'game' ? 'Game' : f.type === 'lift' ? 'Lift' : 'Practice'); }}
+                    onClick={() => { setSlotStart(f.start || ''); setMinutes(f.type === 'lift' ? String(f.minutes || '') : ''); setSessionType(f.type === 'game' ? 'Game' : f.type === 'lift' ? 'Lift' : 'Conditioning'); }}
                     style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '5px 10px', cursor: 'pointer', borderRadius: 0,
                       background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
                     {f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} {f.minutes ? `· ${f.minutes}m` : ''}
