@@ -1375,7 +1375,9 @@ export const HE = {
   "GROUP FLOOR": 'אימון קבוצתי',
   "REVIEW · TOOLS": 'בדיקה · כלים',
   "DISMISS": 'סגור',
-  "MARK PAID": 'סמן כשולם',
+  // כשולם is the particle followed by a FINITE verb ("as it was paid").
+  // The passive participle is what Hebrew wants after כ here: כמשולם.
+  "MARK PAID": 'סמן כמשולם',
   "NEW PAYMENT REQUEST": 'בקשת תשלום חדשה',
   "COACH DEMO": 'דמו למאמן',
   "JOIN WAITLIST →": 'לרשימת ההמתנה ←',

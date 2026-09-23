@@ -1806,23 +1806,29 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         // key/value panels.
         const isHeb = /[֐-׿]/.test(trainee.name || '');
         const overdue = trainee.payment === 'OVERDUE';
-        const lastPay = trainee.payment === 'NEVER PAID' ? '—' : dAgo(paidAgo);
         const workoutsCount = trainee.dormantDays != null ? 4 : 12;
         const perSession = trainee.monthly ? Math.round(trainee.monthly / 8) : 0;
-        // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
-        const billingTerms = [
-          ['Package', '8 Sessions'],
-          ['Sessions Left', trainee.sessionsLeft],
-          ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
-          ['Per Session', perSession ? `₪${perSession}` : '—'],
-          ['Last Payment', fmtPrettyDate(lastPay)],
-          ['Since', fmtPrettyDate(trainee.startDate)],
-        ];
+        // THE LEDGER IS BUILT FIRST, AND "LAST PAYMENT" IS READ OFF IT.
+        // It used to be computed separately as dAgo(paidAgo) — but for an
+        // OVERDUE athlete that very row is the one the ledger drops (they
+        // missed it), so the card printed a payment date that appeared nowhere
+        // in the table directly beneath it. Two facts, one truth: derive the
+        // date from the rows instead of computing it a second way.
         const payments = [
           !overdue && { date: dAgo(paidAgo), amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
           { date: dAgo(paidAgo + 30), amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
           { date: dAgo(paidAgo + 61), amount: trainee.monthly || 800, status: 'Paid', notes: 'Bank transfer' },
         ].filter(Boolean);
+        const lastPay = trainee.payment === 'NEVER PAID' ? '—' : (payments[0] ? payments[0].date : '—');
+        // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
+        const billingTerms = [
+          ['Package', trainee.isCouple ? '12 Sessions' : '8 Sessions'],
+          ['Sessions Left', trainee.sessionsLeft],
+          ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
+          ['Per Session', perSession ? `₪${perSession}` : '—'],
+          ['Last Payment', lastPay === '—' ? '—' : fmtPrettyDate(lastPay)],
+          ['Since', fmtPrettyDate(trainee.startDate)],
+        ];
         const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
         // THROUGH T(). Hebrew is the DEFAULT for an Israeli visitor — readLang()
         // falls back to the browser language and /demo/coach has no toggle — and
