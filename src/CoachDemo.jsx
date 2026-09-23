@@ -72,6 +72,15 @@ const DEMO_STRIP_H = { minHeight: 41, boxSizing: 'border-box', display: 'flex', 
 // "last payment: April" in September draws exactly one conclusion. Dates are
 // now expressed as "N days ago" and resolved when the screen renders, so the
 // tour is current whenever he opens it.
+// en-GB abbreviates September as "Sept", four letters where every other month
+// gets three, so a date column wobbled between "26 Aug" and "16 Sept". Fixed
+// three-letter months instead of a locale that changes width on one month.
+const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const backDate = (daysAgo) => {
+  const d = new Date();
+  d.setDate(d.getDate() - Number(daysAgo || 0));
+  return d;
+};
 const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 0)); return d.toISOString().slice(0, 10); };
 
 // HEBREW HAS A DUAL. daysAgoHe() already knows היום / אתמול / שלשום and
@@ -327,7 +336,6 @@ function DemoDashboard({ onJumpToTrainee }) {
   // named in the reader's language. It used to be a fixed Jan–Jun, so on the
   // night before the first client demo the revenue chart ran out in June and
   // the newest bar on screen was three months old.
-  const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const nowM = new Date().getMonth();
   const prior = [2900, 3200, 2700, 3600, 3400];
   const months6 = prior.map((v, k) => [T(MON3[(nowM - 5 + k + 12) % 12]), v])
@@ -1436,9 +1444,8 @@ function DemoReadinessTrends() {
 // September they read as the future and the recent past at the same time.
 // Every other date in this demo resolves from today; these now do too.
 const dAgoLabel = (n) => {
-  const d = new Date();
-  d.setDate(d.getDate() - Number(n || 0));
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const d = backDate(n);
+  return `${d.getDate()} ${MON3[d.getMonth()]} ${d.getFullYear()}`;
 };
 const demoEvalFor = (t) => {
   const e = t.ev || {};
@@ -1503,11 +1510,11 @@ function DemoEvalIntake({ trainee }) {
 // PROGRESSIVE OVERLOAD — searchable per-exercise table, one row expands into
 // PR + trend chart + session history. The showpiece section.
 const DEMO_OVERLOAD = [
-  { eid: 'e1', name: 'Barbell Bench Press', loads: [100, 102.5, 105, 107.5, 110], reps: [5, 5, 4, 3, 3], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e2', name: 'Trap-Bar Deadlift',   loads: [150, 155, 160, 165, 180], reps: [5, 5, 5, 4, 3], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e3', name: 'Back Squat',          loads: [140, 142.5, 140, 140, 138], reps: [5, 5, 5, 5, 5], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e4', name: 'Overhead Press',      loads: [60, 60, 60], reps: [6, 6, 6], dates: ['9 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e5', name: 'Barbell Row',         loads: [80, 85], reps: [8, 8], dates: ['16 Jun', '30 Jun'] },
+  { eid: 'e1', name: 'Barbell Bench Press', loads: [100, 102.5, 105, 107.5, 110], reps: [5, 5, 4, 3, 3], ago: [28, 21, 14, 7, 0] },
+  { eid: 'e2', name: 'Trap-Bar Deadlift',   loads: [150, 155, 160, 165, 180], reps: [5, 5, 5, 4, 3], ago: [28, 21, 14, 7, 0] },
+  { eid: 'e3', name: 'Back Squat',          loads: [140, 142.5, 140, 140, 138], reps: [5, 5, 5, 5, 5], ago: [28, 21, 14, 7, 0] },
+  { eid: 'e4', name: 'Overhead Press',      loads: [60, 60, 60], reps: [6, 6, 6], ago: [21, 7, 0] },
+  { eid: 'e5', name: 'Barbell Row',         loads: [80, 85], reps: [8, 8], ago: [14, 0] },
 ];
 // The table above is one athlete's training history, and it was rendered on
 // EVERY athlete's page: a 110kg bench and a 180kg trap-bar deadlift shown on
@@ -1516,6 +1523,14 @@ const DEMO_OVERLOAD = [
 // Scaled per athlete by their own assessed deadlift against the 200kg 1RM this
 // series implies, so the PROGRESSION — which is what the section is for — is
 // preserved while the weights belong to the person.
+// The session dates were typed as '2 Jun'..'30 Jun', so by September the
+// showpiece progression table was three months stale — the loads had been
+// scaled to the athlete but the history still said June. They are weekly
+// offsets now and resolve from today, like every other date in the demo.
+const ovDate = (daysAgo) => {
+  const d = backDate(daysAgo);
+  return `${d.getDate()} ${MON3[d.getMonth()]}`;
+};
 const demoOverloadFor = (t) => {
   const f = (t?.ev?.dl ?? 200) / 200;
   if (Math.abs(f - 1) < 0.01) return DEMO_OVERLOAD;
@@ -1565,7 +1580,7 @@ function DemoOverload({ trainee }) {
                         row of the showpiece table. Isolated. */}
                     <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{arrow}</span></td>
                     <td style={{ padding: '9px 10px', textAlign: 'center', color: C.tm }}>{st.sessions}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[ex.dates.length - 1]}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[ex.ago.length - 1])}</span></td>
                   </tr>
                   {open && (
                     <tr><td colSpan={5} style={{ background: 'var(--c-sf2, var(--c-sf))', padding: '14px 16px 18px 30px' }}>
@@ -1573,7 +1588,7 @@ function DemoOverload({ trainee }) {
                         <div>
                           <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{T('ALL-TIME PR')}</div>
                           <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, marginTop: 2 }}>{st.pr}kg × {ex.reps[st.prIdx]}</div>
-                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}>{ex.dates[st.prIdx]}</div>
+                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[st.prIdx])}</span></div>
                         </div>
                         <div style={{ display: 'flex', gap: 18 }}>
                           {[[T('LATEST'), `${st.last}kg`, C.tx], [T('Δ ALL-TIME'), <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`}</span>, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], [T('SESSIONS'), String(st.sessions), C.tx]].map(([l, v, c]) => (
@@ -1587,7 +1602,7 @@ function DemoOverload({ trainee }) {
                         const isPr = ex.loads[i] === st.pr;
                         return (
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr auto', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', fontSize: 12 }}>
-                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[i]}</span>
+                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[i])}</span></span>
                             <span><span style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]}kg</span> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
                             {isPr ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 6px', letterSpacing: '0.1em' }}>{T('PR')}</span> : <span />}
                           </div>
@@ -3292,10 +3307,15 @@ function DemoExercises() {
 // list: 3 pending workouts, 2 with form videos, 1 with prior comments and a
 // weekly-focus note. Click into one to open a detail mirror that shows the
 // same exercise rows + bottom action row the real coach sees.
+// ONE WEEK NUMBER FOR THE WHOLE DEMO. The sessions tab hardcoded W4 while the
+// review queue said week 2 and the athlete portal highlighted W2 — the same
+// three athletes, in the same Block #4, in three different weeks depending on
+// which tab you were looking at.
+const DEMO_WEEK = 2;
 const MOCK_REVIEW_QUEUE = [
   {
     id: 'rv1', traineeName: 'נועה לוי', initials: 'NL',
-    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: 2,
+    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
     date: 'Today 09:14', doneSets: 18, totalSets: 20,
     exercises: [
       { name: 'BB Bench Press',     prescribed: '4×6-8 · 60kg', done: 4, sets: 4, hasVideo: true,  comments: 3, focus: true  },
@@ -3864,7 +3884,7 @@ function DemoGroupFloor() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A · W4')}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A')} · {readLang() === 'he' ? `${tr('he', 'W')}${DEMO_WEEK}` : <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`W${DEMO_WEEK}`}</span>}</div>
                 </div>
                 <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
               </div>
@@ -3899,7 +3919,7 @@ function DemoSingle() {
           <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← {tr(readLang(), 'BACK')}</button>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 4 }}>
             <span>{active.day} · {active.name}</span>
-            <span style={{ color: C.tx, fontWeight: 700 }}>W4 · {doneSets}/{totalSets} · {pct}%</span>
+            <span style={{ color: C.tx, fontWeight: 700 }} dir="ltr"><span style={{ unicodeBidi: 'isolate' }}>{`W${DEMO_WEEK}`}</span> · {doneSets}/{totalSets} · {pct}%</span>
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
         </div>

@@ -543,7 +543,9 @@ export const HE = {
   "Range": "טווח",
   "Load / Wk": "עומס / שבוע",
   "Send": "שליחה",
-  "Day A · W4": "יום A · שבוע 4",
+  // Was "Day A · W4" with the week baked into the key, which is why the week
+  // number could drift from the review queue's. The week is interpolated now.
+  "Day A": "יום A",
   "Delete Exercise?": "למחוק את התרגיל?",
   "Plans referencing it will show 'Unknown Exercise'.": "תוכניות שמשתמשות בו יציגו \"תרגיל לא ידוע\".",
   "Remove": "הסרה",
