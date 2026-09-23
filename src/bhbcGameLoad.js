@@ -35,7 +35,12 @@ export function priorGameLoad(rec, date) {
  * @param emptyRec factory for a blank athlete record, so this module does not
  *                 need to know the store's shape
  */
-export function applyGameMinutes(prev, { date, rpe, minutes = {}, emptyRec = () => ({ loads: {}, sessions: {}, readiness: {} }) }) {
+// NO RPE, NO LOAD. Ohad, 23.9: "i never asked for a team rpe to exist",
+// "remember i dont need team rpes". A game RPE is a team RPE. Minutes
+// played are real and stay; the derived Foster load does not, and the
+// modal used to DEFAULT the field to 8 — an invented number written into
+// every athlete's record. 18 game rows exist and not one has an RPE.
+export function applyGameMinutes(prev, { date, minutes = {}, emptyRec = () => ({ loads: {}, sessions: {}, readiness: {} }) }) {
   if (!date) return prev;
   const next = { ...(prev || {}) };
   for (const [athleteId, raw] of Object.entries(minutes)) {
@@ -48,16 +53,9 @@ export function applyGameMinutes(prev, { date, rpe, minutes = {}, emptyRec = () 
     // Whatever else happened that day survives untouched: a game does not erase
     // the morning's lift.
     const base = Math.max(0, (Number(rec.loads[date]) || 0) - prior);
-    const load = mins > 0 ? sessionLoad(mins, rpe) : 0;
-
-    if (load > 0) {
-      rec.loads[date] = base + load;
-      rec.sessions[date] = [...kept, { type: GAME, min: mins, rpe: Number(rpe) || 0, load }];
-    } else if (mins > 0) {
-      // Minutes, no RPE: the official box score says how long he played, and
-      // nobody has said how hard it was. Recorded like a gym session - zero
-      // load, attended - so it shows in the history and stays out of ACWR.
-      // Setting an RPE later recomputes the load through the branch above.
+    if (mins > 0) {
+      // Minutes played are a real, official fact and they stay. The load does
+      // not: there is no RPE to derive one from and there never will be.
       if (base > 0) rec.loads[date] = base; else delete rec.loads[date];
       rec.sessions[date] = [...kept, { type: GAME, min: mins, rpe: null, load: 0, attended: true }];
     } else {

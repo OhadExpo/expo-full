@@ -81,9 +81,16 @@ ok('no minutes object', () => {
   const r = applyGameMinutes({}, { date: '2026-08-30', rpe: 8 });
   return r && typeof r === 'object';
 });
+// A GAME WRITES MINUTES, NEVER A LOAD (Ohad 23.9: no team RPEs, and a game
+// RPE is a team RPE). These used to assert loads['date'] > 0.
 ok('null prev store', () => {
-  const r = applyGameMinutes(null, { date: '2026-08-30', rpe: 8, minutes: { a: 20 } });
-  return r && r.a && r.a.loads['2026-08-30'] > 0;
+  const r = applyGameMinutes(null, { date: '2026-08-30', minutes: { a: 20 } });
+  return r && r.a && r.a.sessions['2026-08-30'][0].min === 20 && r.a.loads['2026-08-30'] === undefined;
+});
+ok('a game never produces a load', () => {
+  const r = applyGameMinutes({}, { date: '2026-08-30', minutes: { a: 30 } });
+  const row = r.a.sessions['2026-08-30'][0];
+  return row.min === 30 && row.rpe === null && row.load === 0 && r.a.loads['2026-08-30'] === undefined;
 });
 ok('non-numeric minutes are treated as none', () => {
   const r = applyGameMinutes({}, { date: '2026-08-30', rpe: 8, minutes: { a: 'abc' } });
@@ -93,9 +100,9 @@ ok('negative minutes cannot create load', () => {
   const r = applyGameMinutes({}, { date: '2026-08-30', rpe: 8, minutes: { a: -30 } });
   return r.a && r.a.loads['2026-08-30'] === undefined;
 });
-ok('zero rpe creates no load', () => {
-  const r = applyGameMinutes({}, { date: '2026-08-30', rpe: 0, minutes: { a: 30 } });
-  return r.a && r.a.loads['2026-08-30'] === undefined;
+ok('minutes with no rpe argument still record the minutes', () => {
+  const r = applyGameMinutes({}, { date: '2026-08-30', minutes: { a: 30 } });
+  return r.a && r.a.loads['2026-08-30'] === undefined && r.a.sessions['2026-08-30'][0].min === 30;
 });
 ok('an athlete record keeps its other fields', () => {
   const r = applyGameMinutes(

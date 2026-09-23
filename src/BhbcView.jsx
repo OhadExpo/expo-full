@@ -585,26 +585,26 @@ function attendance28(rec, days) {
     const cur = bhbcLoads && bhbcLoads[athleteId] && bhbcLoads[athleteId].sessions
       && bhbcLoads[athleteId].sessions[date] && bhbcLoads[athleteId].sessions[date][idx];
     if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen it'); return; }
-    // An sRPE session with no minutes is not a session (audit #71). Say so,
-    // rather than accepting the edit and quietly turning a Practice into a
-    // zero-load gym attendance row.
-    if (Number(newMin) <= 0 && cur && cur.rpe != null) { toast('Minutes must be more than 0 — delete the session instead'); return; }
+    // A session with no minutes is not a session (audit #71) — unless it is a
+    // court session, which is attendance and has no duration by design.
+    const attendanceRow = cur && (cur.type === 'Practice' || cur.type === 'Shootaround');
+    if (Number(newMin) <= 0 && cur && !attendanceRow) { toast('Minutes must be more than 0 — delete the session instead'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
       const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
       const arr = [...out.sessions[date]];
       const s = { ...arr[idx] };
       const min = Number(newMin) || 0;
-      // An sRPE session with zero minutes is not a session (audit #71). Editing
-      // the minutes to 0 or clearing the field used to zero its load and leave
-      // an unrecoverable stub behind. Deleting is the way to remove a session.
-      if (min <= 0 && s.rpe != null) return prev;
-      if (s.load > 0 && s.rpe) {
-        const newLoad = sessionLoad(min, s.rpe);
-        out.loads[date] = Math.max(0, (out.loads[date] || 0) - s.load + newLoad);
-        s.load = newLoad;
-      }
-      s.min = min;
+      // Editing minutes to zero on an S&C session leaves an unrecoverable
+      // stub; deleting is the way to remove one. A court row is allowed zero
+      // minutes because that IS its shape.
+      const isAttendanceRow = s.type === 'Practice' || s.type === 'Shootaround';
+      if (min <= 0 && !isAttendanceRow) return prev;
+      // No load is ever recomputed: there is no RPE to compute one from. If a
+      // stale row still carries one, drop it rather than propagate it.
+      if (s.load) { out.loads[date] = Math.max(0, (out.loads[date] || 0) - s.load); s.load = 0; }
+      s.rpe = null;
+      s.min = isAttendanceRow ? 0 : min;
       arr[idx] = s; out.sessions[date] = arr;
       return { ...prev, [athleteId]: out };
     });
@@ -652,24 +652,17 @@ function attendance28(rec, days) {
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, note, readiness }) => {
-    // GYM IS ZERO LOAD — decided by TYPE, never by whatever is left in the RPE
-    // field. The modal only HIDES the RPE input when the type is Lift; it does
-    // not clear the state and is not unmounted between opens. So a coach who
-    // typed Practice/60/RPE 7, realised it was the gym and switched Type ->
-    // Lift still had rpe=7 in state, load came out 420, and the zero-load Lift
-    // branch below was never reached — the gym session injected load that does
-    // not exist. In squad scope that wrote 420 AU to EVERY available athlete.
-    // savePractice already derives it from the type; these two now match it.
-    const load = type === 'Lift' ? 0 : sessionLoad(minutes, rpe);
+    // NO RPE, NO DERIVED LOAD. Ohad, 23.9: "i never asked for a team rpe to
+    // exist", "remember i dont need team rpes" — and the record agreed before
+    // he said it: 557 rows over two months, not one with an RPE. A court
+    // session is attendance; an S&C session is minutes. Neither is a load.
+    const attendanceOnly = type === 'Practice' || type === 'Shootaround';
     setBhbcLoads((prev) => {
       const rec = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
       rec.loads = { ...(rec.loads || {}) }; rec.sessions = { ...(rec.sessions || {}) }; rec.readiness = { ...(rec.readiness || {}) };
-      if (load > 0) {
-        rec.loads[date] = (rec.loads[date] || 0) + load;
-        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes) || 0, rpe: Number(rpe) || 0, load, ...(note ? { note } : null) }];
-      } else if (type === 'Lift' && Number(minutes) > 0) {
-        // Gym sessions are logged WITHOUT RPE (Ohad never records it) — minutes
-        // only, zero load, so lifts show in the history without polluting ACWR.
+      if (attendanceOnly) {
+        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: 0, rpe: null, load: 0, attended: true, ...(note ? { note } : null) }];
+      } else if (Number(minutes) > 0) {
         rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes), rpe: null, load: 0, attended: true, ...(note ? { note } : null) }];
       }
       const r = readiness || {};
@@ -689,14 +682,11 @@ function attendance28(rec, days) {
 
   // Bulk: log one session's load for the WHOLE available squad (a team all does
   // the same practice). Skips anyone marked Out that day. Feeds every athlete's ACWR.
-  const logTeamSession = useCallback(({ date, type, minutes, rpe, note }) => {
-    const load = type === 'Lift' ? 0 : sessionLoad(minutes, rpe);
-    // Gym (Lift) sessions carry NO RPE by design, so load is 0 — the old guard
-    // rejected the whole-roster gym log with a contradictory "Add minutes + RPE"
-    // and silently recorded nothing (audit 08-22). Mirror logSession: minutes-only
-    // attendance rows, ACWR untouched.
-    const liftOnly = load <= 0 && type === 'Lift' && Number(minutes) > 0;
-    if (load <= 0 && !liftOnly) { toast('Add minutes + RPE'); return; }
+  const logTeamSession = useCallback(({ date, type, minutes, note }) => {
+    // Same model as logSession: a court session is attendance, an S&C session
+    // is minutes, nothing is a load and nothing carries an RPE.
+    const attendanceOnly = type === 'Practice' || type === 'Shootaround';
+    if (!attendanceOnly && !(Number(minutes) > 0)) { toast('Add minutes'); return; }
     let n = 0;
     setBhbcLoads((prev) => {
       const next = { ...prev };
@@ -709,12 +699,7 @@ function attendance28(rec, days) {
         if (av >= 4) return;
         rec.loads = { ...(rec.loads || {}) };
         rec.sessions = { ...(rec.sessions || {}) };
-        if (liftOnly) {
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes), rpe: null, load: 0, attended: true, team: true, ...(note ? { note } : null) }];
-        } else {
-          rec.loads[date] = (rec.loads[date] || 0) + load;
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes) || 0, rpe: Number(rpe) || 0, load, team: true, ...(note ? { note } : null) }];
-        }
+        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: attendanceOnly ? 0 : Number(minutes), rpe: null, load: 0, attended: true, team: true, ...(note ? { note } : null) }];
         next[t.id] = rec;
         n++;
       });
@@ -727,7 +712,7 @@ function attendance28(rec, days) {
   // the whole squad in one write (Ohad: "a smart easy system for each practice
   // like the BHBC schedule sheet"). Load = minutes × (per-athlete RPE or team RPE);
   // Out athletes get availability recorded but no load.
-  const savePractice = useCallback(({ date, minutes, teamRpe, intensity, entries, sessionType = 'Practice', start = '', note = '' }) => {
+  const savePractice = useCallback(({ date, minutes, intensity, entries, sessionType = 'Conditioning', start = '', note = '' }) => {
     setBhbcLoads((prev) => {
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
@@ -772,38 +757,32 @@ function attendance28(rec, days) {
         // one without touching the rest of his day.
         const attended = e.attended !== false && e.avail < 4;
         rec.attendance = { ...(rec.attendance || {}), [slotKey]: attended ? 'in' : 'out' };
-        // Gym work carries NO RPE, ever (Ohad's hard rule) — it is a
-        // minutes-only attended session with zero load, exactly like the
-        // whole-roster gym log. Court sessions keep minutes × RPE.
-        const isLift = sessionType === 'Lift';
-        const rpe = isLift ? null : Number(e.rpe || teamRpe);
-        const load = attended && !isLift ? sessionLoad(minutes, rpe) : 0;
-        // A COURT SESSION WITH NO RPE USED TO SAVE NOTHING AND SAY IT SAVED.
+        // ATTENDANCE-ONLY vs AN S&C SESSION.
         //
-        // rpe falls back to Number('') = 0, sessionLoad() guards rpe <= 0 to 0,
-        // and the only non-Lift branch was `else if (load > 0)`. So logging a
-        // practice without typing an RPE wrote no row, no attendance minutes,
-        // nothing — and still fired toast('Practice saved'). Silent loss with a
-        // success message is the worst possible shape for this.
+        // Ohad, 23.9: "pratice logs > attendance only, s&c team sessions next
+        // to/attached to each practice", "i don't need a practice time",
+        // "remember i dont need team rpes".
         //
-        // The RPE is not the point of the record. That the squad trained, on
-        // this date, for these minutes, IS. So an RPE-less court session now
-        // records exactly what is known and leaves the load out: rpe null,
-        // load 0. Blank beats wrong, and the ACWR engine already treats a
-        // missing load as missing rather than as zero effort.
-        const noRpe = !isLift && !(Number(rpe) > 0);
-        if (attended && noRpe && Number(minutes) > 0) {
+        // A court session (Practice / Shootaround) records that the athlete
+        // was THERE and nothing else — no duration, no load. Its duration is
+        // the basketball coach's, lives on the fixture, and is not his data.
+        // A Game keeps its minutes, because minutes played are a real S&C
+        // input. Everything else — Conditioning, Lift, Recovery — is his own
+        // S&C work: minutes, a note, zero load, and it carries the slot's
+        // `start` so it sits ATTACHED to the practice it happened at.
+        //
+        // There is no RPE on any branch. 557 rows over two months and not one
+        // ever carried one.
+        const attendanceOnly = sessionType === 'Practice' || sessionType === 'Shootaround';
+        if (!attended) {
+          // Marked absent: the attendance entry above already says 'out'.
+          // No session row, so nothing counts toward his load.
+        } else if (attendanceOnly) {
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, intensity, note: e.note || note || '', team: true, start, by: currentUser || null }];
-        } else if (attended && isLift && Number(minutes) > 0) {
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: 0, rpe: null, load: 0, attended: true, note: e.note || note || '', team: true, start, by: currentUser || null }];
+        } else if (Number(minutes) > 0) {
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, note: e.note || note || '', team: true, start, by: currentUser || null }];
-        } else if (load > 0) {
-          rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + load };
-          rec.sessions = { ...(rec.sessions || {}) };
-          // `start` = which slot of the day this was, so a morning and an
-          // evening session are two distinct rows, not one overwritten one.
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes) || 0, rpe, load, intensity, note: e.note || note || '', team: true, start, by: currentUser || null }];
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, ...(intensity ? { intensity } : {}), note: e.note || note || '', team: true, start, by: currentUser || null }];
         }
         if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
         if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note, [`${date}|${start || ''}`]: e.note };
@@ -1618,8 +1597,8 @@ function attendance28(rec, days) {
         {minutesFor && (
           <GameMinutesModal game={minutesFor} roster={roster} bhbcLoads={bhbcLoads}
             onClose={() => setMinutesFor(null)}
-            onSave={({ date, rpe, minutes }) => {
-              setBhbcLoads((prev) => applyGameMinutes(prev, { date, rpe, minutes, emptyRec }));
+            onSave={({ date, minutes }) => {
+              setBhbcLoads((prev) => applyGameMinutes(prev, { date, minutes, emptyRec }));
               setMinutesFor(null);
             }} />
         )}
@@ -2255,9 +2234,8 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   const slot = dayFx.find((f) => f.start === slotStart) || null;
   const slotPlan = slot ? sessionPlans[`${date}|${slot.start || ''}`] : null;
   const [minutes, setMinutes] = useState('');
-  const [teamRpe, setTeamRpe] = useState('');
   const [intensity, setIntensity] = useState('');
-  const [sessionType, setSessionType] = useState('Practice');
+  const [sessionType, setSessionType] = useState('Conditioning');
   // The ONE place to write what the team did in this session (Ohad 09-01).
   // Per-athlete notes still win where they exist; this fills in for everyone
   // else, so a team S&C session needs exactly one line of typing.
@@ -2285,10 +2263,28 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 32, boxSizing: 'border-box' };
-  // A gym session needs minutes and nothing else — demanding an RPE made the
-  // one session type Ohad never scores unsaveable (his hard rule).
+  // THE MODAL COULD NOT SAVE THE THING HE LOGS MOST.
+  //
+  // Ohad, 23.9: "i don't need to log any practice sessions just the s&c part!!"
+  // and "i never asked for a team rpe to exist". Measured against his own data
+  // before changing anything: 557 logged rows across two months, and NOT ONE
+  // carries an RPE. What he logs is Conditioning (250 rows, 5-12 min, notes
+  // like "ladders + quick feet + dynamic stretching") and Lift (115). Practice
+  // is 174 rows of flat 90/120-minute attendance, which he has now said he
+  // does not need.
+  //
+  // But canSave demanded `Number(teamRpe) > 0` for everything except Lift — so
+  // a Conditioning session, his single commonest entry, was UNSAVEABLE through
+  // this modal. Every one of those 250 rows had to be written by script. The
+  // RPE gate was the reason, and it was guarding a field he has never filled.
+  //
+  // So: minutes are the requirement. RPE is optional, and only offered for the
+  // court sessions where a session-RPE load means anything.
+  // A court session is ATTENDANCE. An S&C session has minutes. Nothing has an
+  // RPE. A Game keeps its minutes because minutes played are a real S&C input.
+  const attendanceOnly = sessionType === 'Practice' || sessionType === 'Shootaround';
   const isLift = sessionType === 'Lift';
-  const canSave = Number(minutes) > 0 && (isLift || Number(teamRpe) > 0);
+  const canSave = attendanceOnly || Number(minutes) > 0;
   // THE NAME COLUMN NEEDS A FLOOR, NOT A FRACTION.
   // At minWidth 560 the fixed columns and gaps take 382px, leaving 178 for the
   // two fr tracks - about 86px for the athlete. Measured 19.9 at 390: every
@@ -2297,7 +2293,8 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   // minmax gives the name 152px before it is allowed to shrink - 130 cleared three
   // of the four but not DAESHON FRANCIS, the longest on the roster; the grid lives
   // in an overflowX:auto scroller, so growing costs a scroll, not a clip.
-  const cols = isLift ? '24px minmax(152px, 1.4fr) 116px 72px 66px 1.5fr' : '24px minmax(152px, 1.4fr) 116px 72px 56px 66px 1.5fr';
+  // One column set now: the RPE column is gone for every type.
+  const cols = '24px minmax(152px, 1.4fr) 116px 72px 66px 1.5fr';
   return (
     <BModal open onClose={onClose} wide title={tr('Log session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -2312,12 +2309,17 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Type')}</label>
             <select value={sessionType} onChange={(e) => setSessionType(e.target.value)} style={inp}>
-              {['Practice', 'Game', 'Lift', 'Shootaround', 'Conditioning', 'Recovery'].map((o) => <option key={o} value={o}>{tr(o)}</option>)}
+              {/* S&C first — that is what he logs. The court types stay for the
+                  history that already uses them and for game minutes. */}
+              {['Conditioning', 'Lift', 'Recovery', 'Practice', 'Game', 'Shootaround'].map((o) => <option key={o} value={o}>{tr(o)}</option>)}
             </select>
           </div>
-          <Input label={tr('Minutes')} type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
-          {/* No RPE anywhere on a gym session (Ohad: "i will never write the rpe for the gym workouts"). */}
-          {!isLift && <Input label={tr('Team RPE')} type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />}
+          {/* No minutes on a practice: he does not log the basketball session's
+              length, and the fixture already carries it. */}
+          {!attendanceOnly && <Input label={tr('Minutes')} type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="10" />}
+          {/* THE TEAM RPE FIELD IS GONE. Ohad, twice on 23.9: "i never asked
+              for a team rpe to exist", "remember i dont need team rpes" — and
+              the data agreed before he said it: 557 rows, not one RPE. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Intensity')}</label>
             <select value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inp}>
@@ -2363,7 +2365,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-              <div>#</div><div>{tr('Athlete')}</div><div>{tr('Availability')}</div><div>{tr('This slot')}</div>{!isLift && <div>{tr('RPE')}</div>}<div>{tr('BW kg')}</div><div>{tr('Note')}</div>
+              <div>#</div><div>{tr('Athlete')}</div><div>{tr('Availability')}</div><div>{tr('This slot')}</div><div>{tr('BW kg')}</div><div>{tr('Note')}</div>
             </div>
             {roster.map((t) => {
               const e = entries[t.id] || { avail: 1, rpe: '', bw: '', note: '' };
@@ -2389,7 +2391,6 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
                       </button>
                     );
                   })()}
-                  {!isLift && <input type="number" value={e.rpe} onChange={(ev) => set(t.id, 'rpe', ev.target.value)} placeholder={teamRpe || 'RPE'} style={inp} />}
                   <input type="number" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
                   <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder={tr('note')} style={inp} />
                 </div>
@@ -2408,11 +2409,11 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
             style={{ width: '100%', boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '7px 9px' }} />
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{isLift
-            ? 'Gym sessions are minutes only — no RPE, no load. “This slot” records who actually trained THIS session.'
-            : 'Load = minutes × RPE (per-athlete or team). “This slot” records who actually trained THIS session — the day’s availability is separate.'}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{attendanceOnly
+            ? 'A practice records WHO WAS THERE — no duration, no load. Add the S&C block as its own session on the same slot.'
+            : 'S&C sessions are minutes only — no RPE, no load. “This slot” records who actually trained THIS session; the day’s availability is separate.'}</span>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType, start: slotStart, note: (note || '').trim() })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')} {sessionType.toLowerCase()}</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, intensity, entries, sessionType, start: slotStart, note: (note || '').trim() })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')} {sessionType.toLowerCase()}</Btn>
         </div>
       </div>
     </BModal>
@@ -4318,7 +4319,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
   const detailFor = useCallback((f) => {
     const daySlots = past.filter((x) => x.date === f.date)
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-    const trained = [], out = [], loadsTaken = [], rpes = [], notes = [], rowsBy = [];
+    const trained = [], out = [], scMins = [], notes = [], rowsBy = [];
     for (const t of roster) {
       const rec = loads[t.id];
       const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
@@ -4357,20 +4358,20 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
       if (mine.length || att === 'in') {
         trained.push(t);
         for (const r of mine) {
-          if (r.load > 0) loadsTaken.push(r.load);
-          if (r.rpe) rpes.push(Number(r.rpe));
+          // The S&C minutes attached to this slot are what the row reports now.
+          if (/^(Conditioning|Lift|Recovery)$/.test(String(r.type || '')) && Number(r.min) > 0) scMins.push(Number(r.min));
           if (r.by) rowsBy.push(r.by);
         }
         const n = (rec.notes && (rec.notes[`${f.date}|${f.start || ''}`] || rec.notes[f.date])) || '';
         if (n) notes.push({ name: t.name, note: n });
       } else if (avail >= 4) out.push(t);
     }
-    const avg = (arr) => (arr.length ? Math.round((arr.reduce((s, x) => s + x, 0) / arr.length) * 10) / 10 : null);
+    const sum = (arr) => arr.reduce((a, x) => a + x, 0);
     // WHO logged this session. Past practices is what the basketball staff
     // read, so the row needs an author for the same reason a medical record
     // does — you cannot ask a question of an unsigned entry.
     const loggers = [...new Set(rowsBy.filter(Boolean))];
-    return { trained, out, avgRpe: avg(rpes), avgLoad: avg(loadsTaken) ? Math.round(avg(loadsTaken)) : null, notes, loggers };
+    return { trained, out, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, notes, loggers };
   }, [loads, roster, past]);
 
   if (!past.length) return null;
@@ -4421,8 +4422,10 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: d.trained.length ? '#37B27C' : C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                   {d.trained.length}/{roster.length}
                 </span>
-                {d.avgLoad != null && <span title={`${d.avgRpe} RPE x ${f.minutes || '?'} min`} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{d.avgLoad} AU</span>}
-                {d.avgRpe != null && <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>RPE {d.avgRpe}</span>}
+                {/* The AU and RPE readouts are gone with the load model they
+                    described (Ohad 23.9, no team RPEs). What a coach asks of
+                    this row now is who trained and what the S&C block was. */}
+                {d.scMinutes > 0 && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{d.scMinutes} {tr('min')} S&C</span>}
                 <svg aria-hidden width="9" height="6" viewBox="0 0 9 6" fill="none"
                   style={{ color: C.tm, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
                   <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -5391,13 +5394,13 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
   );
 }
 
-// One RPE for the game, minutes per athlete. Foster sRPE is rpe x minutes, so a
-// starter and a bench player come out of the same game with very different
-// loads - which is the entire point of recording it.
+// MINUTES PLAYED, PER ATHLETE. No game RPE: Ohad, 23.9, "i never asked for a
+// team rpe to exist" / "remember i dont need team rpes", and a game RPE is a
+// team RPE. The field used to DEFAULT to 8 and write that invented number into
+// every athlete's record. Minutes played are an official fact and they stay.
 function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   const tr = useT();
   const date = game.date;
-  const [rpe, setRpe] = useState(() => String(gameRpeOf(bhbcLoads || {}, date) || 8));
   const [mins, setMins] = useState(() => {
     const saved = gameMinutesOf(bhbcLoads || {}, date);
     const out = {};
@@ -5409,11 +5412,6 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   return (
     <BModal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>
-          {tr('Game RPE')}
-          <input type="number" min="1" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)}
-            style={{ width: 56, height: 30, boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + C.ln, color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
-        </label>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: FN, fontSize: 11, color: C.td, marginInlineStart: 'auto' }}>
           <b style={{ color: C.tx, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{played}</b><span>{tr('played')}</span>
           <span style={{ opacity: 0.5 }}>·</span>
@@ -5438,7 +5436,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-        <Btn onClick={() => onSave({ date, rpe: Number(rpe) || 0, minutes: mins })}>{tr('Save')}</Btn>
+        <Btn onClick={() => onSave({ date, minutes: mins })}>{tr('Save')}</Btn>
       </div>
     </BModal>
   );
@@ -5514,7 +5512,7 @@ function LoadOutputCard({ rows, loads, medical }) {
                 {/* The arithmetic, spelled out, isolated LTR so the x and the
                     = do not drift in an RTL page. */}
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>
-                  {last && last.rpe && last.minutes ? `${last.rpe} × ${last.minutes} = ${last.load} AU` : '—'}
+                  {last && last.minutes ? `${last.minutes} ${tr('min')}` : '—'}
                 </span>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.td, flexShrink: 0 }}>{tr('7 days')}</span>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', minWidth: 62, textAlign: 'end' }}>
@@ -5927,7 +5925,6 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
   const [date, setDate] = useState(todayISO());
   const [type, setType] = useState('Practice');
   const [minutes, setMinutes] = useState('');
-  const [rpe, setRpe] = useState('');
   const [pain, setPain] = useState(''); const [sleep, setSleep] = useState(''); const [energy, setEnergy] = useState('');
   // ONE place to write what the team actually did in an S&C session (Ohad
   // 09-01: "i only want one spot to write notes about what we did during a team
@@ -5937,12 +5934,14 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
   // Gym (Lift) sessions are minutes-only — Ohad never records gym RPE, so the
   // field disappears and the session saves as attendance + duration, no load.
   const isLift = type === 'Lift';
-  // The preview the coach reads must agree with what will be SAVED, so it is
-  // derived from the type the same way. Before this it showed 420 AU under a
-  // panel that said "Gym session — minutes only, no RPE".
-  const preview = isLift ? 0 : sessionLoad(minutes, rpe);
-  const liftOk = isLift && Number(minutes) > 0;
-  const canSave = scope === 'squad' ? (preview > 0 || liftOk) : (athleteId && (preview > 0 || liftOk || pain || sleep || energy));
+  // A court session is attendance; everything else is minutes. Nothing is a
+  // load, so there is nothing to preview.
+  const attendanceOnly = type === 'Practice' || type === 'Shootaround';
+  const preview = 0;
+  const hasMinutes = Number(minutes) > 0;
+  const canSave = scope === 'squad'
+    ? (attendanceOnly || hasMinutes)
+    : (athleteId && (attendanceOnly || hasMinutes || pain || sleep || energy));
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
@@ -5973,12 +5972,14 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             </select>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: isLift ? '1fr' : '1fr 1fr', gap: 10 }}>
-          <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder={isLift ? '40' : '75'} />
-          {!isLift && <Input label={tr('Session RPE (0–10)')} type="number" inputMode="decimal" min="0" max="10" step="0.5" value={rpe} onChange={(e) => setRpe(e.target.value)} placeholder="7" />}
+        {/* NO RPE, AND NO MINUTES ON A COURT SESSION. A practice or a
+            shootaround records that he was THERE; its length belongs to the
+            basketball coach and already sits on the fixture. */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+          {!attendanceOnly && <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder={isLift ? '40' : '10'} />}
         </div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'center', letterSpacing: '0.04em' }}>
-          {isLift ? tr('Gym session — minutes only, no RPE') : <>{tr('sRPE load =')} <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> {tr('units')}</>}
+          {attendanceOnly ? tr('Attendance only — no duration, no load') : tr('S&C session — minutes only, no RPE')}{false && <>{' '}<span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> {tr('units')}</>}
         </div>
         {(() => {
           const day = fixtures.filter((f) => f.date === date);
@@ -6022,7 +6023,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
         )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, rpe, note: note.trim(), readiness: { pain, sleep, energy } })}
+          <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, note: note.trim(), readiness: { pain, sleep, energy } })}
             style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')}</Btn>
         </div>
       </div>
