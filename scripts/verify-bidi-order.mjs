@@ -111,6 +111,7 @@ for (const [name, route] of SURFACES) {
           const TOKEN = /\d+\s*[/:]\s*\d+|[₪$]\s*\d[\d,.]*|[+\-]?\d[\d,.]*\s*(?:[%₪$°]|\+|-(?!\d))?/gu;
           const HEB = /[֐-׿]/;
           const out = [];
+          const ltrBlocks = [];
           let counted = 0, risked = 0;
           const vh = innerHeight;
           const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -126,6 +127,40 @@ for (const [name, route] of SURFACES) {
             if (bb.width < 4 || bb.height < 4) continue;
             if (bb.bottom < 0 || bb.top > vh) continue;
             counted++;
+
+            // HEBREW PAINTED FLUSH TO THE WRONG EDGE. The engine shipped
+            // with no base direction on its root at all, so the h1 computed
+            // `direction: ltr` and a three-line Hebrew paragraph sat flush
+            // LEFT with the ragged edge on the right — backwards, and
+            // invisible to every other gate because nothing was clipped,
+            // overflowing or reordered.
+            //
+            // The first version of this check flagged the ATTRIBUTE — any
+            // Hebrew in a direction:ltr block — and reported ten findings in
+            // the athlete portal that were not visible faults at all: its root
+            // is LTR too, but every Hebrew block there is centred or fills its
+            // box, so nothing sits on the wrong edge. Measuring the attribute
+            // finds latent debt; measuring the INK finds what the reader sees.
+            // This measures the ink: Hebrew whose ink hugs the left edge while
+            // real slack is left over on the right.
+            {
+              const letters = raw.replace(/[^\p{L}]/gu, '');
+              const heb = (raw.match(/[֐-׿]/g) || []).length;
+              const centred = cs.textAlign === 'center' || cs.textAlign === 'right' || cs.textAlign === 'end';
+              if (letters.length >= 6 && heb / letters.length > 0.7 && cs.direction === 'ltr' && !centred) {
+                const rg2 = document.createRange();
+                rg2.selectNodeContents(el);
+                const rr = [...rg2.getClientRects()].filter((x) => x.width > 0);
+                if (rr.length) {
+                  const inkL = Math.min(...rr.map((x) => x.left));
+                  const inkR = Math.max(...rr.map((x) => x.right));
+                  const slackRight = bb.right - inkR, slackLeft = inkL - bb.left;
+                  if (slackRight > 24 && slackLeft < 6) {
+                    ltrBlocks.push({ t: raw.replace(/\s+/g, ' ').trim().slice(0, 46), tag: el.tagName, slack: Math.round(slackRight) });
+                  }
+                }
+              }
+            }
 
             TOKEN.lastIndex = 0;
             let m;
@@ -167,10 +202,16 @@ for (const [name, route] of SURFACES) {
               }
             }
           }
-          return { out, counted, risked };
+          return { out, ltrBlocks, counted, risked };
         });
         nodes += r.counted || 0;
         risky += r.risked || 0;
+        for (const x of r.ltrBlocks || []) {
+          const k = 'L|' + x.t;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          add({ kind: 'ALIGN', id, detail: `<${x.tag.toLowerCase()}> "${x.t}" — Hebrew painted flush LEFT with ${x.slack}px of slack on the right` });
+        }
         for (const x of r.out) {
           const k = JSON.stringify(x);
           if (seen.has(k)) continue;
