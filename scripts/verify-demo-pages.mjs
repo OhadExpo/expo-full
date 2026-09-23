@@ -309,9 +309,14 @@ for (const [name, route] of SURFACES) {
         });
         for (const x of buried) add({ kind: 'BURIED', id, detail: `"${x.t}" cannot be tapped at rest — covered by the sticky "${x.by}"` });
 
-        // --- DEADAIR: a long empty run mid-page, on a phone ----------------
-        if (w < 700) {
-          const gaps = await pg.evaluate(() => {
+        // --- DEADAIR: a long empty run mid-page ---------------------------
+        // It used to run only under 700px. A 200px hole reads as unfinished
+        // on a laptop too, which is the screen he demos from. The threshold
+        // is looser on desktop because a tall card legitimately leaves more
+        // room beside a short one.
+        {
+          const GAP = w < 700 ? 400 : 260;
+          const gaps = await pg.evaluate((gapMin) => {
             const rows = [];
             for (const el of document.querySelectorAll('body *')) {
               if (!el.childElementCount && (el.textContent || '').trim().length < 2) continue;
@@ -323,11 +328,11 @@ for (const [name, route] of SURFACES) {
             const gapsOut = [];
             let reach = 0;
             for (const [t, b2] of rows) {
-              if (t - reach > 400 && reach > 0) gapsOut.push({ from: Math.round(reach), to: Math.round(t) });
+              if (t - reach > gapMin && reach > 0) gapsOut.push({ from: Math.round(reach), to: Math.round(t) });
               reach = Math.max(reach, b2);
             }
             return gapsOut;
-          });
+          }, GAP);
           for (const g of gaps) add({ kind: 'DEADAIR', id, detail: `${g.to - g.from}px of nothing between y=${g.from} and y=${g.to}` });
         }
 

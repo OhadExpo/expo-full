@@ -353,19 +353,17 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
       </div>
 
-      {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
-      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>{T('INCOMING · 30D')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, padding: 14 }}>
-          {[[T('CHAT SESSIONS'), '12', C.ac, T('last 30 days')], [T('MESSAGES SENT'), '7', C.ac, T('to prospects')], [T('EMAIL CAPTURES'), '3', C.gn, T('captured')], [T('WAITLIST'), '2', C.ac, T('signed up')]].map(([l, v, c, sub], i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
-              <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{l}</span>
-              <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
-              <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
+          It used to sit between the stat row and revenue, printing CHAT
+          SESSIONS 12 / MESSAGES SENT 7 / EMAIL CAPTURES 3 / WAITLIST 2 — and
+          those were Ohad's OWN live figures, hardcoded. Two things wrong with
+          that on a screen shown to a prospect. It is EXPO's funnel, not the
+          buyer's: a coach who signs up does not get an EXPO waitlist, so the
+          panel sold a feature that does not transfer. And a buyer reads
+          "waitlist 2" as "nobody else wants this" — the run sheet already
+          warned he would be caught by that number on his own dashboard.
+          The parity audit had recorded Incoming as deliberately out of the
+          demo; the nav honoured it and this panel did not. Now both do. */}
 
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
@@ -402,26 +400,71 @@ function DemoDashboard({ onJumpToTrainee }) {
                 smallest month so the differences are visible, each carries its
                 value, the current month is solid and the rest are ghosted so
                 the eye lands on it, and the bars are slim with real gaps. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, alignItems: 'end', height: 120 }}>
-              {months6.map(([m, v], i) => {
-                const lo = Math.min(...months6.map((x) => x[1])) * 0.82;
-                const pct = Math.max(12, Math.round(((v - lo) / Math.max(1, barMax - lo)) * 100));
-                const current = i === months6.length - 1;
-                return (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, height: '100%' }}>
-                    <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: current ? C.ac : C.tm, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{nis(v)}</div>
-                    <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      <div title={`${m} · ${nis(v)}`} style={{
-                        width: '62%', maxWidth: 34, height: `${pct}%`,
-                        background: current ? C.ac : 'color-mix(in srgb, var(--c-ac) 28%, transparent)',
-                        borderTop: current ? 'none' : `1px solid color-mix(in srgb, var(--c-ac) 55%, transparent)`,
-                      }} />
-                    </div>
-                    <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: current ? C.tx : C.tm, letterSpacing: '0.08em', fontWeight: 700 }}>{m}</div>
+            {/* WHY A LINE AND NOT BARS.
+                It was bars scaled to the MAXIMUM: 2,900 to 3,850 is a 33%
+                spread drawn as six near-identical slabs. Ohad, an hour before
+                the demo: "the demo top screen... is horrible." So I re-scaled
+                the bars from a floor under the smallest month — which fixed the
+                look and introduced a worse fault. A bar's LENGTH is its value,
+                so a floor that is not zero lies about it: the tallest bar drew
+                3.3x the shortest on data that differs by 1.43x. Tufte's lie
+                factor for that is 2.34, against an integrity band of 0.95-1.05.
+                This is the screen the run sheet tells him to lead with, where
+                the pitch is "every figure reconciles" — a chart a buyer can
+                catch exaggerating is worse than a dull one.
+                A line is read as a TREND, not as a length, so a floor above
+                zero is sanctioned for it (Datawrapper; FT's rule is specific to
+                bar and column). The floor is printed on the axis rather than
+                left implied, every month still carries its own value, and the
+                current month keeps the solid dot. Grid children get
+                minmax(0, 1fr): a bare 1fr floors at the label's own width, so
+                six 42px labels plus five 14px gaps painted 23px past the card
+                edge at 360. */}
+            {(() => {
+              const vals = months6.map((x) => x[1]);
+              const step = 500;
+              const floor = Math.floor(Math.min(...vals) / step) * step;
+              const ceil = Math.ceil(Math.max(...vals) / step) * step;
+              const y = (v) => 100 - ((v - floor) / Math.max(1, ceil - floor)) * 100;
+              const pts = months6.map(([, v], i) => `${((i + 0.5) / months6.length) * 100},${y(v)}`).join(' ');
+              // The month labels sit in a CSS grid, which mirrors itself in
+              // Hebrew — Sep ends up leftmost. The plot is positioned, and
+              // `left` is physical, so it did NOT mirror: the leftmost label
+              // read the highest month while the leftmost point was the lowest.
+              // The chart contradicted its own axis in Hebrew. Dots now use the
+              // logical inset and the polyline is flipped to match.
+              const rtl = readLang() === 'he';
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
+                    <span dir="ltr">{nis(ceil)}</span>
+                    <span>{T('SCALE FROM')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{nis(floor)}</span></span>
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ position: 'relative', height: 96, borderBottom: `1px solid ${C.cardBd}`, borderTop: `1px dashed color-mix(in srgb, var(--c-bd) 60%, transparent)` }}>
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', transform: rtl ? 'scaleX(-1)' : undefined }} aria-hidden="true">
+                      <polyline points={pts} fill="none" stroke="var(--c-ac)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+                    </svg>
+                    {months6.map(([m, v], i) => {
+                      const current = i === months6.length - 1;
+                      return (
+                        <div key={i} title={`${m} · ${nis(v)}`} style={{ position: 'absolute', insetInlineStart: `${((i + 0.5) / months6.length) * 100}%`, top: `${y(v)}%`, transform: 'translate(-50%, -50%)', width: current ? 9 : 7, height: current ? 9 : 7, borderRadius: '50%', background: current ? C.ac : C.sf, border: `2px solid ${C.ac}`, boxSizing: 'border-box' }} />
+                      );
+                    })}
+                  </div>
+                  <div className="cd-revline" style={{ display: 'grid', gridTemplateColumns: `repeat(${months6.length}, minmax(0, 1fr))`, gap: 4, marginTop: 6 }}>
+                    {months6.map(([m, v], i) => {
+                      const current = i === months6.length - 1;
+                      return (
+                        <div key={i} style={{ textAlign: 'center', minWidth: 0 }}>
+                          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: current ? C.ac : C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} dir="ltr">{nis(v)}</div>
+                          <div style={{ fontFamily: FN, fontSize: 9, color: current ? C.tx : C.td, letterSpacing: '0.06em', fontWeight: 700, whiteSpace: 'nowrap', marginTop: 2 }}>{m}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
