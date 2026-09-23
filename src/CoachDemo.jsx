@@ -298,20 +298,12 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
 }
 
 // ─── Tab: Dashboard ───────────────────────────────────────────────────────
-const DEMO_LEADS = [
-  { id: 'l1', email: 'avi.shahar@example.co.il', source: 'coaches', context: 'pricing CTA',  when: '32 min ago', coach: true },
-  { id: 'l2', email: 'maor.k@example.co.il',     source: 'expo-il', context: 'exit-intent',  when: '4 hr ago' },
-  { id: 'l3', email: 'tomer.ben@example.co.il',  source: 'expo-il', context: 'quiz-finish',  when: 'Yesterday' },
-];
+// The lead fixture and its state went with the New Leads panel below. Making
+// its ✓ / ✕ / RESET actually work was right at the time — a control that looks
+// clickable and does nothing is the thing he objected to — but the panel
+// itself should never have been on a screen shown to a buyer.
 
 function DemoDashboard({ onJumpToTrainee }) {
-  // The ✓ and ✕ on a lead used to be `onClick={e => e.stopPropagation()}` -
-  // they looked clickable and did nothing at all, on the surface prospects are
-  // shown. Ohad: "this type of shit shouldnt happen anywhere." The demo has no
-  // backend, but it does have state: contacted greys the row out, delete
-  // removes it, and RESET puts them back so the page is never left empty.
-  const [leads, setLeads] = React.useState(DEMO_LEADS);
-  const [contacted, setContacted] = React.useState({});
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
@@ -583,38 +575,14 @@ function DemoDashboard({ onJumpToTrainee }) {
           ))}
         </Panel>
 
-        <Panel title={`${T('New Leads')} (3)`} tint={C.ac} icon="mail" cyanBorder>
-          {leads.length === 0 && (
-            <Row><div style={{ flex: 1, color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1 }}>{T('ALL LEADS CLEARED')}</div>
-              <button onClick={() => { setLeads(DEMO_LEADS); setContacted({}); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}>{T('RESET')}</button>
-            </Row>
-          )}
-          {leads.map((l, i) => (
-            <Row key={l.id} style={contacted[l.id] ? { opacity: 0.45 } : undefined}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  {/* Reserved leading slot so every email starts at one x whether or not
-                      the lead has a COACH source tag. */}
-                  <span style={{ width: 46, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>{T('COACH')}</span>}</span>
-                  {/* minWidth 0, or the email cannot shrink below its own
-                      content width inside this flex row: measured at 360 it
-                      painted 196px outside its container. break-word alone is
-                      not enough when the flex item refuses to narrow. */}
-                  <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, flex: '1 1 auto' }}>{l.email}</div>
-                </div>
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{/* Through T(): the Hebrew for these context labels already exists
-                    ("PRICING CTA" → כפתור תמחור, "EXIT-INTENT" → יציאה מהדף) and the
-                    call site was shouting the raw value instead. Internal funnel
-                    jargon in English is the last thing a Hebrew prospect should
-                    read on the screen he is being sold. */}
-                  {T(l.source.toUpperCase())} · {T(l.context.toUpperCase())}</div>
-              </div>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{RT(l.when)}</span>
-              <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? T('Mark not contacted (demo)') : T('Mark contacted (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
-              <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title={T('Delete lead (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginInlineStart: 4, flexShrink: 0 }}>✕</button>
-            </Row>
-          ))}
-        </Panel>
+        {/* NEW LEADS IS DELIBERATELY NOT HERE, for the same reason
+            INCOMING · 30D is not: it is EXPO's funnel, not the buyer's. Its
+            rows carried source "expo-il" and contexts like "pricing CTA" and
+            "exit-intent" — leads from the marketing site a coach who signs up
+            does not own, so the panel sold a feature that does not transfer.
+            The audit also found its ✓ and ✕ buttons painted on top of the
+            email, rendering as A[✕][✓]EXAMPLE.CO.IL, and the run sheet already
+            told him to steer around the panel. Nothing to steer around now. */}
       </div>
 
       {/* Client roster table — same shape as the real DashboardView's
