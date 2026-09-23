@@ -95,14 +95,14 @@ const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
-  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', ev: { vj: 45, bj: 210, dl: 120, bp: 65 }, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
-  { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 900, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', ev: { vj: 55, bj: 245, dl: 175, bp: 95 }, plans: ['Block #2 — Strength', 'Block #1 — Base'] },
-  { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 700, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', ev: { vj: 30, bj: 160, dl: 80,  bp: 40 }, plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 2700, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', ev: { vj: 45, bj: 210, dl: 120, bp: 65 }, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
+  { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 2000, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', ev: { vj: 55, bj: 245, dl: 175, bp: 95 }, plans: ['Block #2 — Strength', 'Block #1 — Base'] },
+  { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 1600, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', ev: { vj: 30, bj: 160, dl: 80,  bp: 40 }, plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
   { id: 't6', name: 'איתי כץ', short: 'Itai', email: 'itai.katz@example.co.il', phone: '+972541112233', status: 'Trial', sessionsLeft: 1, monthly: 0, format: 'Gym, Single', startDate: '2025-06-12', dormantDays: null, lastWorkout: '3 days ago', payment: 'NEVER PAID', online: false, age: 24, weight: 70, height: 176, injuries: 'None', goals: 'Learn the lifts, build a base', ev: { vj: 48, bj: 220, dl: 100, bp: 55 }, plans: ['Block #1 — Onboarding'] },
-  { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', payment: 'OVERDUE', overdueDays: 62, online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', ev: { vj: 34, bj: 175, dl: 85,  bp: 42.5 }, plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
-  { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 950, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', payment: 'PAID', paidDaysAgo: 5, online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', ev: { vj: 50, bj: 240, dl: 210, bp: 130 }, plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
+  { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 1800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', payment: 'OVERDUE', overdueDays: 62, online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', ev: { vj: 34, bj: 175, dl: 85,  bp: 42.5 }, plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
+  { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 2200, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', payment: 'PAID', paidDaysAgo: 5, online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', ev: { vj: 50, bj: 240, dl: 210, bp: 130 }, plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
 ];
 
 // Per-block plan content. Block #4 is the active block (Week 2 of 4 wave);
@@ -342,7 +342,9 @@ function DemoDashboard({ onJumpToTrainee }) {
   // night before the first client demo the revenue chart ran out in June and
   // the newest bar on screen was three months old.
   const nowM = new Date().getMonth();
-  const prior = [2900, 3200, 2700, 3600, 3400];
+  // More than double the original 2,900..3,400 (Ohad, 24.9), keeping the
+  // same shape: a June dip, a July high, a strong current month.
+  const prior = [6700, 7400, 6200, 8300, 7800];
   const months6 = prior.map((v, k) => [T(MON3[(nowM - 5 + k + 12) % 12]), v])
     .concat([[T(MON3[nowM]), collected30]]);
   const barMax = Math.max(...months6.map(m => m[1]));
@@ -4000,15 +4002,29 @@ function DemoSingle() {
               </button>
               {isOpen && (
                 <div style={{ padding: '0 14px 14px' }}>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginInlineEnd: 2 }}>{T('LOG INTO')}</span>
-                    {[1, 2, 3, 4].map(wn => <span key={wn} style={{ minWidth: 32, textAlign: 'center', padding: '3px 0', border: `${wn === 4 ? '2px' : '1px'} solid ${wn === 4 ? C.ac : C.bd}`, background: wn === 4 ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === 4 ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700 }}>W{wn}</span>)}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {dayNames.map((dn, di) => (
-                      <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === 0 ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === 0 ? C.ac : C.tm, border: `1px solid ${di === 0 ? 'rgba(57,189,255,0.45)' : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
-                    ))}
-                  </div>
+                  {/* EVERY ATHLETE OPENED ON W4 / DAY A. Ohad, 24.9: "every single
+                      person should have a different day and week that it
+                      auto-selects". Week and day now come from the athlete —
+                      seeded off their id so they are stable across reloads and
+                      differ from row to row. The W pills were bordered spans
+                      20px tall beside 36px buttons; they are controls and now
+                      stand at the one control height. */}
+                  {(() => {
+                    const seed = idSeed(t.id);
+                    const autoWeek = 1 + (seed % 4);
+                    const autoDay = seed % dayNames.length;
+                    return (<>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginInlineEnd: 2 }}>{T('LOG INTO')}</span>
+                        {[1, 2, 3, 4].map(wn => <span key={wn} dir="ltr" style={{ minWidth: 40, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px', border: `1px solid ${wn === autoWeek ? C.ac : C.bd}`, background: wn === autoWeek ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === autoWeek ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>W{wn}</span>)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {dayNames.map((dn, di) => (
+                          <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === autoDay ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === autoDay ? C.ac : C.tm, border: `1px solid ${di === autoDay ? C.ac : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
+                        ))}
+                      </div>
+                    </>);
+                  })()}
                 </div>
               )}
             </div>
@@ -4043,7 +4059,9 @@ const DEMO_REVIEW_TOOLS = [
   { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
   // Basketball. Parity with ReviewToolsView's registry — the demo listed four
   // tools while the real launcher shipped five (parity rule, 08-24).
-  { key: 'shot', label: 'SHOT ANALYZER', measures: 'Jump-shot mechanics, phase by phase · does the release repeat across the set', live: false },
+  // SHOT ANALYZER removed from the demo, 24.9. Ohad: "take the shot analysis
+  // off the sales site (it's for me only right now); it shouldn't be in the
+  // demo either." It stays in the real app behind the owner seat.
 ];
 function DemoReviewTools() {
   const [title, setTitle] = useState('Back Squat');
@@ -4600,8 +4618,34 @@ export default function CoachDemo() {
              its content width (426px in Hebrew, 541 in English) and simply
              hung off the edge again. */
           .cd-hdr > nav { order: 3; flex: 1 1 100% !important; min-width: 0 !important; max-width: 100% !important; display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; overflow-x: visible !important; }
-          .cd-hdr > nav > * { width: 100% !important; justify-content: center !important; }
-          .cd-cta-waitlist { margin-inline-start: auto !important; }
+          /* EVERY CELL GETS A BOUNDARY. With only the active tab boxed, the
+             other five were bare words floating in a dark field with
+             invisible gaps between them — six labels that read as a jumble
+             rather than as a menu. A hairline on each turns the grid into a
+             segmented control you can see the shape of, and one height means
+             the two rows line up instead of sizing themselves to their text. */
+          .cd-hdr > nav > * {
+            width: 100% !important; justify-content: center !important;
+            border: 1px solid var(--c-cardBd) !important;
+            min-height: 36px !important;   /* the one control height, not a second one */
+          }
+          .cd-hdr > nav > [aria-selected="true"] { border-color: var(--c-ac) !important; }
+          /* Logo first, actions after it, nav on its own row underneath —
+             the same reading order as the desktop bar. */
+          .cd-hdr > a:first-child { order: 0; }
+          .cd-hdr > button { order: 1; }
+          .cd-cta-waitlist { order: 2; margin-inline-start: auto !important; }
+          /* the demo-identity cluster takes the row after the nav; the sentence
+             has no room on a phone and the chip says enough */
+          .cd-pov { order: 4; flex: 1 1 100% !important; margin-inline-start: 0 !important; justify-content: space-between; }
+          .cd-pov-note { display: none !important; }
+        }
+        /* On a phone the waitlist button was wider than the EXPO logo and the
+           brightest thing above the fold — a marketing CTA out-weighing both
+           the brand and the product's own navigation. It stays reachable and
+           stops competing. */
+        @media (max-width: 560px) {
+          .cd-cta-waitlist { padding: 0 10px !important; font-size: 10px !important; letter-spacing: 0.06em !important; }
         }
         /* Programs table on phones — let it scroll horizontally instead of
            cramping every column. */
@@ -4626,20 +4670,35 @@ export default function CoachDemo() {
         background: C.sf, borderBottom: `1px solid ${C.bd}`,
         position: 'sticky', top: 0, zIndex: 50,
       }}>
+        {/* ONE ROW, LIKE THE REAL COACH APP. The demo ran two: a 60px bar
+            holding the logo, six tabs and two controls, and under it a 61px
+            banner holding a chip, a sentence and a third control. At 1440 the
+            bar had ~430px of nothing between the last tab and the language
+            switch, and the banner repeated the same emptiness one row down.
+            Ohad, three times: "the top menu is horrible". The banner's
+            content now lives in the bar's middle — where the void was — and
+            the bar is the real app's 56px. */}
         <div className="cd-hdr" style={{
           maxWidth: 1280, margin: '0 auto', padding: '0 16px',
-          display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
+          display: 'flex', alignItems: 'center', height: 56, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
           </a>
-          <span className="cd-badge" style={{
-            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
-            padding: '4px 8px', background: C.acD, borderRadius: 0,
-            border: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap',
-          }}>{T('COACH DEMO')}</span>
+          {/* The COACH DEMO chip lived here and said the same thing as the
+              banner directly beneath it ("COACH VIEW · your side of the
+              platform · mock data"), 40px lower and in the same cyan. Two
+              chips for one fact, stealing the room the nav needed. */}
+          {/* THE NAV HAS TO SIT NEXT TO THE LOGO.
+              It was flex:1 with justifyContent:center, so at 1440 it centred
+              itself in the leftover space and left ~700px of empty bar between
+              the logo and the first tab — six 11px words adrift in the middle
+              of a wide dark strip, reading as fine print rather than as the
+              product's navigation. The real coach app puts the logo and the
+              nav side by side at the start and pushes its actions to the far
+              end; this now does the same. */}
           <nav role="tablist" aria-label={T('Coach demo tabs')} style={{
-            display: 'flex', gap: 2, flex: '1 1 auto', justifyContent: 'center',
+            display: 'flex', gap: 6, flex: '1 1 auto', justifyContent: 'flex-start',
             minWidth: 'max-content',
           }}>
             {TABS.map((t, i) => (
@@ -4671,10 +4730,21 @@ export default function CoachDemo() {
                   // because digits in JetBrains Mono align to cap-height, not
                   // x-height. Switching to baseline pins both glyphs' baselines
                   // to the same line — the count tucks right next to the label.
-                  alignItems: 'baseline',
-                  background: tab === t.key ? C.acD : 'transparent',
+                  // COPIED FROM THE REAL COACH NAV (App.jsx), not styled by eye:
+                  // fontSize 10 / weight 700 / letterSpacing 0.06em / uppercase,
+                  // padding 0 8px, label and count on one centre line, active =
+                  // transparent fill with a 1px cyan border and cyan text,
+                  // inactive = transparent with an invisible border so nothing
+                  // shifts when the state changes. The one deliberate
+                  // difference is height: the real bar runs its buttons at 32
+                  // while every other control in the product is 36, and his
+                  // rule is one height — so this is 36, and the real bar is
+                  // being brought up to it too.
+                  alignItems: 'center', lineHeight: 1,
+                  background: 'transparent',
+                  border: `1px solid ${tab === t.key ? C.ac : 'transparent'}`,
                   color: tab === t.key ? C.ac : C.tm,
-                  padding: '0 12px', fontSize: 11, letterSpacing: 1.5,
+                  padding: '0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                   whiteSpace: 'nowrap', gap: 4,
                 }}>
                 <span>{T(t.label)}</span>
@@ -4693,6 +4763,32 @@ export default function CoachDemo() {
               A reload rather than state: the demo reads readLang() at dozens
               of call sites instead of through a context, so flipping a state
               would leave half the screen in the old language. */}
+          {/* The demo's identity, in the space the nav does not need. The
+              chip is a bordered control and stands at the one control height;
+              the note is the banner sentence cut to what a buyer must know. */}
+          <div className="cd-pov" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginInlineStart: 'auto', flex: '0 1 auto', minWidth: 0 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto',
+              fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+              background: C.acD, border: `1px solid ${C.cardBd}`,
+              borderRadius: 0, padding: '0 9px', minHeight: CTRL_H, boxSizing: 'border-box', whiteSpace: 'nowrap',
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              {T('COACH VIEW')}
+            </div>
+            <span className="cd-pov-note" style={{ fontFamily: FB, fontSize: 12, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip', minWidth: 0 }}>
+              {T('Mock data — nothing here writes to your account.')}
+            </span>
+            <a href="/demo/trainee" className="cd-pov-link" style={{
+              ...baseBtn, background: 'transparent', color: C.tm,
+              border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,
+              flex: '0 0 auto', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>{T('SEE ATHLETE VIEW →')}</a>
+          </div>
           <button
             onClick={() => {
               const next = readLang() === 'he' ? 'en' : 'he';
@@ -4715,49 +4811,21 @@ export default function CoachDemo() {
               <span style={{ gridArea: '1 / 1' }}>{readLang() === 'he' ? 'EN' : 'עב'}</span>
             </span>
           </button>
+          {/* Solid cyan made this the brightest object in the header — a
+              marketing button shouting over the navigation of the product it
+              is selling, and on a phone it was physically larger than the
+              logo. Outlined: still unmistakably the call to action, no longer
+              the first thing the eye lands on. */}
           <a href="/demo#waitlist" className="cd-cta-waitlist" style={{
-            ...baseBtn, background: C.ac, color: C.acOnSurface,
+            ...baseBtn, background: 'transparent', color: C.ac,
+            border: `1px solid ${C.ac}`,
             padding: '0 14px', fontSize: 11, flex: '0 0 auto',
           }}>{T('JOIN WAITLIST →')}</a>
         </div>
       </header>
 
-      {/* POV banner — same shape as the engine sandbox to keep UX coherent */}
-      <div style={{
-        borderBottom: `1px solid ${C.bd}`,
-        background: `linear-gradient(180deg, ${C.sf} 0%, ${C.bg} 100%)`,
-      }}>
-        <div style={{
-          maxWidth: 1280, margin: '0 auto', padding: '12px 16px',
-          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-        }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
-            background: C.acD, border: `1px solid ${C.cardBd}`,
-            borderRadius: 0, padding: '4px 9px', whiteSpace: 'nowrap',
-          }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            {T('COACH VIEW')}
-          </div>
-          <div style={{
-            fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45,
-            flex: '1 1 auto', minWidth: 200,
-          }}>
-            <b style={{ opacity: 1 }}>{T('Your')}</b> {T('side of the platform. Click through the tabs above. Mock data — nothing here writes to your account.')}
-          </div>
-          <a href="/demo/trainee" style={{
-            ...baseBtn,
-            background: 'transparent', color: C.tm,
-            border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,
-            flex: '0 0 auto', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>{T('SEE ATHLETE VIEW →')}</a>
-        </div>
-      </div>
+      {/* The POV banner that sat here — chip, sentence, athlete-view link —
+          moved up into the header bar (see .cd-pov). One row, 56px, no void. */}
 
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {/* THE SUB-NAV GOES ABOVE THE CONTENT IT SWITCHES.

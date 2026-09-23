@@ -812,6 +812,7 @@ export const HE = {
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
   'SCALE FROM': 'תחתית הסקאלה',
+  'Mock data — nothing here writes to your account.': 'נתוני דמו — שום דבר כאן לא נשמר בחשבון שלך.',
   // Per-program actions.
   'Demo only — in the full app this opens the program exactly as the athlete sees it.':
     'דמו בלבד — באפליקציה המלאה זה פותח את התוכנית בדיוק כמו שהמתאמן רואה אותה.',

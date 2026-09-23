@@ -834,8 +834,15 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                         <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
                         <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
-                            athlete has a phone (WhatsApp button renders null without one). */}
-                        <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginInlineStart: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
+                            athlete has a phone (WhatsApp button renders null without one).
+                            40, not 26: the button renders 40px wide, and in a 26px slot
+                            aligned to the end it overflowed 14px leftward — 6px of it
+                            painted over the last letters of "NEVER TRAINED" on every row
+                            that had a button (measured at 390: 11 of 11). Ohad, 24.9:
+                            "buttons overlay text... like wtf". The slot now fits the
+                            button, and rows without one still reserve the same width so
+                            the status column stays aligned. */}
+                        <span style={{ width: 40, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginInlineStart: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
                       </div>
                     );
                   })}
