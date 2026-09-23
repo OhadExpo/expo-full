@@ -809,7 +809,7 @@ export const HE = {
   'PER PAYMENT ROW': 'לכל תשלום',
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
-  'SCALE FROM': 'הסקאלה מתחילה ב',
+  'SCALE FROM': 'תחתית הסקאלה',
   'LAST 6 MONTHS · COLLECTED': 'נכנס · 6 חודשים',
   'NO PAYMENTS MARKED COLLECTED IN THE LAST 6 MONTHS': 'אין תשלומים שסומנו כמשולמים בחצי השנה האחרונה',
   STORAGE: 'אחסון',
