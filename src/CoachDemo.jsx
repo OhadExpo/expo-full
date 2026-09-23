@@ -2389,7 +2389,13 @@ function DemoPrograms({ resetToken = 0 }) {
               {/* Count-line removed from the main-column top so the first program
                   card top-aligns with the rail's Search box (Ohad OCD: left rail +
                   right first box must start at the same vertical height). */}
-              <div style={{ display: 'grid', gap: 8 }}>
+              {/* GRID actually has to look different from TABLE. The toggle
+                  lit up and re-rendered the identical single column, which is
+                  the same "looks live, does nothing" fault as a dead button —
+                  worse, because the control reports a state change. Grid lays
+                  the same programs out in columns, the way the real
+                  PlansView does (repeat(auto-fill, minmax(...))). */}
+              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: progView === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))' : undefined, alignItems: 'start' }}>
                 {rows.map(row => {
                   const expanded = expandedAthletes.has(row.tid);
                   const cur = row.current;
@@ -3940,7 +3946,11 @@ function DemoSingle() {
     <div>
       <h3 style={{ fontFamily: FN, fontSize: 12, color: C.td, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px', fontWeight: 600 }}>{T('Start a Session')}</h3>
       <div style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${C.cardBd}` }}>
-        {MOCK_TRAINEES.slice(0, 6).map((t, i) => {
+        {/* slice(0, 6) offered מאיה, who is On Hold with zero sessions left,
+            and left out עומר, who is active and trained today. You cannot
+            start a session with someone frozen and out of sessions. The list
+            is whoever you actually could start one with. */}
+        {MOCK_TRAINEES.filter(t => (t.status === 'Active' || t.status === 'Trial') && t.sessionsLeft > 0).map((t, i) => {
           const isOpen = openAthlete === t.id;
           const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
           return (
@@ -3948,7 +3958,8 @@ function DemoSingle() {
               <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', textAlign: 'start' }}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
-                  <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>BLOCK #4</span>
+                  {/* every row said BLOCK #4; each athlete has their own */}
+                  <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }} dir="ltr">{((t.plans && t.plans[0]) || '').split(' — ')[0] || 'BLOCK #1'}</span>
                 </span>
                 <span style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </button>
