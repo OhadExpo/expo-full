@@ -48,6 +48,24 @@ deploy that touches a demo surface.
 | `verify-bidi-order.mjs` | the painted glyph order of every atomic numeric token, and Hebrew painted flush to the wrong edge | 24 Hebrew combinations, ~580 tokens |
 | `verify-demo-numbers.mjs` | the same quantity shown on two different tabs | 6 comparisons × 2 languages |
 | `verify-demo-parity.mjs` | the demo against the real signed-in coach app, tab by tab | 8 coach tabs |
+| `verify-contrast.mjs` | WCAG 2.2 AA contrast on every text node, light and dark | 44 combinations, ~8,900 nodes |
+
+### verify-contrast.mjs currently FAILS, and that is a design decision, not a bug
+
+It reports ~370 findings, and they come from only **eight distinct colour
+pairs** — the dimmest secondary-text tokens, which sit at about **2.1:1** where
+AA wants 4.5:1. Verified three ways before being believed: the computed colours
+(`rgb(68,68,80)` on `rgb(10,10,12)`), the arithmetic, and a 3x screenshot of
+the painted label.
+
+Raising those tokens changes the look of every screen, and a palette change is
+the owner's call — it is deliberately not made here. Do not "fix" the gate by
+loosening its threshold; if the palette is accepted as-is, record that decision
+next to this line instead.
+
+Note the formula uses the **0.04045** channel threshold from W3C's errata, not
+the 0.03928 that circulates in older copies of the spec. The two differ only in
+very dark channels, which is exactly this theme.
 
 Each takes `--only <substring>` to run one surface while iterating, e.g.
 `node scripts/verify-bidi-order.mjs --only engine`.
