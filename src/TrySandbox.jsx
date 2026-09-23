@@ -845,7 +845,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
                   whiteSpace: 'nowrap',
                   opacity: enabled ? 1 : 0.5,
                 }}>
-                {s.label}
+                {T(s.label)}
               </button>
             );
           })}
@@ -1277,20 +1277,22 @@ function ExercisePicker({ pov, onPick }) {
       <div style={{
         fontFamily: FN, color: C.gn, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>{T('STEP 1 ·')}{isCoach ? 'AUTO-MATCHED FROM THE PLAN' : 'AUTO-DETECTED FROM YOUR PLAN'}</div>
+      }}>{T('STEP 1 ·')}{' '}{T(isCoach ? 'AUTO-MATCHED FROM THE PLAN' : 'AUTO-DETECTED FROM YOUR PLAN')}</div>
       <h1 style={{
         fontFamily: FB, fontSize: 'clamp(24px, 3.5vw, 30px)', fontWeight: 700,
         marginBottom: 10, letterSpacing: -0.3,
       }}>{isCoach
-        ? <>{T("You're reviewing")}<span style={{ color: C.ac }}>{auto.label}</span>.</>
-        : <>{T("We already know — it's your")}<span style={{ color: C.ac }}>{auto.label}</span>.</>}</h1>
+        ? <>{T("You're reviewing")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{auto.label}</span></>
+        : <>{T("We already know — it's your")}{' '}<span dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{auto.label}</span></>}</h1>
       <p style={{
         fontFamily: FB, color: C.tx, fontSize: 15, lineHeight: 1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
       }}>
-        {isCoach
-          ? "The engine inherits the exercise from the athlete's plan position the moment they upload — no tagging on either side. Joint channel below is auto-routed off the movement pattern (squat → knee, hinge → hip, press → elbow)."
-          : "Your plan tells the app what set you're on. The rep counter auto-routes to the right joint (squat → knee, hinge → hip, press → elbow) the moment you upload. You don't tag anything."}
+        {readLang() === 'he'
+          ? T(isCoach ? 'engine.picker.coach' : 'engine.picker.trainee')
+          : (isCoach
+            ? "The engine inherits the exercise from the athlete's plan position the moment they upload — no tagging on either side. Joint channel below is auto-routed off the movement pattern (squat → knee, hinge → hip, press → elbow)."
+            : "Your plan tells the app what set you're on. The rep counter auto-routes to the right joint (squat → knee, hinge → hip, press → elbow) the moment you upload. You don't tag anything.")}
       </p>
 
       {/* Auto-detected exercise card */}
@@ -1301,22 +1303,24 @@ function ExercisePicker({ pov, onPick }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 2, fontWeight: 700, marginBottom: 4 }}>
-              ✓ AUTO-DETECTED
+              ✓ {T('AUTO-DETECTED')}
             </div>
             <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, marginBottom: 4 }}>{auto.label}</div>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>
-              BLOCK #4 · DAY A · EXERCISE 1 · 4×6-8 · 60KG
+              {readLang() === 'he'
+                ? <>בלוק #4 · יום A · תרגיל 1 · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>4×6-8</span> · 60 קילו</>
+                : 'BLOCK #4 · DAY A · EXERCISE 1 · 4×6-8 · 60KG'}
             </div>
           </div>
           <div style={{ minWidth: 180, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 2, fontWeight: 700 }}>{T('JOINT TRACKING')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{resolvedJoint}</span>
+              <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{T(resolvedJoint)}</span>
               {joint === 'AUTO' && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: 'rgba(46,213,115,0.125)', borderRadius: 0 }}>{T('AUTO')}</span>
               )}
             </div>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>{T('FROM PATTERN:')}{meta.pattern.toUpperCase()}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>{T('FROM PATTERN:')}{' '}<span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{meta.pattern.toUpperCase()}</span>
             </div>
           </div>
         </div>
@@ -1333,7 +1337,7 @@ function ExercisePicker({ pov, onPick }) {
             fontWeight: 600, letterSpacing: 1, outline: 'none',
           }}>
             {JOINT_OPTIONS.map(j => (
-              <option key={j} value={j}>{j === 'AUTO' ? 'JOINT: AUTO' : `TRACK: ${j}`}</option>
+              <option key={j} value={j}>{j === 'AUTO' ? T('JOINT: AUTO') : `${T('TRACK:')} ${T(j)}`}</option>
             ))}
           </select>
         </div>
@@ -1345,7 +1349,7 @@ function ExercisePicker({ pov, onPick }) {
         fontFamily: FN, fontSize: 11, letterSpacing: 1, fontWeight: 600, padding: 0,
         textDecoration: overrideOpen ? 'none' : 'underline', marginBottom: 12,
         minWidth: 220, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      }}>{overrideOpen ? 'HIDE OVERRIDE' : 'NOT THIS LIFT? OVERRIDE →'}</button>
+      }}>{T(overrideOpen ? 'HIDE OVERRIDE' : 'NOT THIS LIFT? OVERRIDE')}{overrideOpen ? '' : (readLang() === 'he' ? ' ←' : ' →')}</button>
 
       {overrideOpen && (
         <>
@@ -2098,7 +2102,10 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
             border: `1px solid ${C.cardBd}`, borderRadius: 0,
             padding:'4px 10px', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: 1,
           }}>
-            {reps}{T('REP')}{reps === 1 ? '' : 'S'}
+            {/* "0חזרהS" — the plural was an English "S" glued onto whatever
+                T('REP') returned, so the Hebrew badge read חזרה with a Latin S
+                after it. Hebrew pluralises the word, not with a suffix. */}
+            {reps}{' '}{readLang() === 'he' ? (reps === 1 ? 'חזרה' : 'חזרות') : (reps === 1 ? 'REP' : 'REPS')}
           </span>
           {tempo && (
             <span style={{
@@ -2106,7 +2113,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
               border: `1px solid ${C.cardBd}`, borderRadius: 0,
               padding:'4px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1,
             }}>
-              {tempo.toFixed(2)}s/REP
+              {tempo.toFixed(2)}{readLang() === 'he' ? 'ש׳/חזרה' : 's/REP'}
             </span>
           )}
         </div>

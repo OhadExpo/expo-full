@@ -168,7 +168,13 @@ const STRINGS = {
   'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ את/ה ברשימה. אני אשלח לך מייל ברגע שייפתח מקום למאמנים.' },
 
   // Sticky mobile + footer
-  'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'נסה את המנוע' },
+  // THE LABEL HAS TO MATCH WHERE IT GOES.
+  // "TRY THE ENGINE" pointed at /try, and /try deliberately opens the ATHLETE
+  // PORTAL — by design, so the visitor films a set from inside the real
+  // product. A phone visitor therefore tapped "engine" and landed on an app
+  // home screen, and never reached the COACH demo at all, which is the thing
+  // he is selling. The sticky bar now mirrors the desktop hero: coach first.
+  'sticky.coach':        { en: 'SEE COACH VIEW',       he: 'הצד של המאמן' },
   'sticky.waitlist':     { en: 'WAITLIST →',           he: 'לרשימה ←' },
   'footer.line':         { en: '· COACHING PLATFORM · BUILT IN TEL AVIV · © {year} ALL RIGHTS RESERVED', he: '· פלטפורמת אימון · נבנה בתל אביב · © {year} כל הזכויות שמורות' },
   'footer.demo':         { en: 'DEMO',                 he: 'הדגמה' },
@@ -866,10 +872,10 @@ export default function CoachLanding({ lang = 'en' }) {
         padding: '10px 12px', gap: 8, alignItems: 'stretch',
         boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
       }}>
-        <a href="/try" style={{
+        <a href="/demo/coach" style={{
           ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '12px 14px', fontSize: 12,
-        }}>{t('sticky.engine')}</a>
+        }}>{t('sticky.coach')}</a>
         <a href="#waitlist" style={{
           ...baseBtn, flex: 1, background: C.ac, color: '#000',
           padding: '12px 14px', fontSize: 12,

@@ -4,6 +4,7 @@ import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInp
 import { classify, isUnclassified } from './exerciseClassify';
 import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
+import { taxoHe } from './taxonomyHe';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -204,7 +205,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     const sel = f[k] || [];
     const active = sel.length > 0;
     const isOpen = openKey === k;
-    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${tt(label)} · ${sel.length}` : tt(label));
+    const faceLabel = sel.length === 1 ? taxoHe(sel[0], readLang()) : (sel.length > 1 ? `${tt(label)} · ${sel.length}` : tt(label));
     return (
       <div style={{ position: 'relative' }}>
         {/* Inactive filters carry NO underline (transparent) — cyan only when
@@ -239,7 +240,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
                   {/* Real checkbox — fills cyan when selected (OCD: fixed column). */}
                   <span style={{ width: 13, height: 13, boxSizing: 'border-box', border: `1px solid ${on ? C.ac : 'var(--c-cardBd)'}`, background: on ? C.ac : 'transparent', color: 'var(--c-bg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>{on ? '✓' : ''}</span>
-                  <span style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>{v}</span>
+                  <span style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>{taxoHe(v, readLang())}</span>
                   <span style={{ color: on ? C.ac : C.tm, fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{c}</span>
                 </div>
               );
@@ -263,7 +264,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   // A classification value cut to "Shoulder Horizontal Adducti…" is not a
   // classification. The row gets taller; the word stays whole.
     <td className="ex-taxo" title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'normal', overflowWrap: 'break-word', ...extra }}>
-      {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{v}</span> : emptyDot}
+      {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{taxoHe(v, readLang())}</span> : emptyDot}
     </td>
   );
   // Multi-value classification — small chips (up to 3) + "+N", or a faint dot.

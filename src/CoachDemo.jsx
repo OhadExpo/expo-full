@@ -19,6 +19,7 @@ import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe } from './i18n';
+import { taxoHe } from './taxonomyHe';
 
 // The demo is many small function components and a few module-level label
 // tables; one module-level helper (no hook) serves them all. Reads the
@@ -62,19 +63,29 @@ const RT = (s) => {
 // vertical height. Parity with DashboardView's #261 fix (Ohad).
 const DEMO_STRIP_H = { minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center' };
 
+// THE DEMO MUST NEVER LOOK STALE.
+//
+// Every date in here used to be a literal: last payment 2026-04-01, payment
+// requests dated June 2026. On the night before his first client demo that
+// reads as a product nobody has touched since spring, and a coach shown
+// "last payment: April" in September draws exactly one conclusion. Dates are
+// now expressed as "N days ago" and resolved when the screen renders, so the
+// tour is current whenever he opens it.
+const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 0)); return d.toISOString().slice(0, 10); };
+
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, payment: 'PAID', online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', programs: 4, payment: 'OVERDUE', online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
-  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, payment: 'PAID', online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
-  { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 900, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', programs: 2, payment: 'PAID', online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', plans: ['Block #2 — Strength', 'Block #1 — Base'] },
-  { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 700, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', programs: 3, payment: 'OVERDUE', online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', programs: 4, payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
+  { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 900, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', programs: 2, payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', plans: ['Block #2 — Strength', 'Block #1 — Base'] },
+  { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 700, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', programs: 3, payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
   { id: 't6', name: 'איתי כץ', short: 'Itai', email: 'itai.katz@example.co.il', phone: '+972541112233', status: 'Trial', sessionsLeft: 1, monthly: 0, format: 'Gym, Single', startDate: '2025-06-12', dormantDays: null, lastWorkout: '3 days ago', programs: 1, payment: 'NEVER PAID', online: false, age: 24, weight: 70, height: 176, injuries: 'None', goals: 'Learn the lifts, build a base', plans: ['Block #1 — Onboarding'] },
-  { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', programs: 5, payment: 'OVERDUE', online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
-  { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 950, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', programs: 3, payment: 'PAID', online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
+  { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', programs: 5, payment: 'OVERDUE', overdueDays: 62, online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
+  { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 950, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', programs: 3, payment: 'PAID', paidDaysAgo: 5, online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
 ];
 
 // Per-block plan content. Block #4 is the active block (Week 2 of 4 wave);
@@ -302,10 +313,21 @@ function DemoDashboard({ onJumpToTrainee }) {
   const outstandingAmt = overdue.reduce((s, t) => s + (t.monthly || 0), 0);
   const avgTicket = paying.length ? collected30 / paying.length : 0;
   const avgLtv = avgTicket * 10; // ~10-month mean tenure, plenty for a demo
-  // The axis is six months, named in the reader's language.
-  const months6 = [['Jan', 2900], ['Feb', 3200], ['Mar', 2700], ['Apr', 3600], ['May', 3400], ['Jun', collected30]].map(([m, v]) => [T(m), v]);
+  // The axis is the LAST six months, ending with the month he is standing in,
+  // named in the reader's language. It used to be a fixed Jan–Jun, so on the
+  // night before the first client demo the revenue chart ran out in June and
+  // the newest bar on screen was three months old.
+  const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const nowM = new Date().getMonth();
+  const prior = [2900, 3200, 2700, 3600, 3400];
+  const months6 = prior.map((v, k) => [T(MON3[(nowM - 5 + k + 12) % 12]), v])
+    .concat([[T(MON3[nowM]), collected30]]);
   const barMax = Math.max(...months6.map(m => m[1]));
   const collected90 = months6.slice(-3).reduce((s, m) => s + m[1], 0);
+  const prevMonth = months6[months6.length - 2]?.[1] || 0;
+  const momPct = prevMonth ? Math.round(((collected30 - prevMonth) / prevMonth) * 100) : 0;
+  const momPctText = `${momPct >= 0 ? '+' : ''}${momPct}%`;
+  const momLabel = <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{momPctText}</span>;
   return (
     <section>
 
@@ -318,7 +340,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
         <StatCard label={T('Low Sessions')} value={String(expiring.length)} sub={T('≤ 2 LEFT')} accent={C.or} />
         <StatCard label={T('Estimated Monthly')} value={nis(mrr)} accent={C.ac} />
-        <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={T('+12% vs last month')} subColor={C.gn} accent={C.gn} />
+        <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
       </div>
 
       {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
@@ -345,7 +367,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
             {[
               [T('MRR (ACTIVE)'), num(mrr), T('recurring committed'), C.ac],
-              [T('30D COLLECTED'), num(collected30), T('+12% vs prev month'), C.gn],
+              [T('30D COLLECTED'), num(collected30), <>{momLabel}{' '}{T('vs prev month')}</>, C.gn],
               [T('90D COLLECTED'), num(collected90), T('trailing 3 months'), C.gn],
               [T('OUTSTANDING'), num(outstandingAmt), `${overdue.length} ${overdue.length === 1 ? T('overdue client') : T('overdue clients')}`, outstandingAmt > 0 ? C.or : C.ac],
               [T('AVG LTV'), num(avgLtv), T('per paying client'), C.ac],
@@ -393,7 +415,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {rows.map(t => {
                     const meta = TASK_SRC[t.src];
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{T(t.title)}</div>
+                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
                     );
                   })}
                   {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
@@ -459,10 +481,13 @@ function DemoDashboard({ onJumpToTrainee }) {
         )}
 
         <Panel title={`${T('Overdue Payment')} (${overdue.length})`} tint={C.rd} icon="dollar">
-          {overdue.map((t, i) => (
+          {overdue.map((t) => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{i === 0 ? T('Never paid') : TN('{n}d overdue', (i + 1) * 32)}</span>
+              {/* Was: the first row said "Never paid" and the rest counted
+                  (i+1)*32 days — 64, 96 — by POSITION. גל is a paying client
+                  who lapsed, and his own card said 21 days on the next tab. */}
+              <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.payment === 'NEVER PAID' ? T('Never paid') : TN('{n}d overdue', t.overdueDays || 0)}</span>
             </Row>
           ))}
         </Panel>
@@ -530,7 +555,10 @@ function DemoDashboard({ onJumpToTrainee }) {
             <tbody>
               {MOCK_TRAINEES.map((t, i) => {
                 const totalPaid = (t.monthly || 0) * (t.payment === 'OVERDUE' ? 2 : 3);
-                const lastPay = t.payment === 'NEVER PAID' ? '—' : t.payment === 'OVERDUE' ? '2026-03-01' : '2026-04-01';
+                // Off the trainee, and relative: two fixed spring dates meant
+                // every PAID athlete claimed the same last payment, and in
+                // September that date was five months old.
+                const lastPay = t.payment === 'NEVER PAID' ? '—' : dAgo(t.payment === 'PAID' ? (t.paidDaysAgo || 0) : (t.overdueDays || 0) + 30);
                 const workouts = t.dormantDays != null ? 4 : 12;
                 return (
                   <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
@@ -865,9 +893,12 @@ function FinancialsBlock({ t, center = false }) {
   // so cards line up section-for-section across the grid.
   const items = [];
   if (t.payment === 'OVERDUE') {
-    items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>{T('OVERDUE')} · {TN('{n}D', 34)}</span>);
+    // The age comes off the trainee. It was 34 hard-coded, so three athletes
+    // with different stories all claimed the same 34 days, and the dashboard's
+    // overdue panel invented a fourth number for the same people.
+    items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>{T('OVERDUE')} · {TN('{n}D', t.overdueDays || 0)}</span>);
   } else if (t.payment === 'PAID') {
-    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {TN('{n}D AGO', 12)}</span>);
+    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {TN('{n}D AGO', t.paidDaysAgo || 0)}</span>);
   }
   if (t.monthly > 0) {
     items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>{TN('₪{n}/MO', t.monthly)}</span>);
@@ -1422,6 +1453,10 @@ function DemoOverload() {
 }
 
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
+  // How many days back the LAST payment was, off the trainee's own record:
+  // a paying client's last cycle, an overdue one's last cycle before the
+  // one they missed. Every date on this card is measured from it.
+  const paidAgo = trainee.payment === 'OVERDUE' ? (trainee.overdueDays || 0) + 30 : (trainee.paidDaysAgo || 0);
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
   // per-session, last payment, since, payments ledger, programs (assigned
@@ -1566,9 +1601,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
           <Panel title={<span>{T('SHARED · PAYMENTS (3)')} <span style={{ color: C.gn, marginInlineStart: 8 }}>₪{(trainee.monthly * 3).toLocaleString()}{T('TOTAL')}</span></span>} tint={C.ac}>
             {[
-              { date: '2026-04-01', method: 'Bank Transfer' },
-              { date: '2026-03-01', method: 'Bank Transfer' },
-              { date: '2026-02-01', method: 'Cash' },
+              { date: dAgo(paidAgo), method: 'Bank Transfer' },
+              { date: dAgo(paidAgo + 30), method: 'Bank Transfer' },
+              { date: dAgo(paidAgo + 61), method: 'Cash' },
             ].map((p, i) => (
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span>
@@ -1601,7 +1636,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         // key/value panels.
         const isHeb = /[֐-׿]/.test(trainee.name || '');
         const overdue = trainee.payment === 'OVERDUE';
-        const lastPay = overdue ? '2026-03-01' : '2026-04-01';
+        const lastPay = trainee.payment === 'NEVER PAID' ? '—' : dAgo(paidAgo);
         const workoutsCount = trainee.dormantDays != null ? 4 : 12;
         const perSession = trainee.monthly ? Math.round(trainee.monthly / 8) : 0;
         // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
@@ -1614,12 +1649,17 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           ['Since', fmtPrettyDate(trainee.startDate)],
         ];
         const payments = [
-          !overdue && { date: '2026-04-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
-          { date: '2026-03-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
-          { date: '2026-02-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Bank transfer' },
+          !overdue && { date: dAgo(paidAgo), amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
+          { date: dAgo(paidAgo + 30), amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
+          { date: dAgo(paidAgo + 61), amount: trainee.monthly || 800, status: 'Paid', notes: 'Bank transfer' },
         ].filter(Boolean);
         const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
-        const secTitle = (t) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{t}</span>;
+        // THROUGH T(). Hebrew is the DEFAULT for an Israeli visitor — readLang()
+        // falls back to the browser language and /demo/coach has no toggle — and
+        // every one of these ten athlete-detail card headers was a bare English
+        // literal. The first screen a prospect opens on an athlete was captioned
+        // in English over Hebrew content.
+        const secTitle = (t) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{T(t)}</span>;
         return (
         <div>
           {/* Identity header strip — name (cyan, glow) + email·phone on the
@@ -1749,9 +1789,12 @@ const MOCK_LAST_SESSION_DAYS = { t1: 2, t2: 9 };
 // Athlete picker to Noa to see anything in Compare, which is precisely
 // the cross-athlete feature this demo is meant to showcase.
 const MOCK_PROGRAM_INDEX = [
-  { id: 'p1', name: 'Block #4 — Push/Pull Volume',    traineeId: 't1', dayCount: 3, exerciseCount: 22, phase: 'Volume',   created: '2026-04-12', updated: '2026-04-29' },
-  { id: 'p2', name: 'Block #3 — Strength Base',       traineeId: 't1', dayCount: 3, exerciseCount: 18, phase: 'Strength', created: '2026-03-15', updated: '2026-04-09' },
-  { id: 'p3', name: 'Block #4 — Pull Specialization', traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',   created: '2026-04-14', updated: '2026-04-28' },
+  // Relative, for the same reason every other demo date is: the ACTIVE block
+  // read "updated 2026-04-29" in September, which tells a prospect the coach
+  // has not written a programme in five months.
+  { id: 'p1', name: 'Block #4 — Push/Pull Volume',    traineeId: 't1', dayCount: 3, exerciseCount: 22, phase: 'Volume',   created: dAgo(24), updated: dAgo(3) },
+  { id: 'p2', name: 'Block #3 — Strength Base',       traineeId: 't1', dayCount: 3, exerciseCount: 18, phase: 'Strength', created: dAgo(86), updated: dAgo(31) },
+  { id: 'p3', name: 'Block #4 — Pull Specialization', traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',   created: dAgo(22), updated: dAgo(6) },
 ];
 
 // ─── Training Lineage (demo) ───────────────────────────────────────────────
@@ -2037,7 +2080,7 @@ function DemoPrograms({ resetToken = 0 }) {
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
           search={search} onSearch={setSearch}
-          searchPlaceholder="Search programs…"
+          searchPlaceholder={T('Search programs…')}
           groups={[
             {
               label: 'Athlete',
@@ -2345,7 +2388,7 @@ function DemoPrograms({ resetToken = 0 }) {
             { label: 'Weeks', value: '4 weeks' },
           ].map((field, i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center' }}>{field.label}</label>
+              <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center' }}>{T(field.label)}</label>
               <input value={field.value} readOnly tabIndex={-1}
                 style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default' }} />
             </div>
@@ -2870,11 +2913,11 @@ function DemoExercises() {
     const sel = filters[k] || [];
     const active = sel.length > 0;
     const isOpen = openKey === k;
-    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
+    const faceLabel = sel.length === 1 ? taxoHe(sel[0], readLang()) : (sel.length > 1 ? `${T(label)} · ${sel.length}` : T(label));
     return (
       <div style={{ position: 'relative' }}>
         {/* Inactive filters: no underline (calm plain text), cyan only when active/open — matches ExercisesView (#230). */}
-        <button onClick={() => setOpenKey(isOpen ? null : k)} title={label}
+        <button onClick={() => setOpenKey(isOpen ? null : k)} title={T(label)}
           style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
           {active
@@ -2884,7 +2927,7 @@ function DemoExercises() {
         {isOpen && (
           <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 248px)', maxHeight: 366, overflowY: 'auto', background: C.sf, border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 12px 30px rgba(0,0,0,0.55)' }}>
             <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
-              <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
+              <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{T(label)}</span>
               {sel.length > 0
                 ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={T('Clear selection')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{T('CLEAR ·')}{sel.length}</span>
                 : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
@@ -2898,7 +2941,7 @@ function DemoExercises() {
                   onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'rgba(127,127,138,0.08)'; }}
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ width: 13, height: 13, boxSizing: 'border-box', border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? C.ac : 'transparent', color: '#0a0a0b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>{on ? '✓' : ''}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{taxoHe(v, readLang())}</span>
                   <span style={{ color: on ? C.ac : C.tm, fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{c}</span>
                 </div>
               );
@@ -3000,13 +3043,16 @@ function DemoExercises() {
             <thead>
               <tr>
                 {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
-                  <th key={h} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T(h)}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((e, i) => {
-                const cell = (v, max = 210) => <td style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'nowrap', maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v || '·'}</td>;
+                // taxo: the six CLOSED lists get their Hebrew name; the anatomy
+                // columns pass through taxoHe untouched and stay English,
+                // which is what an Israeli S&C coach actually says.
+                const cell = (v, max = 210) => <td style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'nowrap', maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
                   <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent' }}>
                     <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</td>
@@ -3125,7 +3171,7 @@ function DemoReview() {
               </div>
             </div>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>
-              {selected.doneSets}/{selected.totalSets}{T('SETS DONE')}</div>
+              <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{selected.doneSets}/{selected.totalSets}</span>{' '}{T('SETS DONE')}</div>
           </div>
         </div>
 
@@ -3527,7 +3573,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
-          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}>{doneCount}/{ex.sets.length}{T('DONE')}</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{ex.sets.length}</span>{' '}{T('DONE')}</span>
         </div>
       </div>
       {open && (
@@ -3737,19 +3783,51 @@ function DemoReviewTools() {
   );
 }
 
+// A task's visible line. Rows that name an athlete carry a roster id and a
+// template key instead of a baked English sentence, so the name is spelled the
+// way the roster spells it and the NUMBER is the roster's number.
+const TASK_LINE = {
+  deload:      { en: (n) => `${n} — deload week, cut volume 30%`,             he: (n) => `${n} — שבוע דלוד, תוריד נפח ב-30%` },
+  checkInjury: { en: (n, t) => `${n} — check the ${t} after the last session`, he: (n, t) => `${n} — תבדוק את ה${t} אחרי האימון האחרון` },
+  dormant:     { en: (n, d) => `${n} — no workout logged in ${d} days`,       he: (n, d) => `${n} — לא נרשם אימון ${d} ימים` },
+  overdue:     { en: (n, d) => `${n} — payment overdue ${d} days`,            he: (n, d) => `${n} — תשלום באיחור ${d} ימים` },
+};
+// The roster stores the clinical note in English and it is not translated
+// anywhere else, so the body part gets its own pair rather than a T() lookup.
+const INJURY_WORD = { en: { t2: 'right shoulder' }, he: { t2: 'כתף ימין' } };
+function taskTitle(t) {
+  if (!t.titleKey) return T(t.title);
+  const lang = readLang() === 'he' ? 'he' : 'en';
+  const subject = MOCK_TRAINEES.find((x) => x.id === t.who_);
+  const name = subject ? subject.name : '';
+  const fn = TASK_LINE[t.titleKey][lang];
+  if (t.titleKey === 'checkInjury') return fn(name, (INJURY_WORD[lang] || {})[t.who_] || '');
+  if (t.titleKey === 'dormant') return fn(name, subject?.dormantDays || 0);
+  if (t.titleKey === 'overdue') return fn(name, subject?.overdueDays || 0);
+  return fn(name);
+}
+
 // ── TASKS — mirrors src/TasksV8View.jsx. Owner tabs + source-grouped board +
 // status pills + GCal embed + composer. Static mock, no writes. ──────────────
 const DEMO_TASKS = [
   { id: 1, src: 'center', title: 'Renew gym insurance policy', due: 'Today', status: 'working', who: 'OHAD' },
   { id: 2, src: 'center', title: 'Order bumper plates (20kg × 4)', due: 'Tomorrow', status: 'open', who: 'OHAD' },
-  { id: 3, src: 'athlete', title: 'Noa — deload week, cut volume 30%', due: 'Today', status: 'open', who: 'OHAD' },
-  { id: 4, src: 'athlete', title: 'Gal — check knee after last squat session', due: 'OVERDUE · YESTERDAY', status: 'waiting', who: 'YUVAL' },
+  // Athlete names come off the ROSTER, in the roster's spelling. These rows
+  // said "Noa — …" and "Gal — …" in Latin on a board whose every other person
+  // is נועה לוי and גל מזרחי two tabs away — and row 4 told the coach to
+  // check גל's KNEE when his record says right shoulder impingement.
+  { id: 3, src: 'athlete', who_: 't1', titleKey: 'deload', due: 'Today', status: 'open', who: 'OHAD' },
+  { id: 4, src: 'athlete', who_: 't2', titleKey: 'checkInjury', due: 'OVERDUE · YESTERDAY', status: 'waiting', who: 'YUVAL' },
   { id: 5, src: 'manual', title: 'Film 3 exercise demos for the library', due: 'This week', status: 'open', who: 'SHARED' },
   // Was 'Amit — …' and 'Roey — …': two of Ohad's REAL athletes, on a board
   // where every other person is an invented Hebrew name — and one of them
   // labelled as not paying. Swapped to the demo roster (t8 and t2).
-  { id: 6, src: 'auto', title: 'Omer — no workout logged in 6 days', due: 'Auto', status: 'open', who: 'OHAD' },
-  { id: 7, src: 'auto', title: 'Gal — payment overdue 12 days', due: 'Auto', status: 'stuck', who: 'OHAD' },
+  // The two AUTO rows are what the rules engine would actually have produced,
+  // so they are computed from the roster instead of typed. They used to say
+  // "Omer — no workout logged in 6 days" (עומר trained TODAY and is online)
+  // and "Gal — payment overdue 12 days" (his own card says 21).
+  { id: 6, src: 'auto', who_: 't5', titleKey: 'dormant', due: 'Auto', status: 'open', who: 'OHAD' },
+  { id: 7, src: 'auto', who_: 't2', titleKey: 'overdue', due: 'Auto', status: 'stuck', who: 'OHAD' },
   { id: 8, src: 'manual', title: 'Plan Q3 athlete testing day', due: 'Aug 1', status: 'done', who: 'SHARED' },
   { id: 9, src: 'center', title: 'Fix the cable machine pulley', due: 'This week', status: 'working', who: 'YUVAL' },
 ];
@@ -3769,7 +3847,32 @@ function DemoTasks() {
   const [quickFilter, setQuickFilter] = useState('all');
   const [sortBy, setSortBy] = useState('soonest');
   const [boardGroup, setBoardGroup] = useState('status');
-  const visible = DEMO_TASKS.filter(t => owner === 'ALL' ? true : (t.who === owner || (owner === 'SHARED' && t.who === 'SHARED')));
+  // THE RAIL HAS TO ACTUALLY FILTER.
+  //
+  // quickFilter, sortBy and boardGroup were written and never read, and the
+  // search box was a controlled input fed search="" with a no-op onSearch — so
+  // it swallowed every keystroke. Fourteen controls that highlight when you
+  // press them and change nothing, on a screen a prospect WILL poke at. Found
+  // auditing for his first client demo, 22.9.
+  const [search, setSearch] = useState('');
+  const DUE_RANK = { Today: 0, Auto: 1 };
+  const visible = React.useMemo(() => {
+    let rows = DEMO_TASKS.filter(t => owner === 'ALL' ? true : (t.who === owner || (owner === 'SHARED' && t.who === 'SHARED')));
+    const q = search.trim().toLowerCase();
+    if (q) rows = rows.filter(t => (taskTitle(t) + ' ' + t.due + ' ' + t.who).toLowerCase().includes(q));
+    if (quickFilter === 'today')   rows = rows.filter(t => /today/i.test(t.due));
+    if (quickFilter === 'overdue') rows = rows.filter(t => t.status === 'stuck' || t.titleKey === 'overdue' || /overdue/i.test(t.title || ''));
+    if (quickFilter === 'stuck')   rows = rows.filter(t => t.status === 'stuck');
+    if (quickFilter === 'nodate')  rows = rows.filter(t => !t.due || t.due === 'Auto');
+    const rank = (t) => (DUE_RANK[t.due] != null ? DUE_RANK[t.due] : 2);
+    if (sortBy === 'soonest') rows = [...rows].sort((a, b) => rank(a) - rank(b));
+    if (sortBy === 'newest')  rows = [...rows].sort((a, b) => b.id - a.id);
+    if (sortBy === 'urgency') rows = [...rows].sort((a, b) => (a.status === 'stuck' ? -1 : 0) - (b.status === 'stuck' ? -1 : 0));
+    if (sortBy === 'status')  rows = [...rows].sort((a, b) => a.status.localeCompare(b.status));
+    if (sortBy === 'az')      rows = [...rows].sort((a, b) => T(a.title).localeCompare(T(b.title)));
+    // 'manual' is the order they were entered in — no sort, honestly.
+    return rows;
+  }, [owner, search, quickFilter, sortBy]);
   const counts = { OHAD: DEMO_TASKS.filter(t => t.who === 'OHAD').length, YUVAL: DEMO_TASKS.filter(t => t.who === 'YUVAL').length, SHARED: DEMO_TASKS.filter(t => t.who === 'SHARED').length };
   const bySrc = (s) => visible.filter(t => t.src === s);
   return (
@@ -3784,7 +3887,7 @@ function DemoTasks() {
       {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
-          search="" onSearch={() => {}} searchPlaceholder={T('Search tasks…')}
+          search={search} onSearch={setSearch} searchPlaceholder={T('Search tasks…')}
           groups={[
             { label: T('Whose'), opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: T(o.charAt(0) + o.slice(1).toLowerCase()), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
             { label: T('Show'), opts: [['all', 'All'], ['today', 'Today'], ['overdue', 'Overdue'], ['stuck', 'Stuck'], ['nodate', 'No date']].map(([k, l]) => ({ key: k, label: T(l), active: quickFilter === k, onClick: () => setQuickFilter(k) })) },
@@ -3801,8 +3904,11 @@ function DemoTasks() {
       {/* BOARD = status kanban (mirrors the real board); LIST = source-grouped */}
       {view === 'board' ? (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' }}>
-          {STATUS_COLS.map(col => {
-            const rows = visible.filter(t => t.status === col.id);
+          {(boardGroup === 'category'
+            ? [{ id: 'auto', label: 'AUTO-ALERTS', color: '#2C82C9' }, { id: 'manual', label: 'MANUAL', color: '#5B6B7A' }]
+            : STATUS_COLS
+          ).map(col => {
+            const rows = visible.filter(t => (boardGroup === 'category' ? t.src : t.status) === col.id);
             return (
               <div key={col.id} style={{ flex: '1 1 175px', minWidth: 175, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '7px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
@@ -3814,7 +3920,7 @@ function DemoTasks() {
                     const overdue = /OVERDUE/i.test(t.due);
                     return (
                       <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
-                        <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{T(t.title)}</span>
+                        <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{taskTitle(t)}</span>
                         <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
                       </div>
                     );
@@ -3840,7 +3946,7 @@ function DemoTasks() {
                 const overdue = /OVERDUE/i.test(t.due);
                 return (
                   <div key={t.id} style={demoCardStyle({ marginBottom: 6, border: `1px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
-                    <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{T(t.title)}</span>
+                    <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{taskTitle(t)}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                       <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{T(t.due)}</span>
                       <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF', background: col.color, padding: '3px 7px' }}>{T(col.label)}</span>
@@ -3864,13 +3970,38 @@ function DemoTasks() {
 // rest of the demo (was Latin — the same people appeared in two scripts across
 // tabs), and each row's status matches that athlete's payment state (Noa PAID,
 // Gal OVERDUE→pending, the Yael+Idan couple PAID, split 600+600 = their ₪1,200).
-const DEMO_PAYMENTS = [
-  { id: 1, name: 'נועה לוי', amount: 800, status: 'paid', date: '2026-06-20', ref: 'June coaching' },
-  { id: 2, name: 'גל מזרחי', amount: 800, status: 'pending', date: '2026-06-15', ref: 'June + plan' },
-  { id: 3, name: 'עידן כהן', amount: 600, status: 'paid', date: '2026-06-10', ref: 'June coaching (couple)' },
-  { id: 4, name: 'יעל כהן', amount: 600, status: 'paid', date: '2026-06-08', ref: 'June coaching (couple)' },
-];
-const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td } };
+//
+// DERIVED FROM THE ROSTER, not typed out beside it. The hand-written version
+// held four rows against a roster of eight, so Billing's OUTSTANDING tile read
+// ₪800 / 1 client while the dashboard next door read ₪2,300 / 3 clients off
+// the same people. It also billed עידן and יעל as two athletes when the roster
+// carries them as one couple — that split stays, because the couple really is
+// invoiced twice, but the 600+600 now comes from their 1,200.
+const DEMO_PAYMENTS = (() => {
+  const rows = [];
+  let id = 0;
+  for (const t of MOCK_TRAINEES) {
+    if (!t.monthly) continue;                       // a trial is not billable
+    const pending = t.payment !== 'PAID';
+    const days = pending ? (t.overdueDays || 0) : (t.paidDaysAgo || 0);
+    const base = {
+      status: pending ? 'pending' : 'paid',
+      date: dAgo(days),
+      overdueDays: pending ? days : 0,
+      ref: t.isCouple ? 'Monthly coaching (couple)' : t.programs > 2 ? 'Monthly coaching + plan' : 'Monthly coaching',   // through T() at the render site
+    };
+    if (t.isCouple) {
+      // One couple, two invoices — which is how he actually bills them.
+      const half = Math.round(t.monthly / 2);
+      rows.push({ ...base, id: ++id, name: 'יעל כהן', amount: half });
+      rows.push({ ...base, id: ++id, name: 'עידן כהן', amount: t.monthly - half });
+    } else {
+      rows.push({ ...base, id: ++id, name: t.name, amount: t.monthly });
+    }
+  }
+  return rows;
+})();
+const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td }, trial: { label: 'TRIAL', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
   // THE PAYMENT ROW HAS TO WRAP ON A PHONE.
@@ -3891,6 +4022,11 @@ function DemoBilling() {
   const stripH = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` };
   const outstanding = pending.reduce((s, p) => s + p.amount, 0);
   const collected = DEMO_PAYMENTS.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
+  // OUTSTANDING and OVERDUE printed the identical figure side by side, which
+  // reads as a bug even when it is arithmetically true. Overdue is the ≥14-day
+  // subset, so the two tiles now answer two different questions.
+  const lateRows = pending.filter(p => (p.overdueDays || 0) >= 14);
+  const lateAmt = lateRows.reduce((s, p) => s + p.amount, 0);
   const sumTile = (label, value, sub, accent) => (
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
       <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -3909,12 +4045,12 @@ function DemoBilling() {
           (Outstanding / Overdue / Collected this month). */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
         {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending')}`, C.or)}
-        {sumTile('Overdue', fmtIls(outstanding), `${pending.length} · ≥ 14d`, C.rd)}
+        {sumTile('Overdue', fmtIls(lateAmt), readLang() === 'he' ? `${lateRows.length} · מעל 14 יום` : `${lateRows.length} · ≥ 14d`, C.rd)}
         {sumTile('Collected MTD', fmtIls(collected), T('received'), C.gn)}
       </div>
       {panel(<>
         <div style={stripH}>
-          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>· {readLang() === 'he' ? (pending.length === 1 ? '1 ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? '1 ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
           <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
         </div>
         <div>
@@ -3927,7 +4063,7 @@ function DemoBilling() {
                   <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{T(p.ref)} · {fmtPrettyDate(p.date)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-                  {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? 'באיחור של 21 יום' : '21D OVERDUE'}</span>}
+                  {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? `באיחור של ${p.overdueDays} ימים` : `${p.overdueDays}D OVERDUE`}</span>}
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
                   {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
                   {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
@@ -3940,8 +4076,18 @@ function DemoBilling() {
       {panel(<>
         <div style={stripH}><span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('ROSTER STATUS')}</span></div>
         <div>
-          {MOCK_TRAINEES.slice(0, 5).map((t, i) => {
-            const st = PAY_STATUS[['paid', 'pending', 'paid', 'pending', 'paid'][i] || 'paid'];
+          {/* ALL of them. It showed the first five of eight under a heading
+              that says ROSTER STATUS, so three paying athletes were simply
+              missing from the only panel that claims to list the roster. */}
+          {MOCK_TRAINEES.map((t) => {
+            // READ THE ROSTER, do not hard-code by row index. This array said
+            // דניאל = PENDING while his own card said PAID, and מאיה = PAID while she
+            // is OVERDUE everywhere else. A coach comparing two tabs in a demo
+            // spots that immediately, and it makes the whole product look like
+            // it cannot agree with itself.
+            // איתי is on a trial with no monthly fee, and the panel called him
+            // PENDING — pending on an invoice that does not exist. Three states.
+            const st = PAY_STATUS[t.payment === 'PAID' ? 'paid' : (!t.monthly ? 'trial' : 'pending')];
             return (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: `1px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{t.name}</span>

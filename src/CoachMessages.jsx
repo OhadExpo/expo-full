@@ -380,7 +380,26 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
   }, [traineeId, role, demoMode, reload]);
 
   const send = async ({ body_text, audio_url, duration_sec }) => {
-    if (demoMode) { toast('Preview only — message not sent.', 'info', { ttl: 3000 }); return; }
+    // IN THE DEMO THE MESSAGE HAS TO LAND.
+    //
+    // This used to swallow the send and raise "Preview only — message not
+    // sent." He is going to type into this box in front of a client to show
+    // that coach and athlete talk inside the product; a toast saying nothing
+    // happened demonstrates the opposite. The row is appended to the local
+    // thread only — nothing reaches Supabase, no push is sent — so the demo
+    // is honest about the data while the FEATURE actually works on screen.
+    if (demoMode) {
+      setRows(prev => [...prev, {
+        id: `demo-${Date.now()}`,
+        trainee_id: traineeId,
+        sender_role: role,
+        body_text: body_text || null,
+        audio_url: audio_url || null,
+        duration_sec: duration_sec || null,
+        created_at: new Date().toISOString(),
+      }]);
+      return;
+    }
     const row = { trainee_id: traineeId, sender_role: role, body_text, audio_url, duration_sec };
     const { data, error } = await supabase.from('coach_messages').insert(row).select().single();
     if (error) throw error;
@@ -453,7 +472,10 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       <Composer
         role={role}
         onSend={{
-          upload: demoMode ? (async () => null) : ((blob) => uploadVoiceNote(blob, traineeId)),
+          // Demo: keep the recording in the page (an object URL) instead of
+          // returning null, so a voice note he records in front of a client
+          // actually plays back in the thread. Nothing is uploaded.
+          upload: demoMode ? (async (blob) => URL.createObjectURL(blob)) : ((blob) => uploadVoiceNote(blob, traineeId)),
           send,
         }} />
       </div>

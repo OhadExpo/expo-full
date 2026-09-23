@@ -26,27 +26,90 @@ const OUT = 'audit-out/demo';
 fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// EVERY COACH TAB, NOT JUST THE ONE IT OPENS ON.
+//
+// This list used to hold '/demo/coach' alone, so the English and DEAD checks
+// only ever saw the DASHBOARD — one of the eight screens a client is going to
+// be walked through. Proven by break test on 23.9: an obviously untranslated
+// string planted on the BILLING strip, rebuilt and re-run, and the gate
+// reported "none" across all 28 combinations. A zero has to say what it
+// measured, and this one was measuring an eighth of the coach demo.
+const COACH_TABS = ['dashboard', 'trainees', 'programs', 'exercises', 'sessions', 'review', 'tasks', 'billing'];
 const SURFACES = [
   ['landing', '/demo'],
   ['landing-en', '/demo/en'],
   ['landing-he', '/demo/he'],
-  ['coach', '/demo/coach'],
+  ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
   ['athlete', '/demo/athlete'],
   ['sandbox', '/demo/sandbox'],
   ['try', '/try'],
+  // THE LANDING PAGE EMBEDS THE ENGINE IN AN IFRAME, and /try itself opens on
+  // the athlete portal — so the engine's own first screen (STEP 1, the
+  // auto-detect card, the paragraph explaining it) renders ONLY inside that
+  // iframe, and every Hebrew sweep to date walked past it. Found by LOOKING at
+  // the Hebrew landing page at 390 and reading an English paragraph in the
+  // middle of it. Measuring the frame's URL directly is simpler and more
+  // honest than reaching through a frame boundary.
+  ['engine-embed', '/try?embed=1'],
 ];
 const LANGS = ['en', 'he'];
 const WIDTHS = [[390, 844], [1440, 950]];
 
 // Latin that is NOT a translation failure: the brand, the stack, units.
-const ALLOW = /^(expo|bhbc|rpe|prs?|1rm|bw|kg|cm|km|vat|id|ok|pdf|csv|url|api|ai|hr|acwr|rom|emom|amrap|tut|e?mail|whatsapp|zoom|google|apple|ios|android|chrome|supabase|vercel|youtube|instagram|mediapipe|lite|full|min|max|am|pm|[a-z]{1,2})$/i;
+const ALLOW = /^(expo(-il)?|bhbc|rpe|prs?|1rm|bw|kg|cm|km|vat|id|ok|pdf|csv|url|api|ai|hr|acwr|rom|emom|amrap|tut|e?mail|whatsapp|zoom|google|apple|ios|android|chrome|supabase|vercel|youtube|instagram|mediapipe|lite|full|min|max|am|pm|[a-z]{1,2})$/i;
+
+// Block comments and whole-line // comments. Deliberately crude: it runs over
+// source only to build a contains() haystack, so over-removal costs nothing
+// and a stray '//' inside a string literal removing the rest of that line
+// cannot create a finding — only miss one, which the rest of the sweep catches.
+const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+
+// The fixture files are the DATA half of the same question. A node whose text
+// lives in one of them is a name the product was handed, not a string the
+// product wrote — and Ohad's rule is that exercise names stay English ("BB
+// Bench Press" was reported as untranslated Hebrew UI on six surfaces).
+// Building the two haystacks from the same walk keeps them from drifting.
+const FIXTURE = /^(exerciseData|demoTraineeData)/;
+const fixtures = ['src/exerciseData.js', 'src/demoTraineeData.js']
+  .filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8')).join(String.fromCharCode(10));
+
+// CoachDemo.jsx carries its own fixtures inline (the roster, the plan index,
+// the exercise library, the lineage), so the same names live in a file the
+// gate reads as UI. A value assigned to `name:` or `title:` is a NAME — a plan
+// title, a day title, an exercise — and by Ohad's rules none of those are
+// translated: the plan row's own title is the source of truth and exercise
+// names stay English. Without this the Hebrew sweep reported "Block #4 —
+// Push/Pull Volume", "Day A · Push" and "Weighted Pull-Up" as untranslated UI.
+// Narrow on purpose: only these two keys, only string literals.
+const DEMO_NAMES = new Set();
+for (const f of ['src/CoachDemo.jsx']) {
+  if (!fs.existsSync(f)) continue;
+  const t = fs.readFileSync(f, 'utf8');
+  // A single-quoted JS literal cannot hold a raw newline, so [^'] is enough.
+  //
+  // The anatomy fields are here for the same reason the names are: they are
+  // DATA, and open-set data at that. "Pectoralis Major", "Shoulder Horizontal
+  // Adduction" are clinical nomenclature that Israeli S&C coaches use in
+  // English, and src/taxonomyHe.js deliberately leaves them alone — it
+  // translates only the six CLOSED taxonomy lists, because inventing Hebrew
+  // for an open set is how you ship wrong Hebrew. Without this the sweep
+  // reported ~35 of them as untranslated UI on the exercises tab.
+  const NAME_LIT = /(?:name|title|cues|primaryJoints|jointMovements|primaryMuscles|secondaryMuscles)\s*:\s*'([^']{2,120})'/g;
+  for (const m of t.matchAll(NAME_LIT)) DEMO_NAMES.add(m[1]);
+}
 
 const src = (() => {
   const parts = [];
   const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) {
     const p = d + '/' + f.name;
     if (f.isDirectory()) { if (!/node_modules|dist/.test(f.name)) walk(p); }
-    else if (/\.(jsx?|css)$/.test(f.name) && !/^(exerciseData|demoTraineeData)/.test(f.name)) parts.push(fs.readFileSync(p, 'utf8'));
+    // COMMENTS ARE NOT SHIPPED TEXT. The `src.includes(t)` test exists to tell
+    // a UI string from fixture data, and reading whole files let a CODE COMMENT
+    // stand in for a UI string: ClientPortal has a comment quoting a long block
+    // name, and that alone made "#4 — Hypertrophy" — a plan title, which by
+    // Ohad's rule is never translated — report as untranslated Hebrew UI on
+    // four surfaces. Strip comments before the haystack is built.
+    else if (/\.(jsx?|css)$/.test(f.name) && !FIXTURE.test(f.name)) parts.push(stripComments(fs.readFileSync(p, 'utf8')));
   } };
   walk('src');
   return parts.join('\n');
@@ -149,6 +212,8 @@ for (const [name, route] of SURFACES) {
             if (/[֐-׿]/.test(t)) continue;
             if (!/[A-Za-z]/.test(t)) continue;
             if (ALLOW.test(t) || /@|https?:|^\+?\d/.test(t)) continue;
+            if (fixtures.includes(t)) continue;       // a NAME from the fixtures
+            if (DEMO_NAMES.has(t)) continue;          // a name: / title: value
             if (!src.includes(t)) continue;           // data, not UI
             leaks.push(t);
           }
@@ -157,7 +222,7 @@ for (const [name, route] of SURFACES) {
         }
 
         // A tab that changes nothing is a dead tab.
-        if (/coach|athlete/.test(name)) {
+        if (/^coach-|athlete/.test(name)) {
           for (const tab of r.tabs.slice(0, 10)) {
             const before = await pg.evaluate(() => (document.body.innerText || '').length);
             const hit = await pg.evaluate((i) => { const x = [...document.querySelectorAll('button,[role=tab]')][i]; if (!x) return false; x.click(); return true; }, tab.i);

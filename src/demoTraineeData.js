@@ -3,13 +3,25 @@ import { todayLocalISO } from './dates';
 // the page renders the actual production component — no separate demo UI.
 // Exercise IDs reference real seeded library entries so videos resolve.
 
+const today = new Date();
+// Local calendar date, not UTC. toISOString() here made every demo fixture jump
+// back a day between local midnight and 03:00 in Israel (audit 08-22 #80), so
+// the demo showed "yesterday" as today to anyone browsing late at night.
+const daysAgo = n => { const d = new Date(today); d.setDate(d.getDate() - n); return todayLocalISO(d); };
+
 export const DEMO_CLIENT_ID = 'tr_demo';
 
 // Same person who shows up on the coach-side demo roster (CoachDemo.jsx)
 // so the two demos feel like one cohesive tour, not two unrelated personas.
+//
+// AND SPELLED THE SAME WAY. The roster calls him גל מזרחי and the athlete
+// portal called him "Gal Mizrahi", so on the Hebrew demo the one Latin word
+// left on the screen was the athlete's own name — in the greeting, at the top.
+// Names are data: they are not translated, they are simply his real spelling,
+// in both UI languages, exactly as the coach demo already does it.
 export const DEMO_TRAINEE = {
   id: 'tr_demo',
-  name: 'Gal Mizrahi',
+  name: 'גל מזרחי',
   email: 'gal.mizrahi@example.co.il',
   phone: '+972526789012',
   age: 32,
@@ -22,7 +34,9 @@ export const DEMO_TRAINEE = {
   format: 'Remote',
   package: '8 Sessions',
   sessionsRemaining: 5,
-  startDate: '2026-03-01',
+  // Relative, like every other date in here — a demo athlete whose start
+  // date is fixed in the past ages a little more every week it is shown.
+  startDate: daysAgo(200),
   monthlyPrice: 0,
   packagePrice: 1490,
   sessionPrice: 186,
@@ -53,7 +67,8 @@ export const DEMO_PLANS = [
     phase: 'Accumulation',
     notes: '',
     active: true,
-    createdAt: '2026-04-15T08:00:00.000Z',
+    // Two weeks back, which is where the bodyweight log puts week 2.
+    createdAt: new Date(Date.now() - 16 * 86400000).toISOString(),
     weeks: 4,
     warmup: [
       { t: 'BW Floating-RFSS', rx: '1x10 E', vid: 'https://www.youtube.com/watch?v=4qMLnvW9rq8' },
@@ -90,12 +105,6 @@ export const DEMO_PLANS = [
     ],
   },
 ];
-
-const today = new Date();
-// Local calendar date, not UTC. toISOString() here made every demo fixture jump
-// back a day between local midnight and 03:00 in Israel (audit 08-22 #80), so
-// the demo showed "yesterday" as today to anyone browsing late at night.
-const daysAgo = n => { const d = new Date(today); d.setDate(d.getDate() - n); return todayLocalISO(d); };
 
 // These rows are already in the CONSUMED (post-normalization) shape that
 // ClientPortal reads — camelCase keys, `exercises[]` each with per-set

@@ -4370,10 +4370,14 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
           const isOpen = open === key;
           return (
             <div key={key} style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-              <div className="bhbc-row" onClick={() => setOpen(isOpen ? null : key)}
+              {/* ONE className. This element carried two — "bhbc-row" here and
+                  "bhbc-pp-row" three lines down — and JSX keeps the LAST, so
+                  bhbc-row was silently dropped and whatever it styles never
+                  applied to this row. The build had been warning about it. */}
+              <div onClick={() => setOpen(isOpen ? null : key)}
                 role="button" tabIndex={0} aria-expanded={isOpen}
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOpen(isOpen ? null : key); } }}
-                className="bhbc-pp-row"
+                className="bhbc-row bhbc-pp-row"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', cursor: 'pointer' }}>
                 {/* 96px + nowrap: at 78px some dates wrapped to two lines and
                     others didn't, so the column read ragged. */}

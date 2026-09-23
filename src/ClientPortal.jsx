@@ -374,7 +374,7 @@ function GooglePhotosEmbed({ url }) {
 
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
-function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
   // A workout in progress: SwUpdateBanner neither shows nor reloads while this
   // is up (Ohad 2026-09-11 - the update notice must never meet a set).
@@ -1075,7 +1075,21 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // of it that drifts — the copy had a red play button on every row, a
       // greeting the portal does not use, and its exercise rows inverted.
       if (onFilmSet) { onFilmSet(file, exMeta || {}, exIdx); return; }
-      toast('Demo mode — uploads disabled', 'info');
+      // THE STANDALONE DEMO KEEPS THE CLIP, IN THE PAGE.
+      //
+      // "Demo mode — uploads disabled" is the right answer for the coach-side
+      // PREVIEW, which is looking at a real athlete's record. It is the wrong
+      // answer on /demo/athlete, where the whole point of pressing RECORD in
+      // front of a client is to show the form-check loop working: the clip
+      // attaches to the exercise, the note box appears, the coach reviews it.
+      // localWrites marks the surface whose state is its own useState, so the
+      // object URL lives and dies with the tab and nothing is uploaded.
+      if (localWrites) {
+        const localUrl = URL.createObjectURL(file);
+        setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, pendingBlobId: null, videoError: false }; return n; });
+        return;
+      }
+      toast(tt('Demo mode — uploads disabled'), 'info');
       return;
     }
 
@@ -2515,7 +2529,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
     // rebuilt from the correct prescription instead of the old day's numbers
     // being saved onto the new day's exercises.
-    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} nameAmbiguous={dupPlanNames.has(targetPlan.name)} demoMode={demoMode} onFilmSet={onFilmSet} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
+    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} nameAmbiguous={dupPlanNames.has(targetPlan.name)} demoMode={demoMode} localWrites={localWrites} onFilmSet={onFilmSet} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
@@ -2924,6 +2938,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
     const existingBw = bwData.find(b => b.week === wk + 1 && b.blockName === activePlan?.name);
     const bwDisplay = bw || (existingBw ? String(existingBw.bw) : '');
+    const bwCanSave = !!(bw && activePlan && !(demoMode && !localWrites));
     const rawMax = bwData.length ? Math.max(...bwData.map(b=>b.bw)) : 100;
     const rawMin = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
     const pad = Math.max((rawMax - rawMin) * 0.2, 1.5);
@@ -2938,6 +2953,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt("ENTRIES")}</div>
         </div>
 
+        {/* One condition for whether SAVE can act, read by both the handler
+            and the styling, so they cannot drift apart again. */}
         {/* Quick log */}
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:16}}>
           {visPlans.length > 1 && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
@@ -2950,8 +2967,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>{tt('Log week')} {wk+1} · {activePlan?.name || tt('NO ACTIVE BLOCK')}</div>
           <div style={{display:'flex',gap:8}}>
             <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder={tt('Weight in kg')} type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
-            <button disabled={!activePlan||demoMode} onClick={()=>{if(demoMode)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
-              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.cardBd}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>{tt("SAVE")}</button>
+            {/* SAVE LOOKED LIVE AND WAS INERT.
+                It was disabled on demoMode alone, but styled from (bw &&
+                activePlan) — so in the demo it went cyan with a pointer
+                cursor the moment a weight was typed, and then did nothing.
+                Same rule as handleComplete: the coach-side preview must not
+                write, the standalone demo (localWrites) may keep what the
+                visitor does. The style now reads the same condition, so a
+                button that cannot act never looks like it can. */}
+            <button disabled={!activePlan||(demoMode&&!localWrites)} onClick={()=>{if(demoMode&&!localWrites)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
+              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${bwCanSave?C.ac:C.cardBd}`,background:'transparent',color:bwCanSave?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:bwCanSave?'pointer':'default'}}>{tt("SAVE")}</button>
           </div>
           {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>{tt('Assign an active program to log bodyweight.')}</div>}
         </div>
