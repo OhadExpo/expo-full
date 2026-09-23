@@ -26,7 +26,7 @@ function purgeLocalCaches() {
 }
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
 import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
-import { C, FN, FB, FH, EXPO_LOGO } from './theme';
+import { C, FN, FB, FH, EXPO_LOGO, CTRL_H } from './theme';
 import { useEscClose } from './ui';
 
 // Coach access tiers.
@@ -560,8 +560,8 @@ export function LoginScreen({ brand = 'expo' } = {}) {
           {!bc && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
               <button type="button" onClick={flipLang} aria-label={he ? 'English' : 'עברית'}
-                style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 10px', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', minWidth: 44 }}>
-                {he ? 'EN' : 'עב'}
+                style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', minWidth: 44 }}>
+                {he ? 'EN' : 'עברית'}
               </button>
             </div>
           )}
@@ -569,7 +569,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
           <button
             onClick={() => handleOAuth('google')}
             disabled={submitting}
-            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${C.cardBd}`, background: '#fff', color: '#1f1f1f', fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10, opacity: submitting ? 0.6 : 1 }}
+            style={{ width: '100%', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: '#fff', color: '#1f1f1f', fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10, opacity: submitting ? 0.6 : 1 }}
           >
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.5 2.5-7.3 2.5-5.2 0-9.6-3.3-11.2-8l-6.5 5C9.5 39.7 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.5l6.3 5.3C41 35.2 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
             {tt('Continue with Google')}
@@ -606,7 +606,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
           <button
             onClick={handlePassword}
             disabled={!canSubmit}
-            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? AC : C.cardBd}`, background: bc && canSubmit ? AC : 'transparent', color: bc && canSubmit ? '#fff' : (canSubmit ? AC : C.tm), fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
+            style={{ width: '100%', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', borderRadius: 0, border: `1px solid ${canSubmit ? AC : C.cardBd}`, background: bc && canSubmit ? AC : 'transparent', color: bc && canSubmit ? '#fff' : (canSubmit ? AC : C.tm), fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
           >
             {submitting ? '...' : tt('Sign in')}
           </button>

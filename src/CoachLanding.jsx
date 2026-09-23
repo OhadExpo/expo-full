@@ -11,7 +11,7 @@
 // Stripe + the trainers table get built once the waitlist proves demand.
 import React, { useState, useEffect } from 'react';
 import { track } from '@vercel/analytics';
-import { C, FN, FB, FH } from './theme';
+import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import CoachChat from './CoachChat';
 
@@ -194,8 +194,13 @@ function makeT(lang) {
 }
 
 const baseBtn = {
+  // One height for every bordered control (CTRL_H). minHeight rather than
+  // height so a wrapping Hebrew label can still grow; zero vertical padding so
+  // the flex centring, not the padding, sets the box. The landing page was
+  // showing FOUR heights in one row: 34, 38, 40 and 43.
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-  padding: '12px 22px', borderRadius: 0, border: 'none',
+  minHeight: CTRL_H, boxSizing: 'border-box', lineHeight: 1,
+  padding: '0 22px', borderRadius: 0, border: 'none',
   fontFamily: FN, fontSize: 11, fontWeight: 700,
   cursor: 'pointer', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'all 0.15s',
   textDecoration: 'none',
@@ -343,11 +348,11 @@ function DemoEmbed({ t }) {
         display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap',
       }}>
         <a href="/demo/coach" target="_blank" rel="noopener" style={{
-          ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
+          ...baseBtn, background: C.ac, color: '#000', padding: '0 22px', fontSize: 12,
         }}>{t('demo.embed.openCoach')}</a>
         <a href="/demo/athlete" target="_blank" rel="noopener" style={{
           ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
+          border: `1px solid ${C.bd2}`, padding: '0 22px', fontSize: 12,
         }}>{t('demo.embed.openAthlete')}</a>
       </div>
     </div>
@@ -657,15 +662,15 @@ export default function CoachLanding({ lang = 'en' }) {
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 }}>
             <a href="/demo/coach" style={{
-              ...baseBtn, background: C.ac, color: '#000', padding: '13px 26px', fontSize: 13,
+              ...baseBtn, background: C.ac, color: '#000', padding: '0 26px', fontSize: 13,
             }}>{t('hero.cta.coach')}</a>
             <a href="/demo/athlete" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
-              border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
+              border: `1px solid ${C.bd2}`, padding: '0 26px', fontSize: 13,
             }}>{t('hero.cta.athlete')}</a>
             <a href="#waitlist" style={{
               ...baseBtn, background: 'transparent', color: C.ac,
-              border: `1px solid ${C.ac}`, padding: '13px 26px', fontSize: 13,
+              border: `1px solid ${C.ac}`, padding: '0 26px', fontSize: 13,
             }}>{t('hero.cta.waitlist')}</a>
           </div>
           <div style={{
@@ -879,11 +884,11 @@ export default function CoachLanding({ lang = 'en' }) {
       }}>
         <a href="/demo/coach" style={{
           ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd2}`, padding: '12px 14px', fontSize: 12,
+          border: `1px solid ${C.bd2}`, padding: '0 14px', fontSize: 12,
         }}>{t('sticky.coach')}</a>
         <a href="#waitlist" style={{
           ...baseBtn, flex: 1, background: C.ac, color: '#000',
-          padding: '12px 14px', fontSize: 12,
+          padding: '0 14px', fontSize: 12,
         }}>{t('sticky.waitlist')}</a>
       </div>
 
