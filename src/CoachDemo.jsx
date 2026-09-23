@@ -3707,9 +3707,15 @@ function DemoInlineVideo({ title }) {
   );
 }
 
-function DemoSessionExercise({ ex, open, onToggle }) {
-  const doneCount = ex.sets.filter(s => s.done).length;
-  const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
+// `doneUpTo` is how many of this exercise's sets this ATHLETE has finished.
+// Every card used to render the same DEMO_SESSION_DAY object, so all three
+// athletes on the floor showed byte-identical progress — and the one who had
+// not checked in yet still showed two sets of squats done. A coach reads that
+// in a second.
+function DemoSessionExercise({ ex, open, onToggle, doneUpTo }) {
+  const sets = doneUpTo == null ? ex.sets : ex.sets.map((x, i) => ({ ...x, done: i < doneUpTo }));
+  const doneCount = sets.filter(s => s.done).length;
+  const allDone = doneCount === sets.length && sets.length > 0;
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
     <div style={{ border: `1px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
@@ -3722,7 +3728,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
-          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{ex.sets.length}</span>{' '}{T('DONE')}</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{sets.length}</span>{' '}{T('DONE')}</span>
         </div>
       </div>
       {open && (
@@ -3734,14 +3740,14 @@ function DemoSessionExercise({ ex, open, onToggle }) {
             {['', 'REPS', 'KG', 'RPE', '✓'].map((h, i) => <span key={i} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {ex.sets.map((s, si) => (
+            {sets.map((s, si) => (
               <div key={si} style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
                 <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
                 <input defaultValue={s.reps} placeholder="reps" style={dCell} />
                 <input defaultValue={s.kg} placeholder="kg" style={dCell} />
                 <input defaultValue={s.rpe} placeholder="—" style={dCell} />
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <input type="checkbox" defaultChecked={s.done} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
+                  <input type="checkbox" key={`${si}-${s.done}`} defaultChecked={s.done} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
                 </label>
               </div>
             ))}
@@ -3784,7 +3790,10 @@ function DemoGroupFloor() {
               <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {DEMO_SESSION_DAY.map(ex => {
                   const k = `${ai}:${ex.id}`;
-                  return <DemoSessionExercise key={ex.id} ex={ex} open={!!open[k]} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
+                  // Different athletes are at different points in the same
+                  // session, and nobody has lifted anything before checking in.
+                  const pace = [ex.sets.length, Math.max(0, ex.sets.length - 2), 1][ai] ?? 0;
+                  return <DemoSessionExercise key={ex.id} ex={ex} open={!!open[k]} doneUpTo={inFloor ? pace : 0} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
                 })}
               </div>
             </div>
