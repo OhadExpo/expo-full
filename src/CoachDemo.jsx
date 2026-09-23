@@ -354,14 +354,15 @@ function DemoDashboard({ onJumpToTrainee }) {
       </div>
 
       {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
-          It used to sit between the stat row and revenue, printing CHAT
-          SESSIONS 12 / MESSAGES SENT 7 / EMAIL CAPTURES 3 / WAITLIST 2 — and
-          those were Ohad's OWN live figures, hardcoded. Two things wrong with
-          that on a screen shown to a prospect. It is EXPO's funnel, not the
-          buyer's: a coach who signs up does not get an EXPO waitlist, so the
-          panel sold a feature that does not transfer. And a buyer reads
-          "waitlist 2" as "nobody else wants this" — the run sheet already
-          warned he would be caught by that number on his own dashboard.
+          It used to sit between the stat row and revenue, reporting EXPO's own
+          acquisition funnel — chat sessions, messages sent, email captures,
+          waitlist signups — with the owner's real current counts hardcoded
+          into the demo. Two things wrong with that on a screen shown to a
+          prospect. It is EXPO's funnel, not the buyer's: a coach who signs up
+          does not get an EXPO waitlist, so the panel sold a feature that does
+          not transfer. And early-stage counts read to a buyer as "nobody else
+          wants this".
+          This repo is PUBLIC, so the figures themselves are not repeated here.
           The parity audit had recorded Incoming as deliberately out of the
           demo; the nav honoured it and this panel did not. Now both do. */}
 
@@ -4234,6 +4235,16 @@ const DEMO_REFERENCE_CLIP = 'bvaCXyXeBvU';
 const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td }, trial: { label: 'TRIAL', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
+  // CHASE and MARK PAID were inert — no onClick at all — on the screen the run
+  // sheet calls his strongest, where he invites the buyer to add the column up.
+  // A control that looks live and does nothing is the exact thing he objected
+  // to ("this type of shit shouldnt happen anywhere"), and a dead button
+  // clicked in front of a buyer is worse here than anywhere else in the demo.
+  // The demo has no backend, so they say what the real one would do — the same
+  // explainer pattern Review → Tools already uses. Deliberately NOT changing
+  // the amounts: the reconciliation he walks the buyer through has to hold
+  // still while he is talking over it.
+  const [acted, setActed] = useState({});
   // THE PAYMENT ROW HAS TO WRAP ON A PHONE.
   //
   // Photographed at 390 for the client demo (22.9): the actions block is
@@ -4299,9 +4310,18 @@ function DemoBilling() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? `באיחור של ${p.overdueDays} ימים` : `${p.overdueDays}D OVERDUE`}</span>}
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
-                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
-                  {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
+                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'chase' }))} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
+                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'paid' }))} style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
+                {/* The row already wraps, so the explainer takes its own full
+                    width line under the buttons rather than squeezing them. */}
+                {acted[p.id || p.name] && (
+                  <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
+                    {acted[p.id || p.name] === 'chase'
+                      ? T('Demo only — in the full app this sends a WhatsApp reminder with a payment link.')
+                      : T('Demo only — in the full app this marks the request paid and updates the ledger.')}
+                  </div>
+                )}
               </div>
             );
           })}
