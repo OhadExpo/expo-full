@@ -390,15 +390,35 @@ function DemoDashboard({ onJumpToTrainee }) {
           </div>
           <div>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
-              {months6.map(([m, v], i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%' }}>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                    <div style={{ width: '100%', height: `${Math.round(v / barMax * 100)}%`, background: C.ac }} title={`${m} · ₪${num(v)}`} />
+            {/* A CHART A COACH CAN READ.
+                Before: six solid cyan blocks the full width of their column,
+                scaled to the MAXIMUM so the shortest was still 75% of the
+                tallest, with no axis and no numbers — 2,900 to 3,850 is a 25%
+                spread drawn as near-identical slabs. Ohad, an hour before the
+                demo: "the demo top screen... is horrible."
+                Now: the bars are scaled from a floor a little under the
+                smallest month so the differences are visible, each carries its
+                value, the current month is solid and the rest are ghosted so
+                the eye lands on it, and the bars are slim with real gaps. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, alignItems: 'end', height: 120 }}>
+              {months6.map(([m, v], i) => {
+                const lo = Math.min(...months6.map((x) => x[1])) * 0.82;
+                const pct = Math.max(12, Math.round(((v - lo) / Math.max(1, barMax - lo)) * 100));
+                const current = i === months6.length - 1;
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, height: '100%' }}>
+                    <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: current ? C.ac : C.tm, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{nis(v)}</div>
+                    <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <div title={`${m} · ${nis(v)}`} style={{
+                        width: '62%', maxWidth: 34, height: `${pct}%`,
+                        background: current ? C.ac : 'color-mix(in srgb, var(--c-ac) 28%, transparent)',
+                        borderTop: current ? 'none' : `1px solid color-mix(in srgb, var(--c-ac) 55%, transparent)`,
+                      }} />
+                    </div>
+                    <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: current ? C.tx : C.tm, letterSpacing: '0.08em', fontWeight: 700 }}>{m}</div>
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.08em', fontWeight: 700 }}>{m}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
