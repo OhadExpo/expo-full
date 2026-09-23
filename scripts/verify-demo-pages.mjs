@@ -115,9 +115,38 @@ for (const [name, route] of SURFACES) {
           await wait(260);
           steps++;
           const r = await pg.evaluate((minTap) => {
-            const out = { covered: [], offscreen: [], clipped: [], tiny: [] };
+            const out = { covered: [], offscreen: [], clipped: [], tiny: [], junk: [] };
             const vw = innerWidth, vh = innerHeight;
             const inView = (b) => b.bottom > 0 && b.top < vh && b.height > 0;
+
+            // --- JUNK: a value that leaked instead of rendering -------------
+            //
+            // "3 ימים · NAN תרגילים" shipped on every card of the programs tab
+            // because a derived count read charCodeAt(2) of a two-character id.
+            // A gate cannot know a number is WRONG, but it can always know a
+            // number is not a number — and NaN / undefined / null / [object
+            // Object] on screen is the single most embarrassing class of fault
+            // in front of a buyer. Cheap to check, so there is no excuse for
+            // having found this one by eye.
+            {
+              //  cannot precede a '[', so (...|\[object Object\]) silently
+              // never matched it — caught by the break test, 4 of 5 shapes.
+              const junkRe = /\b(NaN|undefined|null|Infinity)\b|\[object [A-Z]\w*\]/;
+              const wj = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              let jn;
+              while ((jn = wj.nextNode())) {
+                const t = (jn.nodeValue || '').trim();
+                if (!t || !junkRe.test(t)) continue;
+                const el = jn.parentElement;
+                if (!el) continue;
+                const bb = el.getBoundingClientRect();
+                if (bb.width < 2 || bb.height < 2 || !inView(bb)) continue;
+                const cs = getComputedStyle(el);
+                if (cs.visibility === 'hidden' || cs.opacity === '0') continue;
+                out.junk = out.junk || [];
+                out.junk.push({ t: t.slice(0, 44) });
+              }
+            }
 
             // --- COVERED ---------------------------------------------------
             const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -235,6 +264,7 @@ for (const [name, route] of SURFACES) {
               add({ kind, id, detail: fmt(x) });
             }
           };
+          push('JUNK', r.junk || [], (x) => `"${x.t}" — a value leaked to the screen instead of rendering`);
           push('COVERED', r.covered, (x) => `"${x.t}" is under ${x.by}`);
           push('OFFSCREEN', r.offscreen, (x) => `"${x.t}" at x ${x.l}..${x.r} (viewport 0..${w}), not in a scroller`);
           push('CLIPPED', r.clipped, (x) => `"${x.t}" ink overflows its box by ${x.overW}x${x.overH}px`);
