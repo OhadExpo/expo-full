@@ -2155,6 +2155,18 @@ function DemoPrograms({ resetToken = 0 }) {
   const [search, setSearch] = useState('');
   const [filterTrainee, setFilterTrainee] = useState('');
   const [progView, setProgView] = useState('table'); // 'table' | 'grid' | 'lineage'
+  // Preview / Duplicate / Share / Delete were `onClick={e => e.stopPropagation()}`
+  // — they looked live, had a handler, and did nothing, with only a `title`
+  // tooltip to say so. A title is invisible on a phone and to a keyboard. Same
+  // explainer the rest of the demo uses. Keyed by program id so opening one
+  // row's note does not light up every other row.
+  const [progNote, setProgNote] = useState(null); // `${id}:${action}`
+  const PROG_NOTE = {
+    Preview: 'Demo only — in the full app this opens the program exactly as the athlete sees it.',
+    Duplicate: 'Demo only — in the full app this copies the program into a new block you can edit.',
+    Share: 'Demo only — in the full app this assigns a copy of the program to another athlete.',
+    Delete: 'Demo only — in the full app this deletes the program after asking you to confirm.',
+  };
   const [sortField, setSortField] = useState('updated');
   const [sortDir, setSortDir] = useState('desc');
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
@@ -2463,10 +2475,15 @@ function DemoPrograms({ resetToken = 0 }) {
                               </span>
                             </button>
                             <div className="cd-spacer" style={{ flex: 1, minWidth: 8 }} />
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>{tr(readLang(), 'Delete')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Preview`); }} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Duplicate`); }} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Share`); }} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Delete`); }} title={T('Delete program (demo only)')} style={txt(C.rd)}>{tr(readLang(), 'Delete')}</button>
+                            {String(progNote || '').startsWith(`${cur.id}:`) && (
+                              <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
+                                {T(PROG_NOTE[String(progNote).split(':')[1]] || '')}
+                              </div>
+                            )}
                           </div>
                         );
                       })()}

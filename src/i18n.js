@@ -812,6 +812,15 @@ export const HE = {
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
   'SCALE FROM': 'תחתית הסקאלה',
+  // Per-program actions.
+  'Demo only — in the full app this opens the program exactly as the athlete sees it.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את התוכנית בדיוק כמו שהמתאמן רואה אותה.',
+  'Demo only — in the full app this copies the program into a new block you can edit.':
+    'דמו בלבד — באפליקציה המלאה זה משכפל את התוכנית לבלוק חדש שאפשר לערוך.',
+  'Demo only — in the full app this assigns a copy of the program to another athlete.':
+    'דמו בלבד — באפליקציה המלאה זה משייך עותק של התוכנית למתאמן אחר.',
+  'Demo only — in the full app this deletes the program after asking you to confirm.':
+    'דמו בלבד — באפליקציה המלאה זה מוחק את התוכנית אחרי בקשת אישור.',
   // Athlete action row — the buttons say what the full app would do.
   'Demo only — in the full app this opens the session logger for this athlete.':
     'דמו בלבד — באפליקציה המלאה זה פותח את רישום האימון של המתאמן.',
