@@ -133,7 +133,9 @@ export const HE = {
   'HaYovel, Herzliya': 'היובל, הרצליה',
   'Show {n} more': 'עוד {n}',
   'GAME': 'משחק',
-  'Lift': 'כוח',
+  // A LIFT is one athlete's own weight-room session (24.9); the team block
+  // before a practice is 'אימון כוח'. Two words, two things.
+  'Lift': 'הרמה',
   'Conditioning': 'קונדישן',
   'Recovery': 'התאוששות',
   'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה.',
@@ -725,6 +727,33 @@ Object.assign(HE, {
   'nothing written': 'לא נרשם כלום',
 
   lifted: 'התאמנו',
+
+  // ---- 24.9: S&C sessions and lifts are two different things -----------
+  // Ohad: "lifts should say log lift", "sc sessions should say log S&C
+  // Session". The team block before a practice is אימון כוח; a player's own
+  // weight-room session is הרמה.
+  'Log S&C Session': 'רישום אימון כוח',
+  'Log lift': 'רישום הרמה',
+  'Lifts': 'הרמות',
+  'S&C session': 'אימון כוח',
+  'S&C sessions': 'אימוני כוח',
+  'S&C': 'כוח',
+  'S&C minutes': 'דקות כוח',
+  'Which practice': 'איזה אימון',
+  'This practice': 'האימון הזה',
+  'In': 'נוכח',
+  'at this practice': 'באימון הזה',
+  'Out for the whole day': 'בחוץ כל היום',
+  'At this practice — click to mark absent': 'היה באימון — לחץ לסמן שלא הגיע',
+  'Absent from this practice — click to mark present': 'לא הגיע לאימון — לחץ לסמן שהגיע',
+  'No practice on the schedule for this date — it is saved to the day.': 'אין אימון בתאריך הזה — נשמר על היום.',
+  'Team S&C · minutes only, no RPE. In/Out is who was at THIS practice; the day’s availability is separate.': 'כוח קבוצתי — רק דקות, בלי RPE. נוכח/בחוץ זה מי שהיה באימון הזה; הזמינות היומית נפרדת.',
+  'Lift — minutes only, no RPE. Personal, any day, not tied to a practice.': 'הרמה — רק דקות, בלי RPE. אישי, בכל יום, לא קשור לאימון.',
+  'Note (optional)': 'הערה (לא חובה)',
+  'e.g. lower body · 4 lifts': 'למשל תחתון · 4 תרגילים',
+  'A bar is a lift he logged. The tint is the restriction on the day.': 'פס זה הרמה שנרשמה לו. הגוון זה ההגבלה של אותו יום.',
+  'Log a lift for this athlete': 'רישום הרמה לשחקן הזה',
+  'no S&C session logged': 'לא נרשם אימון כוח',
 
   PRE_SEASON: 'טרום עונה',
 });
