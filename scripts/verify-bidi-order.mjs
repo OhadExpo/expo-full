@@ -45,6 +45,7 @@
 //   node scripts/verify-bidi-order.mjs [--only <substring>]
 import fs from 'node:fs';
 import P from 'puppeteer-core';
+import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
@@ -85,7 +86,7 @@ for (const [name, route] of SURFACES) {
     const ctx = await b.createBrowserContext();
     const pg = await ctx.newPage();
     try {
-      await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 700, hasTouch: w < 700 });
+      await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
       await pg.evaluateOnNewDocument(() => {
         try {
           localStorage.setItem('expo-lang', 'he');

@@ -1,7 +1,7 @@
 # The browser-driven gates
 
 `npm run build` runs the static gates (lockfile, surfaces, Hebrew, dotted keys,
-English literals, security audit, eslint). The gates below are different: they
+English literals, security audit, duplicated JSX props, eslint). The gates below are different: they
 drive a real browser against a built preview, because what they measure —
 painted glyph order, ink versus box, one screen's number against another's —
 does not exist until something renders.
@@ -143,6 +143,13 @@ unconditional echo. Gate on eslint's exit code.
 
 In Git Bash, prefix with `MSYS_NO_PATHCONV=1` or a `/`-prefixed argument is
 rewritten into a Windows path.
+
+**Widths are emulated, never `setViewport`.** On the attached Chrome
+`page.setViewport()` is ignored above the phone breakpoint (measured 2.9,
+`scripts/lib/viewport.mjs`); until 24.9 21:40 every "1440" combination of these
+gates was the context window's 1024. All of them call `setWidth(pg, W, H)` now,
+which emulates at every width and throws if `innerWidth` does not come back as
+asked. Any 1440 figure written before that time was measured at 1024.
 
 ## Two rules these gates are built on
 

@@ -5244,7 +5244,7 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
     .filter(o => (o.name || '').toLowerCase().includes(q));
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'calc(100dvh - 24px)', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
         <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{tt('Share program to…')}</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>

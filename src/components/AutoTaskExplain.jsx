@@ -34,7 +34,7 @@ export function AutoTaskExplainModal({ note, trainee, accent = 'var(--c-ac)', on
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--c-bg)', border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${accent}`,
-        borderRadius: 0, padding: 22, maxWidth: 460, width: '100%', maxHeight: '80vh', overflow: 'auto',
+        borderRadius: 0, padding: 22, maxWidth: 460, width: '100%', maxHeight: 'calc(100dvh - 24px)', overflow: 'auto',
       }}>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
           WHY THIS TASK

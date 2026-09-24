@@ -921,10 +921,8 @@ function AuthedApp() {
   const [bhbcFixtures,setBhbcFixtures,,,setBhbcFixturesLocal]=useSupaStore('expo-bhbc-fixtures',[]);
   const [bhbcLeague,,,,setBhbcLeagueLocal]=useSupaStore('expo-bhbc-league',{});
   const [bhbcMedical,setBhbcMedical,,,setBhbcMedicalLocal]=useSupaStore('expo-bhbc-medical',{});
-  // Per-SESSION plan (what the squad actually does in that slot), keyed
-  // `${date}|${start}` so a day with a morning AND an evening practice gets a
-  // plan for each — the fixture rows themselves carry no plan field.
-  const [bhbcPlans,setBhbcPlans,,,setBhbcPlansLocal]=useSupaStore('expo-bhbc-plans',{});
+  // (`expo-bhbc-plans`, the per-slot practice plan, is no longer read: the
+  // zone has no practice plans since 24.9. The key stays in the database.)
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -1723,7 +1721,7 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} sessionPlans={bhbcPlans} setSessionPlans={setBhbcPlans} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense>
   );

@@ -260,7 +260,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-        padding: 22, maxWidth: 480, width: '100%', maxHeight: '80vh', overflow: 'auto',
+        padding: 22, maxWidth: 480, width: '100%', maxHeight: 'calc(100dvh - 24px)', overflow: 'auto',
       }}>
         <div style={{ fontSize: 11, fontFamily: FN, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>
           {tt('+ LOG WHAT HAPPENED')}

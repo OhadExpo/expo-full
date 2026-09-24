@@ -32,6 +32,7 @@
 import fs from 'node:fs';
 import P from 'puppeteer-core';
 import { signIn } from './lib/authed-page.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
 const SITE = (() => { const i = process.argv.indexOf('--site'); return i > 0 ? process.argv[i + 1] : 'app'; })();
 const BASE = process.env.BASE || (SITE === 'il' ? 'http://127.0.0.1:5174' : 'http://127.0.0.1:5199');
@@ -114,12 +115,13 @@ for (const [name, route] of SURFACES) {
           } else {
             ctx = await b.createBrowserContext();
             pg = await ctx.newPage();
-            await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 700, hasTouch: w < 700 });
+            await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
             await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
             await pg.evaluateOnNewDocument((L, T) => {
               try {
                 localStorage.setItem('expo-lang', L);
-                localStorage.setItem('expo-il-lang', L);   // the sales site keeps its own key; without this every "en" run of it was Hebrew
+                localStorage.setItem('expo-il-lang', L);
+                localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L));   // the BHBC zone keeps its own language too (usePersistentState, JSON)   // the sales site keeps its own key; without this every "en" run of it was Hebrew
                 localStorage.setItem('expo-theme', T);
                 localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
               } catch (e) { /* private mode */ }
@@ -151,8 +153,16 @@ for (const [name, route] of SURFACES) {
           if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
           // A boot splash is stable text too. A page with almost no text is
           // not a measured page.
-          const inkLen = await pg.evaluate(() => (document.body.innerText || '').replace(/\s+/g, '').length);
-          if (inkLen < 40) { add({ kind: 'UNSET', id, detail: `only ${inkLen} characters of text (a splash?) — NOT judged` }); continue; }
+          // A splash's text is STABLE, so the settle loop accepts it. Give a
+          // signed-in route up to 30 more seconds to become a page before
+          // calling it unjudged.
+          let inkLen = 0;
+          for (let i = 0; i < 30; i++) {
+            inkLen = await pg.evaluate(() => (document.body.innerText || '').replace(/\s+/g, '').length);
+            if (inkLen >= 40) break;
+            await wait(1000);
+          }
+          if (inkLen < 40) { add({ kind: 'UNSET', id, detail: `only ${inkLen} characters of text after 30s (a splash?) — NOT judged` }); continue; }
           if (AUTHED) {
             // A zero must say what it measured: a coach route that came back as
             // the login screen is not a clean coach route.

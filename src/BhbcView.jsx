@@ -11,7 +11,7 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
-import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, confirmToast, usePersistentState, useEdgeFade } from './ui';
 import { ThemeToggle } from './ThemeToggle';
@@ -30,10 +30,6 @@ import { useFullPlan } from './usePlansStore';
 import { LangCtx, BodyLang } from './i18n';
 import { isClubAthlete } from './clubAthlete';
 
-// EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
-// to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
-// session syncs to each player's portal + EXPO review, exactly like the main app.
-const SessionsView = lazy(() => import('./SessionsView'));
 // EXPO's read-only program/portal preview — shown INSIDE the BHBC zone so coaches
 // can view an athlete's program here instead of jumping to the EXPO coach app.
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
@@ -45,10 +41,10 @@ const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP =
 // control families sitting side by side.
 // One height for every control in the zone header row. Fixed box + centred
 // content, so Hebrew and English sit identically inside it.
-const HDR_BTN_H = 28;
+const HDR_BTN_H = 36;   // the one control height (24.9); was 28
 // One height for an action sitting inside a card ROW (+ Report, View ›,
 // UPDATE, MED ✎). They do the same job, so they are the same size.
-const ROW_BTN_H = 26;
+const ROW_BTN_H = 36;   // the one control height (24.9); was 26
 const HDR_INK = 'rgba(255,255,255,0.85)';
 const HDR_BD = 'rgba(255,255,255,0.18)';
 // Understated dark-navy header bar (EXPO-header feel, not a loud bright-navy block).
@@ -227,6 +223,34 @@ const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
 // because a player can miss the morning practice and train in the evening —
 // which the day-level flag could not express at all (Ohad 08-24).
 const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: {}, attendance: {} });
+// WHAT A LOGGED ROW IS — read in ONE place. Ohad, 24.9: "sc session for the
+// team before practice, and lifts, are combined or messed up". They were: the
+// readers each had their own regex on `type`, and a lift counted as court
+// attendance in one card while a team S&C block counted as a lift in another.
+//
+//   sc        the team S&C block logged WITH a practice: team:true, minutes,
+//             carries the practice slot's `start`. Never a load, never an RPE.
+//   lift      one athlete's own lift, any day, with or without a practice.
+//             team:false. Never team, never attached to a practice.
+//   practice  court attendance (Practice / Shootaround) — no duration.
+//   game      a game (minutes played).
+//   other     anything else (Travel, an unknown label).
+//
+// Rows written from 24.9 carry `kind`. Older rows carry only the free-text
+// `type` a select produced, so the legacy reading is spelled out here and
+// nowhere else: Conditioning/Recovery were his S&C blocks; a Lift WITH
+// team:true was a team session mis-logged as a lift (29 rows, 23.8–1.9); a
+// row with no type at all was gym attendance, i.e. a personal lift.
+const rowKind = (r) => {
+  if (!r) return 'other';
+  if (r.kind === 'sc' || r.kind === 'lift' || r.kind === 'practice' || r.kind === 'game') return r.kind;
+  const t = String(r.type || '').toLowerCase();
+  if (t === 'practice' || t === 'shootaround') return 'practice';
+  if (t === 'game' || t === 'scrimmage') return 'game';
+  if (t === 'conditioning' || t === 'recovery') return 'sc';
+  if (t === 'lift' || t === 'weights' || t === 'gym' || !t) return r.team ? 'sc' : 'lift';
+  return 'other';
+};
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
 // 'Out · Pers' rather than 'Out · Personal': the long label made ONE button in
 // the column 168px against 135px for every other state, and Ohad wants a single
@@ -330,7 +354,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -403,7 +427,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }, [view]);
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
-  const [sessionMode, setSessionMode] = useState('group'); // group | single
   // Owner-only "Preview as coach": renders the exact reduced surface a club coach
   // sees (no Manage roster / no ‹EXPO, medical view-only) without needing an account.
   const [previewCoach, setPreviewCoach] = useState(false);
@@ -587,7 +610,7 @@ function attendance28(rec, days) {
     if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen it'); return; }
     // A session with no minutes is not a session (audit #71) — unless it is a
     // court session, which is attendance and has no duration by design.
-    const attendanceRow = cur && (cur.type === 'Practice' || cur.type === 'Shootaround');
+    const attendanceRow = cur && rowKind(cur) === 'practice';
     if (Number(newMin) <= 0 && cur && !attendanceRow) { toast('Minutes must be more than 0 — delete the session instead'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
@@ -595,10 +618,10 @@ function attendance28(rec, days) {
       const arr = [...out.sessions[date]];
       const s = { ...arr[idx] };
       const min = Number(newMin) || 0;
-      // Editing minutes to zero on an S&C session leaves an unrecoverable
-      // stub; deleting is the way to remove one. A court row is allowed zero
-      // minutes because that IS its shape.
-      const isAttendanceRow = s.type === 'Practice' || s.type === 'Shootaround';
+      // Editing minutes to zero on an S&C session or a lift leaves an
+      // unrecoverable stub; deleting is the way to remove one. A court row is
+      // allowed zero minutes because that IS its shape.
+      const isAttendanceRow = rowKind(s) === 'practice';
       if (min <= 0 && !isAttendanceRow) return prev;
       // No load is ever recomputed: there is no RPE to compute one from. If a
       // stale row still carries one, drop it rather than propagate it.
@@ -651,68 +674,42 @@ function attendance28(rec, days) {
     notify();
   }, [setBhbcLoads, bhbcLoads, notify]);
 
-  const logSession = useCallback(({ athleteId, date, type, minutes, rpe, note, readiness }) => {
-    // NO RPE, NO DERIVED LOAD. Ohad, 23.9: "i never asked for a team rpe to
-    // exist", "remember i dont need team rpes" — and the record agreed before
-    // he said it: 557 rows over two months, not one with an RPE. A court
-    // session is attendance; an S&C session is minutes. Neither is a load.
-    const attendanceOnly = type === 'Practice' || type === 'Shootaround';
+  // ONE ATHLETE'S OWN LIFT. Ohad, 24.9: "lifts needs to be independent and i
+  // can log them even on days without practice, and theyre not team. just
+  // personal. and not related to the practice sessions".
+  //
+  // So: one athlete, any date, minutes and a note. No fixture, no slot, no
+  // squad scope, no RPE, no load — and `team:false` written out so no reader
+  // can ever fold it back into a team session. `type:'Lift'` stays on the row
+  // for the scripts that already dedupe on it; `kind` is what the zone reads.
+  const logLift = useCallback(({ athleteId, date, minutes, note }) => {
+    if (!athleteId || !date) return;
+    if (!(Number(minutes) > 0)) { toast('Add minutes'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
-      rec.loads = { ...(rec.loads || {}) }; rec.sessions = { ...(rec.sessions || {}) }; rec.readiness = { ...(rec.readiness || {}) };
-      if (attendanceOnly) {
-        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: 0, rpe: null, load: 0, attended: true, ...(note ? { note } : null) }];
-      } else if (Number(minutes) > 0) {
-        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes), rpe: null, load: 0, attended: true, ...(note ? { note } : null) }];
-      }
-      const r = readiness || {};
-      // MERGE ONLY WHAT WAS ACTUALLY ENTERED. LogModal always sends all three
-      // fields, empty or not, and an unconditional spread let '' overwrite a
-      // real value: a morning check-in of {sleep:'good', energy:'good', pain:2}
-      // became {sleep:'', energy:'8', pain:''} as soon as the coach logged that
-      // athlete's session and filled in energy alone. fieldQuality then read
-      // pain as null and readinessAutoreg flipped him from green to "Pain not
-      // logged — confirm first". Silent loss of clinical input.
-      const entered = Object.fromEntries(Object.entries(r).filter(([, v]) => v !== '' && v != null));
-      if (Object.keys(entered).length) rec.readiness[date] = { ...(rec.readiness[date] || {}), ...entered };
+      rec.sessions = { ...(rec.sessions || {}) };
+      rec.sessions[date] = [...(rec.sessions[date] || []), { kind: 'lift', type: 'Lift', min: Number(minutes), rpe: null, load: 0, attended: true, team: false, ...(note ? { note } : null), by: currentUser || null }];
       return { ...prev, [athleteId]: rec };
     });
-    toast('Logged'); track('session', 'logged a session'); notify();
-  }, [setBhbcLoads, notify]);
+    toast('Lift logged'); track('session', `logged a lift on ${date} · ${Number(minutes)} min`); notify();
+  }, [setBhbcLoads, notify, track, currentUser]);
 
-  // Bulk: log one session's load for the WHOLE available squad (a team all does
-  // the same practice). Skips anyone marked Out that day. Feeds every athlete's ACWR.
-  const logTeamSession = useCallback(({ date, type, minutes, note }) => {
-    // Same model as logSession: a court session is attendance, an S&C session
-    // is minutes, nothing is a load and nothing carries an RPE.
-    const attendanceOnly = type === 'Practice' || type === 'Shootaround';
-    if (!attendanceOnly && !(Number(minutes) > 0)) { toast('Add minutes'); return; }
-    let n = 0;
-    setBhbcLoads((prev) => {
-      const next = { ...prev };
-      roster.forEach((t) => {
-        const rec = next[t.id] ? { ...next[t.id] } : emptyRec();
-        // Out (medical/personal) → skip. The medical record is consulted for
-        // THAT DATE, not for today, so an injury filed after the fact still
-        // keeps the athlete out of a backdated practice. See medicalAvailOn.
-        const av = availOn(rec, medical, t.id, date);
-        if (av >= 4) return;
-        rec.loads = { ...(rec.loads || {}) };
-        rec.sessions = { ...(rec.sessions || {}) };
-        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: attendanceOnly ? 0 : Number(minutes), rpe: null, load: 0, attended: true, team: true, ...(note ? { note } : null) }];
-        next[t.id] = rec;
-        n++;
-      });
-      return next;
-    });
-    toast(n === 1 ? zoneT('Logged for 1 athlete') : zoneT('Logged for {n} athletes').replace('{n}', n)); notify();
-  }, [setBhbcLoads, roster, notify, medical]);
-
-  // The sheet-like per-practice save: availability + load + bodyweight + note for
-  // the whole squad in one write (Ohad: "a smart easy system for each practice
-  // like the BHBC schedule sheet"). Load = minutes × (per-athlete RPE or team RPE);
-  // Out athletes get availability recorded but no load.
-  const savePractice = useCallback(({ date, minutes, intensity, entries, sessionType = 'Conditioning', start = '', note = '' }) => {
+  // THE TEAM S&C SESSION, LOGGED WITH ITS PRACTICE. Ohad, 24.9: "sc sessions
+  // are logged along with a basketball practice" and "practices gets logged
+  // from the players availability on attendance". One save does both:
+  //
+  //   - the PRACTICE is logged as attendance — who was in and who was out of
+  //     the slot `${date}|${start}`, from the day's availability, corrected by
+  //     the coach per player. No duration and no plan text: the practice
+  //     itself is the basketball coach's.
+  //   - the S&C block that ran before it is one `kind:'sc'` row per athlete
+  //     who was there: the team's minutes, one optional note, the slot's
+  //     `start`, team:true. No RPE and no load — the record never carried one.
+  //
+  // Lifts are never written here. They are personal: see logLift.
+  const saveScSession = useCallback(({ date, start = '', minutes, entries, note = '' }) => {
+    const min = Number(minutes) || 0;
+    if (!date || !(min > 0)) { toast('Add the S&C minutes'); return; }
     setBhbcLoads((prev) => {
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
@@ -720,30 +717,21 @@ function attendance28(rec, days) {
         // RE-SAVING A SLOT MUST REPLACE IT, NOT ADD TO IT.
         //
         // The attendance write below is keyed `${date}|${start}` and so is
-        // already idempotent — the slot has an identity. The load and session
-        // rows ignored it and appended unconditionally, so saving the 18:00
-        // practice, noticing a wrong note and saving again gave every athlete
-        // the load TWICE (525 AU -> 1050) plus a duplicate history row. A
-        // 7-day acute of 2100 becomes 2625 and ACWR jumps a full band, with no
-        // way back except deleting the duplicate athlete by athlete.
+        // already idempotent — the slot has an identity. The session rows
+        // used to append unconditionally, so saving the 18:00 practice,
+        // noticing a wrong note and saving again gave every athlete a
+        // duplicate history row. Drop any TEAM row already recorded for THIS
+        // slot first (and take any stale load back out of the day's total).
         //
-        // So drop any row already recorded for THIS slot first, and take its
-        // load back out of the day's total.
+        // REPLACE ONLY WHEN THE SLOT IS IDENTIFIABLE. `start` is '' whenever
+        // the chosen date has no fixture — an unscheduled or backdated
+        // session. Matching on '' would sweep up every LEGACY team row on that
+        // date (rows written before per-slot logging carry no `start`), so
+        // without a slot identity there is nothing to replace: append. A
+        // duplicate row is visible and deletable; a wiped legacy session is
+        // neither. A personal lift never matches: it is not a team row.
         const slotKey = `${date}|${start || ''}`;
         const priorRows = (rec.sessions && rec.sessions[date]) || [];
-        // REPLACE ONLY WHEN THE SLOT IS IDENTIFIABLE.
-        //
-        // The replace above is keyed on `start`, and `start` is '' whenever the
-        // chosen date has no fixture — an unscheduled or backdated session.
-        // Matching on (r.start || '') === '' then swept up every LEGACY team row
-        // on that date (rows written before per-slot logging carry no `start`
-        // at all), deleted them from every athlete and subtracted their load.
-        // Backdating one shootaround to a day with two old sessions would have
-        // silently removed both and dropped the squad's ACWR.
-        //
-        // Without a slot identity there is nothing to replace, so append. A
-        // duplicate row is visible and deletable; a wiped legacy session is
-        // neither.
         const mine = start ? priorRows.filter((r) => r && r.team && r.start === start) : [];
         if (mine.length) {
           const undo = mine.reduce((a, r) => a + (Number(r.load) || 0), 0);
@@ -754,35 +742,13 @@ function attendance28(rec, days) {
         rec.availability = { ...(rec.availability || {}), [date]: e.avail };
         // Per-slot attendance: an athlete who is Out for the DAY is out of every
         // slot, but an available athlete can still be marked absent from THIS
-        // one without touching the rest of his day.
+        // practice without touching the rest of his day. This IS the practice
+        // log.
         const attended = e.attended !== false && e.avail < 4;
         rec.attendance = { ...(rec.attendance || {}), [slotKey]: attended ? 'in' : 'out' };
-        // ATTENDANCE-ONLY vs AN S&C SESSION.
-        //
-        // Ohad, 23.9: "pratice logs > attendance only, s&c team sessions next
-        // to/attached to each practice", "i don't need a practice time",
-        // "remember i dont need team rpes".
-        //
-        // A court session (Practice / Shootaround) records that the athlete
-        // was THERE and nothing else — no duration, no load. Its duration is
-        // the basketball coach's, lives on the fixture, and is not his data.
-        // A Game keeps its minutes, because minutes played are a real S&C
-        // input. Everything else — Conditioning, Lift, Recovery — is his own
-        // S&C work: minutes, a note, zero load, and it carries the slot's
-        // `start` so it sits ATTACHED to the practice it happened at.
-        //
-        // There is no RPE on any branch. 557 rows over two months and not one
-        // ever carried one.
-        const attendanceOnly = sessionType === 'Practice' || sessionType === 'Shootaround';
-        if (!attended) {
-          // Marked absent: the attendance entry above already says 'out'.
-          // No session row, so nothing counts toward his load.
-        } else if (attendanceOnly) {
+        if (attended) {
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: 0, rpe: null, load: 0, attended: true, note: e.note || note || '', team: true, start, by: currentUser || null }];
-        } else if (Number(minutes) > 0) {
-          rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, ...(intensity ? { intensity } : {}), note: e.note || note || '', team: true, start, by: currentUser || null }];
+          rec.sessions[date] = [...(rec.sessions[date] || []), { kind: 'sc', type: 'Conditioning', min, rpe: null, load: 0, attended: true, note: e.note || note || '', team: true, start, by: currentUser || null }];
         }
         if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
         if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note, [`${date}|${start || ''}`]: e.note };
@@ -790,8 +756,9 @@ function attendance28(rec, days) {
       });
       return next;
     });
-    toast(`${sessionType} saved`); track('session', `logged a ${String(sessionType).toLowerCase()} on ${date}${minutes ? ` · ${minutes} min` : ''}`); notify();
-  }, [setBhbcLoads, notify]);
+    const inCount = Object.values(entries || {}).filter((e) => e && e.attended !== false && e.avail < 4).length;
+    toast('S&C session saved'); track('session', `logged the practice and an S&C session on ${date}${start ? ` ${start}` : ''} · ${min} min · ${inCount} in`); notify();
+  }, [setBhbcLoads, notify, track, currentUser]);
 
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
   // readinessAutoreg engine (so the Load board + athlete cards show a real
@@ -846,21 +813,9 @@ function attendance28(rec, days) {
   // ---- Medical / injury record (Ohad + physical therapist) ----
   // Saving an injury/progress entry can also set the athlete's availability that
   // day, so the medical record and the load board stay in sync.
-  // Which session slot's plan is open: { date, start, type, minutes } | null.
-  const [planFor, setPlanFor] = useState(null);
-  const planKey = (f) => `${f.date}|${f.start || ''}`;
-  const planOf = useCallback((f) => (f ? sessionPlans[`${f.date}|${f.start || ''}`] || null : null), [sessionPlans]);
-  const saveSessionPlan = useCallback(({ date, start, focus, plan }) => {
-    if (!setSessionPlans) return;
-    const key = `${date}|${start || ''}`;
-    setSessionPlans((prev) => {
-      const next = { ...(prev || {}) };
-      if (!focus && !plan) delete next[key];
-      else next[key] = { focus: focus || '', plan: plan || '', updatedAt: new Date().toISOString() };
-      return next;
-    });
-    toast('Session plan saved'); track('plan', `saved the session plan for ${date}`); notify();
-  }, [setSessionPlans, notify]);
+  // PRACTICE PLANS ARE GONE. Ohad, 24.9: "no practice plans". The per-slot
+  // plan store (`expo-bhbc-plans`, focus + plan text) is no longer read or
+  // written anywhere in the zone; the key is left alone in the database.
 
   // ---- Week planner writes (Ohad 2026-08-24: "write what and when the entire
   // team has an S&C session"). The zone could DISPLAY sessions but never create
@@ -968,15 +923,19 @@ function attendance28(rec, days) {
   // Coaches (head coach + assistants) are VIEWERS: they read the report, roster,
   // schedule, medical and games — but do NOT operate S&C (no session runner, no
   // logging practices, no check-in entry, no roster management). Ohad 2026-08-18.
-  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['weightroom', tr('Weight Room')], ['medical', tr('Medical')], ...(asCoach ? [] : [['sessions', tr('Sessions')]]), ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]])];
+  // Lifts is the personal weight-room record (kind:'lift' only). The old
+  // owner-only "Sessions" tab (EXPO's set-by-set logger) is gone: a lift is
+  // logged with "Log lift", an S&C session with "Log S&C Session" (24.9).
+  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]])];
 
-  // Never sit on a tab that is not in the list. 'Sessions' disappears in the
+  // Never sit on a tab that is not in the list. 'Activity' disappears in the
   // coach view, but `view` was not reset when 'Preview as coach' was switched
   // on: no content block matched, no tab rendered active, and the owner got a
   // header floating over an empty page that reads as the preview being broken
   // (audit #72). Stated as "the view must be one of the tabs on screen" rather
-  // than as a special case for sessions, so a tab hidden later cannot bring the
-  // blank page back.
+  // than as a special case for one tab, so a tab hidden later cannot bring the
+  // blank page back. A saved 'weightroom' / 'sessions' view resolves the same
+  // way.
   useEffect(() => {
     if (!NAV_TABS.some(([k]) => k === view)) setView(NAV_TABS[0][0]);
   }, [asCoach]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -1215,7 +1174,7 @@ function attendance28(rec, days) {
              the right edge. The whole bar is the horizontal scroller now and the
              identity block is sticky at its left, so the wordmark stays put
              while the tabs and controls slide under it. */
-          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:52px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch}
+          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch}
           .bhbc-header-inner::-webkit-scrollbar{display:none}
           .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
           /* The pinned identity block must be OPAQUE and must have an EDGE, or
@@ -1234,7 +1193,7 @@ function attendance28(rec, days) {
              small box, and that difference is most of why the mobile bar read
              as heavy. Same 30px box as desktop, centred in the 52px bar. */
           .bhbc-hdr-tabs{align-items:center!important}
-          .bhbc-hdr-tabs button{height:30px!important;padding:0 11px!important}
+          .bhbc-hdr-tabs button{height:var(--btn-h)!important;padding:0 11px!important}
           /* The injury row is a fixed 5-column grid (150px 1fr 120px 110px auto)
              — about 430px before gaps, so on a phone it ran a good 130px past
              the viewport and the 'Update ›' target sat off-screen entirely.
@@ -1266,7 +1225,7 @@ function attendance28(rec, days) {
            The bar wraps instead: identity and controls on the first row, always
            visible, and the TAB STRIP on its own row where it scrolls with the
            edge fade it already has. Nothing is hidden behind a gesture. */
-        @media (max-width:860px) and (min-width:521px){
+        @media (max-width:1100px) and (min-width:521px){
           .bhbc-header-inner{flex-wrap:wrap!important;overflow:visible!important;row-gap:4px!important;column-gap:10px!important;padding:6px 14px!important;min-height:0!important}
           /* The phone rules pin the crest and give it an opaque plate so tabs
              scroll under it. On two rows nothing scrolls under anything, and
@@ -1412,7 +1371,12 @@ function attendance28(rec, days) {
           {(!asCoach || canLog) && (
             <div className="bhbc-roster-actions" style={{ marginInlineStart: 'auto', gap: 8 }}>
               {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>}
-              {canLog && <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('+ Log practice')}</Btn>}
+              {/* TWO loggers, named for what they write (Ohad, 24.9: "lifts
+                  should say log lift", "sc sessions should say log S&C
+                  Session"). The S&C one is the team's daily write and is the
+                  filled button; a lift is one athlete's own. */}
+              {canLog && <Btn variant="ghost" onClick={() => setLogFor('new')}>{tr('Log lift')}</Btn>}
+              {canLog && <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Log S&C Session')}</Btn>}
             </div>
           )}
         </div>
@@ -1433,15 +1397,13 @@ function attendance28(rec, days) {
               <>
                 <ReturnLoadAlert roster={roster} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
-                  planOf={planOf} onPlan={asCoach ? null : setPlanFor}
                   onMedical={null}   /* see MED on the load board — same closure, one screen */
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null}
                   /* The staff brief is this report now: its COPY moved into the
-                     header and its FOCUS became a row. */
-                  onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null}
+                     header. */
                   copied={briefCopied}
                   onCopy={() => {
-                    const txt = staffBriefText({ today, fx, rows, medical, planOf, he, tr });
+                    const txt = staffBriefText({ today, fx, rows, medical, he, tr });
                     try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
                     setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
                   }} />
@@ -1454,8 +1416,8 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {view === 'weightroom' && (
-              <WeightRoomTab rows={rows} loads={bhbcLoads} medical={medical} fixtures={bhbcFixtures} planOf={planOf} today={today} onOpen={setDetailFor} />
+            {view === 'lifts' && (
+              <LiftsTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
             )}
 
             {view === 'schedule' && (
@@ -1469,7 +1431,7 @@ function attendance28(rec, days) {
                     same screen said today has an 18:00 practice while the planner
                     underneath it said the week was empty. Every sibling here
                     already passed it; this one was skipped. */}
-                <WeekPlanner fixtures={bhbcFixtures} today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
+                <WeekPlanner fixtures={bhbcFixtures} today={today}
                   onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
                 {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
                     want an easy way to view the history of who trained
@@ -1479,9 +1441,11 @@ function attendance28(rec, days) {
                 <CourtAttendanceTab rows={rows} loads={bhbcLoads} medical={medical} fixtures={bhbcFixtures} today={today} onOpen={setDetailFor} />
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
-                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} medical={medical} />
+                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} medical={medical} />
                 <MicrocycleView fx={fx} today={today} />
-                <ScheduleTool fx={fx} today={today} mode={schedMode} setMode={setSchedMode} onLog={canLog ? () => setLogFor('new') : null} />
+                {/* Log S&C Session / Log lift live in the toolbar on every tab;
+                    the schedule card carries no second copy of either. */}
+                <ScheduleTool fx={fx} today={today} mode={schedMode} setMode={setSchedMode} />
               </>
             )}
 
@@ -1502,22 +1466,6 @@ function attendance28(rec, days) {
 
             {view === 'medical' && (
               <MedicalView roster={roster} rows={rows} loads={bhbcLoads} medical={medical} canMedical={effCanMedical} onLog={canLog ? ((aid) => setLogFor(aid)) : null} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
-            )}
-
-            {view === 'sessions' && !asCoach && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
-                    {[['group', 'Group'], ['single', 'Single']].map(([k, l]) => (
-                      <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY_DEEP : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{tr(l)}</button>
-                    ))}
-                  </div>
-                  <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('Logs each athlete’s work to their history & portal — synced with EXPO.')}</span>
-                </div>
-                <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: C.td, fontFamily: FB }}>{tr('Loading session logger…')}</div>}>
-                  <SessionsView mode={sessionMode} rosterOnly trainees={roster} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={onDecrementSession} />
-                </Suspense>
-              </>
             )}
 
           </div>
@@ -1567,22 +1515,10 @@ function attendance28(rec, days) {
         />
       )}
 
-      {/* ---- PRACTICE ENTRY (the sheet-like daily entry) ---- */}
-      {planFor && (
-        <SessionPlanModal
-          slot={planFor}
-          rows={rows}
-          medical={medical}
-          fixtures={bhbcFixtures}
-          plan={planOf(planFor)}
-          onClose={() => setPlanFor(null)}
-          onPick={(f) => setPlanFor(f)}
-          onSave={(v) => { saveSessionPlan({ date: planFor.date, start: planFor.start, ...v }); setPlanFor(null); }}
-        />
-      )}
+      {/* ---- LOG S&C SESSION (the practice's attendance + the team S&C block) ---- */}
       {practiceOpen && (
-        <PracticeEntryModal sessionPlans={sessionPlans} roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures} medical={medical}
-          onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
+        <ScSessionModal roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures} medical={medical}
+          onClose={() => setPracticeOpen(false)} onSave={(p) => { saveScSession(p); setPracticeOpen(false); }} />
       )}
 
       {/* WELLNESS CHECK-IN — every entry point removed on Ohad's instruction
@@ -1672,11 +1608,10 @@ function attendance28(rec, days) {
         </div>
       </BModal>
 
-      {/* ---- LOG SESSION MODAL ---- */}
+      {/* ---- LOG LIFT (one athlete, any day, personal) ---- */}
       {logFor && (
-        <LogModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} fixtures={bhbcFixtures}
-          availableCount={rows.filter((r) => (r.avail || 1) < 4).length}
-          onClose={() => setLogFor(null)} onSave={(payload) => { (payload.scope === 'squad' ? logTeamSession : logSession)(payload); setLogFor(null); }} />
+        <LiftModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster}
+          onClose={() => setLogFor(null)} onSave={(payload) => { logLift(payload); setLogFor(null); }} />
       )}
 
       {/* ---- ATHLETE DETAIL (in-zone) ---- */}
@@ -1740,27 +1675,23 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
   const av = AVAIL[avail];
-  // Unified activity: sRPE practice/quick logs + detailed gym sessions (client_workouts).
+  // Unified activity: the zone's own session rows + detailed EXPO gym sessions (client_workouts).
   const activity = [];
-  // NO RPE DOES NOT MEAN THE WEIGHT ROOM. This branch labelled every RPE-less
-  // session "Gym", which was true while the only sessions without an RPE were
-  // gym attendance. Three weeks of court practices logged with minutes and no
-  // intensity then read "Gym · 120 min" in the physio's own history - and in
-  // this club גym is the weight room specifically. Label it by what it IS; a
-  // Lift still reads Gym, which is the word they use for it.
-  const kindLabel = (type) => {
-    const k = String(type || '').toLowerCase();
-    return (!k || k === 'lift') ? 'Gym' : String(type);
+  // TWO DISTINCT KINDS, NAMED. Ohad, 24.9: the team S&C block and a personal
+  // lift "are combined or messed up" — this timeline folded both into one
+  // "Gym" line. A row is labelled by what rowKind says it IS: an S&C session
+  // (team, at a practice), a Lift (his own), a practice (attendance), a game.
+  // EXPO's set-by-set gym workouts keep their own "Gym" chip below.
+  const KIND_WORD = { sc: 'S&C session', lift: 'Lift', practice: 'Practice', game: 'Game' };
+  const rowLabel = (s) => {
+    const k = rowKind(s);
+    if (k === 'practice' && s.type && String(s.type).toLowerCase() !== 'practice') return tr(String(s.type));   // Shootaround keeps its word
+    return tr(KIND_WORD[k] || String(s.type || 'Session'));
   };
-  // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
-  // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
-  //
   // Branch on whether an RPE was ever recorded, NOT on whether the load is
-  // zero (audit #71). A gym attendance entry has no rpe; an sRPE session always
-  // does. Keyed on load, a Practice whose minutes were edited down to zero
-  // silently redrew itself as a gym attendance row, with no way to see it had
-  // ever been a Practice.
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: /^(lift|weights|gym)$/i.test(String(s.type || '')) || !s.type ? 'gym' : /game|scrimmage/i.test(String(s.type || '')) ? 'game' : 'practice', date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${tr(kindLabel(s.type))} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${tr(s.type)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  // zero (audit #71): a stale sRPE row still prints its RPE; everything logged
+  // since 23.9 has none and reads minutes or "attended".
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: rowKind(s), date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ kind: 'gym', date: d, label: `${tr('Gym')} · ${nEx} ${tr(nEx === 1 ? 'lift' : 'lifts')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ kind: 'other', date: d, label: `${tr('Bodyweight')} ${kg} ${tr('kg')}`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ kind: 'other', date: d, label: `${tr('Availability')} · ${tr(AVAIL[code].label)}`, load: null }); });
@@ -1785,10 +1716,10 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ kind: 'game', date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
   activity.sort((a, b) => b.date.localeCompare(a.date));
   // Counts per kind for the chips, then the visible rows grouped by month.
-  const KIND_LABEL = { game: 'Games', practice: 'Practices', gym: 'Weight room', note: 'Notes', other: 'Other' };
+  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C sessions', lift: 'Lifts', gym: 'Gym', note: 'Notes', other: 'Other' };
   const kindCount = {};
   activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
-  const kindChips = ['game', 'practice', 'gym', 'note', 'other'].filter((k) => kindCount[k]);
+  const kindChips = ['game', 'practice', 'sc', 'lift', 'gym', 'note', 'other'].filter((k) => kindCount[k]);
   const shownActivity = histKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === histKind);
   const monthKeys = [];
   const byMonth = {};
@@ -2063,7 +1994,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             whether the owner sees four or a coach sees three, and wraps rather
             than squeezing below the widest label. */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(168px, 1fr))`, gap: 8 }}>
-          {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log session')}</Btn>}
+          {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log lift')}</Btn>}
           {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
               medical strip above, and the fourth button is what squeezed the row to
               155px and wrapped its own label onto two lines. Three buttons fit. */}
@@ -2121,7 +2052,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   const fillAll = () => setEntries(() => { const e = {}; roster.forEach((t) => { e[t.id] = { sleep: 'good', energy: 'good', pain: 0 }; }); return e; });
   const SLEEP = [['poor', 'Poor'], ['ok', 'OK'], ['good', 'Good'], ['great', 'Great']];
   const ENERGY = [['low', 'Low'], ['ok', 'OK'], ['good', 'Good'], ['high', 'High']];
-  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 30, boxSizing: 'border-box', textAlign: 'center' };
+  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', textAlign: 'center' };
   const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null) || e.bw).length;
   const cols = '24px 1.3fr auto auto 62px 76px';
   return (
@@ -2158,262 +2089,174 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   );
 }
 
-// Per-SESSION plan editor. A day can hold a morning and an evening practice;
-// each slot is its own plan, so authoring the evening no longer overwrites the
-// morning (and there is finally somewhere to author it at all).
-function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows = [], medical = {} }) {
+// LOG S&C SESSION — the zone's daily write. Ohad, 24.9: "sc sessions are
+// logged along with a basketball practice", "practices gets logged from the
+// players availability on attendance", "no practice plans".
+//
+// One sheet, one practice slot. The top row picks the date and the S&C
+// minutes for the team; the chips pick WHICH practice on that date (a day can
+// hold a morning and an evening one). The grid is the PRACTICE LOG: each
+// player's day availability and whether he was at THIS practice, prefilled
+// from availability (Out for the day = out of the practice). Save writes the
+// attendance for the slot and one S&C row per player who was there.
+//
+// No type picker and no plan box: this sheet writes exactly one thing. A lift
+// is personal and has its own sheet (LiftModal). There is no RPE anywhere.
+function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical = {} }) {
   const tr = useT();
-  const [focus, setFocus] = useState(plan?.focus || '');
-  const [text, setText] = useState(plan?.plan || '');
-  useEffect(() => { setFocus(plan?.focus || ''); setText(plan?.plan || ''); }, [plan, slot?.date, slot?.start]);
-  const daySlots = (fixtures || []).filter((f) => f.date === slot.date).slice().sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-  const inp = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', width: '100%', boxSizing: 'border-box', outline: 'none' };
-  const title = `${dow(slot.date)} ${monDay(slot.date)} · ${slot.start || ''} ${fxLabelFor(slot.type, fxLabelFor(slot.type, FX_LABEL[slot.type] || 'Session'))}`;
-  return (
-    <BModal open onClose={onClose} title={tr('Session plan')}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {daySlots.length > 1 && (
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>{tr('Which session')}</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {daySlots.map((f, i) => {
-                const on = (f.start || '') === (slot.start || '') && f.type === slot.type;
-                return (
-                  <button key={i} type="button" onClick={() => onPick && onPick(f)}
-                    style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', padding: '6px 10px', cursor: 'pointer', borderRadius: 0,
-                      background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
-                    {f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} {f.minutes ? `· ${f.minutes}m` : ''}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textTransform: 'uppercase' }}>{title}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>{tr('Focus')}</label>
-          <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="e.g. Transition D · half-court sets" style={inp} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>{tr('Plan')}</label>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} dir="auto"
-            placeholder={'The S&C period at the start of practice — blocks, timings, limits.\n\n15\u2032 warm-up + activation\n20\u2032 shooting\n30\u2032 5v5 (Amit: non-contact, shooting only)'}
-            style={{ ...inp, resize: 'vertical', lineHeight: 1.5, fontFamily: FB }} />
-        </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{plan?.updatedAt ? `Last edited ${monDay(plan.updatedAt.slice(0, 10))}` : 'Not planned yet'}</span>
-          <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-          <Btn onClick={() => onSave({ focus: focus.trim(), plan: text.trim() })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Save plan')}</Btn>
-        </div>
-      </div>
-    </BModal>
-  );
-}
-
-function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sessionPlans = {}, medical = {} }) {
-  const tr = useT();
-  // DEFAULT TO TODAY, not to the next fixture on the calendar.
-  //
-  // This used to pick the next UPCOMING fixture's date, so with no session
-  // scheduled today the modal opened on Sunday's practice. A coach running an
-  // unscheduled Saturday session fills in minutes and RPE, saves without
-  // re-reading the date, and the whole squad's load lands three days in the
-  // future — where acwrEngine excludes it from BOTH the acute and chronic
-  // windows (sumWindow takes n <= end), so the load board still reports today
-  // unchanged and the work simply does not exist until Sunday arrives.
-  //
-  // The slot picker below still lists whatever is scheduled on the chosen date,
-  // so logging a scheduled practice is unchanged — it just no longer silently
-  // starts on a different day.
+  // DEFAULT TO TODAY, not to the next fixture on the calendar. Picking the
+  // next UPCOMING fixture's date meant an unscheduled Saturday session was
+  // saved onto Sunday's practice by a coach who did not re-read the date.
   const [date, setDate] = useState(() => todayISO());
-  const dayFx = (fixtures || []).filter((f) => f.date === date).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
-  // WHICH session on that date. A day can hold a morning and an evening
-  // practice; without this the log silently landed on the first one and the
-  // second was unrecordable.
+  // Only court slots are practices. A game is not one, and a legacy weights
+  // slot is not one either — lifts are personal now.
+  const isPracticeFx = (f) => f && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
+  const dayFx = (fixtures || []).filter((f) => f.date === date && isPracticeFx(f)).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
   const [slotStart, setSlotStart] = useState('');
-  const slot = dayFx.find((f) => f.start === slotStart) || null;
-  const slotPlan = slot ? sessionPlans[`${date}|${slot.start || ''}`] : null;
   const [minutes, setMinutes] = useState('');
-  const [intensity, setIntensity] = useState('');
-  const [sessionType, setSessionType] = useState('Conditioning');
-  // The ONE place to write what the team did in this session (Ohad 09-01).
-  // Per-athlete notes still win where they exist; this fills in for everyone
-  // else, so a team S&C session needs exactly one line of typing.
   const [note, setNote] = useState('');
   const [entries, setEntries] = useState({});
+  // The minutes the LAST S&C session took, anywhere in the squad — the block
+  // is the same length most days, so it is the honest default. NEVER the
+  // slot's own minutes: those are the basketball practice's length (90/120),
+  // and copying them onto the S&C row is exactly the flat-minutes mistake the
+  // 23.9 rebuild removed.
+  const lastScMin = useMemo(() => {
+    let best = null;
+    for (const rec of Object.values(bhbcLoads || {})) {
+      for (const [d, list] of Object.entries((rec && rec.sessions) || {})) {
+        for (const r of (list || [])) {
+          if (rowKind(r) !== 'sc' || !(Number(r.min) > 0)) continue;
+          if (!best || d > best.date) best = { date: d, min: Number(r.min) };
+        }
+      }
+    }
+    return best ? best.min : null;
+  }, [bhbcLoads]);
   useEffect(() => {
     const e = {};
     // The sheet OPENS with anyone the medical record puts out on that date
     // already set to Out, so the coach is correcting a right answer instead of
     // remembering an absence. availOn reads the record for `date`, not today.
-    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: availOn(rec, medical, t.id, date), attended: true, rpe: '', bw: '', note: '' }; });
+    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: availOn(rec, medical, t.id, date), attended: true, bw: '', note: '' }; });
     setEntries(e);
-    const list = (fixtures || []).filter((f) => f.date === date).slice().sort((a2, b2) => (a2.start || '').localeCompare(b2.start || ''));
-    // Default to the NEXT slot still ahead on the clock (so an evening log
+    const list = (fixtures || []).filter((f) => f.date === date && isPracticeFx(f)).slice().sort((a2, b2) => (a2.start || '').localeCompare(b2.start || ''));
+    // Default to the NEXT practice still ahead on the clock (so an evening log
     // doesn't default to the morning), else the first practice of the day.
     const now = new Date();
     const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const upcoming = date === todayISO() ? list.find((f) => (f.start || '') >= hhmm) : null;
     const prac = upcoming || list.find((f) => f.type === 'practice') || list[0];
     setSlotStart(prac ? (prac.start || '') : '');
-    setMinutes(prac ? String(prac.minutes) : '');
-    // Default the session type from the day's fixture (game day → Game).
-    const g = list.find((f) => f.type === 'game');
-    setSessionType(g ? 'Game' : (list.find((f) => f.type === 'lift') && !prac ? 'Lift' : 'Conditioning'));
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
+  // IF THIS PRACTICE WAS ALREADY LOGGED, THE SHEET OPENS ON THAT RECORD — its
+  // minutes, its note and who was marked in — so a re-save corrects it instead
+  // of guessing again (the save replaces the slot's team rows). An unlogged
+  // slot gets the last session's minutes and everyone in.
+  useEffect(() => {
+    const key = `${date}|${slotStart || ''}`;
+    let min = null, nt = '';
+    const marks = {};
+    roster.forEach((t) => {
+      const rec = bhbcLoads[t.id] || {};
+      const att = rec.attendance && rec.attendance[key];
+      if (att) marks[t.id] = att === 'in';
+      const row = ((rec.sessions || {})[date] || []).find((r) => rowKind(r) === 'sc' && (r.start || '') === (slotStart || ''));
+      if (row) { if (min == null && Number(row.min) > 0) min = Number(row.min); if (!nt && row.note) nt = row.note; }
+    });
+    setEntries((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((id) => { next[id] = { ...next[id], attended: id in marks ? marks[id] : true }; });
+      return next;
+    });
+    setMinutes(min != null ? String(min) : (lastScMin ? String(lastScMin) : ''));
+    setNote(nt);
+  }, [date, slotStart]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
-  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 32, boxSizing: 'border-box' };
-  // THE MODAL COULD NOT SAVE THE THING HE LOGS MOST.
-  //
-  // Ohad, 23.9: "i don't need to log any practice sessions just the s&c part!!"
-  // and "i never asked for a team rpe to exist". Measured against his own data
-  // before changing anything: 557 logged rows across two months, and NOT ONE
-  // carries an RPE. What he logs is Conditioning (250 rows, 5-12 min, notes
-  // like "ladders + quick feet + dynamic stretching") and Lift (115). Practice
-  // is 174 rows of flat 90/120-minute attendance, which he has now said he
-  // does not need.
-  //
-  // But canSave demanded `Number(teamRpe) > 0` for everything except Lift — so
-  // a Conditioning session, his single commonest entry, was UNSAVEABLE through
-  // this modal. Every one of those 250 rows had to be written by script. The
-  // RPE gate was the reason, and it was guarding a field he has never filled.
-  //
-  // So: minutes are the requirement. RPE is optional, and only offered for the
-  // court sessions where a session-RPE load means anything.
-  // A court session is ATTENDANCE. An S&C session has minutes. Nothing has an
-  // RPE. A Game keeps its minutes because minutes played are a real S&C input.
-  const attendanceOnly = sessionType === 'Practice' || sessionType === 'Shootaround';
-  const isLift = sessionType === 'Lift';
-  const canSave = attendanceOnly || Number(minutes) > 0;
-  // THE NAME COLUMN NEEDS A FLOOR, NOT A FRACTION.
-  // At minWidth 560 the fixed columns and gaps take 382px, leaving 178 for the
-  // two fr tracks - about 86px for the athlete. Measured 19.9 at 390: every
-  // name in the log-practice modal broke in half, "ZACK / BRYANT", "DAESHON /
-  // FRANCIS", so each row stood two lines tall and the column read ragged.
-  // minmax gives the name 152px before it is allowed to shrink - 130 cleared three
-  // of the four but not DAESHON FRANCIS, the longest on the roster; the grid lives
-  // in an overflowX:auto scroller, so growing costs a scroll, not a clip.
-  // One column set now: the RPE column is gone for every type.
-  const cols = '24px minmax(152px, 1.4fr) 116px 72px 66px 1.5fr';
+  // One height for every bordered control on the sheet (24.9: 36 everywhere).
+  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box' };
+  const canSave = Number(minutes) > 0;
+  const inCount = Object.values(entries).filter((e) => e && e.attended !== false && e.avail < 4).length;
+  // THE NAME COLUMN NEEDS A FLOOR, NOT A FRACTION. Measured 19.9 at 390: every
+  // name broke in half ("ZACK / BRYANT") at ~86px. minmax gives it 152px before
+  // it may shrink; the grid lives in an overflowX:auto scroller, so growing
+  // costs a scroll, not a clip.
+  const cols = '24px minmax(152px, 1.4fr) 116px 84px 66px 1.5fr';
   return (
-    <BModal open onClose={onClose} wide title={tr('Log session')}>
+    <BModal open onClose={onClose} wide title={tr('Log S&C Session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* bhbc-form-grid: the ≤620px rule that stacks these into full-width
-            rows already exists in themes.css and is used by the injury modal —
-            this row never got the class. Measured, it needs ~460px of fixed
-            column floors (a date input alone is ~130px) inside a 310px sheet,
-            and it holds Minutes and Team RPE, the two fields canSave requires.
-            So the primary daily write was the one squeezed off a phone. */}
-        <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: isLift ? '1.1fr 1fr 0.8fr 1fr' : '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
+        {/* bhbc-form-grid: the ≤620px rule in themes.css stacks these into
+            full-width rows on a phone. */}
+        <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.8fr', gap: 10, alignItems: 'end' }}>
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Type')}</label>
-            <select value={sessionType} onChange={(e) => setSessionType(e.target.value)} style={inp}>
-              {/* S&C first — that is what he logs. The court types stay for the
-                  history that already uses them and for game minutes. */}
-              {['Conditioning', 'Lift', 'Recovery', 'Practice', 'Game', 'Shootaround'].map((o) => <option key={o} value={o}>{tr(o)}</option>)}
-            </select>
-          </div>
-          {/* No minutes on a practice: he does not log the basketball session's
-              length, and the fixture already carries it. */}
-          {!attendanceOnly && <Input label={tr('Minutes')} type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="10" />}
-          {/* THE TEAM RPE FIELD IS GONE. Ohad, twice on 23.9: "i never asked
-              for a team rpe to exist", "remember i dont need team rpes" — and
-              the data agreed before he said it: 557 rows, not one RPE. */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Intensity')}</label>
-            <select value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inp}>
-              <option value="">—</option>
-              {['Low', 'Moderate', 'High', 'Very High'].map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
+          <Input label={tr('S&C minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="10" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which practice')}</span>
+            {dayFx.length ? dayFx.map((f, i) => {
+              const on = (f.start || '') === slotStart;
+              return (
+                <button key={i} type="button" onClick={() => setSlotStart(f.start || '')}
+                  style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0,
+                    background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
+                  {f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? ` · ${f.minutes} ${fxLabelFor('__min', 'min')}` : ''}
+                </button>
+              );
+            }) : <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('No practice on the schedule for this date — it is saved to the day.')}</span>}
           </div>
         </div>
-        {dayFx.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which session')}</span>
-              {dayFx.map((f, i) => {
-                const on = (f.start || '') === slotStart;
-                return (
-                  <button key={i} type="button"
-                    onClick={() => { setSlotStart(f.start || ''); setMinutes(f.type === 'lift' ? String(f.minutes || '') : ''); setSessionType(f.type === 'game' ? 'Game' : f.type === 'lift' ? 'Lift' : 'Conditioning'); }}
-                    style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '5px 10px', cursor: 'pointer', borderRadius: 0,
-                      background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
-                    {f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} {f.minutes ? `· ${f.minutes}m` : ''}
-                  </button>
-                );
-              })}
-            </div>
-            {slotPlan && (slotPlan.focus || slotPlan.plan) && (
-              <div style={{ border: `1px solid ${ORANGE}`, padding: '8px 10px' }}>
-                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 3 }}>{tr('Plan for this session')}</div>
-                {slotPlan.focus && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx }}>{slotPlan.focus}</div>}
-                {slotPlan.plan && <div dir="auto" style={{ fontFamily: FB, fontSize: 12, color: C.tm, whiteSpace: 'pre-wrap', lineHeight: 1.45, marginTop: 2 }}>{slotPlan.plan}</div>}
-              </div>
-            )}
-          </div>
-        )}
-        {(() => {
-          // Microcycle context for the session's date — the plan's emphasis +
-          // a suggested intensity (informs the coach; never overrides the pick).
-          const g = (fixtures || []).filter((f) => f.type === 'game' && f.date >= date).sort((a, b) => a.date.localeCompare(b.date))[0];
-          if (!g) return null;
-          const plan = mdPlan(-dayDiff(g.date, date));
-          const sug = plan.game ? null : plan.load >= 5 ? 'High' : plan.load >= 3 ? 'Moderate' : 'Low';
-          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: 'var(--c-stripTx)', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{tr(plan.label)}</span><span style={{ color: C.tx }}><Segmented text={tr(plan.emphasis)} /></span>{sug && <span style={{ color: C.td }}>· {tr(`suggest ${sug.toLowerCase()} intensity`)}</span>}</div>;
-        })()}
         <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 560 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-              <div>#</div><div>{tr('Athlete')}</div><div>{tr('Availability')}</div><div>{tr('This slot')}</div><div>{tr('BW kg')}</div><div>{tr('Note')}</div>
+          <div className="bhbc-sc-wrap" style={{ minWidth: 560 }}>
+            <div className="bhbc-sc-row" style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+              <div>#</div><div>{tr('Athlete')}</div><div>{tr('Availability')}</div><div>{tr('This practice')}</div><div>{tr('BW kg')}</div><div>{tr('Note')}</div>
             </div>
             {roster.map((t) => {
-              const e = entries[t.id] || { avail: 1, rpe: '', bw: '', note: '' };
+              const e = entries[t.id] || { avail: 1, attended: true, bw: '', note: '' };
               const av = AVAIL[e.avail];
+              const dayOut = e.avail >= 4;
+              const inSlot = !dayOut && e.attended !== false;
               return (
-                <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: `1px solid ${C.cardBd}` }}>
+                // The row is never under the controls it holds: a 36px control
+                // plus 7px above and below.
+                <div key={t.id} className="bhbc-sc-row" style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '7px 0', minHeight: 50, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}` }}>
                   <Jersey n={t.jersey} size={22} />
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</button>
-                  {/* Attendance for THIS slot only. An athlete Out for the day is
-                      locked out of every slot; anyone else can be marked absent
-                      from this session without changing his day. */}
-                  {(() => {
-                    const dayOut = e.avail >= 4;
-                    const inSlot = !dayOut && e.attended !== false;
-                    return (
-                      <button type="button" disabled={dayOut}
-                        onClick={() => set(t.id, 'attended', !inSlot)}
-                        title={dayOut ? 'Out for the whole day' : inSlot ? 'Trained this session — click to mark absent' : 'Absent from this session — click to mark present'}
-                        className="bhbc-ghost-btn"
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: dayOut ? C.td : inSlot ? '#37B27C' : '#DE4E3B', background: 'transparent', border: `1px solid ${dayOut ? C.cardBd : inSlot ? '#37B27C' : '#DE4E3B'}`, padding: '0 6px', cursor: dayOut ? 'not-allowed' : 'pointer', opacity: dayOut ? 0.5 : 1, whiteSpace: 'nowrap' }}>
-                        {dayOut ? '—' : inSlot ? 'In' : 'Out'}
-                      </button>
-                    );
-                  })()}
-                  <input type="number" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
+                  {/* The DAY's availability — the fact the practice log is read
+                      from. Cycling it here records it for that date. */}
+                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</button>
+                  {/* Attendance at THIS practice only. An athlete Out for the day
+                      is out of every practice; anyone else can be marked absent
+                      from this one without changing his day. */}
+                  <button type="button" disabled={dayOut}
+                    onClick={() => set(t.id, 'attended', !inSlot)}
+                    title={tr(dayOut ? 'Out for the whole day' : inSlot ? 'At this practice — click to mark absent' : 'Absent from this practice — click to mark present')}
+                    className="bhbc-ghost-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: dayOut ? C.td : inSlot ? '#37B27C' : '#DE4E3B', background: 'transparent', border: `1px solid ${dayOut ? C.cardBd : inSlot ? '#37B27C' : '#DE4E3B'}`, padding: '0 6px', cursor: dayOut ? 'not-allowed' : 'pointer', opacity: dayOut ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                    {dayOut ? '—' : inSlot ? tr('In') : tr('Out')}
+                  </button>
+                  <input type="number" inputMode="decimal" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
                   <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder={tr('note')} style={inp} />
                 </div>
               );
             })}
           </div>
         </div>
-        {/* WHAT WE DID - one line, for the whole session. Ohad does not want a
-            session PLAN on basketball practices; he wants one spot to record
-            what the team actually did in an S&C session. Per-athlete notes
-            still take precedence where they were typed. */}
-        <div style={{ marginBottom: 10 }}>
+        {/* WHAT WE DID — one line for the whole S&C session. A note, never a
+            plan: he does not want a plan on basketball practices at all.
+            Per-athlete notes still win where they were typed. */}
+        <div>
           <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, display: 'block', marginBottom: 5 }}>{tr('What we did')}</label>
           <input value={note} onChange={(e) => setNote(e.target.value)}
             placeholder={tr('e.g. Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)')}
-            style={{ width: '100%', boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '7px 9px' }} />
+            style={{ ...inp, fontFamily: FB, fontSize: 13, padding: '0 9px' }} />
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{attendanceOnly
-            ? 'A practice records WHO WAS THERE — no duration, no load. Add the S&C block as its own session on the same slot.'
-            : 'S&C sessions are minutes only — no RPE, no load. “This slot” records who actually trained THIS session; the day’s availability is separate.'}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto', fontVariantNumeric: 'tabular-nums' }}>
+            <span dir="ltr" style={{ unicodeBidi: 'isolate', fontWeight: 800, color: C.tx }}>{inCount}/{roster.length}</span> {tr('at this practice')} · {tr('Team S&C · minutes only, no RPE. In/Out is who was at THIS practice; the day’s availability is separate.')}
+          </span>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, intensity, entries, sessionType, start: slotStart, note: (note || '').trim() })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')} {sessionType.toLowerCase()}</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ date, start: slotStart, minutes, entries, note: (note || '').trim() })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Log S&C Session')}</Btn>
         </div>
       </div>
     </BModal>
@@ -2433,9 +2276,9 @@ function GameEditModal({ game, onClose, onSave }) {
         <Input label="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Hayovel Arena" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Home / Away')}</label>
-          <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
+          <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center', height: 'var(--btn-h)', boxSizing: 'border-box' }}>
             {[['home', 'Home'], ['away', 'Away'], ['', '—']].map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{tr(l)}</button>
+              <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '0 16px', minHeight: 0, height: 'calc(var(--btn-h) - 2px)', cursor: 'pointer' }}>{tr(l)}</button>
             ))}
           </div>
         </div>
@@ -2594,7 +2437,7 @@ function FixturesAheadPanel({ fixtures, today }) {
           // alignItems:center re-centres against a taller row. The number a coach
           // reads first must start where the name starts.
           return (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 12, alignItems: 'start', padding: '10px 0', borderBottom: i < games.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: i < games.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, lineHeight: 1, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
                 {/* 9, not 7.5: measured at 390px this was the smallest text in the zone,
@@ -2767,7 +2610,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row bhbc-brief-row' : 'bhbc-brief-row'}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default', '--sev': sevColor[a.sev] }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default', '--sev': sevColor[a.sev] }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
@@ -3044,7 +2887,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   );
 }
 
-function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan, onCopy, copied, onSessions, onLog }) {
+function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, onCopy, copied }) {
   const he = useHe();
   const tr = useT();
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
@@ -3131,27 +2974,13 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
             })()
           : <span style={mut}>{tr('No game scheduled.')}</span>}
       </Section>
-      {/* TODAY'S FOCUS — the one thing the staff brief carried that this report
-          did not. Blank is stated as blank; a focus nobody wrote is not
-          invented. */}
-      {(() => {
-        const { period, focus } = todayFocusOf({ today, fx, planOf });
-        if (!period) return null;
-        return (
-          <Section label={tr('Focus')}>
-            {focus
-              ? <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflowWrap: 'break-word' }}><bdi>{focus}</bdi></span>
-              : <span style={mut}>{tr('no focus written')}</span>}
-          </Section>
-        );
-      })()}
-      {/* AVAILABILITY */}
+      {/* No FOCUS row: practice plans are gone (Ohad, 24.9: "no practice plans"). */}
       {/* WHAT IS ON TODAY. It was a card of its own directly below this one,
           repeating the game and the availability counts that are already
-          here. Rendered bare, it keeps its chips, its focus and Start
-          session, and loses the second copy of everything else. */}
+          here. Rendered bare, it keeps its chips and loses the second copy of
+          everything else. */}
       <Section label={tr("Today")}>
-        <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} planOf={planOf} onPlan={onPlan} onSessions={onSessions} onLog={onLog} />
+        <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} />
       </Section>
       <Section label={tr("Availability")} list>
         <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {countWord(available.length, 'available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {countWord(limited.length, 'limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
@@ -3212,20 +3041,13 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
         {sessions.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {sessions.slice(0, 6).map((s, i) => {
-                const pl = planOf ? planOf(s) : null;
-                // Weight-room sessions appear on the calendar but are not planned.
-                const clickable = !!onPlan && s.type !== 'lift';
                 return (
-                <div key={i} onClick={clickable ? () => onPlan(s) : undefined}
-              role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
-              onKeyDown={clickable ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPlan(s); } }) : undefined}
-                  title={clickable ? tr(pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
+                <div key={i}
                   // flexWrap so a squeezed label moves to its own LINE instead of
-                  // being crushed to "PR…". The action still never breaks: it
-                  // wraps whole rather than sliding off the viewport, which was
-                  // the failure the fixed columns were protecting against.
-                  className={clickable ? 'bhbc-row bhbc-week-row' : 'bhbc-week-row'}
-                  style={{ display: 'flex', alignItems: 'center', lineHeight: 'normal', gap: 10, rowGap: 2, flexWrap: 'wrap', cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
+                  // being crushed to "PR…". Nothing here is clickable any more:
+                  // the row used to open the slot's plan, and plans are gone.
+                  className="bhbc-week-row"
+                  style={{ display: 'flex', alignItems: 'center', lineHeight: 'normal', gap: 10, rowGap: 2, flexWrap: 'wrap', padding: '2px 0' }}>
                   {/* 96 + nowrap, same as the past-practice list: at 78px some dates
                       wrapped to two lines and others did not, so the column read
                       ragged down the card. */}
@@ -3239,12 +3061,6 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                       the label keeps its own line, rather than ellipsizing down to
                       two characters, which told the coach nothing. */}
                   <span style={{ color: C.tm, flexShrink: 1, minWidth: 104, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(s.type, FX_LABEL[s.type] || 'Session')}{s.minutes ? ` · ${s.minutes} ${fxLabelFor('__min', 'min')}` : ''}</span>
-                  {/* The plan for THAT slot, right where the week is read —
-                      the Today card only ever covered today (Ohad: "where can
-                      I see the plan for tonight?"). */}
-                  {pl && (pl.focus || pl.plan)
-                    ? <span dir="auto" style={{ flex: '1 1 auto', minWidth: 0, color: C.tx, fontFamily: FB, fontSize: 12, whiteSpace: 'normal', overflowWrap: 'break-word' }}>— {pl.focus || pl.plan}</span>
-                    : clickable ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0, marginInlineStart: 'auto' }}>{tr('+ PLAN')}</span> : null}
                 </div>
                 );
               })}
@@ -3272,13 +3088,13 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
 // The plain-text brief staff paste into WhatsApp. Lifted out of the old
 // StaffBrief card so COPY keeps producing exactly the same string now that the
 // two reports are one.
-function staffBriefText({ today, fx, rows, medical, planOf, he, tr }) {
+function staffBriefText({ today, fx, rows, medical, he, tr }) {
   const dayGroup = ((fx && fx.byDay) || []).find((d) => d.date === today);
   const slots = (dayGroup && dayGroup.items) || [];
   // The S&C period sits at the START of a basketball practice, so the practice
-  // slot is the one he briefs. A weights session is not briefed.
+  // slot is the one he briefs. A weights session is not briefed. No focus
+  // line any more: practice plans are gone (24.9).
   const period = slots.find((f) => f.type === 'practice') || null;
-  const plan = period && planOf ? planOf(period) : null;
   const limited = [], outList = [];
   for (const r of (rows || [])) {
     const inj = activeInjuries(medical || {}, r.t.id);
@@ -3290,8 +3106,8 @@ function staffBriefText({ today, fx, rows, medical, planOf, he, tr }) {
   const flat = (e) => e.name + ' — ' + e.detail;
   const availCount = (rows || []).length - limited.length - outList.length;
   const L = he
-    ? { when: 'מתי', focus: 'פוקוס', limited: 'מוגבלים', out: 'בחוץ', avail: 'זמינים', none: 'אין', noFocus: 'לא נכתב פוקוס', noSession: 'אין אימון היום' }
-    : { when: 'When', focus: 'Focus', limited: 'Limited', out: 'Out', avail: 'Available', none: 'none', noFocus: 'no focus written', noSession: 'no practice today' };
+    ? { when: 'מתי', limited: 'מוגבלים', out: 'בחוץ', avail: 'זמינים', none: 'אין', noSession: 'אין אימון היום' }
+    : { when: 'When', limited: 'Limited', out: 'Out', avail: 'Available', none: 'none', noSession: 'no practice today' };
   const dObj = new Date(today + 'T12:00:00');
   const EN_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -3302,20 +3118,11 @@ function staffBriefText({ today, fx, rows, medical, planOf, he, tr }) {
   return [
     'BHBC · ' + briefDate,
     whenLine,
-    L.focus + ': ' + ((plan && (plan.focus || plan.plan)) || L.noFocus),
     '',
     L.avail + ': ' + availCount,
     L.limited + ' (' + limited.length + '): ' + (limited.length ? limited.map(flat).join('; ') : L.none),
     L.out + ' (' + outList.length + '): ' + (outList.length ? outList.map(flat).join('; ') : L.none),
   ].join(String.fromCharCode(10));
-}
-
-// Today's practice focus, for the report row. Same source the brief text uses.
-function todayFocusOf({ today, fx, planOf }) {
-  const dayGroup = ((fx && fx.byDay) || []).find((d) => d.date === today);
-  const period = ((dayGroup && dayGroup.items) || []).find((f) => f.type === 'practice') || null;
-  const plan = period && planOf ? planOf(period) : null;
-  return { period, focus: (plan && (plan.focus || plan.plan)) || '' };
 }
 
 // Contact minutes and the density they make, in his own bands. Renders
@@ -3335,7 +3142,7 @@ function DensityBit({ f: fx, size = 11 }) {
     </span>
   );
 }
-function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan, bare = false }) {
+function TodayPanel({ today, fixtures, fx, rows, bare = false }) {
   const he = useHe();
   const tr = useT();
   const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
@@ -3346,30 +3153,14 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   const gdLabel = gd == null ? null : gd === 0 ? tr('GAME DAY') : gd < 0 ? (he ? `עוד ${-gd === 1 ? 'יום אחד' : `${-gd} ימים`} למשחק` : `${-gd} day${gd === -1 ? '' : 's'} to game`) : null;
   // time (with date when it's a future/next session) highlighted in a navy
   // segment; all text one size.
-  // A session chip carries ITS OWN plan: two practices on one day each get
-  // their own focus + plan, authored by clicking the chip.
-  const chipWrap = (f, i, showDate) => {
-    const pl = planOf ? planOf(f) : null;
-      // Weight-room sessions appear on the calendar but are not planned.
-    const clickable = !!onPlan && f.type !== 'lift';
-    return (
-      <span key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
-        <span onClick={clickable ? () => onPlan(f) : undefined}
-          title={clickable ? tr(pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
-          style={{ cursor: clickable ? 'pointer' : 'default', display: 'inline-flex' }}>
-          {chip(f, i, showDate)}
-        </span>
-        <DensityBit f={f} />
-        {pl && (pl.focus || pl.plan) ? (
-          <span onClick={clickable ? () => onPlan(f) : undefined} style={{ cursor: clickable ? 'pointer' : 'default', maxWidth: 260, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.35, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
-            {pl.focus ? <b style={{ color: C.tx }}>{pl.focus}</b> : null}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan}
-          </span>
-        ) : clickable ? (
-          <button type="button" onClick={() => onPlan(f)} className="bhbc-ghost-btn" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>+ {tr('plan this session')}</button>
-        ) : null}
-      </span>
-    );
-  };
+  // A session chip and its density line. No plan under it: practice plans are
+  // gone (Ohad, 24.9: "no practice plans").
+  const chipWrap = (f, i, showDate) => (
+    <span key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+      {chip(f, i, showDate)}
+      <DensityBit f={f} />
+    </span>
+  );
   const chip = (f, i, showDate) => (
     <span key={i} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${FX_COLOR[f.type] || NAVY}` }}>
       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-stripTx)', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
@@ -3406,18 +3197,8 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
             </div>
           ) : <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr('No sessions scheduled.')}</span>}
         </div>
-        {(onSessions || onLog) && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
-            {/* 17.9 (Ohad): "the button start session doesn't fit here, i don't need it unless i
-                log into sessions". It lived on the Overview card; the sessions flow has its own.
-                Removed from here - nothing else on this card changes. */}
-            {/* 'Log practice' lived here too, ~300px below the identical
-                toolbar button and calling the same setPracticeOpen(true). The
-                toolbar one survives because it is present on EVERY tab, not
-                only Overview — a coach on Schedule or Medical still needs it.
-                'Start session' stays: it does something genuinely different. */}
-          </div>
-        )}
+        {/* No actions here: Log S&C Session and Log lift live in the toolbar,
+            present on EVERY tab, so this card carries no second copy. */}
       </div>
     </>
   );
@@ -3510,7 +3291,17 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
 
   const COURT = ['practice', 'game', 'scrimmage', 'shootaround'];
   const isCourtFx = (f) => f && COURT.includes(String(f.type || '').toLowerCase());
-  const isCourtRow = (r) => r && !/^(lift|weights)$/i.test(String(r.type || ''));
+  // WHAT COUNTS AS BEING AT THE PRACTICE. A court row (attendance), a game
+  // row (minutes played), or the team S&C row logged WITH that practice — the
+  // S&C block runs at the start of the practice, so an S&C row is a record of
+  // being there. Measured on the live store 24.9: of 230 legacy Conditioning
+  // rows, 112 are the ONLY record of that athlete at that practice (no
+  // attendance mark exists for the day), so dropping them would blank weeks
+  // of logged practices. A personal LIFT is never court attendance — that was
+  // the 20.9 bug — and S&C MINUTES are never court time: only a court or game
+  // row's minutes reach the cell.
+  const isCourtRow = (r) => { const k = rowKind(r); return k === 'practice' || k === 'game' || k === 'sc'; };
+  const courtMins = (r) => { const k = rowKind(r); return (k === 'practice' || k === 'game') ? (Number(r.min) || 0) : 0; };
 
   const days = useMemo(() => {
     const base = parseISO(today);
@@ -3565,7 +3356,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       const markedIn = slots.some((f) => att[`${d.iso}|${f.start || ''}`] === 'in');
       const markedOut = slots.some((f) => att[`${d.iso}|${f.start || ''}`] === 'out');
       const code = availOn(rec, medical, t.id, d.iso);
-      const mins = rowsOfDay.reduce((a, r) => a + (Number(r.min) || 0), 0);
+      const mins = rowsOfDay.reduce((a, r) => a + courtMins(r), 0);
       // An explicit "out" mark on the slot is the coach's own answer and beats
       // everything; then the medical record; then whether anything was logged.
       let state;
@@ -3707,33 +3498,26 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   );
 }
 
-// THE WEIGHT ROOM TAB.
+// THE LIFTS TAB — one athlete's own weight-room record, as a month grid.
 //
 // Ohad, pointing at his own availability sheet: "that's litterally the main use
-// of this table". His instrument is a MONTH GRID - athletes down, days across,
-// one cell per athlete per day - and the app had no such view at all. It showed
-// today, and a per-athlete history one click deep, which is not the same thing:
-// a month grid is read at a glance, and that glance is the job.
+// of this table". Athletes down, days across, one cell per athlete per day. The
+// tint is the restriction code (his index, 1-5, unchanged); the orange bar is a
+// lift he logged. A blank column is a day nobody lifted.
 //
-// So this is his sheet, rebuilt, with the one thing his sheet cannot do: the
-// weight room and availability in the SAME cell. The tint is the restriction
-// code (his index, 1-5, unchanged), the orange bar is a logged lift. A blank
-// column is a day nobody trained.
-//
-// It answers both halves of what he asked for in one picture: who worked out
-// when (read across a row) and who needs to work out soon (the DUE list under
-// it, longest gap first).
+// ONLY PERSONAL LIFTS (rowKind 'lift'). Ohad, 24.9: lifts are "not team. just
+// personal. and not related to the practice sessions". The team S&C block
+// that runs before a practice is a different thing and lives with its practice
+// (Schedule → Past practices); it used to share this grid in a second colour,
+// which is what "combined or messed up" looked like. One kind, one colour.
 //
 // Nothing here invents data. No lift logged means no bar - not a zero.
-function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], planOf, today, onOpen }) {
+function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const tr = useT();
   const he = useHe();
   const [monthOff, setMonthOff] = useState(0);          // 0 = this month, -1 = last
 
-  const isLift = (r) => {
-    const t = String((r && r.type) || '').toLowerCase();
-    return t === 'lift' || t === 'weights';
-  };
+  const isLift = (r) => rowKind(r) === 'lift';
 
   // The month on screen, as local dates - never toISOString, which rolls back a
   // day in Israel between midnight and 03:00.
@@ -3758,28 +3542,16 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
     const last = liftDates.length ? liftDates[liftDates.length - 1] : null;
     const since = last ? dayDiff(today, last) : null;
     const cells = days.list.map((d) => {
-      const rowsOfDay = ses[d.iso] || [];
-      const lifts = rowsOfDay.filter(isLift);
+      const lifts = (ses[d.iso] || []).filter(isLift);
       const mins = lifts.reduce((a, r) => a + (Number(r.min) || 0), 0);
-      // TEAM S&C IS NOT AN INDIVIDUAL LIFT. Ohad, 19.9: "lifts and team sc
-      // sessions should be different colors". Both were the same orange chip,
-      // so a squad-wide 12-minute S&C block looked exactly like one athlete's
-      // 60-minute lift, on ten rows at once. The rows already carry team:true
-      // (set wherever a team session is logged); it was simply never read here.
-      const team = lifts.length > 0 && lifts.every((r) => r.team);
       // The recorded value IS the history, floored by what the medical record
-      // says about THAT day. This used to floor today's cell only, on the
-      // reasoning that "an injury that exists now says nothing about a day in
-      // August" - true of the old floor, which ignored dates. medicalAvailOn
-      // has an onset and an end, so August is excluded because it is outside
-      // the injury's window, not because it is not today.
+      // says about THAT day (medicalAvailOn has an onset and an end).
       const code = Math.max(Number(avail[d.iso]) || 1, medicalAvailOn(medical, t.id, d.iso));
-      return { iso: d.iso, lift: lifts.length > 0, team, mins, code, future: d.iso > today };
+      return { iso: d.iso, lift: lifts.length > 0, mins, code, future: d.iso > today };
     });
     const within = (n) => liftDates.filter((d) => dayDiff(today, d) >= 0 && dayDiff(today, d) < n).length;
     // TODAY's state, so the name column can say it without the reader having
-    // to find today's column and decode a tint. Ohad, 19.9: "who's
-    // out/restriced/medical" should be visible at a glance.
+    // to find today's column and decode a tint.
     const todayCode = availOn(rec, medical, t.id, today);
     return { t, cells, last, since, todayCode, d7: within(7), d28: within(28) };
   }), [rows, loads, medical, days, today]);
@@ -3797,19 +3569,10 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   const ink = (since) => (since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C');
   const CELL = 22;
-  // The weight-room sessions inside the month on screen, newest first, with
-  // whatever was written for them. `type` is lowercase on a fixture.
-  const roomDays = useMemo(() => days.list.map((d, i) => {
-    const lifters = per.filter((p) => p.cells[i] && p.cells[i].lift);
-    if (!lifters.length) return null;
-    const fx = (fixtures || []).find((x) => x && x.type === 'lift' && x.date === d.iso);
-    const mins = lifters.reduce((a, p) => a + (p.cells[i].mins || 0), 0);
-    return { iso: d.iso, n: lifters.length, mins, plan: fx && planOf ? planOf(fx) : null };
-  }).filter(Boolean).reverse(), [days, per, fixtures, planOf]);
 
   return (
     <>
-      <Card leftStripe={NAVY} padding={0} header={secTitle('Weight Room')}
+      <Card leftStripe={NAVY} padding={0} header={secTitle('Lifts')}
         headerRight={(
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
             <span>{liftedToday ? `${liftedToday} ${countWord(liftedToday, 'lifted today')}` : tr('nobody has lifted today')}</span>
@@ -3818,41 +3581,29 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
         {!!due.length && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(242,106,43,0.06)' }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')}</span>
-            {/* A GRID, NOT A WRAP, SO THE TAGS LINE UP.
-                Ohad, 19.9: "locations for texts, tags, buttons, and rows, is very
-                awful in a lot of places". Wrapped, these chips are as wide as the
-                name inside them, so at 390 they landed two-two-one with every edge
-                in a different place and the last one floating on its own. Two equal
-                columns put every chip on the same two edges and the odd one out
-                starts the next row where the others start. */}
+            {/* A GRID, NOT A WRAP, SO THE TAGS LINE UP: two equal columns put
+                every chip on the same two edges (Ohad, 19.9). */}
             <span style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, minWidth: 0, flex: '1 1 100%' }}>
               {due.map(({ t, since }) => (
-                <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>{/* THE NAME IS THE PART THAT GIVES WAY. The chip is a fixed-height nowrap
-    box in a minmax(150px, 1fr) grid, and with nothing allowed to shrink a
-    long name simply pushed the age out of the chip — measured at 390 once
-    the squad widened to fifteen: "never" sat at 354..397 inside a cell
-    ending at 366, seven pixels off the screen (OCD sweep, 22.9). The age
-    is the number being read here; the name can be trimmed. */}
-<span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
+                <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
+                  {/* THE NAME IS THE PART THAT GIVES WAY; the age is the number
+                      being read (OCD sweep, 22.9). */}
+                  <span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
               ))}
             </span>
           </div>
         )}
-        {/* THE LEGEND SENTENCE GETS ITS OWN LINE, NOT THE GAP BESIDE THE PAGER.
-            Ohad, 19.9: "make sure anywhere where there is text, it has its own
-            space". At 390 this row put the month pager and a full sentence side
-            by side, so the sentence was squeezed into ~150px and wrapped to four
-            lines against a half-empty row. flexWrap + a full-width basis puts it
-            under the pager, where it reads as one line of prose. */}
+        {/* THE LEGEND SENTENCE GETS ITS OWN LINE, NOT THE GAP BESIDE THE PAGER
+            (Ohad, 19.9: "anywhere where there is text, it has its own space"). */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
-              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
+              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
             <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
-              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
+              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
           </div>
-          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('Orange is an individual lift, navy is team S&C. The tint is the restriction on the day.')}</span>
+          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('A bar is a lift he logged. The tint is the restriction on the day.')}</span>
         </div>
 
         {/* The grid scrolls sideways on a phone by design - a month of days
@@ -3869,39 +3620,35 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
               <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('available')}</span>
               {availPerDay.map((n, i) => (
-                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n == null ? '\u2014' : n}</span>
+                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n == null ? '—' : n}</span>
               ))}
               <span />
             </div>
             <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {per.map(({ t, cells, since, last, todayCode }) => (
+                // A table row is never under 36 (24.9).
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                  style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 26 }}>
+                  style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 36 }}>
                     {todayCode > 1 && <span title={tr(AVAIL[todayCode].label)} aria-label={tr(AVAIL[todayCode].label)} style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[todayCode].color, flexShrink: 0 }} />}
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                   </span>
                   {cells.map((c) => (
-                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.team ? tr('team S&C') : tr('individual lift')} · ${c.mins || ''}${c.mins ? tr('min') : tr('lift session')}` : ''}`}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')} · ${c.mins ? `${c.mins} ${tr('min')}` : tr('lift session')}` : ''}`}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
                       {c.lift && (
-                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: c.team ? NAVY : ORANGE, color: 'var(--c-stripTx)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
+                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: ORANGE, color: 'var(--c-stripTx)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
                           {c.mins || ''}
                         </span>
                       )}
                     </span>
                   ))}
-                  {/* flexShrink:0 and marginInlineStart:auto, not padding.
-                      The chip strip beside this is free to grow, and with this
-                      run allowed to shrink its two nowrap children were laid out
-                      past its own right edge — measured at 390: a 42px span at
-                      354..397 inside a box ending at 366, 7px off the screen
-                      (OCD sweep, 22.9). Pinned to the end and unshrinkable, the
-                      chips give way instead. */}
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
+                  {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
+                      and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 36, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
                     <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
@@ -3914,30 +3661,13 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
-          {[[ORANGE, tr('lift logged')], [NAVY, tr('team S&C')], ['rgba(224,167,58,0.55)', tr(AVAIL[2].label)], ['rgba(79,157,224,0.55)', tr(AVAIL[3].label)], ['rgba(222,78,59,0.6)', tr(AVAIL[4].label)], ['rgba(124,130,139,0.6)', tr(AVAIL[5].label)]].map(([col, lbl]) => (
+          {[[ORANGE, tr('lift logged')], ['rgba(224,167,58,0.55)', tr(AVAIL[2].label)], ['rgba(79,157,224,0.55)', tr(AVAIL[3].label)], ['rgba(222,78,59,0.6)', tr(AVAIL[4].label)], ['rgba(124,130,139,0.6)', tr(AVAIL[5].label)]].map(([col, lbl]) => (
             <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
               <span style={{ width: 10, height: 10, background: col, flexShrink: 0 }} />{lbl}
             </span>
           ))}
         </div>
-        {!!roomDays.length && (
-          <div style={{ borderTop: `1px solid ${C.cardBd}` }}>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, padding: '10px 14px 4px' }}>{tr('What the room did')}</div>
-            {roomDays.map(({ iso, n, mins, plan }) => (
-              <div key={iso} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '5px 14px', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, minWidth: 74, whiteSpace: 'nowrap' }}>{dow(iso)} {monDay(iso)}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, whiteSpace: 'nowrap' }}>{n} {countWord(n, 'lifted')}{mins ? ` \u00B7 ${mins} ${tr('min')}` : ''}</span>
-                <span style={{ fontFamily: FB, fontSize: 12, color: (plan && (plan.focus || plan.plan)) ? C.td : C.cardBd, minWidth: 0 }}>
-                  {plan && plan.focus ? <b style={{ color: C.tx }}>{plan.focus}</b> : null}
-                  {plan && plan.focus && plan.plan ? ' \u2014 ' : ''}
-                  {plan && plan.plan ? plan.plan : (plan && plan.focus ? '' : tr('nothing written'))}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </Card>
-
     </>
   );
 }
@@ -3946,11 +3676,11 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   const tr = useT();
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
-  const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '104px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
+  const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
   // Days since the last logged weight-room session, per athlete.
   const lastLift = (id) => {
     const ses = ((loads[id] || {}).sessions) || {};
-    const d = Object.keys(ses).filter((k) => (ses[k] || []).some((r) => /^(lift|weights)$/i.test(String(r.type || '')))).sort();
+    const d = Object.keys(ses).filter((k) => (ses[k] || []).some((r) => rowKind(r) === 'lift')).sort();
     return d.length ? d[d.length - 1] : null;
   };
   return (
@@ -4025,7 +3755,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     // makes that column give way instead of shoving, and the
                     // date is the half that can afford to be trimmed: the AGE
                     // is the number a coach reads.
-                    <div data-lbl="last lift" style={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr)', alignItems: 'baseline', gap: 6, minWidth: 0, maxWidth: '100%' }}>
+                    <div data-lbl="last lift" style={{ display: 'grid', gridTemplateColumns: 'minmax(64px, auto) minmax(0, 1fr)', alignItems: 'baseline', gap: 6, minWidth: 0, maxWidth: '100%' }}>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                       </span>
@@ -4285,7 +4015,7 @@ function MicrocycleView({ fx, today }) {
 // newest first, one row per SLOT (a morning and an evening practice are two
 // rows), showing the plan that was written for it, who trained, who was out,
 // and the load the squad actually took.
-function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, medical = {} }) {
+function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical = {} }) {
   const tr = useT();
   const [open, setOpen] = useState(null);      // `${date}|${start}`
   const [limit, setLimit] = useState(8);
@@ -4298,59 +4028,37 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }, [today]);
+  // PRACTICES ONLY. A game is not a practice, and a legacy weights slot is not
+  // one either - lifts are personal now and never appear here.
+  const isPracticeFx = (f) => f && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
   const past = useMemo(() => (fixtures || [])
-    .filter((f) => f && f.type !== 'game' && (f.date < today || (f.date === today && (f.start || '') && f.start <= nowHHMM)))
+    .filter((f) => isPracticeFx(f) && (f.date < today || (f.date === today && (f.start || '') && f.start <= nowHHMM)))
     .sort((a, b) => b.date.localeCompare(a.date) || (b.start || '').localeCompare(a.start || ''))
   , [fixtures, today, nowHHMM]);
 
-  // Attendance for a slot: an athlete's session row for that DATE whose `start`
-  // matches. Rows written before per-slot logging carry no start — they belong
-  // to the day, so they count for the day's only slot rather than vanishing.
-  // fixture.type is lowercase ('practice' | 'lift' | 'game'); a logged session
-  // row's type is the capitalised label the coach picked ('Practice' | 'Lift' |
-  // 'Shootaround' | ...). Map them so a start-less row can still find its slot.
-  const slotKind = (fixType) => (fixType === 'lift' ? 'lift' : fixType === 'game' ? 'game' : 'practice');
-  const rowKind = (rowType) => {
-    const t = String(rowType || '').toLowerCase();
-    if (t === 'lift' || t === 'weights') return 'lift';
-    if (t === 'game') return 'game';
-    return 'practice';
-  };
+  // Attendance for a slot: the recorded attendance mark first, then an athlete's
+  // court or S&C row for that DATE whose `start` matches. Rows written before
+  // per-slot logging carry no start — they belong to the day's first practice
+  // rather than vanishing.
   const detailFor = useCallback((f) => {
     const daySlots = past.filter((x) => x.date === f.date)
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-    const trained = [], out = [], scMins = [], notes = [], rowsBy = [];
+    const trained = [], out = [], scMins = [], scNotes = [], notes = [], rowsBy = [];
     for (const t of roster) {
       const rec = loads[t.id];
       const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
-      // Rows written before per-slot logging carry no `start`. Dropping them
-      // whenever the day had two slots reported every practice as 0 attended
-      // even though the squad was logged — so attribute by TYPE first (a gym
-      // row belongs to the weights slot), then to the day's first slot.
       // An explicitly recorded attendance for this slot is the truth; the
       // session-row inference below only covers sessions logged before the
       // per-slot model existed.
       const att = rec && rec.attendance && rec.attendance[`${f.date}|${f.start || ''}`];
       const mine = rows.filter((r) => {
+        const kind = rowKind(r);
+        // A PERSONAL LIFT IS NEVER ATTENDANCE AT A PRACTICE, whatever `start`
+        // it happens to carry. Caught 20.9 when this card reported "2/10
+        // trained" at a practice whose only records were two lifts. A game
+        // row belongs to the game, not to a practice on the same day.
+        if (kind !== 'practice' && kind !== 'sc') return false;
         if (r.start) return r.start === f.start;
-        const kind = rowKind(r.type);
-        const sameKind = daySlots.filter((x) => slotKind(x.type) === kind);
-        if (sameKind.length) return sameKind[0].start === f.start;
-        // NO SLOT OF THIS KIND ON THIS DAY.
-        //
-        // The fallback used to pin the row to the day's FIRST slot whatever it
-        // was, and that counted a WEIGHT-ROOM LIFT as attendance at the court
-        // session. Caught 20.9 by building the practice-attendance grid beside
-        // this list and finding they disagreed: on Sun 20 Sep the only two
-        // records in the store are Menachem's 45-minute Lift and Gershon's
-        // 60-minute Lift, and this card reported "2/10 trained" at the 11:00
-        // PRACTICE. Same on 19 Sep - six Lift rows, zero court rows, reported
-        // as 6/10. Nobody had logged either practice.
-        //
-        // A gym row can never be attendance at a court session, and vice versa.
-        // Everything else keeps the old lenient behaviour, which exists to
-        // cover rows written before per-slot logging.
-        if (kind === 'lift' || slotKind(f.type) === 'lift') return false;
         return daySlots.length > 0 && daySlots[0].start === f.start;
       });
       const avail = availOn(rec, medical, t.id, f.date);
@@ -4358,8 +4066,10 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
       if (mine.length || att === 'in') {
         trained.push(t);
         for (const r of mine) {
-          // The S&C minutes attached to this slot are what the row reports now.
-          if (/^(Conditioning|Lift|Recovery)$/.test(String(r.type || '')) && Number(r.min) > 0) scMins.push(Number(r.min));
+          // The S&C block attached to this practice: its minutes (team-wide,
+          // reported as the mean) and the one note written for it.
+          if (rowKind(r) === 'sc' && Number(r.min) > 0) scMins.push(Number(r.min));
+          if (rowKind(r) === 'sc' && r.note) scNotes.push(String(r.note));
           if (r.by) rowsBy.push(r.by);
         }
         const n = (rec.notes && (rec.notes[`${f.date}|${f.start || ''}`] || rec.notes[f.date])) || '';
@@ -4367,11 +4077,16 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
       } else if (avail >= 4) out.push(t);
     }
     const sum = (arr) => arr.reduce((a, x) => a + x, 0);
+    // The team note is the one most athletes carry (per-athlete notes win on
+    // their own rows and are listed separately below).
+    const noteCount = {};
+    scNotes.forEach((n) => { noteCount[n] = (noteCount[n] || 0) + 1; });
+    const scNote = Object.keys(noteCount).sort((a, b) => noteCount[b] - noteCount[a])[0] || '';
     // WHO logged this session. Past practices is what the basketball staff
     // read, so the row needs an author for the same reason a medical record
     // does — you cannot ask a question of an unsigned entry.
     const loggers = [...new Set(rowsBy.filter(Boolean))];
-    return { trained, out, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, notes, loggers };
+    return { trained, out, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, notes, loggers };
   }, [loads, roster, past]);
 
   if (!past.length) return null;
@@ -4383,7 +4098,6 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {past.slice(0, limit).map((f) => {
           const key = `${f.date}|${f.start || ''}`;
-          const pl = planOf ? planOf(f) : null;
           const d = detailFor(f);
           const isOpen = open === key;
           return (
@@ -4424,8 +4138,9 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
                 </span>
                 {/* The AU and RPE readouts are gone with the load model they
                     described (Ohad 23.9, no team RPEs). What a coach asks of
-                    this row now is who trained and what the S&C block was. */}
-                {d.scMinutes > 0 && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{d.scMinutes} {tr('min')} S&C</span>}
+                    this row now is who trained and what the S&C block was.
+                    Lifts are personal and never appear on a practice row. */}
+                {d.scMinutes > 0 && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>{d.scMinutes} {tr('min')} {tr('S&C')}</span>}
                 <svg aria-hidden width="9" height="6" viewBox="0 0 9 6" fill="none"
                   style={{ color: C.tm, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
                   <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -4433,17 +4148,18 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
               </div>
               {isOpen && (
                 <div style={{ padding: '2px 2px 12px 88px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.55 }}>
-                  {/* What was PLANNED for this exact slot. */}
+                  {/* THE S&C BLOCK that ran with this practice: the team's
+                      minutes and the note written for it. Its own figure, never
+                      pooled with anyone's lift. */}
                   <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Plan')}</span>
-                    {pl && (pl.focus || pl.plan)
-                      ? <span dir="auto">{pl.focus || ''}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan || ''}</span>
-                      : <span style={{ color: C.td }}>{tr('nothing was written for this slot')}</span>}
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('S&C session')}</span>
+                    {d.scMinutes > 0
+                      ? <span dir="auto"><span style={{ fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{d.scMinutes} {tr('min')}</span>{d.scNote ? ` · ${d.scNote}` : ''}</span>
+                      : <span style={{ color: C.td }}>{tr('no S&C session logged')}</span>}
                   </div>
                   <div style={{ marginBottom: 6 }}>
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Trained')}</span>
                     {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>{tr('nobody logged')}</span>}
-                    {d.avgLoad != null && <span style={{ color: C.tm }}> · {tr('avg load')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{d.avgLoad} AU</span></span>}
                     {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td }}> · {tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
                   </div>
                   {d.out.length > 0 && (
@@ -4474,7 +4190,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
   );
 }
 
-function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRemove }) {
+function WeekPlanner({ fixtures = [], today, onUpsert, onRemove }) {
   const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
@@ -4498,10 +4214,13 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
     return m;
   }, [fixtures, days]);
   const weekCount = days.reduce((a, d) => a + ((byDay[d] || []).length), 0);
-  const liftCount = days.reduce((a, d) => a + ((byDay[d] || []).filter((f) => f.type === 'lift').length), 0);
+  const gameCount = days.reduce((a, d) => a + ((byDay[d] || []).filter((f) => f.type === 'game').length), 0);
 
+  // A new slot is a PRACTICE. There is no team weights slot to plan any more:
+  // lifts are personal (24.9), so the 'lift' type is gone from the picker.
+  // Legacy lift slots still on the calendar stay readable and editable.
   const startEdit = (date, f) => setEditing({
-    orig: f || null, date, type: (f && f.type) || 'lift',
+    orig: f || null, date, type: (f && f.type) || 'practice',
     start: (f && f.start) || '', minutes: (f && f.minutes) || (f && f.type === 'game' ? 90 : 60),
     contactMin: (f && f.contactMin) || '',
     // A game's own facts, so they can be typed in rather than waiting for a
@@ -4510,24 +4229,19 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
     opponent: (f && f.opponent) || '',
     venue: (f && f.venue) || '',
     home: f && f.home === true ? 'home' : f && f.home === false ? 'away' : '',
-    focus: (f && planOf && (planOf(f) || {}).focus) || '',
   });
   const commit = () => {
     if (!editing || !editing.start) { toast('Set a start time'); return; }
     onUpsert(editing.orig, editing);
-    if (onSavePlan) {
-      const prevPlan = (editing.orig && planOf && planOf(editing.orig)) || null;
-      onSavePlan({ date: editing.date, start: editing.start, focus: editing.focus, plan: (prevPlan && prevPlan.plan) || '' });
-    }
     setEditing(null);
   };
 
-  const lab = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
-  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', height: 30, boxSizing: 'border-box' };
-  const TYPES = [['lift', 'Weights'], ['practice', 'Practice'], ['game', 'Game']];
+  // One height for every bordered control on the board (24.9: 36 everywhere).
+  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', height: 'var(--btn-h)', boxSizing: 'border-box' };
+  const TYPES = [['practice', 'Practice'], ['game', 'Game']];
 
   return (
-    <CollapsibleSection title={tr("Week Planner")} count={he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${liftCount === 1 ? 'אימון כוח אחד' : `${liftCount} אימוני כוח`}` : `${weekCount} sessions · ${liftCount} S&C`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
+    <CollapsibleSection title={tr("Week Planner")} count={he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>{he ? '›' : '‹'}</button>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>
@@ -4546,7 +4260,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
           style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
           {wpLayout === 'columns' ? `▤ ${tr('Rows')}` : `▥ ${tr('Columns')}`}
         </button>
-        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'כתוב את האימון ואז את הפוקוס — הם מופיעים ב"היום", בדוח למאמן הראשי וביומן האימונים.' : 'Write the session, then its focus — it shows on Today, the Head Coach Report and the practice log.'}</span>
+        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע — מה שנקבע כאן מופיע ב"היום" ובדוח למאמן הראשי.' : 'The week’s practices and games — what is set here shows on Today and the Head Coach Report.'}</span>
       </div>
 
       {/* SEVEN across, like a calendar week (Ohad: "all 7 days in one row, like
@@ -4572,7 +4286,6 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.td, fontStyle: 'italic' }}>{tr('No sessions')}</span>
                 )}
                 {list.map((f, i) => {
-                  const p = planOf ? planOf(f) : null;
                   const isEditing = editing && editing.orig && sameSlotKey(editing.orig, f);
                   if (isEditing) return null;
                   return (
@@ -4580,11 +4293,9 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} ${tr('min')}` : ''}</span>
-                      {p && p.focus ? <span className="bhbc-chip-focus" style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'normal' }}>{p.focus}</span>
-                        : <span className="bhbc-chip-focus bhbc-chip-focus-empty" style={{ fontFamily: FB, fontSize: 12, color: C.td, fontStyle: 'italic' }}>{tr('no focus yet')}</span>}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
-                        <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✎</button>
-                        <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title={tr('Remove session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
+                        <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✎</button>
+                        <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title={tr('Remove session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
                       </span>}
                     </div>
                   );
@@ -4594,7 +4305,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                     <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
                       {TYPES.map(([k, l]) => (
                         <button key={k} type="button" onClick={() => setEditing((e) => ({ ...e, type: k }))}
-                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: editing.type === k ? '#fff' : C.td, background: editing.type === k ? (FX_COLOR[k] || NAVY) : 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>{l}</button>
+                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: editing.type === k ? '#fff' : C.td, background: editing.type === k ? (FX_COLOR[k] || NAVY) : 'transparent', border: 'none', height: 34, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>{tr(l)}</button>
                       ))}
                     </div>
                     <input type="time" value={editing.start} onChange={(e) => setEditing((x) => ({ ...x, start: e.target.value }))} style={{ ...inp, width: 108 }} />
@@ -4624,7 +4335,6 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                         ))}
                       </div>
                     </>)}
-                    <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder={tr('Focus — e.g. Lower INT + landing mechanics')} style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
                     <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{zoneT(editing.orig ? 'Save' : 'Add')}</Btn>
                     <Btn variant="ghost" onClick={() => setEditing(null)}>{tr('Cancel')}</Btn>
                   </div>
@@ -4638,13 +4348,12 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
           );
         })}
       </div>
-      <div style={{ ...lab, marginTop: 10 }}>{he ? 'שורות הכוח הן אימוני ה-S&C — הפוקוס שלהן הוא מה שכל הסגל עובד עליו באותו יום.' : 'S&C sessions are the “Weights” rows — they carry the team focus the whole squad trains that day.'}</div>
     </CollapsibleSection>
   );
 }
 const sameSlotKey = (a, b) => a && b && a.date === b.date && String(a.start || '') === String(b.start || '') && a.type === b.type;
 
-function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
+function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
   const tr = useT();
   const toggle = (
     <div style={{ display: 'inline-flex', border: '1px solid rgba(255,255,255,0.32)' }}>
@@ -4654,14 +4363,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
     </div>
   );
   return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={
-      onLog ? (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          {toggle}
-          <button onClick={onLog} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{tr('Log session')}</button>
-        </div>
-      ) : toggle
-    }>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={toggle}>
       {/* ONE GRID CELL, three views stacked in it. Ohad: "month/week/list are
           differnt vetrical sizes and the website jumps and glitches from
           switching them" - measured at 1500, the page was 2125 / 1752 / 2181,
@@ -5002,7 +4704,7 @@ function ResultsList({ games, bhbcOnly }) {
           </div>
           <div className="bhbc-game-detail" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'end', whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
           {g.played
-            ? <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, boxSizing: 'border-box', padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', color: won ? '#37B27C' : '#DE4E3B', background: `color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 38%, transparent)` }}>{won ? 'W' : 'L'}</span>
+            ? <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, boxSizing: 'border-box', padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', color: won ? '#37B27C' : '#DE4E3B', background: `color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 13%, transparent)`, border: 'none' }}>{won ? 'W' : 'L'}</span>
             : g.homeKnown === false ? null
             : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? C.tm : ORANGE, border: 'none', padding: '2px 0' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>}
         </div>
@@ -5423,12 +5125,12 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
           const v = mins[t.id] ?? '';
           const on = Number(v) > 0;
           return (
-            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '34px minmax(120px, 260px) 84px 60px', justifyContent: 'start', alignItems: 'center', gap: 10, padding: '0 12px', height: 40, borderTop: i ? '1px solid ' + C.cardBd : 'none', background: on ? 'transparent' : 'color-mix(in srgb, var(--c-sf) 60%, transparent)' }}>
+            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'var(--bhbc-gm-cols, 34px minmax(120px, 260px) 84px 60px)', justifyContent: 'start', alignItems: 'center', gap: 10, padding: '0 12px', height: 40, borderTop: i ? '1px solid ' + C.cardBd : 'none', background: on ? 'transparent' : 'color-mix(in srgb, var(--c-sf) 60%, transparent)' }}>
               <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 12, fontWeight: 700, color: on ? C.tx : C.td }}>{t.name || t.id}</span>
               <input type="number" min="0" max="60" inputMode="numeric" placeholder="—" aria-label={tr('Minutes played')}
                 value={v} onChange={(e) => setMins((p) => ({ ...p, [t.id]: e.target.value }))}
-                style={{ width: '100%', height: 30, boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
+                style={{ width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? ORANGE_DEEP : C.tm }}>{on ? tr('min') : tr('DNP')}</span>
             </div>
           );
@@ -5451,7 +5153,7 @@ function StatusPill({ status, small, full }) {
   const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: small ? 28 : 30, boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
     </span>
   );
@@ -5642,11 +5344,11 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                         of its fifteen siblings supplies the look inline. minWidth 84
                         matches the medical button beside it, one size per column. */}
                 {onLog && (
-                  <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title={tr('Log a practice for this athlete')}
-                    style={{ height: ROW_BTN_H, boxSizing: 'border-box', padding: '0 12px', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr('+ Log')}</button>
+                  <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title={tr('Log a lift for this athlete')}
+                    style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tr('Log lift')}</button>
                 )}
                 {canMedical
-                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
+                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 'var(--btn-h)', boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
                   : <span style={{ width: 84, flexShrink: 0 }} />}
               </div>
             );
@@ -5918,113 +5620,50 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
   );
 }
 
-function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount = 0, onClose, onSave }) {
+// LOG LIFT — one athlete's own weight-room session. Ohad, 24.9: "lifts needs
+// to be independent and i can log them even on days without practice, and
+// theyre not team. just personal. and not related to the practice sessions".
+//
+// Athlete, date (any day), minutes, an optional note. No type select, no squad
+// scope, no fixture chips, no readiness block: this sheet writes one kind of
+// row, and the team S&C block has its own sheet (ScSessionModal).
+function LiftModal({ open, initialAthlete, roster, onClose, onSave }) {
   const tr = useT();
-  const [scope, setScope] = useState('athlete');
   const [athleteId, setAthleteId] = useState(initialAthlete);
   const [date, setDate] = useState(todayISO());
-  const [type, setType] = useState('Practice');
   const [minutes, setMinutes] = useState('');
-  const [pain, setPain] = useState(''); const [sleep, setSleep] = useState(''); const [energy, setEnergy] = useState('');
-  // ONE place to write what the team actually did in an S&C session (Ohad
-  // 09-01: "i only want one spot to write notes about what we did during a team
-  // s&c session"). It is a note, not a plan - he does not want a session plan on
-  // basketball practices at all.
   const [note, setNote] = useState('');
-  // Gym (Lift) sessions are minutes-only — Ohad never records gym RPE, so the
-  // field disappears and the session saves as attendance + duration, no load.
-  const isLift = type === 'Lift';
-  // A court session is attendance; everything else is minutes. Nothing is a
-  // load, so there is nothing to preview.
-  const attendanceOnly = type === 'Practice' || type === 'Shootaround';
-  const preview = 0;
-  const hasMinutes = Number(minutes) > 0;
-  const canSave = scope === 'squad'
-    ? (attendanceOnly || hasMinutes)
-    : (athleteId && (attendanceOnly || hasMinutes || pain || sleep || energy));
-  const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };
+  const canSave = !!athleteId && !!date && Number(minutes) > 0;
+  // One height for every bordered control on the sheet (24.9: 36 everywhere).
+  const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
-    <BModal open={open} onClose={onClose} title={tr('Log a session')}>
+    <BModal open={open} onClose={onClose} title={tr('Log lift')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
-          {[['athlete', 'One athlete'], ['squad', 'Whole roster']].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setScope(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: scope === k ? '#fff' : C.td, background: scope === k ? NAVY : 'transparent', border: 'none', padding: '6px 14px', cursor: 'pointer' }}>{l}</button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={lab}>{tr('Athlete')}</label>
+          <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={selStyle}>
+            {roster.length === 0 && <option value="">{tr('— add roster first —')}</option>}
+            {roster.map((t) => <option key={t.id} value={t.id}>{t.jersey != null ? `#${t.jersey} ` : ''}{t.name}</option>)}
+          </select>
         </div>
-        {scope === 'athlete' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lab}>{tr('Athlete')}</label>
-            <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={selStyle}>
-              {roster.length === 0 && <option value="">{tr('— add roster first —')}</option>}
-              {roster.map((t) => <option key={t.id} value={t.id}>{t.jersey != null ? `#${t.jersey} ` : ''}{t.name}</option>)}
-            </select>
-          </div>
-        ) : (
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.td, textAlign: 'center', padding: '4px 0' }}>{tr('Logs this session for')} <b style={{ color: C.tx }}>{availableCount}</b> {tr(availableCount === 1 ? 'available athlete' : 'available athletes')} — {tr('skips anyone Out.')}</div>
-        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lab}>{tr('Type')}</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} style={selStyle}>
-              {['Practice', 'Game', 'Lift', 'Shootaround', 'Travel', 'Recovery'].map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
+          <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="40" />
         </div>
-        {/* NO RPE, AND NO MINUTES ON A COURT SESSION. A practice or a
-            shootaround records that he was THERE; its length belongs to the
-            basketball coach and already sits on the fixture. */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-          {!attendanceOnly && <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder={isLift ? '40' : '10'} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={lab}>{tr('Note (optional)')}</label>
+          <input value={note} onChange={(e) => setNote(e.target.value)}
+            placeholder={tr('e.g. lower body · 4 lifts')}
+            style={selStyle} />
         </div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'center', letterSpacing: '0.04em' }}>
-          {attendanceOnly ? tr('Attendance only — no duration, no load') : tr('S&C session — minutes only, no RPE')}{false && <>{' '}<span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> {tr('units')}</>}
+          {tr('Lift — minutes only, no RPE. Personal, any day, not tied to a practice.')}
         </div>
-        {(() => {
-          const day = fixtures.filter((f) => f.date === date);
-          if (!day.length) return null;
-          return (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('From calendar')}</span>
-              {day.map((f, i) => (
-                <button key={i} type="button" onClick={() => { setMinutes(String(f.minutes)); setType(f.type === 'lift' ? 'Lift' : f.type === 'game' ? 'Game' : 'Practice'); }}
-                  style={{ fontFamily: FN, fontSize: 10, color: FX_COLOR[f.type] || NAVY, background: 'transparent', border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '4px 8px', cursor: 'pointer' }}>
-                  {f.start} {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} {f.minutes} {tr('min')}
-                </button>
-              ))}
-            </div>
-          );
-        })()}
-        {/* Readiness is a PER-ATHLETE check-in. In whole-roster scope the squad
-            path has nowhere honest to put one number — copying it onto every
-            athlete would invent each player's pain/sleep/energy — so the block
-            is hidden instead of silently discarded (audit 08-22 #29). */}
-        {/* WHAT WE DID. One field, always available, for both scopes - the S&C
-            session note Ohad asked for: "i only want one spot to write notes
-            about what we did during a team s&c session". Deliberately a free
-            note and not a session PLAN; he does not want a plan on basketball
-            practices at all. */}
-        <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
-          <label style={lab}>{tr('What we did (optional)')}</label>
-          <input value={note} onChange={(e) => setNote(e.target.value)}
-            placeholder={tr('e.g. Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)')}
-            style={{ width: '100%', boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '7px 9px' }} />
-        </div>
-        {scope !== 'squad' && (
-        <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
-          <div style={{ ...lab, marginBottom: 8, letterSpacing: '0.16em' }}>{tr('Readiness (optional)')}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <Input label={tr('Pain 0–10')} type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} />
-            <Input label={tr('Sleep 0–10')} type="number" min="0" max="10" value={sleep} onChange={(e) => setSleep(e.target.value)} />
-            <Input label={tr('Energy 0–10')} type="number" min="0" max="10" value={energy} onChange={(e) => setEnergy(e.target.value)} />
-          </div>
-        </div>
-        )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, note: note.trim(), readiness: { pain, sleep, energy } })}
-            style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')}</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ athleteId, date, minutes, note: note.trim() })}
+            style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Log lift')}</Btn>
         </div>
       </div>
     </BModal>

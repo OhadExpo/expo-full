@@ -970,8 +970,12 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, th
   return portal(
     <div
       dir={zoneDir}
-      role="dialog" aria-modal="true" aria-labelledby={titleId} className={closing ? 'motion-fade-out' : 'motion-fade-in'}
-      style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }}
+      role="dialog" aria-modal="true" aria-labelledby={titleId} className={(closing ? 'motion-fade-out' : 'motion-fade-in') + ' ui-modal-wrap'}
+      /* The 60px top offset and the 12px gutters live in themes.css now
+         (.ui-modal-wrap): a phone swaps the offset for its safe-area insets and
+         a short viewport drops it - inline geometry could not be overridden
+         from a stylesheet without !important. */
+      style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", background: C.scrim, backdropFilter: "blur(8px)" }}
       /* Ohad 2026-08-28: "when a pop-up screen like a medical report is open,
          never allow me to click back on the rest of the website to leave it.
          either save or exit."
@@ -980,7 +984,10 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, th
          only by its own controls — Save, or the ✕ / Cancel. Escape still
          works: it is an explicit exit, not a misclick. */
     >
-      <div ref={cardRef} tabIndex={-1} data-theme={themeAttr} onClick={e => e.stopPropagation()} className={(closing ? 'motion-fall' : 'motion-rise') + ' ui-modal-card'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
+      {/* max-height is themes.css's (.ui-modal-card: 100% of the wrapper's
+          content box). It was 80vh here - on a phone that is 80% of the LARGE
+          viewport, plus the 60px offset: ~70px past the visible bottom. */}
+      <div ref={cardRef} tabIndex={-1} data-theme={themeAttr} onClick={e => e.stopPropagation()} className={(closing ? 'motion-fall' : 'motion-rise') + ' ui-modal-card'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         {/* Sticky title row: stays pinned (with the ✕) while the body scrolls —
             top:-28 + negative margins swallow the card's own padding so the row
             docks flush at the card top (Ohad, 2026-08-21). */}

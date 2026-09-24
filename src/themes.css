@@ -632,6 +632,27 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* ===== Modal shell geometry (ui.jsx Modal) ===================================
+   Ohad, 24.9, on a phone and a tablet: "the popups dont fit anymore".
+   The card was max-height 80vh under a 60px top offset. On a phone 100vh is
+   the LARGE viewport (browser bar hidden), so with the bar showing 80vh + 60
+   ran ~70px past the visible bottom of a 390x844 - the Save row of a tall
+   form was below the screen, reachable only by scrolling the card to its very
+   end. The wrapper is position:fixed; inset:0, and THAT box tracks the visible
+   viewport on every mobile browser (it is what dvh was invented to copy), so
+   the card is capped at 100% of the wrapper's content box: the 60/12 gutters
+   are the wrapper's padding, the card can never be taller than what is on
+   screen, and it scrolls inside itself (overflow:auto, inline). Width stays
+   min(design, 100vw - 24px) through the inline maxWidth; the wrapper's 12px
+   sides are that same 24. The ≤620 block below swaps the 60 for safe-area
+   insets. */
+.ui-modal-wrap { padding: 60px 12px 12px; box-sizing: border-box; }
+.ui-modal-card { max-height: 100%; box-sizing: border-box; overscroll-behavior: contain; }
+/* A short viewport - a phone on its side (844x390), a tablet in landscape
+   with the keyboard up - cannot spend 60 of its pixels on an offset. Same 12
+   on every side; the card then has the whole height minus 24. */
+@media (max-height: 560px) { .ui-modal-wrap { padding-top: 12px; } }
+
 /* ===== Mobile fit — never let a PAGE scroll sideways (wide content wraps or
    scrolls inside its own container). Ohad: "no left/right scrolling, everything
    must fit." Targeted at the known-wide desktop rows. ===================== */
@@ -661,10 +682,17 @@ html {
   /* MODALS ON A PHONE. The card is calc(100vw - 24px) with 28px of padding on
      each side, so on a 390px screen 80 of 390 is chrome and the content gets
      310 - which is why the athlete card's metric strip and history rows wrap so
-     hard. 16px of padding and a 12px gutter give the content 358. The sticky
-     header inside uses negative margins equal to the padding, so it has to move
-     with it or the title detaches from the edge. */
-  .ui-modal-card { max-width: calc(100vw - 12px) !important; padding: 16px !important; }
+     hard. 16px of padding gives the content 334. The sticky header inside uses
+     negative margins equal to the padding, so it has to move with it or the
+     title detaches from the edge.
+     24.9: the gutter here was 12 in total (6 a side) while the wrapper's top
+     and bottom are 12 each - unequal margins - and the wrapper's own 12px
+     sides now bound the card anyway, so the wider max-width was dead. 12 on
+     all four sides; on a notched phone (viewport-fit=cover) the side that
+     carries the notch or the home bar takes its inset instead. Vertical fit
+     is .ui-modal-card's max-height:100% above - nothing to repeat here. */
+  .ui-modal-wrap { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .ui-modal-card { max-width: calc(100vw - 24px) !important; padding: 16px !important; }
   .ui-modal-card > div:first-child { margin: -16px -16px 14px !important; padding: 16px 16px 10px !important; top: -16px !important; }
 
   /* BHBC LOAD BOARD on a phone. The desktop row is a 7-column grid with a hard
@@ -1249,6 +1277,95 @@ html.theme-switching *::after {
   .bhbc-manage-meta>:first-child{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word}
 }
 
+/* ── BHBC ON A TABLET AND A PHONE ─────────────────────────────────────────────
+   Ohad, 24.9: "text overflows and icons and buttons not vertically center
+   aligned with the text". Rules in force: every bordered control is --btn-h
+   (36), a row is never under it, text sits centred in its box, RTL mirrored.
+   The zone carries its own <style> sheet inside BhbcView; where a rule here
+   must beat one of those it takes .bhbc-zone for specificity, and !important
+   only where the geometry it corrects is INLINE on the element. */
+
+/* THE HEADER BAR below 760. The zone's sheet pins each tab button to 30px
+   and the bar to 52. The app-wide button floor was already lifting the tabs
+   to 36 (min-height beats height), so the 30 never rendered - but a rule that
+   says 30 while the screen shows 36 misleads the next reader, and 52 leaves a
+   36 control 8px of air. Said once, explicitly: 36 in a 56 bar. */
+@media (max-width: 760px) {
+  .bhbc-zone .bhbc-header-inner { min-height: 56px !important; }
+  .bhbc-zone .bhbc-hdr-tabs button { height: var(--btn-h) !important; line-height: 1 !important; }
+}
+/* Between 521 and 760 the bar wraps onto two rows (the zone's own rule) but
+   keeps the single-row rule's trailing 14px on the control cluster, on top
+   of the bar's own 14 - 28 on one side, 14 on the other. */
+@media (min-width: 521px) and (max-width: 760px) {
+  .bhbc-zone .bhbc-header-ctrl { padding: 0 !important; }
+}
+/* The square icon buttons (theme, exit) are width:28 inline while the floor
+   lifted their height to 36 - a 28x36 rectangle beside 36px tabs. min-width
+   beats an inline width the way min-height beat the height; the text buttons
+   are wider than 36 anyway and the language toggle keeps its own inline 42. */
+.bhbc-zone .bhbc-header-ctrl > button { min-width: var(--btn-h); }
+/* HEBREW, single-row bar (≤520): the crest's sticky plate is written with
+   physical left/right, so in RTL - where the row starts on the RIGHT - the
+   crest had no gutter, its shadow fell toward the edge, and `left:-14px`
+   never engaged: the crest scrolled away with the tabs instead of pinning.
+   Mirrored edge for edge. */
+@media (max-width: 520px) {
+  .bhbc-zone[dir="rtl"] .bhbc-header-inner { padding: 0 14px 0 0 !important; }
+  .bhbc-zone[dir="rtl"] .bhbc-header-id { left: auto !important; right: -14px !important; margin-left: 0 !important; margin-right: -14px !important; padding: 0 14px 0 12px !important; box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7) !important; }
+  .bhbc-zone[dir="rtl"] .bhbc-header-ctrl { padding: 0 0 0 14px !important; }
+}
+
+/* BORDERED READ-ONLY TWINS. Where a seat cannot act, a row shows a <span>
+   drawn exactly like the button it replaces - same border, same label - but
+   the app-wide 36px floor is on <button> only, so the twin stayed at 26
+   (availability, load board) or 30 (status pill, injury board) beside 36px
+   controls in the same column. Same floor, same box. */
+.bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > span,
+.bhbc-zone .bhbc-inj-row > span { min-height: var(--btn-h); }
+
+/* TEXT FIELDS IN THE ZONE. The app-wide field floor is on TYPED inputs only
+   (an untyped input is the coach app's set-entry cell). The zone's own forms -
+   minutes, RPE, body weight, a session note, a fixture's opponent - are
+   untyped inputs at 30 and 32 beside selects and date fields the floor had
+   already lifted to 36. The zone has no set-entry grid, so here every
+   text-entry box gets the one height, in the page and in its modals - which
+   mount on <body>, outside the zone: [data-theme] on the card is set only by
+   the zone's BModal, so no other modal in the product is touched. */
+.bhbc-zone input:not([type]), .bhbc-zone input[type="number"],
+.ui-modal-card[data-theme] input:not([type]), .ui-modal-card[data-theme] input[type="number"] { min-height: var(--btn-h); }
+
+/* THE MEDICAL ROW (Today card). Its cells are top-aligned inline
+   (align-items:start), chosen when its UPDATE button was 26px so the surname
+   would sit on the first line of a two-line diagnosis. With the button at 36
+   a ONE-line row is 36 tall and its text sits on the button's top edge, 10px
+   above centre - the exact complaint - while a two-line 12px diagnosis is
+   ~32px, where centred and first-line differ by 2. Centre wins; it is the
+   row's default everywhere else in the zone. */
+.bhbc-zone .bhbc-med-row { align-items: center !important; }
+
+/* THE BRIEF ROW is min-height 32 inline. A row is never under the control
+   height. (Rows that carry the GO button are 48 already; this is the floor
+   for the ones that do not.) */
+.bhbc-zone .bhbc-brief-row { min-height: var(--btn-h) !important; }
+
+/* THE INJURY BOARD BETWEEN A PHONE AND A DESKTOP. The row is six fixed
+   tracks (190 + 120 + 118 + 96 + 72 = 596, plus five 12px gaps) around one
+   1fr for the injury itself. The zone restacks it below 760; above that it is
+   the desktop grid, and at 768 - a tablet held upright - the card gives the
+   row ~700px, so the injury, the one cell that varies, got ~45px and its
+   words ran under the status pill: nothing on that cell said it may break
+   inside a word. Two fixes. Up to 900 the fixed tracks give back what a
+   tablet can spare (150 + 100 + 104 + 80 + 64, 10px gaps = 548: the injury
+   gets ~150 at 768; from 901 the desktop grid already leaves it 175+). And
+   at every width the injury cell may break inside a word rather than overlap
+   its neighbour - a break is readable, an overlap is not. */
+@media (min-width: 761px) and (max-width: 900px) {
+  .bhbc-zone .bhbc-inj-head,
+  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 100px 104px 80px 64px !important; gap: 10px !important; }
+}
+.bhbc-zone .bhbc-inj-row > :nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
+
 /* The roster card reserves two lines for the name and two for the status so a
    GRID of cards lines up. At phone width the grid is one column wide - there is
    nothing to line up with and the reserve is just dead air. */
@@ -1484,4 +1601,19 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   /* review queue: the day title on its own line and the block under it on
      EVERY card, not beside it when the title happens to be short */
   .cd-rv-title { flex-direction: column; align-items: flex-start !important; gap: 2px !important; }
+}
+
+/* BHBC on a phone (24.9, his: "bhbc on tablet and mobile: text overflows and
+   icons and buttons not vertically center aligned"). The S&C sheet's
+   per-athlete grid scrolled sideways under 620px; it keeps #, name,
+   availability and this-practice, and lets BW and the note go. The game-minutes
+   row shrinks its tracks instead of overflowing the sheet. */
+@media (max-width: 620px) {
+  .bhbc-sc-wrap { min-width: 0 !important; }
+  .bhbc-sc-row { grid-template-columns: 28px minmax(0, 1fr) auto auto !important; }
+  .bhbc-sc-row > :nth-child(5), .bhbc-sc-row > :nth-child(6) { display: none !important; }
+  .bhbc-zone, .ui-modal-card { --bhbc-gm-cols: 28px minmax(0, 1fr) 72px 56px; }
+  /* the stacked load card puts the last lift in a narrow area: the age sits
+     over the date instead of trimming the date to "…22" */
+  .bhbc-load-row [data-lbl="last lift"] { grid-template-columns: minmax(0, 1fr) !important; row-gap: 1px; }
 }
