@@ -2505,7 +2505,7 @@ function HAChip({ home }) {
   // Theme-aware brand tone — the raw navy is unreadable on the dark page.
   const c = isHome ? 'var(--bhbc-ha-home, ' + NAVY + ')' : 'var(--bhbc-ha-away, ' + ORANGE_DEEP + ')';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: 'none', padding: '2px 7px', whiteSpace: 'nowrap' }}>
       {isHome ? tr('HOME') : tr('AWAY')}
     </span>
   );
@@ -5004,7 +5004,7 @@ function ResultsList({ games, bhbcOnly }) {
           {g.played
             ? <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, boxSizing: 'border-box', padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', color: won ? '#37B27C' : '#DE4E3B', background: `color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 38%, transparent)` }}>{won ? 'W' : 'L'}</span>
             : g.homeKnown === false ? null
-            : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? C.tm : ORANGE, border: `1px solid ${bhHome ? C.cardBd : ORANGE}`, padding: '2px 7px' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>}
+            : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? C.tm : ORANGE, border: 'none', padding: '2px 0' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>}
         </div>
       </div>
     );

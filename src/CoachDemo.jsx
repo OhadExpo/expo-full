@@ -269,8 +269,8 @@ function Badge({ color = C.tm, children }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
       fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
-      color, background: color + '20', border: `1px solid ${color}40`,
-      borderRadius: 0, padding: '2px 6px', whiteSpace: 'nowrap',
+      color, background: 'transparent', border: 'none',
+      borderRadius: 0, padding: '2px 0', whiteSpace: 'nowrap',
     }}>{children}</span>
   );
 }
@@ -549,7 +549,9 @@ function DemoDashboard({ onJumpToTrainee }) {
       leaving 224-256px of measured dead air under two-row tiles. Desktop
       never showed it because the heights are close there. Ohad: get rid of
       those empty spaces on cards, full-wide-all-platforms. */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
+      {/* .alert-rail is the real dashboard's class for this strip: 280px cards, and
+          stacked under 620px (themes.css). Same class, same behaviour. */}
+      <div className="alert-rail" style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
         {onlineNow.length > 0 && (
           <Panel title={`${T('Online Now')} (${onlineNow.length})`} tint={C.gn} icon="dot">
             {onlineNow.map(t => (
@@ -838,7 +840,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               }),
             },
           ]}
-          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
+          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
         />
         {/* RIGHT: the card grid. */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2356,7 +2358,7 @@ function DemoPrograms({ resetToken = 0 }) {
               }),
             },
           ]}
-          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
         />
         {/* RIGHT: the program list. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
@@ -2473,10 +2475,10 @@ function DemoPrograms({ resetToken = 0 }) {
                         </span>
                       </div>
                       <div onClick={() => setSelectedProgramId(cur.id)} style={{ cursor: 'pointer', padding: '12px 14px 4px' }}>
-                        {/* minHeight reserves the "N previous" pill's height (22) so a
+                        {/* minHeight reserves the "N previous" pill's height (the control height) so a
                             card WITHOUT the pill is the same height as one WITH it —
                             parity with the real Programs card-height fix (PlansView). */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: 22 }}>
+                        <div className="cd-prog-title" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: CTRL_H }}>
                           <span style={{ fontWeight: 700, fontSize: 15, color: C.ac, fontFamily: FN, letterSpacing: '0.04em', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
@@ -2498,8 +2500,8 @@ function DemoPrograms({ resetToken = 0 }) {
                               title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: on ? C.gn : C.td }}>{T('PORTAL')}</span>
-                              <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.35)' : C.bd2, position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
-                                <span style={{ width: 14, height: 14, borderRadius: 7, background: on ? C.gn : C.td, position: 'absolute', top: 2, left: on ? 16 : 2, transition: 'left .15s' }} />
+                              <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
+                                <span style={{ width: 14, height: 14, borderRadius: 7, background: on ? C.gn : C.tm, position: 'absolute', top: 2, left: on ? 16 : 2, transition: 'left .15s' }} />
                               </span>
                             </button>
                             <div className="cd-spacer" style={{ flex: 1, minWidth: 8 }} />
@@ -3318,6 +3320,10 @@ function DemoExercises() {
               .cd-ex-table-wrap { overflow-x: visible !important; }
               .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
               .cd-ex-table-wrap table { table-layout: auto !important; width: 100% !important; }
+              /* With the taxonomy gone the name column is the table, so it takes
+                 the whole width instead of 151px hugging one edge with a void
+                 beside it (LOOK pass, 24.9). */
+              .cd-ex-table-wrap th:first-child, .cd-ex-table-wrap td:first-child { width: 100% !important; }
             }
           `}</style>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
@@ -3379,7 +3385,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv2', traineeName: 'יעל כהן', initials: 'YK',
-    dayName: 'Day B · Pull', planName: 'Block #4 — Couple Volume', week: 2,
+    dayName: 'Day B · Pull', planName: 'Block #4 — Couple Volume', week: 4,   // = 1 + idSeed('t3') % 4, the week the picker auto-selects for her
     date: 'Today 08:02', doneSets: 17, totalSets: 21,
     exercises: [
       { name: 'Pull-Up',            prescribed: '4×AMRAP',      done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
@@ -3392,7 +3398,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv3', traineeName: 'גל מזרחי', initials: 'GM',
-    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 2,
+    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 3,   // = 1 + idSeed('t2') % 4
     date: 'Yesterday', doneSets: 14, totalSets: 14,
     exercises: [
       { name: 'Back Squat',         prescribed: '4×5 · 100kg',  done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
@@ -3629,7 +3635,7 @@ function DemoReview() {
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.cardBd}>
                 <div style={{ minWidth: 0, flex: '1 1 190px' }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <div className="cd-rv-title" style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {/* A bare text node inside a flex row is an anonymous flex
                         item and shrinks to its minimum content width: "Day A ·
                         Push" came out over five lines in 102px. A day title is
@@ -3935,7 +3941,7 @@ function DemoGroupFloor() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A')} · {readLang() === 'he' ? `${tr('he', 'W')}${DEMO_WEEK}` : <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`W${DEMO_WEEK}`}</span>}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A')} · {readLang() === 'he' ? `${tr('he', 'W')}${1 + (idSeed(t.id) % 4)}` : <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`W${1 + (idSeed(t.id) % 4)}`}</span>}</div>
                 </div>
                 <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
               </div>
@@ -3970,7 +3976,7 @@ function DemoSingle() {
           <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← {tr(readLang(), 'BACK')}</button>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 4 }}>
             <span>{active.day} · {active.name}</span>
-            <span style={{ color: C.tx, fontWeight: 700 }} dir="ltr"><span style={{ unicodeBidi: 'isolate' }}>{`W${DEMO_WEEK}`}</span> · {doneSets}/{totalSets} · {pct}%</span>
+            <span style={{ color: C.tx, fontWeight: 700 }} dir="ltr"><span style={{ unicodeBidi: 'isolate' }}>{`W${active.week || DEMO_WEEK}`}</span> · {doneSets}/{totalSets} · {pct}%</span>
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
         </div>
@@ -4028,7 +4034,7 @@ function DemoSingle() {
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {dayNames.map((dn, di) => (
-                          <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === autoDay ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === autoDay ? C.ac : C.tm, border: `1px solid ${di === autoDay ? C.ac : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
+                          <button key={di} onClick={() => setActive({ name: t.name, day: dn, week: autoWeek })} style={{ ...baseBtn, background: di === autoDay ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === autoDay ? C.ac : C.tm, border: `1px solid ${di === autoDay ? C.ac : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
                         ))}
                       </div>
                     </>);
@@ -4102,7 +4108,7 @@ function DemoReviewTools() {
                 <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{T(t.measures)}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{tr(readLang(), t.live ? 'LIVE' : 'CLIP')}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: 'none', padding: '2px 6px', whiteSpace: 'nowrap' }}>{tr(readLang(), t.live ? 'LIVE' : 'CLIP')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{T('OPEN →')}</span>
               </div>
             </div>
@@ -4425,9 +4431,9 @@ function DemoBilling() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? `באיחור של ${p.overdueDays} ימים` : `${p.overdueDays}D OVERDUE`}</span>}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
-                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'chase' }))} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
-                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'paid' }))} style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: 'none', padding: '2px 0' }}>{T(st.label)}</span>
+                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'chase' }))} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid rgba(37,211,102,0.45)', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
+                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'paid' }))} style={{ ...baseBtn, background: 'transparent', color: C.gn, border: '1px solid rgba(46,213,115,0.45)', padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
                 {/* The row already wraps, so the explainer takes its own full
                     width line under the buttons rather than squeezing them. */}
@@ -4461,7 +4467,7 @@ function DemoBilling() {
             return (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: `1px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{t.name}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: 'none', padding: '2px 0' }}>{T(st.label)}</span>
               </div>
             );
           })}
@@ -4618,6 +4624,9 @@ export default function CoachDemo() {
            x -157..-8 on a 768 tablet — fully off-screen. The nav's own
            content is ~823px wide, so anything narrower than that plus its
            padding has to wrap. */
+        /* The note is a whole sentence or nothing: at 1440 it clipped to
+           "MOCK DATA —" beside the nav. */
+        @media (max-width: 1559px) { .cd-pov-note { display: none !important; } }
         @media (max-width: 860px) {
           .cd-hdr { flex-wrap: wrap !important; height: auto !important; overflow-x: visible !important; padding-top: 8px !important; padding-bottom: 8px !important; row-gap: 8px !important; }
           /* A GRID, NOT A RAGGED WRAP. Letting it wrap put five tabs on one

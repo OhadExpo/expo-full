@@ -159,7 +159,7 @@ function FitCentered({ children, style }) {
         itself behind an ellipsis at 390px. minHeight 32 still holds the row at
         one line whenever the text fits, so desktop is unchanged. */
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      style={{ border: `1px solid ${tone}`, padding: '0 8px', minHeight: 'var(--btn-h)', boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px

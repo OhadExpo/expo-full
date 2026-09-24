@@ -243,7 +243,7 @@ export default function BillingView({ trainees }) {
           const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
           return (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 90, textAlign: 'center' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: 'none', padding: '2px 0', minWidth: 90, textAlign: 'start' }}>
                 {labelTxt}
               </span>
               <span style={{ flex: 1, fontSize: 13, color: C.tx }}>{t.name}</span>

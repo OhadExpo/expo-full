@@ -243,7 +243,7 @@ export const TextArea = ({ label, id, ...props }) => {
 // each side, in the label's own font - and the box keeps its size exactly.
 // A browser without text-box keeps today's layout.
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}><span style={{ display: "block", minWidth: 0, textBox: "trim-both cap alphabetic", paddingBlock: "calc((1lh - 1cap) / 2)" }}>{children}</span></span>;
+  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: "transparent", border: "none", padding: "3px 0", color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}><span style={{ display: "block", minWidth: 0, textBox: "trim-both cap alphabetic", paddingBlock: "calc((1lh - 1cap) / 2)" }}>{children}</span></span>;
 
 // ============================================================
 // Refined light-mode primitives

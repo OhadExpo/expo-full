@@ -1468,3 +1468,20 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 620px) { .seg-run--keep .seg-dot { display: inline; } }
 /* keepDots carries its own spaces, so the flex gap must not add a second one. */
 .seg-run--keep { gap: 0; }
+
+/* PHONE: the programs card (demo and real — both carry .cd-prog-title) puts
+   the "N previous" chip UNDER the title, always, instead of beside it on one
+   card and under it on the next. (The dashboard's attention strip stacks via
+   the real app's own .alert-rail rule above, which the demo now shares.) */
+@media (max-width: 560px) {
+  .cd-prog-title { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+  /* and its actions row: the PORTAL switch takes a line of its own, and the
+     four text actions share the next one evenly - instead of DELETE wrapping
+     alone under the other three */
+  .cd-prog-actions { justify-content: space-between; gap: 10px 8px !important; }
+  .cd-prog-actions .cd-onportal { flex: 1 1 100%; justify-content: flex-start; }   /* a button centres its content; this one lines up with the title */
+  .cd-prog-actions .cd-spacer { display: none; }
+  /* review queue: the day title on its own line and the block under it on
+     EVERY card, not beside it when the title happens to be short */
+  .cd-rv-title { flex-direction: column; align-items: flex-start !important; gap: 2px !important; }
+}

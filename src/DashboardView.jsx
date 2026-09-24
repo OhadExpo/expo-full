@@ -866,7 +866,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
                   <span title={readLang() === 'he' ? (gateOpen ? 'הסף עבר — זה הזמן להריץ את המיגרציה לכמה מאמנים' : `המיגרציה לכמה מאמנים רצה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: 'var(--c-stripTx)', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: 'var(--c-stripTx)', border: 'none', background: 'transparent', borderRadius: 0, padding: '2px 0', letterSpacing: '0.04em' }}>
                     🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
                   </span>
                 </div>
@@ -881,7 +881,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 return (
                   <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
                     {isCoach && (
-                      <span title={tt('Coach waitlist signup')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>{tt('COACH')}</span>
+                      <span title={tt('Coach waitlist signup')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'transparent', border: 'none', borderRadius: 0, padding: '2px 0', flexShrink: 0 }}>{tt('COACH')}</span>
                     )}
                     <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                     <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>

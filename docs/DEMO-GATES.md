@@ -43,7 +43,7 @@ deploy that touches a demo surface.
 |---|---|---|
 | `verify-demo.mjs` | every demo surface renders, in the requested language | 60 combinations |
 | `verify-demo-pages.mjs` | covered text, off-screen controls, page h-scroll, clipped ink, dead air, tap targets, controls buried by an overlay, raw values leaking to the screen — **scrolled, not just the first fold** | 120 combinations, ~480 scroll positions |
-| `verify-control-heights.mjs` | every bordered thing — button, tag, chip, field, whatever its tag — ONE height (36px); every table row at least that tall with its ink centred; `--site il` runs it on the sales site | 120 app + 32 sales-site combinations, ~1,600 controls, ~220 rows |
+| `verify-control-heights.mjs` | every bordered thing — button, tag, chip, field, whatever its tag — ONE height (36px); every table row at least that tall with its glyph ink centred; `--site il` runs it on the sales site, `--site coach` signs in and runs it on the real coach app + BHBC | 120 app + 32 sales-site + 120 coach combinations, ~1,500 / 250 / 2,000 controls, ~220 / 0 / 400 rows |
 | `verify-no-text-overflow.mjs` | cut ink, live ellipsis, spill, one-word-per-line | 156 combinations, ~25,000 text nodes |
 | `verify-bidi-order.mjs` | the painted glyph order of every atomic numeric token, and Hebrew painted flush to the wrong edge | 24 Hebrew combinations, ~580 tokens |
 | `verify-demo-numbers.mjs` | the same quantity shown on two different tabs | 6 comparisons × 2 languages |
@@ -111,7 +111,25 @@ surface of its own. `--site il` measures `/#/online`, `/#/coaches`, `/#/` and
 `/#/gym` on the sales-site preview (`cd expo-il && npx vite preview --host
 127.0.0.1 --port 5174`).
 
-`audit-out/_odd-heights.mjs <base> <route>…` prints every off-height control
+`--site coach` signs in as the owner (via `scripts/lib/authed-page.mjs`), once
+per language × width × theme, and measures the real coach app (dashboard,
+athletes, programs, exercises, sessions, review, review-tools, tasks, billing,
+calendar, waitlist, intake, workouts, challenges) and the BHBC zone. A route
+that comes back with a password field is reported `NOSEAT` and NOT judged —
+detected by the field, not by text: the sessions floor's CHECK IN button reads
+"כניסה", and the text markers had skipped every Hebrew run of that page as "the
+login screen". Its log names real athletes; it lives in untracked `audit-out/`
+and is never committed.
+
+Two more holes closed on 24.9, both of the "a zero must say what it measured"
+kind: the sales site keeps its language under its own key (`expo-il-lang`), so
+every "en" run of `--site il` had been Hebrew until the gate set both keys; and
+the ROWCENTRE check had built one Range over the whole row, whose client rects
+include the CELL boxes, so "ink" spanned the row and every row centred to 0.0 —
+it walks text nodes now, and the break test (name cell pinned to the top) reads
+7.1px where it read nothing.
+
+`audit-out/_odd-heights.mjs <base> <route>…` (add `--auth` for the coach app) prints every off-height control
 with its markup and the computed values that made its height — run it before
 guessing at the source. (Pass hash routes without the `#`; MSYS rewrites a
 leading `/#/` into a Windows path.)

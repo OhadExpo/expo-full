@@ -31,7 +31,7 @@
 //   node scripts/verify-control-heights.mjs [--only <substring>] [--tolerance N]
 import fs from 'node:fs';
 import P from 'puppeteer-core';
-import { signIn, looksLikeLogin } from './lib/authed-page.mjs';
+import { signIn } from './lib/authed-page.mjs';
 
 const SITE = (() => { const i = process.argv.indexOf('--site'); return i > 0 ? process.argv[i + 1] : 'app'; })();
 const BASE = process.env.BASE || (SITE === 'il' ? 'http://127.0.0.1:5174' : 'http://127.0.0.1:5199');
@@ -108,7 +108,9 @@ for (const [name, route] of SURFACES) {
         let ctx, pg;
         try {
           if (AUTHED && seats.has(seatKey)) {
-            ({ ctx, pg } = seats.get(seatKey));
+            const seat = seats.get(seatKey);
+            if (!seat) { add({ kind: 'NOSEAT', id, detail: 'no seat for this language/width/theme — NOT judged' }); continue; }
+            ({ ctx, pg } = seat);
           } else {
             ctx = await b.createBrowserContext();
             pg = await ctx.newPage();
@@ -117,13 +119,22 @@ for (const [name, route] of SURFACES) {
             await pg.evaluateOnNewDocument((L, T) => {
               try {
                 localStorage.setItem('expo-lang', L);
+                localStorage.setItem('expo-il-lang', L);   // the sales site keeps its own key; without this every "en" run of it was Hebrew
                 localStorage.setItem('expo-theme', T);
                 localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
               } catch (e) { /* private mode */ }
             }, lang, theme);
             if (AUTHED) {
-              const who = await signIn(pg, BASE);
-              if (!who || !who.signedIn) { add({ kind: 'NOSEAT', id, detail: 'could not sign in: ' + ((who && who.note) || '?') + ' — NOT judged' }); continue; }
+              // A failed sign-in is closed and remembered, so the seat is not
+              // re-attempted (and re-leaked) for every remaining surface.
+              let who = null;
+              try { who = await signIn(pg, BASE); } catch (e) { who = { signedIn: false, note: String(e.message || e).slice(0, 80) }; }
+              if (!who || !who.signedIn) {
+                add({ kind: 'NOSEAT', id, detail: 'could not sign in: ' + ((who && who.note) || '?') + ' — NOT judged' });
+                await pg.close().catch(() => {}); await ctx.close().catch(() => {});
+                seats.set(seatKey, null);
+                continue;
+              }
               seats.set(seatKey, { ctx, pg });
             }
           }
@@ -138,11 +149,19 @@ for (const [name, route] of SURFACES) {
             prev = len;
           }
           if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
+          // A boot splash is stable text too. A page with almost no text is
+          // not a measured page.
+          const inkLen = await pg.evaluate(() => (document.body.innerText || '').replace(/\s+/g, '').length);
+          if (inkLen < 40) { add({ kind: 'UNSET', id, detail: `only ${inkLen} characters of text (a splash?) — NOT judged` }); continue; }
           if (AUTHED) {
             // A zero must say what it measured: a coach route that came back as
             // the login screen is not a clean coach route.
-            const txt = await pg.evaluate(() => (document.body.innerText || '').slice(0, 600));
-            if (looksLikeLogin(txt)) { add({ kind: 'NOSEAT', id, detail: 'the login screen came back — NOT judged' }); continue; }
+            // A password field is the login screen; a page that merely contains
+            // the word "כניסה" (CHECK IN, on the sessions floor) is not. The
+            // text markers alone skipped every Hebrew run of /coach/sessions
+            // as "the login screen came back" (24.9).
+            const isLogin = await pg.evaluate(() => !!document.querySelector('input[type="password"]'));
+            if (isLogin) { add({ kind: 'NOSEAT', id, detail: 'the login screen came back — NOT judged' }); continue; }
           }
 
           const r = await pg.evaluate((tol) => {
@@ -185,10 +204,11 @@ for (const [name, route] of SURFACES) {
               if (bb.height > 64) continue;                    // a card or a panel, by shape
               if (bb.bottom < -2000 || bb.top > 20000) continue;
               if (cs.aspectRatio && cs.aspectRatio !== 'auto') continue;
-              if (Math.abs(bb.width - bb.height) <= 2) continue;    // square by intent
+              if (Math.abs(bb.width - bb.height) <= 1) continue;    // square by intent (2px slack hid 26x24 pagers)
               // A bordered box whose only content is a drawing (a sparkline
               // tile, a framed logo) is a picture frame, not a control.
-              if (!(el.textContent || '').trim() && el.querySelector('svg,canvas,img,video')) continue;
+              // ...but an icon-only BUTTON with a border is a control.
+              if (!(el.textContent || '').trim() && el.querySelector('svg,canvas,img,video') && !/^(button|a|input|select|summary)$/.test(tag) && !el.getAttribute('role')) continue;
               // A box that contains another painted box is a container, not a control.
               if ([...el.querySelectorAll('*')].some((c) => {
                 const k = getComputedStyle(c);
@@ -266,8 +286,9 @@ for (const [name, route] of SURFACES) {
                 rg.selectNodeContents(node);
                 for (const x of rg.getClientRects()) if (x.height > 0 && x.width > 0) rects.push(x);
               }
-              if (!rects.length) continue;
-              const inkT = Math.min(...rects.map((x) => x.top)), inkB = Math.max(...rects.map((x) => x.bottom));
+              // A row with no text (icons, inputs) still has a height to check;
+              // only the centring is skipped for it.
+              const inkT = rects.length ? Math.min(...rects.map((x) => x.top)) : bb.top, inkB = rects.length ? Math.max(...rects.map((x) => x.bottom)) : bb.bottom;
               const off = ((inkT + inkB) / 2) - ((bb.top + bb.bottom) / 2);
               rows.push({ h: Math.round(bb.height), off: Math.round(off * 10) / 10, t: (tr.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 26) });
             }

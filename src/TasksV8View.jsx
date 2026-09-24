@@ -369,7 +369,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
   const filled = !!sc;
   const base = {
-    boxSizing: 'border-box', height: TASK_PILL_H, width: 128, padding: '0 10px', borderRadius: 0,
+    boxSizing: 'border-box', height: 'var(--btn-h)', width: 128, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -465,7 +465,7 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
-    boxSizing: 'border-box', height: TASK_PILL_H, width: 96, padding: '0 8px', borderRadius: 0,
+    boxSizing: 'border-box', height: 'var(--btn-h)', width: 96, padding: '0 8px', borderRadius: 0,
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -805,7 +805,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             style={{
               background: 'var(--c-ac)', color: '#FFFFFF',
               border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
-              letterSpacing: '0.12em', padding: '5px 12px', height: 24,
+              letterSpacing: '0.12em', padding: '0 12px', height: 'var(--btn-h)',
               cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
             }}>{tt('add')}</button>
         ) : (
@@ -820,7 +820,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           <button
             onMouseDown={(e) => { e.preventDefault(); setBody(''); setDue(''); setTime(''); setPriority('normal'); setTraineeId(''); setSource('manual'); setAssignee(defaultAssignee); setFocused(false); inputRef.current?.blur(); }}
             title={tr(readLang(), 'Discard')} aria-label={tt('Discard task draft')}
-            style={{ background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 0, fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
+            style={{ background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', width: 'var(--btn-h)', height: 'var(--btn-h)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 0, fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
         )}
       </div>
       {expanded && (
@@ -857,7 +857,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                   onChange={(e) => setDue(e.target.value)}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
-                  style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
+                  style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '0 6px', height: 'var(--btn-h)', width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
                 {/* dd/mm/yyyy overlay (native text is transparent; calendar icon stays) */}
                 <span style={{ position: 'absolute', insetInlineStart: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
               </span>
@@ -868,7 +868,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                 onClick={(e) => { e.stopPropagation(); if (due) { try { e.currentTarget.showPicker(); } catch { /* noop */ } } }}
                 disabled={!due}
                 title={tr(readLang(), due ? 'Time (default 09:00)' : 'Pick a date first')}
-                style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
+                style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '0 6px', height: 'var(--btn-h)', borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
             </span>
           </div>
           {/* Row 2 — Urgency */}
@@ -879,7 +879,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
                   title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`}
-                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 24, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
+                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 'var(--btn-h)', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
               ))}
             </span>
           </div>
@@ -890,14 +890,14 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
-                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 24, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
+                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 'var(--btn-h)', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
               ))}
             </span>
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
                 <span style={cmpLabel}>{tr(readLang(), 'Athlete')}</span>
                 <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title={tt('Link this task to an athlete')}
-                  style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
+                  style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '0 6px', height: 'var(--btn-h)', borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
                   <option value="">{tt('— no athlete —')}</option>
                   {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
                     <option key={t.id} value={t.id}>{t.name || t.id}</option>
@@ -1724,7 +1724,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                 fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
                 color: 'var(--c-tm)', whiteSpace: 'nowrap', width: wrapRow ? 'auto' : '100%', maxWidth: wrapRow ? 132 : undefined, justifyContent: 'center',
                 overflow: 'hidden', textOverflow: 'ellipsis',
-                border: `1px solid var(--c-cardBd)`, padding: '0 8px',
+                border: 'none', padding: 0,
               }}>{athleteName}</span>
             )}
           </span>
@@ -1737,7 +1737,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
                 fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
                 color: 'var(--c-tm)', opacity: 0.8, whiteSpace: 'nowrap',
-                border: `1px solid var(--c-cardBd)`, padding: '0 8px', textTransform: 'uppercase',
+                border: 'none', padding: 0, textTransform: 'uppercase',
               }}>{tt('Shared')}</span>
             )}
           </span>
@@ -1751,8 +1751,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center', gap: 4,
                 fontFamily: FN, fontSize: 11, fontWeight: isOverdue ? 800 : 700, letterSpacing: '0.02em', lineHeight: 1,
                 color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : dm.color,
-                whiteSpace: 'nowrap', padding: '0 8px',
-                border: `1px solid ${dateBorder}`, background: dateBg,
+                whiteSpace: 'nowrap', padding: '0 6px',
+                border: 'none', background: dateBg,
               }}>
                 {isOverdue ? (
                   // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white

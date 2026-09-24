@@ -343,8 +343,8 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                         fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
                         color: fromAthlete ? 'var(--c-ac)' : 'var(--c-tm)',
-                        border: `1px solid ${fromAthlete ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-                        padding: '2px 5px', flexShrink: 0,
+                        border: 'none',
+                        padding: '2px 0', flexShrink: 0,
                       }}>{fromAthlete ? tt('Inbound') : tt('Sent')}</span>
                     {unread && (
                       <span style={{
