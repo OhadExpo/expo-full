@@ -2713,7 +2713,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div className="wr-day-card" onClick={() => setSelectedWo(wo.id)}
                 role="button" tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
-                style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
+                style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 14px" /* 14 = the bare section strip's inset above it (26.9) */,
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s, opacity .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=C.ac; e.currentTarget.style.opacity='1';}}

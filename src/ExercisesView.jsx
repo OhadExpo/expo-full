@@ -424,7 +424,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 {/* cyan strip header — title only; the video/notes icons are gone
                     now the card shows the thumbnail + cues directly (Ohad). */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', minWidth: 0 }}>
-                  <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
+                  <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
                   {/* --c-stripTx. The strip behind this is stripBg mixed 90% with the accent,
                       which in LIGHT is a pale cyan — hard white on it is the same
                       invisible-control bug as the dashboard chevron, the plan-editor

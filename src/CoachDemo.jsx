@@ -287,9 +287,14 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
       padding: '16px 20px', boxShadow: C.cardShadow,
     }}>
       <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '0 20px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
-          <span title={T('status')} style={{ width: 6, height: 6, borderRadius: '50%', background: accent, flexShrink: 0, boxShadow: `0 0 5px ${accent}66` }} />
+        {/* TITLE ON THE BODY'S EDGE, DOT AT THE FAR END (Ohad, 26.9: title boxes whose
+          text "doesnt start at the same horizontal spot as the rest of the text").
+          The status dot used to lead the title, so the words started 13px in from
+          the number below them. The dot now sits at the strip's other end, the
+          same margin from that edge. */}
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minHeight: 30, width: '100%' }}>
           <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{label}</span>
+          <span title={T('status')} style={{ width: 6, height: 6, borderRadius: '50%', background: accent, flexShrink: 0, boxShadow: `0 0 5px ${accent}66` }} />
         </span>
       </div>
       {/* The number needs direction:ltr so "5 / 8" and the shekel sign keep
@@ -540,7 +545,9 @@ function DemoDashboard({ onJumpToTrainee }) {
               <span>{T('TASKS')} ({openTasks.length})</span>
               <button title={T('Demo only')} style={{ minHeight: CTRL_H, minWidth: 58, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'default', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)' }}>{T('+ Task')}</button>
             </div>
-            <div style={{ padding: 10 }}>
+            {/* 14 = the strip's inset: at 10 the toggle and the board's columns
+                started 4px outside the TASKS title (26.9, #215). */}
+            <div style={{ padding: 14 }}>
               <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
                 <div style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
                   {SEGS.map(([id, label, n], i) => {
@@ -1282,7 +1289,11 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
           // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
           margin: `-${pad}px -${pad}px ${children ? 12 : -pad}px`,
-          padding: `8px ${pad}px`,
+          // The real strip's box (RefinedHeaderStrip): one 41px height, the
+          // title centred in it. 8px padding made these 36px and their titles
+          // rode 1-2px low (26.9, #215).
+          padding: `0 ${pad}px`, minHeight: 41, boxSizing: 'border-box',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
           borderBottom: '1px solid var(--c-cardBd)',
           color: '#FFFFFF',
         }}>
@@ -2543,7 +2554,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           spelled-out meta), and LIGHT text actions. */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 6, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                          <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
+                          <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
                           <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', overflowWrap: 'break-word' }}>{row.name}</bdi>
                         </span>
                         {/* Recency: colour on the DOT, muted text, fixed min-width so
@@ -3409,7 +3420,7 @@ function DemoExercises() {
               <div key={i} className="ex-card" style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                    <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
+                    <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
                     <span title={e.name} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
                   </span>
                   {demoHasVideo(e) && <span style={{ color: C.ac, fontSize: 12 }}>▶</span>}
@@ -3817,7 +3828,7 @@ function DemoReview() {
             return (
               <div key={wo.id} onClick={() => setSelectedId(wo.id)} style={{
                 background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-                padding: '12px 16px', marginBottom: 6, cursor: 'pointer',
+                padding: '12px 14px', marginBottom: 6, cursor: 'pointer', // 14 = the group strip's inset (26.9)
                 transition: 'border-color .15s', display: 'flex',
                 // WRAP AT PHONE WIDTH. The two actions are flexShrink 0 and
                 // took ~210px of a 360 screen, leaving the title block 102px —
@@ -4603,11 +4614,13 @@ function DemoBilling() {
   const lateAmt = lateRows.reduce((s, p) => s + p.amount, 0);
   const sumTile = (label, value, sub, accent) => (
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 5px ${accent}66`, flexShrink: 0 }} />
+      {/* As the real billing tile (BillingView): the title on the body's edge,
+          the status dot at the strip's far end, one 41px strip, 18px sides. */}
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7 }}>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T(label)}</span>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 5px ${accent}66`, flexShrink: 0 }} />
       </div>
-      <div style={{ padding: 14 }}>
+      <div style={{ padding: '14px 18px' }}>
         {/* Same rule as StatCard: direction:ltr isolates the NUMERAL, it does
             not get to decide which side of the card the number sits on. */}
         <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', textAlign: 'start' }}>

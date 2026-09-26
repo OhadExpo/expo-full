@@ -452,11 +452,14 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
       {/* Cyan header strip — same vocabulary as every other dashboard /
           trainee-card section. Title + NEW EVAL button live on the strip. */}
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
+        {/* One row (26.9, #215): at 390 the two buttons wrapped under the title
+            and the title sat 23px above the strip's centre. The title wraps in
+            its own column; the button pair keeps its place. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
             {tt('Evaluation')} ({rows.length})
           </span>
-          <div style={{ display: 'flex', gap: 0 }}>
+          <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
             <button onClick={openPicker}
               style={{
                 background: 'transparent',

@@ -660,8 +660,11 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
+        {/* One row (26.9): at 390 the buttons wrapped under the title and the
+            title sat 22px above the strip's centre. The title wraps in its own
+            column instead; the two buttons keep their place. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
             {tt('ON THE FLOOR')} · {checkedIn}/{list.length} {tt('CHECKED IN')}
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
@@ -670,8 +673,10 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
           </div>
         </div>
       </RefinedHeaderStrip>
+      {/* 14, the strip's own inset: at 12 every chip started 2px outside the
+          title's edge (26.9). */}
       {list.length > 0 && (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 14 }}>
         {list.map(a => {
           const cur = a.exercises[a.curEx];
           return (

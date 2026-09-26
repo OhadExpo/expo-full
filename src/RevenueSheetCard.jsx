@@ -225,9 +225,12 @@ export default function RevenueSheetCard() {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD, boxShadow: C.cardShadow }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span>{tt('From the sheets')}</span>
-          <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
+        {/* One row: at 390 the meta line wrapped UNDER the title and the title
+            sat 18px above the strip's centre (26.9). The title keeps one line at
+            the start; the meta wraps inside its own column at the end. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ flexShrink: 0 }}>{tt('From the sheets')}</span>
+          <span style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
             {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')} · {totalPayments} {tt('payments')} · {totalSessions} {tt('sessions counted')}
           </span>
         </div>

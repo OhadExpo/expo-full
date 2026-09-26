@@ -471,7 +471,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             title already, so the strip carries a block label instead (Ohad). */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
           <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
-            <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+            <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
             <span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'var(--c-stripTx)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tr(readLang(), earlier.length>0?'CURRENT BLOCK':'ASSIGNED PROGRAM')}</span>
           </span>
           <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:104,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap',flexShrink:0}}>
