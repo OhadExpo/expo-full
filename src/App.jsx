@@ -1422,6 +1422,9 @@ function AuthedApp() {
   // for monthly / perSession / lastPayment is the trainee detail page.
 
   const handleDecrementSession=useCallback(tid=>{
+    // Only a coach seat holds a writable roster; a self-logged portal workout
+    // is not a coaching session and must never reach the staff-only store (26.9).
+    if (!isCoach) return;
     // Couple workouts arrive with sub-member IDs (tr_xxx__0). Sessions counter lives on the parent row.
     const parsed = parseTraineeId(tid);
     const targetId = parsed ? parsed.parentId : tid;
@@ -1436,7 +1439,7 @@ function AuthedApp() {
       if (!target || !(target.sessionsRemaining>0)) return prev;
       return prev.map(t=>t.id===targetId?{...t,sessionsRemaining:t.sessionsRemaining-1}:t);
     });
-  },[setTrainees]);
+  },[setTrainees, isCoach]);
 
   const handleExport=async()=>{
     const { data: allPlans, error: plansErr } = await supabase.from('plans').select('*');

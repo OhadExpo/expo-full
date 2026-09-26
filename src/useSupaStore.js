@@ -476,6 +476,17 @@ export function useSupaStore(key, initial) {
 
   const save = useCallback(async (next) => {
     const val = typeof next === 'function' ? next(dataRef.current) : next;
+    // A SAME-REFERENCE UPDATE IS A NO-OP, NEVER A NETWORK WRITE (26.9).
+    //
+    // Callers use `prev => prev` to mean "nothing to change" — App's
+    // handleDecrementSession returns the athlete portal's own (empty, RLS-locked)
+    // roster untouched when a workout is completed there. React would skip that;
+    // this function did not, and upserted the empty list to the staff-only
+    // expo-trainees row from the athlete's seat. RLS refused the INSERT and the
+    // athlete saw "SAVE FAILED — EXPO-TRAINEES" over a workout that had in fact
+    // saved (client_workouts is a different table). Photographed on a phone at
+    // 13:50 on 26.9.
+    if (val === dataRef.current) return;
 
     // ---- DATA-LOSS GUARD (2026-08-27) ---------------------------------
     // A save writes the WHOLE array, so it must never run before the store has
