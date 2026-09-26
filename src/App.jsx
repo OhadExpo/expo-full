@@ -1752,6 +1752,19 @@ function AuthedApp() {
   // "ATHLETES 0" with nothing above it - a failed read presented as the fact
   // that he has no athletes. The roster's loadError keeps the notice up.
   const dataIncomplete = !storesReady || !!traineesLoadError;
+  // THE CLUB LOADS AS THE CLUB (27.9, Ohad: "bhbc needs a refresh design of
+  // its own" - a refresh of /coach/bhbc showed EXPO's black splash). Any club
+  // route, and a club coach anywhere, gets the zone's navy, crest and orange.
+  const bhbcSplash = isBhbcCoach || tab === 'bhbc' || /^\/(coach\/)?bhbc(\/|$)/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  if (!storesReady && !bootDeadline && bhbcSplash) return (
+    <div style={{background:'#14294F',color:'#fff',minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:22}}>
+      <style>{`@keyframes bhbcLoad{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}`}</style>
+      <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:84,width:'auto'}} />
+      <div style={{width:160,height:3,background:'rgba(255,255,255,0.16)',overflow:'hidden'}}>
+        <div style={{width:'40%',height:'100%',background:'#F26A2B',animation:'bhbcLoad 1.1s ease-in-out infinite'}} />
+      </div>
+      <div style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.22em',color:'rgba(255,255,255,0.7)'}}>{t('Loading data...').toUpperCase()}</div>
+    </div>);
   if (!storesReady && !bootDeadline) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />

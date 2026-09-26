@@ -13,6 +13,7 @@ import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleS
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
+import IntakeResponses from './IntakeResponses';
 import { useT, useTB, tr, readLang, agoLabel } from './i18n';
 
 function fmt(iso) {
@@ -214,6 +215,10 @@ export default function IntakeView({ trainees }) {
           <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tb('+ Generate Link')}</Btn>
         </div>
       </div>
+
+      {/* EVERYONE'S ANSWERS, THE GOOGLE FORMS WAY (27.9): summary / question /
+          individual, per form. The inbox below stays the to-do list. */}
+      <IntakeResponses submissions={enriched} traineeNameFor={(s) => s.traineeName} />
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
