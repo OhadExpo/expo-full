@@ -733,7 +733,7 @@ Object.assign(HE, {
   'At this practice — click to mark absent': 'היה באימון — לחץ לסמן שלא הגיע',
   'Absent from this practice — click to mark present': 'לא הגיע לאימון — לחץ לסמן שהגיע',
   'No practice on the schedule for this date — it is saved to the day.': 'אין אימון בתאריך הזה — נשמר על היום.',
-  'Team S&C · minutes only, no RPE. In/Out is who was at THIS practice; the day’s availability is separate.': 'כוח קבוצתי — רק דקות, בלי RPE. נוכח/בחוץ זה מי שהיה באימון הזה; הזמינות היומית נפרדת.',
+  'Team S&C · minutes and a note. Who was in comes from the day’s availability.': 'כוח קבוצתי — דקות והערה. מי שנכח — לפי הזמינות של היום.',
   'Lift — minutes only, no RPE. Personal, any day, not tied to a practice.': 'הרמה — רק דקות, בלי RPE. אישי, בכל יום, לא קשור לאימון.',
   'Note (optional)': 'הערה (לא חובה)',
   'e.g. lower body · 4 lifts': 'למשל תחתון · 4 תרגילים',

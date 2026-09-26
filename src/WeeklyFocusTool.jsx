@@ -144,7 +144,12 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
       right={saveBadge}
       style={{ marginBottom: 20 }}
     >
-        <div style={{ border: `1px solid ${C.cardBd}`, borderTop: 'none', background: 'var(--c-sf)', padding: 14 }}>
+        {/* Equal insets top and bottom whatever is showing (26.9, card-trailing
+            gate): the last child's margin is taken back, and the BLOCK row only
+            renders when it has something in it — empty, it left 26px of dead
+            space under the athlete field. */}
+        <style>{`.wf-card > :last-child { margin-bottom: 0 !important; }`}</style>
+        <div className="wf-card" style={{ border: `1px solid ${C.cardBd}`, borderTop: 'none', background: 'var(--c-sf)', padding: 14 }}>
           <div style={{ fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5, marginBottom: 12 }}>
             {tt("Leave a focus for a day the athlete didn't log in-app (e.g. videos came via WhatsApp). It saves to the exact same place the in-app review writes to — the athlete sees it on that exercise.")}
           </div>
@@ -171,6 +176,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             )}
           </div>
           {/* BLOCK + FOCUS FOR */}
+          {((plans && plans.length > 1) || plan) && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
             {plans && plans.length > 1 && (
               <div style={{ flex: '1 1 180px', minWidth: 150 }}>
@@ -189,6 +195,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
               </div>
             )}
           </div>
+          )}
 
           {loadErr && <div style={{ color: C.rd, fontFamily: FB, fontSize: 12 }}>{tt("Couldn't load plans:")} {loadErr}</div>}
           {traineeId && plans === null && !loadErr && <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.12em' }}>{tt('LOADING PLAN…')}</div>}

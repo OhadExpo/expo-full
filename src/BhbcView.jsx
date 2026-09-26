@@ -395,6 +395,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // The staff brief's COPY, now that the two reports are one card.
   const [briefCopied, setBriefCopied] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
+  // Which practice the S&C sheet opens on when it is attached from the week
+  // board (#226, Ohad 26.9: "bhbc should only let me attach an s&c team session").
+  const [scPreset, setScPreset] = useState(null);
   const [gameEdit, setGameEdit] = useState(false);
   const [programFor, setProgramFor] = useState(null);
   const [injuryFor, setInjuryFor] = useState(null); // { athleteId, injuryId? } | null
@@ -439,8 +442,16 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // session cards rendered their names as the fallback string "המתאמן לא ברשימה
   // הזאת". Photographed at 390 on the אימונים tab, twice on one card.
   // Counted in production 22.9: team 10, format 15, branch 2, club-but-not-team 5.
+  // 26.9, Ohad: "roster should only be active players on the roster (you
+  // included players from last year)". The five carried only the old
+  // format/branch tag — last season's players. The roster is now exactly what
+  // Manage roster tags (team === 'BHBC'), so checking a box adds a player and
+  // unchecking really removes him. Removing only clears that tag: the EXPO
+  // profile, its history and his logged loads are untouched ("i don't want any
+  // accidents with deleted profiles"). The Sessions view resolves old names from
+  // its own list, so past session cards keep their names.
   const roster = useMemo(
-    () => trainees.filter((t) => isClubAthlete(t) && t.status !== 'Archived')
+    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
     [trainees]
   );
@@ -1369,7 +1380,7 @@ function attendance28(rec, days) {
                   Session"). The S&C one is the team's daily write and is the
                   filled button; a lift is one athlete's own. */}
               {canLog && <Btn variant="ghost" onClick={() => setLogFor('new')}>{tr('Log lift')}</Btn>}
-              {canLog && <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Log S&C Session')}</Btn>}
+              {canLog && <Btn onClick={() => { setScPreset(null); setPracticeOpen(true); }} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Log S&C Session')}</Btn>}
             </div>
           )}
         </div>
@@ -1424,8 +1435,14 @@ function attendance28(rec, days) {
                     same screen said today has an 18:00 practice while the planner
                     underneath it said the week was empty. Every sibling here
                     already passed it; this one was skipped. */}
+                {/* NO SESSION EDITING HERE (Ohad 26.9: "the bhbc system is still
+                    letting me edit practice plans. no need for it!!!!" / "bhbc
+                    should only let me attach an s&c team session"). The schedule
+                    comes from the club calendar; a practice offers exactly one
+                    action — attach the S&C team session to it. */}
                 <WeekPlanner fixtures={bhbcFixtures} today={today}
-                  onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
+                  onUpsert={null} onRemove={null}
+                  onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null} />
                 {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
                     want an easy way to view the history of who trained
                     (basketball) and who didn't like the weight room view").
@@ -1511,7 +1528,8 @@ function attendance28(rec, days) {
       {/* ---- LOG S&C SESSION (the practice's attendance + the team S&C block) ---- */}
       {practiceOpen && (
         <ScSessionModal roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures} medical={medical}
-          onClose={() => setPracticeOpen(false)} onSave={(p) => { saveScSession(p); setPracticeOpen(false); }} />
+          initialDate={scPreset ? scPreset.date : null} initialStart={scPreset ? scPreset.start : null}
+          onClose={() => { setPracticeOpen(false); setScPreset(null); }} onSave={(p) => { saveScSession(p); setPracticeOpen(false); setScPreset(null); }} />
       )}
 
       {/* WELLNESS CHECK-IN — every entry point removed on Ohad's instruction
@@ -2095,12 +2113,12 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
 //
 // No type picker and no plan box: this sheet writes exactly one thing. A lift
 // is personal and has its own sheet (LiftModal). There is no RPE anywhere.
-function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical = {} }) {
+function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical = {}, initialDate = null, initialStart = null }) {
   const tr = useT();
   // DEFAULT TO TODAY, not to the next fixture on the calendar. Picking the
   // next UPCOMING fixture's date meant an unscheduled Saturday session was
   // saved onto Sunday's practice by a coach who did not re-read the date.
-  const [date, setDate] = useState(() => todayISO());
+  const [date, setDate] = useState(() => initialDate || todayISO());
   // Only court slots are practices. A game is not one, and a legacy weights
   // slot is not one either — lifts are personal now.
   const isPracticeFx = (f) => f && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
@@ -2139,7 +2157,8 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
     const now = new Date();
     const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const upcoming = date === todayISO() ? list.find((f) => (f.start || '') >= hhmm) : null;
-    const prac = upcoming || list.find((f) => f.type === 'practice') || list[0];
+    const preset = initialDate && date === initialDate && initialStart != null ? list.find((f) => (f.start || '') === initialStart) : null;
+    const prac = preset || upcoming || list.find((f) => f.type === 'practice') || list[0];
     setSlotStart(prac ? (prac.start || '') : '');
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   // IF THIS PRACTICE WAS ALREADY LOGGED, THE SHEET OPENS ON THAT RECORD — its
@@ -2202,42 +2221,26 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
             }) : <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('No practice on the schedule for this date — it is saved to the day.')}</span>}
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <div className="bhbc-sc-wrap" style={{ minWidth: 560 }}>
-            <div className="bhbc-sc-row" style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-              <div>#</div><div>{tr('Athlete')}</div><div>{tr('Availability')}</div><div>{tr('This practice')}</div><div>{tr('BW kg')}</div><div>{tr('Note')}</div>
+        {/* WHO WAS THERE — read, not edited (Ohad 26.9: "same for sc sessions:
+            time, and note"). Attendance is the day's availability, as he set on
+            24.9 ("practices gets logged from the players availability"); the
+            per-player In/Out, BW and note controls are gone. */}
+        {(() => {
+          const ins = roster.filter((t) => { const e = entries[t.id]; return e && e.avail < 4; });
+          const outs = roster.filter((t) => { const e = entries[t.id]; return e && e.avail >= 4; });
+          const line = (label, list, color) => (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', fontFamily: FB, fontSize: 12, color: C.tx }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color, flexShrink: 0 }}>{label} · {list.length}</span>
+              <span style={{ color: C.tm }}>{list.length ? list.map((t) => t.name).join(' · ') : '—'}</span>
             </div>
-            {roster.map((t) => {
-              const e = entries[t.id] || { avail: 1, attended: true, bw: '', note: '' };
-              const av = AVAIL[e.avail];
-              const dayOut = e.avail >= 4;
-              const inSlot = !dayOut && e.attended !== false;
-              return (
-                // The row is never under the controls it holds: a 36px control
-                // plus 7px above and below.
-                <div key={t.id} className="bhbc-sc-row" style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '7px 0', minHeight: 50, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}` }}>
-                  <Jersey n={t.jersey} size={22} />
-                  <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-                  {/* The DAY's availability — the fact the practice log is read
-                      from. Cycling it here records it for that date. */}
-                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</button>
-                  {/* Attendance at THIS practice only. An athlete Out for the day
-                      is out of every practice; anyone else can be marked absent
-                      from this one without changing his day. */}
-                  <button type="button" disabled={dayOut}
-                    onClick={() => set(t.id, 'attended', !inSlot)}
-                    title={tr(dayOut ? 'Out for the whole day' : inSlot ? 'At this practice — click to mark absent' : 'Absent from this practice — click to mark present')}
-                    className="bhbc-ghost-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: dayOut ? C.td : inSlot ? '#37B27C' : '#DE4E3B', background: 'transparent', border: `1px solid ${dayOut ? C.cardBd : inSlot ? '#37B27C' : '#DE4E3B'}`, padding: '0 6px', cursor: dayOut ? 'not-allowed' : 'pointer', opacity: dayOut ? 0.5 : 1, whiteSpace: 'nowrap' }}>
-                    {dayOut ? '—' : inSlot ? tr('In') : tr('Out')}
-                  </button>
-                  <input type="number" inputMode="decimal" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
-                  <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder={tr('note')} style={inp} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          );
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}`, padding: '10px 0' }}>
+              {line(tr('In'), ins, '#37B27C')}
+              {line(tr('Out'), outs, '#DE4E3B')}
+            </div>
+          );
+        })()}
         {/* WHAT WE DID — one line for the whole S&C session. A note, never a
             plan: he does not want a plan on basketball practices at all.
             Per-athlete notes still win where they were typed. */}
@@ -2249,7 +2252,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto', fontVariantNumeric: 'tabular-nums' }}>
-            <span dir="ltr" style={{ unicodeBidi: 'isolate', fontWeight: 800, color: C.tx }}>{inCount}/{roster.length}</span> {tr('at this practice')} · {tr('Team S&C · minutes only, no RPE. In/Out is who was at THIS practice; the day’s availability is separate.')}
+            <span dir="ltr" style={{ unicodeBidi: 'isolate', fontWeight: 800, color: C.tx }}>{inCount}/{roster.length}</span> {tr('at this practice')} · {tr('Team S&C · minutes and a note. Who was in comes from the day’s availability.')}
           </span>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
           <Btn disabled={!canSave} onClick={() => onSave({ date, start: slotStart, minutes, entries, note: (note || '').trim() })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Log S&C Session')}</Btn>
@@ -4186,7 +4189,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   );
 }
 
-function WeekPlanner({ fixtures = [], today, onUpsert, onRemove }) {
+function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
   const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
@@ -4289,6 +4292,10 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove }) {
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} ${tr('min')}` : ''}</span>
+                      {onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
+                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={tr('Log S&C Session')}
+                          style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, background: 'transparent', border: `1px solid ${ORANGE}`, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ {tr('S&C')}</button>
+                      )}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
                         <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✎</button>
                         <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title={tr('Remove session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
