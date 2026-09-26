@@ -3429,6 +3429,14 @@ function DemoExercises() {
             /* The real ExercisesView's phone rules (below 701px): the seven
                taxonomy columns go, leaving name, MEDIA and the two actions;
                the name cell is capped so the actions stay on screen. */
+            /* The real tablet band (701-1200): taxonomy hidden, name + MEDIA +
+               actions, the name column taking the width. */
+            @media (min-width: 701px) and (max-width: 1200px) {
+              .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
+              .cd-ex-table-wrap table { display: table !important; table-layout: auto !important; width: 100% !important; }
+              .cd-ex-table-wrap col:first-child { width: auto !important; }
+              .cd-ex-table-wrap td:first-child { max-width: none !important; }
+            }
             @media (max-width: 700px) {
               .cd-ex-table-wrap { overflow-x: visible !important; }
               .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }

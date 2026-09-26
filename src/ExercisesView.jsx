@@ -318,7 +318,10 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
            actions, which fit. */
         @media (min-width: 701px) and (max-width: 1200px) {
           .ex-table .ex-taxo { display: none !important; }
-          .ex-table { table-layout: auto !important; width: 100% !important; }
+          /* display:table here too: index.html makes every table a block under
+             769px, and from 701 to 768 this band had no opt-out — rows 640px
+             wide in a 742px table at 768 (measured 26.9). */
+          .ex-table { display: table !important; table-layout: auto !important; width: 100% !important; }
           .ex-table col:first-child { width: auto !important; }
           .ex-table .ex-name { max-width: none !important; }
         }
