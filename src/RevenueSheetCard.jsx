@@ -253,7 +253,12 @@ export default function RevenueSheetCard() {
 
       {byMonth.length > 0 && (
         <ScrollFade style={{ marginBottom: 18 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {/* The first column starts on the card title's edge (26.9, #215): its
+              10px cell padding put MONTH and CLIENT 10px inside "From the
+              sheets". Child combinators leave the nested history tables alone;
+              the class out-ranks index.html's phone cell rule. */}
+          <style>{`.rs-table > thead > tr > th:first-child, .rs-table > tbody > tr > td:first-child { padding-inline-start: 0 !important; }`}</style>
+          <table className="rs-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 <th style={th}>{tt('Month')}</th>
@@ -343,7 +348,7 @@ export default function RevenueSheetCard() {
             {tt('Payments recorded per client')} · <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{tt('tap a row for the full history')}</span>
           </div>
           <ScrollFade>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="rs-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={th}>{tt('Client')}</th>
