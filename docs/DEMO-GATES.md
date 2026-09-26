@@ -48,6 +48,7 @@ deploy that touches a demo surface.
 | `verify-bidi-order.mjs` | the painted glyph order of every atomic numeric token, and Hebrew painted flush to the wrong edge | 24 Hebrew combinations, ~580 tokens |
 | `verify-demo-numbers.mjs` | the same quantity shown on two different tabs | 6 comparisons × 2 languages |
 | `verify-demo-parity.mjs` | the demo against the real signed-in coach app, tab by tab | 8 coach tabs |
+| `verify-table-rows.mjs` | every table row reaches its table's edge (index.html makes tables `display:block` under 769px; a table meant to fit must opt back out with `display:table`) — demo routes + every `/coach` route in SURFACES.md signed in, 390 and 768; fails on zero tables | 66 page loads, 16 tables |
 | `verify-contrast.mjs` | WCAG 2.2 AA contrast on every text node, light and dark | 44 combinations, ~8,900 nodes |
 
 ### verify-contrast.mjs currently FAILS, and that is a design decision, not a bug
