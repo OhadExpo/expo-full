@@ -3811,9 +3811,13 @@ function DemoReview() {
           {/* Athlete group header — solid cyan strip: name + (n) pending +
               · planName (cyan) + current-stage week boxes + Athlete page →.
               Mirrors WorkoutReview's CollapsibleSection group header. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 14px', marginBottom: 8 }}>
+          {/* The real bare section strip's box: 0 14px, one 41px height, the
+              row centred (was 8px padding around a 36px button = 54px, and the
+              name rode 1.3px high; 26.9, #215). It still wraps on a phone,
+              where the plan name and weeks need their own line. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', rowGap: 4, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 8 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
-              <span style={{ lineHeight: 1 }}>{isHeb(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>
+              <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}>{isHeb(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, color: 'var(--c-ac)', fontWeight: 700, letterSpacing: '0.04em' }}>· {data.workouts[0].planName}</span>
                 <span style={{ display: 'inline-flex', gap: 3, verticalAlign: 'middle' }}>
