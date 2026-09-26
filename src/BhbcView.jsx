@@ -29,6 +29,7 @@ import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
 import { LangCtx, BodyLang } from './i18n';
 import { isClubAthlete } from './clubAthlete';
+import { isOwnerEmail } from './authRoles';
 
 // EXPO's read-only program/portal preview — shown INSIDE the BHBC zone so coaches
 // can view an athlete's program here instead of jumping to the EXPO coach app.
@@ -1679,6 +1680,7 @@ function BarChart({ series, w = 460, h = 88 }) {
 
 function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
+  const heM = useHe();
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
   const [histKind, setHistKind] = useState('all');  // which chip is picked
   const [monthOpen, setMonthOpen] = useState({});   // month → open; unset = newest open, rest shut
@@ -1693,7 +1695,9 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // "Gym" line. A row is labelled by what rowKind says it IS: an S&C session
   // (team, at a practice), a Lift (his own), a practice (attendance), a game.
   // EXPO's set-by-set gym workouts keep their own "Gym" chip below.
-  const KIND_WORD = { sc: 'S&C session', lift: 'Lift', practice: 'Practice', game: 'Game' };
+  // 'S&C' in a row: the chip above already says S&C SESSIONS, and the long word
+  // broke every phone row onto three lines (26.9).
+  const KIND_WORD = { sc: 'S&C', lift: 'Lift', practice: 'Practice', game: 'Game' };
   const rowLabel = (s) => {
     const k = rowKind(s);
     if (k === 'practice' && s.type && String(s.type).toLowerCase() !== 'practice') return tr(String(s.type));   // Shootaround keeps its word
@@ -1702,7 +1706,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // Branch on whether an RPE was ever recorded, NOT on whether the load is
   // zero (audit #71): a stale sRPE row still prints its RPE; everything logged
   // since 23.9 has none and reads minutes or "attended".
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: rowKind(s), date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: rowKind(s), date: d, note: s.rpe == null ? (s.note || '') : '', label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ kind: 'gym', date: d, label: `${tr('Gym')} · ${nEx} ${tr(nEx === 1 ? 'lift' : 'lifts')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ kind: 'other', date: d, label: `${tr('Bodyweight')} ${kg} ${tr('kg')}`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ kind: 'other', date: d, label: `${tr('Availability')} · ${tr(AVAIL[code].label)}`, load: null }); });
@@ -1755,13 +1759,15 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         {leaguePlayer && (() => {
           const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
           const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
-          const agoLabel = ago == null ? '' : ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`;
+          const agoLabel = ago == null ? '' : heM
+            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
+            : (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`);
           const avg = [['PPG', leaguePlayer.ppg], ['RPG', leaguePlayer.rpg], ['APG', leaguePlayer.apg], ['MPG', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
           return (
             <div style={{ border: `1px solid ${ORANGE}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{tr('League Stats')}</span>
-                {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em' }}>{leagueSeason}</span>}
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>{tr('League Stats')}</span>
+                {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{leagueSeason}</span>}
                 {/* WHERE THESE NUMBERS COME FROM, and how old they are.
                     Ohad read "LAST GAME - VS MACCABI TEL AVIV" as the club's
                     last game and said "that's not even correct we had a playoff
@@ -1772,7 +1778,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                     its source and its date cannot be mistaken for the club's own
                     record. */}
                 {leagueUpdatedAt && (
-                  <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}
+                  <span className="strip-meta" style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}
                     title="Official league feed (basket.co.il). Only games the league has published appear here.">
                     {'ליגת העל · ' + fmtNumericDate(leagueUpdatedAt)}
                   </span>
@@ -1833,16 +1839,21 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                 if (rowKind(r) === 'lift' && (!lastLift || d > lastLift)) lastLift = d;
               }
             }
+            // One line per tile at 390 (26.9): the unit rides beside the number,
+            // the date is day.month — "22 SEP" at 22px broke onto two lines.
+            const dm = (iso) => { const d = parseISO(iso); return `${d.getDate()}.${d.getMonth() + 1}`; };
             return [
-              [tr('7 days'), m7 ? `${m7}` : '—', C.tx, n7 ? `${tr('min')} · ${n7} ${tr('sessions')}` : tr('none logged')],
-              [tr('28 days'), m28 ? `${m28}` : '—', C.td, n28 ? `${tr('min')} · ${n28} ${tr('sessions')}` : tr('none logged')],
-              [tr('Last lift'), lastLift ? monDay(lastLift) : '—', C.tx, lastLift ? dow(lastLift) : tr('none logged')],
+              [tr('7 days'), m7 || null, tr('min'), n7 ? `${n7} ${tr('sessions')}` : tr('none logged')],
+              [tr('28 days'), m28 || null, tr('min'), n28 ? `${n28} ${tr('sessions')}` : tr('none logged')],
+              [tr('Last lift'), lastLift ? dm(lastLift) : null, '', lastLift ? dow(lastLift) : tr('none logged')],
             ];
-          })().map(([k, v, c, sub]) => (
-            <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{k}</div>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal' }}>{v}</div>
-              {sub ? <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 2 }}>{sub}</div> : null}
+          })().map(([k, v, unit, sub]) => (
+            <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px', minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{k}</div>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: v == null ? C.td : C.tx, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', whiteSpace: 'nowrap' }}>
+                {v == null ? '—' : v}{v != null && unit ? <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 4 }}>{unit}</span> : null}
+              </div>
+              {sub ? <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 2, whiteSpace: 'nowrap' }}>{sub}</div> : null}
             </div>
           ))}
         </div>
@@ -1875,7 +1886,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: injuries.length ? `1px solid ${C.cardBd}` : 'none' }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>{tr('Medical')}</span>
             {!injuries.length && <StatusPill status="available" small />}
-            {onInjury && <button onClick={onInjury} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 10px', cursor: 'pointer' }}>{injuries.length ? 'Update' : '+ Report injury'}</button>}
+            {onInjury && <button onClick={onInjury} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 10px', cursor: 'pointer' }}>{injuries.length ? tr('Update') : `+ ${tr('Report injury')}`}</button>}
           </div>
           {injuries.map((inj) => {
             const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
@@ -1915,7 +1926,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               little space" - 134 showed FOUR entries of twenty-one. 431 shows
               thirteen, which is a month of work, and still scrolls. */}
           {activity.length > 4 && kindChips.length > 1 && (
-            <div className="bhbc-hist-chips" style={{ display: 'flex', gap: 6, padding: '8px 9px', borderBottom: `1px solid ${C.cardBd}`, overflowX: 'auto' }}>
+            <div className="bhbc-hist-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
               {['all', ...kindChips].map((k) => {
                 const on = histKind === k;
                 return (
@@ -1948,9 +1959,9 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                       <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, color: ORANGE, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{monthSummary(group)}</span>
                     </button>
                     {open && group.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box',
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box',
                   borderBottom: i < group.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
-                  <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
+                  <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 44, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
                   {a.game ? (
                     <span style={{ color: C.tx, minWidth: 0, flex: 1, display: 'flex', gap: 8, alignItems: 'baseline' }} dir="ltr">
                       <span style={{ fontWeight: 600 }}>{tr('Game')}</span>
@@ -1968,13 +1979,14 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                       <button onClick={() => setEditSess(null)} title={tr('Cancel')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
                     </span>
                   ) : (
-                    <span style={{ color: C.tx, minWidth: 0 }}>{a.label}
+                    <span style={{ color: C.tx, minWidth: 0, flex: 1, overflowWrap: 'break-word' }}>{a.label}
+                      {a.note ? <span style={{ display: 'block', fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 2 }}>{a.note}</span> : null}
                       {/* WHO LOGGED IT. Ohad, 19.9: "it doesnt say who logged
                           it". Every session row has carried `by` since the club
                           coaches got write access - it was simply never shown
                           here, so with several coaches logging there was no way
                           to tell from the history who entered a line. */}
-                      {a.by && <span style={{ color: C.td }}> · {tr('logged by')} {byName(a.by)}</span>}
+                      {a.by && <span style={{ display: 'block', color: C.td, fontSize: 10, marginTop: 2 }}>{tr('logged by')} {byName(a.by)}</span>}
                     </span>
                   )}
                   {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
@@ -2010,7 +2022,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             {onOpenExpo && (
               <button type="button" onClick={onOpenExpo} title={tr('Open this athlete in EXPO')}
                 style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                Open in EXPO ›
+                {tr('Open in EXPO')} ›
               </button>
             )}
           </div>
@@ -4944,6 +4956,8 @@ const MEDICAL_STATUS_AVAIL = { available: 1, limited: 2, 'non-contact': 3, out: 
 // known, tiny set, so this stays a formatting rule rather than a directory:
 // local part of the address, trailing digits dropped, title-cased.
 export function byName(email) {
+  // the owner is "Ohad", not his mailbox ("Ohadyproductions" in every history row)
+  if (isOwnerEmail(String(email || ''))) return 'Ohad';
   const s = String(email || '').split('@')[0].replace(/[0-9._-]+$/, '').replace(/[._-]+/g, ' ').trim();
   if (!s) return '';
   return s.split(' ').filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
