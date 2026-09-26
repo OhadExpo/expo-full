@@ -30,6 +30,7 @@ import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import TraineeIntake from './TraineeIntake';
+import { rowKind } from './bhbcSession';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import { useT, tr, readLang } from './i18n';
@@ -143,7 +144,7 @@ function BwAddRow({ onAdd }) {
   );
 }
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, setBwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
+export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, setBwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
   const t = useT();
   // Section tabs are a MULTI-SELECT filter (Ohad): click tags to show only
   // those sections; an empty set = View All. The URL hash carries the active
@@ -586,6 +587,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     { id: 'programs', label: t('Programs') },
     { id: 'eval', label: t('Evaluation') },
     { id: 'overload', label: t('Overload') },
+    ...(isClubAthleteRow(td) ? [{ id: 'club', label: t('Club log') }] : []),
   ];
 
   return (
@@ -991,6 +993,41 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           hub: the table is the overview, each row expands into the lift's
           full record (all-time PR · trend chart · session history). The old
           standalone "Records" section was merged in here to kill the overlap. */}
+      {/* THE CLUB LOG, ON THE ATHLETE'S EXPO PAGE (Ohad 26.9: "make sure all
+          the programs or lifts that we can do on bhbc are synced and gets saved
+          to expo as well"). One source of truth: these rows ARE the club zone's
+          record (expo-bhbc-loads, in EXPO's own database) — read here, never
+          copied, so a lift or S&C session logged in the zone is on this page
+          the moment it is saved, and an edit there is an edit here. Programs
+          were already one record: the zone reads EXPO's plans. */}
+      {isClubAthleteRow(td) && (() => {
+        const rec = (bhbcLoads || {})[trainee] || {};
+        const KIND = { lift: t('Lift'), sc: t('S&C session'), game: t('Game'), practice: t('Practice'), other: t('Session') };
+        const entries = [];
+        for (const [date, list] of Object.entries(rec.sessions || {})) for (const r of (list || [])) entries.push({ date, r, kind: rowKind(r) });
+        entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+        const shown = entries.slice(0, 40);
+        return (
+          <CollapsibleSection bare domId="td-sec-club" title={`${t('Club log')} (${entries.length})`} storageKey={`td-club-${trainee}`} style={{ margin: '20px 0 0', display: showSec('club') ? undefined : 'none' }}>
+            {shown.length === 0 ? (
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>{t('Nothing logged in the club zone yet.')}</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {shown.map(({ date, r, kind }, i) => (
+                  <div key={date + i} style={{ display: 'grid', gridTemplateColumns: '92px 120px 70px minmax(0, 1fr)', gap: 10, alignItems: 'center', minHeight: 36, padding: '6px 0', borderTop: i ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
+                    <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{fmtPrettyDate(date)}</span>
+                    <span style={{ color: kind === 'lift' ? C.ac : kind === 'sc' ? C.or : C.tx, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10 }}>{KIND[kind] || KIND.other}</span>
+                    <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{Number(r.min) > 0 ? `${r.min} ${t('min')}` : '—'}</span>
+                    <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{r.note || ''}</span>
+                  </div>
+                ))}
+                {entries.length > shown.length && <div style={{ fontFamily: FN, fontSize: 10, color: C.td, paddingTop: 8, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{shown.length} / {entries.length}</div>}
+              </div>
+            )}
+          </CollapsibleSection>
+        );
+      })()}
+
       <CollapsibleSection bare domId="td-sec-overload" title={t('Progressive Overload')} storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0', display: showSec('overload') ? undefined : 'none'}}>
         <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
       </CollapsibleSection>

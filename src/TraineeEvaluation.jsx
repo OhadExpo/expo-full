@@ -452,26 +452,18 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
       {/* Cyan header strip — same vocabulary as every other dashboard /
           trainee-card section. Title + NEW EVAL button live on the strip. */}
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        {/* One row (26.9, #215): at 390 the two buttons wrapped under the title
-            and the title sat 23px above the strip's centre. The title wraps in
-            its own column; the button pair keeps its place. */}
+        {/* ONE ROW (26.9, #215/#220): the title and the section's one primary
+            action. CAMERA TEST lives under the strip — two buttons beside the
+            title never fitted one row on a phone. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
             {tt('Evaluation')} ({rows.length})
           </span>
           <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
-            <button onClick={openPicker}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`,
-                color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
-                padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
-                fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>{tt('CAMERA TEST')}</button>
             <button onClick={() => setEditing('new')}
               style={{
                 background: 'transparent',
-                border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`, borderInlineStart: 'none',
+                border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`,
                 color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
@@ -479,6 +471,19 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
           </div>
         </div>
       </RefinedHeaderStrip>
+
+      {/* CAMERA TEST sits under the strip, not in it: two actions beside the
+          title did not fit one row on a phone (26.9, "a title box is always one
+          row"). The strip keeps the section's one primary action. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button onClick={openPicker}
+          style={{
+            background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)',
+            minHeight: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center',
+            padding: '0 14px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+            fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+          }}>{tt('CAMERA TEST')}</button>
+      </div>
 
       {/* CAMERA TEST picker — grouped by eval section, every camera-measurable
           test/ROM-axis with a LIVE or soon state. Picking one launches the tool

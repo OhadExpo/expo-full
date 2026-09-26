@@ -182,7 +182,8 @@ export default function BillingView({ trainees }) {
               inside its own column; the button never moves under it. */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
-              {tt('PAYMENT REQUESTS')} ({(() => { const n = requests.filter(r => r.status === 'pending').length; return readLang() === 'he' ? (n === 1 ? '1 ממתינה' : `${n} ממתינות`) : `${n} ${tt('Waiting')}`; })()})
+              {/* one line on a phone: the count stays, its word steps aside */}
+              {tt('PAYMENT REQUESTS')} · {requests.filter(r => r.status === 'pending').length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
             </span>
             <button onClick={() => setShowRequest(true)}
               style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>

@@ -219,14 +219,15 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
       <style>{CONF_THEME_CSS}</style>
-      <Card leftStripe={C.ac} header={tt('Exercise Matching')} headerRight={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: 'var(--c-stripTx)' }}>{groups.length} {tt('titles')} · {totalEntries} {tt('rows')}</span>
+      <Card leftStripe={C.ac} header={tt('Exercise Matching')}>
+        {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
+        <div style={{ marginBottom: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ ...th, color: C.tm }}>{groups.length} {tt('titles')} · {totalEntries} {tt('rows')}</span>
           <Btn variant="ghost" onClick={acceptAllHighConfidence}>{tt('Accept all high-confidence')}</Btn>
           <Btn disabled={!affectedRows || applying} onClick={() => setConfirm(true)} style={{ background: affectedRows ? '#39BDFF' : undefined, borderColor: affectedRows ? '#39BDFF' : undefined, color: affectedRows ? '#06131b' : undefined }} /* literal cyan — C.ac resolves near-black in the light theme (audit 08-22) */>
             {applying ? tt('Applying…') : `${tt('Apply')} ${accepted.length} ${tt(accepted.length === 1 ? 'match' : 'matches')} (${affectedRows} ${tt('rows')})`}
           </Btn>
-        </div>}>
+        </div></div>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
           {tt('Every plan row whose exercise doesn’t resolve to the library, grouped by title. Accept a suggestion, Change it, or Skip. Applying writes the library link to all rows sharing that title.')}
         </div>

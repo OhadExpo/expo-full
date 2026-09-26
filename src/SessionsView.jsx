@@ -665,7 +665,7 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
             column instead; the two buttons keep their place. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
-            {tt('ON THE FLOOR')} · {checkedIn}/{list.length} {tt('CHECKED IN')}
+            {tt('ON THE FLOOR')} · {checkedIn}/{list.length}<span className="strip-meta">&nbsp;{tt('CHECKED IN')}</span>
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
             <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>

@@ -63,17 +63,18 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1150, margin: '0 auto', padding: '4px 0 60px' }}>
-      <Card leftStripe={C.ac} header={tt('Classify Library')} headerRight={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <Card leftStripe={C.ac} header={tt('Classify Library')}>
+        {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
+        <div style={{ marginBottom: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {/* --c-stripTx: this sits on the header strip, which is #E3F4FE in light.
               Measured 1.39:1 by light-dark-parity once /coach/exercise-classify
               was added to its routes. */}
-          <span style={{ ...th, color: 'var(--c-stripTx)' }}>{items.length} {tt('unclassified')}</span>
+          <span style={{ ...th, color: C.tm }}>{items.length} {tt('unclassified')}</span>
           <Btn variant="ghost" onClick={acceptAllComplete}>{tt('Fill all fully-guessed')}</Btn>
           <Btn disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ background: pending.length ? C.ac : undefined, borderColor: pending.length ? C.ac : undefined, color: pending.length ? '#04121f' : undefined }}>
             {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}
           </Btn>
-        </div>}>
+        </div></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
             {tt('Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.')}
