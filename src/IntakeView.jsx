@@ -300,7 +300,7 @@ export default function IntakeView({ trainees }) {
       </Modal>
 
       {/* Generate-link modal */}
-      <Modal open={showGen} onClose={closeGen} title={tt('Generate Intake Link')}>
+      <Modal open={showGen} guard onClose={closeGen} title={tt('Generate Intake Link')}>
         {genResult ? (
           <div>
             <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>{tt('Link generated and copied to clipboard.')}</div>

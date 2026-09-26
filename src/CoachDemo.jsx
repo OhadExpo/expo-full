@@ -13,7 +13,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate } from './dates';
+import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
@@ -713,7 +713,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                     <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
                     <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
-                    <td style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
                     <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
                     <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{planCount(t)}</td>
                   </tr>
@@ -1884,7 +1884,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.date}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{fmtNumericDate(p.date)}</span>
                 <Badge color={C.gn}>{T('PAID')}</Badge>
               </Row>
             ))}

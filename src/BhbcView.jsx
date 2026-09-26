@@ -282,6 +282,9 @@ const QUAD_MEANING = {
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const parseISO = (iso) => new Date(String(iso) + 'T00:00:00');
+// EVERY NUMERIC DATE IS DAY/MONTH (27.9, Ohad: "make sure all the dates
+// everywhere are day/month/year (dd/mm)"). "2026-09-25" -> "25/09".
+const ddmm = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}` : String(iso || ''); };
 const dow = (iso) => { const d = parseISO(iso); return dowFor(d, DOW[d.getDay()]); };
 const monDay = (iso) => { const d = parseISO(iso); return monDayFor(d, `${d.getDate()} ${MON[d.getMonth()]}`); };
 const dayDiff = (a, b) => Math.round((parseISO(a) - parseISO(b)) / 86400000);
@@ -684,7 +687,7 @@ function attendance28(rec, days) {
       arr[idx] = s; out.sessions[date] = arr;
       return { ...prev, [athleteId]: out };
     });
-    toast('Session updated'); track('session', `edited a session on ${date}`); notify();
+    toast('Session updated'); track('session', `edited a session on ${fmtNumericDate(date)}`); notify();
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const deleteSession = useCallback((athleteId, date, idx, sig) => {
@@ -744,7 +747,7 @@ function attendance28(rec, days) {
       rec.sessions[date] = [...(rec.sessions[date] || []), { kind: 'lift', type: 'Lift', min: Number(minutes), rpe: null, load: 0, attended: true, team: false, ...(note ? { note } : null), by: currentUser || null }];
       return { ...prev, [athleteId]: rec };
     });
-    toast('Lift logged'); track('session', `logged a lift on ${date} · ${Number(minutes)} min`); notify();
+    toast('Lift logged'); track('session', `logged a lift on ${fmtNumericDate(date)} · ${Number(minutes)} min`); notify();
   }, [setBhbcLoads, notify, track, currentUser]);
 
   // THE TEAM S&C SESSION, LOGGED WITH ITS PRACTICE. Ohad, 24.9: "sc sessions
@@ -813,7 +816,7 @@ function attendance28(rec, days) {
       return next;
     });
     const inCount = Object.values(entries || {}).filter((e) => e && e.attended !== false && e.avail < 4).length;
-    toast('S&C session saved'); track('session', `logged the practice and an S&C session on ${date}${start ? ` ${start}` : ''} · ${min} min · ${inCount} in`); notify();
+    toast('S&C session saved'); track('session', `logged the practice and an S&C session on ${fmtNumericDate(date)}${start ? ` ${start}` : ''} · ${min} min · ${inCount} in`); notify();
   }, [setBhbcLoads, notify, track, currentUser]);
 
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
@@ -835,7 +838,7 @@ function attendance28(rec, days) {
       });
       return next;
     });
-    toast('Check-in saved'); track('checkin', `saved the readiness check-in for ${date}`); notify();
+    toast('Check-in saved'); track('checkin', `saved the readiness check-in for ${fmtNumericDate(date)}`); notify();
   }, [setBhbcLoads, notify]);
 
   const updateGame = useCallback((g, patch) => {
@@ -1262,20 +1265,21 @@ function attendance28(rec, days) {
              Restack it: name + status, then the injury, then days/pain + the
              action. Explicit areas because auto-placement reorders once one
              child spans the row. */
-          .bhbc-inj-row{grid-template-columns:1fr auto!important;gap:5px 10px!important}
+          /* THREE LINES, TWO EDGES (27.9, Ohad: "each box can be better designed
+             for ocd"). Every line starts where the NAME starts (the jersey hangs
+             in the 27px gutter) and ends on the status chip's edge:
+               name ................ STATUS
+               injury .............. reported by
+               days · pain ......... UPDATE ›
+             The Update action used to float on a fourth line, indented under
+             nothing. */
+          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:6px 12px!important}
           .bhbc-inj-row>:nth-child(1){grid-area:1/1!important}
           .bhbc-inj-row>:nth-child(3){grid-area:1/2!important;justify-self:end!important}
-          .bhbc-inj-row>:nth-child(2){grid-area:2/1/auto/-1!important}
-          .bhbc-inj-row>:nth-child(4){grid-area:3/1!important}
-          .bhbc-inj-row>:nth-child(5){grid-area:3/2!important;justify-self:end!important}
-          /* The sixth child is the Update action. It was never mapped, so on a
-             phone it landed wherever auto-placement put it. */
-          .bhbc-inj-row>:nth-child(6){grid-area:4/1/auto/-1!important;justify-self:start!important}
-          /* ...and aligned UNDER THE NAME, not under the jersey number. The
-             name sits 27px in (an 18px right-aligned number plus the 9px gap),
-             so the action lines up with the athlete it belongs to instead of
-             hanging off the left edge. Ohad: "perfectly ocd aligned". */
-          .bhbc-inj-row>:nth-child(6){padding-inline-start:27px!important}
+          .bhbc-inj-row>:nth-child(2){grid-area:2/1!important;padding-inline-start:27px!important}
+          .bhbc-inj-row>:nth-child(5){grid-area:2/2!important;justify-self:end!important;align-self:center!important}
+          .bhbc-inj-row>:nth-child(4){grid-area:3/1!important;padding-inline-start:27px!important}
+          .bhbc-inj-row>:nth-child(6){grid-area:3/2!important;justify-self:end!important;align-self:center!important}
           .bhbc-inj-head{display:none!important}
         }
         /* TWO ROWS BEFORE ANYTHING SCROLLS AWAY.
@@ -1706,7 +1710,7 @@ function attendance28(rec, days) {
         const program = { count: aPlans.length, current: curPlan ? curPlan.name : null };
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
-          leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueLog={leagueLogFor(league, row.t.name)} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
+          leaguePlayer={leaguePlayerFor(league, row.t)} leagueLog={leagueLogFor(league, row.t)} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
@@ -1790,12 +1794,13 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // A season runs August to July (2026/27). Newest season open, the rest shut.
   const [seasonOpen, setSeasonOpen] = useState({});
   const [gameOpen, setGameOpen] = useState(null);   // the game line in the popup
+  const [showPast, setShowPast] = useState(false);  // past seasons behind a button
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
   const av = AVAIL[avail];
   // Unified activity: the zone's own session rows + detailed EXPO gym sessions (client_workouts).
-  const activity = [];
+  let activity = [];
   // TWO DISTINCT KINDS, NAMED. Ohad, 24.9: the team S&C block and a personal
   // lift "are combined or messed up" — this timeline folded both into one
   // "Gym" line. A row is labelled by what rowKind says it IS: an S&C session
@@ -1848,8 +1853,15 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
     activity.push({ kind: 'game', date: g.date, game: { opp: opp || '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, gameLine: { date: g.date, opp, min: g.min, box: g, source: 'basket.co.il' }, load: null });
   });
   activity.sort((a, b) => b.date.localeCompare(a.date));
+  // THIS SEASON ONLY (27.9, Ohad: "only this year. last year as a toggle or
+  // button"). A season runs August-July; past seasons sit behind one button.
+  const seasonOfDate = (d) => { const y = +String(d).slice(0, 4), mo = +String(d).slice(5, 7); const st = mo >= 8 ? y : y - 1; return `${st}/${String(st + 1).slice(2)}`; };
+  const curSeason = seasonOfDate(todayISO());
+  const pastSeasons = [...new Set(activity.map((a) => seasonOfDate(a.date)).filter((x) => x !== curSeason))];
+  const allActivity = activity;
+  activity = showPast ? allActivity : allActivity.filter((a) => seasonOfDate(a.date) === curSeason);
   // Counts per kind for the chips, then the visible rows grouped by month.
-  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C sessions', lift: 'Lifts', gym: 'Gym', note: 'Notes', other: 'Other' };
+  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C', lift: 'Lifts', gym: 'Gym', note: 'Notes', other: 'Other' };
   const kindCount = {};
   activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
   const kindChips = ['game', 'practice', 'sc', 'lift', 'gym', 'note', 'other'].filter((k) => kindCount[k]);
@@ -2014,11 +2026,11 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <StatusPill status={inj.status} small />
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${ddmm(inj.rtpTarget)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
                 {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, width: '100%', color: 'var(--bhbc-amber-text, #E0A73A)' }}>{overdueFor(od)}</span> : null; })()}
-                {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>{tr('Latest')} ({lastP.date.slice(5)}): {lastP.note}</span>}
+                {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>{tr('Latest')} ({ddmm(lastP.date)}): {lastP.note}</span>}
               </div>
             );
           })}
@@ -2045,17 +2057,28 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               little space" - 134 showed FOUR entries of twenty-one. 431 shows
               thirteen, which is a month of work, and still scrolls. */}
           {activity.length > 4 && kindChips.length > 1 && (
-            <div className="bhbc-hist-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
+            // ONE CONTROL, EQUAL CELLS (27.9, Ohad: "buttons all to lifts is bad
+            // design for ocd"): a segmented grid joined by hairlines - one row of
+            // equal cells where they fit, two equal columns on a phone.
+            <div className="bhbc-hist-chips" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(['all', ...kindChips].length, 6)}, minmax(0, 1fr))`, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
               {['all', ...kindChips].map((k) => {
                 const on = histKind === k;
                 return (
                   <button key={k} onClick={() => setHistKind(k)} className="bhbc-ghost-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, boxSizing: 'border-box', flexShrink: 0, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tm, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 'var(--btn-h)', minWidth: 0, boxSizing: 'border-box', padding: '0 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'var(--c-sf)', color: on ? '#fff' : C.tm, border: 'none' }}>
                     {tr(k === 'all' ? 'All' : KIND_LABEL[k])}
                     <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>{k === 'all' ? activity.length : kindCount[k]}</span>
                   </button>
                 );
               })}
+            </div>
+          )}
+          {pastSeasons.length > 0 && (
+            <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
+              <button type="button" aria-pressed={showPast} onClick={() => setShowPast((v) => !v)} className="bhbc-ghost-btn"
+                style={{ width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: showPast ? '#fff' : C.tm, background: showPast ? NAVY : 'transparent', border: `1px solid ${showPast ? NAVY : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+                {showPast ? tr('This season only') : `${tr('Show')} ${pastSeasons.join(' · ')}`}
+              </button>
             </div>
           )}
           {activity.length ? (
@@ -2106,7 +2129,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                   className={a.gameLine ? 'bhbc-row' : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box', cursor: a.gameLine ? 'pointer' : undefined,
                   borderBottom: i < group.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
-                  <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 44, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
+                  <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 44, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{ddmm(a.date)}</span>
                   {a.game ? (
                     <span style={{ color: C.tx, minWidth: 0, flex: 1, display: 'flex', gap: 8, alignItems: 'baseline' }} dir="ltr">
                       <span style={{ fontWeight: 600, unicodeBidi: 'isolate' }}>{tr('vs')} <span style={{ unicodeBidi: 'isolate' }}>{a.game.opp}</span></span>
@@ -2240,7 +2263,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null) || e.bw).length;
   const cols = '24px 1.3fr auto auto 62px 76px';
   return (
-    <BModal open onClose={onClose} wide title={tr('Wellness check-in')}>
+    <BModal open guard onClose={onClose} wide title={tr('Wellness check-in')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -2371,7 +2394,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
   // costs a scroll, not a clip.
   const cols = '24px minmax(152px, 1.4fr) 116px 84px 66px 1.5fr';
   return (
-    <BModal open onClose={onClose} wide title={tr('Log S&C Session')}>
+    <BModal open guard onClose={onClose} wide title={tr('Log S&C Session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* bhbc-form-grid: the ≤620px rule in themes.css stacks these into
             full-width rows on a phone. */}
@@ -2385,7 +2408,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
             {dayFx.length ? dayFx.map((f, i) => {
               const on = (f.start || '') === slotStart;
               return (
-                <button key={i} type="button" onClick={() => setSlotStart(f.start || '')}
+                <button key={i} type="button" data-dirties onClick={() => setSlotStart(f.start || '')}
                   style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0,
                     background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
                   {f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? ` · ${f.minutes} ${fxLabelFor('__min', 'min')}` : ''}
@@ -2441,7 +2464,7 @@ function GameEditModal({ game, onClose, onSave }) {
   const [venue, setVenue] = useState(game.venue || '');
   const [home, setHome] = useState(game.home == null ? '' : game.home ? 'home' : 'away');
   return (
-    <BModal open onClose={onClose} title={tr('Game details')}>
+    <BModal open guard onClose={onClose} title={tr('Game details')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{dow(game.date)} {monDay(game.date)} · {game.start}</div>
         <Input label="Opponent" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="e.g. Maccabi Tel Aviv" />
@@ -2450,7 +2473,7 @@ function GameEditModal({ game, onClose, onSave }) {
           <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Home / Away')}</label>
           <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center', height: 'var(--btn-h)', boxSizing: 'border-box' }}>
             {[['home', 'Home'], ['away', 'Away'], ['', '—']].map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '0 16px', minHeight: 0, height: 'calc(var(--btn-h) - 2px)', cursor: 'pointer' }}>{tr(l)}</button>
+              <button key={k} type="button" data-dirties onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '0 16px', minHeight: 0, height: 'calc(var(--btn-h) - 2px)', cursor: 'pointer' }}>{tr(l)}</button>
             ))}
           </div>
         </div>
@@ -2587,8 +2610,8 @@ function ActivityView({ activity = [], tr, he }) {
           : list.slice(0, 120).map((e, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{tr(e.what)}</span>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by || '—'}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1')}</span>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
             </div>
           ))}
@@ -3945,7 +3968,11 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                         {/* No warning glyph. Ohad: "no emojies or icons, just
                             colors" - medText already carries the severity, and a
                             triangle in front of every injured athlete was noise. */}
-                        {injShort && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: medText(inj.status) }}>{injShort}</span>}
+                        {/* bigger and bolder (27.9, Ohad: "make the injuries slightly
+                            bigger or more noticeable but keep the perfect ocd design"):
+                            12px / 800 in its status colour, still starting on the
+                            position's edge - no tint box, no glyph. */}
+                        {injShort && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status) }}>{injShort}</span>}
                       </div>
                     );
                   })()}
@@ -4016,8 +4043,11 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                         // column that shifts by 3px per row depending on the athlete's
                         // medical state. lineHeight normal so the label sits on its own
                         // centre, like every other control.
-                        style={{ flexShrink: 0, minWidth: 64, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? medText(inj.status) : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        {tr(inj ? 'MED ✎' : '+ MED')}
+                        style={{ flexShrink: 0, minWidth: 64, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        {/* ONE BUTTON, ONE LOOK (27.9, Ohad: "make the med button all the
+                            same"): the injury line above already says whether there is
+                            one and how bad; the button just opens the record. */}
+                        {tr('MED')}
                       </button>
                     );
                   })()}
@@ -4119,7 +4149,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, onOpen }) {
                     pushes its own hairline UP — which is the "borders don't
                     align from card to card" he reported on 02.09. Two words on
                     one line; the sessions text beside it is the flexible one. */}
-                {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('League points per game')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
+                {(() => { const lp = leaguePlayerFor(league, t); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('League points per game')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
                 <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null
                   ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} />
                   /* NO ACWR IS NOT THE SAME AS NO TRAINING. Without an RPE there
@@ -4797,17 +4827,23 @@ const LEAGUE_ALIAS = {
   'Daeshon Francis': 'דשון פרנסיס', 'Zack Bryant': 'זאק בראיינט',
   'Noah Carter': 'נואה קרטר', 'DJ Burns': "די-ג'יי ברנס",
 };
-const leaguePlayerFor = (league, name) => {
-  const heb = LEAGUE_ALIAS[name];
-  return heb ? (league?.players || []).find((p) => p.name === heb) || null : null;
+// MATCHED BY JERSEY FIRST (27.9, Ohad: "this is not updated" - six of ten
+// players read "—" on PLAYER STATS because only four had a spelling in the
+// alias list). The league box scores carry the jersey; the name spelling is
+// only a fallback for a season whose feed predates the jersey field.
+const matchLeague = (players, t) => {
+  const tt = typeof t === 'string' ? { name: t } : (t || {});
+  const list = players || [];
+  if (tt.jersey != null) { const byJ = list.find((p) => p.jersey != null && Number(p.jersey) === Number(tt.jersey)); if (byJ) return byJ; }
+  const heb = LEAGUE_ALIAS[tt.name];
+  return heb ? list.find((p) => p.name === heb) || null : null;
 };
+const leaguePlayerFor = (league, t) => matchLeague(league?.players, t);
 // Every league game of his, EVERY season kept: the current season's log plus
 // the archived seasons' (27.9, history "by season then months").
-const leagueLogFor = (league, name) => {
-  const heb = LEAGUE_ALIAS[name];
-  if (!heb) return [];
-  const cur = ((league?.players || []).find((p) => p.name === heb) || {}).log || [];
-  const old = Object.values(league?.archive || {}).flatMap((a) => ((a.players || []).find((p) => p.name === heb) || {}).log || []);
+const leagueLogFor = (league, t) => {
+  const cur = (matchLeague(league?.players, t) || {}).log || [];
+  const old = Object.values(league?.archive || {}).flatMap((a) => (matchLeague(a.players, t) || {}).log || []);
   return [...cur, ...old];
 };
 const relTime = (iso) => {
@@ -4874,7 +4910,37 @@ function StandingsTable({ standings }) {
 // Roster-driven: one row per CURRENT squad athlete, showing their official
 // league stats (matched via LEAGUE_ALIAS) or dashes if they've no games yet.
 // No departed players — the table IS the roster.
-function PlayerStatsTable({ roster, league, onOpen }) {
+// THE CLUB'S OWN GAMES, NOT ONLY THE LEAGUE'S (27.9, Ohad: "there's 5 logged
+// games ... it needs to be always updated. all the tables all around bhbc").
+// Every game row logged this season (the box-score logger's rows carry the
+// full line; a scrimmage logged by hand carries minutes). GP and MPG count
+// every game; the box averages count the games that HAVE a box - stated under
+// the table. Falls back to the league feed for a player with no logged game.
+const clubSeasonStats = (t, loads) => {
+  const now = new Date();
+  const seasonStart = `${now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1}-08-01`;
+  const rows = [];
+  for (const [d, list] of Object.entries(((loads || {})[t.id] || {}).sessions || {})) {
+    if (d < seasonStart) continue;
+    for (const r of (list || [])) if (r && rowKind(r) === 'game') rows.push(r);
+  }
+  if (!rows.length) return null;
+  const withBox = rows.filter((r) => r.box);
+  const sum = (f) => withBox.reduce((a, r) => a + (Number(f(r.box)) || 0), 0);
+  const nb = withBox.length;
+  const avg = (v) => (nb ? +(v / nb).toFixed(1) : null);
+  const tp = { m: sum((b) => (b.fg3 || b.tp || {}).m), a: sum((b) => (b.fg3 || b.tp || {}).a) };
+  const ft = { m: sum((b) => (b.ft || {}).m), a: sum((b) => (b.ft || {}).a) };
+  const min = rows.reduce((a, r) => a + (Number(r.min) || 0), 0);
+  return {
+    gp: rows.length, boxGames: nb, mpg: +(min / rows.length).toFixed(1),
+    ppg: avg(sum((b) => b.pts)), rpg: avg(sum((b) => b.reb)), apg: avg(sum((b) => b.ast)),
+    tpp: tp.a ? Math.round((tp.m / tp.a) * 100) : null, ftp: ft.a ? Math.round((ft.m / ft.a) * 100) : null,
+    pirpg: avg(sum((b) => b.pir)),
+  };
+};
+
+function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   const tr = useT();
   const [sort, setSort] = useState('ppg');
   // Ohad: "it doesnt re-order the column based on up and down when i click on
@@ -4892,7 +4958,7 @@ function PlayerStatsTable({ roster, league, onOpen }) {
   // A player with no league stats has nothing to rank, so he sorts LAST in
   // BOTH directions. Letting him take the -1 would put every dash at the top of
   // an ascending sort, which answers nobody's question.
-  const items = (roster || []).map((t) => ({ t, s: leaguePlayerFor(league, t.name) }))
+  const items = (roster || []).map((t) => ({ t, s: (loads && clubSeasonStats(t, loads)) || leaguePlayerFor(league, t) }))
     .sort((a, b) => {
       const av = a.s ? a.s[sort] : null, bv = b.s ? b.s[sort] : null;
       if (av == null && bv == null) return (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
@@ -4906,7 +4972,12 @@ function PlayerStatsTable({ roster, league, onOpen }) {
   );
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
+      {/* THE TABLE FILLS ITS SCROLLER (27.9, Ohad: "why the extra white space?
+          useless"): index.html turns every table into display:block under
+          769px, so the rows stopped at their content width inside a 620px box.
+          display:table (themes.css .bhbc-stats-table) + the player column
+          pinned while the numbers scroll. */}
+      <table className="bhbc-stats-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
         <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, c.h))}</tr></thead>
         <tbody>
           {items.map(({ t, s }) => {
@@ -4973,7 +5044,7 @@ function ResultsList({ games, bhbcOnly }) {
     return (
       <div style={{ borderBottom: `1px solid ${C.cardBd}`, border: `1px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)` }}>
         <div className="bhbc-game-row" style={{ display: 'grid', gridTemplateColumns: '54px minmax(0,auto) 1fr 62px', gap: 14, alignItems: 'center', padding: '12px 12px' }}>
-          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
+          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? ddmm(g.date) : ''}</div>
           {/* Bnei Herzliya (constant) · vs/@/score · opponent — constant first token
               means vs/@ and the opponent line up on every row. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -5118,8 +5189,8 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
           </>
         ) : (
           <>
-            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} />
-            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>Official league stats (מנהלת ליגת העל){league.season ? ` · ${league.season}` : ''} — tap any athlete for their full profile &amp; last game.</div>
+            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} loads={bhbcLoads} />
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>{tr('Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.')}</div>
           </>
         )}
       </Card>
@@ -5365,7 +5436,7 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
                 all Nord, the opponent the loudest, the kind a legible 10.5 tag,
                 and words wrap whole. */}
             <span style={{ minWidth: 0, display: 'inline-flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 }}>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{g.date}</span>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtNumericDate(g.date)}</span>
               <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx }}>{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}</span>
               {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Scrimmage')}</span>}
             </span>
@@ -5404,7 +5475,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   const total = Object.values(mins).reduce((a, m) => a + (Number(m) || 0), 0);
   const played = Object.values(mins).filter((m) => Number(m) > 0).length;
   return (
-    <BModal open onClose={onClose} wide title={<>{tr('Minutes played')}<span className="bm-lead"> {'\u00B7'} {game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}</span></>}>
+    <BModal open guard onClose={onClose} wide title={<>{tr('Minutes played')}<span className="bm-lead"> {'\u00B7'} {game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}</span></>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: FN, fontSize: 11, color: C.td, marginInlineStart: 'auto' }}>
           <b style={{ color: C.tx, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{played}</b><span>{tr('played')}</span>
@@ -5799,7 +5870,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
   };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (
-    <BModal open sticky onClose={onClose} wide title={<><span className="bm-lead">{tr(injury ? 'Update injury' : 'Report injury')} · </span>#{athlete.jersey ?? '—'} {athlete.name}</>}>
+    <BModal open guard onClose={onClose} wide title={<><span className="bm-lead">{tr(injury ? 'Update injury' : 'Report injury')} · </span>#{athlete.jersey ?? '—'} {athlete.name}</>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {onSwitch && (active.length > 0 || injury) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
@@ -5848,7 +5919,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
               1px gap over the border colour draws every inner line once */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
             {Object.entries(MED_STATUS).map(([k, s]) => (
-              <button key={k} type="button" onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'var(--c-sf)', border: 'none', padding: '0 14px', cursor: 'pointer' }}>{s.label}</button>
+              <button key={k} type="button" data-dirties onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'var(--c-sf)', border: 'none', padding: '0 14px', cursor: 'pointer' }}>{s.label}</button>
             ))}
           </div>
         </div>
@@ -5907,7 +5978,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
                   ) : (
                     <span style={{ display: 'inline-flex', gap: 6, flexShrink: 0 }}>
                       <button type="button" onClick={() => { setEditIdx(i); setEditDate(p.date || today); setEditNote(p.note || ''); setEditPain(p.pain == null ? '' : String(p.pain)); }} title={tr('Edit')} style={rehabBtn(C.tm)}>✎</button>
-                      <button type="button" onClick={() => setProgress((arr) => arr.filter((_, k) => k !== i))} title={tr('Delete')} style={rehabBtn('#DE4E3B')}>✕</button>
+                      <button type="button" data-dirties onClick={() => setProgress((arr) => arr.filter((_, k) => k !== i))} title={tr('Delete')} style={rehabBtn('#DE4E3B')}>✕</button>
                     </span>
                   )}
                 </div>
@@ -5945,7 +6016,7 @@ function LiftModal({ open, initialAthlete, roster, onClose, onSave }) {
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
-    <BModal open={open} onClose={onClose} title={tr('Log lift')}>
+    <BModal open={open} guard onClose={onClose} title={tr('Log lift')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={lab}>{tr('Athlete')}</label>
