@@ -3127,21 +3127,32 @@ function ExerciseAction({ icon, label, sub }) {
 }
 
 // ─── Tab: Exercises ───────────────────────────────────────────────────────
+// The real library's media flags (src/ExercisesView.jsx hasVideo / hasNotes /
+// isUnclassified), on the mock rows: every mock carries cues; three simple
+// isolation moves have no demo video, so the Video filter narrows something.
+const DEMO_NO_VIDEO = new Set(['Leg Curl', 'Tricep Pushdown', 'Plank']);
+const demoHasVideo = (e) => !DEMO_NO_VIDEO.has(e.name);
+const demoHasNotes = (e) => !!(e.cues && String(e.cues).trim());
+const demoUnclassified = (e) => !((e.resistanceType || '') && (e.movementType || '') && (e.bodyPosition || ''));
+
 function DemoExercises() {
-  // Mirrors src/ExercisesView.jsx filter shape: a search box + a 6-up grid
-  // of selects (Category / Resistance / Body Position / Movement Type /
-  // Pattern / Laterality), with an active-count chip and a Clear all link.
-  // Anything dropped here would also land on the real coach app.
+  // 1:1 with src/ExercisesView.jsx: a SHOW row of flag chips (video / notes /
+  // unclassified) and a FILTER BY row over the library sheet's own columns
+  // (Resistance, Position, Movement, Joints, Joint Movements, Primary and
+  // Secondary Muscles). Single-value fields OR together; the four multi-value
+  // anatomy fields require ALL picked values (AND). Until 26.9 the demo offered
+  // Category / Pattern / Laterality — filters the product does not have — and
+  // none of the anatomy ones it does (verify-demo-parity).
   const [search, setSearch] = useState('');
-  // Multi-select filters (arrays), matching the redesigned real ExercisesView
-  // (#212). movementPattern maps to the exercise's `pattern` field.
-  const emptyFilters = { category: [], resistanceType: [], bodyPosition: [], movementType: [], movementPattern: [], laterality: [] };
+  const emptyFilters = { resistanceType: [], bodyPosition: [], movementType: [], primaryJoints: [], jointMovements: [], primaryMuscles: [], secondaryMuscles: [] };
   const [filters, setFilters] = useState(emptyFilters);
+  const [flags, setFlags] = useState({ video: false, notes: false, missing: false });
   const [openKey, setOpenKey] = useState(null); // which filter pill's menu is open
   const toggleFilter = (k, v) => setFilters(prev => { const cur = prev[k] || []; return { ...prev, [k]: cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v] }; });
   const clearFilter = (k) => setFilters(prev => ({ ...prev, [k]: [] }));
-  const activeFilterCount = Object.values(filters).reduce((n, a) => n + (a && a.length ? 1 : 0), 0);
-  const clearFilters = () => { setFilters(emptyFilters); setOpenKey(null); };
+  const toggleFlag = (k) => setFlags(m => ({ ...m, [k]: !m[k] }));
+  const activeFilterCount = Object.values(filters).reduce((n, a) => n + (a && a.length ? 1 : 0), 0) + Object.values(flags).filter(Boolean).length;
+  const clearFilters = () => { setSearch(''); setFilters(emptyFilters); setFlags({ video: false, notes: false, missing: false }); setOpenKey(null); };
   const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors real ExercisesView
 
   // Close the open filter menu on Escape (a click-catcher backdrop handles outside
@@ -3153,28 +3164,42 @@ function DemoExercises() {
     return () => window.removeEventListener('keydown', onKey);
   }, [openKey]);
 
-  const FILTER_KEYS = ['category', 'resistanceType', 'bodyPosition', 'movementType', 'movementPattern', 'laterality'];
-  const fieldOf = (e, k) => (k === 'movementPattern' ? e.pattern : e[k]);
+  const FILTER_KEYS = ['resistanceType', 'bodyPosition', 'movementType', 'primaryJoints', 'jointMovements', 'primaryMuscles', 'secondaryMuscles'];
+  const MULTI_VALUE = new Set(['primaryJoints', 'jointMovements', 'primaryMuscles', 'secondaryMuscles']);
+  const splitVals = (v) => String(v || '').split(',').map(x => x.trim()).filter(Boolean);
   const q = search.trim().toLowerCase();
-  const searchOk = (e) => {
-    if (!q) return true;
-    const haystack = [e.name, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.pattern, e.laterality].filter(Boolean).join(' ').toLowerCase();
-    return q.split(/\s+/).filter(Boolean).every(tok => haystack.includes(tok));
+  // The filter predicate shared by the list and the faceted counts; `skip`
+  // leaves one dimension out so its own options keep switchable counts.
+  const pass = (e, skip) => {
+    if (q) {
+      const hay = [e.name, e.resistanceType, e.bodyPosition, e.movementType, e.primaryJoints, e.jointMovements, e.primaryMuscles, e.secondaryMuscles].filter(Boolean).join(' ').toLowerCase();
+      if (!q.split(/\s+/).filter(Boolean).every(t => hay.includes(t))) return false;
+    }
+    for (const k of FILTER_KEYS) {
+      if (k === skip) continue;
+      const sel = filters[k] || [];
+      if (!sel.length) continue;
+      if (MULTI_VALUE.has(k)) { const v = splitVals(e[k]); if (!sel.every(x => v.includes(x))) return false; }
+      else if (!sel.includes(e[k])) return false;
+    }
+    if (skip !== 'video' && flags.video && !demoHasVideo(e)) return false;
+    if (skip !== 'notes' && flags.notes && !demoHasNotes(e)) return false;
+    if (skip !== 'missing' && flags.missing && !demoUnclassified(e)) return false;
+    return true;
   };
-  // A row passes filter key k when k has no selection OR the row's value is picked.
-  const passKey = (e, k) => { const sel = filters[k] || []; return sel.length === 0 || sel.includes(fieldOf(e, k)); };
-  const filtered = MOCK_EXERCISES.filter(e => searchOk(e) && FILTER_KEYS.every(k => passKey(e, k)));
-
-  // Faceted option list [value, count] for key k: rows passing search + every
-  // OTHER active filter, counted by this key's value (standard faceted rule).
-  // Selected values are always kept so a selection can't vanish from its menu.
+  const filtered = MOCK_EXERCISES.filter(e => pass(e, null));
+  // Faceted option list [value, count]: OR facets skip their own dimension, AND
+  // facets count inside the current selection — the real counts rule.
   const dynOpts = (k) => {
-    const base = MOCK_EXERCISES.filter(e => searchOk(e) && FILTER_KEYS.every(o => o === k || passKey(e, o)));
     const cm = {};
-    for (const e of base) { const v = fieldOf(e, k); if (v) cm[v] = (cm[v] || 0) + 1; }
+    for (const e of MOCK_EXERCISES) {
+      if (MULTI_VALUE.has(k)) { if (pass(e, null)) new Set(splitVals(e[k])).forEach(v => { cm[v] = (cm[v] || 0) + 1; }); }
+      else if (e[k] && pass(e, k)) cm[e[k]] = (cm[e[k]] || 0) + 1;
+    }
     const keys = new Set([...Object.keys(cm), ...(filters[k] || [])]);
     return [...keys].sort((a, b) => (cm[b] || 0) - (cm[a] || 0) || a.localeCompare(b)).map(v => [v, cm[v] || 0]);
   };
+  const flagCount = (k, fn) => MOCK_EXERCISES.filter(e => fn(e) && pass(e, k)).length;
 
   // Underline-trigger base (filters = underline text, not solid boxes).
   const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
@@ -3249,7 +3274,7 @@ function DemoExercises() {
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={T('Search exercises (title, muscle, pattern...)')}
+            placeholder={T('Search exercises (title, muscle, joint, position…)')}
             style={{
               width: '100%', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
               height: 30, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, lineHeight: '30px', outline: 'none',
@@ -3259,17 +3284,26 @@ function DemoExercises() {
         <button style={{ minHeight: CTRL_H, boxSizing: 'border-box', width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</button>
       </div>
 
-      {/* Filter rail — carded multi-select FilterPill menus (matches the
-          redesigned real ExercisesView #212), led by a muted "Filter by". */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
-        <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Filter by')}</span>
-        <FilterPill label="Category" k="category" />
-        <FilterPill label="Resistance" k="resistanceType" />
-        <FilterPill label="Body Position" k="bodyPosition" />
-        <FilterPill label="Movement" k="movementType" />
-        <FilterPill label="Pattern" k="movementPattern" />
-        <FilterPill label="Laterality" k="laterality" />
-        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
+      {/* Two rows like the real ExercisesView: SHOW (flag chips) and FILTER BY
+          (the sheet's columns), each led by a muted role label. */}
+      <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 6px' }}>
+          <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Show')}</span>
+          {[['video', `▶ ${T('Video')} (${flagCount('video', demoHasVideo)})`, C.ac], ['notes', `☰ ${T('Notes')} (${flagCount('notes', demoHasNotes)})`, C.or], ['missing', `∅ ${T('Unclassified')} (${flagCount('missing', demoUnclassified)})`, C.or]].map(([k, label, color]) => (
+            <button key={k} onClick={() => toggleFlag(k)} style={{ ...railBase, borderBottomColor: flags[k] ? color : 'transparent', color: flags[k] ? color : C.tm }}>{label}</button>
+          ))}
+          {(activeFilterCount > 0 || q) && <button onClick={clearFilters} title={T('Clear all filters')} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '6px 1px 12px', borderTop: `1px solid ${C.cardBd}` }}>
+          <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Filter by')}</span>
+          <FilterPill label="Resistance" k="resistanceType" />
+          <FilterPill label="Position" k="bodyPosition" />
+          <FilterPill label="Movement" k="movementType" />
+          <FilterPill label="Joints" k="primaryJoints" />
+          <FilterPill label="Joint Movements" k="jointMovements" />
+          <FilterPill label="Primary Muscles" k="primaryMuscles" />
+          <FilterPill label="Secondary Muscles" k="secondaryMuscles" />
+        </div>
       </div>
       {/* Click-catcher backdrop: an outside click closes the open menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
@@ -3299,7 +3333,7 @@ function DemoExercises() {
                     <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
                     <span title={e.name} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
                   </span>
-                  <span style={{ color: C.ac, fontSize: 12 }}>▶</span>
+                  {demoHasVideo(e) && <span style={{ color: C.ac, fontSize: 12 }}>▶</span>}
                 </div>
                 <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
                   <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{[e.resistanceType, e.bodyPosition, e.movementType].filter(Boolean).join('  ·  ')}</div>
@@ -3313,31 +3347,46 @@ function DemoExercises() {
         // TABLE — full-width, every sheet parameter a column (real ExercisesView).
         <div className="cd-ex-table-wrap" style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
           <style>{`
-            /* Mirrors src/ExercisesView.jsx: below 701px the taxonomy columns
-               go, leaving the name. Keeping them turned every cell into one
-               word per line at 390. */
+            /* The real ExercisesView's phone rules (below 701px): the seven
+               taxonomy columns go, leaving name, MEDIA and the two actions;
+               the name cell is capped so the actions stay on screen. */
             @media (max-width: 700px) {
               .cd-ex-table-wrap { overflow-x: visible !important; }
               .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
-              .cd-ex-table-wrap table { table-layout: auto !important; width: 100% !important; }
-              /* With the taxonomy gone the name column is the table. A width
-                 of 100% on that cell did not take: with seven of eight cells
-                 display:none, Chrome laid the ROW out at 151px inside a 357px
-                 table (measured 26.9, audit-out/_ex390b.mjs), a void beside
-                 every name. One column is a list, so lay it out as one: block
-                 rows, and the name cell fills them. The row keeps the control
-                 height as a floor, text centred in it. */
-              .cd-ex-table-wrap table, .cd-ex-table-wrap thead, .cd-ex-table-wrap tbody, .cd-ex-table-wrap tr { display: block !important; width: 100% !important; }
-              .cd-ex-table-wrap tr { height: auto !important; }
-              .cd-ex-table-wrap th:first-child, .cd-ex-table-wrap td:first-child { display: flex !important; align-items: center; width: 100% !important; max-width: none !important; min-height: var(--btn-h); box-sizing: border-box; }
+              /* index.html turns EVERY table into display:block under 769px;
+                 the real .ex-table opts back out, and so must this one — as a
+                 block, an anonymous table box sized to its content sat inside
+                 it and every row stopped short of the edge (26.9). */
+              .cd-ex-table-wrap table { display: table !important; table-layout: auto !important; width: 100% !important; white-space: normal !important; }
+              .cd-ex-table-wrap th, .cd-ex-table-wrap td { white-space: normal !important; }
+              .cd-ex-table-wrap td:first-child, .cd-ex-table-wrap th:first-child { max-width: none !important; }
+              /* The real table's long names fill the name column; the demo's short
+                 ones left 30% of the width to it and the rest to MEDIA and the
+                 actions (125 / 121px). As on the real tablet rule, the name column
+                 is auto and takes what is left. */
+              .cd-ex-table-wrap col:first-child { width: auto !important; }
+              /* Edit + delete stay side by side (the real column measures 63px
+                 and holds both); wrapping stacked them and doubled every row. */
+              .cd-ex-table-wrap td:last-child { white-space: nowrap !important; }
             }
           `}</style>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            {/* The real table's column structure. Its percentage widths are left
+                out: with the demo's short names they gave Joint Movements 138px at
+                1440 and every value broke one word per line (overflow gate, 26.9). */}
+            <colgroup>
+              <col />
+              {Array.from({ length: 7 }, (_, j) => <col key={j} className="cd-ex-taxo" />)}
+              <col style={{ width: '58px' }} />
+              <col style={{ width: '56px' }} />
+            </colgroup>
             <thead>
               <tr>
                 {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
                   <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T(h)}</th>
                 ))}
+                <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T('Media')}</th>
+                <th style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }} />
               </tr>
             </thead>
             <tbody>
@@ -3348,8 +3397,27 @@ function DemoExercises() {
                 const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
                   <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{e.name}</td>
+                    <td style={{ padding: '9px 12px 9px 14px', maxWidth: 260 }}>
+                      {/* The real row's status dot: cyan = video, orange = cues only. */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: demoHasVideo(e) ? C.ac : demoHasNotes(e) ? C.or : 'transparent', border: (demoHasVideo(e) || demoHasNotes(e)) ? 'none' : `1px solid ${C.td}` }} />
+                        <span style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{e.name}</span>
+                      </div>
+                    </td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
+                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12 }}>▶</span>}
+                      {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                    </td>
+                    {/* Edit / delete, as on the real row — inert in the demo. */}
+                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
+                      <button title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'default', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      <button title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'default', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}

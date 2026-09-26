@@ -66,10 +66,12 @@ const isData = (s) => (
 //   - a trailing count badge: "Athletes32" vs "ATHLETES8" is the same control
 //     with a different fixture size
 //   - a leading icon glyph and trailing arrow
+//   - a parenthesised count: "▶ Video (17)" vs "▶ Video (402)" is one flag chip
 const norm = (s) => String(s || '')
   .replace(/\s+/g, ' ')
   .trim()
-  .replace(/[←-⇿■-➿⬀-⯿]/g, '')   // arrows, geometric icons
+  .replace(/[←-⇿■-➿⬀-⯿∅]/g, '')   // arrows, geometric icons, the empty-set glyph
+  .replace(/\s*\([\d,]+\)$/, '')                                // a parenthesised count
   .replace(/\d+$/, '')                                         // a trailing count badge
   .replace(/\s+/g, ' ')
   .trim()
