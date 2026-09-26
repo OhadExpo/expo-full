@@ -688,7 +688,7 @@ Object.assign(HE, {
   'Due for the weight room': 'מחכים לאימון כוח',
   'Everyone has lifted in the last three days.': 'כולם עשו כוח בשלושת הימים האחרונים.',
   'lift session': 'אימון כוח',
-  'lift logged': 'נרשם אימון כוח',
+  'lift logged': 'נרשמה הרמה',
   'Jan': 'ינואר',
   'Feb': 'פברואר',
   'Mar': 'מרץ',

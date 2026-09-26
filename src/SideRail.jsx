@@ -79,6 +79,11 @@ export function SideRail({
       paddingInlineStart: RAIL_GUTTER, display: 'flex', flexDirection: 'column', gap: 12,
       alignSelf: 'flex-start',
       position: narrow ? 'static' : 'sticky', top: narrow ? undefined : top,
+      // A sticky rail paints among positioned elements in DOM order, so a later
+      // block that carries a transform (the demo's waitlist band rises in) covered
+      // its bottom button at 1440 (pages gate, 24.9). The rail is 204px at the
+      // start edge; nothing centred below the grid is under it.
+      zIndex: narrow ? undefined : 1,
       maxHeight: narrow ? undefined : maxHeight, overflowY: narrow ? 'visible' : 'auto',
       // Stop the scrollbar-thumb jitter at the very bottom of the track (Ohad #196):
       // a reserved gutter kills the width flicker, and scroll-containment stops the
