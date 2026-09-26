@@ -9,12 +9,14 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const press = (sel, idx, label) => ({ sel, idx, label });
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
 let tried = 0, bad = 0;
+const perWidth = {};   // a width that measured nothing is a FAIL, not a skip
 for (const w of [1440, 390]) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   try {
     await setWidth(pg, w, 900);
     await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
-    const who = await signIn(pg, BASE); if (!who || !who.signedIn) { console.log('NO SEAT'); continue; }
+    perWidth[w] = 0;
+    const who = await signIn(pg, BASE); if (!who || !who.signedIn) { console.log(`FAIL ${w}: NO SEAT — nothing measured at this width`); continue; }
     await pg.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' }); await setWidth(pg, w, 900); await wait(4000);
     const n = await pg.evaluate(() => document.querySelectorAll('div[data-submenu-id] > button[aria-expanded]').length);
     for (let i = 0; i < n; i++) {
@@ -42,7 +44,7 @@ for (const w of [1440, 390]) {
         await human(it); await sleep(1200);
         return { tlabel, ilabel, before, after: location.pathname };
       }, i);
-      tried++;
+      tried++; perWidth[w]++;
       const ok = !r.err && r.after !== r.before;
       if (!ok) bad++;
       console.log(`${ok ? 'ok  ' : 'FAIL'} ${w} "${r.tlabel}" -> "${r.ilabel || ''}" ${r.err || `${r.before} -> ${r.after}`}`);
@@ -51,4 +53,6 @@ for (const w of [1440, 390]) {
 }
 console.log(`\nSUBMENU CLICK — ${tried} menus x 2 widths, ${bad} failing`);
 await b.disconnect();
-process.exit(bad || !tried ? 1 : 0);
+const empty = Object.entries(perWidth).filter(([, n]) => !n).map(([w]) => w);
+for (const w of empty) console.log(`FAIL  width ${w}: 0 menus clicked — the zero there is not a pass`);
+process.exit(bad || !tried || empty.length ? 1 : 0);

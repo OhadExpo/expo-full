@@ -23,7 +23,7 @@ import { returnToLoadFlags } from './bhbcReturnLoad';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
-import { sessionSig, rowKind, ownsScRow } from './bhbcSession.js';
+import { sessionSig, rowKind, ownsScRow, buildScRow, scPrefillNotes } from './bhbcSession.js';
 import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
@@ -736,7 +736,12 @@ function attendance28(rec, days) {
         rec.attendance = { ...(rec.attendance || {}), [slotKey]: attended ? 'in' : 'out' };
         if (attended) {
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { kind: 'sc', type: 'Conditioning', min, rpe: null, load: 0, attended: true, note: e.note || note || '', team: true, start, by: currentUser || null }];
+          // `note` is what every reader shows (his own note wins); `teamNote`
+          // and `ownNote` keep the two apart so reopening the sheet restores
+          // each to its own field. Without them the sheet took the first note
+          // it found as the TEAM note — one athlete's "knee sore" — and a
+          // re-save wrote it onto every attending athlete (26.9 review).
+          rec.sessions[date] = [...(rec.sessions[date] || []), buildScRow({ min, start, teamNote: note, ownNote: e.note, by: currentUser || null })];
         }
         if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
         if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note, [`${date}|${start || ''}`]: e.note };
@@ -2145,16 +2150,19 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
     const key = `${date}|${slotStart || ''}`;
     let min = null, nt = '';
     const marks = {};
+    const owned = {};
     roster.forEach((t) => {
       const rec = bhbcLoads[t.id] || {};
       const att = rec.attendance && rec.attendance[key];
       if (att) marks[t.id] = att === 'in';
       const row = ((rec.sessions || {})[date] || []).find((r) => ownsScRow(r, slotStart || ''));
-      if (row) { if (min == null && Number(row.min) > 0) min = Number(row.min); if (!nt && row.note) nt = row.note; }
+      if (row) { owned[t.id] = row; if (min == null && Number(row.min) > 0) min = Number(row.min); }
     });
+    const { team: teamNt, own } = scPrefillNotes(owned);
+    nt = teamNt;
     setEntries((prev) => {
       const next = { ...prev };
-      Object.keys(next).forEach((id) => { next[id] = { ...next[id], attended: id in marks ? marks[id] : true }; });
+      Object.keys(next).forEach((id) => { next[id] = { ...next[id], attended: id in marks ? marks[id] : true, note: own[id] || '' }; });
       return next;
     });
     setMinutes(min != null ? String(min) : (lastScMin ? String(lastScMin) : ''));
@@ -4999,9 +5007,13 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
   );
   if (!flags.length) return null;
   return (
-    <div style={{ border: `1px solid ${C.rd}`, marginBottom: 14 }}>
-      <RefinedHeaderStrip title={tr('Back from injury, loading too fast')} accent={C.rd} />
-      <div style={{ padding: '10px 14px' }}>
+    // The zone's own card, like every other BHBC card. It used
+    // <RefinedHeaderStrip title=… />, which was never imported (and takes no
+    // title prop): the first time an athlete tripped the ramp this threw a
+    // ReferenceError and the error boundary replaced the whole zone. ESLint's
+    // no-undef does not see JSX tags; react/jsx-no-undef now does.
+    <Card padding={14} leftStripe={C.rd} header={secTitle('Back from injury, loading too fast')} style={{ marginBottom: 14 }}>
+      <div>
         {flags.map((f) => (
           <button key={f.id} onClick={() => onOpen && onOpen(f.id)}
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 10,
@@ -5026,7 +5038,7 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
           </button>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 

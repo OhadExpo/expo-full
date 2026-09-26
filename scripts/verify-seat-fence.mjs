@@ -91,10 +91,12 @@ const KNOWN_BYPASSES = {
 };
 const re = /from\(['"]store['"]\)\s*\.\s*(upsert|insert|update|delete)\(/g;
 const found = {};
-for (const f of fs.readdirSync('src')) {
-  if (!/\.(jsx?|mjs)$/.test(f) || f === 'useSupaStore.js') continue;
-  const n = (fs.readFileSync(`src/${f}`, 'utf8').match(re) || []).length;
-  if (n) found[`src/${f}`] = n;
+// Recursive: a store write in a subfolder bypasses the fence just the same.
+for (const f of fs.readdirSync('src', { recursive: true })) {
+  const rel = String(f).split('\\').join('/');
+  if (!/\.(jsx?|mjs)$/.test(rel) || rel === 'useSupaStore.js') continue;
+  const n = (fs.readFileSync(`src/${rel}`, 'utf8').match(re) || []).length;
+  if (n) found[`src/${rel}`] = n;
 }
 for (const [f, n] of Object.entries(found)) {
   const known = KNOWN_BYPASSES[f];

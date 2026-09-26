@@ -56,3 +56,31 @@ export const ownsScRow = (r, start) => {
   if (!r || !r.team || rowKind(r) !== 'sc') return false;
   return start ? r.start === start : (r.kind === 'sc' && !r.start);
 };
+
+/**
+ * One athlete's row for a Log S&C Session save. `note` is what every reader
+ * shows (his own note wins over the team's); `teamNote` and `ownNote` keep the
+ * two apart so the sheet can reopen with each in its own field.
+ */
+export const buildScRow = ({ min, start = '', teamNote = '', ownNote = '', by = null }) => ({
+  kind: 'sc', type: 'Conditioning', min, rpe: null, load: 0, attended: true,
+  note: ownNote || teamNote || '', teamNote: teamNote || '', ownNote: ownNote || '',
+  team: true, start, by,
+});
+
+/**
+ * What the sheet reopens with, from the rows a slot owns ({ athleteId: row }).
+ * The TEAM note comes only from a row that recorded one — never from an
+ * athlete's own note standing in for it (26.9 review: a re-save used to copy
+ * one athlete's "knee sore" onto every attending athlete).
+ */
+export const scPrefillNotes = (rowsById) => {
+  let team = '';
+  const own = {};
+  for (const [id, row] of Object.entries(rowsById || {})) {
+    if (!row) continue;
+    if (!team && row.teamNote) team = row.teamNote;
+    if (row.ownNote) own[id] = row.ownNote;
+  }
+  return { team, own };
+};

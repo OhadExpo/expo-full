@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "lint": "eslint src expo-il/src",
-    "build": "node scripts/verify-lockfile-sync.mjs && node scripts/check-bare-css-fns.js && node scripts/check-surfaces.mjs && node scripts/verify-strip-token.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-hebrew.mjs && node scripts/verify-dotted-keys.mjs && node scripts/verify-practice-no-rpe.mjs && node scripts/verify-sc-slot-ownership.mjs && node scripts/verify-english-literals.mjs && node scripts/verify-no-inline-components.mjs && node scripts/verify-edge-cases.mjs && node scripts/security-audit.mjs --static && node scripts/verify-never-evict.mjs && node scripts/verify-no-duplicate-jsx-props.mjs && node scripts/verify-portal-write-boundary.mjs && node scripts/verify-seat-fence.mjs && eslint src expo-il/src && vite build",
+    "build": "node scripts/verify-lockfile-sync.mjs && node scripts/check-bare-css-fns.js && node scripts/check-surfaces.mjs && node scripts/verify-strip-token.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-hebrew.mjs && node scripts/verify-dotted-keys.mjs && node scripts/verify-practice-no-rpe.mjs && node scripts/verify-sc-slot-ownership.mjs && node scripts/verify-english-literals.mjs && node scripts/verify-no-inline-components.mjs && node scripts/verify-edge-cases.mjs && node scripts/security-audit.mjs --static && node scripts/verify-never-evict.mjs && node scripts/verify-no-duplicate-jsx-props.mjs && node scripts/verify-portal-write-boundary.mjs && node scripts/verify-seat-fence.mjs && node scripts/verify-jsx-defined.mjs && eslint src expo-il/src && vite build",
     "surfaces": "node scripts/check-surfaces.mjs",
     "test": "node scripts/run-suite.mjs",
     "smoke:portal": "node scripts/verify-portal-smoke.mjs",

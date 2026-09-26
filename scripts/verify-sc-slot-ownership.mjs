@@ -9,7 +9,7 @@
 //
 // This imports the REAL predicate (src/bhbcSession.js) — a copy of the logic
 // here would keep passing after the app's version drifted.
-import { rowKind, ownsScRow } from '../src/bhbcSession.js';
+import { rowKind, ownsScRow, buildScRow, scPrefillNotes } from '../src/bhbcSession.js';
 
 let bad = 0;
 const check = (name, ok, got) => {
@@ -59,10 +59,25 @@ const resave = (dayRows, start, min) => {
   check('no-fixture day saved twice: the legacy row survives', twice.some((r) => !r.kind && r.min === 8), twice);
 }
 
+// 2b. Notes survive a reopen + re-save (26.9 review): the team wrote
+//     "ladders", athlete a4 wrote "knee sore". Reopen, save again unchanged.
+{
+  const save = (team, own) => Object.fromEntries(['a1', 'a2', 'a3', 'a4'].map((id) => [id, buildScRow({ min: 10, start: S, teamNote: team, ownNote: own[id] || '' })]));
+  // a4 first in roster order is the case that used to leak
+  const first = save('ladders', { a4: 'knee sore' });
+  const ordered = { a4: first.a4, a1: first.a1, a2: first.a2, a3: first.a3 };
+  const pre = scPrefillNotes(ordered);
+  check('reopen: the team note is the team note, not an athlete note', pre.team === 'ladders', pre);
+  check('reopen: a4 gets his own note back, nobody else gets one', pre.own.a4 === 'knee sore' && Object.keys(pre.own).length === 1, pre);
+  const second = save(pre.team, pre.own);
+  check('re-save: a1-a3 still read the team note', ['a1', 'a2', 'a3'].every((id) => second[id].note === 'ladders'), second);
+  check('re-save: a4 still reads his own note', second.a4.note === 'knee sore', second.a4);
+}
+
 // 3. rowKind still reads the legacy shapes the way BhbcView documents them.
 check('rowKind legacy Practice = practice', rowKind({ type: 'Practice', team: true }) === 'practice');
 check('rowKind legacy team Lift = sc', rowKind({ type: 'Lift', team: true }) === 'sc');
 check('rowKind untyped, no team = lift', rowKind({ min: 30 }) === 'lift');
 
-console.log(`\nS&C SLOT-OWNERSHIP GATE — ${shapes.length} row shapes + 4 re-save cases + 3 readings, ${bad} failing`);
+console.log(`\nS&C SLOT-OWNERSHIP GATE — ${shapes.length} row shapes + 8 re-save/note cases + 3 readings, ${bad} failing`);
 process.exit(bad ? 1 : 0);
