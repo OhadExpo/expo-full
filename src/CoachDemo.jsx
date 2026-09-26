@@ -620,7 +620,7 @@ function DemoDashboard({ onJumpToTrainee }) {
               <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
                 {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
-                    textAlign: 'start', padding: '10px 12px',
+                    textAlign: 'center', padding: '10px 12px', whiteSpace: 'nowrap',
                     fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
                   }}>{h === 'Athlete' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{T(h)} <span style={{ fontSize: 8 }}>↑</span></span> : (h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h))}</th>
                 ))}
@@ -644,15 +644,15 @@ function DemoDashboard({ onJumpToTrainee }) {
                     // <tr> height is a floor, not a fixed size, so wrapped text still
                     // grows the row; it just never goes under the control height.
                     style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
-                    <td style={{ padding: '12px', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
-                    <td style={{ padding: '12px' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
-                    <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
-                    <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
-                    <td style={{ padding: '12px' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
-                    <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
-                    <td style={{ padding: '12px', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
-                    <td style={{ padding: '12px', fontFamily: FN, color: C.tx }}>{workouts}</td>
-                    <td style={{ padding: '12px', fontFamily: FN, color: C.tx }}>{planCount(t)}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{planCount(t)}</td>
                   </tr>
                 );
               })}
@@ -3320,10 +3320,16 @@ function DemoExercises() {
               .cd-ex-table-wrap { overflow-x: visible !important; }
               .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
               .cd-ex-table-wrap table { table-layout: auto !important; width: 100% !important; }
-              /* With the taxonomy gone the name column is the table, so it takes
-                 the whole width instead of 151px hugging one edge with a void
-                 beside it (LOOK pass, 24.9). */
-              .cd-ex-table-wrap th:first-child, .cd-ex-table-wrap td:first-child { width: 100% !important; }
+              /* With the taxonomy gone the name column is the table. A width
+                 of 100% on that cell did not take: with seven of eight cells
+                 display:none, Chrome laid the ROW out at 151px inside a 357px
+                 table (measured 26.9, audit-out/_ex390b.mjs), a void beside
+                 every name. One column is a list, so lay it out as one: block
+                 rows, and the name cell fills them. The row keeps the control
+                 height as a floor, text centred in it. */
+              .cd-ex-table-wrap table, .cd-ex-table-wrap thead, .cd-ex-table-wrap tbody, .cd-ex-table-wrap tr { display: block !important; width: 100% !important; }
+              .cd-ex-table-wrap tr { height: auto !important; }
+              .cd-ex-table-wrap th:first-child, .cd-ex-table-wrap td:first-child { display: flex !important; align-items: center; width: 100% !important; max-width: none !important; min-height: var(--btn-h); box-sizing: border-box; }
             }
           `}</style>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
