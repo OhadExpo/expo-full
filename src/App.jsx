@@ -285,7 +285,16 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   useEffect(() => {
     if (!open) return;
     const selector = `[data-submenu-id="${id}"]`;
-    const onDoc = (e) => { if (!e.target.closest?.(selector)) setOpen(false); };
+    // THE PANEL IS PORTALLED TO <body>, so in the DOM it is not inside the
+    // [data-submenu-id] wrapper and closest() cannot find it. Every press on a
+    // menu item therefore read as an outside click: mousedown closed the panel,
+    // it unmounted, and the item's click never fired — "the top menu submenu is
+    // not clickable anywhere" (Ohad, 26.9). Inside means the trigger OR the panel.
+    const onDoc = (e) => {
+      if (e.target.closest?.(selector)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
@@ -316,7 +325,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
       {/* 17.9: fixed was not enough - the panel sits in the header's stacking context, so the page
           content painted OVER it on a phone. Portalled to <body>, per the app-wide overlay rule. */}
       {open && createPortal(
-        <div ref={menuRef} className="motion-rise" onPointerEnter={pointerOpen} onPointerLeave={pointerClose} style={{
+        <div ref={menuRef} data-submenu-id={id} className="motion-rise" onPointerEnter={pointerOpen} onPointerLeave={pointerClose} style={{
           position: 'fixed', top: coords.top, left: coords.left, maxWidth: 'calc(100vw - 16px)',
           background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
           minWidth: 180, zIndex: 100000, transformOrigin: 'top center',

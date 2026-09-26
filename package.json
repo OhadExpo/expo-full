@@ -12,6 +12,7 @@
     "smoke:portal": "node scripts/verify-portal-smoke.mjs",
     "verify:portal-rls": "node scripts/verify-portal-rls.mjs",
     "verify:table-rows": "node scripts/verify-table-rows.mjs",
+    "verify:submenu": "node scripts/verify-submenu-click.mjs",
     "verify": "node scripts/verify-analysis-engines.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-check-bare-css-fns.mjs && node scripts/verify-hebrew.mjs && node scripts/verify-lockfile-sync.mjs && node scripts/verify-no-inline-components.mjs",
     "build:nocheck": "vite build",
     "preview": "vite preview",
