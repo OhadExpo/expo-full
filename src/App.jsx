@@ -1240,7 +1240,8 @@ function AuthedApp() {
     const p = window.location.pathname;
     // Short club URL: /bhbc (and /bhbc/login) are the Bnei Herzliya door and
     // resolve to the same zone tab as /coach/bhbc.
-    if (/^\/bhbc\/?(login\/?)?$/.test(p)) {
+    // …and /bhbc/<tab> (27.9: every club page has its own URL, like EXPO's).
+    if (/^\/bhbc(\/(login|overview|roster|schedule|lifts|medical|games|activity))?\/?$/.test(p)) {
       // Already signed in? /bhbc/login is not a page any more — normalise the
       // URL to the zone so a bookmarked login link just opens the app.
       if (/login\/?$/.test(p) && !hasAuthPayload() && !CAME_BACK_FROM_OAUTH) { try { window.history.replaceState(null, '', '/bhbc'); } catch { /* noop */ } }
@@ -1266,6 +1267,8 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
+      // /coach/bhbc/<tab>: the club zone owns the segment after bhbc (27.9).
+      if (sub.startsWith('bhbc/')) return { mode:'coach', tab:'bhbc', traineeId:null };
       const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
@@ -1336,6 +1339,9 @@ function AuthedApp() {
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
     const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+    // The club zone writes its own page into the URL (/coach/bhbc/roster);
+    // entering the zone must not flatten that back to /coach/bhbc.
+    if (newTab === 'bhbc' && /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname)) return;
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     const want = path + (hash ? '#' + hash : '');

@@ -444,12 +444,26 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       // A cap, because a pathologically bad pass could otherwise seek for
       // minutes - and it is REPORTED rather than silently truncating.
       const MAX_RECOVER = 700;
+      // THE 40% FREEZE (27.9, Ohad: "the shot analyzer always gets stuck on 40%.
+      // horrible bug"). A phone drops many frames in the playback pass, and this
+      // loop re-read every one of them by seeking - up to 700 seeks at up to
+      // 600ms each plus a pose read - with no progress in between: ten minutes
+      // of a bar pinned at 40%. Now it reports as it goes (40 -> 50) and it has
+      // a WALL-CLOCK budget: 25s, then it stops and says it stopped.
+      const RECOVER_BUDGET_MS = 25000;
+      const recoverStart = Date.now();
+      let planned = 0;
+      for (const h of holes) planned += Math.max(0, Math.floor((h.to - h.from - frameDur * 1500) / (frameDur * 1000)) + 1);
+      planned = Math.max(1, Math.min(planned, MAX_RECOVER));
+      let tried = 0;
       if (holes.length) {
-        report(40, 'reading the frames that were dropped');
+        report(40, 'filling the dropped frames');
         outer:
         for (const h of holes) {
           for (let tMsHole = h.from + frameDur * 1000; tMsHole < h.to - frameDur * 500; tMsHole += frameDur * 1000) {
-            if (recovered >= MAX_RECOVER) { recoveryCapped = true; break outer; }
+            if (recovered >= MAX_RECOVER || Date.now() - recoverStart > RECOVER_BUDGET_MS) { recoveryCapped = true; break outer; }
+            tried++;
+            if (tried % 5 === 0) report(40 + Math.min(1, Math.max(tried / planned, (Date.now() - recoverStart) / RECOVER_BUDGET_MS)) * 10, 'filling the dropped frames');
             await seekTo(v, tMsHole / 1000);
             let r = null;
             try { r = lmCoarse.detect(v); } catch { /* a single frame may fail */ }
@@ -521,6 +535,8 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     mCanvas.width = MW; mCanvas.height = MH;
     const mctx = mCanvas.getContext('2d', { willReadFrequently: true });
     let prevGray = null, prevGrayT = -1e9;
+    // The full model is a download on a phone's first run - say so, never a silent wait.
+    report(50, 'loading the detailed model');
     lmFine = await createPoseLandmarker({ runningMode: 'IMAGE', quality: 'full', numPoses: 1 });
     const fine = [];
     const totalMs = windows.reduce((a, w) => a + (w.to - w.from), 0) || 1;
@@ -615,7 +631,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
             } catch { /* canvas read blocked — carry on without ball candidates */ }
             fine.push({ t: mt * 1000, landmarks: mapped, worldLandmarks: r.worldLandmarks[sub.idx], blobs, fine: true });
           }
-          report(40 + ((doneMs + (mt * 1000 - w.from)) / totalMs) * 58, 'reading the shots');
+          report(50 + ((doneMs + (mt * 1000 - w.from)) / totalMs) * 48, 'reading the shots');
         },
       });
       doneMs += w.to - w.from;

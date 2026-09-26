@@ -1663,9 +1663,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 /* A popup title is ONE row (26.9): its lead words step aside on a phone. */
 @media (max-width: 520px) { .bm-lead { display: none; } }
 
-/* week chip minutes: 120′ on a phone, "120 MIN" where it fits (26.9) */
-.bhbc-chip .min-tick { display: none; }
-@media (max-width: 420px) { .bhbc-chip .min-unit { display: none; } .bhbc-chip .min-tick { display: inline; } }
+/* minutes: 120′ on a phone, "120 MIN" where it fits (26.9) - week chips, past practices */
+.min-tick { display: none; }
+@media (max-width: 420px) { .min-unit { display: none; } .min-tick { display: inline; } }
 
 /* week planner COLUMNS mode (27.9, 00:07 clip: "120 MIN" spilled out of every
    chip): a column holds time, kind and 120' - the S&C button sits under it */

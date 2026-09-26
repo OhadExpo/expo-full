@@ -287,6 +287,23 @@ const monDay = (iso) => { const d = parseISO(iso); return monDayFor(d, `${d.getD
 const dayDiff = (a, b) => Math.round((parseISO(a) - parseISO(b)) / 86400000);
 const FX_COLOR = { game: ORANGE, practice: '#4E7FCB', lift: '#6C7A93', scrimmage: '#C7692A', shootaround: '#5E9BD6' };
 const FX_LABEL = { game: 'Game', practice: 'Practice', lift: 'Weights', scrimmage: 'Scrimmage', shootaround: 'Shootaround' };
+// The team S&C block's own colour in the grids (teal - not the lift slate, not
+// the practice blue, not a restriction tint).
+const SC_COLOR = '#2A9D8F';
+// ONE CELL, ONE BOX (27.9, Ohad: "the design is horrible when there's multiple
+// signals in one box" / "the numbers inside the boxes are not helpful at all").
+// Every mark in a grid cell is the same 16px square: one thing fills it, two or
+// three share it as equal horizontal bands (practice / S&C / lift). An outline
+// is a session that was owed and not done. No numbers inside - the detail is in
+// the tooltip and the athlete's popup.
+function CellMarks({ bands = [], outline = null, label }) {
+  if (!bands.length && !outline) return null;
+  return (
+    <span aria-label={label} style={{ width: 16, height: 16, boxSizing: 'border-box', display: 'inline-flex', flexDirection: 'column', gap: 1, border: outline ? `1.5px solid ${outline}` : 'none', background: bands.length > 1 ? 'var(--c-sf)' : 'transparent' }}>
+      {bands.map((c, i) => <span key={i} style={{ flex: 1, background: c }} />)}
+    </span>
+  );
+}
 // "vs Rishon LeZion · HaYovel" / "vs Hapoel Eilat · Begin Arena, Eilat" - the
 // line under a game or scrimmage chip. Empty for a session with no opponent.
 const fxWhere = (f) => {
@@ -407,7 +424,27 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // Which played game we are recording minutes for. Minutes on court are the
   // biggest load a player takes and the board could not see them at all.
   const [minutesFor, setMinutesFor] = useState(null);
-  const [view, setView] = useState('overview');   // overview | schedule | roster
+  // EVERY PAGE HAS ITS URL (27.9, Ohad: "fix the urls please to the titles of
+  // the main menu for each page - same rules as in expo"): /coach/bhbc/roster,
+  // /bhbc/schedule for a club coach. Read on load, written on every tab change,
+  // followed on back/forward.
+  const ZONE_PAGES = ['overview', 'roster', 'schedule', 'lifts', 'medical', 'games', 'activity'];
+  const pageFromUrl = () => { const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/(?:coach\/)?bhbc\/([a-z]+)/); return m && ZONE_PAGES.includes(m[1]) ? m[1] : null; };
+  const [view, setView] = useState(() => pageFromUrl() || 'overview');   // overview | schedule | roster
+  useEffect(() => {
+    const m = window.location.pathname.match(/^\/(coach\/)?bhbc/);
+    if (!m) return;
+    const want = `/${m[1] || ''}bhbc/${view}`;
+    if (window.location.pathname === want) return;
+    // the first write REPLACES (/coach/bhbc -> /coach/bhbc/overview) so Back leaves the zone
+    if (pageFromUrl()) window.history.pushState(null, '', want + window.location.search);
+    else window.history.replaceState(null, '', want + window.location.search);
+  }, [view]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const onPop = () => { const pg = pageFromUrl(); if (pg) setView(pg); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   // KEEP THE TAB YOU ARE ON IN VIEW. The bar is a horizontal scroller with a
   // pinned crest (his rule), and the scrollbar is hidden by design - so on a
   // phone the ACTIVE tab could sit entirely off-screen: measured on MEDICAL,
@@ -453,8 +490,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // profile, its history and his logged loads are untouched ("i don't want any
   // accidents with deleted profiles"). The Sessions view resolves old names from
   // its own list, so past session cards keep their names.
+  // GHOSTS (27.9, Ohad, of one player: "is also a bhbc athlete (but don't need
+  // to have him (just show him like a ghost athlete)"). A ghost is on the club
+  // roster - his card shows, dimmed, on the Roster tab - but he is not counted:
+  // no attendance, absences, alerts, S&C sheet or load board.
   const roster = useMemo(
-    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
+    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived' && !t.bhbcGhost)
+      .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
+    [trainees]
+  );
+  const ghosts = useMemo(
+    () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived' && t.bhbcGhost)
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
     [trainees]
   );
@@ -556,7 +602,10 @@ function attendance28(rec, days) {
   }, [bhbcFixtures, today]);
 
   const setTeam = useCallback((id, on) => {
-    setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined } : t));
+    setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined, bhbcGhost: on ? t.bhbcGhost : undefined } : t));
+  }, [setTrainees]);
+  const setGhost = useCallback((id, on) => {
+    setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, bhbcGhost: on || undefined } : t));
   }, [setTrainees]);
 
   // Per-player landing/arrival date — some sign late, first practices optional.
@@ -1470,7 +1519,7 @@ function attendance28(rec, days) {
 
             {view === 'roster' && (
               <>
-                <RosterGrid rows={rows} medical={medical} league={league} onOpen={setDetailFor} />
+                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} onOpen={setDetailFor} />
               </>
             )}
 
@@ -1593,6 +1642,10 @@ function attendance28(rec, days) {
                 <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
                 <span style={{ width: 24, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>{on && t.jersey != null && <Jersey n={t.jersey} size={22} />}</span>
                 <span style={{ minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                {on && (
+                  <button type="button" aria-pressed={!!t.bhbcGhost} onClick={() => setGhost(t.id, !t.bhbcGhost)} className="bhbc-ghost-btn" title={tr('A ghost stays on the roster but is not counted anywhere')}
+                    style={{ flexShrink: 0, height: 26, minHeight: 26, padding: '0 9px', boxSizing: 'border-box', fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.bhbcGhost ? C.tx : C.td, background: t.bhbcGhost ? 'var(--c-sf2)' : 'transparent', border: `1px ${t.bhbcGhost ? 'solid' : 'dashed'} ${C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>{tr('Ghost')}</button>
+                )}
                 {on && (
                   <span className="bhbc-manage-meta">
                     <span style={{ minWidth: 0, fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(t.position) || ''}</span>
@@ -3330,6 +3383,10 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const tr = useT();
   const he = useHe();
   const [monthOff, setMonthOff] = useState(0);
+  // Lifts and the team S&C can be laid over the schedule (27.9: "toggle button
+  // for lifts and sc sessions"); off by default, remembered.
+  const [showSc, setShowSc] = usePersistentState('bhbc-att-sc', false);
+  const [showLift, setShowLift] = usePersistentState('bhbc-att-lift', false);
 
   const COURT = ['practice', 'game', 'scrimmage', 'shootaround'];
   const isCourtFx = (f) => f && COURT.includes(String(f.type || '').toLowerCase());
@@ -3370,13 +3427,13 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixtures]);
 
-  // A day nobody has a record for is a LOGGING gap, not ten absences.
-  const loggedDays = useMemo(() => {
+  // Game days whose box score is in (anyone on the roster has a game row).
+  // Before that the game reads as pending, never as ten "did not play"s.
+  const gameDays = useMemo(() => {
     const s = new Set();
     for (const { t } of (rows || [])) {
       const rec = loads[t.id] || {};
-      for (const [d, list] of Object.entries(rec.sessions || {})) if ((list || []).some(isCourtRow)) s.add(d);
-      for (const k of Object.keys(rec.attendance || {})) s.add(String(k).split('|')[0]);
+      for (const [d, list] of Object.entries(rec.sessions || {})) if ((list || []).some((r) => rowKind(r) === 'game')) s.add(d);
     }
     return s;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3392,37 +3449,48 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       const kind = slots.some((f) => f.type === 'game') ? 'game'
         : slots.some((f) => f.type === 'scrimmage') ? 'scrimmage'
           : slots.some((f) => f.type === 'practice') ? 'practice' : 'shootaround';
-      if (!loggedDays.has(d.iso)) return { iso: d.iso, state: 'unlogged', kind };
-      const rowsOfDay = (ses[d.iso] || []).filter(isCourtRow);
+      const all = ses[d.iso] || [];
+      const rowsOfDay = all.filter(isCourtRow);
+      const sc = all.some((r) => rowKind(r) === 'sc');
+      const lift = all.some((r) => rowKind(r) === 'lift');
       const att = rec.attendance || {};
       const markedIn = slots.some((f) => att[`${d.iso}|${f.start || ''}`] === 'in');
       const markedOut = slots.some((f) => att[`${d.iso}|${f.start || ''}`] === 'out');
       const code = availOn(rec, medical, t.id, d.iso);
       const mins = rowsOfDay.reduce((a, r) => a + courtMins(r), 0);
-      // An explicit "out" mark on the slot is the coach's own answer and beats
-      // everything; then the medical record; then whether anything was logged.
+      // DRAWN FROM THE ROSTER STATUS (27.9, Ohad: "it needs to draw a roster
+      // for each practice based on the roster status for each player and the
+      // practices in the schedule"). A scheduled practice is attended by
+      // everyone available that day - no logging needed; an explicit "out" on
+      // the slot is the coach's own answer and beats it; Out/medical = excused.
+      // A GAME shows the game (27.9: "show a game status on gamedays"):
+      // played (a game row), did not play, or out - pending until the box
+      // score is in.
       let state;
-      if (markedOut) state = code >= 4 ? 'excused' : 'missed';
+      if (kind === 'game') {
+        if (all.some((r) => rowKind(r) === 'game')) state = 'played';
+        else if (!gameDays.has(d.iso)) state = 'pending';
+        else state = code >= 4 ? 'excused' : 'dnp';
+      } else if (markedOut) state = code >= 4 ? 'excused' : 'missed';
       else if (rowsOfDay.length || markedIn) state = 'in';
-      else if (code >= 4) state = 'excused';
-      else state = 'missed';
-      if (state === 'in') attended.push(d.iso);
-      return { iso: d.iso, state, kind, mins, code };
+      else state = code >= 4 ? 'excused' : 'in';
+      if (state === 'in' || state === 'played') attended.push(d.iso);
+      return { iso: d.iso, state, kind, mins, code, sc, lift };
     });
     const last = attended.length ? attended[attended.length - 1] : null;
     const since = last ? dayDiff(today, last) : null;
-    const owed = cells.filter((c) => c.state === 'in' || c.state === 'missed').length;
-    const went = cells.filter((c) => c.state === 'in').length;
+    const owed = cells.filter((c) => c.kind !== 'game' && (c.state === 'in' || c.state === 'missed')).length;
+    const went = cells.filter((c) => c.kind !== 'game' && c.state === 'in').length;
     const missed = cells.filter((c) => c.state === 'missed').length;
     return { t, cells, last, since, owed, went, missed, todayCode: availOn(rec, medical, t.id, today) };
-  }), [rows, loads, medical, days, dayFx, loggedDays, today]);
+  }), [rows, loads, medical, days, dayFx, gameDays, today]);
 
   // Per day: how many of the squad were there, out of how many were expected.
   const perDay = days.list.map((d, i) => {
     const cs = per.map((p) => p.cells[i]).filter(Boolean);
-    const expected = cs.filter((c) => c.state === 'in' || c.state === 'missed').length;
+    const expected = cs.filter((c) => ['in', 'missed', 'played', 'dnp'].includes(c.state)).length;
     if (!expected && !cs.some((c) => c.state === 'excused')) return null;
-    return { went: cs.filter((c) => c.state === 'in').length, expected };
+    return { went: cs.filter((c) => c.state === 'in' || c.state === 'played').length, expected };
   });
   // The answer to "who didn't", surfaced instead of hunting for it in the grid.
   const absentees = per.filter((p) => p.missed > 0).sort((a, b) => b.missed - a.missed);
@@ -3468,7 +3536,15 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         {/* The sentence gets its own line rather than being squeezed into the
             gap beside the pager - same rule as the weight room. */}
         <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>
-          {tr('A bar is a session he was at. A red box is a session he was available for and missed. A dash is a scheduled session nobody logged.')}
+          {tr('Every practice is drawn from the day’s availability. A filled box is a session he was at; a red outline, a session he missed while available; an outlined game, a game he did not play.')}
+        </span>
+        <span style={{ display: 'inline-flex', gap: 6 }}>
+          {[['sc', tr('S&C'), showSc, setShowSc, SC_COLOR], ['lift', tr('Lifts'), showLift, setShowLift, FX_COLOR.lift]].map(([k, l, on, set, col]) => (
+            <button key={k} type="button" aria-pressed={on} onClick={() => set(!on)} className="bhbc-ghost-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, minHeight: 26, padding: '0 10px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm, background: on ? `color-mix(in srgb, ${col} 14%, transparent)` : 'transparent', border: `1px solid ${on ? col : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+              <span style={{ width: 8, height: 8, background: on ? col : 'transparent', border: `1px solid ${col}` }} />{l}
+            </button>
+          ))}
         </span>
       </div>
 
@@ -3503,17 +3579,17 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                 {cells.map((c) => {
                   const label = c.state === 'none' ? monDay(c.iso)
                     : `${monDay(c.iso)} · ${tr(FX_LABEL[c.kind] || 'Practice')} · ${tr(
-                      c.state === 'in' ? 'attended' : c.state === 'missed' ? 'missed' : c.state === 'excused' ? AVAIL[c.code] ? AVAIL[c.code].label : 'out' : 'nobody logged this session')}`;
+                      c.state === 'in' ? 'attended' : c.state === 'played' ? 'played' : c.state === 'dnp' ? 'did not play' : c.state === 'pending' ? 'box score not in yet' : c.state === 'missed' ? 'missed' : c.state === 'excused' ? AVAIL[c.code] ? AVAIL[c.code].label : 'out' : 'attended')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}`;
+                  const bands = [];
+                  if (c.state === 'in') bands.push(FX_COLOR[c.kind] || FX_COLOR.practice);
+                  if (c.state === 'played') bands.push(FX_COLOR.game);
+                  if (showSc && c.sc) bands.push(SC_COLOR);
+                  if (showLift && c.lift) bands.push(FX_COLOR.lift);
+                  const outline = c.state === 'missed' ? MISS : c.state === 'dnp' ? FX_COLOR.game : null;
                   return (
                     <span key={c.iso} title={label}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.state === 'none' ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
-                      {c.state === 'in' && (
-                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: FX_COLOR[c.kind] || FX_COLOR.practice, color: 'var(--c-stripTx)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{c.mins || ''}</span>
-                      )}
-                      {c.state === 'missed' && (
-                        <span aria-label={tr('missed')} style={{ width: 14, height: 14, border: `1.5px solid ${MISS}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 9, fontWeight: 800, color: MISS, lineHeight: 1 }}>{'×'}</span>
-                      )}
-                      {c.state === 'unlogged' && <span style={{ fontFamily: FN, fontSize: 10, color: C.cardBd, lineHeight: 1 }}>{'–'}</span>}
+                      <CellMarks bands={bands} outline={outline} label={label} />
                     </span>
                   );
                 })}
@@ -3530,9 +3606,14 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
-        {[[FX_COLOR.practice, tr('Practice')], [FX_COLOR.game, tr('Game')], [FX_COLOR.scrimmage, tr('Scrimmage')], [MISS, tr('missed')], [C.cardBd, tr('nobody logged this session')]].map(([col, lbl]) => (
+        {/* the legend draws the SAME marks the cells draw */}
+        {[
+          [[FX_COLOR.practice], null, tr('Practice')], [[FX_COLOR.scrimmage], null, tr('Scrimmage')],
+          [[FX_COLOR.game], null, tr('Game played')], [[], FX_COLOR.game, tr('did not play')], [[], MISS, tr('missed')],
+          ...(showSc ? [[[SC_COLOR], null, tr('S&C')]] : []), ...(showLift ? [[[FX_COLOR.lift], null, tr('Lift')]] : []),
+        ].map(([bands, outline, lbl]) => (
           <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
-            <span style={{ width: 10, height: 10, background: col, flexShrink: 0 }} />{lbl}
+            <CellMarks bands={bands} outline={outline} />{lbl}
           </span>
         ))}
       </div>
@@ -3558,6 +3639,11 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const tr = useT();
   const he = useHe();
   const [monthOff, setMonthOff] = useState(0);          // 0 = this month, -1 = last
+  // LIFTS ONLY (27.9, Ohad: "lifts should only show lifts (with an sc toggle
+  // button for on and off to see)" / "the rest of the statuses should only be
+  // applied for schedule"). No restriction tints here; the team S&C only when
+  // the toggle is on; marks without numbers (CellMarks).
+  const [showSc, setShowSc] = usePersistentState('bhbc-lifts-sc', false);
 
   const isLift = (r) => rowKind(r) === 'lift';
 
@@ -3585,11 +3671,12 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
     const since = last ? dayDiff(today, last) : null;
     const cells = days.list.map((d) => {
       const lifts = (ses[d.iso] || []).filter(isLift);
+      const sc = (ses[d.iso] || []).some((r) => rowKind(r) === 'sc');
       const mins = lifts.reduce((a, r) => a + (Number(r.min) || 0), 0);
       // The recorded value IS the history, floored by what the medical record
       // says about THAT day (medicalAvailOn has an onset and an end).
       const code = Math.max(Number(avail[d.iso]) || 1, medicalAvailOn(medical, t.id, d.iso));
-      return { iso: d.iso, lift: lifts.length > 0, mins, code, future: d.iso > today };
+      return { iso: d.iso, lift: lifts.length > 0, sc, mins, code, future: d.iso > today };
     });
     const within = (n) => liftDates.filter((d) => dayDiff(today, d) >= 0 && dayDiff(today, d) < n).length;
     // TODAY's state, so the name column can say it without the reader having
@@ -3598,12 +3685,12 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
     return { t, cells, last, since, todayCode, d7: within(7), d28: within(28) };
   }), [rows, loads, medical, days, today]);
 
-  // One number per day: athletes with no restriction on it. Days before the
-  // squad had any record at all read as a dash, not a zero.
-  const availPerDay = days.list.map((d, i) => {
-    const cells = per.map((p) => p.cells[i]).filter(Boolean);
-    const known = cells.filter((c) => c.code != null);
-    return known.length ? known.filter((c) => c.code === 1).length : null;
+  // One number per day: how many lifted. (Availability is a SCHEDULE status -
+  // 27.9 - so this grid counts its own thing.)
+  const liftedPerDay = days.list.map((d, i) => {
+    if (d.iso > today) return null;
+    const n = per.map((p) => p.cells[i]).filter((c) => c && c.lift).length;
+    return n || null;
   });
   const due = [...per].filter((x) => x.since == null || x.since >= 4)
     .sort((a, b) => (b.since == null ? 1e9 : b.since) - (a.since == null ? 1e9 : a.since));
@@ -3645,7 +3732,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
             <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
               style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
           </div>
-          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('A bar is a lift he logged. The tint is the restriction on the day.')}</span>
+          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('A box is a lift he logged. S&C shows when its toggle is on.')}</span>
         </div>
 
         {/* The grid scrolls sideways on a phone by design - a month of days
@@ -3660,8 +3747,8 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('last lift')}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
-              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('available')}</span>
-              {availPerDay.map((n, i) => (
+              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
+              {liftedPerDay.map((n, i) => (
                 <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n == null ? '—' : n}</span>
               ))}
               <span />
@@ -3678,16 +3765,18 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
                   </span>
-                  {cells.map((c) => (
-                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')} · ${c.mins ? `${c.mins} ${tr('min')}` : tr('lift session')}` : ''}`}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
-                      {c.lift && (
-                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: ORANGE, color: 'var(--c-stripTx)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
-                          {c.mins || ''}
-                        </span>
-                      )}
-                    </span>
-                  ))}
+                  {cells.map((c) => {
+                    const bands = [];
+                    if (c.lift) bands.push(FX_COLOR.lift);
+                    if (showSc && c.sc) bands.push(SC_COLOR);
+                    const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
+                    return (
+                      <span key={c.iso} title={title}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}` }}>
+                        <CellMarks bands={bands} label={title} />
+                      </span>
+                    );
+                  })}
                   {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 36, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
@@ -3703,11 +3792,15 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
-          {[[ORANGE, tr('lift logged')], ['rgba(224,167,58,0.55)', tr(AVAIL[2].label)], ['rgba(79,157,224,0.55)', tr(AVAIL[3].label)], ['rgba(222,78,59,0.6)', tr(AVAIL[4].label)], ['rgba(124,130,139,0.6)', tr(AVAIL[5].label)]].map(([col, lbl]) => (
+          {[[[FX_COLOR.lift], tr('lift logged')], ...(showSc ? [[[SC_COLOR], tr('S&C')]] : [])].map(([bands, lbl]) => (
             <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
-              <span style={{ width: 10, height: 10, background: col, flexShrink: 0 }} />{lbl}
+              <CellMarks bands={bands} />{lbl}
             </span>
           ))}
+          <button type="button" aria-pressed={showSc} onClick={() => setShowSc(!showSc)} className="bhbc-ghost-btn"
+            style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, minHeight: 26, padding: '0 10px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: showSc ? C.tx : C.tm, background: showSc ? `color-mix(in srgb, ${SC_COLOR} 14%, transparent)` : 'transparent', border: `1px solid ${showSc ? SC_COLOR : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+            <span style={{ width: 8, height: 8, background: showSc ? SC_COLOR : 'transparent', border: `1px solid ${SC_COLOR}` }} />{tr('S&C')}
+          </button>
         </div>
       </Card>
     </>
@@ -3807,11 +3900,11 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                 })()}
                 <div data-lbl="Availability">
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </button>
                   ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)`, padding: '0 9px', whiteSpace: 'nowrap' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </span>
                   )}
@@ -3861,7 +3954,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   );
 }
 
-function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
+function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, onOpen }) {
   const tr = useT();
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
@@ -3885,7 +3978,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
             // borders don't align from card to card".
             // The footer is now PINNED to the bottom of the card, so the
             // hairline lands on the same y in every card whatever is above it.
-            height: 'var(--rc-h, 170px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
+            height: 'var(--rc-h, 184px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
@@ -3902,10 +3995,17 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                 const inj = activeInjuries(medical, t.id)[0];
                 const injShort = !inj ? null
                   : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
+                // TWO FIXED LINES, THE SAME IN EVERY CARD (27.9, Ohad: "ankle
+                // available and ankle left out are on different rows ... too close
+                // to the grey border"). Position and injury shared one wrapping
+                // line, so the injury sat beside the position on one card and
+                // under it on the next, and a wrapped line landed on the footer's
+                // hairline. Now: line 1 the position, line 2 the injury (or
+                // nothing), both reserved, and a fixed 12px above the rule.
                 return (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, minWidth: 0, flexWrap: 'wrap', minHeight: 'var(--rc-stat, 30px)', alignContent: 'flex-start' }}>
-                    <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'}{injShort ? ' ·' : ''}</span>
-                    {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status) }}>{injShort} · {tr((MED_STATUS[inj.status] || {}).label || inj.status)}</span>}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minWidth: 0, minHeight: 'var(--rc-stat, 32px)' }}>
+                    <span style={{ fontFamily: FB, fontSize: 11, lineHeight: '14px', color: C.td, whiteSpace: 'nowrap' }}>{tr(t.position) || '—'}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: injShort ? medText(inj.status) : 'transparent', whiteSpace: 'nowrap' }} aria-hidden={injShort ? undefined : 'true'}>{injShort ? `${injShort} · ${tr((MED_STATUS[inj.status] || {}).label || inj.status)}` : '·'}</span>
                   </div>
                 );
               })()}
@@ -3945,6 +4045,19 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                     : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>
+          </div>
+        ))}
+        {/* GHOSTS: on the club, not counted - the same card, dimmed and dashed,
+            with no load, attendance or medical line to read. */}
+        {ghosts.map((t) => (
+          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card"
+            style={{ position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '13px 15px', height: 'var(--rc-h, 184px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
+            <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
+            <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 'var(--rc-name, 36px)' }}>{t.name}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minHeight: 'var(--rc-stat, 32px)' }}>
+              <span style={{ fontFamily: FB, fontSize: 11, lineHeight: '14px', color: C.td, whiteSpace: 'nowrap' }}>{tr(t.position) || '—'}</span>
+            </div>
+            <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: `1px dashed ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Ghost')} · {tr('not counted')}</div>
           </div>
         ))}
       </div>
@@ -4117,6 +4230,9 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
         const n = (rec.notes && (rec.notes[`${f.date}|${f.start || ''}`] || rec.notes[f.date])) || '';
         if (n) notes.push({ name: t.name, note: n });
       } else if (avail >= 4) out.push(t);
+      // DRAWN FROM THE ROSTER STATUS, as the attendance grid is (27.9 #249):
+      // no mark for the practice -> everyone available that day was there.
+      else trained.push(t);
     }
     const sum = (arr) => arr.reduce((a, x) => a + x, 0);
     // The team note is the one most athletes carry (per-athlete notes win on
@@ -4174,7 +4290,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                       of them. The label may wrap; the NUMBER and its unit may
                       not. */}
                   {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}
-                  {f.minutes ? <>{' · '}<span style={{ whiteSpace: 'nowrap' }}>{f.minutes} {fxLabelFor('__min', 'min')}</span></> : null}
+                  {f.minutes ? <>{' · '}<span style={{ whiteSpace: 'nowrap' }}>{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span></> : null}
                   {densityOf(f) ? <>{' · '}<DensityBit f={f} /></> : null}
                 </span>
                 <div style={{ flex: 1 }} />

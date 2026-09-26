@@ -51,15 +51,18 @@ const FILTER_OPTIONS = [
 // so the dashboard reads at a glance: red for safety/payment issues,
 // orange for missed-week/at-risk, cyan for plan/intake/eval, green
 // for everything else (manual).
+// 27.9, Ohad: "the dashboard tasks is too colorful (with the purple etc)".
+// The brand's cyan for every system task; red is kept for the one thing that
+// is money (an overdue payment). Orange and purple are gone.
 const AUTO_KIND_TONE = {
   next_block_due:            'cyan',
-  week_missed:               'orange',
-  at_risk_silent:            'orange',
+  week_missed:               'cyan',
+  at_risk_silent:            'cyan',
   form_video_pending_review: 'cyan',
   new_intake_pending:        'cyan',
   payment_overdue:           'red',
   eval_due_first_session:    'cyan',
-  whatsapp_combined:         'purple',   // NEEDS OUTREACH — distinct from the cyan SHARED badge (Ohad)
+  whatsapp_combined:         'cyan',
 };
 
 const TONE_COLOR = {
@@ -954,9 +957,14 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                         Same STATUS colours (open #5B6B7A … stuck #C0392B), so the
                         dashboard status-board and the tasks-page board read as one
                         system (Ohad: same language as the tasks page). */}
-                    <div style={{ background:col.color, color:'#FFFFFF', padding:'10px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid var(--c-cardBd)` }}>
-                      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase' }}>{col.label}</span>
-                      <span style={{ fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.06em', opacity:0.85 }}>{rows.length}</span>
+                    {/* The tasks page's header, exactly (27.9: the saturated fills
+                        were the "too colorful" board): neutral, a small status dot,
+                        a thin accent - the Tasks page dropped its rainbow earlier. */}
+                    <div style={{ background:'var(--c-sf2)', color:'var(--c-tx)', padding:'10px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid var(--c-cardBd)`, boxShadow:`inset 3px 0 0 ${col.color}` }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:8, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--c-tx)' }}>
+                        <span aria-hidden style={{ width:7, height:7, borderRadius:'50%', background:col.color, flexShrink:0 }} />{col.label}
+                      </span>
+                      <span style={{ fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.06em', color:'var(--c-tm)' }}>{rows.length}</span>
                     </div>
                     <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, maxHeight: stackBoard ? 'none' : 300, overflowY: stackBoard ? 'visible' : 'auto' }}>
                       {rows.slice(0, cap).map(n => (
