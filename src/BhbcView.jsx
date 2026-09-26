@@ -1706,7 +1706,7 @@ function attendance28(rec, days) {
         const program = { count: aPlans.length, current: curPlan ? curPlan.name : null };
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
-          leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
+          leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueLog={leagueLogFor(league, row.t.name)} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
@@ -1739,12 +1739,57 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
+// ONE GAME, ITS WHOLE LINE (27.9, Ohad: "his minutes. shot attempts. makes.
+// 2/3 free throw defensive. everything!!! everything from the stat sheets and
+// the online league stats"). Every number the league publishes for the player,
+// read from the row the box-score logger wrote (or the league feed's line).
+// Nothing is computed that the source did not give, except shooting %.
+function GameLineModal({ line, onClose }) {
+  const tr = useT();
+  const b = line.box || {};
+  const ma = (x) => (x && typeof x === 'object' ? x : null);
+  const pct = (x) => (x && x.a ? `${Math.round((x.m / x.a) * 100)}%` : '—');
+  const fg2 = ma(b.fg2), fg3 = ma(b.fg3 || b.tp), ft = ma(b.ft);
+  const fg = fg2 && fg3 ? { m: fg2.m + fg3.m, a: fg2.a + fg3.a } : null;
+  const v = (x) => (x == null || Number.isNaN(x) ? '—' : x);
+  const tiles = [
+    [tr('Minutes'), v(line.min ?? b.min)], [tr('Points'), v(b.pts)], [tr('PIR'), v(b.pir)], ['+/-', v(b.pm)],
+    ['FG', fg ? `${fg.m}/${fg.a}` : '—', fg ? pct(fg) : ''], ['2P', fg2 ? `${fg2.m}/${fg2.a}` : '—', fg2 ? pct(fg2) : ''],
+    ['3P', fg3 ? `${fg3.m}/${fg3.a}` : '—', fg3 ? pct(fg3) : ''], ['FT', ft ? `${ft.m}/${ft.a}` : '—', ft ? pct(ft) : ''],
+    [tr('Off. reb'), v(b.oreb)], [tr('Def. reb'), v(b.dreb)], [tr('Rebounds'), v(b.reb)], [tr('Assists'), v(b.ast)],
+    [tr('Steals'), v(b.stl)], [tr('Turnovers'), v(b.to)], [tr('Blocks'), v(b.blk)], [tr('Fouls'), v(b.pf)],
+  ];
+  return (
+    <BModal open onClose={onClose} title={<>{line.opp ? `${tr('vs')} ${line.opp}` : tr('Game')}<span className="bm-lead"> · {monDay(line.date)}</span></>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>
+          {[`${dow(line.date)} ${monDay(line.date)}`, line.comp ? tr(line.comp) : null, line.home == null ? null : tr(line.home ? 'Home' : 'Away'), b.starter ? tr('Starter') : null].filter(Boolean).join(' · ')}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+          {tiles.map(([k, val, sub]) => (
+            <div key={k} style={{ background: 'var(--c-sf)', padding: '9px 10px', minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{k}</div>
+              <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</div>
+              {sub ? <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 1 }}>{sub}</div> : null}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{line.source === 'basket.co.il' || String(line.source || '').startsWith('basket.co.il') ? tr('Source: the league box score (basket.co.il).') : line.box ? tr('Source: the logged box score.') : tr('Only the minutes were logged for this game.')}</div>
+      </div>
+    </BModal>
+  );
+}
+
+function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const heM = useHe();
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
   const [histKind, setHistKind] = useState('all');  // which chip is picked
   const [monthOpen, setMonthOpen] = useState({});   // month → open; unset = newest open, rest shut
+  // SEASON, THEN MONTH (27.9, Ohad: "it should show by season then months").
+  // A season runs August to July (2026/27). Newest season open, the rest shut.
+  const [seasonOpen, setSeasonOpen] = useState({});
+  const [gameOpen, setGameOpen] = useState(null);   // the game line in the popup
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
@@ -1767,7 +1812,14 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // Branch on whether an RPE was ever recorded, NOT on whether the load is
   // zero (audit #71): a stale sRPE row still prints its RPE; everything logged
   // since 23.9 has none and reads minutes or "attended".
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: rowKind(s), date: d, note: s.rpe == null ? (s.note || '') : '', label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  // A GAME READS AS WHO IT WAS AGAINST, and opens its full line (27.9, Ohad:
+  // "vs who? instead of game. then pop up option with all the stats").
+  const gameLineOf = (d, s) => ({ date: d, opp: s.opp || null, comp: s.comp || null, home: s.home ?? null, start: s.start || '', min: s.min, box: s.box || null, source: s.source || null });
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push(rowKind(s) === 'game' ? {
+    kind: 'game', date: d, note: s.note || '', gameLine: gameLineOf(d, s),
+    label: `${s.opp ? `${tr('vs')} ${s.opp}` : tr('Game')} · ${s.min ? s.min + '\u00a0' + tr('min') : tr('played')}`,
+    load: null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) }, by: s.by || null,
+  } : { kind: rowKind(s), date: d, note: s.rpe == null ? (s.note || '') : '', label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ kind: 'gym', date: d, label: `${tr('Gym')} · ${nEx} ${tr(nEx === 1 ? 'lift' : 'lifts')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ kind: 'other', date: d, label: `${tr('Bodyweight')} ${kg} ${tr('kg')}`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ kind: 'other', date: d, label: `${tr('Availability')} · ${tr(AVAIL[code].label)}`, load: null }); });
@@ -1789,7 +1841,12 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
     activity.push({ kind: 'note', date: k.split('|')[0], label: `${tr('Note')} — ${n}`, load: null });
   });
   // League games fold into the same timeline, so the full history covers court + gym.
-  (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ kind: 'game', date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
+  const loggedGameDays = new Set(activity.filter((a) => a.gameLine).map((a) => a.date));
+  (leagueLog || []).forEach((g) => {
+    if (!g.date || loggedGameDays.has(g.date)) return;
+    const opp = g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : null;
+    activity.push({ kind: 'game', date: g.date, game: { opp: opp || '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, gameLine: { date: g.date, opp, min: g.min, box: g, source: 'basket.co.il' }, load: null });
+  });
   activity.sort((a, b) => b.date.localeCompare(a.date));
   // Counts per kind for the chips, then the visible rows grouped by month.
   const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C sessions', lift: 'Lifts', gym: 'Gym', note: 'Notes', other: 'Other' };
@@ -1804,7 +1861,8 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const monthSummary = (list) => {
     const games = list.filter((a) => a.kind === 'game').length;
     const mins = list.reduce((n, a) => n + (a.sess && Number(a.sess.min) ? Number(a.sess.min) : (a.game && Number(a.game.min) ? Number(a.game.min) : 0)), 0);
-    return [`${list.length}`, mins ? `${mins} ${tr('min')}` : null, games ? `${games} ${tr(games === 1 ? 'game' : 'games')}` : null].filter(Boolean).join(' · ');
+    // every number says what it counts (27.9: "24 · 231 MIN" - 24 of what?)
+    return [`${list.length} ${tr(list.length === 1 ? 'entry' : 'entries')}`, mins ? `${mins} ${tr('min')}` : null, games ? `${games} ${tr(games === 1 ? 'game' : 'games')}` : null].filter(Boolean).join(' · ');
   };
   return (
     <BModal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
@@ -2007,8 +2065,31 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                 const group = byMonth[m];
                 const open = monthOpenAt(m, mi);
                 const d0 = parseISO(m + '-01');
+                const seasonOf = (mk) => { const y = +mk.slice(0, 4), mo = +mk.slice(5, 7); const st = mo >= 8 ? y : y - 1; return `${st}/${String(st + 1).slice(2)}`; };
+                const season = seasonOf(m);
+                const firstSeason = seasonOf(monthKeys[0]);
+                const sOpen = season in seasonOpen ? seasonOpen[season] : season === firstSeason;
+                const seasonHead = mi === 0 || seasonOf(monthKeys[mi - 1]) !== season;
+                const seasonGroups = seasonHead ? monthKeys.filter((k) => seasonOf(k) === season).map((k) => byMonth[k]).flat() : null;
+                const head = seasonHead ? (
+                  <button onClick={() => setSeasonOpen((p) => ({ ...p, [season]: !sOpen }))}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '0 9px', minHeight: 36, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: ORANGE_DEEP, color: '#fff', border: 'none', borderBottom: `1px solid ${C.cardBd}` }}>
+                    <svg aria-hidden="true" width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ width: 10, flexShrink: 0, transform: sOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>
+                      <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tr('Season')} {season}</span>
+                    <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{(() => {
+                      // the season line: games and minutes only - with the entry count it ran off a phone (27.9)
+                      const g = seasonGroups.filter((a) => a.kind === 'game').length;
+                      const mm = seasonGroups.reduce((n, a) => n + (a.sess && Number(a.sess.min) ? Number(a.sess.min) : (a.game && Number(a.game.min) ? Number(a.game.min) : 0)), 0);
+                      return [g ? `${g} ${tr(g === 1 ? 'game' : 'games')}` : null, mm ? `${mm} ${tr('min')}` : null].filter(Boolean).join(' · ');
+                    })()}</span>
+                  </button>
+                ) : null;
+                if (!sOpen) return <React.Fragment key={m}>{head}</React.Fragment>;
                 return (
                   <React.Fragment key={m}>
+                    {head}
                     {/* The month header stays put while its own rows scroll under
                         it, so you always know where you are in a long season. */}
                     <button onClick={() => setMonthOpen((p) => ({ ...p, [m]: !open }))}
@@ -2020,13 +2101,15 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                       <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, color: ORANGE, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{monthSummary(group)}</span>
                     </button>
                     {open && group.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box',
+                <div key={i} onClick={a.gameLine ? () => setGameOpen(a.gameLine) : undefined} role={a.gameLine ? 'button' : undefined} tabIndex={a.gameLine ? 0 : undefined}
+                  onKeyDown={a.gameLine ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(a.gameLine); } }) : undefined}
+                  className={a.gameLine ? 'bhbc-row' : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box', cursor: a.gameLine ? 'pointer' : undefined,
                   borderBottom: i < group.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
                   <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 44, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
                   {a.game ? (
                     <span style={{ color: C.tx, minWidth: 0, flex: 1, display: 'flex', gap: 8, alignItems: 'baseline' }} dir="ltr">
-                      <span style={{ fontWeight: 600 }}>{tr('Game')}</span>
-                      <span style={{ unicodeBidi: 'isolate', direction: 'rtl', color: C.td }}>{a.game.opp}</span>
+                      <span style={{ fontWeight: 600, unicodeBidi: 'isolate' }}>{tr('vs')} <span style={{ unicodeBidi: 'isolate' }}>{a.game.opp}</span></span>
                       <span style={{ marginInlineStart: 'auto', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a · {a.game.min}′</span>
                     </span>
                   ) : a.sess && editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx ? (
@@ -2101,6 +2184,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
           {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('View program')}</Btn>}
         </div>
       </div>
+      {gameOpen && <GameLineModal line={gameOpen} onClose={() => setGameOpen(null)} />}
     </BModal>
   );
 }
@@ -2540,8 +2624,13 @@ function FixturesAheadPanel({ fixtures, today }) {
                 <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>{tr('days')}</div>
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
+                  {/* the travel plane and the turnaround tag ride with the name
+                      (27.9: in the badge column they squeezed the name and the
+                      Porto row broke into seven lines at 360) */}
+                  {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
+                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1A1205', background: '#E0A73A', padding: '1px 6px', whiteSpace: 'nowrap' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
                 {/* Competition and date on one line, the VENUE on its own.
                     Joined with " · " they were one text run, and once the badge
@@ -2566,8 +2655,6 @@ function FixturesAheadPanel({ fixtures, today }) {
                     anchored edge and the optional flags sit before it. With the
                     chip first, a row carrying a plane pushed its chip 17px off
                     the edge the chip above it sat on. */}
-                {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
-                {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1A1205', background: '#E0A73A', padding: '1px 6px', whiteSpace: 'nowrap' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 <HAChip home={g.home} />
               </div>
             </div>
@@ -4713,6 +4800,15 @@ const LEAGUE_ALIAS = {
 const leaguePlayerFor = (league, name) => {
   const heb = LEAGUE_ALIAS[name];
   return heb ? (league?.players || []).find((p) => p.name === heb) || null : null;
+};
+// Every league game of his, EVERY season kept: the current season's log plus
+// the archived seasons' (27.9, history "by season then months").
+const leagueLogFor = (league, name) => {
+  const heb = LEAGUE_ALIAS[name];
+  if (!heb) return [];
+  const cur = ((league?.players || []).find((p) => p.name === heb) || {}).log || [];
+  const old = Object.values(league?.archive || {}).flatMap((a) => ((a.players || []).find((p) => p.name === heb) || {}).log || []);
+  return [...cur, ...old];
 };
 const relTime = (iso) => {
   if (!iso) return '';

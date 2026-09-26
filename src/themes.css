@@ -1655,6 +1655,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    or a chip (36) at 36 fills its container edge to edge. Nested ones take the
    one nested height instead, everywhere. */
 :root { --btn-h-in: 26px; }
+/* ...but a finger needs 32 (the tap-target floor the pages gate holds): on a
+   touch screen the nested height is 32 - still well inside a 41px strip. */
+@media (pointer: coarse) { :root { --btn-h-in: 32px; } }
 .title-strip button:not([data-strip-toggle]), .bhbc-chip button {
   min-height: var(--btn-h-in) !important; height: var(--btn-h-in) !important;
   padding-block: 0 !important; box-sizing: border-box;

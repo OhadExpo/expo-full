@@ -21,7 +21,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
-const cYear = Number(args.find((a) => /^\d{4}$/.test(a))) || 2027;
+// No year = the CURRENT season (its END year): a season starts in August.
+const nowD = new Date();
+const cYear = Number(args.find((a) => /^\d{4}$/.test(a))) || (nowD.getMonth() >= 7 ? nowD.getFullYear() + 1 : nowD.getFullYear());
 const seasonLabel = `${cYear - 1}/${String(cYear).slice(2)}`;
 const CDP = (process.env.CDP || 'http://localhost:9222');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -258,7 +260,19 @@ function playerLine(c) {
   const supabase = createClient('https://gtcbfglttoiyfsnfbhdy.supabase.co', 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv', { auth: { persistSession: false } });
   const { error: authErr } = await supabase.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });
   if (authErr) { console.error('AUTH FAILED:', authErr.message); process.exit(1); }
-  const { data: existing } = await supabase.from('store').select('key').eq('key', 'expo-bhbc-league').maybeSingle();
+  const { data: existing } = await supabase.from('store').select('key, value').eq('key', 'expo-bhbc-league').maybeSingle();
+  // PAST SEASONS ARE KEPT (27.9: syncing 2026/27 replaced 2025/26 and the
+  // athletes' game history lost last season - "it should show by season").
+  // The season being replaced moves into `archive[season]` (player logs only),
+  // earlier archives carry forward, the current season is never archived.
+  const prev = existing && existing.value;
+  const archive = { ...((prev && prev.archive) || {}) };
+  if (prev && prev.season && prev.season !== seasonLabel && Array.isArray(prev.players)) {
+    archive[prev.season] = { players: prev.players.map((p) => ({ name: p.name, log: p.log || [] })) };
+  }
+  delete archive[seasonLabel];
+  payload.archive = archive;
+  console.log(`  archive: ${Object.keys(archive).join(', ') || 'none'}`);
   const op = existing ? supabase.from('store').update({ value: payload }).eq('key', 'expo-bhbc-league') : supabase.from('store').insert({ key: 'expo-bhbc-league', value: payload });
   const { error: wErr } = await op;
   if (wErr) { console.error('WRITE FAILED:', wErr.message); process.exit(1); }

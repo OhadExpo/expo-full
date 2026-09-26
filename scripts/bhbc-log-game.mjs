@@ -65,13 +65,22 @@ function bhBox(tables) {
     const hi = rows.findIndex((r) => r.includes('דק') && r.includes('נק') && r.includes('שם שחקן'));
     if (hi < 0) continue;
     const h = rows[hi];
-    const col = (name, from = 0) => h.indexOf(name, from);
-    const cMin = col('דק'), cPts = col('נק'), cTot = col('סהכ'), cAst = col('אס'), cPir = col('מדד');
+    // THE FULL LINE (27.9, Ohad: "all the stats from the game ... shot
+    // attempts, makes, 2/3, free throws, defensive - everything"). The league's
+    // column order, verified against the page header on 27.9 (and the same map
+    // scripts/bhbc-sync-league.mjs reads): # | name | starter | MIN | PTS |
+    // 2P m/a | % | 3P m/a | % | FT m/a | % | OREB | DREB | REB | fouls | fouls
+    // drawn | STL | TO | AST | BLK | blocked | PIR | +/-.
+    if (h.length < 23 || h[3] !== 'דק' || h[4] !== 'נק' || h[21] !== 'מדד') { console.log('  REFUSED: the box score columns moved - header:', h.join(' | ')); return null; }
+    const ma = (v) => { const m = String(v || '').match(/(\d+)\s*\/\s*(\d+)/); return m ? { m: +m[1], a: +m[2] } : { m: 0, a: 0 }; };
     const players = [];
     for (const r of rows.slice(hi + 1)) {
       const jersey = num(r[0]);
       if (jersey == null || !r[1] || /סה"כ|קבוצתי/.test(r[1])) continue;
-      players.push({ jersey, name: r[1], min: num(r[cMin]), pts: num(r[cPts]), reb: num(r[cTot]), ast: cAst >= 0 ? num(r[cAst]) : null, pir: cPir >= 0 ? num(r[cPir]) : null });
+      players.push({ jersey, name: r[1], starter: /\*/.test(r[2] || ''), min: num(r[3]), pts: num(r[4]),
+        fg2: ma(r[5]), fg3: ma(r[7]), ft: ma(r[9]), oreb: num(r[11]), dreb: num(r[12]), reb: num(r[13]),
+        pf: num(r[14]), fd: num(r[15]), stl: num(r[16]), to: num(r[17]), ast: num(r[18]), blk: num(r[19]), blka: num(r[20]),
+        pir: num(r[21]), pm: num(r[22]) });
     }
     if (players.length) return players;
   }
@@ -170,8 +179,10 @@ for (const gid of ids) {
     rec.sessions = { ...(rec.sessions || {}) };
     const day = rec.sessions[DATE] || [];
     if (day.some((r) => r && (r.kind === 'game' || String(r.type || '').toLowerCase() === 'game'))) { skipped.push(`#${pl.jersey}`); next[t.id] = rec; continue; }
+    const { jersey: _j, name: _n, min: _m, ...line } = pl;
     rec.sessions[DATE] = [...day, { kind: 'game', type: 'Game', start: fx.start || '', min: pl.min, rpe: null, load: 0, attended: true,
-      box: { pts: pl.pts, reb: pl.reb, ast: pl.ast, pir: pl.pir }, source: `basket.co.il/${gid}` }];
+      opp: fx.opponent || null, comp: fx.comp || null, home: fx.home ?? null,
+      box: line, source: `basket.co.il/${gid}` }];
     next[t.id] = rec;
     wrote.push(`#${pl.jersey} ${pl.min}′ ${pl.pts}p`);
   }

@@ -41,7 +41,7 @@ function tick() {
   const st = load();
   const slotKey = `${now.toDateString()}@${now.getHours()}`;
   if (SLOTS.includes(now.getHours()) && st.lastSlot !== slotKey) {
-    st.lastSlot = slotKey; save(st); runSync(`slot ${now.getHours()}:00`); return;
+    st.lastSlot = slotKey; save(st); runSync(`slot ${now.getHours()}:00`); runLeague(`slot ${now.getHours()}:00`); return;
   }
   if (Date.now() - (st.lastOk || 0) > CATCH_UP_MS && !running) {
     // Only catch up once per hour so a broken sync does not loop.
@@ -52,6 +52,17 @@ function tick() {
 // stats from basket.co.il on your own immediately!!! rules!"). Every 20 minutes:
 // bhbc-log-game --auto exits at once when no finished game is unlogged, and
 // otherwise finds the box score on basket.co.il and writes the rows.
+// THE LEAGUE FEED IS THE CURRENT SEASON, KEPT CURRENT (27.9, Ohad: "the games
+// are not updated. we have newer games logged in"). bhbc-sync-league.mjs with no
+// year = the current season. It runs after a game was logged, and at the slots.
+let leagueRunning = false;
+function runLeague(reason) {
+  if (leagueRunning) return;
+  leagueRunning = true;
+  say(`league sync start (${reason})`);
+  const p = spawn(process.execPath, ['scripts/bhbc-sync-league.mjs'], { cwd: REPO, stdio: 'ignore', windowsHide: true });
+  p.on('exit', (code) => { leagueRunning = false; say(`league sync exit ${code}`); });
+}
 let gameRunning = false;
 function runGames() {
   if (gameRunning) return;
@@ -63,6 +74,7 @@ function runGames() {
   p.on('exit', (code) => {
     gameRunning = false;
     if (!/no finished game waiting/.test(out)) say(`games: exit ${code} ${out.trim().replace(/\s+/g, ' ').slice(0, 600)}`);
+    if (/read-back OK/.test(out)) runLeague('a game was logged');
   });
 }
 say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games every 20 min`);

@@ -24,8 +24,8 @@ const round1 = (n) => Math.round(n * 10) / 10;
 function Bar({ label, n, total, dirRtl }) {
   const pct = total ? Math.round((n / total) * 100) : 0;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 90px', gap: 10, alignItems: 'center', minHeight: 28 }}>
-      <div style={{ position: 'relative', minHeight: 24, display: 'flex', alignItems: 'center', border: `1px solid ${C.cardBd}` }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 90px', gap: 10, alignItems: 'center' }}>
+      <div style={{ position: 'relative', minHeight: 'var(--btn-h)', boxSizing: 'border-box', display: 'flex', alignItems: 'center', border: `1px solid ${C.cardBd}` }}>
         <span style={{ position: 'absolute', insetBlock: 0, insetInlineStart: 0, width: `${pct}%`, background: 'color-mix(in srgb, var(--c-ac) 22%, transparent)' }} />
         <span style={{ position: 'relative', padding: '3px 8px', fontFamily: dirRtl ? FH : FB, fontSize: 13, color: C.tx }}>{label}</span>
       </div>
