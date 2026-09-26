@@ -5,6 +5,7 @@ import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
 import { TRAINER_EMAILS } from './authRoles';
+import { canSeatWrite, recordBlockedWrite } from './seatWrite';
 
 // The size the shrink rule compares against. An array is its length; an OBJECT
 // store is its key count — the BHBC season stores (expo-bhbc-loads, -medical,
@@ -173,6 +174,9 @@ function isTransient(err) {
 // The wrapper functions in the hooks below try the write directly; on failure
 // they enqueue with the matching `type`, and the handler replays it.
 registerHandler('store.upsert', async ({ key, value }) => {
+  // A queued write replays on a later launch, possibly on another seat: the
+  // fence applies here too, and a blocked replay is done, not failed.
+  if (!canSeatWrite(key)) { recordBlockedWrite(key, 'queued replay on a seat that may not write it'); return; }
   const { error } = await supabase.from('store').upsert({ key, value, updated_at: new Date().toISOString() });
   if (error) throw error;
 });
@@ -487,6 +491,12 @@ export function useSupaStore(key, initial) {
     // saved (client_workouts is a different table). Photographed on a phone at
     // 13:50 on 26.9.
     if (val === dataRef.current) return;
+
+    // THE SEAT FENCE (26.9). A write this seat cannot make never leaves the
+    // device and never becomes a banner: it is recorded (console, telemetry,
+    // window.__expoBlockedWrites) as the upstream bug it is. RLS remains the
+    // last line behind it. See src/seatWrite.js.
+    if (!canSeatWrite(key)) { recordBlockedWrite(key); return; }
 
     // ---- DATA-LOSS GUARD (2026-08-27) ---------------------------------
     // A save writes the WHOLE array, so it must never run before the store has

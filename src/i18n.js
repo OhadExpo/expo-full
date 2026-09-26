@@ -1080,6 +1080,7 @@ export const HE = {
   'Upload failed.': 'ההעלאה נכשלה.',
   'Could not analyze the photo.': 'לא הצלחנו לנתח את התמונה.',
   'Save failed.': 'השמירה נכשלה.',
+  'Still loading — that is longer than usual. Reloading usually clears it.': 'עדיין טוען — זה לוקח יותר מהרגיל. רענון בדרך כלל פותר את זה.',
   'Server error': 'שגיאת שרת',
   'AI call failed': 'הניתוח נכשל',
   'Previous day': 'יום קודם',
