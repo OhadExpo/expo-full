@@ -79,10 +79,10 @@ export function SideRail({
       paddingInlineStart: RAIL_GUTTER, display: 'flex', flexDirection: 'column', gap: 12,
       alignSelf: 'flex-start',
       position: narrow ? 'static' : 'sticky', top: narrow ? undefined : top,
-      // A sticky rail paints among positioned elements in DOM order, so a later
-      // block that carries a transform (the demo's waitlist band rises in) covered
-      // its bottom button at 1440 (pages gate, 24.9). The rail is 204px at the
-      // start edge; nothing centred below the grid is under it.
+      // Keeps the sticky rail above later transformed blocks. NOTE: this was
+      // added on 24.9 for the pages gate's "+ Add Athlete COVERED" at 1440 and
+      // did not clear it — the button was CLIPPED by the rail's own scroll, not
+      // painted over. The pinned footer below is what fixed that (26.9).
       zIndex: narrow ? undefined : 1,
       maxHeight: narrow ? undefined : maxHeight, overflowY: narrow ? 'visible' : 'auto',
       // Stop the scrollbar-thumb jitter at the very bottom of the track (Ohad #196):
@@ -111,7 +111,15 @@ export function SideRail({
             ))}
           </RailGroup>
         ))}
-        {footer && <div style={{ padding: '0 14px', marginTop: 'auto' }}>{footer}</div>}
+        {/* PINNED, not just last. When the list outgrows the rail's max-height
+            (a 32-athlete roster at 1440x950: 958px of content in 874px) the
+            footer sat below the rail's own scroll fold — "+ Add Athlete" was
+            clipped and the page behind showed through, which the pages gate
+            read as COVERED (26.9, audit-out/_cover1440.mjs). Sticky to the
+            rail's bottom edge: -16px takes back the rail's bottom padding so no
+            row shows beneath it, and the matching padding + margin keep the
+            un-scrolled layout exactly where it was. */}
+        {footer && <div style={{ padding: '0 14px', marginTop: 'auto', ...(narrow ? null : { position: 'sticky', bottom: -16, zIndex: 1, background: 'var(--c-sf2)', paddingBottom: 16, marginBottom: -16 }) }}>{footer}</div>}
       </>)}
     </div>
   );
