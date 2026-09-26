@@ -835,7 +835,14 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               ].map(o => {
                 const on = sortKey === o.id;
                 const desc = on && sortDir === 'desc';
-                return { key: o.id, title: on ? `${T('Flip direction')}: ${o.label}` : `${T('Sort by')} ${o.label}`, active: on, label: on ? `${desc ? '↓' : '↑'} ${o.label}` : o.label,
+                // The real rail's active label (TraineesView): the direction in
+                // the key's own words, then the key — "A→Z · Name", not "↑ Name".
+                const heL = readLang() === 'he';
+                const dirLbl = o.id === 'name' ? (heL ? (desc ? 'ת←א' : 'א←ת') : (desc ? 'Z→A' : 'A→Z'))
+                  : o.id === 'status' ? (desc ? `↑ ${T('Inactive')}` : `↓ ${T('Active')}`)
+                  : o.id === 'lastTrained' ? (desc ? `↓ ${T('Newest')}` : `↑ ${T('Oldest')}`)
+                  : (desc ? `↑ ${T('Overdue')}` : `↓ ${T('Paid')}`);
+                return { key: o.id, title: on ? (heL ? `היפוך כיוון המיון (${o.label})` : `Flip ${o.label} direction`) : `${T('Sort by')} ${o.label}`, active: on, label: on ? `${dirLbl} · ${o.label}` : o.label,
                   onClick: () => { if (on) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortKey(o.id); setSortDir('asc'); } } };
               }),
             },
@@ -3482,6 +3489,31 @@ const MOCK_REVIEW_QUEUE = [
       { name: 'Hip Thrust',         prescribed: '1×AMRAP',      done: 1, sets: 1, hasVideo: false, comments: 0, focus: false },
     ],
   },
+  // Already reviewed — the archive behind the real queue's SHOW REVIEWED.
+  {
+    id: 'rv4', traineeName: 'נועה לוי', initials: 'NL', reviewed: true,
+    dayName: 'Day C · Legs', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
+    date: '2 days ago', doneSets: 15, totalSets: 15,
+    exercises: [
+      { name: 'Back Squat',         prescribed: '4×5 · 70kg',   done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
+      { name: 'Romanian Deadlift',  prescribed: '3×8 · 60kg',   done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Walking Lunge',      prescribed: '3×10 E',       done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Hip Thrust',         prescribed: '3×10',         done: 3, sets: 3, hasVideo: false, comments: 1, focus: false },
+      { name: 'Plank',              prescribed: '2×45s',        done: 2, sets: 2, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
+  {
+    id: 'rv5', traineeName: 'גל מזרחי', initials: 'GM', reviewed: true,
+    dayName: 'Day B · Pull', planName: 'Block #4 — Pull Specialization', week: 3,
+    date: '3 days ago', doneSets: 16, totalSets: 16,
+    exercises: [
+      { name: 'Pull-Up',            prescribed: '4×6',          done: 4, sets: 4, hasVideo: true,  comments: 1, focus: true  },
+      { name: 'Bent-Over BB Row',   prescribed: '4×8 · 60kg',   done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
+      { name: 'Face Pull',          prescribed: '3×15',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'DB Bicep Curl',      prescribed: '3×12',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Hanging Leg Raise',  prescribed: '2×10',         done: 2, sets: 2, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
 ];
 
 function DemoReview() {
@@ -3493,12 +3525,20 @@ function DemoReview() {
   const [selectedId, setSelectedId] = useState(null);
   const [vsDemo, setVsDemo] = useState(false); // Body-Match: form clip vs library reference demo
   const selected = MOCK_REVIEW_QUEUE.find(w => w.id === selectedId);
-  const queue = MOCK_REVIEW_QUEUE;
-  const byClient = {};
-  for (const wo of queue) {
-    if (!byClient[wo.traineeName]) byClient[wo.traineeName] = { name: wo.traineeName, workouts: [] };
-    byClient[wo.traineeName].workouts.push(wo);
-  }
+  // The real queue (WorkoutReview): pending athletes first; the reviewed
+  // archive stays behind a SHOW REVIEWED (n) toggle under the last of them.
+  const [showReviewed, setShowReviewed] = useState(false);
+  const groupOf = (list) => {
+    const by = {};
+    for (const wo of list) {
+      if (!by[wo.traineeName]) by[wo.traineeName] = { name: wo.traineeName, workouts: [] };
+      by[wo.traineeName].workouts.push(wo);
+    }
+    return by;
+  };
+  const byClient = groupOf(MOCK_REVIEW_QUEUE.filter(w => !w.reviewed));
+  const reviewedList = MOCK_REVIEW_QUEUE.filter(w => w.reviewed);
+  const byClientReviewed = groupOf(reviewedList);
 
   // Weekly-focus strip — mirrors the real WorkoutReview's WeeklyFocusTool
   // header. The "Log In-Person Session" subtab was removed from the real app
@@ -3674,7 +3714,8 @@ function DemoReview() {
     <section>
       {weeklyFocus}
 
-      {Object.entries(byClient).map(([cid, data]) => (
+      {(() => {
+        const renderGroup = ([cid, data]) => (
         <div key={cid} style={{ marginBottom: 20 }}>
           {/* Athlete group header — solid cyan strip: name + (n) pending +
               · planName (cyan) + current-stage week boxes + Athlete page →.
@@ -3730,7 +3771,23 @@ function DemoReview() {
             );
           })}
         </div>
-      ))}
+        );
+        const reviewedCount = reviewedList.length;
+        return (<>
+          {Object.entries(byClient).map(renderGroup)}
+          {/* Queue divider, as on the real queue: under the last pending
+              athlete, the reviewed archive behind a toggle. */}
+          {reviewedCount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
+              <button onClick={() => setShowReviewed(v => !v)}
+                style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '0 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                {showReviewed ? <>✕ {T('HIDE REVIEWED')} ({reviewedCount})</> : <>{T('SHOW REVIEWED')} ({reviewedCount})</>}
+              </button>
+            </div>
+          )}
+          {showReviewed && Object.entries(byClientReviewed).map(renderGroup)}
+        </>);
+      })()}
     </section>
   );
 }
