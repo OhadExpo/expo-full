@@ -318,6 +318,8 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
 // itself should never have been on a screen shown to a buyer.
 
 function DemoDashboard({ onJumpToTrainee }) {
+  // Messages: MARK ALL READ clears the unread dots, as on the real card.
+  const [msgsRead, setMsgsRead] = useState(false);
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
@@ -523,14 +525,17 @@ function DemoDashboard({ onJumpToTrainee }) {
           alert rail). Mock threads for the demo. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
         <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
-          <span>{T('Messages')}</span><span style={{ fontSize: 10, color: C.ac }}>{readLang() === 'he' ? '2 לא נקראו' : `2 ${T('Unread')}`}</span>
+          {/* The real MessagesCard header: MESSAGES (unread), and MARK ALL READ
+              while anything is unread. */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{T('Messages')}<span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', opacity: 0.85 }}>({msgsRead ? 0 : 2})</span></span>
+          {!msgsRead && <button onClick={() => setMsgsRead(true)} style={{ minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' }}>{T('MARK ALL READ')}</button>}
         </div>
         <div>
           {[
             { name: MOCK_TRAINEES[0]?.name || 'נועה לוי', msg: T('Felt strong on bench today — hit all 4 sets'), when: T('2m'), unread: true },
             { name: MOCK_TRAINEES[3]?.name || 'דניאל אבני', msg: T('Can we move tomorrow to 18:00?'), when: T('1h'), unread: true },
             { name: MOCK_TRAINEES[1]?.name || 'גל מזרחי', msg: T('Sent the deadlift clip for review'), when: T('Yesterday'), unread: false },
-          ].map((m, i) => (
+          ].map((m) => ({ ...m, unread: m.unread && !msgsRead })).map((m, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
               <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
