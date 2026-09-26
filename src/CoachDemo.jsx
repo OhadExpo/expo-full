@@ -2191,6 +2191,9 @@ function DemoPrograms({ resetToken = 0 }) {
   }, []);
   const [search, setSearch] = useState('');
   const [filterTrainee, setFilterTrainee] = useState('');
+  // The real rail's Flags group (PlansView): programs with no athlete, and
+  // programs with no exercises or no days.
+  const [flags, setFlags] = useState({ unassigned: false, empty: false });
   const [progView, setProgView] = useState('table'); // 'table' | 'grid' | 'lineage'
   // Preview / Duplicate / Share / Delete were `onClick={e => e.stopPropagation()}`
   // — they looked live, had a handler, and did nothing, with only a `title`
@@ -2318,6 +2321,8 @@ function DemoPrograms({ resetToken = 0 }) {
     const q = search.trim().toLowerCase();
     let filtered = MOCK_PROGRAM_INDEX.filter(p => {
       if (filterTrainee && p.traineeId !== filterTrainee) return false;
+      if (flags.unassigned && p.traineeId) return false;
+      if (flags.empty && p.exerciseCount && p.dayCount) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -2358,10 +2363,21 @@ function DemoPrograms({ resetToken = 0 }) {
               ],
             },
             {
+              label: 'Flags',
+              opts: [
+                { key: 'unassigned', label: T('Unassigned'), count: MOCK_PROGRAM_INDEX.filter(p => !p.traineeId).length, title: T('Programs with no athlete assigned'), accent: C.or, active: flags.unassigned, onClick: () => setFlags(m => ({ ...m, unassigned: !m.unassigned })) },
+                { key: 'empty', label: `∅ ${T('Empty')}`, count: MOCK_PROGRAM_INDEX.filter(p => !p.exerciseCount || !p.dayCount).length, title: T('Programs with no exercises or no days'), accent: C.or, active: flags.empty, onClick: () => setFlags(m => ({ ...m, empty: !m.empty })) },
+              ],
+            },
+            {
               label: 'Sort',
-              opts: [['created', 'Uploaded'], ['name', 'Name'], ['updated', 'Last edited']].map(([field, label]) => {
+              opts: [
+                ['created', 'Uploaded', 'Sort by when the program was created/imported. Click again to flip newest/oldest.'],
+                ['name', 'Name', 'Sort by program name. Click again to flip A–Z / Z–A.'],
+                ['updated', 'Last edited', 'Sort by when the program was last edited. Click again to flip newest/oldest.'],
+              ].map(([field, label, tip]) => {
                 const active = sortField === field;
-                return { key: field, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${T(label)}` : T(label), onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
+                return { key: field, title: T(tip), active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${T(label)}` : T(label), onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
               }),
             },
           ]}
