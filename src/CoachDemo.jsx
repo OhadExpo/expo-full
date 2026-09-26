@@ -320,6 +320,10 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
 function DemoDashboard({ onJumpToTrainee }) {
   // Messages: MARK ALL READ clears the unread dots, as on the real card.
   const [msgsRead, setMsgsRead] = useState(false);
+  // Tasks: the real NotesWidget's scope toggle. GENERAL (default) = the status
+  // board of tasks people wrote; AUTO-ALERTS = what the rules engine raised;
+  // ALL = the board with the alerts under it.
+  const [taskScope, setTaskScope] = useState('mine');
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
@@ -487,38 +491,85 @@ function DemoDashboard({ onJumpToTrainee }) {
         </div>
       </div>
 
-      {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget status
-          columns (To Do / In Progress / Waiting / Stuck) so the demo dashboard
-          shows the tasks-at-a-glance feature. */}
-      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
-          {T('TASKS')} ({DEMO_TASKS.filter(t => t.status !== 'done').length})
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10, alignItems: 'flex-start' }}>
-          {STATUS_COLS.slice(0, 4).map(col => {
-            const rows = DEMO_TASKS.filter(t => t.status === col.id);
-            return (
-              <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
+      {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget: the
+          strip with + TASK, the ALL / GENERAL / AUTO-ALERTS scope toggle, the
+          status board of written tasks and the auto-alerts list. */}
+      {(() => {
+        const openTasks = DEMO_TASKS.filter(t => t.status !== 'done');
+        const general = openTasks.filter(t => t.src !== 'auto');
+        const alerts = openTasks.filter(t => t.src === 'auto');
+        const SEGS = [['all', 'All', openTasks.length], ['mine', 'General', general.length], ['alerts', 'Auto-alerts', alerts.length]];
+        const board = (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
+            {STATUS_COLS.slice(0, 4).map(col => {
+              const rows = DEMO_TASKS.filter(t => t.status === col.id && t.src !== 'auto');
+              return (
+                <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
+                  </div>
+                  <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
+                    {rows.map(t => {
+                      const meta = TASK_SRC[t.src];
+                      // A bordered tile 26px tall among 36px controls. It has a
+                      // border, so it stands at the one control height; a title
+                      // that wraps makes it taller, which the rule allows.
+                      return (
+                        <div key={t.id} style={{ border: `1px solid ${meta.color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+                      );
+                    })}
+                    {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
+                  </div>
                 </div>
-                <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
-                  {rows.map(t => {
-                    const meta = TASK_SRC[t.src];
-                    // A bordered tile 26px tall among 36px controls. It has a
-                    // border, so it stands at the one control height; a title
-                    // that wraps makes it taller, which the rule allows.
+              );
+            })}
+          </div>
+        );
+        const alertList = alerts.length === 0
+          ? <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', padding: '4px 0' }}>{T('No coaching alerts — all clear.')}</div>
+          : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {alerts.map(t => (
+                <div key={t.id} style={{ border: `1px solid ${TASK_SRC[t.src].color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 9px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+              ))}
+            </div>
+          );
+        return (
+          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
+            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between', gap: 10 }}>
+              <span>{T('TASKS')} ({openTasks.length})</span>
+              <button title={T('Demo only')} style={{ minHeight: CTRL_H, minWidth: 58, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'default', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)' }}>{T('+ Task')}</button>
+            </div>
+            <div style={{ padding: 10 }}>
+              <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
+                <div style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
+                  {SEGS.map(([id, label, n], i) => {
+                    const on = taskScope === id;
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+                      <button key={id} onClick={() => setTaskScope(id)}
+                        style={{ minHeight: CTRL_H - 2, boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', padding: '0 12px', cursor: 'pointer', border: 'none', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', background: on ? 'rgba(57,189,255,0.094)' : 'transparent', color: on ? 'var(--c-ac)' : 'var(--c-tm)', display: 'inline-flex', alignItems: 'center', gap: 5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>{T(label)}</span>{n > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, lineHeight: 1, opacity: on ? 0.9 : 0.5 }}>({n})</span>}
+                      </button>
                     );
                   })}
-                  {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              {taskScope === 'alerts' ? alertList : taskScope === 'all' ? (
+                <>
+                  {board}
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{T('AUTO-ALERTS')} ({alerts.length})</span>
+                      <span style={{ flex: 1, height: 1, background: C.cardBd }} />
+                    </div>
+                    {alertList}
+                  </div>
+                </>
+              ) : board}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Messages inbox — athlete↔coach messaging surfaced on the dashboard
           (the real DashboardView renders <MessagesCard> between Tasks and the
