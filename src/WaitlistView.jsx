@@ -362,7 +362,7 @@ export default function WaitlistView({ trainees }) {
               forces every cell to 8px 6px. .wl-table pins the first column to 14
               at every width; the strip takes the one 41px height, centred. */}
           <style>{`.wl-table th:first-child, .wl-table td:first-child { padding-inline-start: 14px !important; }`}</style>
-          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
+          <div className="title-strip" style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
             <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tr(readLang(), 'Leads —')} {sorted.length}</SectionLabel>
           </div>
           <div style={{ overflowX: 'auto' }}>

@@ -300,7 +300,7 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
   // card border (var(--c-cardBd)) so the strip reads as a fully-
   // boxed title area, "closed" along the bottom.
   return (
-    <div
+    <div className="title-strip"
       onClick={onClick} onKeyDown={onKeyDown} role={role} tabIndex={tabIndex}
       aria-expanded={ariaExpanded}
       style={{
@@ -540,7 +540,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         : { marginBottom: 12, ...style });
   return (
     <div id={domId} style={outerStyle}>
-      <div
+      <div className="title-strip"
         onClick={toggle}
         role="button" tabIndex={0}
         aria-expanded={open}

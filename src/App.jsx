@@ -1240,7 +1240,8 @@ function AuthedApp() {
     const p = window.location.pathname;
     // Short club URL: /bhbc (and /bhbc/login) are the Bnei Herzliya door and
     // resolve to the same zone tab as /coach/bhbc.
-    if (/^\/bhbc\/?(login\/?)?$/.test(p)) {
+    // …and /bhbc/<tab> (27.9: every club page has its own URL, like EXPO's).
+    if (/^\/bhbc(\/(login|overview|roster|schedule|lifts|medical|games|activity))?\/?$/.test(p)) {
       // Already signed in? /bhbc/login is not a page any more — normalise the
       // URL to the zone so a bookmarked login link just opens the app.
       if (/login\/?$/.test(p) && !hasAuthPayload() && !CAME_BACK_FROM_OAUTH) { try { window.history.replaceState(null, '', '/bhbc'); } catch { /* noop */ } }
@@ -1266,6 +1267,8 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
+      // /coach/bhbc/<tab>: the club zone owns the segment after bhbc (27.9).
+      if (sub.startsWith('bhbc/')) return { mode:'coach', tab:'bhbc', traineeId:null };
       const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
@@ -1336,6 +1339,9 @@ function AuthedApp() {
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
     const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+    // The club zone writes its own page into the URL (/coach/bhbc/roster);
+    // entering the zone must not flatten that back to /coach/bhbc.
+    if (newTab === 'bhbc' && /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname)) return;
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     const want = path + (hash ? '#' + hash : '');
@@ -1746,6 +1752,19 @@ function AuthedApp() {
   // "ATHLETES 0" with nothing above it - a failed read presented as the fact
   // that he has no athletes. The roster's loadError keeps the notice up.
   const dataIncomplete = !storesReady || !!traineesLoadError;
+  // THE CLUB LOADS AS THE CLUB (27.9, Ohad: "bhbc needs a refresh design of
+  // its own" - a refresh of /coach/bhbc showed EXPO's black splash). Any club
+  // route, and a club coach anywhere, gets the zone's navy, crest and orange.
+  const bhbcSplash = isBhbcCoach || tab === 'bhbc' || /^\/(coach\/)?bhbc(\/|$)/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  if (!storesReady && !bootDeadline && bhbcSplash) return (
+    <div style={{background:'#14294F',color:'#fff',minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:22}}>
+      <style>{`@keyframes bhbcLoad{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}`}</style>
+      <img src="/bnei-herzliya-logo-w.png" alt={t('Bnei Herzliya S&C zone')} style={{height:84,width:'auto'}} />
+      <div style={{width:160,height:3,background:'rgba(255,255,255,0.16)',overflow:'hidden'}}>
+        <div style={{width:'40%',height:'100%',background:'#F26A2B',animation:'bhbcLoad 1.1s ease-in-out infinite'}} />
+      </div>
+      <div style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.22em',color:'rgba(255,255,255,0.7)'}}>{t('Loading data...').toUpperCase()}</div>
+    </div>);
   if (!storesReady && !bootDeadline) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />

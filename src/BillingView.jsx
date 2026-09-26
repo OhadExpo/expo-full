@@ -160,7 +160,7 @@ export default function BillingView({ trainees }) {
               same margin from that edge.
                 The strip also takes the app's one strip height (41, flex-centred,
                 as RefinedHeaderStrip): as a padded block its words rode 3px low. */}
-            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}` }}>
+            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}` }}>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, width: '100%' }}>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{s.label}</span>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0, boxShadow: `0 0 5px ${s.dot}66` }} />

@@ -286,7 +286,7 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
       background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
       padding: '16px 20px', boxShadow: C.cardShadow,
     }}>
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '0 20px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '0 20px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         {/* TITLE ON THE BODY'S EDGE, DOT AT THE FAR END (Ohad, 26.9: title boxes whose
           text "doesnt start at the same horizontal spot as the rest of the text").
           The status dot used to lead the title, so the words started 13px in from
@@ -395,7 +395,7 @@ function DemoDashboard({ onJumpToTrainee }) {
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+        <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
           <span>{T('REVENUE')}</span><span style={{ opacity: 0.85, fontSize: 10 }}>{T('6 MO TREND')}</span>
         </div>
         <div style={{ padding: 14 }}>
@@ -541,7 +541,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           );
         return (
           <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between', gap: 10 }}>
+            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between', gap: 10 }}>
               <span>{T('TASKS')} ({openTasks.length})</span>
               <button title={T('Demo only')} style={{ minHeight: CTRL_H, minWidth: 58, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'default', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)' }}>{T('+ Task')}</button>
             </div>
@@ -582,7 +582,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           (the real DashboardView renders <MessagesCard> between Tasks and the
           alert rail). Mock threads for the demo. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+        <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
           {/* The real MessagesCard header: MESSAGES (unread), and MARK ALL READ
               while anything is unread. */}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{T('Messages')}<span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', opacity: 0.85 }}>({msgsRead ? 0 : 2})</span></span>
@@ -677,7 +677,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         overflowX: 'auto', marginBottom: 8,
       }}>
           {/* Strip header — mirrors the real DashboardView "All Athletes — N". */}
-          <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase', ...DEMO_STRIP_H }}>{T('All Athletes')} · {MOCK_TRAINEES.length}</div>
+          <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase', ...DEMO_STRIP_H }}>{T('All Athletes')} · {MOCK_TRAINEES.length}</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
@@ -756,7 +756,7 @@ function Panel({ title, tint, icon, children, cyanBorder }) {
       boxShadow: cyanBorder ? undefined : C.cardShadow,
       flex: '0 0 auto', width: 300, boxSizing: 'border-box',
     }}>
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
           {icon && <DemoSectionIcon kind={icon} />}{title}
         </span>
@@ -1110,7 +1110,7 @@ function TraineeCard({ t, onClick }) {
       {/* Header strip — name (+ online dot) LEFT, status pill RIGHT; mirrors the
           real TraineesView Card header/headerRight. Name is NOT repeated in the
           body (the body is the 80px contact slot + stat blocks). */}
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: heb ? FH : FN, fontWeight: 700, fontSize: heb ? 15 : 14, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase', color: 'var(--c-stripTx)' }}>
           <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>{t.online && <OnlineDot />}
         </span>
@@ -1204,7 +1204,7 @@ function CoupleCard({ t, onClick }) {
       {/* Header strip — full couple name LEFT (white) + status pill RIGHT, the
           IDENTICAL grammar to the single TraineeCard so couple and single cards
           align across the grid (Ohad: name colour + status pill were missing). */}
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: isHeb(t.name) ? FH : FN, fontWeight: 700, fontSize: isHeb(t.name) ? 15 : 14, letterSpacing: isHeb(t.name) ? 0 : '0.04em', textTransform: isHeb(t.name) ? 'none' : 'uppercase', color: 'var(--c-stripTx)' }}>
           <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>
         </span>
@@ -3676,7 +3676,7 @@ function DemoReview() {
             (sleep / energy / soreness / pain), surfaced in the real Review detail
             so the coach programs around it. */}
         <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12, overflow: 'hidden' }}>
-          <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('Readiness Check-In')}</div>
+          <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('Readiness Check-In')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, padding: 14 }}>
             {[['Sleep', '7.5h', null, C.gn], ['Energy', '8 / 10', null, C.gn], ['Soreness', null, 'Low', C.gn], ['Pain', '2 / 10', 'L knee', C.or]].map(([l, num, word, c]) => (
               <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -3698,7 +3698,7 @@ function DemoReview() {
           const vidEx = selected.exercises.find(e => e.hasVideo);
           return (
             <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12, overflow: 'hidden' }}>
-              <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('Form Video ·')}{vidEx.name}</span>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <button onClick={e => { e.stopPropagation(); setVsDemo(v => !v); }} title={T("Play the athlete's rep next to the branded reference demo")}
@@ -4620,7 +4620,7 @@ function DemoBilling() {
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
       {/* As the real billing tile (BillingView): the title on the body's edge,
           the status dot at the strip's far end, one 41px strip, 18px sides. */}
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7 }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7 }}>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T(label)}</span>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 5px ${accent}66`, flexShrink: 0 }} />
       </div>
@@ -4874,7 +4874,10 @@ export default function CoachDemo() {
             width: 100% !important; justify-content: center !important;
             border: 1px solid var(--c-cardBd) !important;
             min-height: 36px !important;   /* the one control height, not a second one */
+            /* the real app's phone cells, to the pixel (26.9 parity) */
+            font-size: 9.5px !important; letter-spacing: 0.02em !important; padding: 0 4px !important; gap: 4px !important;
           }
+          .cd-hdr > nav > * span { font-size: 9.5px !important; }
           .cd-hdr > nav > [aria-selected="true"] { border-color: var(--c-ac) !important; }
           /* Logo first, actions after it, nav on its own row underneath —
              the same reading order as the desktop bar. */
@@ -4883,7 +4886,10 @@ export default function CoachDemo() {
           .cd-cta-waitlist { order: 2; margin-inline-start: auto !important; }
           /* the demo-identity cluster takes the row after the nav; the sentence
              has no room on a phone and the chip says enough */
-          .cd-pov { order: 4; flex: 1 1 100% !important; margin-inline-start: 0 !important; justify-content: space-between; }
+          /* two EQUAL cells, like the grid above it (26.9: the chip and the link sat at
+             the two ends at 125 and 175px wide - the one ragged row in the menu) */
+          .cd-pov { order: 4; flex: 1 1 100% !important; margin-inline-start: 0 !important; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px !important; }
+          .cd-pov > :not(.cd-pov-note) { width: 100% !important; justify-content: center !important; min-width: 0; white-space: nowrap !important; padding-inline: 6px !important; letter-spacing: 0.06em !important; }
           .cd-pov-note { display: none !important; }
         }
         /* On a phone the waitlist button was wider than the EXPO logo and the

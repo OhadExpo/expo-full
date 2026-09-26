@@ -130,6 +130,14 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   // free throw. Remembering his choice is honest; guessing from a broken ruler
   // is not.
   const SHOTTYPE_KEY = 'expo-shot-type';
+  // 27.9, Ohad: "the hand, shot should both be automatic, unless i manually
+  // change it". What CAN be measured honestly is whether he left the floor: a
+  // free throw has no jump (median jump rise under 6 cm across the clip's
+  // shots). A jump shot keeps his last jump-shot pick (mid / three) - distance
+  // is still not measurable (the note above). A tap on a type pins it (manual).
+  const SHOTMODE_KEY = 'expo-shot-mode';
+  const [shotMode, setShotMode] = useState(() => { try { return localStorage.getItem(SHOTMODE_KEY) === 'manual' ? 'manual' : 'auto'; } catch { return 'auto'; } });
+  const [detectedShot, setDetectedShot] = useState(null);
   const [shotType, setShotType] = useState(() => {
     try { const v = localStorage.getItem(SHOTTYPE_KEY); return (v === 'ft' || v === 'mid' || v === 'three') ? v : 'mid'; } catch { return 'mid'; }
   });
@@ -160,6 +168,13 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const [progressLabel, setProgressLabel] = useState('');
   const [srcUrl, setSrcUrl] = useState(null);
   const [progress, setProgress] = useState(0);
+  // WATCHDOG (27.9, "always gets stuck on 40%"): the bar may never sit silent.
+  // When no progress arrives for 45s the screen names the stage and offers STOP;
+  // a stopped run's late result is dropped (runIdRef).
+  const runIdRef = useRef(0);
+  const lastProgAtRef = useRef(Date.now());
+  const [quietFor, setQuietFor] = useState(0);
+  useEffect(() => { lastProgAtRef.current = Date.now(); setQuietFor(0); }, [progress, progressLabel]);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(demoResult);
   const [shotIdx, setShotIdx] = useState(0);
@@ -176,13 +191,16 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 
   const analyze = useCallback(async (url, opts = {}) => {
     setError(null); setPhase('analyzing'); setProgress(0); setProgressLabel('');
+    const runId = ++runIdRef.current;
+    const live = () => runIdRef.current === runId;
     try {
       // Twelve frames, a few seconds, before committing to the long capture.
       // A blocking finding stops here and says what to do with the phone still
       // in his hand; a warning rides along and is shown beside the results.
       if (!opts.skipPreflight) {
         setProgressLabel('checking the clip');
-        const pf = await preflightClip(url, { kind: 'shot', onProgress: (pct) => setProgress(Math.round(pct * 0.1)) });
+        const pf = await preflightClip(url, { kind: 'shot', onProgress: (pct) => { if (live()) setProgress(Math.round(pct * 0.1)); } });
+        if (!live()) return;
         setPreflight(pf);
         if (!pf.ok) { setPendingUrl(url); setPhase('preflight'); return; }
       }
@@ -196,20 +214,43 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       // clip, so the fast path stays the default and this is the retry.
       const frames = await captureShotFrames(url, {
         deterministic: opts.deterministic || false,
-        onProgress: (pct, label) => { setProgress(pct); if (label) setProgressLabel(label); },
+        onProgress: (pct, label) => { if (!live()) return; setProgress(pct); if (label) setProgressLabel(label); },
       });
+      if (!live()) return;
       framesRef.current = frames;
       // Read the shooting hand off the clip unless the coach pinned one.
       const auto = detectShootingHand(frames);
       if (auto) setDetectedHand(auto);
       const useHand = opts.hand || (handMode === 'auto' ? (auto || hand) : handMode);
-      const r = analyzeShotClip(frames, { hand: useHand, statureCm: Number(opts.stature ?? statureRef.current) || null, shotType: opts.shotType || shotType });
+      let r = analyzeShotClip(frames, { hand: useHand, statureCm: Number(opts.stature ?? statureRef.current) || null, shotType: opts.shotType || shotType });
       if (!r.ok) { setError(r.error); setPhase('idle'); return; }
+      if (shotMode === 'auto' && !opts.shotType) {
+        const jumps = (r.shots || []).map((x) => x && x.info && x.info.jumpRiseCm).filter((v) => typeof v === 'number' && isFinite(v)).sort((a, b) => a - b);
+        if (jumps.length) {
+          const med = jumps[Math.floor(jumps.length / 2)];
+          let lastJump = 'mid';
+          try { const v = localStorage.getItem(SHOTTYPE_KEY); if (v === 'mid' || v === 'three') lastJump = v; } catch { /* private mode */ }
+          const det = med < 6 ? 'ft' : lastJump;
+          setDetectedShot(det);
+          if (det !== (opts.shotType || shotType)) {
+            const r2 = analyzeShotClip(frames, { hand: useHand, statureCm: Number(opts.stature ?? statureRef.current) || null, shotType: det });
+            if (r2.ok) r = r2;
+          }
+          setShotType(det);
+        }
+      }
       setResult(r); setShotIdx(0); setPhase('results');
     } catch (e) {
+      if (!live()) return;
       setError(e?.message || 'Analysis failed.'); setPhase('idle');
     }
-  }, [hand, handMode, stature, shotType]);
+  }, [hand, handMode, stature, shotType, shotMode]);
+  useEffect(() => {
+    if (phase !== 'analyzing') return undefined;
+    const iv = setInterval(() => setQuietFor(Math.round((Date.now() - lastProgAtRef.current) / 1000)), 1000);
+    return () => clearInterval(iv);
+  }, [phase]);
+  const stopRun = () => { runIdRef.current++; setPhase('idle'); setProgress(0); setProgressLabel(''); };
 
   // Re-score the SAME frames when the hand / stature changes after analysis —
   // no re-capture needed.
@@ -296,6 +337,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             is near-black in the light theme on this always-dark stage. chip()
             now pins the literal cyan, so both rows read correctly. AUTO stays a
             badge on the hand the clip itself reported. */}
+        {/* SHOWN ONLY WITH A RESULT (27.9, Ohad: "all of this needs to be
+            invisible and automatically detected as the video is being loaded.
+            then it needs to be shown only after analyzed"). Hand and shot are
+            detected; height is asked on the progress screen; here they are the
+            overrides, and every change re-scores the same frames. */}
+        {phase === 'results' && (<>
         <span className="shot-ctl-group" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
         <span style={lbl}>{T.hand}</span>
         <button
@@ -327,11 +374,15 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         </span>
         <span className="shot-ctl-group" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
+        <button
+          onClick={() => { setShotMode('auto'); try { localStorage.setItem(SHOTMODE_KEY, 'auto'); } catch { /* private mode */ } if (detectedShot) { setShotType(detectedShot); rescore(hand, stature, detectedShot); } }}
+          title={T.shotHint}
+          style={chip(shotMode === 'auto')}>{T.auto || 'AUTO'}</button>
         {SHOT_TYPES.map((t) => (
           <button key={t.key}
-            onClick={() => { setShotType(t.key); try { localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } rescore(hand, stature, t.key); }}
+            onClick={() => { setShotMode('manual'); setShotType(t.key); try { localStorage.setItem(SHOTMODE_KEY, 'manual'); localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } rescore(hand, stature, t.key); }}
             title={T.shotHint}
-            style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}</button>
+            style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}{shotMode === 'auto' && detectedShot === t.key ? ' · AUTO' : ''}</button>
         ))}
         </span>
         <span className="shot-rescored" data-on={rescored ? '1' : '0'} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#37B27C',
@@ -349,6 +400,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           {heightSaved ? (phase === 'results' ? T.rescored : T.savedCm) : (String(stature).trim() ? T.cmUnit : '')}
         </span>
         </span>
+        </>)}
       </div>
 
       {/* body */}
@@ -431,6 +483,26 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{(T.progress[progressLabel] || T.progress[''] || progressLabel).toUpperCase()}…</div>
           <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16 }}><div style={{ width: `${progress}%`, height: '100%', background: CYAN, transition: 'width 120ms' }} /></div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
+          {/* HEIGHT, ASKED WHILE IT READS (27.9: "the height needs to be asked
+              before upload is commited or right after it"). The capture takes
+              minutes and height is only used at the scoring step at the end,
+              so asking here costs nothing and the result comes back in cm. */}
+          <label style={{ marginTop: 26, display: 'flex', alignItems: 'center', gap: 10, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.7)' }}>
+            {T.height}
+            <input value={stature} inputMode="numeric" placeholder={T.cmPlaceholder}
+              onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
+              onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } setHeightSaved(true); }}
+              style={{ width: 64, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.45)', color: '#FFF', fontFamily: FN, fontSize: 14, textAlign: 'center' }} />
+            <span style={{ color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.4)' }}>{heightSaved ? T.savedCm : T.cmUnit}</span>
+          </label>
+          {quietFor >= 45 && (
+            <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, maxWidth: 300, textAlign: 'center' }}>
+              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+                {T === SHOT_I18N.he ? `עדיין ${(T.progress[progressLabel] || progressLabel)} — ${quietFor} שניות בלי התקדמות` : `still ${(T.progress[progressLabel] || progressLabel || 'working')} — no progress for ${quietFor}s`}
+              </div>
+              <button onClick={stopRun} style={{ height: 'var(--btn-h)', padding: '0 18px', background: 'transparent', color: '#FFF', border: '1px solid rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{T === SHOT_I18N.he ? 'עצור' : 'STOP'}</button>
+            </div>
+          )}
         </div>
       )}
 

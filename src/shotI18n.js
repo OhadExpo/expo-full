@@ -47,7 +47,7 @@ export const SHOT_I18N = {
       ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.'],
     ],
     record: 'RECORD →', gallery: 'FROM GALLERY', stopAnalyse: 'STOP & ANALYSE',
-    progress: { 'checking the clip': 'checking the clip', 'finding the athlete': 'finding the athlete', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
+    progress: { 'checking the clip': 'checking the clip', 'loading the clip': 'loading the clip', 'finding the athlete': 'finding the athlete', 'filling the dropped frames': 'filling the dropped frames', 'loading the detailed model': 'loading the detailed model', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
 
     // The twelve-frame preflight. Every line names the phone action that
     // fixes it - the point is that he can still do something about it.
@@ -209,7 +209,7 @@ export const SHOT_I18N = {
     // Forward CTA arrow points LEFT in RTL and sits at the logical end of the
     // string, so it renders on the visual left (Ohad's RTL arrow rule).
     record: 'צלם ←', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
-    progress: { 'checking the clip': 'בודק את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
+    progress: { 'checking the clip': 'בודק את הקליפ', 'loading the clip': 'טוען את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'filling the dropped frames': 'משלים פריימים חסרים', 'loading the detailed model': 'טוען את המודל המפורט', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
 
     preflight: {
       title: 'אי אפשר למדוד את הקליפ הזה כמו שצריך',

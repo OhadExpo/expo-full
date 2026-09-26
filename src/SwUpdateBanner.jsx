@@ -17,6 +17,20 @@
 //      again on this bundle; a NEW deploy is a new pill.
 //   6. The blocking modal only returns if an update has been ignored for 3
 //      days - a stale app for that long is a support problem, not a courtesy.
+//
+// 27.9, Ohad: "for athletes: it automatically update the app instead of
+// asking, as soon as the app starts or log-in or sign-in is made" / "automatic
+// fast update for them" / "same everywhere: automatic update when changing
+// url/moving inside the website/signing-logging. pop up only appears when im
+// stale on one page - live". So, for every seat:
+//   A. A FRESH LOAD applies a waiting update silently (the first 20s, before
+//      any input) - opening the app lands on the newest build, no question.
+//   B. EVERY NAVIGATION (the URL changes: a tab, a page, signing in or out)
+//      checks the server for a new build and, if one is waiting, reloads
+//      silently onto the page just opened - nothing has been typed there yet.
+//   C. The pill appears only for someone who stays on ONE page while a deploy
+//      lands; idle / hidden still apply it on their own (rule 3).
+//   Rule 4 (never mid-workout, filming or uploading) still overrides A-C.
 
 import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -25,6 +39,7 @@ import { tr, readLang } from './i18n';
 
 const IDLE_MS = 60000;
 const GRACE_MS = 12000;               // rule 1
+const FRESH_MS = 20000;               // rule A
 const SNOOZE_MS = 24 * 3600 * 1000;   // rule 2
 const NAG_AFTER_MS = 3 * 24 * 3600 * 1000; // rule 6
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -40,15 +55,30 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return nu
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
 
 export default function SwUpdateBanner() {
+  const regRef = React.useRef(null);
   const { needRefresh: [swNeedRefresh], updateServiceWorker } = useRegisterSW({
+    onRegisteredSW(_url, r) { regRef.current = r || null; },
     onRegisterError(err) { console.warn('SW register failed:', err); },
   });
+  const [silent, setSilent] = useState(false);   // rules A/B: reloading with no UI
   // TEST SWITCH: localStorage 'expo-test-sw-banner' = '1' shows the pill with no
   // pending update and no grace delay, so its layout can be looked at and gated
   // (it cannot otherwise be produced on demand). Inert unless the key is set.
   const forced = lsGet('expo-test-sw-banner') === '1';
   const needRefresh = swNeedRefresh || forced;
   const [updating, setUpdating] = useState(false);
+  // Rule B, the check: every URL change asks the server for a newer build, so
+  // a deploy is found on the next click instead of the SW's own hourly check.
+  useEffect(() => {
+    let last = window.location.pathname;
+    const iv = setInterval(() => {
+      if (window.location.pathname === last) return;
+      last = window.location.pathname;
+      window.__expoLastNav = Date.now();
+      try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ }
+    }, 800);
+    return () => clearInterval(iv);
+  }, []);
   const [tick, setTick] = useState(0);           // re-evaluates the rules once a second
   const lang = readLang();
   const t = (s) => tr(lang, s);
@@ -86,18 +116,38 @@ export default function SwUpdateBanner() {
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
     const onVis = () => { if (document.visibilityState === 'hidden' && !busy()) tryUpdate(); };
     document.addEventListener('visibilitychange', onVis);
+    // Rule A: a fresh load with an update already waiting takes it at once.
+    const loadedAtMs = (typeof performance !== 'undefined' && performance.timeOrigin) || Date.now();
+    const freshNoInput = () => Date.now() - loadedAtMs < FRESH_MS && lastActivity <= loadedAtMs + 50;
+    const silentApply = () => { if (updating) return; setSilent(true); setUpdating(true); setTimeout(() => applyUpdate(), 50); };
+    // Rule B, second half: the navigation's own check found it just now - the
+    // page was opened moments ago and nothing has been typed on it.
+    let lastKey = 0;
+    const onKey = () => { lastKey = Date.now(); };
+    window.addEventListener('keydown', onKey);
+    const navAt = window.__expoLastNav || 0;
+    const justNavigated = () => Date.now() - navAt < 15000 && lastKey < navAt;
+    if (!forced && (freshNoInput() || justNavigated()) && !busy()) {
+      silentApply();
+      return () => { ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, bumpActivity)); window.removeEventListener('keydown', onKey); };
+    }
+    // Rule B: the URL changed since this update was found -> land on the new build there.
+    const pathAtFind = window.location.pathname;
     const idle = setInterval(() => {
       setTick((n) => n + 1);
+      if (!forced && window.location.pathname !== pathAtFind && !busy()) { silentApply(); return; }
       if (Date.now() - lastActivity >= IDLE_MS && !busy()) tryUpdate();
     }, 1000);
 
     return () => {
       ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, bumpActivity));
+      window.removeEventListener('keydown', onKey);
       document.removeEventListener('visibilitychange', onVis);
       clearInterval(idle);
     };
   }, [needRefresh, updating, updateServiceWorker]);
 
+  if (silent) return null;
   if (!needRefresh) return null;
   void tick;
   const now = Date.now();

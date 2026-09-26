@@ -383,12 +383,12 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  // The language switch writes the same key the app reads at mount, so a
-  // choice made here carries into the portal.
-  const [lang, setLang] = useState(readLang);
+  // SIGN-IN IS ENGLISH, WITH NO SWITCH (27.9, Ohad: "he/eng should not appear
+  // on sign in - only en - heb later after signing-in"). The stored choice is
+  // left alone, so an athlete who reads Hebrew gets Hebrew the moment he is in.
+  const lang = 'en';
   const tt = (x) => tr(lang, x);
-  const he = lang === 'he';
-  const flipLang = () => { const next = he ? 'en' : 'he'; try { localStorage.setItem(LANG_KEY, next); } catch { /* private mode */ } setLang(next); };
+  const he = false;
 
   // AN OAUTH FAILURE MUST NOT LOOK LIKE NOTHING HAPPENED.
   //
@@ -557,14 +557,6 @@ export function LoginScreen({ brand = 'expo' } = {}) {
           <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : (he ? tt('Sign-in') : <>{'Sign'}<span style={{ color: C.td }}>-</span>{'in'}</>)}</div>
         </div>
         <div style={cardStyle} dir={he ? 'rtl' : 'ltr'}>
-          {!bc && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-              <button type="button" onClick={flipLang} aria-label={he ? 'English' : 'עברית'}
-                style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', minWidth: 44 }}>
-                {he ? 'EN' : 'עברית'}
-              </button>
-            </div>
-          )}
           {/* OAuth buttons */}
           <button
             onClick={() => handleOAuth('google')}

@@ -259,7 +259,12 @@ for (const [name, route] of SURFACES) {
                 : el.getAttribute('role') === 'tab' ? 'tab'
                 : (tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button') ? 'button'
                 : 'tag';
-              const key = 'control';
+              // NESTED CONTROLS ARE THEIR OWN CLASS (27.9, Ohad: "copy button is
+              // way too vertically big - fix this everywhere"). A control inside
+              // a title strip or a chip takes the one NESTED height (26); it is
+              // still held to ONE height among its own kind, so a 24 next to a
+              // 26 in a strip is still a fault.
+              const key = el.closest('.title-strip, .bhbc-chip') ? 'nested' : 'control';
               (buckets[key] = buckets[key] || []).push({
                 h: Math.round(bb.height),
                 t: role + ':' + (el.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || tag).trim().slice(0, 26),
