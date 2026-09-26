@@ -545,7 +545,9 @@ function DemoDashboard({ onJumpToTrainee }) {
               <span>{T('TASKS')} ({openTasks.length})</span>
               <button title={T('Demo only')} style={{ minHeight: CTRL_H, minWidth: 58, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'default', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)' }}>{T('+ Task')}</button>
             </div>
-            <div style={{ padding: 10 }}>
+            {/* 14 = the strip's inset: at 10 the toggle and the board's columns
+                started 4px outside the TASKS title (26.9, #215). */}
+            <div style={{ padding: 14 }}>
               <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
                 <div style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
                   {SEGS.map(([id, label, n], i) => {
@@ -1287,7 +1289,11 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
           // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
           margin: `-${pad}px -${pad}px ${children ? 12 : -pad}px`,
-          padding: `8px ${pad}px`,
+          // The real strip's box (RefinedHeaderStrip): one 41px height, the
+          // title centred in it. 8px padding made these 36px and their titles
+          // rode 1-2px low (26.9, #215).
+          padding: `0 ${pad}px`, minHeight: 41, boxSizing: 'border-box',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
           borderBottom: '1px solid var(--c-cardBd)',
           color: '#FFFFFF',
         }}>
