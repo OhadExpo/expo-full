@@ -1630,3 +1630,11 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .kpi-title .kpi-short { display: inline; }
   .kpi-title { font-size: 12px !important; letter-spacing: 0.06em !important; }
 }
+
+/* The week board on a phone: the day label above its sessions, so a practice
+   chip keeps ONE row with its + S&C at the end (26.9). */
+@media (max-width: 620px) {
+  .bhbc-week-row { flex-direction: column !important; gap: 6px !important; }
+  .bhbc-week-row > div:first-child { width: auto !important; padding-top: 0 !important; display: flex; gap: 8px; align-items: baseline; }
+  .bhbc-week-row > div:last-child { width: 100%; }
+}

@@ -3394,7 +3394,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   return (
     <Card leftStripe={FX_COLOR.practice} padding={0} header={secTitle('Practice Attendance')}
       headerRight={(
-        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
+        <span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, whiteSpace: 'nowrap' }}>
           {monthOwed ? `${monthWent}/${monthOwed} ${tr('attended this month')}` : tr('nothing logged this month')}
         </span>
       )}>
@@ -3451,11 +3451,11 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
                 onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 26 }}>
-                  {todayCode > 1 && <span title={tr(AVAIL[todayCode].label)} aria-label={tr(AVAIL[todayCode].label)} style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[todayCode].color, flexShrink: 0 }} />}
+                style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 26 }}>
+                  <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
                 </span>
                 {cells.map((c) => {
                   const label = c.state === 'none' ? monDay(c.iso)
@@ -3587,7 +3587,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                 <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
                   {/* THE NAME IS THE PART THAT GIVES WAY; the age is the number
                       being read (OCD sweep, 22.9). */}
-                  <span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
+                  <span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word' /* never cut (26.9) */ }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
               ))}
             </span>
           </div>
@@ -3629,11 +3629,11 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                  style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 36 }}>
-                    {todayCode > 1 && <span title={tr(AVAIL[todayCode].label)} aria-label={tr(AVAIL[todayCode].label)} style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[todayCode].color, flexShrink: 0 }} />}
+                  style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36 }}>
+                    <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
                   </span>
                   {cells.map((c) => (
                     <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')} · ${c.mins ? `${c.mins} ${tr('min')}` : tr('lift session')}` : ''}`}
@@ -4240,7 +4240,10 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
   const TYPES = [['practice', 'Practice'], ['game', 'Game']];
 
   return (
-    <CollapsibleSection title={tr("Week Planner")} count={he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
+    // ONE ROW (26.9): the counts are a caption beside the title, not part of
+    // it — appended to the title they wrapped it to two lines at 390.
+    <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}
+      right={<span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' }}>{he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`}</span>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>{he ? '›' : '‹'}</button>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>
@@ -4273,9 +4276,12 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
           const list = byDay[d] || [];
           const isToday = d === today;
           return (
-            <div key={d} style={horizontalWeek
+            <div key={d} className={horizontalWeek ? undefined : 'bhbc-week-row'} style={horizontalWeek
               ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? NAVY : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
-              : { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+              // 12px sides on EVERY row, so today's tint has an inset and the
+              // day label never sits on its edge (26.9: "sat, sep 26 is too close
+              // to the dark grey edge"); all rows share it, so nothing shifts.
+              : { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 12px', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
               <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0, paddingTop: 3 }}>
                 <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? NAVY : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
@@ -4288,7 +4294,7 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
                   const isEditing = editing && editing.orig && sameSlotKey(editing.orig, f);
                   if (isEditing) return null;
                   return (
-                    <div key={i} className="bhbc-chip" style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', border: `1px solid ${FX_COLOR[f.type] || NAVY}`, background: 'var(--c-sf)', padding: '6px 9px' }}>
+                    <div key={i} className="bhbc-chip" style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, background: 'var(--c-sf)', padding: '6px 9px' }}>
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} ${tr('min')}` : ''}</span>
