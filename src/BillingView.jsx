@@ -153,10 +153,17 @@ export default function BillingView({ trainees }) {
           { label: tt('Collected MTD'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
-            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, boxShadow: `0 0 5px ${s.dot}66` }} />
+            {/* TITLE ON THE BODY'S EDGE, DOT AT THE FAR END (Ohad, 26.9: title boxes whose
+              text "doesnt start at the same horizontal spot as the rest of the text").
+              The status dot used to lead the title, so the words started 13px in from
+              the number below them. The dot now sits at the strip's other end, the
+              same margin from that edge.
+                The strip also takes the app's one strip height (41, flex-centred,
+                as RefinedHeaderStrip): as a padded block its words rode 3px low. */}
+            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}` }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, width: '100%' }}>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{s.label}</span>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0, boxShadow: `0 0 5px ${s.dot}66` }} />
               </span>
             </div>
             <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', lineHeight: 1.05 }}>{s.value}</div>
@@ -170,12 +177,15 @@ export default function BillingView({ trainees }) {
       {/* REQUESTS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+          {/* ONE ROW. flexWrap put + NEW REQUEST on a second line at 390, so the
+              title sat 22px above the strip's centre (26.9). The title may wrap
+              inside its own column; the button never moves under it. */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {tt('PAYMENT REQUESTS')} ({(() => { const n = requests.filter(r => r.status === 'pending').length; return readLang() === 'he' ? (n === 1 ? '1 ממתינה' : `${n} ממתינות`) : `${n} ${tt('Waiting')}`; })()})
             </span>
             <button onClick={() => setShowRequest(true)}
-              style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+              style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
           </div>
         </RefinedHeaderStrip>
         {loadError ? (
@@ -242,7 +252,9 @@ export default function BillingView({ trainees }) {
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
           const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
           return (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
+            // No side padding: 6px put every row's text 6px inside the ROSTER
+            // STATUS title above it (26.9, "doesnt start at the same horizontal spot").
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: 'none', padding: '2px 0', minWidth: 90, textAlign: 'start' }}>
                 {labelTxt}
               </span>

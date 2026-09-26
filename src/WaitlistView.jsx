@@ -357,11 +357,16 @@ export default function WaitlistView({ trainees }) {
         const headBorder = refined ? `rgba(0,0,0,0.10)` : C.cardBd;
         return (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+          {/* The title and the table's first column start on one x (26.9): the
+              strip was 14 and the cells 12 — and 6 on a phone, where index.html
+              forces every cell to 8px 6px. .wl-table pins the first column to 14
+              at every width; the strip takes the one 41px height, centred. */}
+          <style>{`.wl-table th:first-child, .wl-table td:first-child { padding-inline-start: 14px !important; }`}</style>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
             <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tr(readLang(), 'Leads —')} {sorted.length}</SectionLabel>
           </div>
           <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+          <table className="wl-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${headBorder}` }}>
                 <SH k="email" label={tt("Email")} />

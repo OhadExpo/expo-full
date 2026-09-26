@@ -4801,8 +4801,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               return (
                 <div key={row.tid} style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-                    <BhbcBadge tid={row.tid} trainees={trainees} />
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                    <BhbcBadge tid={row.tid} trainees={trainees} />
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('NO PROGRAM ASSIGNED')}</div>
                   </div>
                   {row.coupleMembers
@@ -4822,9 +4822,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     The demo (CoachDemo DemoPrograms) mirrors this exactly. */}
                 <div className="prog-striphdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
                   <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
-                    <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
-                    <BhbcBadge tid={row.tid} trainees={trainees} />
+                    <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
                     <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'var(--c-stripTx)',overflowWrap:'break-word'}}>{row.name}</bdi>
+                    {/* after the name: leading it pushed a club athlete's name 29px in from every other card's (26.9) */}
+                    <BhbcBadge tid={row.tid} trainees={trainees} />
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
@@ -4947,7 +4948,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               // a full card.
               return (
                 <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><BhbcBadge tid={row.tid} trainees={trainees} /><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div></div>
+                  <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div><BhbcBadge tid={row.tid} trainees={trainees} /></div>
                   <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('No program assigned')}</div>
                   <div style={{flex:1}} />
                   {row.coupleMembers
@@ -5003,9 +5004,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const stripHeader = (
               <div className="prog-striphdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
                 <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
-                  <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
-                  <BhbcBadge tid={row.tid} trainees={trainees} />
+                  <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
                   <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'var(--c-stripTx)',overflowWrap:'break-word'}}>{row.name}</bdi>
+                  {/* after the name: leading it pushed a club athlete's name 29px in from every other card's (26.9) */}
+                  <BhbcBadge tid={row.tid} trainees={trainees} />
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
@@ -5103,7 +5105,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           // body (block + meta) + light text actions.
           return <div key={p.id} className="prog-card" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,minWidth:0,opacity:openingId===p.id?0.55:1,transition:'opacity 0.12s'}}>
             <div style={{display:'flex',alignItems:'center',gap:9,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
-              <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+              <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
               <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'var(--c-stripTx)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tName}</bdi>
             </div>
             <div onClick={()=>handleOpenPlan(p.id)} role="button" tabIndex={0}

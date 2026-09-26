@@ -610,9 +610,14 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
               <RefinedHeaderStrip padY={16} padX={20}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
-                  <span title={tr(readLang(), 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
+                {/* TITLE ON THE BODY'S EDGE, DOT AT THE FAR END (Ohad, 26.9: title boxes whose
+                  text "doesnt start at the same horizontal spot as the rest of the text").
+                  The status dot used to lead the title, so the words started 13px in from
+                  the number below them. The dot now sits at the strip's other end, the
+                  same margin from that edge. */}
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minHeight: 30, width: '100%' }}>
                   <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                  <span title={tr(readLang(), 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
                 </span>
               </RefinedHeaderStrip>
               {/* 20.9 (Ohad, phone, Hebrew): "all the text inside the 4 boxes is
