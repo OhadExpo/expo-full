@@ -23,3 +23,64 @@
  * worse than the bug it exists to prevent.
  */
 export const sessionSig = (x) => (x ? [x.type || '', x.min || 0, x.rpe == null ? '' : x.rpe, x.load || 0, x.start || ''].join('|') : '');
+
+// What a logged row IS. The reading of each kind, and of the legacy rows that
+// carry only a free-text `type`, is documented above emptyRec in BhbcView.jsx.
+// It lives here so node can import it in the verify suites.
+export const rowKind = (r) => {
+  if (!r) return 'other';
+  if (r.kind === 'sc' || r.kind === 'lift' || r.kind === 'practice' || r.kind === 'game') return r.kind;
+  const t = String(r.type || '').toLowerCase();
+  if (t === 'practice' || t === 'shootaround') return 'practice';
+  if (t === 'game' || t === 'scrimmage') return 'game';
+  if (t === 'conditioning' || t === 'recovery') return 'sc';
+  if (t === 'lift' || t === 'weights' || t === 'gym' || !t) return r.team ? 'sc' : 'lift';
+  return 'other';
+};
+
+/**
+ * The rows a Log S&C Session save for the slot `start` OWNS — the ones a
+ * re-save replaces instead of adding to.
+ *
+ * Only the team S&C rows of that slot. The live store (26.9) holds 174 legacy
+ * `Practice` rows with team:true AND a `start`: the old filter
+ * (`r.team && r.start === start`) matched them, so re-logging S&C on an old
+ * slot deleted the squad's court history for it.
+ *
+ * A day with no fixture saves with start ''. It owns only the rows this model
+ * wrote for it (kind:'sc', no start) — never a legacy team row with no start,
+ * which carries no `kind`. Before this, no start meant nothing was owned, so
+ * every re-save of an unscheduled session appended a duplicate row per athlete.
+ */
+export const ownsScRow = (r, start) => {
+  if (!r || !r.team || rowKind(r) !== 'sc') return false;
+  return start ? r.start === start : (r.kind === 'sc' && !r.start);
+};
+
+/**
+ * One athlete's row for a Log S&C Session save. `note` is what every reader
+ * shows (his own note wins over the team's); `teamNote` and `ownNote` keep the
+ * two apart so the sheet can reopen with each in its own field.
+ */
+export const buildScRow = ({ min, start = '', teamNote = '', ownNote = '', by = null }) => ({
+  kind: 'sc', type: 'Conditioning', min, rpe: null, load: 0, attended: true,
+  note: ownNote || teamNote || '', teamNote: teamNote || '', ownNote: ownNote || '',
+  team: true, start, by,
+});
+
+/**
+ * What the sheet reopens with, from the rows a slot owns ({ athleteId: row }).
+ * The TEAM note comes only from a row that recorded one — never from an
+ * athlete's own note standing in for it (26.9 review: a re-save used to copy
+ * one athlete's "knee sore" onto every attending athlete).
+ */
+export const scPrefillNotes = (rowsById) => {
+  let team = '';
+  const own = {};
+  for (const [id, row] of Object.entries(rowsById || {})) {
+    if (!row) continue;
+    if (!team && row.teamNote) team = row.teamNote;
+    if (row.ownNote) own[id] = row.ownNote;
+  }
+  return { team, own };
+};

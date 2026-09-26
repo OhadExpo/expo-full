@@ -543,7 +543,9 @@ export const HE = {
   "Range": "טווח",
   "Load / Wk": "עומס / שבוע",
   "Send": "שליחה",
-  "Day A · W4": "יום A · שבוע 4",
+  // Was "Day A · W4" with the week baked into the key, which is why the week
+  // number could drift from the review queue's. The week is interpolated now.
+  "Day A": "יום A",
   "Delete Exercise?": "למחוק את התרגיל?",
   "Plans referencing it will show 'Unknown Exercise'.": "תוכניות שמשתמשות בו יציגו \"תרגיל לא ידוע\".",
   "Remove": "הסרה",
@@ -729,6 +731,7 @@ export const HE = {
   Trial: 'ניסיון',
   Online: 'אונליין',
   'Payment due': 'ממתין לתשלום',
+  'Payment issue': 'בעיית תשלום',
   'No program': 'בלי תוכנית',
   'Last trained': 'אימון אחרון',
   Payment: 'תשלום',
@@ -808,6 +811,57 @@ export const HE = {
   'PER PAYMENT ROW': 'לכל תשלום',
   'TRAILING 3 MONTHS': '3 החודשים האחרונים',
   'INCL. VAT · 6 MO TREND': 'כולל מע״מ · מגמה של 6 חודשים',
+  'SCALE FROM': 'תחתית הסקאלה',
+  'Mock data — nothing here writes to your account.': 'נתוני דמו — שום דבר כאן לא נשמר בחשבון שלך.',
+  // Per-program actions.
+  'Demo only — in the full app this opens the program exactly as the athlete sees it.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את התוכנית בדיוק כמו שהמתאמן רואה אותה.',
+  'Demo only — in the full app this copies the program into a new block you can edit.':
+    'דמו בלבד — באפליקציה המלאה זה משכפל את התוכנית לבלוק חדש שאפשר לערוך.',
+  'Demo only — in the full app this assigns a copy of the program to another athlete.':
+    'דמו בלבד — באפליקציה המלאה זה משייך עותק של התוכנית למתאמן אחר.',
+  'Demo only — in the full app this deletes the program after asking you to confirm.':
+    'דמו בלבד — באפליקציה המלאה זה מוחק את התוכנית אחרי בקשת אישור.',
+  // Athlete action row — the buttons say what the full app would do.
+  'Demo only — in the full app this opens the session logger for this athlete.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את רישום האימון של המתאמן.',
+  'Demo only — in the full app this opens what the athlete sees in their portal.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את מה שהמתאמן רואה בפורטל שלו.',
+  'Demo only — in the full app this opens the athlete’s record for editing.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את כרטיס המתאמן לעריכה.',
+  'Demo only — in the full app this archives the athlete and stops their billing.':
+    'דמו בלבד — באפליקציה המלאה זה מעביר את המתאמן לארכיון ועוצר את החיוב.',
+  'Demo only — in the full app this sends a WhatsApp reminder with a payment link.':
+    'דמו בלבד — באפליקציה המלאה זה שולח תזכורת בוואטסאפ עם קישור לתשלום.',
+  'Demo only — in the full app this marks the request paid and updates the ledger.':
+    'דמו בלבד — באפליקציה המלאה זה מסמן את הבקשה כשולמה ומעדכן את הספר.',
+  // Coach-history feed, now derived from the athlete rather than fixed.
+  'Check in re:': 'לבדוק לגבי',
+  'Check in after the last session': 'לבדוק אחרי האימון האחרון',
+  'Confirm payment for next month': 'לאשר תשלום לחודש הבא',
+  'Checked in about': 'שאל לגבי',
+  'Checked in — feeling good': 'שאל לשלומו — מרגיש טוב',
+  'monthly package': 'חבילה חודשית',
+  'Assigned': 'הוקצה',
+  // The injury field is shown to the coach in their own words. Kept clinical
+  // and descriptive — never "cure", "diagnose" or "fix".
+  'L4-L5 disc bulge': 'בלט דיסק L4-L5',
+  'R shoulder impingement': 'צביטה בכתף ימין',
+  'R knee — patellofemoral': 'ברך ימין — פטלופמורלי',
+  'Lower-back stiffness': 'נוקשות בגב תחתון',
+  'None': 'אין',
+  // The athlete-detail payments ledger was an English table on the Hebrew page.
+  'Amount': 'סכום',
+  'Monthly package': 'חבילה חודשית',
+  // The athlete-detail message thread. It had no Hebrew at all, so it sat in
+  // English on the Hebrew screen — behind a click, which is why the language
+  // sweep never reached it.
+  'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.':
+    'עבודה יפה בבנץ׳ השבוע — ההחזקות האיזומטריות עושות את שלהן. שמור על ירידה מבוקרת במשיכות בטראפ-בר.',
+  'Thanks! Felt strong — no niggles this week.':
+    'תודה! הרגשתי חזק — בלי כאבים השבוע.',
+  'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.':
+    'מעולה. מעלה את הסט העליון של יום A בשבוע הבא — מלא מוכנות (כאב / שינה / אנרגיה) לפני האימון כדי שאוכל להתאים את העומס.',
   'LAST 6 MONTHS · COLLECTED': 'נכנס · 6 חודשים',
   'NO PAYMENTS MARKED COLLECTED IN THE LAST 6 MONTHS': 'אין תשלומים שסומנו כמשולמים בחצי השנה האחרונה',
   STORAGE: 'אחסון',
@@ -1334,7 +1388,9 @@ export const HE = {
   "GROUP FLOOR": 'אימון קבוצתי',
   "REVIEW · TOOLS": 'בדיקה · כלים',
   "DISMISS": 'סגור',
-  "MARK PAID": 'סמן כשולם',
+  // כשולם is the particle followed by a FINITE verb ("as it was paid").
+  // The passive participle is what Hebrew wants after כ here: כמשולם.
+  "MARK PAID": 'סמן כמשולם',
   "NEW PAYMENT REQUEST": 'בקשת תשלום חדשה',
   "COACH DEMO": 'דמו למאמן',
   "JOIN WAITLIST →": 'לרשימת ההמתנה ←',
@@ -2676,6 +2732,14 @@ export function daysAgoHe(n) {
   if (n === 1) return 'אתמול';
   if (n === 2) return 'שלשום';
   return `לפני ${n} ימים`;
+}
+// Sessions remaining. The compact rails printed `${n} ${T('LEFT')}`, which in
+// Hebrew is "1 נותרו" — a plural verb on a count of one — and one of them had
+// no space at all, so it read "2נותרו". Hebrew agrees the verb with the number.
+export function sessionsLeftHe(n) {
+  if (n <= 0) return 'לא נותרו';
+  if (n === 1) return 'נותר 1';
+  return `נותרו ${n}`;
 }
 // "5d ago" for a timestamp. The three views that show one each had their own
 // ago() returning `5d`, and the Hebrew screen read `לפני 5d`.

@@ -18,7 +18,7 @@ import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
-import { tr, readLang, daysAgoHe } from './i18n';
+import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
 
@@ -72,21 +72,37 @@ const DEMO_STRIP_H = { minHeight: 41, boxSizing: 'border-box', display: 'flex', 
 // "last payment: April" in September draws exactly one conclusion. Dates are
 // now expressed as "N days ago" and resolved when the screen renders, so the
 // tour is current whenever he opens it.
+// en-GB abbreviates September as "Sept", four letters where every other month
+// gets three, so a date column wobbled between "26 Aug" and "16 Sept". Fixed
+// three-letter months instead of a locale that changes width on one month.
+const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const backDate = (daysAgo) => {
+  const d = new Date();
+  d.setDate(d.getDate() - Number(daysAgo || 0));
+  return d;
+};
+// שירה's card said 5 programs while her plans array held 3, so her row, the
+// Programs rail and her own drill-in disagreed about the same athlete. The
+// count was a second copy of a fact the plans array already carries; it is
+// derived now and cannot drift again.
+const planCount = (t) => ((t && t.plans) ? t.plans.length : 0);
 const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 0)); return d.toISOString().slice(0, 10); };
 
+// HEBREW HAS A DUAL. daysAgoHe() already knows היום / אתמול / שלשום and
+// the demo was bypassing it, printing "לפני 1 ימים" — one, plural.
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', programs: 4, payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
-  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
-  { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 900, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', programs: 2, payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', plans: ['Block #2 — Strength', 'Block #1 — Base'] },
-  { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 700, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', programs: 3, payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
-  { id: 't6', name: 'איתי כץ', short: 'Itai', email: 'itai.katz@example.co.il', phone: '+972541112233', status: 'Trial', sessionsLeft: 1, monthly: 0, format: 'Gym, Single', startDate: '2025-06-12', dormantDays: null, lastWorkout: '3 days ago', programs: 1, payment: 'NEVER PAID', online: false, age: 24, weight: 70, height: 176, injuries: 'None', goals: 'Learn the lifts, build a base', plans: ['Block #1 — Onboarding'] },
-  { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', programs: 5, payment: 'OVERDUE', overdueDays: 62, online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
-  { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 950, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', programs: 3, payment: 'PAID', paidDaysAgo: 5, online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 2700, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', ev: { vj: 45, bj: 210, dl: 120, bp: 65 }, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
+  { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 2000, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', ev: { vj: 55, bj: 245, dl: 175, bp: 95 }, plans: ['Block #2 — Strength', 'Block #1 — Base'] },
+  { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 1600, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', ev: { vj: 30, bj: 160, dl: 80,  bp: 40 }, plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
+  { id: 't6', name: 'איתי כץ', short: 'Itai', email: 'itai.katz@example.co.il', phone: '+972541112233', status: 'Trial', sessionsLeft: 1, monthly: 0, format: 'Gym, Single', startDate: '2025-06-12', dormantDays: null, lastWorkout: '3 days ago', payment: 'NEVER PAID', online: false, age: 24, weight: 70, height: 176, injuries: 'None', goals: 'Learn the lifts, build a base', ev: { vj: 48, bj: 220, dl: 100, bp: 55 }, plans: ['Block #1 — Onboarding'] },
+  { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 1800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', payment: 'OVERDUE', overdueDays: 62, online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', ev: { vj: 34, bj: 175, dl: 85,  bp: 42.5 }, plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
+  { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 2200, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', payment: 'PAID', paidDaysAgo: 5, online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', ev: { vj: 50, bj: 240, dl: 210, bp: 130 }, plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
 ];
 
 // Per-block plan content. Block #4 is the active block (Week 2 of 4 wave);
@@ -233,7 +249,7 @@ const baseBtn = {
 // baseInput; CoachDemo has no import of the real one).
 const baseInput = {
   background: 'var(--c-sf)', border: `1px solid ${C.bd2}`, borderRadius: 0,
-  padding: '0 12px', minHeight: 'var(--btn-h)', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+  padding: '0 12px', minHeight: CTRL_H, color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
 };
 
 // Glowing dot identical to the real coach app's OnlineDot — pulses green
@@ -253,8 +269,8 @@ function Badge({ color = C.tm, children }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
       fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
-      color, background: color + '20', border: `1px solid ${color}40`,
-      borderRadius: 0, padding: '2px 6px', whiteSpace: 'nowrap',
+      color, background: 'transparent', border: 'none',
+      borderRadius: 0, padding: '2px 0', whiteSpace: 'nowrap',
     }}>{children}</span>
   );
 }
@@ -276,9 +292,17 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{label}</span>
         </span>
       </div>
-      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'start' }}>
-        {value}
-        {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
+      {/* The number needs direction:ltr so "5 / 8" and the shekel sign keep
+          their order — but that used to sit on the BOX, and `textAlign: start`
+          inside an ltr box always resolves to LEFT. So on the Hebrew dashboard
+          every card's label sat right and its big number sat left. The
+          isolation belongs on the numeral, not on the box: the box now
+          inherits the page direction and aligns with its own label. */}
+      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
+        <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' }}>
+          {value}
+          {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
+        </span>
       </div>
       {sub && (
         <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{sub}</div>
@@ -288,20 +312,18 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
 }
 
 // ─── Tab: Dashboard ───────────────────────────────────────────────────────
-const DEMO_LEADS = [
-  { id: 'l1', email: 'avi.shahar@example.co.il', source: 'coaches', context: 'pricing CTA',  when: '32 min ago', coach: true },
-  { id: 'l2', email: 'maor.k@example.co.il',     source: 'expo-il', context: 'exit-intent',  when: '4 hr ago' },
-  { id: 'l3', email: 'tomer.ben@example.co.il',  source: 'expo-il', context: 'quiz-finish',  when: 'Yesterday' },
-];
+// The lead fixture and its state went with the New Leads panel below. Making
+// its ✓ / ✕ / RESET actually work was right at the time — a control that looks
+// clickable and does nothing is the thing he objected to — but the panel
+// itself should never have been on a screen shown to a buyer.
 
 function DemoDashboard({ onJumpToTrainee }) {
-  // The ✓ and ✕ on a lead used to be `onClick={e => e.stopPropagation()}` -
-  // they looked clickable and did nothing at all, on the surface prospects are
-  // shown. Ohad: "this type of shit shouldnt happen anywhere." The demo has no
-  // backend, but it does have state: contacted greys the row out, delete
-  // removes it, and RESET puts them back so the page is never left empty.
-  const [leads, setLeads] = React.useState(DEMO_LEADS);
-  const [contacted, setContacted] = React.useState({});
+  // Messages: MARK ALL READ clears the unread dots, as on the real card.
+  const [msgsRead, setMsgsRead] = useState(false);
+  // Tasks: the real NotesWidget's scope toggle. GENERAL (default) = the status
+  // board of tasks people wrote; AUTO-ALERTS = what the rules engine raised;
+  // ALL = the board with the alerts under it.
+  const [taskScope, setTaskScope] = useState('mine');
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
@@ -325,9 +347,10 @@ function DemoDashboard({ onJumpToTrainee }) {
   // named in the reader's language. It used to be a fixed Jan–Jun, so on the
   // night before the first client demo the revenue chart ran out in June and
   // the newest bar on screen was three months old.
-  const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const nowM = new Date().getMonth();
-  const prior = [2900, 3200, 2700, 3600, 3400];
+  // More than double the original 2,900..3,400 (Ohad, 24.9), keeping the
+  // same shape: a June dip, a July high, a strong current month.
+  const prior = [6700, 7400, 6200, 8300, 7800];
   const months6 = prior.map((v, k) => [T(MON3[(nowM - 5 + k + 12) % 12]), v])
     .concat([[T(MON3[nowM]), collected30]]);
   const barMax = Math.max(...months6.map(m => m[1]));
@@ -351,19 +374,18 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
       </div>
 
-      {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
-      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>{T('INCOMING · 30D')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, padding: 14 }}>
-          {[[T('CHAT SESSIONS'), '12', C.ac, T('last 30 days')], [T('MESSAGES SENT'), '7', C.ac, T('to prospects')], [T('EMAIL CAPTURES'), '3', C.gn, T('captured')], [T('WAITLIST'), '2', C.ac, T('signed up')]].map(([l, v, c, sub], i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
-              <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{l}</span>
-              <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
-              <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
+          It used to sit between the stat row and revenue, reporting EXPO's own
+          acquisition funnel — chat sessions, messages sent, email captures,
+          waitlist signups — with the owner's real current counts hardcoded
+          into the demo. Two things wrong with that on a screen shown to a
+          prospect. It is EXPO's funnel, not the buyer's: a coach who signs up
+          does not get an EXPO waitlist, so the panel sold a feature that does
+          not transfer. And early-stage counts read to a buyer as "nobody else
+          wants this".
+          This repo is PUBLIC, so the figures themselves are not repeated here.
+          The parity audit had recorded Incoming as deliberately out of the
+          demo; the nav honoured it and this panel did not. Now both do. */}
 
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
@@ -400,73 +422,171 @@ function DemoDashboard({ onJumpToTrainee }) {
                 smallest month so the differences are visible, each carries its
                 value, the current month is solid and the rest are ghosted so
                 the eye lands on it, and the bars are slim with real gaps. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, alignItems: 'end', height: 120 }}>
-              {months6.map(([m, v], i) => {
-                const lo = Math.min(...months6.map((x) => x[1])) * 0.82;
-                const pct = Math.max(12, Math.round(((v - lo) / Math.max(1, barMax - lo)) * 100));
-                const current = i === months6.length - 1;
-                return (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, height: '100%' }}>
-                    <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: current ? C.ac : C.tm, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{nis(v)}</div>
-                    <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      <div title={`${m} · ${nis(v)}`} style={{
-                        width: '62%', maxWidth: 34, height: `${pct}%`,
-                        background: current ? C.ac : 'color-mix(in srgb, var(--c-ac) 28%, transparent)',
-                        borderTop: current ? 'none' : `1px solid color-mix(in srgb, var(--c-ac) 55%, transparent)`,
-                      }} />
-                    </div>
-                    <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: current ? C.tx : C.tm, letterSpacing: '0.08em', fontWeight: 700 }}>{m}</div>
+            {/* WHY A LINE AND NOT BARS.
+                It was bars scaled to the MAXIMUM: 2,900 to 3,850 is a 33%
+                spread drawn as six near-identical slabs. Ohad, an hour before
+                the demo: "the demo top screen... is horrible." So I re-scaled
+                the bars from a floor under the smallest month — which fixed the
+                look and introduced a worse fault. A bar's LENGTH is its value,
+                so a floor that is not zero lies about it: the tallest bar drew
+                3.3x the shortest on data that differs by 1.43x. Tufte's lie
+                factor for that is 2.34, against an integrity band of 0.95-1.05.
+                This is the screen the run sheet tells him to lead with, where
+                the pitch is "every figure reconciles" — a chart a buyer can
+                catch exaggerating is worse than a dull one.
+                A line is read as a TREND, not as a length, so a floor above
+                zero is sanctioned for it (Datawrapper; FT's rule is specific to
+                bar and column). The floor is printed on the axis rather than
+                left implied, every month still carries its own value, and the
+                current month keeps the solid dot. Grid children get
+                minmax(0, 1fr): a bare 1fr floors at the label's own width, so
+                six 42px labels plus five 14px gaps painted 23px past the card
+                edge at 360. */}
+            {(() => {
+              const vals = months6.map((x) => x[1]);
+              const step = 500;
+              const floor = Math.floor(Math.min(...vals) / step) * step;
+              const ceil = Math.ceil(Math.max(...vals) / step) * step;
+              const y = (v) => 100 - ((v - floor) / Math.max(1, ceil - floor)) * 100;
+              const pts = months6.map(([, v], i) => `${((i + 0.5) / months6.length) * 100},${y(v)}`).join(' ');
+              // The month labels sit in a CSS grid, which mirrors itself in
+              // Hebrew — Sep ends up leftmost. The plot is positioned, and
+              // `left` is physical, so it did NOT mirror: the leftmost label
+              // read the highest month while the leftmost point was the lowest.
+              // The chart contradicted its own axis in Hebrew. Dots now use the
+              // logical inset and the polyline is flipped to match.
+              const rtl = readLang() === 'he';
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
+                    <span dir="ltr">{nis(ceil)}</span>
+                    <span>{T('SCALE FROM')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{nis(floor)}</span></span>
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ position: 'relative', height: 96, borderBottom: `1px solid ${C.cardBd}`, borderTop: `1px dashed color-mix(in srgb, var(--c-bd) 60%, transparent)` }}>
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', transform: rtl ? 'scaleX(-1)' : undefined }} aria-hidden="true">
+                      <polyline points={pts} fill="none" stroke="var(--c-ac)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+                    </svg>
+                    {months6.map(([m, v], i) => {
+                      const current = i === months6.length - 1;
+                      return (
+                        <div key={i} title={`${m} · ${nis(v)}`} style={{ position: 'absolute', insetInlineStart: `${((i + 0.5) / months6.length) * 100}%`, top: `${y(v)}%`, transform: 'translate(-50%, -50%)', width: current ? 9 : 7, height: current ? 9 : 7, borderRadius: '50%', background: current ? C.ac : C.sf, border: `2px solid ${C.ac}`, boxSizing: 'border-box' }} />
+                      );
+                    })}
+                  </div>
+                  <div className="cd-revline" style={{ display: 'grid', gridTemplateColumns: `repeat(${months6.length}, minmax(0, 1fr))`, gap: 4, marginTop: 6 }}>
+                    {months6.map(([m, v], i) => {
+                      const current = i === months6.length - 1;
+                      return (
+                        <div key={i} style={{ textAlign: 'center', minWidth: 0 }}>
+                          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: current ? C.ac : C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} dir="ltr">{nis(v)}</div>
+                          <div style={{ fontFamily: FN, fontSize: 9, color: current ? C.tx : C.td, letterSpacing: '0.06em', fontWeight: 700, whiteSpace: 'nowrap', marginTop: 2 }}>{m}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
 
-      {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget status
-          columns (To Do / In Progress / Waiting / Stuck) so the demo dashboard
-          shows the tasks-at-a-glance feature. */}
-      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
-          {T('TASKS')} ({DEMO_TASKS.filter(t => t.status !== 'done').length})
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10, alignItems: 'flex-start' }}>
-          {STATUS_COLS.slice(0, 4).map(col => {
-            const rows = DEMO_TASKS.filter(t => t.status === col.id);
-            return (
-              <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
+      {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget: the
+          strip with + TASK, the ALL / GENERAL / AUTO-ALERTS scope toggle, the
+          status board of written tasks and the auto-alerts list. */}
+      {(() => {
+        const openTasks = DEMO_TASKS.filter(t => t.status !== 'done');
+        const general = openTasks.filter(t => t.src !== 'auto');
+        const alerts = openTasks.filter(t => t.src === 'auto');
+        const SEGS = [['all', 'All', openTasks.length], ['mine', 'General', general.length], ['alerts', 'Auto-alerts', alerts.length]];
+        const board = (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
+            {STATUS_COLS.slice(0, 4).map(col => {
+              const rows = DEMO_TASKS.filter(t => t.status === col.id && t.src !== 'auto');
+              return (
+                <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
+                  </div>
+                  <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
+                    {rows.map(t => {
+                      const meta = TASK_SRC[t.src];
+                      // A bordered tile 26px tall among 36px controls. It has a
+                      // border, so it stands at the one control height; a title
+                      // that wraps makes it taller, which the rule allows.
+                      return (
+                        <div key={t.id} style={{ border: `1px solid ${meta.color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+                      );
+                    })}
+                    {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
+                  </div>
                 </div>
-                <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
-                  {rows.map(t => {
-                    const meta = TASK_SRC[t.src];
+              );
+            })}
+          </div>
+        );
+        const alertList = alerts.length === 0
+          ? <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', padding: '4px 0' }}>{T('No coaching alerts — all clear.')}</div>
+          : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {alerts.map(t => (
+                <div key={t.id} style={{ border: `1px solid ${TASK_SRC[t.src].color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 9px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+              ))}
+            </div>
+          );
+        return (
+          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
+            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between', gap: 10 }}>
+              <span>{T('TASKS')} ({openTasks.length})</span>
+              <button title={T('Demo only')} style={{ minHeight: CTRL_H, minWidth: 58, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'default', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)' }}>{T('+ Task')}</button>
+            </div>
+            <div style={{ padding: 10 }}>
+              <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
+                <div style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
+                  {SEGS.map(([id, label, n], i) => {
+                    const on = taskScope === id;
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
+                      <button key={id} onClick={() => setTaskScope(id)}
+                        style={{ minHeight: CTRL_H - 2, boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', padding: '0 12px', cursor: 'pointer', border: 'none', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', background: on ? 'rgba(57,189,255,0.094)' : 'transparent', color: on ? 'var(--c-ac)' : 'var(--c-tm)', display: 'inline-flex', alignItems: 'center', gap: 5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>{T(label)}</span>{n > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, lineHeight: 1, opacity: on ? 0.9 : 0.5 }}>({n})</span>}
+                      </button>
                     );
                   })}
-                  {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              {taskScope === 'alerts' ? alertList : taskScope === 'all' ? (
+                <>
+                  {board}
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{T('AUTO-ALERTS')} ({alerts.length})</span>
+                      <span style={{ flex: 1, height: 1, background: C.cardBd }} />
+                    </div>
+                    {alertList}
+                  </div>
+                </>
+              ) : board}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Messages inbox — athlete↔coach messaging surfaced on the dashboard
           (the real DashboardView renders <MessagesCard> between Tasks and the
           alert rail). Mock threads for the demo. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
         <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
-          <span>{T('Messages')}</span><span style={{ fontSize: 10, color: C.ac }}>{readLang() === 'he' ? '2 לא נקראו' : `2 ${T('Unread')}`}</span>
+          {/* The real MessagesCard header: MESSAGES (unread), and MARK ALL READ
+              while anything is unread. */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{T('Messages')}<span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', opacity: 0.85 }}>({msgsRead ? 0 : 2})</span></span>
+          {!msgsRead && <button onClick={() => setMsgsRead(true)} style={{ minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' }}>{T('MARK ALL READ')}</button>}
         </div>
         <div>
           {[
             { name: MOCK_TRAINEES[0]?.name || 'נועה לוי', msg: T('Felt strong on bench today — hit all 4 sets'), when: T('2m'), unread: true },
             { name: MOCK_TRAINEES[3]?.name || 'דניאל אבני', msg: T('Can we move tomorrow to 18:00?'), when: T('1h'), unread: true },
             { name: MOCK_TRAINEES[1]?.name || 'גל מזרחי', msg: T('Sent the deadlift clip for review'), when: T('Yesterday'), unread: false },
-          ].map((m, i) => (
+          ].map((m) => ({ ...m, unread: m.unread && !msgsRead })).map((m, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
               <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
@@ -485,7 +605,9 @@ function DemoDashboard({ onJumpToTrainee }) {
       leaving 224-256px of measured dead air under two-row tiles. Desktop
       never showed it because the heights are close there. Ohad: get rid of
       those empty spaces on cards, full-wide-all-platforms. */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
+      {/* .alert-rail is the real dashboard's class for this strip: 280px cards, and
+          stacked under 620px (themes.css). Same class, same behaviour. */}
+      <div className="alert-rail" style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
         {onlineNow.length > 0 && (
           <Panel title={`${T('Online Now')} (${onlineNow.length})`} tint={C.gn} icon="dot">
             {onlineNow.map(t => (
@@ -502,7 +624,7 @@ function DemoDashboard({ onJumpToTrainee }) {
             {expiring.map(t => (
               <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
                 <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-                <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsLeft} {T('LEFT')}</span>
+                <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{readLang() === 'he' ? sessionsLeftHe(t.sessionsLeft) : `${t.sessionsLeft} ${T('LEFT')}`}</span>
               </Row>
             ))}
           </Panel>
@@ -524,44 +646,20 @@ function DemoDashboard({ onJumpToTrainee }) {
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginInlineEnd: 8 }}>{t.dormantDays == null ? T('Never trained') : TN('{n}d ago', t.dormantDays)}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginInlineEnd: 8 }}>{t.dormantDays == null ? T('Never trained') : (readLang() === 'he' ? daysAgoHe(t.dormantDays) : TN('{n}d ago', t.dormantDays))}</span>
               <FakeWaButton />
             </Row>
           ))}
         </Panel>
 
-        <Panel title={`${T('New Leads')} (3)`} tint={C.ac} icon="mail" cyanBorder>
-          {leads.length === 0 && (
-            <Row><div style={{ flex: 1, color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1 }}>{T('ALL LEADS CLEARED')}</div>
-              <button onClick={() => { setLeads(DEMO_LEADS); setContacted({}); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer' }}>{T('RESET')}</button>
-            </Row>
-          )}
-          {leads.map((l, i) => (
-            <Row key={l.id} style={contacted[l.id] ? { opacity: 0.45 } : undefined}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  {/* Reserved leading slot so every email starts at one x whether or not
-                      the lead has a COACH source tag. */}
-                  <span style={{ width: 46, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>{T('COACH')}</span>}</span>
-                  {/* minWidth 0, or the email cannot shrink below its own
-                      content width inside this flex row: measured at 360 it
-                      painted 196px outside its container. break-word alone is
-                      not enough when the flex item refuses to narrow. */}
-                  <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, flex: '1 1 auto' }}>{l.email}</div>
-                </div>
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{/* Through T(): the Hebrew for these context labels already exists
-                    ("PRICING CTA" → כפתור תמחור, "EXIT-INTENT" → יציאה מהדף) and the
-                    call site was shouting the raw value instead. Internal funnel
-                    jargon in English is the last thing a Hebrew prospect should
-                    read on the screen he is being sold. */}
-                  {T(l.source.toUpperCase())} · {T(l.context.toUpperCase())}</div>
-              </div>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{RT(l.when)}</span>
-              <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? T('Mark not contacted (demo)') : T('Mark contacted (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
-              <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title={T('Delete lead (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginInlineStart: 4, flexShrink: 0 }}>✕</button>
-            </Row>
-          ))}
-        </Panel>
+        {/* NEW LEADS IS DELIBERATELY NOT HERE, for the same reason
+            INCOMING · 30D is not: it is EXPO's funnel, not the buyer's. Its
+            rows carried source "expo-il" and contexts like "pricing CTA" and
+            "exit-intent" — leads from the marketing site a coach who signs up
+            does not own, so the panel sold a feature that does not transfer.
+            The audit also found its ✓ and ✕ buttons painted on top of the
+            email, rendering as A[✕][✓]EXAMPLE.CO.IL, and the run sheet already
+            told him to steer around the panel. Nothing to steer around now. */}
       </div>
 
       {/* Client roster table — same shape as the real DashboardView's
@@ -578,7 +676,7 @@ function DemoDashboard({ onJumpToTrainee }) {
               <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
                 {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
-                    textAlign: 'start', padding: '10px 12px',
+                    textAlign: 'center', padding: '10px 12px', whiteSpace: 'nowrap',
                     fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
                   }}>{h === 'Athlete' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{T(h)} <span style={{ fontSize: 8 }}>↑</span></span> : (h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h))}</th>
                 ))}
@@ -596,16 +694,21 @@ function DemoDashboard({ onJumpToTrainee }) {
                   <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
                     onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s' }}>
-                    <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
-                    <td style={{ padding: '12px' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
-                    <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
-                    <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
-                    <td style={{ padding: '12px' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
-                    <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
-                    <td style={{ padding: '12px', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
-                    <td style={{ padding: '12px', fontFamily: FN, color: C.tx }}>{workouts}</td>
-                    <td style={{ padding: '12px', fontFamily: FN, color: C.tx }}>{t.programs}</td>
+                    // Ohad, 24.9: "no way the rows borders in the table are smaller
+                    // vertically than the universal button vertical size. either the
+                    // same for minimum or bigger" — and the text centred in them. A
+                    // <tr> height is a floor, not a fixed size, so wrapped text still
+                    // grows the row; it just never goes under the control height.
+                    style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
+                    <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{planCount(t)}</td>
                   </tr>
                 );
               })}
@@ -709,8 +812,13 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   const attnOf = (t) => ({
     pay: t.payment === 'OVERDUE' || t.payment === 'NEVER PAID',
     dormant: (t.dormantDays || 0) >= 14,
-    lowSessions: (t.sessionsLeft ?? 0) <= 1,
-    noProgram: (t.programs ?? 0) === 0,
+    // <= 2, not <= 1. The real TraineesView's flagLow is `sessionsRemaining
+    // <= 2` and the dashboard tile counts the same way under a label that
+    // literally reads "2 or fewer" — so the demo's <= 1 was both a parity gap
+    // and a contradiction a buyer could see: the dashboard said 4 low-session
+    // athletes and this rail said 3.
+    lowSessions: (t.sessionsLeft ?? 0) <= 2,
+    noProgram: planCount(t) === 0,
   });
   const activeAttn = Object.keys(attnFlags).filter(k => attnFlags[k]);
   let filtered = MOCK_TRAINEES.filter(t => {
@@ -762,7 +870,12 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
             {
               label: T('Needs Attention'),
               opts: [
-                { key: 'pay', label: T('Payment due') },
+                // "Payment due" was 'ממתין לתשלום' — awaiting payment — which
+                // reads as the same measure as billing's "3 ממתינות" while
+                // counting 4. The predicate is OVERDUE *or* NEVER PAID, which
+                // matches the real app and must not change; the label is what
+                // was wrong. 'בעיית תשלום' covers both and collides with nothing.
+                { key: 'pay', label: T('Payment issue') },
                 { key: 'dormant', label: T('Dormant') },
                 { key: 'lowSessions', label: T('Low sessions') },
                 { key: 'noProgram', label: T('No program') },
@@ -778,12 +891,19 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               ].map(o => {
                 const on = sortKey === o.id;
                 const desc = on && sortDir === 'desc';
-                return { key: o.id, title: on ? `${T('Flip direction')}: ${o.label}` : `${T('Sort by')} ${o.label}`, active: on, label: on ? `${desc ? '↓' : '↑'} ${o.label}` : o.label,
+                // The real rail's active label (TraineesView): the direction in
+                // the key's own words, then the key — "A→Z · Name", not "↑ Name".
+                const heL = readLang() === 'he';
+                const dirLbl = o.id === 'name' ? (heL ? (desc ? 'ת←א' : 'א←ת') : (desc ? 'Z→A' : 'A→Z'))
+                  : o.id === 'status' ? (desc ? `↑ ${T('Inactive')}` : `↓ ${T('Active')}`)
+                  : o.id === 'lastTrained' ? (desc ? `↓ ${T('Newest')}` : `↑ ${T('Oldest')}`)
+                  : (desc ? `↑ ${T('Overdue')}` : `↓ ${T('Paid')}`);
+                return { key: o.id, title: on ? (heL ? `היפוך כיוון המיון (${o.label})` : `Flip ${o.label} direction`) : `${T('Sort by')} ${o.label}`, active: on, label: on ? `${dirLbl} · ${o.label}` : o.label,
                   onClick: () => { if (on) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortKey(o.id); setSortDir('asc'); } } };
               }),
             },
           ]}
-          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
+          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
         />
         {/* RIGHT: the card grid. */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -910,7 +1030,7 @@ function TrainingBlock({ t, center = false }) {
           <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{readLang() === 'he' && t.sessionsLeft === 1 ? 'נותר אימון אחד' : readLang() === 'he' ? (t.sessionsLeft === 0 ? 'לא נותרו אימונים' : `נותרו ${t.sessionsLeft} אימונים`) : `${t.sessionsLeft} ${T('SESSIONS LEFT')}`}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: justify }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' && t.programs === 1 ? 'תוכנית אחת' : `${t.programs} ${T('PROGRAMS')}`}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' && planCount(t) === 1 ? 'תוכנית אחת' : `${planCount(t)} ${T('PROGRAMS')}`}</span>
         </div>
         {t.lastWorkout && (
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'start' }}>
@@ -932,7 +1052,7 @@ function FinancialsBlock({ t, center = false }) {
     // overdue panel invented a fourth number for the same people.
     items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>{T('OVERDUE')} · {TN('{n}D', t.overdueDays || 0)}</span>);
   } else if (t.payment === 'PAID') {
-    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {TN('{n}D AGO', t.paidDaysAgo || 0)}</span>);
+    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {(readLang() === 'he' ? daysAgoHe(t.paidDaysAgo || 0) : TN('{n}D AGO', t.paidDaysAgo || 0))}</span>);
   }
   if (t.monthly > 0) {
     items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>{TN('₪{n}/MO', t.monthly)}</span>);
@@ -1095,7 +1215,11 @@ function CoupleCard({ t, onClick }) {
                 <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{parsed ? `${member} ${parsed.surname}` : member}</div>
                 <FakeWaButton />
               </div>
-              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].phone}</div>}
+              {/* isolate LTR: an international number's leading + is bidi-neutral
+                  and paints at the WRONG END inside an RTL card — measured,
+                  "+972503334455" came out as "972503334455+". The single card
+                  above already does this; the couple card did not. */}
+              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{memberMeta[mi].phone}</span></div>}
               {/* An address wraps rather than being sliced: it was cut by up to
                   60px, and half an email is not an email. */}
               {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email}</div>}
@@ -1226,10 +1350,22 @@ function DemoTrendChart({ values, color, height = 90 }) {
 }
 
 // MESSAGES — coach↔athlete thread (bubbles) + static composer.
+// Three faults in three lines, all on the Hebrew screen too because none of
+// this text ever went through T(): the thread was dated two months ago, and
+// the athlete replied "Knee held up fine on legs day" on the page of a woman
+// whose own record says L4-L5 disc bulge and on the page of a man whose says
+// shoulder impingement. The reply is now injury-neutral — it cannot contradict
+// a record it does not name — and the timestamps resolve from today.
+const msgTime = (daysAgo, hhmm) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${hhmm}`;
+};
 const DEMO_MESSAGES = [
-  { role: 'coach',   time: '30/07/2026 09:14', text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
-  { role: 'athlete', time: '30/07/2026 18:02', text: 'Thanks! Felt strong. Knee held up fine on legs day.' },
-  { role: 'coach',   time: '31/07/2026 08:40', text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
+  { role: 'coach',   time: msgTime(4, '09:14'), text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
+  { role: 'athlete', time: msgTime(4, '18:02'), text: 'Thanks! Felt strong — no niggles this week.' },
+  { role: 'coach',   time: msgTime(3, '08:40'), text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
 ];
 function DemoMessages() {
   return (
@@ -1240,7 +1376,7 @@ function DemoMessages() {
           return (
             <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
               <div style={{ maxWidth: '78%', minWidth: 0, borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
-                <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · {m.time}</div>
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{m.time}</span></div>
                 {/* overflowWrap so a pasted URL or a long word cannot push past the
                     bubble. Defensive only: I first added this believing the gate's
                     "SPILLING by 4px" on this bubble was real. It was not - that was
@@ -1262,14 +1398,31 @@ function DemoMessages() {
 }
 
 // CRM — health strip + coach-history (ACTIONS / ACTIVITY tabs).
-function DemoCRM() {
+// The coach-history feed was identical on every athlete and quoted two facts
+// that belonged to nobody on the page: ₪1,200, which is only the couple's
+// monthly, and "Block #12", which appears in no athlete's plan list at all.
+// It also opened with "check in re: right shoulder" and "checked in about
+// knee" on the records of people whose injuries are a lumbar disc, a
+// patellofemoral knee, and none — and it was dated two months ago.
+// Now: the amount is the athlete's own monthly, the block is the newest one in
+// their own plans array, the note names their own injury, and every timestamp
+// resolves from today.
+function DemoCRM({ trainee }) {
   const [tab, setTab] = useState('activity');
-  const actions = [T('Check in re: right shoulder after Day B'), T('Send updated nutrition targets'), T('Confirm payment for August')];
+  const t = trainee || {};
+  const hurt = t.injuries && t.injuries !== 'None' ? t.injuries : null;
+  const block = (t.plans && t.plans[0]) || '—';
+  const when = (d, hhmm) => `${dAgoLabel(d).replace(/ \d{4}$/, '')} · ${hhmm}`;
+  const actions = [
+    hurt ? `${T('Check in re:')} ${T(hurt)}` : T('Check in after the last session'),
+    T('Send updated nutrition targets'),
+    T('Confirm payment for next month'),
+  ];
   const activity = [
-    { kind: T('SESSION'), color: C.gn, when: '30 Jul · 14:20', auto: true,  text: T('Completed Upper A — 6 exercises logged') },
-    { kind: T('WHATSAPP'), color: C.gn, when: '29 Jul · 09:10', auto: false, text: T('Checked in about knee — cleared for legs') },
-    { kind: T('PAYMENT'), color: C.gn, when: '25 Jul · 08:00', auto: true,  text: T('₪1,200 — monthly package') },
-    { kind: T('PLAN'), color: C.ac, when: '22 Jul · 17:45', auto: true,  text: T('Assigned Block #12 (hypertrophy)') },
+    { kind: T('SESSION'), color: C.gn, when: when(2, '14:20'), auto: true,  text: T('Completed Upper A — 6 exercises logged') },
+    { kind: T('WHATSAPP'), color: C.gn, when: when(3, '09:10'), auto: false, text: hurt ? `${T('Checked in about')} ${T(hurt)}` : T('Checked in — feeling good') },
+    { kind: T('PAYMENT'), color: C.gn, when: when(t.paidDaysAgo != null ? t.paidDaysAgo : 30, '08:00'), auto: true,  text: <><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{'₪' + (t.monthly || 0).toLocaleString()}</span> — {T('monthly package')}</> },
+    { kind: T('PLAN'), color: C.ac, when: when(12, '17:45'), auto: true,  text: `${T('Assigned')} ${block}` },
   ];
   return (
     <div>
@@ -1351,20 +1504,53 @@ function DemoReadinessTrends() {
 }
 
 // EVALUATION + INTAKE — collapsed eval rows + one intake card.
-const DEMO_EVAL = {
-  eval_date: '15 Jul 2026', age: 34, height: 178, weight: 82, fields: 26,
-  sections: [
-    { title: 'Lower Body Power', rows: [['Standing Vertical Jump', 'cm', '48'], ['Broad Jump', 'cm', '232']] },
-    { title: 'Max Strength', rows: [['Trap-Bar Deadlift 1RM', 'kg', '180'], ['Bench Press 1RM', 'kg', '110'], ['Back Squat 1RM', 'kg', '—']] },
-  ],
+// EVERY athlete used to show this same assessment: a 34-year-old man, 178cm,
+// 82kg, with a right ACL reconstruction — printed a few hundred pixels under
+// נועה's own record, which says 31, 64kg, L4-L5 disc bulge. His 1RMs were hers
+// too. The drill-in is the deepest screen in the demo and the one a coach
+// studies hardest, so a fabricated assessment contradicting the athlete's own
+// injury field is the fastest way to be caught.
+// It is now derived from the athlete's record: their age, height and weight,
+// their injury, their goal, and lifts scaled to their bodyweight rather than
+// to one invented man's.
+// The first attempt at fixing this scaled the lifts off bodyweight. That is a
+// male-normed formula, and it handed a 64kg woman a 1.3x-bodyweight bench —
+// one wrong traded for another, and one a coach spots faster. Each athlete's
+// numbers are written into the fixture instead, chosen against their own
+// bodyweight, goal and injury: the athlete with a lumbar disc deadlifts
+// conservatively, the one with patellofemoral knee pain jumps least, the one
+// prepping a powerlifting meet is the strongest in the room.
+// "15 Jul 2026" and "20 Apr 2026" were typed into the assessment card, so in
+// September they read as the future and the recent past at the same time.
+// Every other date in this demo resolves from today; these now do too.
+const dAgoLabel = (n) => {
+  const d = backDate(n);
+  return `${d.getDate()} ${MON3[d.getMonth()]} ${d.getFullYear()}`;
 };
-function DemoEvalIntake() {
+const demoEvalFor = (t) => {
+  const e = t.ev || {};
+  const n = (v) => (v == null ? '—' : String(v));
+  return {
+    age: t.age, height: t.height, weight: t.weight, fields: 26,
+    injuries: t.injuries, goals: t.goals,
+    sections: [
+      { title: 'Lower Body Power', rows: [['Standing Vertical Jump', 'cm', n(e.vj)], ['Broad Jump', 'cm', n(e.bj)]] },
+      { title: 'Max Strength', rows: [
+        ['Trap-Bar Deadlift 1RM', 'kg', n(e.dl)],
+        ['Bench Press 1RM', 'kg', n(e.bp)],
+        ['Back Squat 1RM', 'kg', '—'],
+      ] },
+    ],
+  };
+};
+function DemoEvalIntake({ trainee }) {
+  const DEMO_EVAL = demoEvalFor(trainee || {});
   const [open, setOpen] = useState(true);
   return (
     <div>
       <div style={{ border: `1px solid ${C.ac}`, marginBottom: 8 }}>
         <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
-          <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }}>{DEMO_EVAL.eval_date}</span>
+          <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }} dir="ltr">{dAgoLabel(74)}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>{T('AGE')} </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>{T('HT')} </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>{T('WT')} </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>{T('FIELDS')} </span>{DEMO_EVAL.fields}</span>
           <span style={{ color: C.tm, fontSize: 12 }}>{open ? '▾' : '▸'}</span>
         </div>
@@ -1388,9 +1574,9 @@ function DemoEvalIntake() {
       <div style={{ border: `1px solid ${C.cardBd}`, padding: '12px 14px' }}>
         <div style={{ textAlign: 'center', marginBottom: 10 }}>
           <Badge color={C.ac}>{T('INITIAL')}</Badge>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginInlineStart: 8 }}>· 20 Apr 2026</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginInlineStart: 8 }}>· <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{dAgoLabel(156)}</span></span>
         </div>
-        {[[T('Primary goal'), T('Rebuild strength after knee scope')], [T('Training age'), T('6 years')], [T('Injuries'), T('Right ACL reconstruction (2024)')], [T('Days/week available'), '4'], [T('Equipment'), T('Full commercial gym')]].map(([k, v]) => (
+        {[[T('Primary goal'), T(DEMO_EVAL.goals || '—')], [T('Injuries'), T(DEMO_EVAL.injuries || 'None')], [T('Days/week available'), '4'], [T('Equipment'), T(/Gym/.test(trainee?.format || '') ? 'Full commercial gym' : 'Home / minimal kit')]].map(([k, v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, fontSize: 12 }}>
             <span style={{ color: C.tm }}>{k}</span>
             <span style={{ color: C.tx, textAlign: 'end' }}>{v}</span>
@@ -1404,12 +1590,33 @@ function DemoEvalIntake() {
 // PROGRESSIVE OVERLOAD — searchable per-exercise table, one row expands into
 // PR + trend chart + session history. The showpiece section.
 const DEMO_OVERLOAD = [
-  { eid: 'e1', name: 'Barbell Bench Press', loads: [100, 102.5, 105, 107.5, 110], reps: [5, 5, 4, 3, 3], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e2', name: 'Trap-Bar Deadlift',   loads: [150, 155, 160, 165, 180], reps: [5, 5, 5, 4, 3], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e3', name: 'Back Squat',          loads: [140, 142.5, 140, 140, 138], reps: [5, 5, 5, 5, 5], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e4', name: 'Overhead Press',      loads: [60, 60, 60], reps: [6, 6, 6], dates: ['9 Jun', '23 Jun', '30 Jun'] },
-  { eid: 'e5', name: 'Barbell Row',         loads: [80, 85], reps: [8, 8], dates: ['16 Jun', '30 Jun'] },
+  { eid: 'e1', name: 'Barbell Bench Press', loads: [100, 102.5, 105, 107.5, 110], reps: [5, 5, 4, 3, 3], ago: [28, 21, 14, 7, 0] },
+  { eid: 'e2', name: 'Trap-Bar Deadlift',   loads: [150, 155, 160, 165, 180], reps: [5, 5, 5, 4, 3], ago: [28, 21, 14, 7, 0] },
+  { eid: 'e3', name: 'Back Squat',          loads: [140, 142.5, 140, 140, 138], reps: [5, 5, 5, 5, 5], ago: [28, 21, 14, 7, 0] },
+  { eid: 'e4', name: 'Overhead Press',      loads: [60, 60, 60], reps: [6, 6, 6], ago: [21, 7, 0] },
+  { eid: 'e5', name: 'Barbell Row',         loads: [80, 85], reps: [8, 8], ago: [14, 0] },
 ];
+// The table above is one athlete's training history, and it was rendered on
+// EVERY athlete's page: a 110kg bench and a 180kg trap-bar deadlift shown on
+// the record of a 64kg woman whose own row says L4-L5 disc bulge. The showpiece
+// section of the deepest screen, contradicting the athlete it belongs to.
+// Scaled per athlete by their own assessed deadlift against the 200kg 1RM this
+// series implies, so the PROGRESSION — which is what the section is for — is
+// preserved while the weights belong to the person.
+// The session dates were typed as '2 Jun'..'30 Jun', so by September the
+// showpiece progression table was three months stale — the loads had been
+// scaled to the athlete but the history still said June. They are weekly
+// offsets now and resolve from today, like every other date in the demo.
+const ovDate = (daysAgo) => {
+  const d = backDate(daysAgo);
+  return `${d.getDate()} ${MON3[d.getMonth()]}`;
+};
+const demoOverloadFor = (t) => {
+  const f = (t?.ev?.dl ?? 200) / 200;
+  if (Math.abs(f - 1) < 0.01) return DEMO_OVERLOAD;
+  const r = (n) => Math.round((n * f) / 2.5) * 2.5;
+  return DEMO_OVERLOAD.map((ex) => ({ ...ex, loads: ex.loads.map(r) }));
+};
 const ovStats = (ex) => {
   const s = ex.loads, last = s[s.length - 1], base = s.length >= 4 ? s[s.length - 4] : s[0];
   const pct = base ? Math.round((last - base) / base * 1000) / 10 : 0;
@@ -1417,14 +1624,15 @@ const ovStats = (ex) => {
   return { last, pct, pr: Math.max(...s), prIdx: s.indexOf(Math.max(...s)), trend, sessions: s.length };
 };
 const OV_COLOR = { up: C.gn, down: C.rd, flat: C.tm, all: C.ac };
-function DemoOverload() {
+function DemoOverload({ trainee }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [openEid, setOpenEid] = useState('e2');
-  const rows = DEMO_OVERLOAD.map(ex => ({ ex, st: ovStats(ex) }))
+  const table = demoOverloadFor(trainee);
+  const rows = table.map(ex => ({ ex, st: ovStats(ex) }))
     .filter(({ ex, st }) => (!search || ex.name.toLowerCase().includes(search.toLowerCase())) && (filter === 'all' || st.trend === filter));
-  const counts = { all: DEMO_OVERLOAD.length, up: 0, flat: 0, down: 0 };
-  DEMO_OVERLOAD.forEach(ex => { counts[ovStats(ex).trend]++; });
+  const counts = { all: table.length, up: 0, flat: 0, down: 0 };
+  table.forEach(ex => { counts[ovStats(ex).trend]++; });
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
@@ -1446,9 +1654,13 @@ function DemoOverload() {
                   <tr onClick={() => setOpenEid(open ? '' : ex.eid)} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
                     <td style={{ padding: '9px 10px', color: C.tx, fontWeight: 600 }}>{open ? '▾' : '▸'} {ex.name}</td>
                     <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: C.tx }}>{st.last}kg</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}>{arrow}</td>
+                    {/* The sign is class ES: with nothing numeric before it,
+                        UAX#9 hands it the paragraph direction and it jumps to
+                        the other end — "+10.5%" painted as "10.5%+" on every
+                        row of the showpiece table. Isolated. */}
+                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{arrow}</span></td>
                     <td style={{ padding: '9px 10px', textAlign: 'center', color: C.tm }}>{st.sessions}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[ex.dates.length - 1]}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[ex.ago.length - 1])}</span></td>
                   </tr>
                   {open && (
                     <tr><td colSpan={5} style={{ background: 'var(--c-sf2, var(--c-sf))', padding: '14px 16px 18px 30px' }}>
@@ -1456,10 +1668,10 @@ function DemoOverload() {
                         <div>
                           <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{T('ALL-TIME PR')}</div>
                           <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, marginTop: 2 }}>{st.pr}kg × {ex.reps[st.prIdx]}</div>
-                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}>{ex.dates[st.prIdx]}</div>
+                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[st.prIdx])}</span></div>
                         </div>
                         <div style={{ display: 'flex', gap: 18 }}>
-                          {[[T('LATEST'), `${st.last}kg`, C.tx], [T('Δ ALL-TIME'), `${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], [T('SESSIONS'), String(st.sessions), C.tx]].map(([l, v, c]) => (
+                          {[[T('LATEST'), `${st.last}kg`, C.tx], [T('Δ ALL-TIME'), <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`}</span>, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], [T('SESSIONS'), String(st.sessions), C.tx]].map(([l, v, c]) => (
                             <div key={l} style={{ textAlign: 'center' }}><div style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, color: c, marginTop: 2 }}>{v}</div></div>
                           ))}
                         </div>
@@ -1470,7 +1682,7 @@ function DemoOverload() {
                         const isPr = ex.loads[i] === st.pr;
                         return (
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr auto', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', fontSize: 12 }}>
-                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[i]}</span>
+                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[i])}</span></span>
                             <span><span style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]}kg</span> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
                             {isPr ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 6px', letterSpacing: '0.1em' }}>{T('PR')}</span> : <span />}
                           </div>
@@ -1493,6 +1705,18 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // a paying client's last cycle, an overdue one's last cycle before the
   // one they missed. Every date on this card is measured from it.
   const paidAgo = trainee.payment === 'OVERDUE' ? (trainee.overdueDays || 0) + 30 : (trainee.paidDaysAgo || 0);
+  // The action row was four dead buttons carrying a `title` tooltip. A title
+  // is invisible on a phone (no mobile browser renders one) and unreachable by
+  // keyboard, so on the two surfaces that matter the buttons simply did
+  // nothing — and the run sheet had a line telling him not to click them.
+  // They now say what the full app does, the same way Review → Tools does.
+  const [actionNote, setActionNote] = useState(null);
+  const ACTION_NOTE = {
+    log: 'Demo only — in the full app this opens the session logger for this athlete.',
+    portal: 'Demo only — in the full app this opens what the athlete sees in their portal.',
+    edit: 'Demo only — in the full app this opens the athlete’s record for editing.',
+    archive: 'Demo only — in the full app this archives the athlete and stops their billing.',
+  };
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
   // per-session, last payment, since, payments ledger, programs (assigned
@@ -1539,23 +1763,28 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           border: `1px solid ${C.bd}`,
         }}>{backLabel}</button>
         {isCouple && <DemoStatusMenu />}
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('log')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('LOG SESSION')}</button>
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('portal')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('PORTAL')}</button>
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('edit')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
         }}>{T('EDIT')}</button>
         <DemoNotifToggle />
-        <button title={T('Demo only')} style={{
+        <button onClick={() => setActionNote('archive')} style={{
           ...baseBtn, background: 'transparent', color: C.rd,
           border: `1px solid rgba(255,71,87,0.251)`, padding: '0 14px', fontSize: 11,
         }}>{T('ARCHIVE')}</button>
+        {actionNote && (
+          <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11.5, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8, marginTop: 2 }}>
+            {T(ACTION_NOTE[actionNote])}
+          </div>
+        )}
       </div>
 
       {/* Couple branch: per-member columns first (name/email/phone/age/
@@ -1617,13 +1846,13 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         {/* SHARED panels — one row, full width */}
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }}>
           <Panel title={T('SHARED · HOUSEHOLD TERMS')} tint={C.tm}>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>12 Sessions</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft}{T('LEFT')}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{T(String(trainee.format || '').replace(', ', ' · '))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.isCouple ? T('12 Sessions') : T('8 Sessions')}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{readLang() === 'he' ? sessionsLeftHe(trainee.sessionsLeft) : `${trainee.sessionsLeft} ${T('LEFT')}`}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('MONTHLY')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PER SESSION')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 12)}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="ltr">{trainee.payment === 'NEVER PAID' ? '—' : fmtPrettyDate(dAgo(paidAgo))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="ltr">{fmtPrettyDate(trainee.startDate)}</span></Row>
           </Panel>
 
           <Panel title={T('SHARED · PROGRAMS')} tint={C.ac}>
@@ -1672,23 +1901,29 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         // key/value panels.
         const isHeb = /[֐-׿]/.test(trainee.name || '');
         const overdue = trainee.payment === 'OVERDUE';
-        const lastPay = trainee.payment === 'NEVER PAID' ? '—' : dAgo(paidAgo);
         const workoutsCount = trainee.dormantDays != null ? 4 : 12;
         const perSession = trainee.monthly ? Math.round(trainee.monthly / 8) : 0;
-        // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
-        const billingTerms = [
-          ['Package', '8 Sessions'],
-          ['Sessions Left', trainee.sessionsLeft],
-          ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
-          ['Per Session', perSession ? `₪${perSession}` : '—'],
-          ['Last Payment', fmtPrettyDate(lastPay)],
-          ['Since', fmtPrettyDate(trainee.startDate)],
-        ];
+        // THE LEDGER IS BUILT FIRST, AND "LAST PAYMENT" IS READ OFF IT.
+        // It used to be computed separately as dAgo(paidAgo) — but for an
+        // OVERDUE athlete that very row is the one the ledger drops (they
+        // missed it), so the card printed a payment date that appeared nowhere
+        // in the table directly beneath it. Two facts, one truth: derive the
+        // date from the rows instead of computing it a second way.
         const payments = [
           !overdue && { date: dAgo(paidAgo), amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
           { date: dAgo(paidAgo + 30), amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
           { date: dAgo(paidAgo + 61), amount: trainee.monthly || 800, status: 'Paid', notes: 'Bank transfer' },
         ].filter(Boolean);
+        const lastPay = trainee.payment === 'NEVER PAID' ? '—' : (payments[0] ? payments[0].date : '—');
+        // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
+        const billingTerms = [
+          ['Package', trainee.isCouple ? '12 Sessions' : '8 Sessions'],
+          ['Sessions Left', trainee.sessionsLeft],
+          ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
+          ['Per Session', perSession ? `₪${perSession}` : '—'],
+          ['Last Payment', lastPay === '—' ? '—' : fmtPrettyDate(lastPay)],
+          ['Since', fmtPrettyDate(trainee.startDate)],
+        ];
         const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
         // THROUGH T(). Hebrew is the DEFAULT for an Israeli visitor — readLang()
         // falls back to the browser language and /demo/coach has no toggle — and
@@ -1746,12 +1981,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
                 <tbody>{payments.map((p, i) => (<tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                   <td style={{ padding: '8px 10px', color: C.tm, textAlign: 'center' }}>{fmtPrettyDate(p.date)}</td>
                   <td style={{ padding: '8px 10px', color: C.gn, fontWeight: 600, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>₪{p.amount.toLocaleString()}</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{p.status.toUpperCase()}</Badge></td>
-                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{p.notes}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{T(p.status).toUpperCase()}</Badge></td>
+                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{T(p.notes)}</td>
                 </tr>))}</tbody>
               </table>
             </div>
@@ -1761,7 +1996,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
-          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM trainee={trainee} /></DemoDetailCard>}
 
           {/* BODYWEIGHT */}
           {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
@@ -1790,17 +2025,21 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
             {trainee.plans.map((name, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                {/* Was nowrap + ellipsis, so at 360 "Block #4 — Pull
+                    Specialization" lost 36px of itself to a "…". A program's
+                    NAME is the one thing a coach reads on this row, and his
+                    standing rule is that a word never gets cut. It wraps. */}
+                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{name}</span>
                 <Badge color={i === 0 ? C.gn : C.td}>{tr(readLang(), i === 0 ? 'ACTIVE' : 'ARCHIVED')}</Badge>
               </div>
             ))}
           </DemoDetailCard>}
 
           {/* EVALUATION · INTAKE (context — shown in View All) */}
-          {showSec('eval') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Evaluation · Intake')}><DemoEvalIntake /></DemoDetailCard>}
+          {showSec('eval') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Evaluation · Intake')}><DemoEvalIntake trainee={trainee} /></DemoDetailCard>}
 
           {/* PROGRESSIVE OVERLOAD — the showpiece */}
-          {showSec('overload') && <DemoDetailCard header={secTitle('Progressive Overload')}><DemoOverload /></DemoDetailCard>}
+          {showSec('overload') && <DemoDetailCard header={secTitle('Progressive Overload')}><DemoOverload trainee={trainee} /></DemoDetailCard>}
         </div>
         );
       })()}
@@ -1836,16 +2075,22 @@ const MOCK_LAST_SESSION_DAYS = Object.fromEntries(MOCK_TRAINEES.map((t) => {
 // beside it said 4 for one of the same people. Every trainee already carries
 // its `plans` array — the block names it is meant to have — so the index is
 // built from that and the two can no longer disagree.
+// Sum of the id's character codes: defined for an id of any length, and
+// stable, so the demo shows the same numbers on every load.
+const idSeed = (id) => String(id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
 const MOCK_PROGRAM_INDEX = MOCK_TRAINEES.flatMap((t) => (t.plans || []).map((name, i) => ({
   // i = 0 is the CURRENT block, and each older one is a block further back.
   id: `${t.id}-p${i}`,
   name,
   traineeId: t.id,
-  dayCount: 3 + ((i + t.id.length) % 2),
-  exerciseCount: 18 + ((i * 4 + t.id.charCodeAt(2)) % 10),
+  // A STABLE HASH OF THE ID, not charCodeAt(2) — the ids are 't1'..'t8', two
+  // characters, so index 2 is undefined and every card printed "NaN תרגילים".
+  dayCount: 3 + ((i + idSeed(t.id)) % 2),
+  exerciseCount: 18 + ((i * 4 + idSeed(t.id)) % 10),
   phase: ['Volume', 'Strength', 'Base', 'Intake'][Math.min(i, 3)],
   created: dAgo(24 + i * 31),
-  updated: dAgo(i === 0 ? 3 + (t.id.charCodeAt(2) % 5) : 24 + i * 31 - 4),
+  updated: dAgo(i === 0 ? 3 + (idSeed(t.id) % 5) : 24 + i * 31 - 4),
 })));
 
 // ─── Training Lineage (demo) ───────────────────────────────────────────────
@@ -1949,8 +2194,21 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
   } catch { /* demo seed is best-effort */ }
 })();
 
+// The analysis panel fed the SAME seven-block history whoever it was naming,
+// so it read "TRAINING ANALYSIS · נועה לוי — 7 BLOCKS" with the filter rail two
+// columns to its left saying she has 3, and block names (GPP, Str I, Realize)
+// that appear in nobody's record. A contradiction visible without scrolling.
+// The blocks are now the athlete's OWN, newest last: the demo history supplies
+// the shape — the logged sets, the per-lift cells, the trend — and the athlete
+// supplies how many blocks there are and what they are called. An athlete with
+// three plans gets a three-block lineage that matches their row.
 function DemoLineage({ athleteName }) {
-  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={DEMO_LINEAGE_PLANS} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
+  const subject = MOCK_TRAINEES.find((t) => t.name === athleteName);
+  const own = (subject && subject.plans) ? subject.plans.slice().reverse() : null;   // chronological
+  const plans = (!own || !own.length)
+    ? DEMO_LINEAGE_PLANS
+    : DEMO_LINEAGE_PLANS.slice(-own.length).map((p, i) => ({ ...p, name: own[i] }));
+  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
 }
 
 function DemoPrograms({ resetToken = 0 }) {
@@ -1989,7 +2247,22 @@ function DemoPrograms({ resetToken = 0 }) {
   }, []);
   const [search, setSearch] = useState('');
   const [filterTrainee, setFilterTrainee] = useState('');
+  // The real rail's Flags group (PlansView): programs with no athlete, and
+  // programs with no exercises or no days.
+  const [flags, setFlags] = useState({ unassigned: false, empty: false });
   const [progView, setProgView] = useState('table'); // 'table' | 'grid' | 'lineage'
+  // Preview / Duplicate / Share / Delete were `onClick={e => e.stopPropagation()}`
+  // — they looked live, had a handler, and did nothing, with only a `title`
+  // tooltip to say so. A title is invisible on a phone and to a keyboard. Same
+  // explainer the rest of the demo uses. Keyed by program id so opening one
+  // row's note does not light up every other row.
+  const [progNote, setProgNote] = useState(null); // `${id}:${action}`
+  const PROG_NOTE = {
+    Preview: 'Demo only — in the full app this opens the program exactly as the athlete sees it.',
+    Duplicate: 'Demo only — in the full app this copies the program into a new block you can edit.',
+    Share: 'Demo only — in the full app this assigns a copy of the program to another athlete.',
+    Delete: 'Demo only — in the full app this deletes the program after asking you to confirm.',
+  };
   const [sortField, setSortField] = useState('updated');
   const [sortDir, setSortDir] = useState('desc');
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
@@ -2104,6 +2377,8 @@ function DemoPrograms({ resetToken = 0 }) {
     const q = search.trim().toLowerCase();
     let filtered = MOCK_PROGRAM_INDEX.filter(p => {
       if (filterTrainee && p.traineeId !== filterTrainee) return false;
+      if (flags.unassigned && p.traineeId) return false;
+      if (flags.empty && p.exerciseCount && p.dayCount) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -2144,14 +2419,25 @@ function DemoPrograms({ resetToken = 0 }) {
               ],
             },
             {
+              label: 'Flags',
+              opts: [
+                { key: 'unassigned', label: T('Unassigned'), count: MOCK_PROGRAM_INDEX.filter(p => !p.traineeId).length, title: T('Programs with no athlete assigned'), accent: C.or, active: flags.unassigned, onClick: () => setFlags(m => ({ ...m, unassigned: !m.unassigned })) },
+                { key: 'empty', label: `∅ ${T('Empty')}`, count: MOCK_PROGRAM_INDEX.filter(p => !p.exerciseCount || !p.dayCount).length, title: T('Programs with no exercises or no days'), accent: C.or, active: flags.empty, onClick: () => setFlags(m => ({ ...m, empty: !m.empty })) },
+              ],
+            },
+            {
               label: 'Sort',
-              opts: [['created', 'Uploaded'], ['name', 'Name'], ['updated', 'Last edited']].map(([field, label]) => {
+              opts: [
+                ['created', 'Uploaded', 'Sort by when the program was created/imported. Click again to flip newest/oldest.'],
+                ['name', 'Name', 'Sort by program name. Click again to flip A–Z / Z–A.'],
+                ['updated', 'Last edited', 'Sort by when the program was last edited. Click again to flip newest/oldest.'],
+              ].map(([field, label, tip]) => {
                 const active = sortField === field;
-                return { key: field, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${T(label)}` : T(label), onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
+                return { key: field, title: T(tip), active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${T(label)}` : T(label), onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
               }),
             },
           ]}
-          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
         />
         {/* RIGHT: the program list. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
@@ -2224,7 +2510,13 @@ function DemoPrograms({ resetToken = 0 }) {
               {/* Count-line removed from the main-column top so the first program
                   card top-aligns with the rail's Search box (Ohad OCD: left rail +
                   right first box must start at the same vertical height). */}
-              <div style={{ display: 'grid', gap: 8 }}>
+              {/* GRID actually has to look different from TABLE. The toggle
+                  lit up and re-rendered the identical single column, which is
+                  the same "looks live, does nothing" fault as a dead button —
+                  worse, because the control reports a state change. Grid lays
+                  the same programs out in columns, the way the real
+                  PlansView does (repeat(auto-fill, minmax(...))). */}
+              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: progView === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))' : undefined, alignItems: 'start' }}>
                 {rows.map(row => {
                   const expanded = expandedAthletes.has(row.tid);
                   const cur = row.current;
@@ -2235,7 +2527,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     : C.rd;
                   const tagText = row.daysSince == null ? T('NEVER LOGGED')
                     : row.daysSince === 0 ? T('TRAINED TODAY')
-                    : TN('{n}D AGO', row.daysSince);
+                    : (readLang() === 'he' ? daysAgoHe(row.daysSince) : TN('{n}D AGO', row.daysSince));
                   const portalKey = (id) => 'pv_' + id;
                   const isVis = (id) => portalVis[portalKey(id)] !== false;
                   const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
@@ -2262,15 +2554,15 @@ function DemoPrograms({ resetToken = 0 }) {
                         </span>
                       </div>
                       <div onClick={() => setSelectedProgramId(cur.id)} style={{ cursor: 'pointer', padding: '12px 14px 4px' }}>
-                        {/* minHeight reserves the "N previous" pill's height (22) so a
+                        {/* minHeight reserves the "N previous" pill's height (the control height) so a
                             card WITHOUT the pill is the same height as one WITH it —
                             parity with the real Programs card-height fix (PlansView). */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: 22 }}>
+                        <div className="cd-prog-title" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minHeight: CTRL_H }}>
                           <span style={{ fontWeight: 700, fontSize: 15, color: C.ac, fontFamily: FN, letterSpacing: '0.04em', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
                               title={readLang() === 'he' ? (expanded ? 'הסתרת הבלוקים הקודמים' : (row.earlier.length === 1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`)) : (expanded ? `Hide ${row.earlier.length} previous` : `Show ${row.earlier.length} previous block${row.earlier.length === 1 ? '' : 's'}`)}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                               {readLang() === 'he' ? (row.earlier.length === 1 ? 'בלוק קודם אחד' : `${row.earlier.length} קודמים`) : `${row.earlier.length} previous`}
                               <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                             </button>
@@ -2287,15 +2579,20 @@ function DemoPrograms({ resetToken = 0 }) {
                               title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: on ? C.gn : C.td }}>{T('PORTAL')}</span>
-                              <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border: `1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position: 'relative', transition: 'background .15s, border-color .15s', flexShrink: 0 }}>
-                                <span style={{ width: 14, height: 14, borderRadius: 7, background: on ? C.gn : C.td, position: 'absolute', top: 1, left: on ? 15 : 1, transition: 'left .15s' }} />
+                              <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
+                                <span style={{ width: 14, height: 14, borderRadius: 7, background: on ? C.gn : C.tm, position: 'absolute', top: 2, left: on ? 16 : 2, transition: 'left .15s' }} />
                               </span>
                             </button>
                             <div className="cd-spacer" style={{ flex: 1, minWidth: 8 }} />
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>{tr(readLang(), 'Delete')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Preview`); }} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Duplicate`); }} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Share`); }} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => { e.stopPropagation(); setProgNote(`${cur.id}:Delete`); }} title={T('Delete program (demo only)')} style={txt(C.rd)}>{tr(readLang(), 'Delete')}</button>
+                            {String(progNote || '').startsWith(`${cur.id}:`) && (
+                              <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
+                                {T(PROG_NOTE[String(progNote).split(':')[1]] || '')}
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -2909,21 +3206,32 @@ function ExerciseAction({ icon, label, sub }) {
 }
 
 // ─── Tab: Exercises ───────────────────────────────────────────────────────
+// The real library's media flags (src/ExercisesView.jsx hasVideo / hasNotes /
+// isUnclassified), on the mock rows: every mock carries cues; three simple
+// isolation moves have no demo video, so the Video filter narrows something.
+const DEMO_NO_VIDEO = new Set(['Leg Curl', 'Tricep Pushdown', 'Plank']);
+const demoHasVideo = (e) => !DEMO_NO_VIDEO.has(e.name);
+const demoHasNotes = (e) => !!(e.cues && String(e.cues).trim());
+const demoUnclassified = (e) => !((e.resistanceType || '') && (e.movementType || '') && (e.bodyPosition || ''));
+
 function DemoExercises() {
-  // Mirrors src/ExercisesView.jsx filter shape: a search box + a 6-up grid
-  // of selects (Category / Resistance / Body Position / Movement Type /
-  // Pattern / Laterality), with an active-count chip and a Clear all link.
-  // Anything dropped here would also land on the real coach app.
+  // 1:1 with src/ExercisesView.jsx: a SHOW row of flag chips (video / notes /
+  // unclassified) and a FILTER BY row over the library sheet's own columns
+  // (Resistance, Position, Movement, Joints, Joint Movements, Primary and
+  // Secondary Muscles). Single-value fields OR together; the four multi-value
+  // anatomy fields require ALL picked values (AND). Until 26.9 the demo offered
+  // Category / Pattern / Laterality — filters the product does not have — and
+  // none of the anatomy ones it does (verify-demo-parity).
   const [search, setSearch] = useState('');
-  // Multi-select filters (arrays), matching the redesigned real ExercisesView
-  // (#212). movementPattern maps to the exercise's `pattern` field.
-  const emptyFilters = { category: [], resistanceType: [], bodyPosition: [], movementType: [], movementPattern: [], laterality: [] };
+  const emptyFilters = { resistanceType: [], bodyPosition: [], movementType: [], primaryJoints: [], jointMovements: [], primaryMuscles: [], secondaryMuscles: [] };
   const [filters, setFilters] = useState(emptyFilters);
+  const [flags, setFlags] = useState({ video: false, notes: false, missing: false });
   const [openKey, setOpenKey] = useState(null); // which filter pill's menu is open
   const toggleFilter = (k, v) => setFilters(prev => { const cur = prev[k] || []; return { ...prev, [k]: cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v] }; });
   const clearFilter = (k) => setFilters(prev => ({ ...prev, [k]: [] }));
-  const activeFilterCount = Object.values(filters).reduce((n, a) => n + (a && a.length ? 1 : 0), 0);
-  const clearFilters = () => { setFilters(emptyFilters); setOpenKey(null); };
+  const toggleFlag = (k) => setFlags(m => ({ ...m, [k]: !m[k] }));
+  const activeFilterCount = Object.values(filters).reduce((n, a) => n + (a && a.length ? 1 : 0), 0) + Object.values(flags).filter(Boolean).length;
+  const clearFilters = () => { setSearch(''); setFilters(emptyFilters); setFlags({ video: false, notes: false, missing: false }); setOpenKey(null); };
   const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors real ExercisesView
 
   // Close the open filter menu on Escape (a click-catcher backdrop handles outside
@@ -2935,28 +3243,42 @@ function DemoExercises() {
     return () => window.removeEventListener('keydown', onKey);
   }, [openKey]);
 
-  const FILTER_KEYS = ['category', 'resistanceType', 'bodyPosition', 'movementType', 'movementPattern', 'laterality'];
-  const fieldOf = (e, k) => (k === 'movementPattern' ? e.pattern : e[k]);
+  const FILTER_KEYS = ['resistanceType', 'bodyPosition', 'movementType', 'primaryJoints', 'jointMovements', 'primaryMuscles', 'secondaryMuscles'];
+  const MULTI_VALUE = new Set(['primaryJoints', 'jointMovements', 'primaryMuscles', 'secondaryMuscles']);
+  const splitVals = (v) => String(v || '').split(',').map(x => x.trim()).filter(Boolean);
   const q = search.trim().toLowerCase();
-  const searchOk = (e) => {
-    if (!q) return true;
-    const haystack = [e.name, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.pattern, e.laterality].filter(Boolean).join(' ').toLowerCase();
-    return q.split(/\s+/).filter(Boolean).every(tok => haystack.includes(tok));
+  // The filter predicate shared by the list and the faceted counts; `skip`
+  // leaves one dimension out so its own options keep switchable counts.
+  const pass = (e, skip) => {
+    if (q) {
+      const hay = [e.name, e.resistanceType, e.bodyPosition, e.movementType, e.primaryJoints, e.jointMovements, e.primaryMuscles, e.secondaryMuscles].filter(Boolean).join(' ').toLowerCase();
+      if (!q.split(/\s+/).filter(Boolean).every(t => hay.includes(t))) return false;
+    }
+    for (const k of FILTER_KEYS) {
+      if (k === skip) continue;
+      const sel = filters[k] || [];
+      if (!sel.length) continue;
+      if (MULTI_VALUE.has(k)) { const v = splitVals(e[k]); if (!sel.every(x => v.includes(x))) return false; }
+      else if (!sel.includes(e[k])) return false;
+    }
+    if (skip !== 'video' && flags.video && !demoHasVideo(e)) return false;
+    if (skip !== 'notes' && flags.notes && !demoHasNotes(e)) return false;
+    if (skip !== 'missing' && flags.missing && !demoUnclassified(e)) return false;
+    return true;
   };
-  // A row passes filter key k when k has no selection OR the row's value is picked.
-  const passKey = (e, k) => { const sel = filters[k] || []; return sel.length === 0 || sel.includes(fieldOf(e, k)); };
-  const filtered = MOCK_EXERCISES.filter(e => searchOk(e) && FILTER_KEYS.every(k => passKey(e, k)));
-
-  // Faceted option list [value, count] for key k: rows passing search + every
-  // OTHER active filter, counted by this key's value (standard faceted rule).
-  // Selected values are always kept so a selection can't vanish from its menu.
+  const filtered = MOCK_EXERCISES.filter(e => pass(e, null));
+  // Faceted option list [value, count]: OR facets skip their own dimension, AND
+  // facets count inside the current selection — the real counts rule.
   const dynOpts = (k) => {
-    const base = MOCK_EXERCISES.filter(e => searchOk(e) && FILTER_KEYS.every(o => o === k || passKey(e, o)));
     const cm = {};
-    for (const e of base) { const v = fieldOf(e, k); if (v) cm[v] = (cm[v] || 0) + 1; }
+    for (const e of MOCK_EXERCISES) {
+      if (MULTI_VALUE.has(k)) { if (pass(e, null)) new Set(splitVals(e[k])).forEach(v => { cm[v] = (cm[v] || 0) + 1; }); }
+      else if (e[k] && pass(e, k)) cm[e[k]] = (cm[e[k]] || 0) + 1;
+    }
     const keys = new Set([...Object.keys(cm), ...(filters[k] || [])]);
     return [...keys].sort((a, b) => (cm[b] || 0) - (cm[a] || 0) || a.localeCompare(b)).map(v => [v, cm[v] || 0]);
   };
+  const flagCount = (k, fn) => MOCK_EXERCISES.filter(e => fn(e) && pass(e, k)).length;
 
   // Underline-trigger base (filters = underline text, not solid boxes).
   const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
@@ -3031,7 +3353,7 @@ function DemoExercises() {
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={T('Search exercises (title, muscle, pattern...)')}
+            placeholder={T('Search exercises (title, muscle, joint, position…)')}
             style={{
               width: '100%', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
               height: 30, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, lineHeight: '30px', outline: 'none',
@@ -3041,17 +3363,26 @@ function DemoExercises() {
         <button style={{ minHeight: CTRL_H, boxSizing: 'border-box', width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</button>
       </div>
 
-      {/* Filter rail — carded multi-select FilterPill menus (matches the
-          redesigned real ExercisesView #212), led by a muted "Filter by". */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
-        <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Filter by')}</span>
-        <FilterPill label="Category" k="category" />
-        <FilterPill label="Resistance" k="resistanceType" />
-        <FilterPill label="Body Position" k="bodyPosition" />
-        <FilterPill label="Movement" k="movementType" />
-        <FilterPill label="Pattern" k="movementPattern" />
-        <FilterPill label="Laterality" k="laterality" />
-        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
+      {/* Two rows like the real ExercisesView: SHOW (flag chips) and FILTER BY
+          (the sheet's columns), each led by a muted role label. */}
+      <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 6px' }}>
+          <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Show')}</span>
+          {[['video', `▶ ${T('Video')} (${flagCount('video', demoHasVideo)})`, C.ac], ['notes', `☰ ${T('Notes')} (${flagCount('notes', demoHasNotes)})`, C.or], ['missing', `∅ ${T('Unclassified')} (${flagCount('missing', demoUnclassified)})`, C.or]].map(([k, label, color]) => (
+            <button key={k} onClick={() => toggleFlag(k)} style={{ ...railBase, borderBottomColor: flags[k] ? color : 'transparent', color: flags[k] ? color : C.tm }}>{label}</button>
+          ))}
+          {(activeFilterCount > 0 || q) && <button onClick={clearFilters} title={T('Clear all filters')} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '6px 1px 12px', borderTop: `1px solid ${C.cardBd}` }}>
+          <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Filter by')}</span>
+          <FilterPill label="Resistance" k="resistanceType" />
+          <FilterPill label="Position" k="bodyPosition" />
+          <FilterPill label="Movement" k="movementType" />
+          <FilterPill label="Joints" k="primaryJoints" />
+          <FilterPill label="Joint Movements" k="jointMovements" />
+          <FilterPill label="Primary Muscles" k="primaryMuscles" />
+          <FilterPill label="Secondary Muscles" k="secondaryMuscles" />
+        </div>
       </div>
       {/* Click-catcher backdrop: an outside click closes the open menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
@@ -3081,7 +3412,7 @@ function DemoExercises() {
                     <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
                     <span title={e.name} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
                   </span>
-                  <span style={{ color: C.ac, fontSize: 12 }}>▶</span>
+                  {demoHasVideo(e) && <span style={{ color: C.ac, fontSize: 12 }}>▶</span>}
                 </div>
                 <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
                   <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{[e.resistanceType, e.bodyPosition, e.movementType].filter(Boolean).join('  ·  ')}</div>
@@ -3095,21 +3426,54 @@ function DemoExercises() {
         // TABLE — full-width, every sheet parameter a column (real ExercisesView).
         <div className="cd-ex-table-wrap" style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
           <style>{`
-            /* Mirrors src/ExercisesView.jsx: below 701px the taxonomy columns
-               go, leaving the name. Keeping them turned every cell into one
-               word per line at 390. */
+            /* The real ExercisesView's phone rules (below 701px): the seven
+               taxonomy columns go, leaving name, MEDIA and the two actions;
+               the name cell is capped so the actions stay on screen. */
+            /* The real tablet band (701-1200): taxonomy hidden, name + MEDIA +
+               actions, the name column taking the width. */
+            @media (min-width: 701px) and (max-width: 1200px) {
+              .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
+              .cd-ex-table-wrap table { display: table !important; table-layout: auto !important; width: 100% !important; }
+              .cd-ex-table-wrap col:first-child { width: auto !important; }
+              .cd-ex-table-wrap td:first-child { max-width: none !important; }
+            }
             @media (max-width: 700px) {
               .cd-ex-table-wrap { overflow-x: visible !important; }
               .cd-ex-table-wrap .cd-ex-taxo { display: none !important; }
-              .cd-ex-table-wrap table { table-layout: auto !important; width: 100% !important; }
+              /* index.html turns EVERY table into display:block under 769px;
+                 the real .ex-table opts back out, and so must this one — as a
+                 block, an anonymous table box sized to its content sat inside
+                 it and every row stopped short of the edge (26.9). */
+              .cd-ex-table-wrap table { display: table !important; table-layout: auto !important; width: 100% !important; white-space: normal !important; }
+              .cd-ex-table-wrap th, .cd-ex-table-wrap td { white-space: normal !important; }
+              .cd-ex-table-wrap td:first-child, .cd-ex-table-wrap th:first-child { max-width: none !important; }
+              /* The real table's long names fill the name column; the demo's short
+                 ones left 30% of the width to it and the rest to MEDIA and the
+                 actions (125 / 121px). As on the real tablet rule, the name column
+                 is auto and takes what is left. */
+              .cd-ex-table-wrap col:first-child { width: auto !important; }
+              /* Edit + delete stay side by side (the real column measures 63px
+                 and holds both); wrapping stacked them and doubled every row. */
+              .cd-ex-table-wrap td:last-child { white-space: nowrap !important; }
             }
           `}</style>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            {/* The real table's column structure. Its percentage widths are left
+                out: with the demo's short names they gave Joint Movements 138px at
+                1440 and every value broke one word per line (overflow gate, 26.9). */}
+            <colgroup>
+              <col />
+              {Array.from({ length: 7 }, (_, j) => <col key={j} className="cd-ex-taxo" />)}
+              <col style={{ width: '58px' }} />
+              <col style={{ width: '56px' }} />
+            </colgroup>
             <thead>
               <tr>
                 {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
                   <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T(h)}</th>
                 ))}
+                <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T('Media')}</th>
+                <th style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }} />
               </tr>
             </thead>
             <tbody>
@@ -3119,9 +3483,28 @@ function DemoExercises() {
                 // which is what an Israeli S&C coach actually says.
                 const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
-                  <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent' }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{e.name}</td>
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H }}>
+                    <td style={{ padding: '9px 12px 9px 14px', maxWidth: 260 }}>
+                      {/* The real row's status dot: cyan = video, orange = cues only. */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: demoHasVideo(e) ? C.ac : demoHasNotes(e) ? C.or : 'transparent', border: (demoHasVideo(e) || demoHasNotes(e)) ? 'none' : `1px solid ${C.td}` }} />
+                        <span style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{e.name}</span>
+                      </div>
+                    </td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
+                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12 }}>▶</span>}
+                      {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                    </td>
+                    {/* Edit / delete, as on the real row — inert in the demo. */}
+                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
+                      <button title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'default', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      <button title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'default', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -3142,10 +3525,15 @@ function DemoExercises() {
 // list: 3 pending workouts, 2 with form videos, 1 with prior comments and a
 // weekly-focus note. Click into one to open a detail mirror that shows the
 // same exercise rows + bottom action row the real coach sees.
+// ONE WEEK NUMBER FOR THE WHOLE DEMO. The sessions tab hardcoded W4 while the
+// review queue said week 2 and the athlete portal highlighted W2 — the same
+// three athletes, in the same Block #4, in three different weeks depending on
+// which tab you were looking at.
+const DEMO_WEEK = 2;
 const MOCK_REVIEW_QUEUE = [
   {
     id: 'rv1', traineeName: 'נועה לוי', initials: 'NL',
-    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: 2,
+    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
     date: 'Today 09:14', doneSets: 18, totalSets: 20,
     exercises: [
       { name: 'BB Bench Press',     prescribed: '4×6-8 · 60kg', done: 4, sets: 4, hasVideo: true,  comments: 3, focus: true  },
@@ -3158,7 +3546,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv2', traineeName: 'יעל כהן', initials: 'YK',
-    dayName: 'Day B · Pull', planName: 'Block #4 — Couple Volume', week: 2,
+    dayName: 'Day B · Pull', planName: 'Block #4 — Couple Volume', week: 4,   // = 1 + idSeed('t3') % 4, the week the picker auto-selects for her
     date: 'Today 08:02', doneSets: 17, totalSets: 21,
     exercises: [
       { name: 'Pull-Up',            prescribed: '4×AMRAP',      done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
@@ -3171,7 +3559,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv3', traineeName: 'גל מזרחי', initials: 'GM',
-    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 2,
+    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 3,   // = 1 + idSeed('t2') % 4
     date: 'Yesterday', doneSets: 14, totalSets: 14,
     exercises: [
       { name: 'Back Squat',         prescribed: '4×5 · 100kg',  done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
@@ -3179,6 +3567,31 @@ const MOCK_REVIEW_QUEUE = [
       { name: 'Walking Lunge',      prescribed: '3×10 E',       done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
       { name: 'Leg Curl',           prescribed: '3×12',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
       { name: 'Hip Thrust',         prescribed: '1×AMRAP',      done: 1, sets: 1, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
+  // Already reviewed — the archive behind the real queue's SHOW REVIEWED.
+  {
+    id: 'rv4', traineeName: 'נועה לוי', initials: 'NL', reviewed: true,
+    dayName: 'Day C · Legs', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
+    date: '2 days ago', doneSets: 15, totalSets: 15,
+    exercises: [
+      { name: 'Back Squat',         prescribed: '4×5 · 70kg',   done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
+      { name: 'Romanian Deadlift',  prescribed: '3×8 · 60kg',   done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Walking Lunge',      prescribed: '3×10 E',       done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Hip Thrust',         prescribed: '3×10',         done: 3, sets: 3, hasVideo: false, comments: 1, focus: false },
+      { name: 'Plank',              prescribed: '2×45s',        done: 2, sets: 2, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
+  {
+    id: 'rv5', traineeName: 'גל מזרחי', initials: 'GM', reviewed: true,
+    dayName: 'Day B · Pull', planName: 'Block #4 — Pull Specialization', week: 3,
+    date: '3 days ago', doneSets: 16, totalSets: 16,
+    exercises: [
+      { name: 'Pull-Up',            prescribed: '4×6',          done: 4, sets: 4, hasVideo: true,  comments: 1, focus: true  },
+      { name: 'Bent-Over BB Row',   prescribed: '4×8 · 60kg',   done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
+      { name: 'Face Pull',          prescribed: '3×15',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'DB Bicep Curl',      prescribed: '3×12',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Hanging Leg Raise',  prescribed: '2×10',         done: 2, sets: 2, hasVideo: false, comments: 0, focus: false },
     ],
   },
 ];
@@ -3192,19 +3605,27 @@ function DemoReview() {
   const [selectedId, setSelectedId] = useState(null);
   const [vsDemo, setVsDemo] = useState(false); // Body-Match: form clip vs library reference demo
   const selected = MOCK_REVIEW_QUEUE.find(w => w.id === selectedId);
-  const queue = MOCK_REVIEW_QUEUE;
-  const byClient = {};
-  for (const wo of queue) {
-    if (!byClient[wo.traineeName]) byClient[wo.traineeName] = { name: wo.traineeName, workouts: [] };
-    byClient[wo.traineeName].workouts.push(wo);
-  }
+  // The real queue (WorkoutReview): pending athletes first; the reviewed
+  // archive stays behind a SHOW REVIEWED (n) toggle under the last of them.
+  const [showReviewed, setShowReviewed] = useState(false);
+  const groupOf = (list) => {
+    const by = {};
+    for (const wo of list) {
+      if (!by[wo.traineeName]) by[wo.traineeName] = { name: wo.traineeName, workouts: [] };
+      by[wo.traineeName].workouts.push(wo);
+    }
+    return by;
+  };
+  const byClient = groupOf(MOCK_REVIEW_QUEUE.filter(w => !w.reviewed));
+  const reviewedList = MOCK_REVIEW_QUEUE.filter(w => w.reviewed);
+  const byClientReviewed = groupOf(reviewedList);
 
   // Weekly-focus strip — mirrors the real WorkoutReview's WeeklyFocusTool
   // header. The "Log In-Person Session" subtab was removed from the real app
   // 2026-05-28 (in-person logging moved out), so Review is a SINGLE surface —
   // the demo drops the invented subtab + "REVIEW QUEUE" banner to match.
   const weeklyFocus = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '10px 14px', marginBottom: 14 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', marginBottom: 14 }}>
       <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}>{T('WEEKLY FOCUS · NO UPLOAD NEEDED')}</span>
       <span style={{ color: C.tm, fontSize: 12 }}>▾</span>
     </div>
@@ -3373,7 +3794,8 @@ function DemoReview() {
     <section>
       {weeklyFocus}
 
-      {Object.entries(byClient).map(([cid, data]) => (
+      {(() => {
+        const renderGroup = ([cid, data]) => (
         <div key={cid} style={{ marginBottom: 20 }}>
           {/* Athlete group header — solid cyan strip: name + (n) pending +
               · planName (cyan) + current-stage week boxes + Athlete page →.
@@ -3408,7 +3830,7 @@ function DemoReview() {
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.cardBd}>
                 <div style={{ minWidth: 0, flex: '1 1 190px' }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <div className="cd-rv-title" style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {/* A bare text node inside a flex row is an anonymous flex
                         item and shrinks to its minimum content width: "Day A ·
                         Push" came out over five lines in 102px. A day title is
@@ -3429,7 +3851,23 @@ function DemoReview() {
             );
           })}
         </div>
-      ))}
+        );
+        const reviewedCount = reviewedList.length;
+        return (<>
+          {Object.entries(byClient).map(renderGroup)}
+          {/* Queue divider, as on the real queue: under the last pending
+              athlete, the reviewed archive behind a toggle. */}
+          {reviewedCount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
+              <button onClick={() => setShowReviewed(v => !v)}
+                style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '0 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                {showReviewed ? <>✕ {T('HIDE REVIEWED')} ({reviewedCount})</> : <>{T('SHOW REVIEWED')} ({reviewedCount})</>}
+              </button>
+            </div>
+          )}
+          {showReviewed && Object.entries(byClientReviewed).map(renderGroup)}
+        </>);
+      })()}
     </section>
   );
 }
@@ -3634,9 +4072,15 @@ function DemoInlineVideo({ title }) {
   );
 }
 
-function DemoSessionExercise({ ex, open, onToggle }) {
-  const doneCount = ex.sets.filter(s => s.done).length;
-  const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
+// `doneUpTo` is how many of this exercise's sets this ATHLETE has finished.
+// Every card used to render the same DEMO_SESSION_DAY object, so all three
+// athletes on the floor showed byte-identical progress — and the one who had
+// not checked in yet still showed two sets of squats done. A coach reads that
+// in a second.
+function DemoSessionExercise({ ex, open, onToggle, doneUpTo }) {
+  const sets = doneUpTo == null ? ex.sets : ex.sets.map((x, i) => ({ ...x, done: i < doneUpTo }));
+  const doneCount = sets.filter(s => s.done).length;
+  const allDone = doneCount === sets.length && sets.length > 0;
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
     <div style={{ border: `1px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
@@ -3649,7 +4093,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
-          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{ex.sets.length}</span>{' '}{T('DONE')}</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{sets.length}</span>{' '}{T('DONE')}</span>
         </div>
       </div>
       {open && (
@@ -3661,14 +4105,14 @@ function DemoSessionExercise({ ex, open, onToggle }) {
             {['', 'REPS', 'KG', 'RPE', '✓'].map((h, i) => <span key={i} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {ex.sets.map((s, si) => (
+            {sets.map((s, si) => (
               <div key={si} style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
                 <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
                 <input defaultValue={s.reps} placeholder="reps" style={dCell} />
                 <input defaultValue={s.kg} placeholder="kg" style={dCell} />
                 <input defaultValue={s.rpe} placeholder="—" style={dCell} />
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <input type="checkbox" defaultChecked={s.done} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
+                  <input type="checkbox" key={`${si}-${s.done}`} defaultChecked={s.done} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
                 </label>
               </div>
             ))}
@@ -3680,7 +4124,11 @@ function DemoSessionExercise({ ex, open, onToggle }) {
 }
 
 function DemoGroupFloor() {
-  const roster = MOCK_TRAINEES.slice(0, 3);
+  // slice(0, 3) put גל on the gym floor — a man whose own card says dormant
+  // 18 days and whose format is Online. Three tabs then disagreed about the
+  // same athlete on the same afternoon. The floor is whoever actually trains
+  // in the gym and is not dormant.
+  const roster = MOCK_TRAINEES.filter(t => /Gym/.test(t.format || '') && !t.dormantDays).slice(0, 3);
   const [open, setOpen] = useState({}); // `${athleteIdx}:${exId}` -> bool
   const [checkedIn, setCheckedIn] = useState({ 0: true, 1: true });
   return (
@@ -3704,14 +4152,17 @@ function DemoGroupFloor() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A · W4')}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A')} · {readLang() === 'he' ? `${tr('he', 'W')}${1 + (idSeed(t.id) % 4)}` : <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`W${1 + (idSeed(t.id) % 4)}`}</span>}</div>
                 </div>
                 <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
               </div>
               <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {DEMO_SESSION_DAY.map(ex => {
                   const k = `${ai}:${ex.id}`;
-                  return <DemoSessionExercise key={ex.id} ex={ex} open={!!open[k]} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
+                  // Different athletes are at different points in the same
+                  // session, and nobody has lifted anything before checking in.
+                  const pace = [ex.sets.length, Math.max(0, ex.sets.length - 2), 1][ai] ?? 0;
+                  return <DemoSessionExercise key={ex.id} ex={ex} open={!!open[k]} doneUpTo={inFloor ? pace : 0} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
                 })}
               </div>
             </div>
@@ -3736,7 +4187,7 @@ function DemoSingle() {
           <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← {tr(readLang(), 'BACK')}</button>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 4 }}>
             <span>{active.day} · {active.name}</span>
-            <span style={{ color: C.tx, fontWeight: 700 }}>W4 · {doneSets}/{totalSets} · {pct}%</span>
+            <span style={{ color: C.tx, fontWeight: 700 }} dir="ltr"><span style={{ unicodeBidi: 'isolate' }}>{`W${active.week || DEMO_WEEK}`}</span> · {doneSets}/{totalSets} · {pct}%</span>
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
         </div>
@@ -3757,7 +4208,11 @@ function DemoSingle() {
     <div>
       <h3 style={{ fontFamily: FN, fontSize: 12, color: C.td, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px', fontWeight: 600 }}>{T('Start a Session')}</h3>
       <div style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${C.cardBd}` }}>
-        {MOCK_TRAINEES.slice(0, 6).map((t, i) => {
+        {/* slice(0, 6) offered מאיה, who is On Hold with zero sessions left,
+            and left out עומר, who is active and trained today. You cannot
+            start a session with someone frozen and out of sessions. The list
+            is whoever you actually could start one with. */}
+        {MOCK_TRAINEES.filter(t => (t.status === 'Active' || t.status === 'Trial') && t.sessionsLeft > 0).map((t, i) => {
           const isOpen = openAthlete === t.id;
           const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
           return (
@@ -3765,21 +4220,36 @@ function DemoSingle() {
               <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', textAlign: 'start' }}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
-                  <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>BLOCK #4</span>
+                  {/* every row said BLOCK #4; each athlete has their own */}
+                  <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }} dir="ltr">{((t.plans && t.plans[0]) || '').split(' — ')[0] || 'BLOCK #1'}</span>
                 </span>
                 <span style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </button>
               {isOpen && (
                 <div style={{ padding: '0 14px 14px' }}>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginInlineEnd: 2 }}>{T('LOG INTO')}</span>
-                    {[1, 2, 3, 4].map(wn => <span key={wn} style={{ minWidth: 32, textAlign: 'center', padding: '3px 0', border: `${wn === 4 ? '2px' : '1px'} solid ${wn === 4 ? C.ac : C.bd}`, background: wn === 4 ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === 4 ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700 }}>W{wn}</span>)}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {dayNames.map((dn, di) => (
-                      <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === 0 ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === 0 ? C.ac : C.tm, border: `1px solid ${di === 0 ? 'rgba(57,189,255,0.45)' : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
-                    ))}
-                  </div>
+                  {/* EVERY ATHLETE OPENED ON W4 / DAY A. Ohad, 24.9: "every single
+                      person should have a different day and week that it
+                      auto-selects". Week and day now come from the athlete —
+                      seeded off their id so they are stable across reloads and
+                      differ from row to row. The W pills were bordered spans
+                      20px tall beside 36px buttons; they are controls and now
+                      stand at the one control height. */}
+                  {(() => {
+                    const seed = idSeed(t.id);
+                    const autoWeek = 1 + (seed % 4);
+                    const autoDay = seed % dayNames.length;
+                    return (<>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginInlineEnd: 2 }}>{T('LOG INTO')}</span>
+                        {[1, 2, 3, 4].map(wn => <span key={wn} dir="ltr" style={{ minWidth: 40, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px', border: `1px solid ${wn === autoWeek ? C.ac : C.bd}`, background: wn === autoWeek ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === autoWeek ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>W{wn}</span>)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {dayNames.map((dn, di) => (
+                          <button key={di} onClick={() => setActive({ name: t.name, day: dn, week: autoWeek })} style={{ ...baseBtn, background: di === autoDay ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === autoDay ? C.ac : C.tm, border: `1px solid ${di === autoDay ? C.ac : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
+                        ))}
+                      </div>
+                    </>);
+                  })()}
                 </div>
               )}
             </div>
@@ -3814,7 +4284,9 @@ const DEMO_REVIEW_TOOLS = [
   { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
   // Basketball. Parity with ReviewToolsView's registry — the demo listed four
   // tools while the real launcher shipped five (parity rule, 08-24).
-  { key: 'shot', label: 'SHOT ANALYZER', measures: 'Jump-shot mechanics, phase by phase · does the release repeat across the set', live: false },
+  // SHOT ANALYZER removed from the demo, 24.9. Ohad: "take the shot analysis
+  // off the sales site (it's for me only right now); it shouldn't be in the
+  // demo either." It stays in the real app behind the owner seat.
 ];
 function DemoReviewTools() {
   const [title, setTitle] = useState('Back Squat');
@@ -3847,7 +4319,7 @@ function DemoReviewTools() {
                 <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{T(t.measures)}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{tr(readLang(), t.live ? 'LIVE' : 'CLIP')}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: 'none', padding: '2px 6px', whiteSpace: 'nowrap' }}>{tr(readLang(), t.live ? 'LIVE' : 'CLIP')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{T('OPEN →')}</span>
               </div>
             </div>
@@ -3983,7 +4455,8 @@ function DemoTasks() {
         />
         <div style={{ flex: 1, minWidth: 0 }}>
       {/* Composer (collapsed affordance) */}
-      <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10 }) }}>
+      {/* An input in all but tag, and 57px tall beside 36px controls. */}
+      <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box' }) }}>
         <span style={{ color: C.ac, fontSize: 16, fontWeight: 700 }}>+</span>
         <span style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Add a task…')}</span>
       </div>
@@ -4005,9 +4478,9 @@ function DemoTasks() {
                     const meta = TASK_SRC[t.src];
                     const overdue = /OVERDUE/i.test(t.due);
                     return (
-                      <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
+                      <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5, justifyContent: 'center', minHeight: CTRL_H, boxSizing: 'border-box' })}>
                         <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{taskTitle(t)}</span>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: 'none', padding: 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
                       </div>
                     );
                   })}
@@ -4074,7 +4547,7 @@ const DEMO_PAYMENTS = (() => {
       status: pending ? 'pending' : 'paid',
       date: dAgo(days),
       overdueDays: pending ? days : 0,
-      ref: t.isCouple ? 'Monthly coaching (couple)' : t.programs > 2 ? 'Monthly coaching + plan' : 'Monthly coaching',   // through T() at the render site
+      ref: t.isCouple ? 'Monthly coaching (couple)' : planCount(t) > 2 ? 'Monthly coaching + plan' : 'Monthly coaching',   // through T() at the render site
     };
     if (t.isCouple) {
       // One couple, two invoices — which is how he actually bills them.
@@ -4095,6 +4568,16 @@ const DEMO_REFERENCE_CLIP = 'bvaCXyXeBvU';
 const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td }, trial: { label: 'TRIAL', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
+  // CHASE and MARK PAID were inert — no onClick at all — on the screen the run
+  // sheet calls his strongest, where he invites the buyer to add the column up.
+  // A control that looks live and does nothing is the exact thing he objected
+  // to ("this type of shit shouldnt happen anywhere"), and a dead button
+  // clicked in front of a buyer is worse here than anywhere else in the demo.
+  // The demo has no backend, so they say what the real one would do — the same
+  // explainer pattern Review → Tools already uses. Deliberately NOT changing
+  // the amounts: the reconciliation he walks the buyer through has to hold
+  // still while he is talking over it.
+  const [acted, setActed] = useState({});
   // THE PAYMENT ROW HAS TO WRAP ON A PHONE.
   //
   // Photographed at 390 for the client demo (22.9): the actions block is
@@ -4125,7 +4608,11 @@ function DemoBilling() {
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T(label)}</span>
       </div>
       <div style={{ padding: 14 }}>
-        <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', direction: 'ltr' }}>{value}</div>
+        {/* Same rule as StatCard: direction:ltr isolates the NUMERAL, it does
+            not get to decide which side of the card the number sits on. */}
+        <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', textAlign: 'start' }}>
+          <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' }}>{value}</span>
+        </div>
         <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{sub}</div>
       </div>
     </div>
@@ -4155,10 +4642,19 @@ function DemoBilling() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? `באיחור של ${p.overdueDays} ימים` : `${p.overdueDays}D OVERDUE`}</span>}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
-                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
-                  {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: 'none', padding: '2px 0' }}>{T(st.label)}</span>
+                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'chase' }))} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid rgba(37,211,102,0.45)', padding: '0 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
+                  {p.status === 'pending' && <button onClick={() => setActed(m => ({ ...m, [p.id || p.name]: 'paid' }))} style={{ ...baseBtn, background: 'transparent', color: C.gn, border: '1px solid rgba(46,213,115,0.45)', padding: '0 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
+                {/* The row already wraps, so the explainer takes its own full
+                    width line under the buttons rather than squeezing them. */}
+                {acted[p.id || p.name] && (
+                  <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
+                    {acted[p.id || p.name] === 'chase'
+                      ? T('Demo only — in the full app this sends a WhatsApp reminder with a payment link.')
+                      : T('Demo only — in the full app this marks the request paid and updates the ledger.')}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -4182,7 +4678,7 @@ function DemoBilling() {
             return (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: `1px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{t.name}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: 'none', padding: '2px 0' }}>{T(st.label)}</span>
               </div>
             );
           })}
@@ -4335,7 +4831,14 @@ export default function CoachDemo() {
            right. It was a horizontal scroller, so nothing looked broken to a
            gate and everything was invisible to a person. It wraps now: the
            brand row on top, the full tab strip under it, nothing hidden. */
-        @media (max-width: 760px) {
+        /* 860, not 760: the tightened page gate caught the waitlist CTA at
+           x -157..-8 on a 768 tablet — fully off-screen. The nav's own
+           content is ~823px wide, so anything narrower than that plus its
+           padding has to wrap. */
+        /* The note is a whole sentence or nothing: at 1440 it clipped to
+           "MOCK DATA —" beside the nav. */
+        @media (max-width: 1559px) { .cd-pov-note { display: none !important; } }
+        @media (max-width: 860px) {
           .cd-hdr { flex-wrap: wrap !important; height: auto !important; overflow-x: visible !important; padding-top: 8px !important; padding-bottom: 8px !important; row-gap: 8px !important; }
           /* A GRID, NOT A RAGGED WRAP. Letting it wrap put five tabs on one
              row and תשלומים dangling alone on a second — measurably visible
@@ -4344,8 +4847,34 @@ export default function CoachDemo() {
              its content width (426px in Hebrew, 541 in English) and simply
              hung off the edge again. */
           .cd-hdr > nav { order: 3; flex: 1 1 100% !important; min-width: 0 !important; max-width: 100% !important; display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; overflow-x: visible !important; }
-          .cd-hdr > nav > * { width: 100% !important; justify-content: center !important; }
-          .cd-cta-waitlist { margin-inline-start: auto !important; }
+          /* EVERY CELL GETS A BOUNDARY. With only the active tab boxed, the
+             other five were bare words floating in a dark field with
+             invisible gaps between them — six labels that read as a jumble
+             rather than as a menu. A hairline on each turns the grid into a
+             segmented control you can see the shape of, and one height means
+             the two rows line up instead of sizing themselves to their text. */
+          .cd-hdr > nav > * {
+            width: 100% !important; justify-content: center !important;
+            border: 1px solid var(--c-cardBd) !important;
+            min-height: 36px !important;   /* the one control height, not a second one */
+          }
+          .cd-hdr > nav > [aria-selected="true"] { border-color: var(--c-ac) !important; }
+          /* Logo first, actions after it, nav on its own row underneath —
+             the same reading order as the desktop bar. */
+          .cd-hdr > a:first-child { order: 0; }
+          .cd-hdr > button { order: 1; }
+          .cd-cta-waitlist { order: 2; margin-inline-start: auto !important; }
+          /* the demo-identity cluster takes the row after the nav; the sentence
+             has no room on a phone and the chip says enough */
+          .cd-pov { order: 4; flex: 1 1 100% !important; margin-inline-start: 0 !important; justify-content: space-between; }
+          .cd-pov-note { display: none !important; }
+        }
+        /* On a phone the waitlist button was wider than the EXPO logo and the
+           brightest thing above the fold — a marketing CTA out-weighing both
+           the brand and the product's own navigation. It stays reachable and
+           stops competing. */
+        @media (max-width: 560px) {
+          .cd-cta-waitlist { padding: 0 10px !important; font-size: 10px !important; letter-spacing: 0.06em !important; }
         }
         /* Programs table on phones — let it scroll horizontally instead of
            cramping every column. */
@@ -4370,20 +4899,35 @@ export default function CoachDemo() {
         background: C.sf, borderBottom: `1px solid ${C.bd}`,
         position: 'sticky', top: 0, zIndex: 50,
       }}>
+        {/* ONE ROW, LIKE THE REAL COACH APP. The demo ran two: a 60px bar
+            holding the logo, six tabs and two controls, and under it a 61px
+            banner holding a chip, a sentence and a third control. At 1440 the
+            bar had ~430px of nothing between the last tab and the language
+            switch, and the banner repeated the same emptiness one row down.
+            Ohad, three times: "the top menu is horrible". The banner's
+            content now lives in the bar's middle — where the void was — and
+            the bar is the real app's 56px. */}
         <div className="cd-hdr" style={{
           maxWidth: 1280, margin: '0 auto', padding: '0 16px',
-          display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
+          display: 'flex', alignItems: 'center', height: 56, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
           </a>
-          <span className="cd-badge" style={{
-            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
-            padding: '4px 8px', background: C.acD, borderRadius: 0,
-            border: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap',
-          }}>{T('COACH DEMO')}</span>
+          {/* The COACH DEMO chip lived here and said the same thing as the
+              banner directly beneath it ("COACH VIEW · your side of the
+              platform · mock data"), 40px lower and in the same cyan. Two
+              chips for one fact, stealing the room the nav needed. */}
+          {/* THE NAV HAS TO SIT NEXT TO THE LOGO.
+              It was flex:1 with justifyContent:center, so at 1440 it centred
+              itself in the leftover space and left ~700px of empty bar between
+              the logo and the first tab — six 11px words adrift in the middle
+              of a wide dark strip, reading as fine print rather than as the
+              product's navigation. The real coach app puts the logo and the
+              nav side by side at the start and pushes its actions to the far
+              end; this now does the same. */}
           <nav role="tablist" aria-label={T('Coach demo tabs')} style={{
-            display: 'flex', gap: 2, flex: '1 1 auto', justifyContent: 'center',
+            display: 'flex', gap: 6, flex: '1 1 auto', justifyContent: 'flex-start',
             minWidth: 'max-content',
           }}>
             {TABS.map((t, i) => (
@@ -4415,10 +4959,21 @@ export default function CoachDemo() {
                   // because digits in JetBrains Mono align to cap-height, not
                   // x-height. Switching to baseline pins both glyphs' baselines
                   // to the same line — the count tucks right next to the label.
-                  alignItems: 'baseline',
-                  background: tab === t.key ? C.acD : 'transparent',
+                  // COPIED FROM THE REAL COACH NAV (App.jsx), not styled by eye:
+                  // fontSize 10 / weight 700 / letterSpacing 0.06em / uppercase,
+                  // padding 0 8px, label and count on one centre line, active =
+                  // transparent fill with a 1px cyan border and cyan text,
+                  // inactive = transparent with an invisible border so nothing
+                  // shifts when the state changes. The one deliberate
+                  // difference is height: the real bar runs its buttons at 32
+                  // while every other control in the product is 36, and his
+                  // rule is one height — so this is 36, and the real bar is
+                  // being brought up to it too.
+                  alignItems: 'center', lineHeight: 1,
+                  background: 'transparent',
+                  border: `1px solid ${tab === t.key ? C.ac : 'transparent'}`,
                   color: tab === t.key ? C.ac : C.tm,
-                  padding: '0 12px', fontSize: 11, letterSpacing: 1.5,
+                  padding: '0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                   whiteSpace: 'nowrap', gap: 4,
                 }}>
                 <span>{T(t.label)}</span>
@@ -4437,6 +4992,32 @@ export default function CoachDemo() {
               A reload rather than state: the demo reads readLang() at dozens
               of call sites instead of through a context, so flipping a state
               would leave half the screen in the old language. */}
+          {/* The demo's identity, in the space the nav does not need. The
+              chip is a bordered control and stands at the one control height;
+              the note is the banner sentence cut to what a buyer must know. */}
+          <div className="cd-pov" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginInlineStart: 'auto', flex: '0 1 auto', minWidth: 0 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto',
+              fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+              background: C.acD, border: `1px solid ${C.cardBd}`,
+              borderRadius: 0, padding: '0 9px', minHeight: CTRL_H, boxSizing: 'border-box', whiteSpace: 'nowrap',
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              {T('COACH VIEW')}
+            </div>
+            <span className="cd-pov-note" style={{ fontFamily: FB, fontSize: 12, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip', minWidth: 0 }}>
+              {T('Mock data — nothing here writes to your account.')}
+            </span>
+            <a href="/demo/trainee" className="cd-pov-link" style={{
+              ...baseBtn, background: 'transparent', color: C.tm,
+              border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,
+              flex: '0 0 auto', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>{T('SEE ATHLETE VIEW →')}</a>
+          </div>
           <button
             onClick={() => {
               const next = readLang() === 'he' ? 'en' : 'he';
@@ -4459,49 +5040,21 @@ export default function CoachDemo() {
               <span style={{ gridArea: '1 / 1' }}>{readLang() === 'he' ? 'EN' : 'עב'}</span>
             </span>
           </button>
+          {/* Solid cyan made this the brightest object in the header — a
+              marketing button shouting over the navigation of the product it
+              is selling, and on a phone it was physically larger than the
+              logo. Outlined: still unmistakably the call to action, no longer
+              the first thing the eye lands on. */}
           <a href="/demo#waitlist" className="cd-cta-waitlist" style={{
-            ...baseBtn, background: C.ac, color: C.acOnSurface,
+            ...baseBtn, background: 'transparent', color: C.ac,
+            border: `1px solid ${C.ac}`,
             padding: '0 14px', fontSize: 11, flex: '0 0 auto',
           }}>{T('JOIN WAITLIST →')}</a>
         </div>
       </header>
 
-      {/* POV banner — same shape as the engine sandbox to keep UX coherent */}
-      <div style={{
-        borderBottom: `1px solid ${C.bd}`,
-        background: `linear-gradient(180deg, ${C.sf} 0%, ${C.bg} 100%)`,
-      }}>
-        <div style={{
-          maxWidth: 1280, margin: '0 auto', padding: '12px 16px',
-          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-        }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
-            background: C.acD, border: `1px solid ${C.cardBd}`,
-            borderRadius: 0, padding: '4px 9px', whiteSpace: 'nowrap',
-          }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            {T('COACH VIEW')}
-          </div>
-          <div style={{
-            fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45,
-            flex: '1 1 auto', minWidth: 200,
-          }}>
-            <b style={{ opacity: 1 }}>{T('Your')}</b> {T('side of the platform. Click through the tabs above. Mock data — nothing here writes to your account.')}
-          </div>
-          <a href="/demo/trainee" style={{
-            ...baseBtn,
-            background: 'transparent', color: C.tm,
-            border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,
-            flex: '0 0 auto', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>{T('SEE ATHLETE VIEW →')}</a>
-        </div>
-      </div>
+      {/* The POV banner that sat here — chip, sentence, athlete-view link —
+          moved up into the header bar (see .cd-pov). One row, 56px, no void. */}
 
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {/* THE SUB-NAV GOES ABOVE THE CONTENT IT SWITCHES.

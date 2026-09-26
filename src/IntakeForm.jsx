@@ -29,7 +29,7 @@ function Field({ q, value, onChange, dir }) {
   const inputBase = {
     width: '100%', boxSizing: 'border-box',
     background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-    padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none',
+    padding: '0 12px', minHeight: 36, color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none',
     direction: dir,
   };
   const labelStyle = {
@@ -341,7 +341,7 @@ export default function IntakeForm() {
         {(form?.questions || []).map(q => (
           <Field key={q.id} q={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} dir={labelDir(q.label)} />
         ))}
-        <button disabled style={{ background: 'var(--c-sf)', border: `1px solid ${C.tm}`, color: C.tm, padding: '12px 24px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, marginTop: 12, opacity: 0.5 }}>
+        <button disabled style={{ background: 'var(--c-sf)', border: `1px solid ${C.tm}`, color: C.tm, padding: '0 24px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, marginTop: 12, opacity: 0.5 }}>
           {form?.submitLabel || 'Submit'} (preview)
         </button>
       </div></div>
@@ -364,7 +364,7 @@ export default function IntakeForm() {
       )}
       <div style={{ display: 'flex', justifyContent: dir === 'rtl' ? 'flex-start' : 'flex-end', marginTop: 12 }}>
         <button onClick={onSubmit} disabled={phase === 'submitting'}
-          style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, padding: '12px 28px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, cursor: phase === 'submitting' ? 'wait' : 'pointer', opacity: phase === 'submitting' ? 0.5 : 1 }}>
+          style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, padding: '0 28px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, cursor: phase === 'submitting' ? 'wait' : 'pointer', opacity: phase === 'submitting' ? 0.5 : 1 }}>
           {phase === 'submitting' ? (dir === 'rtl' ? 'שולח…' : 'Submitting…') : form?.submitLabel}
         </button>
       </div>

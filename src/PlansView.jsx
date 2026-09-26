@@ -2549,8 +2549,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               title={vis ? tr(readLang(), 'On the athlete portal — click to hide') : tr(readLang(), 'Hidden from the athlete portal — click to show')}
               style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border:`1px solid ${vis ? 'rgba(46,213,115,0.5)' : C.cardBd}`, borderRadius:0, height:42, padding:'0 13px', display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer'}}>
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:vis?C.gn:C.td}}>{tb('PORTAL')}</span>
-              <span style={{width:32,height:18,borderRadius:9,background:vis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${vis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
-                <span style={{width:14,height:14,borderRadius:7,background:vis?C.gn:C.td,position:'absolute',top:1,left:1,transform:vis?'translateX(14px)':'none',transition:'transform .15s cubic-bezier(.22,.61,.36,1)'}} />
+              <span style={{width:32,height:18,borderRadius:9,background:vis?'rgba(46,213,115,0.35)':'rgba(127,127,138,0.25)',position:'relative',flexShrink:0}}>
+                <span style={{width:14,height:14,borderRadius:7,background:vis?C.gn:C.tm,position:'absolute',top:2,left:2,transform:vis?'translateX(14px)':'none',transition:'transform .15s cubic-bezier(.22,.61,.36,1)'}} />
               </span>
             </button>;
           })()}
@@ -3353,7 +3353,7 @@ function pctFromReps(reps) {
 // from the numbers (relative volume + rep emphasis + power share).
 function detectPhase(name, { avgReps, totalSets, avgSets, peakSets, powerShare }) {
   const n = (name || '').toLowerCase();
-  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|שבוע הורדה|דילאוד|דילואוד|דילוד/.test(n)) return 'Deload';
+  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|שבוע הורדה|דילאוד|דילואוד|דילואד|דילוד/.test(n)) return 'Deload';
   if (/peak|realiz|test\s*week|compet|max\s*out/.test(n)) return 'Peak';
   if (/power|\bpwr\b|plyo|speed|explos|dynamic|convert|conversion|\brfd\b|ballistic/.test(n)) return 'Power';
   if (/strength|\bstr\b|\bint\b|\bmxs\b|intensif|max\s*str|\bheavy\b|כוח/.test(n)) return 'Strength';
@@ -4410,8 +4410,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       title={title || (on ? tr(readLang(), 'On the athlete portal — click to hide') : tr(readLang(), 'Hidden from the athlete portal — click to show'))}
       style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:28, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
       <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>{tb("PORTAL")}</span>
-      <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border:`1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
-        <span style={{ width:14, height:14, borderRadius:7, background: on ? C.gn : C.td, position:'absolute', top:1, left: on ? 15 : 1, transition:'left .15s' }} />
+      <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
+        <span style={{ width:14, height:14, borderRadius:7, background: on ? C.gn : C.tm, position:'absolute', top:2, left: on ? 16 : 2, transition:'left .15s' }} />
       </span>
     </button>
   );
@@ -4848,7 +4848,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                   style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:24}}>
+                  <div className="cd-prog-title" style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:'var(--btn-h)'}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {row.earlier.length > 0 && (
                       /* Fixed width: the count changes the label, and 1 / 3 / 10
@@ -4875,8 +4875,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     const isVis = portalVis?.[vk] !== false;
                     return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
                       <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
-                      <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
-                        <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+                      <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.35)':'rgba(127,127,138,0.25)',position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
+                        <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.tm,position:'absolute',top:2,left:isVis?16:2,transition:'left .15s'}} />
                       </span>
                     </button>;
                   })()}
@@ -4912,7 +4912,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
                           const isVis = portalVis?.[vk] !== false;
-                          return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{tr(readLang(), isVis ? 'On portal' : 'Hidden')}</button>;
+                          return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.tm}} />{tr(readLang(), isVis ? 'On portal' : 'Hidden')}</button>;
                         })()}
                         {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title={tt('Preview as trainee')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Preview")}</button>}
                         <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title={tt('Duplicate program')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Duplicate")}</button>
@@ -4981,8 +4981,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               const isVis = portalVis?.[vk] !== false;
               return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
                 <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
-                <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
-                  <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+                <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.35)':'rgba(127,127,138,0.25)',position:'relative',flexShrink:0}}>
+                  <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.tm,position:'absolute',top:2,left:isVis?16:2,transition:'left .15s'}} />
                 </span>
               </button>;
             };
@@ -5023,7 +5023,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 {/* No minHeight / flex stretch — grid cards compress to the same
                     natural height as the table rows (Ohad 2026-08-21). */}
                 <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:24}}>
+                  <div className="cd-prog-title" style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:'var(--btn-h)'}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
                   </div>
@@ -5121,8 +5121,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 const isVis = portalVis?.[vk] !== false;
                 return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
                   <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
-                  <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
-                    <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+                  <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.35)':'rgba(127,127,138,0.25)',position:'relative',flexShrink:0}}>
+                    <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.tm,position:'absolute',top:2,left:isVis?16:2,transition:'left .15s'}} />
                   </span>
                 </button>;
               })()}
@@ -5244,7 +5244,7 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
     .filter(o => (o.name || '').toLowerCase().includes(q));
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'calc(100dvh - 24px)', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
         <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{tt('Share program to…')}</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>

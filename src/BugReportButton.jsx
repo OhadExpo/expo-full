@@ -12,7 +12,8 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { toast, useEscClose } from './ui';
-import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
+import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
+
 import { useT } from './i18n';
 
 function bundleHash() {
@@ -158,7 +159,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-            maxWidth: 560, width: '100%', maxHeight: '80vh', overflow: 'auto', padding: 22,
+            maxWidth: 560, width: '100%', maxHeight: 'calc(100dvh - 24px)', overflow: 'auto', padding: 22,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>

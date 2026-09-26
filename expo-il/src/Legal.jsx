@@ -164,8 +164,8 @@ export function Accessibility() {
             axes, links get one on height. Claiming "both directions" for links
             would have been a sentence this page cannot cash. */}
         <LI>{heb
-          ? 'בטלפון, כל כפתור הוא לפחות 40 פיקסלים לגובה ולרוחב, וכל קישור לפחות 40 פיקסלים לגובה.'
-          : 'On a phone, every button is at least 40px tall and 40px wide, and every link is at least 40px tall.'}</LI>
+          ? 'בטלפון, כל כפתור הוא לפחות 36 פיקסלים לגובה ולרוחב, וכל קישור לפחות 36 פיקסלים לגובה.'
+          : 'On a phone, every button is at least 36px tall and 36px wide, and every link is at least 36px tall.'}</LI>
         <LI>{heb
           ? 'האתר עובד בהגדלה ובמסכים צרים בלי גלילה לצדדים.'
           : 'The site works zoomed in and on narrow screens without sideways scrolling.'}</LI>

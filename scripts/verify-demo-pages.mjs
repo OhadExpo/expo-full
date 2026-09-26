@@ -30,6 +30,7 @@
 //   node scripts/verify-demo-pages.mjs [--shots] [--only <substring>]
 import fs from 'node:fs';
 import P from 'puppeteer-core';
+import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const SHOTS = process.argv.includes('--shots');
@@ -44,6 +45,14 @@ const SURFACES = [
   ['landing-he', '/demo/he'],
   ['landing-en', '/demo/en'],
   ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
+  // CLICK-GATED SCREENS MUST BE IN THE LIST. The athlete drill-in is the
+  // deepest screen in the demo, and every gate walked past it because a sweep
+  // loads a route and reads the page — this one only appeared after you opened
+  // an athlete. That is how it kept a fabricated assessment, an English
+  // payments ledger and a hardcoded April date. It has a URL; use it.
+  ['athlete-detail', '/demo/coach/trainees/t1'],
+  ['athlete-couple', '/demo/coach/trainees/t3'],
+  ['athlete-overdue', '/demo/coach/trainees/t2'],
   ['athlete', '/demo/athlete'],
   ['sandbox', '/demo/sandbox'],
   ['try', '/try'],
@@ -69,7 +78,7 @@ for (const [name, route] of SURFACES) {
       const ctx = await b.createBrowserContext();
       const pg = await ctx.newPage();
       try {
-        await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 700, hasTouch: w < 700 });
+        await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
         await pg.evaluateOnNewDocument((L) => {
           try {
             localStorage.setItem('expo-lang', L);
@@ -115,9 +124,38 @@ for (const [name, route] of SURFACES) {
           await wait(260);
           steps++;
           const r = await pg.evaluate((minTap) => {
-            const out = { covered: [], offscreen: [], clipped: [], tiny: [] };
+            const out = { covered: [], offscreen: [], clipped: [], tiny: [], junk: [] };
             const vw = innerWidth, vh = innerHeight;
             const inView = (b) => b.bottom > 0 && b.top < vh && b.height > 0;
+
+            // --- JUNK: a value that leaked instead of rendering -------------
+            //
+            // "3 ימים · NAN תרגילים" shipped on every card of the programs tab
+            // because a derived count read charCodeAt(2) of a two-character id.
+            // A gate cannot know a number is WRONG, but it can always know a
+            // number is not a number — and NaN / undefined / null / [object
+            // Object] on screen is the single most embarrassing class of fault
+            // in front of a buyer. Cheap to check, so there is no excuse for
+            // having found this one by eye.
+            {
+              //  cannot precede a '[', so (...|\[object Object\]) silently
+              // never matched it — caught by the break test, 4 of 5 shapes.
+              const junkRe = /\b(NaN|undefined|null|Infinity)\b|\[object [A-Z]\w*\]/;
+              const wj = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              let jn;
+              while ((jn = wj.nextNode())) {
+                const t = (jn.nodeValue || '').trim();
+                if (!t || !junkRe.test(t)) continue;
+                const el = jn.parentElement;
+                if (!el) continue;
+                const bb = el.getBoundingClientRect();
+                if (bb.width < 2 || bb.height < 2 || !inView(bb)) continue;
+                const cs = getComputedStyle(el);
+                if (cs.visibility === 'hidden' || cs.opacity === '0') continue;
+                out.junk = out.junk || [];
+                out.junk.push({ t: t.slice(0, 44) });
+              }
+            }
 
             // --- COVERED ---------------------------------------------------
             const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -174,7 +212,30 @@ for (const [name, route] of SURFACES) {
                 }
                 continue;
               }
-              if (scrollerOf(el)) continue;             // a rail is a design
+              // A SCROLLER IS A DESIGN — EXCEPT FOR NAVIGATION.
+              //
+              // The first version of this line excused anything inside a
+              // horizontal scroller, and printed green over the demo's top menu
+              // showing half of itself: four of seven controls at negative x in
+              // Hebrew, the same four past the right edge in English.
+              //
+              // My second attempt tried "a scroller is honest if its scrollbar
+              // shows or a tile peeks at the edge". The break test killed it: a
+              // peeking tile is true of EVERY horizontal scroller, including the
+              // broken nav, so it excused exactly what it was meant to catch.
+              //
+              // The real distinction is not how the scroller looks, it is WHAT
+              // IS IN IT. A content rail may hold more than fits — that is the
+              // point of a rail. NAVIGATION may not: a menu that hides half its
+              // items has no way to tell you the other half exists. So a
+              // scroller excuses an off-screen control unless it is navigation.
+              const sc = scrollerOf(el);
+              if (sc) {
+                const isNav = !!(sc.closest('nav,header,[role=tablist],[role=navigation]')
+                  || sc.querySelector('[role=tab]')
+                  || (el.getAttribute && el.getAttribute('role') === 'tab'));
+                if (!isNav) continue;
+              }
               out.offscreen.push({ t: (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 30), l: Math.round(bb.left), r: Math.round(bb.right) });
             }
 
@@ -212,6 +273,7 @@ for (const [name, route] of SURFACES) {
               add({ kind, id, detail: fmt(x) });
             }
           };
+          push('JUNK', r.junk || [], (x) => `"${x.t}" — a value leaked to the screen instead of rendering`);
           push('COVERED', r.covered, (x) => `"${x.t}" is under ${x.by}`);
           push('OFFSCREEN', r.offscreen, (x) => `"${x.t}" at x ${x.l}..${x.r} (viewport 0..${w}), not in a scroller`);
           push('CLIPPED', r.clipped, (x) => `"${x.t}" ink overflows its box by ${x.overW}x${x.overH}px`);
@@ -256,9 +318,14 @@ for (const [name, route] of SURFACES) {
         });
         for (const x of buried) add({ kind: 'BURIED', id, detail: `"${x.t}" cannot be tapped at rest — covered by the sticky "${x.by}"` });
 
-        // --- DEADAIR: a long empty run mid-page, on a phone ----------------
-        if (w < 700) {
-          const gaps = await pg.evaluate(() => {
+        // --- DEADAIR: a long empty run mid-page ---------------------------
+        // It used to run only under 700px. A 200px hole reads as unfinished
+        // on a laptop too, which is the screen he demos from. The threshold
+        // is looser on desktop because a tall card legitimately leaves more
+        // room beside a short one.
+        {
+          const GAP = w < 700 ? 400 : 260;
+          const gaps = await pg.evaluate((gapMin) => {
             const rows = [];
             for (const el of document.querySelectorAll('body *')) {
               if (!el.childElementCount && (el.textContent || '').trim().length < 2) continue;
@@ -270,11 +337,11 @@ for (const [name, route] of SURFACES) {
             const gapsOut = [];
             let reach = 0;
             for (const [t, b2] of rows) {
-              if (t - reach > 400 && reach > 0) gapsOut.push({ from: Math.round(reach), to: Math.round(t) });
+              if (t - reach > gapMin && reach > 0) gapsOut.push({ from: Math.round(reach), to: Math.round(t) });
               reach = Math.max(reach, b2);
             }
             return gapsOut;
-          });
+          }, GAP);
           for (const g of gaps) add({ kind: 'DEADAIR', id, detail: `${g.to - g.from}px of nothing between y=${g.from} and y=${g.to}` });
         }
 

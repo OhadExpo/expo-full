@@ -285,7 +285,16 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   useEffect(() => {
     if (!open) return;
     const selector = `[data-submenu-id="${id}"]`;
-    const onDoc = (e) => { if (!e.target.closest?.(selector)) setOpen(false); };
+    // THE PANEL IS PORTALLED TO <body>, so in the DOM it is not inside the
+    // [data-submenu-id] wrapper and closest() cannot find it. Every press on a
+    // menu item therefore read as an outside click: mousedown closed the panel,
+    // it unmounted, and the item's click never fired — "the top menu submenu is
+    // not clickable anywhere" (Ohad, 26.9). Inside means the trigger OR the panel.
+    const onDoc = (e) => {
+      if (e.target.closest?.(selector)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
@@ -316,7 +325,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
       {/* 17.9: fixed was not enough - the panel sits in the header's stacking context, so the page
           content painted OVER it on a phone. Portalled to <body>, per the app-wide overlay rule. */}
       {open && createPortal(
-        <div ref={menuRef} className="motion-rise" onPointerEnter={pointerOpen} onPointerLeave={pointerClose} style={{
+        <div ref={menuRef} data-submenu-id={id} className="motion-rise" onPointerEnter={pointerOpen} onPointerLeave={pointerClose} style={{
           position: 'fixed', top: coords.top, left: coords.left, maxWidth: 'calc(100vw - 16px)',
           background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
           minWidth: 180, zIndex: 100000, transformOrigin: 'top center',
@@ -557,7 +566,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
 }
 
 // One box for every icon control in the coach header row.
-const HDR_ICON_H = 32;
+const HDR_ICON_H = 36;   // the one control height (was 32; see themes.css --btn-h)
 
 export default function App() {
   return (
@@ -937,10 +946,8 @@ function AuthedApp() {
   const [bhbcFixtures,setBhbcFixtures,,,setBhbcFixturesLocal]=useSupaStore('expo-bhbc-fixtures',[]);
   const [bhbcLeague,,,,setBhbcLeagueLocal]=useSupaStore('expo-bhbc-league',{});
   const [bhbcMedical,setBhbcMedical,,,setBhbcMedicalLocal]=useSupaStore('expo-bhbc-medical',{});
-  // Per-SESSION plan (what the squad actually does in that slot), keyed
-  // `${date}|${start}` so a day with a morning AND an evening practice gets a
-  // plan for each — the fixture rows themselves carry no plan field.
-  const [bhbcPlans,setBhbcPlans,,,setBhbcPlansLocal]=useSupaStore('expo-bhbc-plans',{});
+  // (`expo-bhbc-plans`, the per-slot practice plan, is no longer read: the
+  // zone has no practice plans since 24.9. The key stays in the database.)
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -1266,10 +1273,15 @@ function AuthedApp() {
   const isCoach = isTrainer;
   // WHICH SEAT THIS IS, for the store's write fence (src/seatWrite.js): a
   // staff seat writes everything, a club coach the club's keys, an athlete only
-  // its own presence row. Set once the role is known; 'unknown' blocks nothing.
-  useEffect(() => {
-    setSeat(isTrainer ? 'staff' : isBhbcCoach ? 'bhbc-coach' : email ? 'athlete' : 'unknown', email || null);
-  }, [isTrainer, isBhbcCoach, email]);
+  // its own presence row. 'unknown' blocks nothing.
+  //
+  // SET DURING RENDER, NOT IN AN EFFECT. React runs a child's effects before
+  // its parent's, so with the old useEffect every store write a portal child
+  // made on its first commit ran while the seat was still 'unknown' — the one
+  // window the fence was meant to close. setSeat only assigns a module value
+  // (idempotent), so calling it here is safe and it is in place before any
+  // child renders. Gate: scripts/verify-seat-fence.mjs.
+  setSeat(isTrainer ? 'staff' : isBhbcCoach ? 'bhbc-coach' : email ? 'athlete' : 'unknown', email || null);
 
   // A staff coach who deep-links to a tab outside STAFF_TABS falls back to
   // their dashboard.
@@ -1748,7 +1760,7 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} sessionPlans={bhbcPlans} setSessionPlans={setBhbcPlans} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense>
   );

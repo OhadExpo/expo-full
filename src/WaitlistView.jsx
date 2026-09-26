@@ -417,7 +417,7 @@ export default function WaitlistView({ trainees }) {
                         const color = isChat ? C.gn : (isForm ? C.ac : C.tm);
                         return (
                           <span title={isChat ? 'Captured via /coaches chat bot' : (isForm ? 'Submitted via /coaches waitlist form' : l.source)}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>
+                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'transparent', border: 'none', borderRadius: 0, padding: '3px 0', letterSpacing: '0.18em' }}>
                             {label}
                           </span>
                         );
@@ -431,9 +431,9 @@ export default function WaitlistView({ trainees }) {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`${tr(readLang(), 'Contacted')} ${agoLabel(l.consumed_at, readLang())}`}>{tt("CONTACTED")}</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'transparent', border: 'none', borderRadius: 0, padding: '3px 0', letterSpacing: '0.18em' }} title={`${tr(readLang(), 'Contacted')} ${agoLabel(l.consumed_at, readLang())}`}>{tt("CONTACTED")}</span>
                       ) : (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>{tt('NEW')}</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'transparent', border: 'none', borderRadius: 0, padding: '3px 0', letterSpacing: '0.18em' }}>{tt('NEW')}</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 10px' }}>

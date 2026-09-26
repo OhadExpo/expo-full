@@ -96,6 +96,15 @@ for (const f of ['src/CoachDemo.jsx']) {
   // reported ~35 of them as untranslated UI on the exercises tab.
   const NAME_LIT = /(?:name|title|cues|primaryJoints|jointMovements|primaryMuscles|secondaryMuscles)\s*:\s*'([^']{2,120})'/g;
   for (const m of t.matchAll(NAME_LIT)) DEMO_NAMES.add(m[1]);
+  // A plan title is a NAME wherever it is written, and each athlete's are
+  // written as a bare array — `plans: ['Block #3 — Peaking', ...]` — not as
+  // `title:`. So five real plan titles were reported as untranslated Hebrew UI
+  // on the programs tab. Same rule as above, same narrowness: only literals
+  // inside a plans array, and the array is matched non-greedily so this cannot
+  // swallow the rest of the file.
+  for (const arr of t.matchAll(/plans:\s*\[([^\]]*)\]/g)) {
+    for (const lit of arr[1].matchAll(/'([^']{2,120})'/g)) DEMO_NAMES.add(lit[1]);
+  }
 }
 
 const src = (() => {

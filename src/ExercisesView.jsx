@@ -280,7 +280,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 nowrap row spilled it over the next column. Wrapping keeps
                 every chip whole and grows the row instead. */}
             {vals.slice(0, 3).map((x, i) => (
-              <span key={i} style={{ display: 'inline-block', minWidth: 0, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px' }}>{x}</span>
+              <span key={i} style={{ display: 'inline-block', minWidth: 0, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: 'none', padding: '2px 6px' }}>{x}</span>
             ))}
             {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap', flexShrink: 0 }}>+{vals.length - 3}</span>}
           </div>
@@ -318,7 +318,10 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
            actions, which fit. */
         @media (min-width: 701px) and (max-width: 1200px) {
           .ex-table .ex-taxo { display: none !important; }
-          .ex-table { table-layout: auto !important; width: 100% !important; }
+          /* display:table here too: index.html makes every table a block under
+             769px, and from 701 to 768 this band had no opt-out — rows 640px
+             wide in a 742px table at 768 (measured 26.9). */
+          .ex-table { display: table !important; table-layout: auto !important; width: 100% !important; }
           .ex-table col:first-child { width: auto !important; }
           .ex-table .ex-name { max-width: none !important; }
         }

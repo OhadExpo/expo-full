@@ -66,10 +66,12 @@ const isData = (s) => (
 //   - a trailing count badge: "Athletes32" vs "ATHLETES8" is the same control
 //     with a different fixture size
 //   - a leading icon glyph and trailing arrow
+//   - a parenthesised count: "▶ Video (17)" vs "▶ Video (402)" is one flag chip
 const norm = (s) => String(s || '')
   .replace(/\s+/g, ' ')
   .trim()
-  .replace(/[←-⇿■-➿⬀-⯿]/g, '')   // arrows, geometric icons
+  .replace(/[←-⇿■-➿⬀-⯿∅]/g, '')   // arrows, geometric icons, the empty-set glyph
+  .replace(/\s*\([\d,]+\)$/, '')                                // a parenthesised count
   .replace(/\d+$/, '')                                         // a trailing count badge
   .replace(/\s+/g, ' ')
   .trim()
@@ -138,8 +140,8 @@ for (const [tab, realUrl, demoUrl] of TABS) {
       const D = new Set(demo[kind].map(norm).filter((s) => s && !isData(s)));
       const missing = [...R].filter((s) => !D.has(s));
       const extra = [...D].filter((s) => !R.has(s));
-      if (missing.length) add({ kind: 'MISSING', tab, detail: `${kind}: ${missing.length} in the app, not in the demo — ${missing.slice(0, 8).map((s) => JSON.stringify(s)).join(' ')}` });
-      if (extra.length) add({ kind: 'EXTRA', tab, detail: `${kind}: ${extra.length} in the demo, not in the app — ${extra.slice(0, 8).map((s) => JSON.stringify(s)).join(' ')}` });
+      if (missing.length) add({ kind: 'MISSING', tab, what: kind, items: missing, detail: `${kind}: ${missing.length} in the app, not in the demo — ${missing.slice(0, 8).map((s) => JSON.stringify(s)).join(' ')}` });
+      if (extra.length) add({ kind: 'EXTRA', tab, what: kind, items: extra, detail: `${kind}: ${extra.length} in the demo, not in the app — ${extra.slice(0, 8).map((s) => JSON.stringify(s)).join(' ')}` });
     }
     console.log(`  ${tab}: real ${real.chars} chars / demo ${demo.chars} chars`);
   } catch (e) {

@@ -53,11 +53,11 @@ const STRINGS = {
   // Hero stat band — mirrors the expo-il online/performance-center heroes.
   // Numbers are the real, already-public EXPO figures (same ones on
   // expo-il.co.il), framed as proof the platform runs live, not theory.
-  'hero.stat1.num':      { en: '20+',  he: '+20' },
+  'hero.stat1.num':      { en: '20+',  he: '20+' },
   'hero.stat1.label':    { en: 'ATHLETES RUNNING LIVE', he: 'מתאמנים פעילים' },
-  'hero.stat2.num':      { en: '90+',  he: '+90' },
+  'hero.stat2.num':      { en: '90+',  he: '90+' },
   'hero.stat2.label':    { en: 'PROGRAMS BUILT', he: 'תוכניות שנבנו' },
-  'hero.stat3.num':      { en: '500+', he: '+500' },
+  'hero.stat3.num':      { en: '500+', he: '500+' },
   'hero.stat3.label':    { en: 'EXERCISES IN LIBRARY', he: 'תרגילים בספרייה' },
 
   // Live demo
@@ -259,7 +259,12 @@ function WaitlistForm({ t }) {
     );
   }
   return (
-    <form onSubmit={submit} style={{
+    // noValidate: the handler below already validates and sets a HEBREW error,
+    // but type="email" inside a validating form makes Chrome show its own
+    // bubble first — in the browser's language, not the page's — and submit()
+    // never runs, so wl.err.email was unreachable. type="email" stays for the
+    // phone keyboard; only the browser's blocking UI is turned off.
+    <form onSubmit={submit} noValidate style={{
       display: 'flex', flexDirection: 'column', gap: 8,
       maxWidth: 460, margin: '0 auto', width: '100%',
     }}>
@@ -268,7 +273,7 @@ function WaitlistForm({ t }) {
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('wl.placeholder')}
           style={{
-            height: 46, boxSizing: 'border-box',
+            height: 36, boxSizing: 'border-box',
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
             borderRadius: 0, padding: '0 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
@@ -309,8 +314,14 @@ function DemoEmbed({ t }) {
         <style>{`
           .cl-embed { min-height: 720px; }
           .cl-embed iframe { height: 720px; }
-          @media (max-width: 720px) { .cl-embed { min-height: 560px; } .cl-embed iframe { height: 560px; } }
-          @media (max-width: 480px) { .cl-embed { min-height: 480px; } .cl-embed iframe { height: 480px; } }
+          /* The embed was shortened on phones to 560 and then 480, but the
+             engine's first screen needs 670px at 390 in English and 592 in
+             Hebrew — measured. So the proof section cut its own call to action
+             off: "NOT THIS LIFT? OVERRIDE" sat 153px below the fold INSIDE the
+             iframe, where a visitor has to discover a nested scroll to reach
+             it. The frame is the same height everywhere now; the page scrolls,
+             which is what a phone visitor already expects. */
+          @media (max-width: 720px) { .cl-embed { min-height: 720px; } .cl-embed iframe { height: 720px; } }
           @keyframes cl-spin { to { transform: rotate(360deg); } }
         `}</style>
         {!loaded && (
@@ -376,7 +387,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
           // reads as strikethrough on the one tier the page is pushing.
           fontFamily: FN, fontSize: 9, color: C.ac, background: C.bg,
           letterSpacing: '0.18em', fontWeight: 700, padding: '3px 8px', borderRadius: 0,
-          border: `1px solid ${C.ac}`,
+          border: 'none',
         }}>{popularLabel}</div>
       )}
       <div style={{
@@ -604,7 +615,7 @@ export default function CoachLanding({ lang = 'en' }) {
           </a>
           <span className="cl-header-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
-            padding: '4px 8px', background: 'transparent', borderRadius: 0,
+            padding: '0 8px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', background: 'transparent', borderRadius: 0,
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
@@ -696,7 +707,13 @@ export default function CoachLanding({ lang = 'en' }) {
                   fontFamily: FN, color: C.ac, fontSize: 'clamp(26px, 4vw, 34px)',
                   fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1,
                   fontVariantNumeric: 'tabular-nums',
-                }}>{t(`hero.stat${n}.num`)}</div>
+                  // The Hebrew used to be written PRE-FLIPPED ('+20') so that
+                  // the RTL algorithm would paint it as '20+'. It worked, and
+                  // it meant the source said the opposite of the screen — a
+                  // trap for the next person, and one isolate away from
+                  // silently reversing. The string now says what it shows, and
+                  // dir="ltr" is what keeps it that way.
+                }} dir="ltr">{t(`hero.stat${n}.num`)}</div>
                 <div style={{
                   fontFamily: FN, color: C.tm, fontSize: 10, fontWeight: 700,
                   letterSpacing: '0.14em', marginTop: 8, textTransform: 'uppercase',

@@ -202,6 +202,22 @@ export default function Chat() {
   // overlap the language toggle in either layout.
   const anchorRight = !isHe;
 
+  // ON A PHONE THE BUBBLE WAITS FOR THE FIRST SCROLL. Fixed above the sticky
+  // CTA bar it sat exactly on the hero's "HOW IT WORKS" link at 390 — the
+  // first screen a visitor sees had a link half under the chat button (LOOK
+  // pass, 24.9). Past the hero it floats over cards, where it belongs.
+  const [pastHero, setPastHero] = useState(false);
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 720px)');
+    const onMq = () => setPhone(mq.matches);
+    const onScroll = () => setPastHero(window.scrollY > 240);
+    onMq(); onScroll();
+    mq.addEventListener('change', onMq);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { mq.removeEventListener('change', onMq); window.removeEventListener('scroll', onScroll); };
+  }, []);
+
   return (
     <>
       <style>{`
@@ -209,7 +225,7 @@ export default function Chat() {
           .fv-chat-launcher { bottom: calc(20px + 56px + env(safe-area-inset-bottom, 0px)) !important; }
         }
       `}</style>
-      {!open && (
+      {!open && (!phone || pastHero) && (
         <button onClick={() => setOpen(true)} aria-label={isHe ? 'פתח צ׳אט' : 'Open chat'}
           className="fv-chat-launcher"
           style={{

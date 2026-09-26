@@ -183,7 +183,7 @@ function LangSwitch() {
         return (
           <button key={code} onClick={() => setLang(code)}
             style={{
-              padding: '5px 11px', borderRadius: 0,
+              padding: '0 11px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', borderRadius: 0,
               background: active ? C.ac : 'transparent',
               color: active ? '#000000' : C.tm,
               border: `1px solid ${active ? C.ac : C.bd2}`,
@@ -316,8 +316,8 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
 
         <div>
           <span style={{
-            display: 'inline-block',
-            padding: '14px 28px',
+            display: 'inline-flex', alignItems: 'center',
+            padding: '0 28px', minHeight: 36, boxSizing: 'border-box',
             background: highlight2 ? C.ac : 'transparent',
             color: highlight2 ? '#000000' : C.ac,
             border: `1px solid ${C.ac}`,

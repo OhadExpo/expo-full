@@ -111,7 +111,7 @@ function groupClients(events) {
 
 function PaymentRows({ payments, tt, td }) {
   return payments.map((p) => (
-    <tr key={p.id}>
+    <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
       <td style={td} dir="ltr">{fmtNumericDate(p.event_date)}</td>
       <td style={{ ...td, color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
       <td style={{ ...td, color: C.tm }}><bdi>{p.counter_before || (p.event_kind === 'card_start' ? tt('card start') : '—')}</bdi></td>
@@ -275,7 +275,7 @@ export default function RevenueSheetCard() {
                 const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
                 return (
                   <React.Fragment key={g.month}>
-                  <tr onClick={() => setOpenMonth(isOpenM ? null : g.month)} style={{ cursor: 'pointer', background: isOpenM ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
+                  <tr onClick={() => setOpenMonth(isOpenM ? null : g.month)} style={{ cursor: 'pointer', height: 'var(--btn-h)', background: isOpenM ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
                     <td style={{ ...td, fontFamily: FN, fontSize: 12, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><Chev open={isOpenM} />{monthLabel(g.month)}</td>
                     {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => {
                       const r = g.rows.find((x) => x.channel === c);
@@ -305,7 +305,7 @@ export default function RevenueSheetCard() {
                             </tr></thead>
                             <tbody>
                               {monthPays.map((p) => (
-                                <tr key={p.id}>
+                                <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', fontWeight: 600 }}><bdi>{p.client_name}</bdi></td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px' }} dir="ltr">{fmtNumericDate(p.event_date)}</td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
@@ -357,7 +357,7 @@ export default function RevenueSheetCard() {
                   const isOpen = open === c.key;
                   return (
                     <React.Fragment key={c.key}>
-                      <tr onClick={() => setOpen(isOpen ? null : c.key)} style={{ cursor: 'pointer', background: isOpen ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
+                      <tr onClick={() => setOpen(isOpen ? null : c.key)} style={{ cursor: 'pointer', height: 'var(--btn-h)', background: isOpen ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
                         <td style={{ ...td, fontWeight: 600 }}>
                           <Chev open={isOpen} />
                           <bdi>{c.name}</bdi>

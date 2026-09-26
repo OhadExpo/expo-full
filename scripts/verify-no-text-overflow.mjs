@@ -29,6 +29,7 @@
 //   node scripts/verify-no-text-overflow.mjs [--only <substring>]
 import fs from 'node:fs';
 import P from 'puppeteer-core';
+import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
@@ -41,6 +42,15 @@ const SURFACES = [
   ['landing', '/demo'],
   ['landing-he', '/demo/he'],
   ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
+  // CLICK-GATED SCREENS MUST BE IN THE LIST. The athlete drill-in is the
+  // deepest screen in the demo and the one a coach studies hardest, and every
+  // gate walked past it for weeks because a sweep loads a route and reads the
+  // page — this screen only appeared after you opened an athlete. That is how
+  // it kept a fabricated assessment, an English payments ledger and a
+  // hardcoded April date. It has a URL; use it.
+  ['athlete-detail', '/demo/coach/trainees/t1'],
+  ['athlete-couple', '/demo/coach/trainees/t3'],
+  ['athlete-overdue', '/demo/coach/trainees/t2'],
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],
   ['booking', '/book'],
@@ -65,7 +75,7 @@ for (const [name, route] of SURFACES) {
         const ctx = await b.createBrowserContext();
         const pg = await ctx.newPage();
         try {
-          await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: w < 700, hasTouch: w < 700 });
+          await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
           await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
           await pg.evaluateOnNewDocument((L, T) => {
             try {

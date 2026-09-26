@@ -243,7 +243,7 @@ export default function BillingView({ trainees }) {
           const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
           return (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 90, textAlign: 'center' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: 'none', padding: '2px 0', minWidth: 90, textAlign: 'start' }}>
                 {labelTxt}
               </span>
               <span style={{ flex: 1, fontSize: 13, color: C.tx }}>{t.name}</span>
@@ -299,7 +299,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
 
   return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('New payment request')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: 'calc(100dvh - 24px)', overflow: 'auto' }}>
         <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ {tr(readLang(), 'NEW PAYMENT REQUEST')}</h3>
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tr(readLang(), 'TRAINEE')}</label>

@@ -49,15 +49,12 @@ export const HE = {
   // "Day 1 - Lower INT + Upper VOL" and "Day 4 - Lower INT + Pull & Unilateral
   // VOL" - lower body on an INTENSITY day, upper body on a VOLUME day. The
   // Hebrew said "low intensity", which is the opposite instruction.
-  "Focus — e.g. Lower INT + landing mechanics": "פוקוס — למשל תחתון בעצימות + מכניקת נחיתה",
   "Trained": "התאמן",
   "Plan": "תוכנית",
   "All clear": "הכול תקין",
   "— no active injuries.": "— אין פציעות פעילות.",
   "REPORT": "דיווח",
   "League Stats": "סטטיסטיקות ליגה",
-  "Edit this session’s plan": "עריכת התוכנית של האימון",
-  "Add a plan for this session": "הוספת תוכנית לאימון",
   "Switch to a vertical list of days": "מעבר לרשימת ימים אנכית",
   "Switch to seven day columns": "מעבר לשבע עמודות של ימים",
   "Sort ascending": "מיון בסדר עולה",
@@ -133,7 +130,9 @@ export const HE = {
   'HaYovel, Herzliya': 'היובל, הרצליה',
   'Show {n} more': 'עוד {n}',
   'GAME': 'משחק',
-  'Lift': 'כוח',
+  // A LIFT is one athlete's own weight-room session (24.9); the team block
+  // before a practice is 'אימון כוח'. Two words, two things.
+  'Lift': 'הרמה',
   'Conditioning': 'קונדישן',
   'Recovery': 'התאוששות',
   'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה.',
@@ -212,7 +211,6 @@ export const HE = {
   Load: 'עומס',
   Readiness: 'מוכנות',
   Fixtures: 'משחקים',
-  'no focus written': 'לא נכתב פוקוס',
   // Competition stages, from the league feed's own board names.
   'Quarter Final': 'רבע גמר',
   'Semi Final': 'חצי גמר',
@@ -302,7 +300,6 @@ export const HE = {
   'Start session': 'התחל אימון',
   'None today · next': 'אין היום · הבא',
   Edit: 'עריכה',
-  'plan this session': 'תכנן את האימון',
   'Off / general prep': 'מנוחה / הכנה כללית',
   'General strength base': 'בסיס כוח כללי',
   'Max strength + power (heaviest, far from game)': 'כוח מקסימלי ועוצמה — הכי כבד, רחוק מהמשחק',
@@ -340,7 +337,6 @@ export const HE = {
   Other: 'אחר',
   'From calendar': 'מהיומן',
   Type: 'סוג',
-  'Session RPE (0–10)': 'RPE של האימון (0–10)',
   'Readiness (optional)': 'מוכנות (לא חובה)',
   'Energy 0–10': 'אנרגיה 0–10',
   'Pain 0–10': 'כאב 0–10',
@@ -360,7 +356,6 @@ export const HE = {
   Intensity: 'עצימות',
   Microcycle: 'מיקרו-מחזור',
   Note: 'הערה',
-  'Plan for this session': 'התוכנית לאימון הזה',
   'This slot': 'המשבצת הזו',
   'Which session': 'איזה אימון',
   note: 'הערה',
@@ -404,7 +399,6 @@ export const HE = {
   'Minutes played': 'דקות משחק',
   'ADD MINUTES': 'הוספת דקות',
   'logged': 'נרשמו',
-  'Game RPE': 'RPE של המשחק',
   'DNP': 'לא שיחק',
   'played': 'שיחקו',
   'min total': 'דקות בסך הכל',
@@ -436,7 +430,6 @@ export const HE = {
   'Return-to-play target': 'יעד לחזרה',
   'Update this medical report': 'עדכון הדוח הרפואי',
   'Onset date': 'תאריך הפציעה',
-  'Team RPE': 'RPE קבוצתי',
 
   // ---- games ------------------------------------------------------------
   'Team stats': 'נתוני קבוצה',
@@ -468,9 +461,6 @@ export const HE = {
   'Notes (assessment, plan, PT observations)': 'הערות (הערכה, תוכנית, מה הפיזיותרפיסט ראה)',
   'total': 'בסך הכול',
   '{n} of {m} filled': '{n} מתוך {m} מילאו',
-  'suggest high intensity': 'מומלץ: עצימות גבוהה',
-  'suggest moderate intensity': 'מומלץ: עצימות בינונית',
-  'suggest low intensity': 'מומלץ: עצימות נמוכה',
   '1 day after the previous game': 'יום אחרי המשחק הקודם',
   '2 days after the previous game': 'יומיים אחרי המשחק הקודם',
   '{n} days after the previous game': '{n} ימים אחרי המשחק הקודם',
@@ -478,7 +468,6 @@ export const HE = {
   '2d turnaround': 'יומיים בין משחקים',
   '{n}d turnaround': '{n} ימים בין משחקים',
   '28d ago': 'לפני 28 ימים',
-  'nothing was written for this slot': 'לא נכתב כלום לאימון הזה',
   'nobody logged': 'אף אחד לא רשם',
   'optional': 'רשות',
   '+{n} more': 'ועוד {n}',
@@ -486,7 +475,6 @@ export const HE = {
   '— select —': '— בחר —',
   '— add roster first —': '— קודם תוסיף סגל —',
   'Gym session — minutes only, no RPE': 'אימון בחדר הכושר — רק דקות, בלי RPE',
-  'sRPE load =': 'עומס sRPE =',
   'units': 'יחידות',
 };
 
@@ -686,7 +674,7 @@ Object.assign(HE, {
   'Due for the weight room': 'מחכים לאימון כוח',
   'Everyone has lifted in the last three days.': 'כולם עשו כוח בשלושת הימים האחרונים.',
   'lift session': 'אימון כוח',
-  'lift logged': 'נרשם אימון כוח',
+  'lift logged': 'נרשמה הרמה',
   'Jan': 'ינואר',
   'Feb': 'פברואר',
   'Mar': 'מרץ',
@@ -725,6 +713,33 @@ Object.assign(HE, {
   'nothing written': 'לא נרשם כלום',
 
   lifted: 'התאמנו',
+
+  // ---- 24.9: S&C sessions and lifts are two different things -----------
+  // Ohad: "lifts should say log lift", "sc sessions should say log S&C
+  // Session". The team block before a practice is אימון כוח; a player's own
+  // weight-room session is הרמה.
+  'Log S&C Session': 'רישום אימון כוח',
+  'Log lift': 'רישום הרמה',
+  'Lifts': 'הרמות',
+  'S&C session': 'אימון כוח',
+  'S&C sessions': 'אימוני כוח',
+  'S&C': 'כוח',
+  'S&C minutes': 'דקות כוח',
+  'Which practice': 'איזה אימון',
+  'This practice': 'האימון הזה',
+  'In': 'נוכח',
+  'at this practice': 'באימון הזה',
+  'Out for the whole day': 'בחוץ כל היום',
+  'At this practice — click to mark absent': 'היה באימון — לחץ לסמן שלא הגיע',
+  'Absent from this practice — click to mark present': 'לא הגיע לאימון — לחץ לסמן שהגיע',
+  'No practice on the schedule for this date — it is saved to the day.': 'אין אימון בתאריך הזה — נשמר על היום.',
+  'Team S&C · minutes only, no RPE. In/Out is who was at THIS practice; the day’s availability is separate.': 'כוח קבוצתי — רק דקות, בלי RPE. נוכח/בחוץ זה מי שהיה באימון הזה; הזמינות היומית נפרדת.',
+  'Lift — minutes only, no RPE. Personal, any day, not tied to a practice.': 'הרמה — רק דקות, בלי RPE. אישי, בכל יום, לא קשור לאימון.',
+  'Note (optional)': 'הערה (לא חובה)',
+  'e.g. lower body · 4 lifts': 'למשל תחתון · 4 תרגילים',
+  'A bar is a lift he logged. The tint is the restriction on the day.': 'פס זה הרמה שנרשמה לו. הגוון זה ההגבלה של אותו יום.',
+  'Log a lift for this athlete': 'רישום הרמה לשחקן הזה',
+  'no S&C session logged': 'לא נרשם אימון כוח',
 
   PRE_SEASON: 'טרום עונה',
 });

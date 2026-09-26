@@ -132,8 +132,15 @@ function buildBuyLink(program, t) {
 
 // Same shared base used in the coach app (src/ui.jsx → baseBtn). Inlined
 // here so expo-il stays self-contained.
+// ONE CONTROL HEIGHT ACROSS THE PRODUCT (Ohad, 23.9: "everything that we
+// have with borders - anywhere - is the same vertical height"). The sales
+// site sized every control by padding + font size, which the gate measured
+// as twelve distinct heights on one page (17..50px). Height comes from this
+// token now; padding only sets the horizontal inset.
+const CTRL_H = 36;
 const baseBtn = {
-  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 18px',
+  minHeight: CTRL_H, boxSizing: 'border-box',
   borderRadius: 0, border: 'none', fontFamily: FN, fontSize: 11, fontWeight: 700,
   cursor: 'pointer', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'all 0.15s',
 };
@@ -284,14 +291,14 @@ function LeadCapture({ context = 'hero', compact = false }) {
     );
   }
   const inputStyle = {
-    height: 42, boxSizing: 'border-box',
+    height: CTRL_H, boxSizing: 'border-box',
     background: '#0d0d10', border: `1px solid ${C.bd}`,
     borderRadius: 0, padding: '0 14px', color: C.tx,
     fontFamily: FB, fontSize: 14, outline: 'none',
     flex: 1, minWidth: 0, textAlign: 'center',
   };
   const btnStyle = {
-    height: 42, boxSizing: 'border-box',
+    height: CTRL_H, boxSizing: 'border-box',
     background: state === 'sending' ? C.bd : C.ac,
     color: state === 'sending' ? C.tm : '#000',
     border: 'none', borderRadius: 0,
@@ -366,7 +373,7 @@ function LangToggle() {
     <button onClick={() => setLang(next)} title={ariaLabel} aria-label={ariaLabel} style={{
       ...baseBtn,
       background: 'transparent', color: C.tm,
-      padding: '6px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 1,
+      padding: '0 8px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 1,
       borderRadius: 0, border: `1px solid ${C.bd}`,
     }}>
       {label}
@@ -655,7 +662,7 @@ function Hero({ onOpenQuiz }) {
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <a href="#programs" style={{
           ...baseBtn,
-          background: C.ac, color: '#000', padding: '14px 28px',
+          background: C.ac, color: '#000', padding: '0 28px',
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
         }}>
           {t('hero.cta.browse')}
@@ -666,7 +673,7 @@ function Hero({ onOpenQuiz }) {
            style={{
              ...baseBtn,
              background: 'transparent', color: C.ac,
-             border: `1px solid ${C.ac}`, padding: '14px 28px',
+             border: `1px solid ${C.ac}`, padding: '0 28px',
              fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
              textDecoration: 'none',
            }}>
@@ -727,7 +734,7 @@ function ShareButton({ programId, programTitle, size = 'sm' }) {
       trackAndOpen('program_share', { programId, channel: 'clipboard' });
     } catch {}
   };
-  const dim = size === 'lg' ? { padding: '8px 14px', fontSize: 12 } : { padding: '6px 10px', fontSize: 11 };
+  const dim = size === 'lg' ? { padding: '0 14px', fontSize: 12 } : { padding: '0 10px', fontSize: 11 };
   return (
     <button onClick={handleShare} aria-label={t('card.share')} title={t('card.share')} style={{
       ...baseBtn,
@@ -764,8 +771,8 @@ function ProgramMeta({ p }) {
         <span key={i} style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 0.5,
-          border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 0,
-          background: C.sf2,
+          border: 'none', padding: '3px 0', borderRadius: 0,
+          background: 'transparent',
         }}>{m.toUpperCase()}</span>
       ))}
     </div>
@@ -799,8 +806,8 @@ function ProgramCard({ p }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-          background: 'transparent', color: C.ac, padding: '4px 10px', borderRadius: 0,
-          border: `1px solid ${C.ac}`,
+          background: 'transparent', color: C.ac, padding: '4px 0', borderRadius: 0,
+          border: 'none',
         }}>{(isHe && p.tagHe ? p.tagHe : p.tag).toUpperCase()}</span>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
       </div>
@@ -839,7 +846,7 @@ function ProgramCard({ p }) {
           <a href={`#/programs/${p.id}`} style={{
             ...baseBtn,
             background: 'transparent', color: C.tm,
-            border: `1px solid ${C.bd}`, padding: '8px 14px',
+            border: `1px solid ${C.bd}`, padding: '0 14px',
             fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
             {t('card.view')}
@@ -848,7 +855,7 @@ function ProgramCard({ p }) {
             onClick={() => trackAndOpen('buy_click', { programId: p.id, source: 'catalog_card' })}
             style={{
               ...baseBtn,
-              background: C.ac, color: '#000', padding: '8px 16px',
+              background: C.ac, color: '#000', padding: '0 16px', whiteSpace: 'nowrap',
               fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
             }}>
             {t('card.buy')}
@@ -891,7 +898,7 @@ function Catalog() {
               background: on ? C.acD : 'transparent',
               color: on ? C.ac : C.tm,
               border: on ? `1px solid ${C.ac}` : `1px solid ${C.bd}`,
-              padding: '6px 12px', borderRadius: 0,
+              padding: '0 12px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', borderRadius: 0,
               fontSize: 11, fontWeight: 700, letterSpacing: 1,
               gap: 6,
             }}>
@@ -1080,13 +1087,13 @@ function PoseScreen() {
           position: 'absolute', top: 8, left: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>{depthLabel}</div>
       </div>
       <div style={{
@@ -1341,19 +1348,19 @@ function PoseDemoInteractive() {
           position: 'absolute', top: 10, left: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', top: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>HIP {hipAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
           background: C.acD, color: C.ac, borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          border: 'none',
         }}>{depthLabel}</div>
       </div>
       <div style={{
@@ -1417,7 +1424,7 @@ function RepDemoInteractive() {
         </div>
       </div>
       <button onClick={inc} aria-label="Add rep" style={{
-        background: C.sf2, border: `1px solid ${C.ac4D}`, borderRadius: 0,
+        background: C.sf2, border: 'none', borderRadius: 0,
         padding: '10px 12px', cursor: 'pointer',
         transition: 'border-color 150ms ease',
       }}>
@@ -1515,180 +1522,15 @@ function CompareDemoInteractive() {
 }
 
 
-// ── Jump-shot analyzer mock ────────────────────────────────────────────────
-// Side-on shooter driven by ONE 0..1 phase, shaped to the four phases the real
-// analyzer segments a clip into — dip, set point, release, follow-through — so
-// the mock teaches the vocabulary the coach actually sees in the app.
-// Geometry only; the real read is MediaPipe pose in src/shotAnalysis.js.
-const SHOT_RELEASE_AT = 0.83;
-function shotFigure(p) {
-  const lerp = (a2, b2, u) => a2 + (b2 - a2) * u;
-  const clamp01 = (v) => Math.max(0, Math.min(1, v));
-  // The dip loads, drives back up, and is gone by the set point.
-  const dipAt = (q) => (q < 0.3 ? q / 0.3 : q < 0.62 ? 1 - (q - 0.3) / 0.32 : 0);
-  // The arm extends from the set point up through the release.
-  const extAt = (q) => clamp01((q - 0.45) / 0.38);
-  const liftAt = (q) => clamp01((q - 0.5) / 0.5) * 6;   // leaving the floor
-  const shoAt = (q) => 42 + dipAt(q) * 9 - liftAt(q);
-  const wristAt = (q) => [
-    lerp(51, 59, extAt(q)),
-    lerp(shoAt(q) + 1, shoAt(q) - 19, extAt(q)),
-  ];
-
-  const dip = dipAt(p), ext = extAt(p), lift = liftAt(p), shoY = shoAt(p);
-  const joints = {
-    head:     [46, 26 + dip * 9 - lift],
-    shoulder: [46, shoY],
-    elbow:    [lerp(52, 55, ext), lerp(shoY + 15, shoY - 5, ext)],
-    wrist:    wristAt(p),
-    hip:      [45, 74 + dip * 10 - lift],
-    knee:     [45 + dip * 5, 100 + dip * 3 - lift * 0.9],
-    ankle:    [43, 126 - lift * 1.4],
-    // The guide hand rides the side of the ball and comes off at the release.
-    guideElbow: [39, shoY + 14],
-    guideWrist: [lerp(47, 44, ext), lerp(shoY + 2, shoY + 7, ext)],
-  };
-
-  // The ball sits just past the shooting wrist until it leaves, then arcs away
-  // from wherever the wrist was AT the release — not from the still-rising body.
-  const anchor = wristAt(Math.min(p, SHOT_RELEASE_AT));
-  const flight = p > SHOT_RELEASE_AT ? (p - SHOT_RELEASE_AT) / (1 - SHOT_RELEASE_AT) : 0;
-  // Tuned so the apex and the far end of the arc both stay inside the frame —
-  // a ball that flies off the top just reads as a bug.
-  const ball = [
-    anchor[0] + 2 + flight * 22,
-    anchor[1] - 4 - (flight * 12 - flight * flight * 7),
-  ];
-
-  return {
-    joints, ball, flight,
-    elbowAngle: Math.round(lerp(84, 168, ext)),
-    phase: p < 0.3 ? 'DIP' : p < 0.55 ? 'SET' : p <= SHOT_RELEASE_AT ? 'RELEASE' : 'FOLLOW',
-  };
-}
-
-const SHOT_LINES = [
-  ['shoulder', 'elbow'], ['elbow', 'wrist'],
-  ['shoulder', 'guideElbow'], ['guideElbow', 'guideWrist'],
-  ['shoulder', 'hip'], ['hip', 'knee'], ['knee', 'ankle'],
-];
-
-function ShotSkeleton({ p }) {
-  const { joints, ball, flight, elbowAngle } = shotFigure(p);
-  return (
-    <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
-      style={{ display: 'block' }}>
-      <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
-      {/* The arc the ball has already travelled */}
-      {flight > 0 && (
-        <path d={`M ${joints.wrist[0] + 2} ${joints.wrist[1] - 4} Q ${ball[0] - 10} ${ball[1] - 9} ${ball[0]} ${ball[1]}`}
-          fill="none" stroke={C.ac} strokeWidth="0.5" strokeDasharray="1.6 1.8" opacity="0.55" />
-      )}
-      {SHOT_LINES.map(([m, n], i) => (
-        <line key={i} x1={joints[m][0]} y1={joints[m][1]} x2={joints[n][0]} y2={joints[n][1]}
-          stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
-      ))}
-      <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
-      {Object.values(joints).map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
-      ))}
-      {/* The elbow is the checkpoint the eye should land on */}
-      <circle cx={joints.elbow[0]} cy={joints.elbow[1]} r={3.2 + (elbowAngle - 84) / 84 * 1.2}
-        fill="none" stroke={C.ac} strokeWidth="0.7" opacity="0.75" />
-      <circle cx={ball[0]} cy={ball[1]} r="4.6" fill="none" stroke={C.ac} strokeWidth="0.9" />
-      <path d={`M ${ball[0] - 4.6} ${ball[1]} h 9.2`} stroke={C.ac} strokeWidth="0.5" opacity="0.7" />
-    </svg>
-  );
-}
-
-function ShotScreen() {
-  const t = useT();
-  const [p, setP] = useState(0.62);   // parked at the release for reduced motion
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let raf, t0;
-    const tick = (now) => {
-      if (!t0) t0 = now;
-      // 2.6s: the shot, then a beat on the follow-through before it resets.
-      const e = ((now - t0) % 2600) / 2600;
-      setP(e < 0.82 ? e / 0.82 : 1);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  const { elbowAngle, phase } = shotFigure(p);
-  return (
-    <>
-      <div style={{
-        flex: 1, position: 'relative', borderRadius: 0,
-        background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
-        border: `1px solid ${C.bd}`, overflow: 'hidden',
-      }}>
-        <ShotSkeleton p={p} />
-        <div style={{
-          position: 'absolute', top: 8, left: 8, padding: '3px 6px',
-          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
-          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
-        }}>ELBOW {elbowAngle}°</div>
-        <div style={{
-          position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
-          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
-          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
-        }}>{phase}</div>
-      </div>
-      <div style={{
-        fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
-        textAlign: 'center', paddingTop: 6,
-      }}>{t('inside.shot.foot')}</div>
-    </>
-  );
-}
-
-function ShotDemoInteractive() {
-  const t = useT();
-  const [p, setP] = useState(0.62);
-  const { elbowAngle, phase } = shotFigure(p);
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{
-        position: 'relative', borderRadius: 0, height: 280,
-        background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
-        border: `1px solid ${C.bd}`, overflow: 'hidden',
-      }}>
-        <ShotSkeleton p={p} />
-        <div style={{
-          position: 'absolute', top: 10, left: 12, padding: '4px 8px',
-          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
-        }}>ELBOW {elbowAngle}°</div>
-        <div style={{
-          position: 'absolute', top: 10, right: 12, padding: '4px 8px',
-          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
-        }}>{phase}</div>
-      </div>
-      <div style={{ background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 0, padding: 12 }}>
-        <div style={{
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2,
-          fontWeight: 700, marginBottom: 8,
-        }}>
-          {t('demo.shot.scrub')} — {Math.round(p * 100)}%
-        </div>
-        <input type="range" min={0} max={100} value={Math.round(p * 100)}
-          onChange={e => setP(Number(e.target.value) / 100)}
-          aria-label={t('demo.shot.scrub')}
-          style={{ width: '100%', accentColor: C.ac, cursor: 'pointer' }} />
-      </div>
-    </div>
-  );
-}
+// The jump-shot analyzer mock lived here (ShotSkeleton / ShotScreen /
+// ShotDemoInteractive). Removed 24.9 on Ohad's instruction: the shot
+// analysis is for him only right now and does not belong on the sales
+// site or in the demo. It stays in the real app behind the owner seat.
 
 const DEMOS = {
   pose: { titleKey: 'demo.pose.h', bodyKey: 'demo.pose.body', Body: PoseDemoInteractive },
   rep:  { titleKey: 'demo.rep.h',  bodyKey: 'demo.rep.body',  Body: RepDemoInteractive  },
   cmp:  { titleKey: 'demo.cmp.h',  bodyKey: 'demo.cmp.body',  Body: CompareDemoInteractive },
-  shot: { titleKey: 'demo.shot.h', bodyKey: 'demo.shot.body', Body: ShotDemoInteractive },
 };
 
 function DemoModal({ which, onClose }) {
@@ -1725,12 +1567,11 @@ function DemoModal({ which, onClose }) {
 
 function WhatsInside() {
   const t = useT();
-  const [demo, setDemo] = useState(null); // 'pose' | 'rep' | 'cmp' | 'shot' | null
+  const [demo, setDemo] = useState(null); // 'pose' | 'rep' | 'cmp' | null
   const cards = [
     { key: 'pose', tag: t('inside.pose.tag'), h: t('inside.pose.h'), d: t('inside.pose.d'), Inner: PoseScreen        },
     { key: 'rep',  tag: t('inside.rep.tag'),  h: t('inside.rep.h'),  d: t('inside.rep.d'),  Inner: RepCounterScreen  },
     { key: 'cmp',  tag: t('inside.cmp.tag'),  h: t('inside.cmp.h'),  d: t('inside.cmp.d'),  Inner: CompareScreen     },
-    { key: 'shot', tag: t('inside.shot.tag'), h: t('inside.shot.h'), d: t('inside.shot.d'), Inner: ShotScreen        },
   ];
   return (
     <section id="inside" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
@@ -1750,7 +1591,7 @@ function WhatsInside() {
 
       <div className="fv-inside-grid" style={{
         display: 'grid', gap: 28, alignItems: 'start',
-        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
       }}>
         {cards.map((card) => {
           const Inner = card.Inner;
@@ -2120,7 +1961,7 @@ function Contact() {
           onClick={() => trackAndOpen('contact_click', { channel: 'whatsapp', source: 'contact_section' })}
           style={{
             ...baseBtn,
-            background: C.ac, color: '#000', padding: '10px 20px',
+            background: C.ac, color: '#000', padding: '0 20px',
             fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
           {t('contact.cta.whatsapp')}
@@ -2128,7 +1969,7 @@ function Contact() {
         <a href={`mailto:${CONTACT.email}`} style={{
           ...baseBtn,
           background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`, padding: '10px 20px',
+          border: `1px solid ${C.bd}`, padding: '0 20px',
           fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('contact.cta.email')}
@@ -2136,7 +1977,7 @@ function Contact() {
         <a href={CONTACT.instagram} target="_blank" rel="noopener noreferrer" style={{
           ...baseBtn,
           background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`, padding: '10px 20px',
+          border: `1px solid ${C.bd}`, padding: '0 20px',
           fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('contact.cta.instagram')}
@@ -2603,7 +2444,7 @@ function QuizSection({ onOpen }) {
     <section id="quiz" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
       <div style={{
         background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-        border: `1px solid ${C.ac4D}`, borderRadius: 0,
+        border: 'none', borderRadius: 0,
         padding: '28px 22px', textAlign: 'center',
       }}>
         <div style={{
@@ -2696,7 +2537,7 @@ function TrustStrip() {
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: 0,
-              background: C.acD, border: `1px solid ${C.ac4D}`,
+              background: C.acD, border: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               {it.icon}
@@ -2989,7 +2830,7 @@ function ProgramDetail({ program }) {
           <span style={{
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             background: 'transparent', color: C.ac, padding: '4px 10px', borderRadius: 0,
-            border: `1px solid ${C.ac4D}`,
+            border: 'none',
           }}>{pTag.toUpperCase()}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{pDuration}</span>
         </div>
@@ -3025,7 +2866,7 @@ function ProgramDetail({ program }) {
           {/* Start-aligned (RTL-aware) list rows keep a straight reading edge. */}
           {pHighlights.map((h, i) => (
             <li key={i} style={{
-              background: C.sf, border: `1px solid ${C.ac4D}`, borderRadius: 0,
+              background: C.sf, border: 'none', borderRadius: 0,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
               fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'start',
             }}>

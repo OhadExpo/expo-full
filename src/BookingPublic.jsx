@@ -702,7 +702,7 @@ export default function BookingPublic() {
 }
 
 const inputStyle = {
-  background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '8px 10px',
+  background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '0 10px', minHeight: 36,
   color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box',
 };
 
