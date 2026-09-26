@@ -23,7 +23,7 @@ import { returnToLoadFlags } from './bhbcReturnLoad';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
-import { sessionSig } from './bhbcSession.js';
+import { sessionSig, rowKind, ownsScRow } from './bhbcSession.js';
 import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
@@ -241,16 +241,6 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 // nowhere else: Conditioning/Recovery were his S&C blocks; a Lift WITH
 // team:true was a team session mis-logged as a lift (29 rows, 23.8–1.9); a
 // row with no type at all was gym attendance, i.e. a personal lift.
-const rowKind = (r) => {
-  if (!r) return 'other';
-  if (r.kind === 'sc' || r.kind === 'lift' || r.kind === 'practice' || r.kind === 'game') return r.kind;
-  const t = String(r.type || '').toLowerCase();
-  if (t === 'practice' || t === 'shootaround') return 'practice';
-  if (t === 'game' || t === 'scrimmage') return 'game';
-  if (t === 'conditioning' || t === 'recovery') return 'sc';
-  if (t === 'lift' || t === 'weights' || t === 'gym' || !t) return r.team ? 'sc' : 'lift';
-  return 'other';
-};
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
 // 'Out · Pers' rather than 'Out · Personal': the long label made ONE button in
 // the column 168px against 135px for every other state, and Ohad wants a single
@@ -720,19 +710,17 @@ function attendance28(rec, days) {
         // already idempotent — the slot has an identity. The session rows
         // used to append unconditionally, so saving the 18:00 practice,
         // noticing a wrong note and saving again gave every athlete a
-        // duplicate history row. Drop any TEAM row already recorded for THIS
-        // slot first (and take any stale load back out of the day's total).
+        // duplicate history row. So drop the S&C rows this slot already owns
+        // first (and take any stale load back out of the day's total).
         //
-        // REPLACE ONLY WHEN THE SLOT IS IDENTIFIABLE. `start` is '' whenever
-        // the chosen date has no fixture — an unscheduled or backdated
-        // session. Matching on '' would sweep up every LEGACY team row on that
-        // date (rows written before per-slot logging carry no `start`), so
-        // without a slot identity there is nothing to replace: append. A
-        // duplicate row is visible and deletable; a wiped legacy session is
-        // neither. A personal lift never matches: it is not a team row.
+        // WHAT A SLOT OWNS is ownsScRow in bhbcSession.js: its team S&C rows
+        // and nothing else — never a legacy court Practice row that shares
+        // its `start`, never a personal lift. A day with no fixture (start '')
+        // owns only rows this model wrote without a start, so a legacy row
+        // from before per-slot logging is never swept up.
         const slotKey = `${date}|${start || ''}`;
         const priorRows = (rec.sessions && rec.sessions[date]) || [];
-        const mine = start ? priorRows.filter((r) => r && r.team && r.start === start) : [];
+        const mine = priorRows.filter((r) => ownsScRow(r, start));
         if (mine.length) {
           const undo = mine.reduce((a, r) => a + (Number(r.load) || 0), 0);
           rec.sessions = { ...(rec.sessions || {}) };
@@ -2161,7 +2149,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
       const rec = bhbcLoads[t.id] || {};
       const att = rec.attendance && rec.attendance[key];
       if (att) marks[t.id] = att === 'in';
-      const row = ((rec.sessions || {})[date] || []).find((r) => rowKind(r) === 'sc' && (r.start || '') === (slotStart || ''));
+      const row = ((rec.sessions || {})[date] || []).find((r) => ownsScRow(r, slotStart || ''));
       if (row) { if (min == null && Number(row.min) > 0) min = Number(row.min); if (!nt && row.note) nt = row.note; }
     });
     setEntries((prev) => {
