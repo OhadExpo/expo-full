@@ -724,6 +724,8 @@ Object.assign(HE, {
   'S&C session': 'אימון כוח',
   'S&C sessions': 'אימוני כוח',
   'S&C': 'כוח',
+  '28 days': '28 ימים',
+  'Last lift': 'הרמה אחרונה',
   'S&C minutes': 'דקות כוח',
   'Which practice': 'איזה אימון',
   'This practice': 'האימון הזה',

@@ -1818,11 +1818,27 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               design, so ACWR is genuinely undefined - but a bare dash reads as a
               broken card. Each tile now says WHY it is empty, and when there IS a
               ratio the band name earns the space instead. */}
-          {[
-            ['ACWR', acwr.ratio != null ? acwr.ratio.toFixed(2) : '—', acwr.ratio != null ? acwr.band.color : C.tm, acwr.ratio != null ? acwrLabel(acwr.ratio) : tr('needs sRPE')],
-            ['7-day load', acwr.acute ? Math.round(acwr.acute) : '—', C.tx, acwr.acute ? tr('sRPE × min') : tr('none logged')],
-            ['28-day', acwr.chronic ? Math.round(acwr.chronic) : '—', C.td, acwr.chronic ? tr('4-week base') : tr('none logged')],
-          ].map(([k, v, c, sub]) => (
+          {/* WHAT THE CLUB RECORDS: minutes and sessions, never an RPE (Ohad:
+              "no RPE ever"). The ACWR / 7-day-load / 28-day tiles read session
+              RPE x minutes, which this zone never logs — they could only ever
+              say "needs sRPE" (26.9, #230). */}
+          {(() => {
+            const cut7 = daysAgoISO(6), cut28 = daysAgoISO(27);
+            let m7 = 0, n7 = 0, m28 = 0, n28 = 0, lastLift = null;
+            for (const [d, list] of Object.entries((rec && rec.sessions) || {})) {
+              for (const r of (list || [])) {
+                if (!r || r.attended === false) continue;
+                const mm = Number(r.min) || 0;
+                if (d >= cut28) { n28++; m28 += mm; if (d >= cut7) { n7++; m7 += mm; } }
+                if (rowKind(r) === 'lift' && (!lastLift || d > lastLift)) lastLift = d;
+              }
+            }
+            return [
+              [tr('7 days'), m7 ? `${m7}` : '—', C.tx, n7 ? `${tr('min')} · ${n7} ${tr('sessions')}` : tr('none logged')],
+              [tr('28 days'), m28 ? `${m28}` : '—', C.td, n28 ? `${tr('min')} · ${n28} ${tr('sessions')}` : tr('none logged')],
+              [tr('Last lift'), lastLift ? monDay(lastLift) : '—', C.tx, lastLift ? dow(lastLift) : tr('none logged')],
+            ];
+          })().map(([k, v, c, sub]) => (
             <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
               <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{k}</div>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal' }}>{v}</div>
