@@ -813,7 +813,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
             every column's title line sits on the same baseline across the row
             (the app-wide rule). Hand-rolled here rather than RefinedHeaderStrip
             because this card has no padding to bleed the strip out of. */}
-        <div
+        <div className="title-strip"
           onClick={onClick || undefined}
           title={onClick ? 'Open this day in the editor' : undefined}
           style={{
@@ -901,7 +901,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
           across the width instead of stacking, since there are only ever a few. */}
       {warmRows.length > 0 && (
         <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', marginBottom: 10 }}>
-          <div style={{
+          <div className="title-strip" style={{
             background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
             minHeight: 41, boxSizing: 'border-box', padding: '0 14px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
@@ -3623,7 +3623,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   }, [plans, metric, exMap]);
 
   const stripHead = (label) => (
-    <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
+    <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
   );
 
   if (!traineeId) {
@@ -3856,7 +3856,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           phase (potentiation), a volume target (ramp toward MRV & ACWR-capped, or
           a deload when fatigue is due), the rep/%1RM band, and coverage/balance. */}
       <div style={{ margin: '4px 12px 12px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <span>{tt('Build the next block')}{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button onClick={() => setReportOpen(true)} title={tt('Open the full next-block report — goals, parameters, weekly progression, per-movement targets')} style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ {tr(readLang(), 'Full report →')}</button>

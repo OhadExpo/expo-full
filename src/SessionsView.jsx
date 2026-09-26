@@ -560,7 +560,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           </div>
           <button onClick={() => setPicking(true)} style={primaryBtn}>{tt('+ START SESSION')}</button>
         </Card>
-        {picking && <AthletePicker trainees={trainees} planIndex={planIndex} clientWorkouts={clientWorkouts} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
+        {picking && <AthletePicker trainees={trainees} planIndex={planIndex} existing={[]} clientWorkouts={clientWorkouts} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
       </div>
     );
   }

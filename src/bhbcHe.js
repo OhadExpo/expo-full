@@ -221,6 +221,7 @@ export const HE = {
   'Report injury': 'דיווח פציעה',
   'Update': 'עדכון',
   'Open in EXPO': 'פתיחה ב-EXPO',
+  'Schedule data is not connected — report this.': 'נתוני הלו״ז לא מחוברים — צריך לדווח על זה.',
   'Logged for 1 athlete': 'נרשם אימון לשחקן אחד',
   'Logged for {n} athletes': 'נרשם אימון ל-{n} שחקנים',
   // fixture sync writes these as the venue when the hall is not known yet

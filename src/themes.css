@@ -755,7 +755,14 @@ html {
      the track was as wide as that row's own text and the MED button underneath
      it moved a few pixels every line. Fixed = one column edge down the board. */
   .bhbc-load-row { grid-template-columns: 28px minmax(0, 1fr) 96px !important; row-gap: 6px !important; padding-bottom: 8px !important; }
-  .bhbc-load-row > [data-lbl="actions"] { grid-area: med; justify-self: end; width: max-content; max-width: 96px; }
+  /* ONE COLUMN, TWO SHARED EDGES (26.9, Ohad: "the never/4d/22 sep location is
+     not aligned with anything"). The MED box fills the fixed 96px track, so
+     "+ MED" and "MED ✎" are the same box on every row, and the last-lift age
+     and date above it END on that box's end edge instead of floating at the
+     track's start. */
+  .bhbc-load-row > [data-lbl="actions"] { grid-area: med; justify-self: stretch; width: 96px; max-width: 96px; }
+  .bhbc-load-row > [data-lbl="actions"] > button { width: 100%; justify-content: center; }
+  .bhbc-load-row > [data-lbl="last lift"] { justify-self: end !important; justify-items: end; text-align: end; width: max-content; max-width: 96px; }
   .bhbc-load-row > *:nth-child(2) { min-width: 0; }
   .bhbc-load-row > *:nth-child(2) * { overflow-wrap: normal !important; word-break: keep-all !important; }
   /* Review compare: two videos side-by-side become full-width stacked so each
@@ -1631,10 +1638,38 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .kpi-title { font-size: 12px !important; letter-spacing: 0.06em !important; }
 }
 
-/* The week board on a phone: the day label above its sessions, so a practice
-   chip keeps ONE row with its + S&C at the end (26.9). */
+/* The week board on a phone (26.9, Ohad: "11:00 practice 120 min and the two
+   buttons: way too big ... less vertical space for each day box"). The day
+   stays BESIDE its sessions - a narrow two-line column - instead of stacking
+   over them, so a day costs one chip's height, not a label plus a chip. */
 @media (max-width: 620px) {
-  .bhbc-week-row { flex-direction: column !important; gap: 6px !important; }
-  .bhbc-week-row > div:first-child { width: auto !important; padding-top: 0 !important; display: flex; gap: 8px; align-items: baseline; }
-  .bhbc-week-row > div:last-child { width: 100%; }
+  .bhbc-week-row { gap: 10px !important; padding-inline: 10px !important; }
+  .bhbc-week-row > div:first-child { width: 52px !important; }
+  .bhbc-chip { gap: 7px !important; padding-inline: 8px !important; }
+  .bhbc-chip .bhbc-chip-meta { letter-spacing: 0.03em !important; }
 }
+
+/* A CONTROL INSIDE A BOX IS NOT A BOX'S HEIGHT (26.9, Ohad: "copy button is way
+   too vertically big - fix this everywhere"). The one control height (36) is
+   for controls that stand on the page. A control nested in a title strip (41)
+   or a chip (36) at 36 fills its container edge to edge. Nested ones take the
+   one nested height instead, everywhere. */
+:root { --btn-h-in: 26px; }
+.title-strip button:not([data-strip-toggle]), .bhbc-chip button {
+  min-height: var(--btn-h-in) !important; height: var(--btn-h-in) !important;
+  padding-block: 0 !important; box-sizing: border-box;
+}
+
+/* A popup title is ONE row (26.9): its lead words step aside on a phone. */
+@media (max-width: 520px) { .bm-lead { display: none; } }
+
+/* week chip minutes: 120′ on a phone, "120 MIN" where it fits (26.9) */
+.bhbc-chip .min-tick { display: none; }
+@media (max-width: 420px) { .bhbc-chip .min-unit { display: none; } .bhbc-chip .min-tick { display: inline; } }
+
+/* week planner COLUMNS mode (27.9, 00:07 clip: "120 MIN" spilled out of every
+   chip): a column holds time, kind and 120' - the S&C button sits under it */
+.bhbc-week-grid .bhbc-chip { gap: 6px !important; padding-inline: 7px !important; }
+.bhbc-week-grid .bhbc-chip .bhbc-chip-meta { letter-spacing: 0.02em !important; }
+.bhbc-week-grid .bhbc-chip .min-unit { display: none; }
+.bhbc-week-grid .bhbc-chip .min-tick { display: inline; }

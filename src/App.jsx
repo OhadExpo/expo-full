@@ -1788,7 +1788,7 @@ function AuthedApp() {
         ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.'
         : 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.'}</div>}
       {isOwner && <Suspense fallback={null}><SensorLab trainees={trainees} /></Suspense>}
-      <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
+      <header className="app-hdr" style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
           .subtab-scroll::-webkit-scrollbar{display:none}
@@ -1837,32 +1837,29 @@ function AuthedApp() {
              so the desktop header is byte-for-byte what it was. */
           .hdr-rail { display: contents; }
           @media (max-width: 700px) {
-            /* ONE ROW, and the logo is OUT of the scroller.
-               It used to be sticky INSIDE it: every tab scrolled underneath and
-               the opaque background hid whatever was there. Measured on his own
-               width, the active DASHBOARD tab sat at 52..153 with the logo over
-               16..130 - 78px of it behind the logo, which is the screenshot he
-               sent five times. Now the bar is a plain two-column flex: a static
-               logo, and a rail beside it that scrolls. A tab cannot reach the
-               logo's x, so it cannot be covered, and one swipe still carries you
-               from the first tab to sign-out. */
-            /* 17.9: the first child IS the logo <img>, not a wrapper - 'stretch' cannot stretch a
-               36px image, so it pinned to the top and the -3px lift cut the caret off (y -3..33
-               in a 56px bar). Centre it; the lift then centres the LETTERS on the tab row. */
-            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: visible !important; overflow-y: visible !important; padding-inline-start: 16px !important; padding-inline-end: 0 !important; background: inherit; }
-            div.hdr-scroll > :first-child { position: static; z-index: auto; flex: 0 0 auto;
-              align-self: center; display: block; padding-inline-end: 12px;
-              border-inline-end: 1px solid var(--c-cardBd); }
-            .hdr-rail { display: flex !important; align-items: center; flex: 1 1 auto; min-width: 0;
-              height: 56px; overflow-x: auto; overflow-y: hidden;
-              -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-              padding-inline-start: 12px;
-              /* so scrollIntoView never parks the active tab half-cut on the
-                 rail's own edge */
-              scroll-padding-inline: 12px; }
-            .hdr-rail::-webkit-scrollbar { display: none; }
-            nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
-            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 16px !important; }
+            /* THE PHONE MENU IS A GRID, NOT A RAIL (26.9, Ohad: "top menu on
+               phone is not right (or on demo)"). The sliding rail left the
+               second tab sliced by the screen edge and seven destinations
+               off-screen with nothing saying they were there. Now: row one is
+               the logo and the tools; under it every destination is an equal
+               cell in a three-column grid, each boxed at the one control height,
+               the active one in cyan - the same grammar as the demo's phone
+               menu. Nothing scrolls, nothing is cut, nothing is hidden. The bar
+               is taller, so on a phone it scrolls away with the page instead of
+               pinning 190px over it. */
+            header.app-hdr { position: static !important; }
+            div.hdr-scroll { flex-wrap: wrap !important; height: auto !important; overflow: visible !important; padding: 0 16px 12px !important; }
+            div.hdr-scroll > :first-child { order: 0; flex: 0 0 auto; align-self: center; display: block; margin-block: 10px; }
+            .hdr-rail { display: contents !important; }
+            div.hdr-scroll .hdr-right { order: 1; flex: 0 0 auto !important; height: 56px; margin-inline-start: auto !important; padding-inline-end: 0 !important; gap: 4px !important; }
+            .hdr-right > span[aria-hidden="true"] { display: none !important; }
+            /* the tools share the logo's row at 360: compact icon boxes, no hairlines */
+            div.hdr-scroll .hdr-right > * { min-width: 32px !important; padding-inline: 4px !important; margin: 0 !important; }
+            nav.hdr-scroll { order: 2; flex: 1 1 100% !important; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px !important; height: auto !important; overflow: visible !important; min-width: 0 !important; }
+            nav.hdr-scroll > * { min-width: 0; width: 100%; }
+            nav.hdr-scroll > button, nav.hdr-scroll > div > button { width: 100%; min-width: 0; padding: 0 4px !important; gap: 4px !important; font-size: 9.5px !important; letter-spacing: 0.02em !important; border: 1px solid var(--c-cardBd) !important; }
+            nav.hdr-scroll button span { font-size: 9.5px !important; }
+            nav.hdr-scroll > button[aria-current="page"], nav.hdr-scroll > div > button[aria-current="page"] { border-color: var(--c-ac) !important; }
           }
           [dir="rtl"] nav.hdr-scroll button span{font-weight:800;letter-spacing:0}
           .nav-item-inactive{transition:color 120ms, background 120ms}

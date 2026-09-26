@@ -130,7 +130,9 @@ const BModal = ({ children, title, ...rest }) => {
     themeAttr={zoneTheme}
     title={<><img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
     headerStyle={{ background: NAVY, borderBottom: `3px solid ${ORANGE}`, color: '#fff' }}
-    titleStyle={{ color: '#fff' }}
+    // ONE ROW at every width (26.9): long titles carry their lead words in
+    // .bm-lead, which steps aside on a phone (themes.css) - nothing is cut.
+    titleStyle={{ color: '#fff', whiteSpace: 'nowrap' }}
     closeStyle={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.35)', color: '#fff' }}
     {...rest}
   ><div style={tokensFor(zoneTheme)}>{children}</div></Modal>
@@ -999,7 +1001,13 @@ function attendance28(rec, days) {
              second row. It is a SUMMARY here; the date lives on the Medical
              tab. Hiding it turns six two-line entries into six one-line ones. */
           .bhbc-mob-hide{display:none!important}
-          .bhbc-roster-actions{display:flex!important;flex-wrap:wrap!important}
+          /* THE THREE ACTIONS ARE ONE ROW, ALWAYS (26.9, Ohad: "manage roster,
+             log lift, log sc session should all fit in one row. always.
+             everywhere"). They take the full width under the ROSTER label and
+             share it; tighter tracking and inline padding make the longest
+             labels fit at 360 without cutting a word. */
+          .bhbc-roster-actions{display:flex!important;flex-wrap:nowrap!important;width:100%;margin-inline-start:0!important;gap:6px!important}
+          .bhbc-roster-actions > *{flex:1 1 auto;min-width:0;padding-inline:6px!important;letter-spacing:0.03em!important;white-space:nowrap!important}
           /* A WEEK-PLANNER SESSION COST TWO ROWS FOR NO REASON. Measured at 390:
              the row's children come to 290px of content in about 300px, so the
              edit/remove pair wrapped onto a line of its own — eight sessions,
@@ -1444,6 +1452,9 @@ function attendance28(rec, days) {
                 <WeekPlanner fixtures={bhbcFixtures} today={today}
                   onUpsert={null} onRemove={null}
                   onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null} />
+                {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
+                    after week planner, before practice attendance"). */}
+                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} />
                 {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
                     want an easy way to view the history of who trained
                     (basketball) and who didn't like the weight room view").
@@ -1454,9 +1465,6 @@ function attendance28(rec, days) {
                     "where can I see the previous practices details?"). */}
                 <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} medical={medical} />
                 <MicrocycleView fx={fx} today={today} />
-                {/* Log S&C Session / Log lift live in the toolbar on every tab;
-                    the schedule card carries no second copy of either. */}
-                <ScheduleTool fx={fx} today={today} mode={schedMode} setMode={setSchedMode} />
               </>
             )}
 
@@ -2383,23 +2391,30 @@ function HAChip({ home }) {
 
 // Travel legs for European games (jet-lag / travel-load planning).
 function TravelStrip({ travel }) {
+  const tr = useT();
   if (!travel) return null;
   const leg = (l, dir) => {
     if (!l) return null;
     const d = l.date ? `${dow(l.date)} ${monDay(l.date)}` : '';
+    // THREE COLUMNS, one leg per row (26.9: "MON 5 / OCT" broke its date on a
+    // phone). The direction, then when (date + departure, never split), then
+    // where - the only part that may wrap, and only between words.
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, color: C.td }}>
-        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{dir}</span>
-        <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
-        <span>{l.tbd ? zoneT('TBD') : `${l.label} · ${l.flight} ${l.dep}`}</span>
-      </span>
+      <React.Fragment key={dir}>
+        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr(dir)}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{d}{!l.tbd && l.dep ? ` · ${l.dep}` : ''}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.td, minWidth: 0 }}>{l.tbd ? zoneT('TBD') : `${l.label} · ${l.flight}`}</span>
+      </React.Fragment>
     );
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
-      <Plane size={12} color={ORANGE_DEEP} />
-      {leg(travel.out, 'Out')}
-      {leg(travel.back, 'Back')}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
+      {/* the plane is centred on the block of legs beside it, not on a baseline */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}><Plane size={12} color={ORANGE_DEEP} /></span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr)', columnGap: 10, rowGap: 6, alignItems: 'center', flex: 1, minWidth: 0 }}>
+        {leg(travel.out, 'Out')}
+        {leg(travel.back, 'Back')}
+      </div>
     </div>
   );
 }
@@ -2773,7 +2788,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   });
 
   return (
-    <BModal open onClose={onClose} wide title={athleteName + ' · ' + tr('Program')}>
+    <BModal open onClose={onClose} wide title={<>{athleteName}<span className="bm-lead"> · {tr('Program')}</span></>}>
       {plans.length === 0 ? (
         <div style={{ padding: 24, textAlign: 'center', fontFamily: FB, color: C.tm }}>{tr('No EXPO program assigned yet')}</div>
       ) : (
@@ -2971,7 +2986,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
     </div>
   );
   return (
-    <Card padding={14} leftStripe={NAVY} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
+    <Card padding={14} leftStripe={NAVY} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}{/* the date is in the title already - printed twice it pushed the title onto two rows (26.9) */}</span>}>
       {/* NEXT GAME */}
       <Section label={tr("Next game")} first>
         {nextGame
@@ -4122,7 +4137,10 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   return (
     <Card padding={14} leftStripe={NAVY} header={secTitle('Past practices')}
       headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length} {tr('logged')}</span>}>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* The first row's top space = every row's (26.9, Ohad: "too many vertical
+          space between past practices and thu 25 sep"): the strip's 12px gap is
+          cancelled so the row's own 9px is the only space above it. */}
+      <div style={{ display: 'flex', flexDirection: 'column', marginTop: -12 }}>
         {past.slice(0, limit).map((f) => {
           const key = `${f.date}|${f.start || ''}`;
           const d = detailFor(f);
@@ -4147,7 +4165,8 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                     its own siblings were 12 - which is both why it looked
                     oversized next to them and why "PRACTICE · 120 MIN" needed two
                     lines in a column that fits it easily at 12. */}
-                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flexShrink: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                {/* words stay whole (26.9: "PRACTIC / E" at 390): wrap BETWEEN words only */}
+                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flexShrink: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'normal', wordBreak: 'keep-all' }}>
                   {/* THE DURATION IS ONE TOKEN, NOT TWO WORDS THAT MAY PART.
                       Measured 19.9 at 390 in Hebrew: this column is the one that
                       gives way, and every past-practice row broke "120 דק׳" in
@@ -4290,7 +4309,7 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
           style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
           {wpLayout === 'columns' ? `▤ ${tr('Rows')}` : `▥ ${tr('Columns')}`}
         </button>
-        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע — מה שנקבע כאן מופיע ב"היום" ובדוח למאמן הראשי.' : 'The week’s practices and games — what is set here shows on Today and the Head Coach Report.'}</span>
+        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע, מלוח המועדון. ‎+ כוח רושם את אימון הכוח של הקבוצה לאימון הזה.' : 'The week’s practices and games, from the club calendar. + S&C logs the team S&C session for that practice.'}</span>
       </div>
 
       {/* SEVEN across, like a calendar week (Ohad: "all 7 days in one row, like
@@ -4304,13 +4323,13 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
           const list = byDay[d] || [];
           const isToday = d === today;
           return (
-            <div key={d} className={horizontalWeek ? undefined : 'bhbc-week-row'} style={horizontalWeek
+            <div key={d} data-week-date={d} data-week-n={list.length} className={horizontalWeek ? undefined : 'bhbc-week-row'} style={horizontalWeek
               ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? NAVY : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
               // 12px sides on EVERY row, so today's tint has an inset and the
               // day label never sits on its edge (26.9: "sat, sep 26 is too close
               // to the dark grey edge"); all rows share it, so nothing shifts.
-              : { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 12px', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
-              <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0, paddingTop: 3 }}>
+              : { display: 'flex', gap: 12, alignItems: 'center', padding: '6px 12px', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+              <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0 }}>
                 <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? NAVY : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
               </div>
@@ -4322,19 +4341,26 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
                   const isEditing = editing && editing.orig && sameSlotKey(editing.orig, f);
                   if (isEditing) return null;
                   return (
-                    <div key={i} className="bhbc-chip" style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, background: 'var(--c-sf)', padding: '6px 9px' }}>
+                    <React.Fragment key={i}>
+                    <div className="bhbc-chip" style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, background: 'var(--c-sf)', height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 9px' }}>
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
-                      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} ${tr('min')}` : ''}</span>
-                      {onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
+                      {/* the number and its unit never part; a phone gets 120′ where "120 MIN" would break (26.9) */}
+                      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{f.minutes ? <>{f.minutes}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></> : ''}</span>
+                      {!horizontalWeek && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
                         <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={tr('Log S&C Session')}
-                          style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, background: 'transparent', border: `1px solid ${ORANGE}`, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ {tr('S&C')}</button>
+                          style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, background: 'transparent', border: `1px solid ${ORANGE}`, height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ {tr('S&C')}</button>
                       )}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
                         <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✎</button>
                         <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title={tr('Remove session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
                       </span>}
                     </div>
+                      {horizontalWeek && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
+                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={tr('Log S&C Session')}
+                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, background: 'transparent', border: `1px solid ${ORANGE}`, height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: '100%', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ {tr('S&C')}</button>
+                      )}
+                    </React.Fragment>
                   );
                 })}
                 {editing && editing.date === d && (
@@ -4392,6 +4418,12 @@ const sameSlotKey = (a, b) => a && b && a.date === b.date && String(a.start || '
 
 function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
   const tr = useT();
+  // UNWIRED DATA IS A VISIBLE ERROR, never a clean empty calendar (27.9: the
+  // month view sat empty for ten days because `fixtures` was not passed).
+  if (!Array.isArray(fixtures)) {
+    console.error('[bhbc] ScheduleTool rendered without fixtures');
+    return <Card padding={14} leftStripe={'#DE4E3B'} header={secTitle('Schedule')}><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: '#DE4E3B' }}>{tr('Schedule data is not connected — report this.')}</div></Card>;
+  }
   const toggle = (
     <div style={{ display: 'inline-flex', border: '1px solid rgba(255,255,255,0.32)' }}>
       {[['calendar', 'Month'], ['week', 'Week'], ['list', 'List']].map(([k, l]) => (
@@ -4523,7 +4555,7 @@ function ScheduleMonth({ fixtures, today }) {
     const isToday = di === today;
     const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
     return (
-      <div key={di} className="bhbc-cal-cell" style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
@@ -5115,10 +5147,15 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
                 club. nowrap+ellipsis was the cause; the row is a grid with a
                 minmax(0,1fr) first column, so letting it wrap costs nothing but
                 a second line on a phone and keeps every word. */}
-            <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate' }}>{g.date}</span>
-              {'  '}{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}
-              {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 8 }}>{tr('Scrimmage')}</span>}
+            {/* ONE TYPE SYSTEM ON THE LINE (27.9, Ohad: "the font is bad. also
+                scrimmage is written in a way too small font"): the date, the
+                opponent and the kind were Nord 11 / the body font / Nord 9. Now
+                all Nord, the opponent the loudest, the kind a legible 10.5 tag,
+                and words wrap whole. */}
+            <span style={{ minWidth: 0, display: 'inline-flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 }}>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{g.date}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx }}>{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}</span>
+              {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Scrimmage')}</span>}
             </span>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
               // THE THING STILL TO DO MUST NOT LOOK FAINTER THAN THE THING DONE.
@@ -5155,7 +5192,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   const total = Object.values(mins).reduce((a, m) => a + (Number(m) || 0), 0);
   const played = Object.values(mins).filter((m) => Number(m) > 0).length;
   return (
-    <BModal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
+    <BModal open onClose={onClose} wide title={<>{tr('Minutes played')}<span className="bm-lead"> {'\u00B7'} {game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}</span></>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: FN, fontSize: 11, color: C.td, marginInlineStart: 'auto' }}>
           <b style={{ color: C.tx, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{played}</b><span>{tr('played')}</span>
@@ -5550,7 +5587,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
   };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (
-    <BModal open sticky onClose={onClose} wide title={`${tr(injury ? 'Update injury' : 'Report injury')} · #${athlete.jersey ?? '—'} ${athlete.name}`}>
+    <BModal open sticky onClose={onClose} wide title={<><span className="bm-lead">{tr(injury ? 'Update injury' : 'Report injury')} · </span>#{athlete.jersey ?? '—'} {athlete.name}</>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {onSwitch && (active.length > 0 || injury) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
@@ -5594,9 +5631,12 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
               filled line one and OUT dropped alone onto line two at a different
               width - four peer options, four different boxes. This is the PT's
               most-used control. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', border: `1px solid ${C.cardBd}` }}>
+          {/* hairlines BETWEEN the four cells too (26.9, Ohad: "no borders
+              between each of them ... i need some type of inside border"): a
+              1px gap over the border colour draws every inner line once */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
             {Object.entries(MED_STATUS).map(([k, s]) => (
-              <button key={k} type="button" onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'transparent', border: 'none', padding: '7px 14px', cursor: 'pointer' }}>{s.label}</button>
+              <button key={k} type="button" onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'var(--c-sf)', border: 'none', padding: '0 14px', cursor: 'pointer' }}>{s.label}</button>
             ))}
           </div>
         </div>
@@ -5606,11 +5646,23 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
         {/* Rehab progress log */}
         <div style={{ border: `1px solid ${C.cardBd}` }}>
           <div style={{ padding: '8px 12px', background: NAVY_DEEP, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{tr('Rehab progress')}</div>
-          <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: progress.length ? `1px solid ${C.cardBd}` : 'none', alignItems: 'center' }}>
-            <input type="date" value={pDate} max={today} min={onsetDate || undefined} onChange={(e) => setPDate(e.target.value)} title={he ? 'תאריך הרישום' : 'Date of this note'} style={{ ...sel, width: 138, flexShrink: 0 }} />
-            <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder={pDate === today ? tr('Progress note for today…') : (he ? 'הערת התקדמות…' : 'Progress note…')} style={{ ...sel, flex: 1, minWidth: 0 }} />
-            <input type="number" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder={tr('pain')} style={{ ...sel, width: 72 }} />
-            <Btn onClick={addProgress} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Add')}</Btn>
+          {/* EVERY FIELD SAYS WHAT IT IS (26.9, Ohad: a small box "before pain
+              ... i don't even know what that button or textbox is for"). That box
+              was the NOTE, squeezed to 20px between the date and the pain score
+              on a phone. Two rows: when + how much it hurts, then the note at
+              full width with ADD at its end. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', borderBottom: progress.length ? `1px solid ${C.cardBd}` : 'none' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px', gap: 8 }}>
+              <div><label style={lbl}>{he ? 'תאריך' : 'Date'}</label>
+                <input type="date" value={pDate} max={today} min={onsetDate || undefined} onChange={(e) => setPDate(e.target.value)} style={{ ...sel, width: '100%' }} /></div>
+              <div><label style={lbl}>{tr('Pain (0–10)')}</label>
+                <input type="number" inputMode="numeric" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder="—" style={{ ...sel, width: '100%', textAlign: 'center' }} /></div>
+            </div>
+            <div><label style={lbl}>{he ? 'הערת התקדמות' : 'Progress note'}</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder={pDate === today ? tr('Progress note for today…') : (he ? 'הערת התקדמות…' : 'Progress note…')} style={{ ...sel, flex: 1, minWidth: 0 }} />
+                <Btn onClick={addProgress} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff', flexShrink: 0 }}>{tr('Add')}</Btn>
+              </div></div>
           </div>
           {progress.length > 0 && (
             <div style={{ maxHeight: 160, overflowY: 'auto' }}>
