@@ -1264,10 +1264,15 @@ function AuthedApp() {
   const isCoach = isTrainer;
   // WHICH SEAT THIS IS, for the store's write fence (src/seatWrite.js): a
   // staff seat writes everything, a club coach the club's keys, an athlete only
-  // its own presence row. Set once the role is known; 'unknown' blocks nothing.
-  useEffect(() => {
-    setSeat(isTrainer ? 'staff' : isBhbcCoach ? 'bhbc-coach' : email ? 'athlete' : 'unknown', email || null);
-  }, [isTrainer, isBhbcCoach, email]);
+  // its own presence row. 'unknown' blocks nothing.
+  //
+  // SET DURING RENDER, NOT IN AN EFFECT. React runs a child's effects before
+  // its parent's, so with the old useEffect every store write a portal child
+  // made on its first commit ran while the seat was still 'unknown' — the one
+  // window the fence was meant to close. setSeat only assigns a module value
+  // (idempotent), so calling it here is safe and it is in place before any
+  // child renders. Gate: scripts/verify-seat-fence.mjs.
+  setSeat(isTrainer ? 'staff' : isBhbcCoach ? 'bhbc-coach' : email ? 'athlete' : 'unknown', email || null);
 
   // A staff coach who deep-links to a tab outside STAFF_TABS falls back to
   // their dashboard.
