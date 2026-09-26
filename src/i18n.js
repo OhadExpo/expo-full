@@ -1106,6 +1106,7 @@ export const HE = {
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
   "NEW VERSION AVAILABLE": 'גרסה חדשה זמינה',
+  "NEW VERSION": 'גרסה חדשה',
   "UPDATING…": 'מעדכן…',
   "Loading the latest version…": 'טוען את הגרסה האחרונה…',
   "A new version of EXPO is ready. Update now to continue.": 'גרסה חדשה של EXPO מוכנה. עדכן עכשיו כדי להמשיך.',

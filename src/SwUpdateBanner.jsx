@@ -40,9 +40,14 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return nu
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
 
 export default function SwUpdateBanner() {
-  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
+  const { needRefresh: [swNeedRefresh], updateServiceWorker } = useRegisterSW({
     onRegisterError(err) { console.warn('SW register failed:', err); },
   });
+  // TEST SWITCH: localStorage 'expo-test-sw-banner' = '1' shows the pill with no
+  // pending update and no grace delay, so its layout can be looked at and gated
+  // (it cannot otherwise be produced on demand). Inert unless the key is set.
+  const forced = lsGet('expo-test-sw-banner') === '1';
+  const needRefresh = swNeedRefresh || forced;
   const [updating, setUpdating] = useState(false);
   const [tick, setTick] = useState(0);           // re-evaluates the rules once a second
   const lang = readLang();
@@ -104,9 +109,9 @@ export default function SwUpdateBanner() {
   const nag = now - firstSeen > NAG_AFTER_MS;                       // rule 6
 
   if (!updating) {
-    if (now - loadedAt < GRACE_MS) return null;                    // rule 1
+    if (!forced && now - loadedAt < GRACE_MS) return null;         // rule 1
     if (busyNow) return null;                                        // rule 4
-    if (!nag && snoozedUntil > now) return null;                     // rules 2 + 5
+    if (!forced && !nag && snoozedUntil > now) return null;          // rules 2 + 5
   }
 
   const onUpdate = () => { setUpdating(true); setTimeout(() => { try { updateServiceWorker(true); } catch { /* noop */ } setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500); }, 200); };
@@ -146,12 +151,27 @@ export default function SwUpdateBanner() {
   // them. That is exactly "only the lower part", and it is why it happens
   // only sometimes — it depends on how the app was opened. The safe-area
   // inset resolves to 0 in a normal tab, so this costs nothing there.
+  //
+  // Ohad, 26.9 (phone): "update pop up is fucked up... two buttns on two
+  // different row and now full cyan borders". It was a wrapping inline-flex, so
+  // at 390 LATER fell to a second row; and it wore the full cyan border. Now ONE
+  // row at every width — the label takes what is left and may wrap inside its
+  // own column, the two buttons stand side by side at the one control height.
+  // The full cyan border stays: that is what he wants on it ("i do want full
+  // cyan borders around the popup").
+  const btn = { flexShrink: 0, height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 14px', borderRadius: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer', whiteSpace: 'nowrap' };
   return (
     <div role="status" style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', padding: '0 12px', pointerEvents: 'none' }}>
-      <div style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 10, maxWidth: '100%', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '9px 14px', boxShadow: `0 10px 30px ${C.shadow}` }}>
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{t('NEW VERSION AVAILABLE')}</span>
-        <button onClick={onUpdate} style={{ background: C.ac, color: 'var(--c-bg)', border: 'none', borderRadius: 0, padding: '7px 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer' }}>{t('UPDATE')}</button>
-        <button onClick={onLater} style={{ background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer' }}>{t('LATER')}</button>
+      <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, width: 'min(560px, 100%)', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0, paddingBlock: 8, paddingInlineStart: 14, paddingInlineEnd: 8, boxShadow: `0 10px 30px ${C.shadow}` }}>
+        {/* ONE LINE (Ohad 26.9: "never put two rows in a title box ... always
+            one row"). At 390 the English label wrapped to two; a phone gets the
+            short form, which still reads beside UPDATE, and never an ellipsis. */}
+        <style>{`.sw-lbl-short{display:none}@media (max-width:520px){.sw-lbl-full{display:none}.sw-lbl-short{display:inline}}`}</style>
+        <span style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.14em', fontWeight: 700, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+          <span className="sw-lbl-full">{t('NEW VERSION AVAILABLE')}</span><span className="sw-lbl-short">{t('NEW VERSION')}</span>
+        </span>
+        <button onClick={onUpdate} style={{ ...btn, background: C.ac, color: 'var(--c-bg)', border: `1px solid ${C.ac}` }}>{t('UPDATE')}</button>
+        <button onClick={onLater} style={{ ...btn, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}` }}>{t('LATER')}</button>
       </div>
     </div>
   );

@@ -572,7 +572,9 @@ export default function App() {
   return (
     <AuthProvider clientList={[]}>
       <AuthGate />
-      {!/^(localhost|127\.0\.0\.1)$/.test(typeof window !== 'undefined' ? window.location.hostname : '') && <Suspense fallback={null}><SwUpdateBanner /></Suspense>}
+      {/* Not on localhost — except when the banner's test switch is set, so its
+          layout can be looked at and gated (SwUpdateBanner, 26.9). */}
+      {(!/^(localhost|127\.0\.0\.1)$/.test(typeof window !== 'undefined' ? window.location.hostname : '') || (() => { try { return localStorage.getItem('expo-test-sw-banner') === '1'; } catch { return false; } })()) && <Suspense fallback={null}><SwUpdateBanner /></Suspense>}
     </AuthProvider>
   );
 }
