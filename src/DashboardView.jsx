@@ -586,11 +586,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           there is room. Two rows of two is order; three and a stray is not. */}
       <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
         {[
-          { label: tt('Active Athletes'), value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
-          { label: tt('Low Sessions'), value: unknown(trainees) ? '—' : lowSessions, color: lowSessions > 0 ? C.or : C.gn },
+          { label: tt('Active Athletes'), short: he ? null : 'Athletes', value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
+          { label: tt('Low Sessions'), short: he ? 'מעט אימונים' : null, value: unknown(trainees) ? '—' : lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           // Money KPIs — owner-only.
           ...(isOwner ? [
-            { label: tt('Estimated Monthly'), value: unknown(trainees) ? '—' : `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+            { label: tt('Estimated Monthly'), short: he ? null : 'Est. Monthly', value: unknown(trainees) ? '—' : `₪${monthlyRate.toLocaleString()}`, color: C.ac },
             // Label shortened from "Collected This Month" → "Collected MTD"
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
@@ -599,8 +599,8 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // marked in the app, so this read ₪0 while the REVENUE card below showed the sheet's month.
             // With no app-marked money this month, the finance sheet's coaching total is the figure.
             (thisMonthPaid === 0 && sheet)
-              ? { label: tt('Collected MTD'), value: `₪${Math.round(sheet.thisMonth).toLocaleString()}`, sub: tt('From the sheets'), subColor: C.td, color: sheet.thisMonth > 0 ? C.gn : C.td }
-              : { label: tt('Collected MTD'), value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+              ? { label: tt('Collected MTD'), short: he ? null : 'Collected', value: `₪${Math.round(sheet.thisMonth).toLocaleString()}`, sub: tt('From the sheets'), subColor: C.td, color: sheet.thisMonth > 0 ? C.gn : C.td }
+              : { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -616,7 +616,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   the number below them. The dot now sits at the strip's other end, the
                   same margin from that edge. */}
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minHeight: 30, width: '100%' }}>
-                  <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                  {/* ONE LINE at every width (26.9, "never put two rows in a title
+                      box"): a phone gets the short label where the full one would
+                      wrap in a half-width tile. */}
+                  <SectionLabel className="kpi-title" style={{ color: 'var(--c-stripTx)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, whiteSpace: 'nowrap' }}>{s.short ? <><span className="kpi-full">{s.label}</span><span className="kpi-short">{s.short}</span></> : s.label}</SectionLabel>
                   <span title={tr(readLang(), 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
                 </span>
               </RefinedHeaderStrip>
@@ -655,7 +658,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         const refined = isRefined5b();
         return (
           <CollapsibleSection title={tt('Incoming · 30D')} storageKey="dash-incoming" style={{ marginBottom: 14 }}
-            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)', letterSpacing: '0.06em' }}>{tt('VISITS in Vercel Analytics')}</span>}>
+            right={<span className="strip-meta" style={{ fontSize: 10, fontFamily: FN, color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{tt('VISITS in Vercel Analytics')}</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },

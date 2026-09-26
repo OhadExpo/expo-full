@@ -230,7 +230,7 @@ export default function RevenueSheetCard() {
             the start; the meta wraps inside its own column at the end. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <span style={{ flexShrink: 0 }}>{tt('From the sheets')}</span>
-          <span style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
+          <span className="strip-meta" style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
             {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')} · {totalPayments} {tt('payments')} · {totalSessions} {tt('sessions counted')}
           </span>
         </div>

@@ -1617,3 +1617,24 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
      over the date instead of trimming the date to "…22" */
   .bhbc-load-row [data-lbl="last lift"] { grid-template-columns: minmax(0, 1fr) !important; row-gap: 1px; }
 }
+
+/* A strip's PASSIVE meta text (a caption beside the title, not a control)
+   steps aside on a phone rather than pushing a second row into the title box
+   (Ohad 26.9: "never put two rows in a title box ... always one row"). */
+@media (max-width: 620px) { .strip-meta { display: none !important; } }
+
+/* KPI tile titles: the short phone label where the full one would wrap (26.9). */
+.kpi-title .kpi-short { display: none; }
+@media (max-width: 480px) {
+  .kpi-title .kpi-full { display: none; }
+  .kpi-title .kpi-short { display: inline; }
+  .kpi-title { font-size: 12px !important; letter-spacing: 0.06em !important; }
+}
+
+/* The week board on a phone: the day label above its sessions, so a practice
+   chip keeps ONE row with its + S&C at the end (26.9). */
+@media (max-width: 620px) {
+  .bhbc-week-row { flex-direction: column !important; gap: 6px !important; }
+  .bhbc-week-row > div:first-child { width: auto !important; padding-top: 0 !important; display: flex; gap: 8px; align-items: baseline; }
+  .bhbc-week-row > div:last-child { width: 100%; }
+}

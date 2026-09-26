@@ -547,12 +547,18 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
         style={{
           ...stripStyle,
+          // ONE ROW, ALWAYS (Ohad 26.9: "never put two rows in a title box ...
+          // always one row. fix it everywhere"). flexWrap used to drop the right
+          // cluster under the title on a phone. Now the title takes what is
+          // left and the cluster keeps its size; passive meta text in the right
+          // slot carries .strip-meta and steps aside on a phone (themes.css).
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 12, cursor: 'pointer', userSelect: 'none', flexWrap: 'wrap',
+          gap: 12, cursor: 'pointer', userSelect: 'none', flexWrap: 'nowrap',
         }}
       >
-        {titleNode ? <span style={{ minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
+        {titleNode ? <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
           <span style={{
+            flex: '1 1 auto',
             color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
             overflowWrap: 'break-word', minWidth: 0,
@@ -572,8 +578,8 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
             with nothing to its left. space-between puts a lone wrapped item at
             the START, under the title, and leaves the one-line case
             untouched. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>
-          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'nowrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '100%' }}>
+          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           {/* WHITE on purpose — this chevron sits on the COLOURED strip header
               whose title span three lines up is also #FFFFFF. Switching it to
               --c-tx made it near-black on BHBC's deep-navy strip (1.33:1,
@@ -717,8 +723,8 @@ export function RefinedActionButton({ kind, label, onClick, onContext = 'strip' 
 // form group. Old: fontSize 9 + 0.18em tracking — read as shouty
 // micro-text. New: fontSize 11 + 0.04em tracking + a touch lighter
 // weight. Still a label, no longer screams.
-export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s }) =>
-  <Tag style={{
+export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s, className }) =>
+  <Tag className={className} style={{
     fontFamily: FN, fontSize: 11, fontWeight: 600, color,
     letterSpacing: '0.04em', textTransform: 'uppercase',
     ...s,
@@ -805,11 +811,11 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           ariaExpanded={onHeaderClick ? headerAriaExpanded : undefined}
           onKeyDown={onHeaderClick ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
           {headerRight ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
               <div style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
-              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>
             </div>
           ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
         </RefinedHeaderStrip>
