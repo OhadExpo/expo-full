@@ -98,6 +98,7 @@ import { logAppOpen } from './logAppOpen';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
+import { setSeat } from './seatWrite';
 // Imported at CALL time, below - it pulls poseLab (1,265 lines) and this is
 // owner-only work that does not even run on a phone.
 // Lazy-load every heavy view so the initial bundle stays small.
@@ -610,10 +611,25 @@ function cachedSelfTrainee(email, setError) {
 
 function BootSplash() {
   const logo = useLogoSrc();
+  // THE WATCHDOG (26.9). A splash is a promise that something is coming; after
+  // ten seconds it is a locked door. The athlete gets a reload that also clears
+  // the service worker's cached bundle, so a stale or broken build cannot loop.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 10000); return () => clearTimeout(t); }, []);
+  const reload = () => {
+    try { if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))); } catch { /* noop */ }
+    window.location.reload();
+  };
   return (
-    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:'0 24px',textAlign:'center'}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
       <div style={{color:C.td,fontSize:13}}>{trFn(readLang(), 'Loading…')}</div>
+      {slow && (
+        <>
+          <div style={{color:C.tm,fontSize:13,maxWidth:320,lineHeight:1.5}}>{trFn(readLang(), 'Still loading — that is longer than usual. Reloading usually clears it.')}</div>
+          <button type="button" onClick={reload} style={{minHeight:36,padding:'0 18px',border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',borderRadius:0,cursor:'pointer'}}>{trFn(readLang(), 'Reload')}</button>
+        </>
+      )}
     </div>
   );
 }
@@ -1248,6 +1264,12 @@ function AuthedApp() {
   };
   const initRoute = getRoute();
   const isCoach = isTrainer;
+  // WHICH SEAT THIS IS, for the store's write fence (src/seatWrite.js): a
+  // staff seat writes everything, a club coach the club's keys, an athlete only
+  // its own presence row. Set once the role is known; 'unknown' blocks nothing.
+  useEffect(() => {
+    setSeat(isTrainer ? 'staff' : isBhbcCoach ? 'bhbc-coach' : email ? 'athlete' : 'unknown', email || null);
+  }, [isTrainer, isBhbcCoach, email]);
 
   // A staff coach who deep-links to a tab outside STAFF_TABS falls back to
   // their dashboard.
