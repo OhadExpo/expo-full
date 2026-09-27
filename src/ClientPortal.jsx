@@ -1842,12 +1842,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       ) : (
         <>
           {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && (
-            <div role="alert" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+            <div role="alert" dir="auto" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
               {tt('No sets ticked yet. Tick ✓ on the sets you did, then complete.')}
             </div>
           )}
           {finishState === 'failed' && (
-            <div role="alert" data-finish-refused="failed" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+            <div role="alert" dir="auto" data-finish-refused="failed" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
               {tt('Not saved. Your sets are still here. Tap complete again.')}
             </div>
           )}

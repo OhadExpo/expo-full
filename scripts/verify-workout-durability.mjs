@@ -54,6 +54,18 @@ const URL_ = (src.match(/SUPA_URL = '([^']+)'/) || [])[1];
 const KEY = (src.match(/SUPA_PUBLISHABLE_KEY = '([^']+)'/) || [])[1];
 if (!URL_ || !KEY) { console.log('FAIL: could not read the project URL / key from src/supabase.js'); process.exit(1); }
 
+// WHICH BUILD. A preview port can be held by some other checkout's server, and
+// then every clause would measure somebody else's code. For a local BASE the
+// served entry bundle must be THIS checkout's dist/.
+if (/127\.0\.0\.1|localhost/.test(BASE)) {
+  const entry = (html) => ((html || '').match(/src="(\/assets\/index-[^"]+\.js)"/) || [])[1] || null;
+  let local = null, served = null;
+  try { local = entry(fs.readFileSync('dist/index.html', 'utf8')); } catch (e) { /* no dist */ }
+  try { served = entry(await (await fetch(BASE + '/')).text()); } catch (e) { /* not up */ }
+  if (!local || local !== served) { console.log(`FAIL: ${BASE} is not serving this checkout's build (served ${served}, dist/ has ${local}) — nothing measured`); process.exit(1); }
+  console.log(`build: ${served} (matches dist/)`);
+}
+
 const results = [];
 const check = (clause, name, ok, detail) => { results.push({ clause, name, ok }); console.log(`${ok ? 'OK  ' : 'FAIL'} (${clause}) ${name}${detail ? ' — ' + detail : ''}`); };
 
@@ -332,13 +344,16 @@ try {
         } else r.continue().catch(() => {});
       });
       await clickComplete(page);
-      const closed = await waitClosed(page, 10000); await wait(2500);
-      const banner = await page.evaluate(() => { const b = document.querySelector('[data-unsaved-workouts]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; });
+      const closed = await waitClosed(page, 10000);
+      // the banner renders once the failed attempt is recorded — give it up to 10 s
+      let banner = null;
+      for (let i = 0; i < 40 && !banner; i++) { banner = await page.evaluate(() => { const b = document.querySelector('[data-unsaved-workouts]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; }); if (!banner) await wait(250); }
       const q = await queueWorkouts(page);
       await shot(page, 'e-not-saved-en');
       await page.evaluate(() => localStorage.setItem('expo-lang', 'he'));
-      await portal(page); await wait(2500);
-      const bannerHe = await page.evaluate(() => { const b = document.querySelector('[data-unsaved-workouts]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; });
+      await portal(page);
+      let bannerHe = null;
+      for (let i = 0; i < 40 && !bannerHe; i++) { bannerHe = await page.evaluate(() => { const b = document.querySelector('[data-unsaved-workouts]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; }); if (!bannerHe) await wait(250); }
       await shot(page, 'e-not-saved-he');
       const mid = await markerRows(M);
       check('e', 'a 403/42501 on the upsert parks the workout and shows it as not saved (after a reload too)', closed && !!banner && !!bannerHe && q >= 1 && mid.length === 0, `closed=${closed} queued=${q} rows=${mid.length} en="${banner}" he="${bannerHe}"`);
