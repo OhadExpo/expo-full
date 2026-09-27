@@ -234,7 +234,16 @@ for (const [name, route] of SURFACES) {
                 const isNav = !!(sc.closest('nav,header,[role=tablist],[role=navigation]')
                   || sc.querySelector('[role=tab]')
                   || (el.getAttribute && el.getAttribute('role') === 'tab'));
-                if (!isNav) continue;
+                // A SANCTIONED SIDE-SCROLL RAIL IS NAVIGATION DONE RIGHT (27.9,
+                // Ohad #288 "what happened to the side scroll top menu?" and #343
+                // "should look like top menu's in expo and bhbc"): he chose rails
+                // over wrapped grids. A rail is sanctioned when it carries the
+                // no-slice system (its pinned plate is marked data-rail-occluder)
+                // - verify-rail-slices proves such a rail never shows half an item
+                // and always keeps the active tab whole. Any OTHER navigation that
+                // hides items off-screen still fails here.
+                const sanctioned = !!sc.querySelector('[data-rail-occluder]') || !!(sc.parentElement && sc.parentElement.querySelector(':scope > [data-rail-occluder]'));
+                if (!isNav || sanctioned) continue;
               }
               out.offscreen.push({ t: (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 30), l: Math.round(bb.left), r: Math.round(bb.right) });
             }

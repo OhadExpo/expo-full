@@ -1407,9 +1407,12 @@ export function SegWord({ full, short }) {
   const ref = React.useRef(null);
   const fullW = React.useRef(0);
   const [useShort, setUseShort] = React.useState(false);
+  const useShortRef = React.useRef(false); useShortRef.current = useShort;
   const decide = React.useCallback(() => {
     const el = ref.current; const btn = el && el.parentElement;
-    if (!el || !btn || !short || !fullW.current) return;
+    if (!el || !btn || !short) return;
+    // mounted hidden (width 0): take the full word's width once it can be seen
+    if (!fullW.current) { if (useShortRef.current) return; fullW.current = el.getBoundingClientRect().width; if (!fullW.current) return; }
     const cs = getComputedStyle(btn);
     const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
     const gap = parseFloat(cs.columnGap) || 0;

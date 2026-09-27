@@ -698,6 +698,17 @@ export default function MovementLab({
           <canvas ref={liveCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
         </div>
       )}
+      {/* THE CLIP STAYS IN VIEW WHILE IT IS READ (27.9 LOOK: the page was a
+          progress bar over a black void for the whole analysis). A still,
+          dimmed preview - the results player replaces it when the read ends. */}
+      {phase === 'analyzing' && srcUrl && (
+        <div style={{ position: 'relative', width: '100%', background: C.videoBg, lineHeight: 0 }}>
+          {/* #t=0.001: iOS Safari paints no first frame for a paused video
+              otherwise, and the preview would be the black box again */}
+          <video src={`${srcUrl}#t=0.001`} muted playsInline preload="metadata" aria-hidden="true"
+            style={{ display: 'block', width: '100%', height: 'auto', maxHeight: isMobile ? '60vh' : '72vh', background: C.videoBg, opacity: 0.55 }} />
+        </div>
+      )}
       {phase === 'results' && srcUrl && (
         <div style={{ position: 'relative', width: '100%', background: C.videoBg, lineHeight: 0 }}>
           <video ref={analyzeVideoRef} key={srcUrl} src={srcUrl} controls muted playsInline
@@ -709,7 +720,7 @@ export default function MovementLab({
   );
 
   const controls = (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginTop: (liveCam || (phase === 'results' && srcUrl)) ? 12 : 0 }}>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginTop: (liveCam || ((phase === 'results' || phase === 'analyzing') && srcUrl)) ? 12 : 0 }}>
       {showMovementPick && (
         <select value={movementKey} onChange={(e) => pickMovement(e.target.value)} disabled={busy} aria-label={tt('Exercise')} style={selectCtrl(busy)}>
           <option value="">{tt('No exercise')}</option>

@@ -219,7 +219,9 @@ const todayISO = () => localISO(new Date());
 const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return localISO(d); };
 // Nationality as text (flag emoji doesn't render on Windows Chrome → shows "US"
 // letters at a wrong baseline and breaks row alignment).
-const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join(' · ');
+// dual nationality as ISR/USA: one short token that fits a card footer on one
+// row (27.9: "ISR · USA" wrapped the roster footer onto two lines)
+const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join('/');
 const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
 // `availability` is a DAY-level fact (medical / personal — it gates ACWR and
 // feeds the medical view). `attendance` is per SLOT, keyed `YYYY-MM-DD|HH:MM`,
@@ -378,7 +380,7 @@ function BandPill({ band, value }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700,
       letterSpacing: '0.03em', color: c, background: `color-mix(in srgb, ${c} 13%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap',
+      border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap', lineHeight: 1,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
       {value != null && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</span>}
@@ -846,13 +848,15 @@ function attendance28(rec, days) {
   // floor 4 gives the two states actually available, Out-Med and Out-Personal.
   // To go below the floor you change the medical record, which is where that
   // value really lives.
-  const cycleAvail = useCallback((id) => {
+  const cycleAvail = useCallback((id, to = null) => {
     const floor = activeInjuries(medical || {}, id)
       .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
     setBhbcLoads((prev) => {
       const rec = prev[id] ? { ...prev[id] } : emptyRec();
       const cur = Math.max(Number((rec.availability || {})[today]) || 1, floor);
-      rec.availability = { ...(rec.availability || {}), [today]: cur >= 5 ? floor : cur + 1 };
+      // a chosen status (the picker, 27.9 #345) - never below the medical floor
+      const next = to != null ? Math.max(Number(to) || 1, floor) : (cur >= 5 ? floor : cur + 1);
+      rec.availability = { ...(rec.availability || {}), [today]: next };
       return { ...prev, [id]: rec };
     });
     notify();
@@ -4353,6 +4357,17 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
 
 function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen, onMedical, today }) {
   const tr = useT();
+  // the athlete whose availability picker is open (one at a time); a tap
+  // anywhere else or Escape closes it without changing anything
+  const [availPick, setAvailPick] = useState(null);
+  useEffect(() => {
+    if (!availPick) return undefined;
+    const close = (e) => { if (!(e.target.closest && e.target.closest('[data-avail-pick]'))) setAvailPick(null); };
+    const esc = (e) => { if (e.key === 'Escape') setAvailPick(null); };
+    const t = setTimeout(() => document.addEventListener('pointerdown', close), 0);
+    document.addEventListener('keydown', esc);
+    return () => { clearTimeout(t); document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [availPick]);
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
   const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
@@ -4488,15 +4503,39 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     </div>
                   );
                 })()}
-                <div data-lbl="Availability">
+                <div data-lbl="Availability" style={{ position: 'relative' }}>
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
+                    // A STATE YOU SET, NOT A BUTTON YOU PRESS (27.9 #345, Ohad: "too
+                    // easy to accidentally tap" / "med and the status ... should not
+                    // look the same"). His control-material rule: an entry is an
+                    // underlined field, an action that opens something is a box.
+                    // One tap opens the choices; nothing changes until one is picked.
+                    <button onClick={(e) => { e.stopPropagation(); setAvailPick((p) => (p === t.id ? null : t.id)); }} aria-haspopup="listbox" aria-expanded={availPick === t.id}
+                      title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Change availability')}
+                      className="bhbc-avail-entry" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, borderRadius: 0, padding: '0 2px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}</span>
+                      <span aria-hidden="true" style={{ color: C.tm, fontSize: 9 }}>▾</span>
                     </button>
                   ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)` : `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, padding: '0 2px', whiteSpace: 'nowrap' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </span>
+                  )}
+                  {cycleAvail && availPick === t.id && (
+                    <div role="listbox" aria-label={tr('Change availability')} onClick={(e) => e.stopPropagation()} data-avail-pick=""
+                      style={{ position: 'absolute', insetInlineEnd: 0, top: 'calc(100% + 4px)', zIndex: 30, minWidth: 180, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, boxShadow: C.cardShadow }}>
+                      {[1, 2, 3, 4, 5].map((code) => {
+                        const below = code < medFloor, on = code === avail;
+                        return (
+                          <button key={code} role="option" aria-selected={on} disabled={below}
+                            onClick={() => { cycleAvail(t.id, code); setAvailPick(null); }}
+                            title={below ? tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.') : undefined}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, width: '100%', height: 36, padding: '0 12px', border: 'none', borderBottom: `1px solid ${C.cardBd}`, background: on ? 'var(--c-sf2)' : 'transparent', color: below ? C.td : C.tx, opacity: below ? 0.5 : 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: below ? 'not-allowed' : 'pointer', textAlign: 'start', whiteSpace: 'nowrap' }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[code].color, flexShrink: 0 }} />{tr(AVAIL[code].label)}{on ? <span style={{ marginInlineStart: 'auto', color: C.tm }}>✓</span> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
                 {hasRead && (<div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
@@ -4585,7 +4624,10 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             // borders don't align from card to card".
             // The footer is now PINNED to the bottom of the card, so the
             // hairline lands on the same y in every card whatever is above it.
-            height: 'var(--rc-h, 184px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
+            // NO EMPTY BAND AT THE BOTTOM (27.9, Ohad: "too much extra space on the
+            // lower part of each box"): the height comes from the content - every
+            // line above the rule is reserved, so every card is still the same box.
+            height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
@@ -4612,11 +4654,15 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minWidth: 0, minHeight: 'var(--rc-stat, 32px)' }}>
                     <span style={{ fontFamily: FB, fontSize: 11, lineHeight: '14px', color: C.td, whiteSpace: 'nowrap' }}>{tr(t.position) || '—'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: injShort ? medText(inj.status) : 'transparent', whiteSpace: 'nowrap' }} aria-hidden={injShort ? undefined : 'true'}>{injShort ? `${injShort} · ${tr((MED_STATUS[inj.status] || {}).label || inj.status)}` : '·'}</span>
+                    {/* the reserved second line: the injury, or - for a player who
+                        has not landed yet - when he lands (it used to add a line
+                        of its own, so that card's row grew; 27.9 review) */}
+                    {!injShort && t.arrival && t.arrival > todayISO()
+                      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</span>
+                      : <span style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: injShort ? medText(inj.status) : 'transparent', whiteSpace: 'nowrap' }} aria-hidden={injShort ? undefined : 'true'}>{injShort ? `${injShort} · ${tr((MED_STATUS[inj.status] || {}).label || inj.status)}` : '·'}</span>}
                   </div>
                 );
               })()}
-              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><Plane size={9} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</div>}
               {/* #63, the unfinished half of "borders don't align from card to card"
                   (02.09). The card reserves a slot for the NAME and for the STAT
                   row but never for the FOOTER, so the one card whose footer wraps
@@ -4627,9 +4673,11 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   by the same 8px so nothing above it loses room — the card was
                   rebuilt in September precisely because a fixed height with
                   top-down flow pushed the footer through the bottom border. */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, minHeight: 'var(--rc-foot, 52px)', boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
+              {/* the footer's text sits centred between the rule and the card's
+                  edge: 12px above it, the card's 13px padding below */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
                     Measured at 900: every roster card footer is 30px except DJ
                     Burns and Noah Carter at 38, and the whole 8px is this span
@@ -4658,13 +4706,16 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             with no load, attendance or medical line to read. */}
         {ghosts.map((t) => (
           <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card"
-            style={{ position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '13px 15px', height: 'var(--rc-h, 184px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
+            style={{ position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '13px 15px', height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
             <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
             <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 'var(--rc-name, 36px)' }}>{t.name}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minHeight: 'var(--rc-stat, 32px)' }}>
               <span style={{ fontFamily: FB, fontSize: 11, lineHeight: '14px', color: C.td, whiteSpace: 'nowrap' }}>{tr(t.position) || '—'}</span>
+              {/* the same reserved second line as every active card, so the ghost
+                  is the same box (27.9: it was 25px shorter at 390) */}
+              <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', color: 'transparent' }}>·</span>
             </div>
-            <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: `1px dashed ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Ghost')} · {tr('not counted')}</div>
+            <div style={{ display: 'flex', alignItems: 'center', height: 31, boxSizing: 'border-box', marginTop: 'auto', paddingTop: 12, borderTop: `1px dashed ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Ghost')} · {tr('not counted')}</div>
           </div>
         ))}
       </div>
