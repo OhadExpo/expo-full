@@ -187,13 +187,6 @@ function Card({ header, headerRight, children, ...rest }) {
 //
 // Only for someone still limited or out and not resolved: a target in the past
 // for an athlete who is back is simply history.
-const rtpOverdueDays = (inj, today) => {
-  if (!inj || !inj.rtpTarget) return 0;
-  const st = String(inj.status || '').toLowerCase();
-  if (st !== 'limited' && st !== 'out') return 0;
-  if (inj.resolvedDate || inj.closedDate) return 0;
-  return inj.rtpTarget < today ? dayDiff(today, inj.rtpTarget) : 0;
-};
 
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 // ONE section-title treatment everywhere (must match CollapsibleSection's title:
@@ -415,6 +408,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [editArrival, setEditArrival] = useState(null);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
+  // a lift logged FROM an athlete's popup returns to that popup (#305 A4)
+  const [liftReturn, setLiftReturn] = useState(null);
   // The staff brief's COPY, now that the two reports are one card.
   const [briefCopied, setBriefCopied] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
@@ -866,7 +861,7 @@ function attendance28(rec, days) {
       next[i] = { ...next[i], ...patch };
       return next;
     });
-    toast('Game updated'); track('game', `updated a game on ${g.date}`); notify();
+    toast('Game updated'); track('game', `updated a game on ${fmtNumericDate(g.date)}`); notify();
   }, [setBhbcFixtures, notify, track]);
 
   // ---- Medical / injury record (Ohad + physical therapist) ----
@@ -923,12 +918,12 @@ function attendance28(rec, days) {
       if (i >= 0) list[i] = { ...list[i], ...clean }; else list.push(clean);
       return list.sort((a, b) => `${a.date}${a.start || ''}`.localeCompare(`${b.date}${b.start || ''}`));
     });
-    toast(orig ? 'Session updated' : 'Session added'); track('schedule', `${orig ? 'changed' : 'added'} a slot on ${clean.date}`); notify();
+    toast(orig ? 'Session updated' : 'Session added'); track('schedule', `${orig ? 'changed' : 'added'} a slot on ${fmtNumericDate(clean.date)}`); notify();
   }, [setBhbcFixtures, notify, track]);
   const removeFixture = useCallback((f) => {
     if (!setBhbcFixtures) return;
     setBhbcFixtures((prev) => (prev || []).filter((x) => !sameSlot(x, f)));
-    toast('Session removed'); track('schedule', `removed a slot on ${f.date}`); notify();
+    toast('Session removed'); track('schedule', `removed a slot on ${fmtNumericDate(f.date)}`); notify();
   }, [setBhbcFixtures, notify, track]);
 
   const saveInjury = useCallback(({ athleteId, injury }) => {
@@ -1198,8 +1193,6 @@ function attendance28(rec, days) {
              broke words mid-syllable - PROGRESSI/VELY, ISOMETRIC/S,
              RESTRICTI/ONS - and the grid ran 933px for six one-line sentences.
              Number and stage on line one, description full width under them. */
-          .bhbc-rtp-row{grid-template-columns:30px minmax(0,1fr)!important;row-gap:2px!important}
-          .bhbc-rtp-row > *:nth-child(3){grid-column:1 / -1!important}
           /* Microcycle: N days x 120px is a hard floor, so three days needed
              360 in a 305px card and the week scrolled sideways. Two columns on
              a phone, like the week grid beside it. */
@@ -1688,7 +1681,8 @@ function attendance28(rec, days) {
       {/* ---- LOG LIFT (one athlete, any day, personal) ---- */}
       {logFor && (
         <LiftModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} loads={bhbcLoads}
-          onClose={() => setLogFor(null)} onSave={(payload) => { logLift(payload); setLogFor(null); }} />
+          onClose={() => { setLogFor(null); if (liftReturn) { setDetailFor(liftReturn); setLiftReturn(null); } }}
+          onSave={(payload) => { logLift(payload); setLogFor(null); if (liftReturn) { setDetailFor(liftReturn); setLiftReturn(null); } }} />
       )}
 
       {/* ---- ATHLETE DETAIL (in-zone) ---- */}
@@ -1710,11 +1704,11 @@ function attendance28(rec, days) {
         const program = { count: aPlans.length, current: curPlan ? curPlan.name : null };
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
-          leaguePlayer={leaguePlayerFor(league, row.t)} leagueLog={leagueLogFor(league, row.t)} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
+          leaguePlayer={leaguePlayerFor(league, row.t)} leagueLog={leagueLogFor(league, row.t)} initialKind={{ lifts: 'lift', games: 'game' }[view] || 'all'} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
-          onLog={canLog ? () => { setLogFor(detailFor); setDetailFor(null); } : null}
+          onLog={canLog ? () => { setLiftReturn(detailFor); setLogFor(detailFor); setDetailFor(null); } : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
           onCycleAvail={canLog ? () => cycleAvail(detailFor) : null}
@@ -1784,11 +1778,12 @@ function GameLineModal({ line, onClose }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
+function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const heM = useHe();
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
-  const [histKind, setHistKind] = useState('all');  // which chip is picked
+  // opens on what the coach came from (#305 C6): Lifts tab -> lifts, Games -> games
+  const [histKind, setHistKind] = useState(initialKind);  // which chip is picked
   const [monthOpen, setMonthOpen] = useState({});   // month → open; unset = newest open, rest shut
   // SEASON, THEN MONTH (27.9, Ohad: "it should show by season then months").
   // A season runs August to July (2026/27). Newest season open, the rest shut.
@@ -1865,7 +1860,8 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const kindCount = {};
   activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
   const kindChips = ['game', 'practice', 'sc', 'lift', 'gym', 'note', 'other'].filter((k) => kindCount[k]);
-  const shownActivity = histKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === histKind);
+  const effKind = histKind === 'all' || kindChips.includes(histKind) ? histKind : 'all';
+  const shownActivity = effKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === effKind);
   const monthKeys = [];
   const byMonth = {};
   shownActivity.forEach((a) => { const m = String(a.date).slice(0, 7); if (!byMonth[m]) { byMonth[m] = []; monthKeys.push(m); } byMonth[m].push(a); });
@@ -2026,10 +2022,10 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <StatusPill status={inj.status} small />
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${ddmm(inj.rtpTarget)}` : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
-                {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, width: '100%', color: 'var(--bhbc-amber-text, #E0A73A)' }}>{overdueFor(od)}</span> : null; })()}
+                
                 {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>{tr('Latest')} ({ddmm(lastP.date)}): {lastP.note}</span>}
               </div>
             );
@@ -2062,7 +2058,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             // equal cells where they fit, two equal columns on a phone.
             <div className="bhbc-hist-chips" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(['all', ...kindChips].length, 6)}, minmax(0, 1fr))`, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
               {['all', ...kindChips].map((k) => {
-                const on = histKind === k;
+                const on = effKind === k;
                 return (
                   <button key={k} onClick={() => setHistKind(k)} className="bhbc-ghost-btn"
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 'var(--btn-h)', minWidth: 0, boxSizing: 'border-box', padding: '0 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'var(--c-sf)', color: on ? '#fff' : C.tm, border: 'none' }}>
@@ -3216,7 +3212,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}
+                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}
                                         {/* THE OVERDUE CLAUSE GETS ITS OWN LINE, ALWAYS.
                         Ohad 19.9, on Amit Menachem: "המשפט באיחור של עמית מנחם
                         מוציא את הכל מאיזון. תתחיל משפטים כאלה משורה חדשה כדי שלא
@@ -3227,7 +3223,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                         block puts it on its own line for EVERY athlete, so 19
                         days and 24 days look the same instead of one wrapping
                         and one not. The ' · ' goes with it; a new line does not
-                        need a separator. */}                    {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ display: 'block', color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{overdueFor(od)}</span> : null; })()}</span>
+                        need a separator. */}                    </span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title={tr('Update this medical report')} className="bhbc-ghost-btn"
                         style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
@@ -3937,7 +3933,13 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
           <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '6px 2px 6px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             <div>#</div><div>{tr('Athlete')}</div>{hasLoad && <div>ACWR</div>}{hasLoad && <div>{tr('7d')}</div>}{!hasLoad && <div>{tr('last lift')}</div>}<div>{tr('Availability')}</div>{hasRead && <div>{tr('Readiness')}</div>}<div style={{ textAlign: 'end' }}>{hasLoad ? tr('14-day') : ''}</div>
           </div>
-          {rows.map(({ t, acwr, series, readiness, avail }) => {
+          {/* WHO NEEDS ATTENTION FIRST (27.9 #305 C1): OUT, then non-contact,
+              then limited, then an overdue lift (7d+ or never), then everyone
+              else in jersey order - the order he reads the board in. */}
+          {[...rows].sort((a, b) => {
+            const rank = (r) => { const code = r.avail || 1; if (code >= 4) return 0; if (code === 3) return 1; if (code === 2) return 2; const ll = lastLift(r.t.id); const since = ll && today ? dayDiff(today, ll) : null; return since == null || since >= 7 ? 3 : 4; };
+            return rank(a) - rank(b) || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
+          }).map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
@@ -3965,6 +3967,19 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     return (
                       <div className="bhbc-pos-inj" style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, whiteSpace: 'nowrap' }}>
                         <span data-pos style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'}{injShort ? <span data-sep> ·</span> : ''}</span>
+                        {/* LAST LIFT between the position and the injury (27.9 03:22,
+                            Ohad: "injuries at the bottom. last lifted ... a line
+                            between the injuries and the position") - phones only;
+                            the desktop board keeps its LAST LIFT column */}
+                        {(() => {
+                          const ll = lastLift(t.id);
+                          const since = ll && today ? dayDiff(today, ll) : null;
+                          return (
+                            <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: since == null || since >= 7 ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
+                              {tr('Last lift')} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
+                            </span>
+                          );
+                        })()}
                         {/* No warning glyph. Ohad: "no emojies or icons, just
                             colors" - medText already carries the severity, and a
                             triangle in front of every injured athlete was noise. */}
@@ -5484,6 +5499,8 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   });
   const total = Object.values(mins).reduce((a, m) => a + (Number(m) || 0), 0);
   const played = Object.values(mins).filter((m) => Number(m) > 0).length;
+  // 60 is a full game with overtime; more is a typo, not minutes (27.9 #305 F1)
+  const badMins = Object.values(mins).some((m) => Number(m) > 60 || Number(m) < 0);
   return (
     <BModal open guard onClose={onClose} wide title={<>{tr('Minutes played')}<span className="bm-lead"> {'\u00B7'} {game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}</span></>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
@@ -5500,10 +5517,10 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
           return (
             <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'var(--bhbc-gm-cols, 34px minmax(120px, 260px) 84px 60px)', justifyContent: 'start', alignItems: 'center', gap: 10, padding: '0 12px', height: 40, borderTop: i ? '1px solid ' + C.cardBd : 'none', background: on ? 'transparent' : 'color-mix(in srgb, var(--c-sf) 60%, transparent)' }}>
               <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 12, fontWeight: 700, color: on ? C.tx : C.td }}>{t.name || t.id}</span>
+              <span style={{ minWidth: 0, whiteSpace: 'normal', overflowWrap: 'normal', fontFamily: FN, fontSize: 12, fontWeight: 700, color: on ? C.tx : C.td }}>{t.name || t.id}</span>
               <input type="number" min="0" max="60" inputMode="numeric" placeholder="—" aria-label={tr('Minutes played')}
                 value={v} onChange={(e) => setMins((p) => ({ ...p, [t.id]: e.target.value }))}
-                style={{ width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
+                style={{ width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (Number(v) > 60 || Number(v) < 0 ? '#DE4E3B' : on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? ORANGE_DEEP : C.tm }}>{on ? tr('min') : tr('DNP')}</span>
             </div>
           );
@@ -5511,7 +5528,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-        <Btn onClick={() => onSave({ date, minutes: mins })}>{tr('Save')}</Btn>
+        <Btn disabled={badMins} onClick={() => onSave({ date, minutes: mins })}>{tr('Save')}</Btn>
       </div>
     </BModal>
   );
@@ -5610,7 +5627,11 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   const tr = useT();
   const injured = roster.filter((t) => activeInjuries(medical, t.id).length > 0);
   const cleared = roster.filter((t) => activeInjuries(medical, t.id).length === 0);
-  const rows = injured.flatMap((t) => activeInjuries(medical, t.id).map((inj) => ({ t, inj })));
+  // worst first (#305 C3): OUT, non-contact, limited, available; then the
+  // longest-running injury first
+  const SEV = { out: 0, 'non-contact': 1, limited: 2, available: 3 };
+  const rows = injured.flatMap((t) => activeInjuries(medical, t.id).map((inj) => ({ t, inj })))
+    .sort((a, b) => (SEV[a.inj.status] ?? 4) - (SEV[b.inj.status] ?? 4) || String(a.inj.onsetDate || '').localeCompare(String(b.inj.onsetDate || '')));
   const counts = { out: 0, limited: 0, nc: 0 };
   rows.forEach(({ inj }) => { if (inj.status === 'out') counts.out++; else if (inj.status === 'limited') counts.limited++; else if (inj.status === 'non-contact') counts.nc++; });
   return (
@@ -5651,7 +5672,9 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
                   <StatusPill status={inj.status} />
-                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : '—'}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</div>
+                  {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
+                      reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : '—'}{latestPain(inj) != null ? <> · <span style={{ fontWeight: latestPain(inj) >= 4 ? 800 : 400, color: latestPain(inj) >= 6 ? '#DE4E3B' : latestPain(inj) >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.td }}>{tr('pain')} {latestPain(inj)}</span></> : ''}</div>
                   {/* WHO assessed this. With two PTs sharing the board, an
                       unsigned record cannot be questioned or followed up. */}
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}</div>
@@ -5682,7 +5705,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
                   <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                   <div style={{ flex: 1 }} />
-                  {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{inj.onsetDate}</span>}
+                  {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', flexShrink: 0 }}>{tr('Cleared')}</span>
                 </div>
               ))}
@@ -5731,38 +5754,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
         </div>
       </Card>
 
-      {/* Return-to-Play protocol — the staged framework + safe-progression rules,
-          encoded from EXPO's programming rules (pain gates, regression hierarchy,
-          red-flag referral). A shared reference for Ohad + the PT so returns are
-          structured and defensible. Uses "manage / load management" language. */}
-      <CollapsibleSection title={tr("Return-to-Play Protocol")} storageKey="bhbc-rtp" leftStripe={NAVY}>
-        <div style={{ display: 'grid', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
-          {[
-            ['1', 'Acute · protect', 'Offload the tissue, manage pain + swelling. Pain-free daily movement only.'],
-            ['2', 'Pain-free ROM', 'Restore full range with no symptoms before adding load.'],
-            ['3', 'Loaded rehab', 'Re-load progressively — isometrics → tempo → full-ROM strength.'],
-            ['4', 'Non-contact', 'Running, change-of-direction and court work, no contact.'],
-            ['5', 'Contact · modified', 'Full-speed contact drills with minutes capped.'],
-            ['6', 'Full training → cleared', 'Complete sessions, no restrictions, then clear to play.'],
-          ].map(([n, stage, detail]) => (
-            <div key={n} className="bhbc-rtp-row" style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
-              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'break-word' }}>{tr(stage)}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'break-word' }}>{tr(detail)}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Pain gate')}</span>
-            <Segmented keepDots text={tr('0–3/10 progress · 4–5 hold & modify (regress ')} /><span style={{ color: C.tx, fontWeight: 700 }}>{tr('ROM → Tempo → Intensity → Volume → Frequency')}</span>{tr(', cut frequency last) · 6+ stop & reassess.')}
-          </div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginInlineEnd: 8 }}>{tr('Refer out')}</span>
-            <Segmented keepDots text={tr('Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.')} />
-          </div>
-        </div>
-      </CollapsibleSection>
+      {/* NO RETURN-TO-PLAY IN THE CLUB ZONE (27.9, Ohad: "remove completely all rtp everywhere on bhbc"). */}
 
       {/* CONCUSSION — a different framework, deliberately its own section.
           The ladder above is a LOAD progression for soft tissue: offload, restore
@@ -5820,9 +5812,11 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
   const headInjury = /concussion/i.test(type || '') || /^head/i.test(bodyPart || '');
   const [onsetDate, setOnsetDate] = useState(injury?.onsetDate || todayISO());
   const [status, setStatus] = useState(injury?.status || 'out');
-  const [pain, setPain] = useState(injury?.pain ?? '');
+  // the CURRENT pain: the latest rehab note's score when there is one (#305 A13)
+  const [pain, setPain] = useState(() => { const lp = injury ? latestPain(injury) : null; return lp ?? injury?.pain ?? ''; });
   const [mechanism, setMechanism] = useState(injury?.mechanism || '');
-  const [rtpTarget, setRtpTarget] = useState(injury?.rtpTarget || '');
+  // kept as stored and saved back unchanged - no RTP is shown or edited in the club zone (27.9 #312)
+  const [rtpTarget] = useState(injury?.rtpTarget || '');
   const [notes, setNotes] = useState(injury?.notes || '');
   const [resolved, setResolved] = useState(injury?.resolved || false);
   const [progress, setProgress] = useState(injury?.progress || []);
@@ -5916,8 +5910,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
             <input type="date" value={onsetDate} max={today} onChange={(e) => setOnsetDate(e.target.value)} style={sel} />
             <span style={{ display: 'block', marginTop: 4, fontFamily: FN, fontSize: 10, color: onsetDate > today ? '#DE4E3B' : C.tm }}>{agoText(onsetDate)}</span></div>
           <div><label style={lbl}>{tr('Pain (0–10)')}</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
-          <div><label style={lbl}>{tr('Return-to-play target')}</label>
-            <input type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} style={sel} /></div>
+
         </div>
         <div>
           <label style={lbl}>{tr('Current status')}</label>
@@ -6033,7 +6026,10 @@ function LiftModal({ open, initialAthlete, roster, loads = {}, onClose, onSave }
   };
   useEffect(() => { if (!minTyped) { const u = usualLift(athleteId); setMinutes(u ? String(u) : ''); } }, [athleteId]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [note, setNote] = useState('');
-  const canSave = !!athleteId && !!date && Number(minutes) > 0;
+  // A TYPO NEVER BECOMES A RECORD (27.9 #305 F2): a lift over 4 hours is not
+  // a lift, it is a missing keystroke - Save waits and says why.
+  const tooLong = Number(minutes) > 240;
+  const canSave = !!athleteId && !!date && Number(minutes) > 0 && !tooLong;
   // One height for every bordered control on the sheet (24.9: 36 everywhere).
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
@@ -6051,6 +6047,7 @@ function LiftModal({ open, initialAthlete, roster, loads = {}, onClose, onSave }
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => { setMinTyped(true); setMinutes(e.target.value); }} placeholder="40" />
         </div>
+        {tooLong && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#DE4E3B', textAlign: 'center' }}>{tr('Over 240 minutes - check the number.')}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={lab}>{tr('Note (optional)')}</label>
           <input value={note} onChange={(e) => setNote(e.target.value)}

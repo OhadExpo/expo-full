@@ -222,6 +222,7 @@ export const HE = {
   'Update': 'עדכון',
   'Open in EXPO': 'פתיחה ב-EXPO',
   'Game played': 'שיחק במשחק',
+  'Over 240 minutes - check the number.': 'יותר מ-240 דקות — בדוק את המספר.',
   'MED': 'רפואי',
   'Show': 'הצג',
   'This season only': 'העונה הזו בלבד',

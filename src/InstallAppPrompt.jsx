@@ -108,9 +108,15 @@ export default function InstallAppPrompt() {
 
   // Copy per mode.
   const iosNonSafari = mode === 'ios' && !isIOSSafari();
-  const t = (str) => tr(readLang(), str);
+  // THE CLUB'S OWN PROMPT on club routes (27.9, Ohad: "there should be a bhbc
+  // version for this attached to bhbc sites"): the club's name in every line,
+  // its crest, navy and orange - the same steps, the same snooze.
+  const club = typeof window !== 'undefined' && /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname);
+  const clubName = readLang() === 'he' ? 'בני הרצליה' : 'Bnei Herzliya';
+  const t = (str) => { const v = tr(readLang(), str); return club ? String(v).replace(/EXPO/g, clubName) : v; };
+  const ACC = club ? '#F26A2B' : C.ac;
   const he = readLang() === 'he';
-  const strong = { color: C.tx };
+  const strong = { color: club ? '#fff' : C.tx };
   const body = mode === 'installed' ? (
     <>{t('You already have EXPO installed — open it from your')} <b style={strong}>{t('home screen')}</b> {t('icon for the full-screen app.')}</>
   ) : mode === 'ios' ? (
@@ -118,7 +124,7 @@ export default function InstallAppPrompt() {
       <>{t('To add EXPO to your home screen, open this page in')} <b style={strong}>Safari</b> {t('first, then Share →')} <b style={strong}>{t('Add to Home Screen')}</b>.</>
     ) : (
       <>{t('Add EXPO to your home screen for the full app:')}
-        <div style={{ marginTop: 10, color: C.tm, fontSize: 13, lineHeight: 1.7, textAlign: he ? 'right' : 'left', direction: he ? 'rtl' : 'ltr' }}>
+        <div style={{ marginTop: 10, color: club ? 'rgba(255,255,255,0.75)' : C.tm, fontSize: 13, lineHeight: 1.7, textAlign: he ? 'right' : 'left', direction: he ? 'rtl' : 'ltr' }}>
           1. {t('Tap the')} <b style={strong}>{t('Share')}</b> {t('button in the browser bar.')}<br />
           2. {t('Choose')} <b style={strong}>{t('Add to Home Screen')}</b>.<br />
           3. {t('Tap')} <b style={strong}>{t('Add')}</b> — {t('EXPO opens full-screen from your home screen.')}
@@ -135,9 +141,9 @@ export default function InstallAppPrompt() {
   const btn = (label, primary, onClick) => (
     <button onClick={onClick} style={{
       flex: 1, minWidth: 120, boxSizing: 'border-box',
-      background: primary ? C.ac : 'transparent',
-      color: primary ? 'var(--c-bg)' : C.tm,
-      border: primary ? 'none' : `1px solid ${C.cardBd}`,
+      background: primary ? ACC : 'transparent',
+      color: primary ? (club ? '#fff' : 'var(--c-bg)') : (club ? 'rgba(255,255,255,0.75)' : C.tm),
+      border: primary ? 'none' : `1px solid ${club ? 'rgba(255,255,255,0.35)' : C.cardBd}`,
       borderRadius: 0, padding: '13px 0', fontFamily: FN, fontSize: 13, fontWeight: 700,
       letterSpacing: '0.14em', cursor: 'pointer',
     }}>{label}</button>
@@ -152,14 +158,15 @@ export default function InstallAppPrompt() {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
+        background: club ? '#14294F' : C.sf, border: `1px solid ${ACC}`, borderRadius: 0, color: club ? '#fff' : undefined,
         padding: '30px 34px', width: 'min(440px, 92vw)', textAlign: 'center',
         boxShadow: `0 24px 70px ${C.shadow || 'rgba(0,0,0,0.6)'}`,
       }}>
-        <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 12 }}>
+        {club && <img src="/bnei-herzliya-logo-w.png" alt="" aria-hidden="true" style={{ height: 56, width: 'auto', display: 'block', margin: '0 auto 14px' }} />}
+        <div style={{ fontFamily: FN, fontSize: 11, color: ACC, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 12 }}>
           {t(mode === 'installed' ? 'OPEN THE EXPO APP' : 'GET THE EXPO APP')}
         </div>
-        <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, marginBottom: 22 }}>{body}</div>
+        <div style={{ fontFamily: FB, fontSize: 14, color: club ? '#fff' : C.tx, lineHeight: 1.5, marginBottom: 22 }}>{body}</div>
         {/* Both buttons identical size (Ohad): a flex row, each flex:1, same pad. */}
         <div style={{ display: 'flex', gap: 10 }}>
           {hasPrimary && btn(t('GO TO APP'), true, doPrimary)}

@@ -30,6 +30,13 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 let pages = 0, chars = 0;
 const bad = [];
 async function scan(pg, label) {
+  // A CLOSED SECTION HIDES ITS DATES (27.9: the cleared-injury history printed
+  // raw ISO for a week because it loads collapsed). Open every collapsed
+  // section first - twice, for sections nested in sections.
+  for (let k = 0; k < 2; k++) {
+    await pg.evaluate(() => { document.querySelectorAll('[aria-expanded="false"]').forEach((el) => { try { el.click(); } catch (e) {} }); });
+    await wait(700);
+  }
   const text = await pg.evaluate(() => document.body.innerText || '');
   pages++; chars += text.length;
   for (const [kind, rx] of PATTERNS) {

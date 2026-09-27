@@ -1692,25 +1692,34 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .bhbc-ll-lbl { display: none; }
 @media (max-width: 760px) { .bhbc-ll-lbl { display: inline; } }
 
-/* THE LOAD BOARD ROW ON A PHONE (27.9, Ohad: "not good enough", "the number
-   ... should be the same vertical height", "I don't like the two buttons
-   stretched and touching each other"). ONE START EDGE: name, position, injury
-   and the two controls all begin on the same x; the jersey hangs in the gutter,
-   exactly as tall as the name + position lines (24px, measured at 2x). The
-   controls keep their natural width with 8px between them - never stretched,
-   never touching. The last-lift age holds the far end of the first row. */
+/* THE LOAD BOARD CARD ON A PHONE, REDESIGNED (27.9 #310, Ohad: "still ugly
+   design. rethink the entire box layout"). TWO COLUMNS:
+     left  - one reading column on one start edge: name, position, injury,
+             last lift; the jersey square beside the name + position lines
+             (24px = their cap line to baseline, measured at 2x);
+     right - one stack of equal-width controls: status over MED.
+   No separate button row: every control edge lines up down the board. */
+.bhbc-mob-lift { display: none; }
 @media (max-width: 760px) {
+  .bhbc-mob-lift { display: block; }
   .bhbc-zone .bhbc-load-row {
-    grid-template-columns: 24px auto auto minmax(0, 1fr) auto !important;
-    grid-template-areas: "jersey name name name acwr" ". avail med . ." !important;
-    column-gap: 8px !important; row-gap: 10px !important;
+    grid-template-columns: 24px minmax(0, 1fr) 112px !important;
+    grid-template-areas: "jersey name avail" "jersey name med" !important;
+    grid-template-rows: auto auto !important;
+    column-gap: 10px !important; row-gap: 6px !important; align-items: start !important;
   }
-  .bhbc-zone .bhbc-load-row > *:nth-child(2) { padding-inline-start: 4px; }
-  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] { padding-inline-start: 4px; }
   .bhbc-zone .bhbc-load-row > *:nth-child(1) { width: 24px !important; height: 24px !important; font-size: 11px !important; align-self: start; margin-top: 3px; }
-  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > * { height: var(--btn-h) !important; }
-  .bhbc-zone .bhbc-load-row > [data-lbl="actions"] { justify-self: start !important; width: auto !important; max-width: none !important; }
-  .bhbc-zone .bhbc-load-row > [data-lbl="actions"] > button { height: var(--btn-h) !important; width: auto !important; padding-inline: 16px !important; }
+  .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-area: name !important; align-self: start; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="last lift"] { display: none !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] { grid-area: avail !important; padding: 0 !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > * { width: 112px !important; min-width: 0 !important; height: var(--btn-h) !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="actions"] { grid-area: med !important; justify-self: stretch !important; width: 112px !important; max-width: 112px !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="actions"] > button { width: 100% !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row [data-name] { line-height: 16px; }
+  /* the injury line is RESERVED on every card, so LAST LIFT sits at one height
+     down the whole board, injured or not (14px position + 16px injury) */
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { min-height: 50px !important; display: flex !important; flex-direction: column !important; gap: 2px !important; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj > * { display: block !important; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-sep] { display: none !important; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { line-height: 14px; }
 }
