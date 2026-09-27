@@ -1687,7 +1687,7 @@ function attendance28(rec, days) {
 
       {/* ---- LOG LIFT (one athlete, any day, personal) ---- */}
       {logFor && (
-        <LiftModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster}
+        <LiftModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} loads={bhbcLoads}
           onClose={() => setLogFor(null)} onSave={(payload) => { logLift(payload); setLogFor(null); }} />
       )}
 
@@ -3945,7 +3945,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
               <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
+                  <div data-name style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
                   {/* ONE line under the name, and the SAME line for everyone.
                       It used to be injury-OR-position, so some rows showed a
                       position and some an injury and the column read as two
@@ -3972,7 +3972,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                             bigger or more noticeable but keep the perfect ocd design"):
                             12px / 800 in its status colour, still starting on the
                             position's edge - no tint box, no glyph. */}
-                        {injShort && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status) }}>{injShort}</span>}
+                        {injShort && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.03em', color: inj.status === 'available' ? C.td : medText(inj.status) }}>{injShort}</span>}
                       </div>
                     );
                   })()}
@@ -3988,7 +3988,9 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                 {!hasLoad && (() => {
                   const ll = lastLift(t.id);
                   const since = ll && today ? dayDiff(today, ll) : null;
-                  const col = since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C';
+                  // CALM BY DEFAULT (27.9, Ohad: "too much on the eyes"): only an
+                  // overdue lift (7d+, or never) is coloured; the date is the title.
+                  const col = since == null || since >= 7 ? '#DE4E3B' : C.tx;
                   return (
                     // THE DATE IS A COLUMN, so the part in front of it gets a
                     // fixed width. The relative age runs from "2d" to
@@ -4004,21 +4006,21 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     // makes that column give way instead of shoving, and the
                     // date is the half that can afford to be trimmed: the AGE
                     // is the number a coach reads.
-                    <div data-lbl="last lift" style={{ display: 'grid', gridTemplateColumns: 'minmax(64px, auto) minmax(0, 1fr)', alignItems: 'baseline', gap: 6, minWidth: 0, maxWidth: '100%' }}>
+                    <div data-lbl="last lift" title={ll ? monDay(ll) : undefined} style={{ display: 'grid', gridTemplateColumns: 'minmax(64px, auto)', alignItems: 'baseline', gap: 6, minWidth: 0, maxWidth: '100%' }}>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                        {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
+                        <span className="bhbc-ll-lbl" style={{ color: C.tm, fontWeight: 700, marginInlineEnd: 6 }}>{tr('Lift')}</span>{since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                       </span>
-                      {ll && <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{monDay(ll)}</span>}
+
                     </div>
                   );
                 })()}
                 <div data-lbl="Availability">
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </button>
                   ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)`, padding: '0 9px', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)` : `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </span>
                   )}
@@ -4834,17 +4836,25 @@ const LEAGUE_ALIAS = {
 const matchLeague = (players, t) => {
   const tt = typeof t === 'string' ? { name: t } : (t || {});
   const list = players || [];
-  if (tt.jersey != null) { const byJ = list.find((p) => p.jersey != null && Number(p.jersey) === Number(tt.jersey)); if (byJ) return byJ; }
+  // a season archived before the jersey field was kept on the player still has it on every game line
+  const jerseyOf = (p) => (p.jersey != null ? p.jersey : ((p.log || []).find((x) => x && x.jersey != null) || {}).jersey);
+  if (tt.jersey != null) { const byJ = list.find((p) => jerseyOf(p) != null && Number(jerseyOf(p)) === Number(tt.jersey)); if (byJ) return byJ; }
   const heb = LEAGUE_ALIAS[tt.name];
   return heb ? list.find((p) => p.name === heb) || null : null;
 };
 const leaguePlayerFor = (league, t) => matchLeague(league?.players, t);
 // Every league game of his, EVERY season kept: the current season's log plus
 // the archived seasons' (27.9, history "by season then months").
+// PAST SEASONS BY NAME, NOT BY NUMBER: a jersey changes hands between seasons
+// (last year's #3 is not necessarily this year's), so an archived season is
+// matched by the league's own spelling of THIS player - taken from his current-
+// season line (matched by jersey), else the alias.
 const leagueLogFor = (league, t) => {
-  const cur = (matchLeague(league?.players, t) || {}).log || [];
-  const old = Object.values(league?.archive || {}).flatMap((a) => (matchLeague(a.players, t) || {}).log || []);
-  return [...cur, ...old];
+  const curP = matchLeague(league?.players, t);
+  const tt = typeof t === 'string' ? { name: t } : (t || {});
+  const heb = (curP && curP.name) || LEAGUE_ALIAS[tt.name] || null;
+  const old = heb ? Object.values(league?.archive || {}).flatMap((a) => ((a.players || []).find((p) => p.name === heb) || {}).log || []) : [];
+  return [...((curP && curP.log) || []), ...old];
 };
 const relTime = (iso) => {
   if (!iso) return '';
@@ -5516,7 +5526,8 @@ function StatusPill({ status, small, full }) {
   const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: `color-mix(in srgb, ${s.color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 45%, transparent)`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+      {/* tinted by status like the load board's chips (27.9: one language for status) */}
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
     </span>
   );
@@ -5680,7 +5691,8 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
         );
       })()}
 
-      <LoadOutputCard rows={loadRows} loads={loads} medical={medical} />
+      {/* The sRPE session-load card is not mounted: the club logs no RPE, ever
+          (Ohad 23.9), so it could only say "no load logged yet" (27.9 sweep). */}
 
       <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}>
         <div>
@@ -6005,11 +6017,21 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
 // Athlete, date (any day), minutes, an optional note. No type select, no squad
 // scope, no fixture chips, no readiness block: this sheet writes one kind of
 // row, and the team S&C block has its own sheet (ScSessionModal).
-function LiftModal({ open, initialAthlete, roster, onClose, onSave }) {
+function LiftModal({ open, initialAthlete, roster, loads = {}, onClose, onSave }) {
   const tr = useT();
   const [athleteId, setAthleteId] = useState(initialAthlete);
   const [date, setDate] = useState(todayISO());
   const [minutes, setMinutes] = useState('');
+  // SMARTER, NOT NEW (27.9 #305): the minutes start at HIS usual lift - the
+  // median of his last five - and follow the athlete picked, until typed over.
+  const [minTyped, setMinTyped] = useState(false);
+  const usualLift = (id) => {
+    const mins = Object.entries(((loads || {})[id] || {}).sessions || {})
+      .flatMap(([d, list]) => (list || []).filter((r) => r && rowKind(r) === 'lift' && Number(r.min) > 0).map((r) => ({ d, m: Number(r.min) })))
+      .sort((a, b) => (a.d < b.d ? 1 : -1)).slice(0, 5).map((x) => x.m).sort((a, b) => a - b);
+    return mins.length ? mins[Math.floor(mins.length / 2)] : null;
+  };
+  useEffect(() => { if (!minTyped) { const u = usualLift(athleteId); setMinutes(u ? String(u) : ''); } }, [athleteId]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [note, setNote] = useState('');
   const canSave = !!athleteId && !!date && Number(minutes) > 0;
   // One height for every bordered control on the sheet (24.9: 36 everywhere).
@@ -6027,7 +6049,7 @@ function LiftModal({ open, initialAthlete, roster, onClose, onSave }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="40" />
+          <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => { setMinTyped(true); setMinutes(e.target.value); }} placeholder="40" />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={lab}>{tr('Note (optional)')}</label>

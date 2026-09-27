@@ -1687,3 +1687,30 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .bhbc-stats-table tr { display: table-row !important; }
 .bhbc-stats-table th, .bhbc-stats-table td { display: table-cell !important; }
 .bhbc-stats-table th:first-child, .bhbc-stats-table td:first-child { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--c-sf); }
+
+/* the load board's last-lift age says what it counts where the column header is gone (27.9) */
+.bhbc-ll-lbl { display: none; }
+@media (max-width: 760px) { .bhbc-ll-lbl { display: inline; } }
+
+/* THE LOAD BOARD ROW ON A PHONE (27.9, Ohad: "not good enough", "the number
+   ... should be the same vertical height", "I don't like the two buttons
+   stretched and touching each other"). ONE START EDGE: name, position, injury
+   and the two controls all begin on the same x; the jersey hangs in the gutter,
+   exactly as tall as the name + position lines (24px, measured at 2x). The
+   controls keep their natural width with 8px between them - never stretched,
+   never touching. The last-lift age holds the far end of the first row. */
+@media (max-width: 760px) {
+  .bhbc-zone .bhbc-load-row {
+    grid-template-columns: 24px auto auto minmax(0, 1fr) auto !important;
+    grid-template-areas: "jersey name name name acwr" ". avail med . ." !important;
+    column-gap: 8px !important; row-gap: 10px !important;
+  }
+  .bhbc-zone .bhbc-load-row > *:nth-child(2) { padding-inline-start: 4px; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] { padding-inline-start: 4px; }
+  .bhbc-zone .bhbc-load-row > *:nth-child(1) { width: 24px !important; height: 24px !important; font-size: 11px !important; align-self: start; margin-top: 3px; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > * { height: var(--btn-h) !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="actions"] { justify-self: start !important; width: auto !important; max-width: none !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="actions"] > button { height: var(--btn-h) !important; width: auto !important; padding-inline: 16px !important; }
+  .bhbc-zone .bhbc-load-row [data-name] { line-height: 16px; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { line-height: 14px; }
+}

@@ -274,7 +274,7 @@ function playerLine(c) {
   const prev = existing && existing.value;
   const archive = { ...((prev && prev.archive) || {}) };
   if (prev && prev.season && prev.season !== seasonLabel && Array.isArray(prev.players)) {
-    archive[prev.season] = { players: prev.players.map((p) => ({ name: p.name, log: p.log || [] })) };
+    archive[prev.season] = { players: prev.players.map((p) => ({ name: p.name, jersey: p.jersey ?? null, log: p.log || [] })) };
   }
   delete archive[seasonLabel];
   payload.archive = archive;
