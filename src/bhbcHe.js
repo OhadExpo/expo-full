@@ -794,6 +794,10 @@ Object.assign(HE, {
   // D: staleness
   'Premier League': 'ליגת העל',
   'Official league feed (basket.co.il). Only games the league has published appear here.': 'הנתונים הרשמיים של הליגה (basket.co.il). מופיעים כאן רק משחקים שהליגה כבר פרסמה.',
+  // E: consistency
+  'None assigned': 'עוד לא שויך בלוק',
+  '1 practice': 'אימון אחד',
+  practices: 'אימונים',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
