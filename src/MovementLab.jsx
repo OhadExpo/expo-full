@@ -1,28 +1,84 @@
-// MovementLab.jsx — record a lift on camera, then read it back as data.
+// MovementLab.jsx — record a lift on camera (or upload one), then read it back.
 //
-// One capture core (MediaPipe Pose over a recorded clip) feeding four reads:
-//   • VELOCITY  — mean concentric m/s + velocity-loss % per rep (VBT)
-//   • ROM+TEMPO — joint travel + ecc/pause/con seconds per rep, collapse flags
-//   • 3D        — rotatable markerless skeleton of the lift, scrub any frame
+// One capture core (MediaPipe Pose over the clip) feeding the reads:
+//   • SKELETON  — the pose drawn over the video (One-Euro smoothed, weak joints
+//                 hidden) + a rotatable 3D skeleton, head built from the face
+//   • SPEED     — vertical bar / body speed + acceleration traces, per-rep VBT
+//   • ROM       — joint angles over time, per-rep range + tempo
 //   • JUMP      — vertical jump height from flight time (camera "combine")
 //
-// Pure analysis lives in poseLab.js; pose bootstrap in usePose.js. This file
-// is capture + presentation. Records worldLandmarks (metric, hip-centred) per
-// frame so every metric is true-scale regardless of camera distance.
+// THE COACH PICKS THE EXERCISE. Nothing here guesses it (Ohad, 27.9: "that's not
+// a squat, auto detection doesn't work and shouldn't be there"). With no pick
+// the read is neutral: skeleton, joint angles and raw speed, no rep counting.
 //
-// Memory rule honoured: measures + reports only. No load recommendations,
-// no auto weight bumps.
+// Pure analysis + all skeleton geometry live in poseLab.js (node-verified by
+// scripts/verify-pose-overlay.mjs); pose bootstrap in usePose.js. This file is
+// capture + presentation. Measures + reports only — no load recommendations.
 
-import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, CTRL_H } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic, buildPoseReport } from './poseLab';
+import {
+  analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps,
+  barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, buildPoseReport,
+  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, smoothFramesForDisplay, frameAt,
+} from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift } from './poseMetricsStore';
 import { romReadingFor } from './romGoniometer';
-import { demoSquatFrames, demoJumpFrames } from './demoMotion';
-import { useT, tr, readLang } from './i18n';
+import { useT, HE } from './i18n';
+import { RefinedHeaderStrip, useIsMobile } from './ui';
+
+// Hebrew for the strings this rebuild introduced (27.9). Kept beside the tool,
+// the same late-addition pattern bhbcHe.js uses, so the whole Movement Lab reads
+// in one register. Exercise names (Squat, Hinge…) stay English by his rule.
+Object.assign(HE, {
+  'GET READY': 'היכון',
+  'Pick the exercise to count reps and read bar speed, range and tempo. Without it you get the neutral read: skeleton, joint angles and raw speed.': 'תבחר תרגיל כדי לספור חזרות ולמדוד מהירות מוט, טווח תנועה וטמפו. בלי תרגיל תקבל מדידה ניטרלית: שלד, זוויות מפרקים ומהירות גולמית.',
+  'Starting the camera and pose model…': 'מפעיל מצלמה וזיהוי תנוחה…',
+  'Neutral read — no exercise picked. Pick one above to count reps and read bar speed, range and tempo.': 'מדידה ניטרלית — לא נבחר תרגיל. תבחר תרגיל למעלה כדי לספור חזרות ולמדוד מהירות מוט, טווח תנועה וטמפו.',
+  'No exercise': 'בלי תרגיל',
+  'Jump type': 'סוג קפיצה',
+  UPLOAD: 'העלאה',
+  RESULT: 'תוצאה',
+  '3D SKELETON': 'שלד 3D',
+  'JOINT ANGLES': 'זוויות מפרקים',
+  'Body tracked in {n}% of frames.': 'הגוף זוהה ב-{n}% מהפריימים.',
+  'Body tracked in {n}% of frames — usable, but film fuller and steadier for sharper numbers.': 'הגוף זוהה ב-{n}% מהפריימים — אפשר לעבוד עם זה, אבל צילום מלא ויציב יותר ייתן מספרים חדים יותר.',
+  'Body tracked in only {n}% of frames — treat the numbers as rough. Film the whole body, steady camera, decent light.': 'הגוף זוהה רק ב-{n}% מהפריימים — תתייחס למספרים כהערכה גסה. צלם את כל הגוף, מצלמה יציבה ותאורה סבירה.',
+  'Neutral read': 'מדידה ניטרלית',
+  'No exercise picked, so reps are not counted. Speed and joint angles below are measured as they are. Pick the exercise to add reps, bar speed per rep, tempo and form.': 'לא נבחר תרגיל, אז החזרות לא נספרות. המהירות וזוויות המפרקים למטה נמדדות כמו שהן. תבחר תרגיל כדי להוסיף חזרות, מהירות מוט לכל חזרה, טמפו וטכניקה.',
+  "This lift isn't mapped to a joint, so reps are not counted. Speed and joint angles below are still measured.": 'התרגיל הזה לא משויך למפרק, אז החזרות לא נספרות. המהירות וזוויות המפרקים למטה עדיין נמדדות.',
+  'A hold, or a movement too small or too off-angle for the camera to split into reps. Per-rep speed, tempo and form need counted reps; the traces still show.': 'החזקה, או תנועה קטנה מדי או בזווית לא טובה, והמצלמה לא הצליחה לחלק אותה לחזרות. מהירות לכל חזרה, טמפו וטכניקה צריכים חזרות שנספרו. הגרפים עדיין מוצגים.',
+  'Side-on, full body in frame, ~2–3m back. Record, or upload a clip — stand still for a second, then jump.': 'מהצד, כל הגוף בפריים, בערך 2–3 מטר אחורה. צלם או תעלה קליפ — עמוד שנייה בלי לזוז, ואז קפוץ.',
+  'Side-on, full body in frame, ~2–3m back. Record a set, or upload a clip — keep the whole lift in shot.': 'מהצד, כל הגוף בפריים, בערך 2–3 מטר אחורה. צלם סט או תעלה קליפ — כל התרגיל בתוך הפריים.',
+  'Stand still — jump once REC starts.': 'עמוד בלי לזוז — קפוץ כשההקלטה מתחילה.',
+  'Get set — recording starts at zero.': 'היכון — ההקלטה מתחילה באפס.',
+  '{n} reps lost >15% of range': '{n} חזרות איבדו יותר מ-15% מהטווח',
+  "depth is fading — the last reps aren't the same lift as the first. Fatigue or cheating range.": 'העומק הולך ונעלם — החזרות האחרונות הן כבר לא אותו תרגיל כמו הראשונות. עייפות או קיצור טווח.',
+  'Full range held on every rep.': 'טווח מלא בכל החזרות.',
+  'Dropping fast (~{s}s lowering)': 'יורד מהר (ירידה של ~{s} שניות)',
+  'almost no eccentric control — slow the negative for more stimulus and safer joints.': 'כמעט אין שליטה בירידה — תאט את הירידה בשביל יותר גירוי ומפרקים מוגנים יותר.',
+  'Controlled {s}s eccentric.': 'ירידה מבוקרת של {s} שניות.',
+  'Last rep {p} slower than the best': 'החזרה האחרונה איטית ב-{p} מהחזרה הכי טובה',
+  'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.': 'אחרי איבוד מהירות של ~20–30% הסט הוא כבר עייפות, לא כוח מתפרץ — תעצור מוקדם יותר אם המטרה היא מהירות.',
+  'Bar speed held ({p}% loss) — quality reps throughout.': 'מהירות המוט נשמרה (איבוד של {p}%) — חזרות איכותיות לאורך כל הסט.',
+  'Stopping high (knee bends to ~{d}°)': 'עוצר גבוה (הברך מתכופפת עד {d} מעלות בערך)',
+  'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.': 'מתחת למקביל זו זווית ברך של בערך 90 מעלות — העומק נחתך. מוביליטי או כוונה.',
+  'Hitting depth (below parallel).': 'מגיע לעומק (מתחת למקביל).',
+  'Short lockout (elbow to ~{d}°)': 'נעילה קצרה (המרפק עד {d} מעלות בערך)',
+  'not finishing the press — cue full lockout or drop the load.': 'לא מסיים את הלחיצה — תבקש נעילה מלאה או תוריד משקל.',
+  'Full lockout at the top.': 'נעילה מלאה למעלה.',
+  'Partial pull (elbow only to ~{d}°)': 'משיכה חלקית (המרפק רק עד {d} מעלות בערך)',
+  'not pulling to full contraction — half reps at the top.': 'לא מושך עד כיווץ מלא — חצאי חזרות למעלה.',
+  '2D phone pose — angles are approximate. Flags to eyeball, not a medical verdict.': 'תנוחה דו־ממדית מהטלפון — הזוויות משוערות. סימנים לבדיקה בעין, לא קביעה רפואית.',
+  "Single-side lift — comparing left vs right in one clip isn't fair (one side is the working side by design). Track the working side over time in the injury trend instead.": 'תרגיל חד־צדדי — השוואה בין שמאל לימין בקליפ אחד לא הוגנת, כי צד אחד עובד בכוונה. תעקוב אחרי הצד העובד לאורך זמן במגמת הפציעות.',
+  '2D pose reads in-plane travel only — a real flag is worth screening in person, not a medical verdict.': 'תנוחה דו־ממדית מודדת רק תנועה במישור הצילום — סימן אמיתי שווה בדיקה פנים מול פנים, והוא לא קביעה רפואית.',
+  'In the usual range at this load — nothing here says back off. Train as planned.': 'בטווח הרגיל במשקל הזה — שום דבר כאן לא אומר להוריד. תתאמן כמתוכנן.',
+  'Reading slightly slow at this load — could be fatigue, could be the camera angle. Confirm before adding load today.': 'קצת איטי במשקל הזה — יכול להיות עייפות, יכול להיות זווית המצלמה. תוודא לפני שאתה מוסיף משקל היום.',
+  'Reading well down at this load. If filming was consistent, the athlete may not be fresh — confirm by feel/RPE before top sets.': 'הרבה מתחת לרגיל במשקל הזה. אם הצילום היה עקבי, ייתכן שהמתאמן לא רענן — תוודא לפי תחושה או RPE לפני הסטים הכבדים.',
+});
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
 // the central, tallest figure in frame (closest to the camera, framed in the
@@ -236,27 +292,105 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
   }
 }
 
-// Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
-// 3D engine + GLBs only ship when the 3D tab is opened.
-const AnatomyViewer = lazy(() => import('./AnatomyModelViewer'));
+// ----------------------------- skeleton drawing -----------------------------
+// All geometry comes from poseLab's pure scene builders (buildScene2D /
+// buildScene3D), which scripts/verify-pose-overlay.mjs proves: the head is built
+// from the FACE landmarks and sits upright over the shoulders, a joint MediaPipe
+// is <50% sure of is never drawn, and no bone is drawn to a hidden joint.
+const BONE_RGB = '57,189,255';   // brand cyan (#39BDFF) — canvas can't read CSS vars
 
-const POSE_CONNECTIONS = [
-  [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
-  [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28],
+function drawScene2D(ctx, scene, scale) {
+  if (!scene) return;
+  const lw = Math.max(2, scale / 160);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = `rgba(${BONE_RGB},0.95)`; ctx.lineWidth = lw;
+  for (const b of scene.bones) { ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke(); }
+  const h = scene.head;
+  if (h) {
+    if (h.neck) { ctx.beginPath(); ctx.moveTo(h.neck.from.x, h.neck.from.y); ctx.lineTo(h.neck.to.x, h.neck.to.y); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(h.center.x, h.center.y, h.r, 0, Math.PI * 2); ctx.stroke();
+    if (h.tick) { ctx.beginPath(); ctx.moveTo(h.tick.from.x, h.tick.from.y); ctx.lineTo(h.tick.to.x, h.tick.to.y); ctx.stroke(); }
+  }
+  const jr = Math.max(2.5, lw * 1.1);
+  ctx.fillStyle = '#FFFFFF';
+  for (const j of scene.joints) { ctx.beginPath(); ctx.arc(j.x, j.y, jr, 0, Math.PI * 2); ctx.fill(); }
+}
+
+// Paint the 2D skeleton over a <video>. The video keeps its default
+// object-fit: contain, so the picture sits in a letterboxed rect INSIDE the
+// element; the landmarks are mapped into that exact rect. (The old overlay
+// stretched a canvas over an object-fit: cover video — the skeleton landed off
+// the body whenever the aspect ratios differed.)
+function paintOverlay(canvas, videoEl, lms) {
+  if (!canvas || !videoEl) return;
+  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+  const bw = videoEl.clientWidth, bh = videoEl.clientHeight;
+  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+  const W = Math.max(1, Math.round(bw * dpr)), H = Math.max(1, Math.round(bh * dpr));
+  if (canvas.width !== W) canvas.width = W;
+  if (canvas.height !== H) canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  if (!lms || !vw || !vh || !bw || !bh) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const s = Math.min(bw / vw, bh / vh);
+  const dw = vw * s, dh = vh * s;
+  drawScene2D(ctx, buildScene2D(lms, { ox: (bw - dw) / 2, oy: (bh - dh) / 2, dw, dh }), Math.min(dw, dh));
+}
+
+// ----------------------------- shared look ----------------------------------
+// Every bordered control in this tool is ONE height (CTRL_H = 36, house rule);
+// controls nested inside a result card use var(--btn-h-in). No text is ever cut:
+// labels are short, never ellipsised, and a control grows rather than clips.
+const ctrl = (tone, filled, disabled) => ({
+  flex: '1 1 0', minWidth: 'max-content', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box',
+  padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+  background: filled ? tone : 'transparent', border: `1px solid ${tone}`, borderRadius: 0,
+  color: filled ? '#FFFFFF' : C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+  textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
+});
+const selectCtrl = (disabled) => ({
+  flex: '1.3 1 0', minWidth: 'max-content', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box',
+  padding: '0 8px', background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tx,
+  fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
+});
+const statusText = { fontFamily: FB, fontSize: 13, lineHeight: 1.55, color: C.tm, marginTop: 10 };
+
+// A result card: house card + cyan title strip. Titles are short on purpose —
+// one row at 360px, never wrapped, never cut.
+function Section({ title, children }) {
+  return (
+    <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, padding: '14px 16px', marginBottom: 16, minWidth: 0 }}>
+      <RefinedHeaderStrip padY={14} padX={16} marginBottom={14}>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: 'var(--c-stripTx)' }}>{title}</div>
+      </RefinedHeaderStrip>
+      {children}
+    </div>
+  );
+}
+
+const JUMP_KINDS = [
+  { key: 'cmj', label: 'CMJ' },
+  { key: 'svj', label: 'Vertical' },
+  { key: 'sl', label: 'Single-leg' },
+  { key: 'drop', label: 'Drop jump' },
+  { key: 'pogo', label: 'Pogo' },
+  { key: 'broad', label: 'Broad' },
 ];
 
 export default function MovementLab({
-  exerciseTitle = 'Squat',
-  initialMode = 'analyze',      // 'analyze' (VBT/ROM/3D) | 'jump'
-  initialView = 'all',          // analyze result scope: 'all' | '3d' (skeleton) | 'metrics' (VBT/ROM)
-  jumpType = 'cmj',             // jump mode: 'cmj'|'svj'|'sl' (height) · 'drop'|'pogo' (reactive → RSI + contact)
+  exerciseTitle = '',           // the LOGGED exercise name (vault key + labels only — never a movement guess)
+  initialMode = 'analyze',      // 'analyze' (skeleton / metrics) | 'jump'
+  initialView = 'all',          // analyze scope: 'all' | '3d' (skeleton) | 'metrics' (speed / ROM / form)
+  jumpType = 'cmj',             // jump mode: 'cmj'|'svj'|'sl' (height) · 'drop'|'pogo' (reactive → RSI) · 'broad'
   toolLabel = null,             // header label override (e.g. 'MOVEMENT LAB' vs 'LIFT METRICS')
   facingMode = 'environment',   // filming someone on the floor by default
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
   romSpec = null,               // ROM_CAMERA_AXES entry — when set, analyze mode measures ONE joint axis
   onSaveRom,                    // (clinicalDeg) => void — coach-confirmed ROM into the eval field
-  captureCue = null,            // per-test framing shown on the capture screen (front/side-on, distance)
+  captureCue = null,            // per-test framing shown under the controls (front/side-on, distance)
   defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
   defaultHeightCm = null,       // athlete stature (cm) → the scale for the broad-jump distance
   initialClipUrl = null,        // a reviewed form-video URL picked in ReviewToolsView → auto-analyse it
@@ -266,104 +400,138 @@ export default function MovementLab({
   targetReps = null,            // the exercise's PRESCRIBED reps (e.g. "8-10") from the plan
 }) {
   const tt = useT();
-  const videoRef = useRef(null);
+  const isMobile = useIsMobile(760);
+  const mode = initialMode;
+  const videoRef = useRef(null);          // live camera
   const liveCanvasRef = useRef(null);
   const streamRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
   const framesRef = useRef([]);
+  const capturingRef = useRef(false);     // frames are stored only while true (the preview draws either way)
   const recStartRef = useRef(0);
-  const analyzeVideoRef = useRef(null);   // results-view playback <video>, for playhead sync
+  const smootherRef = useRef(createPoseSmoother(ONE_EURO_IMAGE));
+  const analyzeVideoRef = useRef(null);   // results playback <video>
+  const overlayCanvasRef = useRef(null);
+  const displayFramesRef = useRef([]);
+  const countdownRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [phase, setPhase] = useState('idle');     // idle | loading | countdown | recording | analyzing | results
   const [error, setError] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(0);
-  const countdownRef = useRef(null);
-  const [result, setResult] = useState(null);     // analyzeClip output
-  const [jump, setJump] = useState(null);         // jumpMetrics output
-  const [tab, setTab] = useState('velocity');     // velocity | rom | threeD
-  const [progress, setProgress] = useState(0);    // upload analysis %
-  const [mode] = useState(initialMode);
-  // Source clip URL (remote reviewed clip or uploaded object URL) kept so the
-  // results view can show the video next to the analysis, like the Review player.
+  const [result, setResult] = useState(null);
+  const [jump, setJump] = useState(null);
+  const [tab, setTab] = useState('velocity');
+  const [progress, setProgress] = useState(0);
+  const [displayFrames, setDisplayFrames] = useState([]);
   const [srcUrl, setSrcUrl] = useState(null);
-  const [videoTime, setVideoTime] = useState(0);  // results video currentTime (s), drives the graph playhead
+  const [videoTime, setVideoTime] = useState(0);
+  // The coach PICKS the movement. '' = none → neutral read, no rep counting.
+  // Nothing in this tool infers it (Ohad: "auto detection doesn't work and
+  // shouldn't be there").
+  const [movementKey, setMovementKey] = useState('');
+  const [jumpKind, setJumpKind] = useState(jumpType || 'cmj');
+  const jumpPickable = mode === 'jump' && !onSaveJump;   // an eval test fixes its own jump type
+  const movement = movementByKey(movementKey);
+
   const setSource = useCallback((u) => { setSrcUrl(prev => { if (prev && prev !== u && prev.startsWith('blob:')) { try { URL.revokeObjectURL(prev); } catch { /* noop */ } } return u; }); }, []);
   useEffect(() => () => { setSrcUrl(cur => { if (cur && cur.startsWith('blob:')) { try { URL.revokeObjectURL(cur); } catch { /* noop */ } } return null; }); }, []);
-  // Keep the analyze graphs' playhead synced to the results video's timeline
-  // (mirrors the Review player). The camera tools open MovementLab in analyze
-  // mode, which previously rendered AnalyzeResult with no playheadT/onScrub —
-  // so the graph playhead sat static and scrub-to-seek was dead ("toggler not
-  // synced with the video timeline"). A rAF tick reads the video's currentTime.
-  useEffect(() => {
-    if (phase !== 'results' || !srcUrl) return undefined;
-    let raf;
-    const tick = () => { const v = analyzeVideoRef.current; if (v) setVideoTime(v.currentTime || 0); raf = requestAnimationFrame(tick); };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [phase, srcUrl]);
-  const fileInputRef = useRef(null);
-  // Which result tab to land on, honouring the tool's scope: the 3D-skeleton
-  // tool (Movement Lab) opens straight to the skeleton; the metrics tool (Lift
-  // Metrics) opens to velocity; the combined view keeps the old reps→velocity,
-  // empty→3D fallback.
-  const defaultTab = (repCount) =>
-    initialView === '3d' ? 'threeD'
-      : initialView === 'metrics' ? 'velocity'
-        : (repCount ? 'velocity' : 'threeD');
+  useEffect(() => { displayFramesRef.current = displayFrames; }, [displayFrames]);
 
-  // ---- bootstrap + record loop ----
+  const defaultTab = useCallback((r) => (
+    initialView === '3d' ? 'rom' : initialView === 'metrics' ? 'velocity' : ((r && r.repCount) ? 'velocity' : 'threeD')
+  ), [initialView]);
+
+  const runAnalyze = useCallback((frames, mk) => analyzeClip(frames, exerciseTitle, { movement: romSpec ? null : (mk || null) }), [exerciseTitle, romSpec]);
+
+  const computeJump = useCallback((frames, kind) => {
+    if (kind === 'broad') {
+      const bj = broadJumpMetrics(frames, { heightCm: Number(defaultHeightCm) > 0 ? Number(defaultHeightCm) : null });
+      return bj ? { ...bj, jumpType: 'broad' } : null;
+    }
+    if (kind === 'drop' || kind === 'pogo') {
+      const rm = reactiveJumpMetrics(frames);
+      return rm ? { reactive: true, jumpType: kind, ...rm.best, count: rm.count, avgRsi: rm.avgRsi, avgContactMs: rm.avgContactMs, avgHeightCm: rm.avgHeightCm } : null;
+    }
+    const j = jumpMetrics(frames);
+    return j ? { reactive: false, jumpType: kind, ...j } : null;
+  }, [defaultHeightCm]);
+
+  // One place turns captured frames into a result, for every capture path.
+  const finishFrames = useCallback((frames) => {
+    framesRef.current = frames;
+    setDisplayFrames(smoothFramesForDisplay(frames));
+    if (mode === 'jump') {
+      const j = computeJump(frames, jumpKind);
+      setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
+    } else {
+      const r = runAnalyze(frames, movementKey);
+      setResult(r); setTab(defaultTab(r));
+    }
+    setPhase('results');
+  }, [mode, computeJump, jumpKind, runAnalyze, movementKey, defaultTab]);
+
+  // Changing the pick re-reads the SAME frames instantly — no re-capture.
+  const pickMovement = useCallback((k) => {
+    setMovementKey(k);
+    const frames = framesRef.current;
+    if (phase === 'results' && mode !== 'jump' && frames && frames.length) {
+      const r = runAnalyze(frames, k);
+      setResult(r);
+      setTab((cur) => (cur === 'form' && !(r.repCount > 0) ? 'velocity' : cur));
+    }
+  }, [phase, mode, runAnalyze]);
+  const pickJump = useCallback((k) => {
+    setJumpKind(k);
+    const frames = framesRef.current;
+    if (phase === 'results' && frames && frames.length) {
+      const j = computeJump(frames, k);
+      setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
+    }
+  }, [phase, computeJump]);
+
+  // ---- live camera: preview + record loop ----
   const recordLoop = useCallback(() => {
     const v = videoRef.current, lm = landmarkerRef.current;
     if (!v || !lm || v.readyState < 2) { rafRef.current = requestAnimationFrame(recordLoop); return; }
     const now = performance.now();
     let res = null;
     try { res = lm.detectForVideo(v, now); } catch { res = null; }
-    if (res?.worldLandmarks?.[0]) {
-      // Backstop against a forgotten/very-long recording growing unbounded (each
-      // frame is 33 landmark objects and analyzeClip does O(n) passes). ~90s at
-      // 60fps / 180s at 30fps — far beyond any real set, but caps memory.
-      if (framesRef.current.length < 5400) {
-        framesRef.current.push({
-          t: now - recStartRef.current,
-          landmarks: res.landmarks?.[0] || null,
-          worldLandmarks: res.worldLandmarks[0],
-        });
-      }
-      drawLive(liveCanvasRef.current, v, res.landmarks?.[0]);
-    } else {
-      drawLive(liveCanvasRef.current, v, null);
+    const raw = res?.landmarks?.[0] || null;
+    if (capturingRef.current && res?.worldLandmarks?.[0] && framesRef.current.length < 5400) {
+      // Backstop against a forgotten recording growing unbounded (~90s at 60fps).
+      framesRef.current.push({ t: now - recStartRef.current, landmarks: raw, worldLandmarks: res.worldLandmarks[0] });
     }
-    setElapsed((performance.now() - recStartRef.current) / 1000);
+    // Draw the SMOOTHED pose (One-Euro); the stored frames stay raw for analysis.
+    if (!raw) smootherRef.current.reset();
+    paintOverlay(liveCanvasRef.current, v, raw ? smootherRef.current.smooth(raw, now) : null);
+    if (capturingRef.current) setElapsed((performance.now() - recStartRef.current) / 1000);
     rafRef.current = requestAnimationFrame(recordLoop);
   }, []);
 
   const beginCapture = useCallback(() => {
     framesRef.current = [];
     recStartRef.current = performance.now();
+    capturingRef.current = true;
     setElapsed(0); setPhase('recording');
-    rafRef.current = requestAnimationFrame(recordLoop);
-  }, [recordLoop]);
+  }, []);
 
   const startRecording = useCallback(async () => {
-    setError(null); setResult(null); setJump(null); setPhase('loading');
+    setError(null); setResult(null); setJump(null); setDisplayFrames([]); setPhase('loading');
     try {
-      // Get a fresh camera if we don't have one, then ALWAYS (re)attach it to the
-      // current <video> node. On "Record again" the video element was unmounted
-      // during results and remounts as a NEW node with no srcObject — the old
-      // `if (!streamRef.current)` guard skipped re-attaching, leaving a dead black
-      // feed. Re-attaching is idempotent (skips if already the same stream).
-      if (!streamRef.current) {
-        streamRef.current = await getCamera(facingMode);
-      }
+      if (!streamRef.current) streamRef.current = await getCamera(facingMode);
       const v = videoRef.current;
       if (v && v.srcObject !== streamRef.current) { v.srcObject = streamRef.current; await v.play(); }
       if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite' });
-      // 3·2·1 countdown so the athlete gets set and holds STILL before capture —
-      // the first 0.6 s of frames is the standing baseline the jump math
-      // calibrates the floor against. Recording no longer fires the instant the
-      // button is tapped.
+      // Preview (skeleton over the camera) starts now so the coach can frame the
+      // athlete during the 3·2·1; frames are stored only once REC starts. The
+      // first ~0.6s after REC is the standing baseline the jump math needs.
+      capturingRef.current = false;
+      smootherRef.current.reset();
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(recordLoop);
       setPhase('countdown'); setCountdown(3);
       if (countdownRef.current) clearInterval(countdownRef.current);
       countdownRef.current = setInterval(() => {
@@ -373,279 +541,287 @@ export default function MovementLab({
         });
       }, 1000);
     } catch (e) {
-      // If the camera opened but pose init (or play) then failed, release the
-      // stream — otherwise the camera LED stays on behind the error screen with
-      // no control to stop it until unmount.
+      // Camera opened but pose init / play failed → release it, or the camera
+      // LED stays on behind the error with no control to stop it.
       if (streamRef.current) { stopStream(streamRef.current); streamRef.current = null; }
       setPhase('idle'); setError(e?.message || 'Could not start the camera.');
     }
-  }, [facingMode, beginCapture]);
-
-  // Reactive jumps (drop jump, POGO) need ground-contact + RSI; the rest are
-  // flight-time height. One helper so both capture paths branch identically.
-  // Auto-detect reactive from the exercise title too — a reviewed "POGO"/"Drop
-  // Jump" clip defaults to jumpType 'cmj' and would otherwise be fed to the
-  // single-jump reader, which correctly can't read a string of hops.
-  const isReactive = jumpType === 'drop' || jumpType === 'pogo'
-    || /\b(pogo|drop[-\s]?jump|depth[-\s]?jump|hop|bound|bounce|rebound|reactive|rsi|ankle[-\s]?stiff)\b/i.test(exerciseTitle || '');
-  const computeJump = useCallback((frames) => {
-    // Broad jump — horizontal distance, scaled by the athlete's stature.
-    if (jumpType === 'broad') {
-      const bj = broadJumpMetrics(frames, { heightCm: Number(defaultHeightCm) > 0 ? Number(defaultHeightCm) : null });
-      return bj || null;
-    }
-    if (isReactive) {
-      // If reactive was auto-detected from the title (jumpType still the 'cmj'
-      // default), label it as a POGO/RSI read, not "Countermovement Jump".
-      const rType = (jumpType === 'drop' || jumpType === 'pogo') ? jumpType : 'pogo';
-      const rm = reactiveJumpMetrics(frames);
-      return rm ? { reactive: true, jumpType: rType, ...rm.best, count: rm.count, avgRsi: rm.avgRsi, avgContactMs: rm.avgContactMs, avgHeightCm: rm.avgHeightCm } : null;
-    }
-    const j = jumpMetrics(frames);
-    return j ? { reactive: false, jumpType, ...j } : null;
-  }, [isReactive, jumpType, defaultHeightCm]);
+  }, [facingMode, beginCapture, recordLoop]);
 
   const stopAndAnalyze = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
-    // Frames are captured — release the camera so the LED/sensor isn't left on
-    // while the coach reviews results (battery/privacy). Cleared so "Record
-    // again" gets a fresh stream. (camera audit)
-    stopStream(streamRef.current); streamRef.current = null;
-    setPhase('analyzing');
+    capturingRef.current = false;
     const frames = framesRef.current;
-    // Frame pixel dims for the broad-jump scale (aspect ratio) — same as the
-    // upload path attaches in captureClipFrames.
     const vEl = videoRef.current;
     if (vEl && vEl.videoWidth > 0 && vEl.videoHeight > 0) frames.dims = { w: vEl.videoWidth, h: vEl.videoHeight };
-    setTimeout(() => {
-      if (mode === 'jump') {
-        const j = computeJump(frames);
-        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
-        setPhase('results');
-      } else {
-        const r = analyzeClip(frames, exerciseTitle);
-        setResult(r);
-        setTab(defaultTab(r.repCount));
-        setPhase('results');
-      }
-    }, 30);
-  }, [mode, exerciseTitle, computeJump]);
+    // Frames are captured — release the camera (battery / privacy).
+    stopStream(streamRef.current); streamRef.current = null;
+    setSource(null);
+    setPhase('analyzing');
+    setTimeout(() => finishFrames(frames), 30);
+  }, [finishFrames, setSource]);
 
-  // ---- analyze an uploaded clip from the gallery ----
-  // Steps through the video by seeking (≈20fps sample, capped) and runs pose
-  // on each frame. Uses the 'full' model (more accurate; no real-time budget
-  // since this is offline). Reuses the same analyzeClip path as live capture.
-  const analyzeUploadedFile = useCallback(async (file) => {
-    if (!file) return;
-    setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
+  // Offline read of a clip (upload or a picked reviewed clip): the 'full' model,
+  // seek-stepped at the clip's real frame rate — see captureClipFrames.
+  const analyzeSource = useCallback(async (url, { crossOrigin = false } = {}) => {
+    setError(null); setResult(null); setJump(null); setDisplayFrames([]); setProgress(0); setPhase('analyzing');
+    setSource(url);
     try {
-      const url = URL.createObjectURL(file);
-      setSource(url);   // keep it — the results view shows this video next to the analysis
-      const frames = await captureClipFrames(url, { onProgress: setProgress });
-      framesRef.current = frames;
-      if (mode === 'jump') {
-        const j = computeJump(frames);
-        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
-      } else {
-        const res = analyzeClip(frames, exerciseTitle);
-        setResult(res); setTab(defaultTab(res.repCount));
-      }
-      setPhase('results');
+      const frames = await captureClipFrames(url, { crossOrigin, onProgress: setProgress });
+      finishFrames(frames);
     } catch (e) {
       setPhase('idle'); setError(e?.message || 'Could not process that video.');
     }
-  }, [mode, exerciseTitle, computeJump, setSource]);
+  }, [finishFrames, setSource]);
+  const analyzeUploadedFile = useCallback((file) => { if (file) analyzeSource(URL.createObjectURL(file)); }, [analyzeSource]);
 
-  // ---- analyze a REMOTE reviewed clip (a form-video cloudUrl handed in from
-  // ReviewToolsView's picker) ----  Same path as analyzeUploadedFile but the src
-  // is already a URL, so no createObjectURL; crossOrigin keeps the frame canvas
-  // readable (these cloud clips already serve CORS — the Review inline analyzer
-  // reads them the same way).
-  const analyzeRemoteUrl = useCallback(async (url) => {
-    if (!url) return;
-    setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
-    setSource(url);   // show the clip next to the analysis in results
-    try {
-      const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: setProgress });
-      framesRef.current = frames;
-      if (mode === 'jump') {
-        const j = computeJump(frames);
-        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
-      } else {
-        const res = analyzeClip(frames, exerciseTitle);
-        setResult(res); setTab(defaultTab(res.repCount));
-      }
-      setPhase('results');
-    } catch (e) {
-      setPhase('idle'); setError(e?.message || 'Could not load that clip.');
-    }
-  }, [mode, exerciseTitle, computeJump, setSource]);
-
-  // When the tool is opened with a pre-picked clip, analyse it once on mount.
-  useEffect(() => { if (initialClipUrl) analyzeRemoteUrl(initialClipUrl); }, [initialClipUrl, analyzeRemoteUrl]);
+  // Opened with a pre-picked clip → analyse it once on mount.
+  const initialDoneRef = useRef(false);
+  useEffect(() => {
+    if (!initialClipUrl || initialDoneRef.current) return;
+    initialDoneRef.current = true;
+    analyzeSource(initialClipUrl, { crossOrigin: true });
+  }, [initialClipUrl, analyzeSource]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
 
-  // Built-in synthetic motion → see the 3D skeleton (and the V1/V2 twist toggle)
-  // with no camera, no upload, no pose-detection step. Squat for analyze, jump
-  // for jump mode. Lands straight on the 3D tab.
-  const loadDemo = useCallback(() => {
-    setError(null); setProgress(0); setPhase('analyzing');
-    setTimeout(() => {
-      if (mode === 'jump') {
-        const frames = demoJumpFrames(); framesRef.current = frames;
-        const j = computeJump(frames);
-        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
-      } else {
-        const frames = demoSquatFrames(); framesRef.current = frames;
-        const r = analyzeClip(frames, 'Squat'); setResult(r); setTab(defaultTab(r.repCount));
-      }
-      setPhase('results');
-    }, 30);
-  }, [mode, computeJump]);
-
   const reset = useCallback(() => {
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
-    stopStream(streamRef.current); streamRef.current = null;   // ensure the camera is released
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    capturingRef.current = false;
+    stopStream(streamRef.current); streamRef.current = null;
     framesRef.current = [];
-    setResult(null); setJump(null); setPhase('idle'); setElapsed(0); setProgress(0); setCountdown(0);
+    setResult(null); setJump(null); setDisplayFrames([]); setPhase('idle'); setElapsed(0); setProgress(0); setCountdown(0);
   }, []);
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearInterval(countdownRef.current);
     stopStream(streamRef.current);
-    try { landmarkerRef.current?.close(); } catch {}
+    try { landmarkerRef.current?.close(); } catch { /* noop */ }
   }, []);
 
-  const recording = phase === 'recording';
-  const showCamera = phase === 'idle' || phase === 'loading' || phase === 'countdown' || phase === 'recording';
+  // Results: skeleton over the clip, synced to its playhead. The graphs'
+  // playhead is updated ~15×/s (not every paint) so the result cards don't
+  // re-render 60×/s on a phone.
+  useEffect(() => {
+    if (phase !== 'results' || !srcUrl) return undefined;
+    let raf, lastT = -1;
+    const fps = result?.fps || 30;
+    const gap = Math.max(80, 2.5 * (1000 / fps));
+    const tick = () => {
+      const v = analyzeVideoRef.current;
+      if (v) {
+        const tMs = (v.currentTime || 0) * 1000;
+        const f = frameAt(displayFramesRef.current, tMs, gap);
+        paintOverlay(overlayCanvasRef.current, v, f ? f.landmarks : null);
+        if (Math.abs(tMs - lastT) >= 66) { lastT = tMs; setVideoTime(v.currentTime || 0); }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, srcUrl, result?.fps]);
 
-  // Portal to <body> — same transform-trap as the Live Coach: this full-screen
-  // overlay is rendered inside Review-Tools' `.motion-rise` wrapper whose CSS
-  // transform pins position:fixed to that box instead of the viewport.
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
-      {/* header */}
-      <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            {tt(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
+  // The traces run on CLIP-RELATIVE time (t − first captured frame); the video
+  // runs on absolute time. Convert both ways here, or the playhead sits off by
+  // however long the athlete took to enter the frame.
+  const clipT0 = (framesRef.current && framesRef.current[0] && framesRef.current[0].t) || 0;
+  const onScrub = useCallback((tRelMs) => {
+    const t0 = (framesRef.current && framesRef.current[0] && framesRef.current[0].t) || 0;
+    const v = analyzeVideoRef.current;
+    if (v) { try { v.currentTime = (tRelMs + t0) / 1000; } catch { /* noop */ } }
+    setVideoTime((tRelMs + t0) / 1000);
+  }, []);
+  const playheadRel = srcUrl ? Math.max(0, videoTime * 1000 - clipT0) : null;
+
+  const liveCam = phase === 'loading' || phase === 'countdown' || phase === 'recording';
+  const busy = phase === 'loading' || phase === 'countdown' || phase === 'recording' || phase === 'analyzing';
+  const title = tt(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'));
+
+  // ---- the ONE control row ----
+  const showMovementPick = mode !== 'jump' && !romSpec;
+  const primary = phase === 'recording'
+    ? <button type="button" onClick={stopAndAnalyze} style={ctrl(C.rd, true, false)}>{tt('STOP')}</button>
+    : phase === 'countdown'
+      ? <button type="button" disabled style={ctrl(C.ac, true, true)}>{`${tt('GET READY')} ${countdown}`}</button>
+      : phase === 'loading'
+        ? <button type="button" disabled style={ctrl(C.ac, true, true)}>{tt('STARTING…')}</button>
+        : phase === 'analyzing'
+          ? <button type="button" disabled style={ctrl(C.ac, true, true)}>{tt('READING…')}</button>
+          : <button type="button" onClick={phase === 'results' ? () => { reset(); setTimeout(startRecording, 0); } : startRecording} style={ctrl(C.ac, true, false)}>{tt('RECORD')}</button>;
+
+  const statusLine = (() => {
+    if (error) return <div style={{ ...statusText, color: C.rd }}>{tt(error)}</div>;
+    if (phase === 'idle') {
+      return (
+        <div style={statusText}>
+          {captureCue || tt(mode === 'jump'
+            ? 'Side-on, full body in frame, ~2–3m back. Record, or upload a clip — stand still for a second, then jump.'
+            : 'Side-on, full body in frame, ~2–3m back. Record a set, or upload a clip — keep the whole lift in shot.')}
+          {showMovementPick && !movement && <div style={{ marginTop: 6 }}>{tt('Pick the exercise to count reps and read bar speed, range and tempo. Without it you get the neutral read: skeleton, joint angles and raw speed.')}</div>}
+        </div>
+      );
+    }
+    if (phase === 'loading') return <div style={statusText}>{tt('Starting the camera and pose model…')}</div>;
+    if (phase === 'countdown') return <div style={statusText}>{tt(mode === 'jump' ? 'Stand still — jump once REC starts.' : 'Get set — recording starts at zero.')}</div>;
+    if (phase === 'recording') {
+      return (
+        <div style={{ ...statusText, fontFamily: FN, fontWeight: 700, letterSpacing: '0.08em', color: C.tx }}>
+          <span style={{ color: C.rd }}>● REC</span> · {elapsed.toFixed(1)}s · {framesRef.current.length} {tt('frames')}
+        </div>
+      );
+    }
+    if (phase === 'analyzing') {
+      return (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ ...statusText, marginTop: 0 }}>{tt('Reading the movement…')}{progress > 0 ? ` ${progress}%` : ''}</div>
+          <div style={{ height: 4, background: C.sf2, marginTop: 8 }}>
+            <div style={{ width: `${progress}%`, height: '100%', background: C.ac, transition: 'width 120ms' }} />
           </div>
         </div>
-        <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>{tt('← BACK')}</button>
-      </div>
+      );
+    }
+    if (phase === 'results' && showMovementPick && !movement) {
+      return <div style={statusText}>{tt('Neutral read — no exercise picked. Pick one above to count reps and read bar speed, range and tempo.')}</div>;
+    }
+    return null;
+  })();
 
-      {/* camera + live skeleton (capture phases) */}
-      {showCamera && (
-        <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-          <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <canvas ref={liveCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
-          {phase === 'idle' && !error && (
-            <Centre>
-              <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>
-                {tt(mode === 'jump' ? 'FILM A JUMP' : 'FILM THE SET')}
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 380, lineHeight: 1.55, marginTop: 8 }}>
-                {captureCue
-                  ? captureCue
-                  : (mode === 'jump'
-                    ? tt('Side-on, full body in frame, ~2–3m back. Record, or upload a clip from your gallery — stand still for a second, then jump.')
-                    : tt('Side-on, full body in frame, ~2–3m back. Record a work set, or upload a clip from your gallery — keep the whole lift in shot.'))}
-              </div>
-            </Centre>
-          )}
-          {phase === 'loading' && <Centre><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('STARTING CAMERA + POSE…')}</div></Centre>}
-          {phase === 'countdown' && (
-            <Centre>
-              <div style={{ fontFamily: FN, fontSize: 120, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{countdown}</div>
-              <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginTop: 8 }}>
-                {tt(mode === 'jump' ? 'STAND STILL — JUMP AFTER “REC”' : 'GET SET')}
-              </div>
-            </Centre>
-          )}
-          {recording && (
-            <div style={{ position: 'absolute', top: 56, left: 0, right: 0, textAlign: 'center', color: '#FFFFFF', fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>
-              <span style={{ color: C.rd }}>● REC</span> · {elapsed.toFixed(1)}s · {framesRef.current.length} {tt('frames')}
-            </div>
-          )}
-          {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10 }}>{tt(error)}</div></Centre>}
+  const media = (
+    <>
+      {liveCam && (
+        <div style={{ position: 'relative', width: '100%', background: C.videoBg, lineHeight: 0 }}>
+          <video ref={videoRef} playsInline muted
+            style={{ display: 'block', width: '100%', height: 'auto', aspectRatio: 'auto 3 / 4', maxHeight: isMobile ? '62vh' : '70vh', background: C.videoBg }} />
+          <canvas ref={liveCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
         </div>
       )}
-
-      {/* analyzing */}
-      {phase === 'analyzing' && (
-        <Centre>
-          <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('READING THE MOVEMENT…')}</div>
-          {progress > 0 && (
-            <>
-              <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16, borderRadius: 0 }}>
-                <div style={{ width: `${progress}%`, height: '100%', background: C.ac, transition: 'width 120ms' }} />
-              </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
-            </>
-          )}
-        </Centre>
+      {phase === 'results' && srcUrl && (
+        <div style={{ position: 'relative', width: '100%', background: C.videoBg, lineHeight: 0 }}>
+          <video ref={analyzeVideoRef} key={srcUrl} src={srcUrl} controls muted playsInline
+            style={{ display: 'block', width: '100%', height: 'auto', maxHeight: isMobile ? '60vh' : '72vh', background: C.videoBg }} />
+          <canvas ref={overlayCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+        </div>
       )}
+    </>
+  );
 
-      {/* hidden gallery picker */}
+  const controls = (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginTop: (liveCam || (phase === 'results' && srcUrl)) ? 12 : 0 }}>
+      {showMovementPick && (
+        <select value={movementKey} onChange={(e) => pickMovement(e.target.value)} disabled={busy} aria-label={tt('Exercise')} style={selectCtrl(busy)}>
+          <option value="">{tt('No exercise')}</option>
+          {MOVEMENTS.map((m) => <option key={m.key} value={m.key}>{tt(m.label)}</option>)}
+        </select>
+      )}
+      {jumpPickable && (
+        <select value={jumpKind} onChange={(e) => pickJump(e.target.value)} disabled={busy} aria-label={tt('Jump type')} style={selectCtrl(busy)}>
+          {JUMP_KINDS.map((j) => <option key={j.key} value={j.key}>{tt(j.label)}</option>)}
+        </select>
+      )}
+      {primary}
+      <button type="button" onClick={pickFile} disabled={busy} style={ctrl(C.cardBd, false, busy)}>{tt('UPLOAD')}</button>
+    </div>
+  );
+
+  const results = phase === 'results' && (
+    mode === 'jump' ? (
+      <Section title={tt('RESULT')}>
+        {(jump?.jumpType || jumpKind) === 'broad'
+          ? <BroadJumpResult jump={jump} onSave={onSaveJump} onClose={onClose} />
+          : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />}
+      </Section>
+    ) : (
+      <>
+        {romSpec && (result?.jointRom || result?.extRom) && (
+          <RomConfirm spec={romSpec} jointRom={[...(result.jointRom || []), ...(result.extRom || [])]} onSave={onSaveRom} onClose={onClose} />
+        )}
+        {(initialView === '3d' || romSpec) ? (
+          <>
+            {!romSpec && (
+              <Section title={tt('3D SKELETON')}>
+                <Viewer3D frames={framesRef.current} playheadT={playheadRel} />
+              </Section>
+            )}
+            <Section title={tt('JOINT ANGLES')}>
+              {result?.ok
+                ? <>{!romSpec && <ReadSummary result={result} movement={movement} />}<RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} /></>
+                : <Empty msg={tt("Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame.")} />}
+            </Section>
+          </>
+        ) : (
+          <Section title={tt(initialView === 'metrics' ? 'LIFT METRICS' : 'ANALYSIS')}>
+            <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} movement={movement}
+              tab={tab} setTab={setTab} view={initialView}
+              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps}
+              playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
+          </Section>
+        )}
+      </>
+    )
+  );
+
+  // Portal to <body> — the Review-Tools wrapper's `.motion-rise` transform would
+  // otherwise pin this position:fixed stage to that box. data-theme="dark" keeps
+  // the studio stage dark in either app theme while every colour still comes
+  // from the theme tokens (C.*).
+  return createPortal(
+    <div data-theme="dark" style={{ position: 'fixed', inset: 0, zIndex: 1500, display: 'flex', flexDirection: 'column', background: C.bg, color: C.tx, fontFamily: FB }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))', borderBottom: `1px solid ${C.cardBd}`, background: C.sf }}>
+        <button type="button" onClick={onClose} style={{ ...ctrl(C.cardBd, false, false), flex: '0 0 auto' }}>{tt('← BACK')}</button>
+        <div style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: C.tx }}>{title}</div>
+      </div>
       <input ref={fileInputRef} type="file" accept="video/*" style={{ display: 'none' }}
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) analyzeUploadedFile(f); }} />
-
-      {/* results — the SOURCE clip (when we have one: a picked reviewed clip or
-          an upload) is shown on the LEFT, embedded + scrubbable, next to the
-          analysis on the right, mirroring the Review player (Ohad). The video is
-          sticky so it stays in view while the metrics/3D scroll. */}
-      {phase === 'results' && (
-        <div style={{ flex: 1, overflow: 'auto', padding: '64px 16px 16px', WebkitOverflowScrolling: 'touch' }}>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1400, margin: '0 auto' }}>
-            {srcUrl && (
-              <div style={{ flex: '0 0 320px', maxWidth: 340, minWidth: 240, position: 'sticky', top: 0 }}>
-                <video ref={analyzeVideoRef} key={srcUrl} src={srcUrl} controls muted playsInline
-                  style={{ width: '100%', maxHeight: '76vh', background: '#000', border: '1px solid rgba(255,255,255,0.15)', display: 'block', objectFit: 'contain' }} />
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 300 }}>
-              {romSpec && (result?.jointRom || result?.extRom) && (
-                <RomConfirm spec={romSpec} jointRom={[...(result.jointRom || []), ...(result.extRom || [])]} onSave={onSaveRom} onClose={onClose} />
-              )}
-              {mode === 'jump'
-                ? (jumpType === 'broad'
-                    ? <BroadJumpResult jump={jump} onSave={onSaveJump} onClose={onClose} />
-                    : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />)
-                : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={romSpec ? 'rom' : tab} setTab={setTab} view={initialView}
-                    vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps}
-                    playheadT={videoTime * 1000}
-                    onScrub={(tMs) => { const v = analyzeVideoRef.current; if (v) { try { v.currentTime = tMs / 1000; } catch { /* noop */ } setVideoTime(tMs / 1000); } }} />}
-            </div>
+      <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{
+          maxWidth: 1280, margin: '0 auto', boxSizing: 'border-box',
+          padding: isMobile ? '12px 16px calc(24px + env(safe-area-inset-bottom, 0px))' : '20px 24px 32px',
+          display: isMobile ? 'block' : 'flex', gap: 24, alignItems: 'flex-start',
+        }}>
+          <div style={isMobile ? undefined : { flex: '0 0 min(520px, 46%)', minWidth: 0, position: 'sticky', top: 0 }}>
+            {media}
+            {controls}
+            {statusLine}
+          </div>
+          <div style={isMobile ? { marginTop: 16 } : { flex: '1 1 0', minWidth: 0 }}>
+            {results}
           </div>
         </div>
-      )}
-
-      {/* control bar — flexShrink:0 so it's never squeezed off, + safe-area
-          bottom padding so the RECORD/UPLOAD buttons never sit flush against the
-          very bottom edge (where a taskbar / browser infobar can clip them). */}
-      <div style={{ flexShrink: 0, background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))', display: 'flex', gap: 10 }}>
-        {phase === 'idle' && <>
-          <BigBtn color={C.ac} onClick={startRecording}>{tt(mode === 'jump' ? 'RECORD →' : 'RECORD →')}</BigBtn>
-          <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ {tt('UPLOAD CLIP')}</button>
-        </>}
-        {phase === 'loading' && <BigBtn color="#555" disabled>{tt('STARTING…')}</BigBtn>}
-        {phase === 'countdown' && <BigBtn color="#555" disabled>{tt('GET READY…')} {countdown}</BigBtn>}
-        {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>{tt('STOP & ANALYZE')}</BigBtn>}
-        {/* Only in RESULTS — during 'analyzing' this solid-cyan bar rode up under the
-            header (no camera div to push it down) and read as an ugly cyan slab on the
-            "READING THE MOVEMENT…" loading screen (Ohad #202). BACK still aborts. */}
-        {phase === 'results' && <BigBtn color={C.ac} onClick={reset}>↺ {tt('RECORD AGAIN')}</BigBtn>}
       </div>
     </div>,
     document.body
   );
 }
 
+// The read's header line: capture quality + counts, all translated.
+function ReadSummary({ result, movement }) {
+  const tt = useT();
+  if (!result?.ok) return null;
+  const cq = result.captureQuality;
+  const pct = cq ? Math.round((cq.coverage || 0) * 100) : null;
+  const cqLine = !cq ? null
+    : cq.grade === 'good' ? tt('Body tracked in {n}% of frames.').replace('{n}', pct)
+      : cq.grade === 'fair' ? tt('Body tracked in {n}% of frames — usable, but film fuller and steadier for sharper numbers.').replace('{n}', pct)
+        : tt('Body tracked in only {n}% of frames — treat the numbers as rough. Film the whole body, steady camera, decent light.').replace('{n}', pct);
+  const counted = result.counted !== false && (movement !== null);
+  return (
+    <div style={{ fontFamily: FN, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.04em', color: C.tm, marginBottom: 12 }}>
+      {counted
+        ? <div>{result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount)} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>
+        : <div>{tt('Neutral read')} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>}
+      {cqLine && <div style={{ color: cq.grade === 'poor' ? C.or : C.tm }}>{cqLine}</div>}
+    </div>
+  );
+}
+
 // ----------------------------- results: analyze -----------------------------
-export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
+// movement: the coach's explicit pick from MovementLab (a MOVEMENTS entry, or
+// null = neutral). Left undefined by callers that only know the LOGGED exercise
+// (Workout Review) — then the logged title decides the joint channel.
+export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
   // First/last-rep trim (Ohad: "I want to be able to set where is the first
   // and last rep, to avoid random movement analyzed into the means") — 1-
   // indexed, inclusive, defaults to the full detected set. Only the MEAN
@@ -676,50 +852,47 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
     if (!result?.ok || !trimmed || !frames) return result?.velocity ?? null;
     const slice = result.reps.slice(effFrom - 1, effTo);
     if (!slice.length) return null;
-    const { angle } = channelSignal(frames, exerciseTitle);
+    const { angle } = channelSignal(frames, exerciseTitle, movement);
     return velocityMetrics(frames, angle, slice);
-  }, [result, trimmed, effFrom, effTo, frames, exerciseTitle]);
+  }, [result, trimmed, effFrom, effTo, frames, exerciseTitle, movement]);
   const trimmedRomTempo = useMemo(() => {
     if (!result?.ok || !trimmed || !frames) return result?.romTempo ?? null;
     const slice = result.reps.slice(effFrom - 1, effTo);
     if (!slice.length) return null;
-    const { angle } = channelSignal(frames, exerciseTitle);
+    const { angle } = channelSignal(frames, exerciseTitle, movement);
     return romTempoMetrics(frames, angle, slice);
-  }, [result, trimmed, effFrom, effTo, frames, exerciseTitle]);
+  }, [result, trimmed, effFrom, effTo, frames, exerciseTitle, movement]);
   if (!result?.ok) return <Empty msg={tt("Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame.")} />;
   // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
   // velocity/ROM no longer live under Movement Lab).
+  // Speed + ROM traces need no counted reps (they're continuous), so those tabs
+  // are always open; FORM needs reps. Labels are short so the four tabs stay ONE
+  // row of equal 36px boxes at 360px.
   const allTabs = [
-    // Label is "SPEED & ACCEL", not "VELOCITY" — the tab holds three distinct
-    // sub-graphs (instantaneous speed, acceleration, and per-rep mean velocity)
-    // and calling the whole tab "velocity" read as if speed/velocity were two
-    // names for the same thing (Ohad 2026-07-04).
-    { k: 'velocity', label: 'SPEED & ACCEL', on: result.repCount > 0 },
-    { k: 'rom', label: 'ROM & TEMPO', on: result.repCount > 0 },
-    { k: 'form', label: 'FORM CHECK', on: result.repCount > 0 },
-    { k: 'threeD', label: '3D ANATOMY', on: true },
+    { k: 'velocity', label: 'SPEED', on: true },
+    { k: 'rom', label: 'ROM', on: true },
+    { k: 'form', label: 'FORM', on: result.repCount > 0 },
+    { k: 'threeD', label: '3D', on: true },
   ];
   const tabs = view === '3d' ? allTabs.filter(t => t.k === 'threeD')
     : view === 'metrics' ? allTabs.filter(t => t.k !== 'threeD')
       : allTabs;
+  const neutral = movement === null || result.counted === false;
   return (
-    // Wide column so the results use the page (was a cramped 560px box with huge
-    // side margins on the coach screen). The 3D canvas stays centered inside.
-    <div style={{ maxWidth: 1040, margin: '0 auto' }}>
+    <div style={{ minWidth: 0 }}>
       {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
-        {tabs.map(t => {
+        {tabs.map((t, i) => {
           // Longhand borders (not `border` shorthand + `borderInlineStart`) — mixing the
-          // two makes React re-apply them in a non-deterministic order on rerender
-          // (a styling bug + a console warning). Same visual: edge on 3 sides, the
-          // shared seam open on the left so adjacent tabs merge.
-          const bc = `1px solid ${tab === t.k ? C.ac : 'rgba(255,255,255,0.18)'}`;
+          // two makes React re-apply them in a non-deterministic order on rerender.
+          const bc = `1px solid ${tab === t.k ? C.ac : C.cardBd}`;
           return (
-          <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
-            flex: 1, padding: '9px 6px', background: tab === t.k ? C.ac : 'transparent',
+          <button key={t.k} type="button" disabled={!t.on} onClick={() => setTab(t.k)} style={{
+            flex: '1 1 0', minWidth: 'max-content', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 8px',
+            background: tab === t.k ? C.ac : 'transparent',
             color: t.on ? '#FFF' : 'rgba(255,255,255,0.35)',
-            borderTop: bc, borderInlineEnd: bc, borderBottom: bc, borderInlineStart: 'none',
-            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: t.on ? 'pointer' : 'default',
+            borderTop: bc, borderInlineEnd: bc, borderBottom: bc, borderInlineStart: i === 0 ? bc : 'none',
+            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', whiteSpace: 'nowrap', cursor: t.on ? 'pointer' : 'default',
           }}>{tt(t.label)}</button>
           );
         })}
@@ -732,11 +905,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           background: result.captureQuality.grade === 'poor' ? 'rgba(240,180,41,0.08)' : 'rgba(255,255,255,0.03)',
           color: result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.6)',
         }} title={`${tt('Body detected in {n}% of frames').replace('{n}', Math.round(result.captureQuality.coverage * 100))}${result.captureQuality.meanVis != null ? ` · ${tt('mean landmark visibility')} ${result.captureQuality.meanVis}` : ''}. ${tt('Markerless 2D pose degrades with cropping, side-angle, motion blur or low light.')}`}>
-          <b style={{ letterSpacing: '0.06em' }}>{tt(result.captureQuality.grade === 'poor' ? 'LOW CAPTURE QUALITY' : 'CAPTURE OK')}</b> · {result.captureQuality.note}
+          <b style={{ letterSpacing: '0.06em' }}>{tt(result.captureQuality.grade === 'poor' ? 'LOW CAPTURE QUALITY' : 'CAPTURE OK')}</b> · {captureText(tt, result.captureQuality)}
         </div>
       )}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
-        {result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount)} · {result.fps}fps · {result.frameCount} {tt('frames')}
+        {neutral ? tt('Neutral read') : (result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount))} · {result.fps}fps · {result.frameCount} {tt('frames')}
         {result.countMethod === 'flight' && (
           <span style={{ color: C.pu || '#8b7cf0' }} title={tt('Counted from the flight phase (jumps/hops) — the tracked joint barely moves on ballistic work, so the joint counter saw only {n}. Per-rep bar-speed/ROM below still track the joint.').replace('{n}', result.jointRepCount)}>
             {' · '}{tt('from flight')}
@@ -760,9 +933,16 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           ) : null;
         })()}
       </div>
-      {!(result.repCount > 0) && (
+      {neutral && (
         <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.02em', marginBottom: 14, lineHeight: 1.6, padding: '9px 12px', border: `1px solid ${C.bd}`, background: C.sf2 }}>
-          <b style={{ color: '#fff', letterSpacing: '0.04em' }}>{tt('No distinct reps detected.')}</b> {tt('Likely an isometric hold (nothing to count), or the movement was too small / too off-angle for the camera to segment — a prone push-up or a lateral drill can read flat to a front camera. Bar-speed, tempo and set-quality all need counted reps, so those tabs stay empty; the rotatable skeleton in MOVEMENT LAB still works.')}
+          {movement === null
+            ? tt('No exercise picked, so reps are not counted. Speed and joint angles below are measured as they are. Pick the exercise to add reps, bar speed per rep, tempo and form.')
+            : tt("This lift isn't mapped to a joint, so reps are not counted. Speed and joint angles below are still measured.")}
+        </div>
+      )}
+      {!neutral && !(result.repCount > 0) && (
+        <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.02em', marginBottom: 14, lineHeight: 1.6, padding: '9px 12px', border: `1px solid ${C.bd}`, background: C.sf2 }}>
+          <b style={{ color: '#fff', letterSpacing: '0.04em' }}>{tt('No distinct reps detected.')}</b> {tt('A hold, or a movement too small or too off-angle for the camera to split into reps. Per-rep speed, tempo and form need counted reps; the traces still show.')}
         </div>
       )}
       {/* Count cross-check — the camera count vs what the athlete actually
@@ -803,17 +983,17 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>{tt('LOAD')}
               <input type="number" min={0} step={0.5} value={load} onChange={(e) => setLoad(e.target.value)} placeholder="kg"
-                style={{ width: 56, marginInlineStart: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '4px 4px' }}
+                style={{ width: 56, height: 'var(--btn-h-in)', boxSizing: 'border-box', marginInlineStart: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '0 4px' }}
                 title={tt('Weight on the bar for this set (kg). Enter it to unlock same-load readiness + a load-aware trend.')} />
             </label>
             {result?.captureQuality?.grade === 'poor' ? (
-              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '6px 12px', display: 'inline-block', lineHeight: 1.4 }} title={tt("This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.")}>{tt('CLIP TOO ROUGH TO TREND · REFILM TO LOG')}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '0 12px', minHeight: 'var(--btn-h-in)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', lineHeight: 1.4 }} title={tt("This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.")}>{tt('CLIP TOO ROUGH TO TREND · REFILM TO LOG')}</span>
             ) : vaultSaved ? (
-              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ {tt('SAVED TO {ex} TREND').replace('{ex}', exerciseTitle.toUpperCase())}{loadNum ? ` ${tt('@ {n}KG').replace('{n}', loadNum)}` : ''}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '0 12px', minHeight: 'var(--btn-h-in)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center' }}>✓ {tt('SAVED TO {ex} TREND').replace('{ex}', String(exerciseTitle || '').toUpperCase())}{loadNum ? ` ${tt('@ {n}KG').replace('{n}', loadNum)}` : ''}</span>
             ) : (
               <button type="button"
                 onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result, load: loadNum, report: buildPoseReport(frames, exerciseTitle, result) }); if (e) setVaultSaved(true); }}
-                style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
+                style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '0 12px', minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box', cursor: 'pointer', borderRadius: 0 }}
                 title={tt("Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Analysis trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).")}>
                 ↑ {tt('SAVE TO TREND')}
               </button>
@@ -824,7 +1004,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
               <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn, marginBottom: 4 }}>
                 {tt('READINESS CUE')} · <b>{readiness.deltaPct >= 0 ? '+' : ''}{readiness.deltaPct}%</b> {tt('vs his {n}kg norm').replace('{n}', readiness.load)}
               </div>
-              <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{readiness.verdict}</div>
+              <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{tt(readiness.verdict)}</div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, lineHeight: 1.5 }}>
                 {tt('Today {a} m/s vs his median {b} m/s at {n}kg').replace('{a}', readiness.todayVel).replace('{b}', readiness.refVel).replace('{n}', readiness.load)}{readiness.refReps ? ` · ${readiness.refReps === 1 ? tt('~1 rep') : tt('~{n} reps').replace('{n}', readiness.refReps)}` : ''} ({readiness.n === 1 ? tt('1 prior set') : tt('{n} prior sets').replace('{n}', readiness.n)}, {tt('last {d}').replace('{d}', readiness.lastDate)}).
                 {readiness.lowConf ? ` ${tt('Only 1–2 prior films — treat lightly.')}` : ''} {tt("Phone bar-speed shifts ~5–10% with camera angle/distance, so this only means something if you film from the same spot — it's a soft cue to sense-check by feel/RPE, never a set-cutting rule.")}
@@ -841,11 +1021,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           <span>{tt('ANALYZE REPS')}</span>
           <input type="number" min={1} max={effTo} value={effFrom}
             onChange={e => setRepFrom(Math.max(1, Math.min(effTo, Number(e.target.value) || 1)))}
-            style={{ width: 36, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 10, padding: '3px 2px' }} />
+            style={{ width: 40, height: 'var(--btn-h-in)', boxSizing: 'border-box', textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '0 2px' }} />
           <span>–</span>
           <input type="number" min={effFrom} max={repCount} value={effTo}
             onChange={e => setRepTo(Math.max(effFrom, Math.min(repCount, Number(e.target.value) || repCount)))}
-            style={{ width: 36, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 10, padding: '3px 2px' }} />
+            style={{ width: 40, height: 'var(--btn-h-in)', boxSizing: 'border-box', textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '0 2px' }} />
           <span>{tt('OF {n}').replace('{n}', repCount)}</span>
           {trimmed && (
             <button type="button" onClick={() => { setRepFrom(1); setRepTo(null); }}
@@ -855,23 +1035,23 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           )}
         </div>
       )}
-      {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} velLoss={isVelocityLossLift(exerciseTitle)} />}
-      {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
-      {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && (
-        <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>{tt('LOADING 3D…')}</div>}>
-          <AnatomyViewer frames={frames} />
-        </Suspense>
-      )}
+      {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub}
+        velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
+      {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
+      {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
+      {tab === 'threeD' && <Viewer3D frames={frames} playheadT={playheadT} />}
     </div>
   );
 }
 
 // FORM CHECK — auto form-fault coach + left/right symmetry screen, both read
 // straight off the pose the camera already produced (src/poseInsights.js).
-function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null }) {
+function FormCheck({ result, exerciseTitle, movement, recordedReps = [], targetReps = null }) {
   const tt = useT();
-  const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
+  // An explicit pick (or explicit none) is passed through as { movement } so the
+  // insight engine never falls back to reading the title.
+  const mvOpts = useMemo(() => (movement === undefined ? {} : { movement }), [movement]);
+  const faults = useMemo(() => detectFaults(result, exerciseTitle, mvOpts), [result, exerciseTitle, mvOpts]);
   // Is this clip likely MORE THAN ONE set? The set-breakdown + auto-coach reads
   // below all assume a single set (each rep compared to the set's best); across
   // multiple sets/legs that overstates "fatigue" (set 2 vs set 1's peak). Flag it
@@ -897,7 +1077,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
     if (!faults || !multiSet) return faults;
     return { ...faults, faults: (faults.faults || []).filter((f) => !/lost >\s*15%\s*of range/i.test(f.msg || '')) };
   }, [faults, multiSet]);
-  const asym = useMemo(() => detectAsymmetry(result.jointRom, exerciseTitle), [result.jointRom, exerciseTitle]);
+  const asym = useMemo(() => detectAsymmetry(result.jointRom, exerciseTitle, mvOpts), [result.jointRom, exerciseTitle, mvOpts]);
   const vbt = useMemo(() => velocityAutoreg(result.velocity), [result.velocity]);
   // A poorly-tracked clip makes the velocity + L/R reads untrustworthy (2D
   // asymmetry especially needs a clean frontal/steady view). Caveat them rather
@@ -1021,15 +1201,18 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
       {coachFaults && coachFaults.faults.map((f, i) => (
         <div key={'f' + i} style={rowBase}>
           <span style={{ color: sev[f.sev], fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>{f.sev === 'bad' ? '✕' : '!'}</span>
-          <div><b style={{ color: '#fff' }}>{f.msg}.</b> <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{f.why}</span></div>
+          <div><b style={{ color: '#fff' }}>{f.tpl ? fillVars(tt(f.tpl), f.vars) : f.msg}.</b> <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{tt(f.why)}</span></div>
         </div>
       ))}
-      {coachFaults && coachFaults.good.map((g, i) => (
-        <div key={'g' + i} style={rowBase}>
-          <span style={{ color: C.gn, fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>✓</span>
-          <div style={{ color: 'rgba(255,255,255,0.85)' }}>{g}</div>
-        </div>
-      ))}
+      {coachFaults && coachFaults.good.map((g, i) => {
+        const gt = coachFaults.goodT && coachFaults.goodT[i];
+        return (
+          <div key={'g' + i} style={rowBase}>
+            <span style={{ color: C.gn, fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>✓</span>
+            <div style={{ color: 'rgba(255,255,255,0.85)' }}>{gt ? fillVars(tt(gt.tpl), gt.vars) : g}</div>
+          </div>
+        );
+      })}
 
       {tempo && (
         <>
@@ -1054,7 +1237,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
           them for a ballistic/reactive drill that slipped the jump router (a
           snap-down, generic jump, snatch, throw): a "40% loss · stop the set"
           there is nonsense. Raw velocity + ROM + technique above still show. (#172) */}
-      {vbt && isVelocityLossLift(exerciseTitle) && (
+      {vbt && (movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)) && (
         <>
           <div style={{ ...secLabel, marginTop: 22 }}>{tt('STOP-SET · BAR SPEED')} <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· {tt('where the set stopped being what it was for')}</span></div>
           <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
@@ -1074,7 +1257,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
       )}
 
       <div style={{ ...secLabel, marginTop: 22 }}>{tt('LEFT / RIGHT SYMMETRY')}</div>
-      {asym && asym.unilateral &&<div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, lineHeight: 1.5, fontFamily: FN }}>{asym.note}</div>}
+      {asym && asym.unilateral &&<div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, lineHeight: 1.5, fontFamily: FN }}>{tt(asym.note)}</div>}
       {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{tt('No paired joints tracked cleanly on this clip.')}</div>}
       {asym && !asym.unilateral && asym.rows.map((r) => {
         const mx = Math.max(r.left, r.right) || 1;
@@ -1105,7 +1288,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
           {tt(asym.worst.weaker === 'Left' ? '{j} travel {p}% less on the left — worth screening in person before loading it heavier.' : '{j} travel {p}% less on the right — worth screening in person before loading it heavier.').replace('{j}', tt(asym.worst.joint)).replace('{p}', asym.worst.asymPct)}
         </div>
       )}
-      <div style={{ marginTop: 16, fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, fontFamily: FN }}>{faults?.note || asym?.note}</div>
+      <div style={{ marginTop: 16, fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, fontFamily: FN }}>{tt(faults?.note || asym?.note || '')}</div>
     </div>
   );
 }
@@ -1137,11 +1320,14 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
     () => frames && barAccelSeries(frames, point),
     [point, frames]
   );
-  if (!v) return <Empty msg={tt('No reps detected to measure velocity.')} />;
+  // No counted reps (neutral read, or none found): the continuous speed/accel
+  // traces still stand on their own; only the per-rep bars/table need reps.
+  const g = !v && graph === 'velocity' ? 'speed' : graph;
   const pill = (k, label, sel, on) => (
     <button key={k} type="button" onClick={on}
       style={{
-        fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+        flex: '1 1 0', minWidth: 'max-content', minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box',
+        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '0 10px', whiteSpace: 'nowrap',
         borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
         border: `1px solid ${sel ? C.ac : 'rgba(255,255,255,0.2)'}`,
         background: sel ? `${C.ac}22` : 'transparent',
@@ -1173,22 +1359,31 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
           synced/scrubbable graph were too far apart to watch both at once
           (KPIs + per-rep table used to sit above it). Summary numbers and the
           rep table now follow the graph instead of preceding it. */}
-      <div style={{ display: 'flex', gap: 6, margin: '4px 0 8px', flexWrap: 'wrap' }}>
-        {pill('speed', 'SPEED', graph === 'speed', () => setGraph('speed'))}
-        {pill('accel', 'ACCELERATION', graph === 'accel', () => setGraph('accel'))}
-        {pill('velocity', 'MEAN VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
+      <div style={{ display: 'flex', gap: 6, margin: '4px 0 8px' }}>
+        {pill('speed', 'SPEED', g === 'speed', () => setGraph('speed'))}
+        {pill('accel', 'ACCEL', g === 'accel', () => setGraph('accel'))}
+        {v && pill('velocity', 'PER REP', g === 'velocity', () => setGraph('velocity'))}
       </div>
       {/* TRACK back above the graph (Ohad: floating alone below the chart
           "looks weird") — no "TRACK" label word, just the two pills. */}
-      {(graph === 'speed' || graph === 'accel') && (
-        <div style={{ display: 'flex', marginBottom: 8, alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      {(g === 'speed' || g === 'accel') && (
+        <div style={{ display: 'flex', marginBottom: 8, alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           {trackPill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
           {trackPill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
         </div>
       )}
-      {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
-      {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
-      {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
+      {g === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
+      {g === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
+      {g === 'velocity' && v && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
+      {v && <VelocitySummary v={v} velLoss={velLoss} onScrub={onScrub} />}
+    </div>
+  );
+}
+
+function VelocitySummary({ v, velLoss, onScrub }) {
+  const tt = useT();
+  return (
+    <div>
       {/* Summary KPIs — MiniKpi (stacked label-then-value), not Kpi (label
           beside value): at half-width, Kpi's side-by-side baseline layout let
           the two labels wrap across a different number of lines ("BEST MEAN
@@ -1301,7 +1496,8 @@ function useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, pa
 
 const zoomResetPillStyle = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px',
+  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '0 8px',
+  minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box', whiteSpace: 'nowrap',
   border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
   color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginInlineStart: 8,
 };
@@ -1349,7 +1545,7 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
         <span>{tt('VERTICAL {noun} SPEED · m/s').replace('{noun}', tt(noun))}{zoomed ? '' : ` ${tt('OVER TIME')}`} · {tt('+up / -down')} · {tt('peak {n}').replace('{n}', peak.toFixed(2))}{onScrub ? ` · ${tt('scrub to seek, pinch to zoom')}` : ''}</span>
         {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ {tt('RESET ZOOM')}</button>}
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'pan-y' }} {...handlers}>
         {gridY.map((g, i) => (
           <g key={i}>
             <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
@@ -1425,7 +1621,7 @@ function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = nul
         <span>{tt('VERTICAL {noun} ACCELERATION · m/s²').replace('{noun}', tt(noun))}{zoomed ? '' : ` ${tt('OVER TIME')}`} · {tt('peak {n}').replace('{n}', peak.toFixed(2))}{onScrub ? ` · ${tt('scrub to seek, pinch to zoom')}` : ''}</span>
         {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ {tt('RESET ZOOM')}</button>}
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'pan-y' }} {...handlers}>
         {gridVals.map((g, i) => (
           <g key={i}>
             <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
@@ -1518,7 +1714,7 @@ function AngleTrace({ angle, kind, jointLabel = null, playheadT = null, onScrub 
         <span>{tt('{noun} ANGLE · degrees').replace('{noun}', noun)}{zoomed ? '' : ` ${tt('OVER TIME')}`} · {tt('peak {n}°').replace('{n}', peak.toFixed(0))}{onScrub ? ` · ${tt('scrub to seek, pinch to zoom')}` : ''}</span>
         {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ {tt('RESET ZOOM')}</button>}
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'pan-y' }} {...handlers}>
         {gridY.map((g, i) => (
           <g key={i}>
             <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
@@ -1538,7 +1734,7 @@ function AngleTrace({ angle, kind, jointLabel = null, playheadT = null, onScrub 
   );
 }
 
-function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT = null, onScrub = null }) {
+function RomTable({ r, jointRom, kind, frames = null, playheadT = null, onScrub = null }) {
   // Own zoom state (not shared with SPEED & ACCEL's — a different tab, a
   // different graph, no reason to couple their zoom windows). Hooks run
   // unconditionally (rules-of-hooks) even on the "nothing detected" empty
@@ -1546,8 +1742,8 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
   const [zoom, setZoom] = useState(null);
   useEffect(() => { setZoom(null); }, [frames]);
   // Manual joint + L/R picker (Ohad: "I need to be able to choose a joint,
-  // and to choose r/l then the graph adjusts") — defaults to whatever the
-  // exercise title auto-detected, coach can override either independently.
+  // and to choose r/l then the graph adjusts") — defaults to the joint of the
+  // exercise the coach PICKED (knee when none), and he can change either.
   const tt = useT();
   const [jointAbbr, setJointAbbr] = useState(() => KIND_TO_ABBR[kind] || 'KNE');
   const [side, setSide] = useState('L');
@@ -1563,11 +1759,12 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
           Plots the manually-picked joint+side channel, not the exercise-
           title-averaged auto pick. */}
       <AngleTrace angle={angleTrace} jointLabel={tt(side === 'L' ? 'L {joint}' : 'R {joint}').replace('{joint}', tt(JOINT_PICKS.find(j => j.abbr === jointAbbr)?.label || jointAbbr))} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, alignItems: 'center' }}>
         {JOINT_PICKS.map(j => (
           <button key={j.abbr} type="button" onClick={() => setJointAbbr(j.abbr)}
             style={{
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+              flex: '1 1 0', minWidth: 'max-content', minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box',
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '0 6px', whiteSpace: 'nowrap',
               borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
               border: `1px solid ${jointAbbr === j.abbr ? C.gn : 'rgba(255,255,255,0.2)'}`,
               background: jointAbbr === j.abbr ? `${C.gn}22` : 'transparent',
@@ -1578,7 +1775,8 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
         {['L', 'R'].map(s => (
           <button key={s} type="button" onClick={() => setSide(s)}
             style={{
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+              flex: '0 0 auto', minWidth: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box',
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '0 8px',
               borderRadius: 0, cursor: 'pointer',
               border: `1px solid ${side === s ? C.gn : 'rgba(255,255,255,0.2)'}`,
               background: side === s ? `${C.gn}22` : 'transparent',
@@ -1690,7 +1888,8 @@ function JointRomPanel({ joints }) {
   if (!rows.length) return null;
   const tBtn = (k, label) => (
     <button type="button" onClick={() => setMode(k)} style={{
-      fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 12px',
+      minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box', whiteSpace: 'nowrap',
+      fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '0 12px',
       borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
       border: `1px solid ${mode === k ? C.ac : 'rgba(255,255,255,0.18)'}`,
       background: mode === k ? `${C.ac}22` : 'transparent',
@@ -1756,10 +1955,10 @@ function BroadJumpResult({ jump, onSave, onClose }) {
   if (!jump) return <Empty msg={tt("Couldn't read a clean broad jump. Film side-on with the full body + a couple of metres of runway in frame — stand still, jump forward once, land and hold still.")} />;
   const hNum = parseFloat(h);
   const rescaled = (hNum > 0 && jump.statureCm > 0) ? Math.round(jump.distanceCm * (hNum / jump.statureCm)) : jump.distanceCm;
-  const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
+  const saveBtn = (s) => ({ marginTop: 18, padding: '0 20px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{JUMP_TITLE.broad}</div>
+      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', marginBottom: 8 }}>{tt(JUMP_TITLE.broad)}</div>
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{rescaled}<span style={{ fontSize: 28 }}>cm</span></div>
       {jump.approxScale && (
         <div style={{ fontFamily: FN, fontSize: 10, color: C.or, marginTop: 8, letterSpacing: '0.04em', lineHeight: 1.5 }}>
@@ -1769,13 +1968,13 @@ function BroadJumpResult({ jump, onSave, onClose }) {
       <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'start' }}>
         <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>{tt('ATHLETE HEIGHT (CM) — SCALE REFERENCE')}</label>
         <input type="number" inputMode="decimal" value={h} onChange={e => setH(e.target.value)} placeholder={tt('e.g. 178')}
-          style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
+          style={{ width: '100%', marginTop: 6, padding: '0 12px', height: CTRL_H, background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
         <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em', lineHeight: 1.5 }}>
           {tt('Distance scales with stature — a correct height gives a correct distance. Confirm before saving.')}
         </div>
       </div>
       {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump, distanceCm: rescaled, statureCm: hNum > 0 ? Math.round(hNum) : jump.statureCm }); setSaved(true); }} style={saveBtn(saved)}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>}
-      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>{tt('DONE')}</button>}
+      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%' }}>{tt('DONE')}</button>}
     </div>
   );
 }
@@ -1839,7 +2038,7 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
         <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' }}>{tt('LOG')}</div>
         <input type="number" value={deg} onChange={e => { setDeg(e.target.value); setSaved(false); }}
-          style={{ width: 84, padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFF', fontFamily: FN, fontSize: 16, textAlign: 'center' }} />
+          style={{ width: 84, height: CTRL_H, boxSizing: 'border-box', padding: '0 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFF', fontFamily: FN, fontSize: 16, textAlign: 'center' }} />
         <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
           {tt(reading.single ? 'degrees · camera-measured' : reading.minSide === 'L' ? 'degrees · defaulted to left (the restricted side)' : 'degrees · defaulted to right (the restricted side)')}
         </div>
@@ -1853,10 +2052,10 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
         {tt('Active range — reads a few degrees under a hands-on passive goniometer. Confirm or edit before saving.')}
       </div>
       <button disabled={saved || !degValid} onClick={() => { onSave(degNum); setSaved(true); }}
-        style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || !degValid ? 'default' : 'pointer' }}>
+        style={{ marginTop: 14, padding: '0 20px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || !degValid ? 'default' : 'pointer' }}>
         {saved ? tt('✓ LOGGED TO EVALUATION') : (degValid && degNum === 1 ? tt('USE 1° →') : tt('USE {n}° →').replace('{n}', degValid ? degNum : '—'))}
       </button>
-      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{tt('DONE — BACK TO EVALUATION')}</button>}
+      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '0 20px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{tt('DONE — BACK TO EVALUATION')}</button>}
     </div>
   );
 }
@@ -1867,13 +2066,13 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const [bw, setBw] = useState(defaultBodyweightKg != null ? String(defaultBodyweightKg) : '');
   if (!jump) return <Empty msg={tt("Couldn't read a clean jump. Film side-on, full body in frame — stand still, then jump. For a drop jump / POGO, land and rebound immediately (minimise ground contact).")} />;
   const title = JUMP_TITLE[jump.jumpType] || 'VERTICAL JUMP';
-  const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
+  const saveBtn = (s) => ({ marginTop: 18, padding: '0 20px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
 
   // Reactive jumps (drop jump / POGO): RSI is the headline, not height.
   if (jump.reactive) {
     return (
       <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
+        <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', marginBottom: 8 }}>{tt(title)}</div>
         <div style={{ fontFamily: FN, fontSize: 80, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.rsi}<span style={{ fontSize: 22 }}> RSI</span></div>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>{tt('jump height ÷ ground-contact time (m/s)')}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' }}>
@@ -1889,7 +2088,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
         )}
         <FpsBadge fps={result?.fps} />
         {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>}
-        {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>{tt('DONE')}</button>}
+        {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%' }}>{tt('DONE')}</button>}
       </div>
     );
   }
@@ -1898,7 +2097,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const power = jumpPower(jump.heightCm, massKg);
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
+      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', marginBottom: 8 }}>{tt(title)}</div>
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.heightCm}<span style={{ fontSize: 28 }}>cm</span></div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
         <MiniKpi label={tt('FLIGHT TIME')} value={`${jump.flightMs} ms`} />
@@ -1911,7 +2110,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
       <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'start' }}>
         <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>{tt('BODYWEIGHT (KG)')}</label>
         <input type="number" inputMode="decimal" value={bw} onChange={e => setBw(e.target.value)} placeholder={tt('e.g. 75')}
-          style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
+          style={{ width: '100%', marginTop: 6, padding: '0 12px', height: CTRL_H, background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
         {power
           ? <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
               <MiniKpi label={tt('PEAK POWER')} value={`${power.watts} W`} />
@@ -1922,57 +2121,96 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
 
       {onSave && (
         <button disabled={saved} onClick={() => { onSave({ ...jump, bodyweightKg: power ? massKg : null, powerW: power?.watts ?? null, powerWkg: power?.perKg ?? null }); setSaved(true); }} style={{
-          marginTop: 18, padding: '13px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac,
+          marginTop: 18, padding: '0 20px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', background: saved ? '#2a2a2a' : C.ac,
           border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved ? 'default' : 'pointer',
         }}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>
       )}
-      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>{tt('DONE')}</button>}
+      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%' }}>{tt('DONE')}</button>}
     </div>
   );
 }
 
 // ----------------------------- 3D viewer ------------------------------------
-// Full-body skeleton from MediaPipe's 33 landmarks. Real interactive 3D:
-// orbit (drag), zoom (wheel/pinch), play the rep, scrub any frame, front/side
-// presets. Depth-shaded + painter's-sorted so near bones read in front of far.
-const SKELETON_CONNECTIONS = [
-  [0, 2], [2, 7], [0, 5], [5, 8], [9, 10],            // head
-  [11, 12], [11, 23], [12, 24], [23, 24],             // torso
-  [11, 13], [13, 15], [15, 17], [15, 19], [15, 21], [17, 19], // L arm+hand
-  [12, 14], [14, 16], [16, 18], [16, 20], [16, 22], [18, 20], // R arm+hand
-  [23, 25], [25, 27], [27, 29], [27, 31], [29, 31],   // L leg+foot
-  [24, 26], [26, 28], [28, 30], [28, 32], [30, 32],   // R leg+foot
-];
-
+// Rotatable skeleton of the captured pose. Orbit (drag), zoom (pinch / wheel),
+// play, scrub, front/side presets — and, when there is a clip, it follows the
+// video's playhead. The geometry is poseLab.buildScene3D: MediaPipe's y-down
+// world turned y-up by a proper rotation, the head built from the face
+// landmarks (never from the shoulder line), weak joints hidden, no bone drawn
+// to a hidden joint. On a phone a vertical swipe still scrolls the page
+// (touch-action: pan-y); a horizontal drag orbits.
 function computeFit(poseFrames) {
   let maxR = 0.5;
   for (const f of poseFrames) {
     const pts = frameToPoints3D(f.worldLandmarks);
-    for (const p of pts) { if (!p) continue; const r = Math.hypot(p.x, p.y, p.z); if (r > maxR) maxR = r; }
+    for (const p of pts || []) { if (!p) continue; const r = Math.hypot(p.x, p.y, p.z); if (r > maxR) maxR = r; }
   }
-  return maxR;
+  return Math.min(maxR, 1.6);
 }
 
-function Viewer3D({ frames }) {
+function drawScene3D(canvas, scene) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!scene) return;
+  let dmin = Infinity, dmax = -Infinity;
+  for (const j of scene.joints) { if (j.d < dmin) dmin = j.d; if (j.d > dmax) dmax = j.d; }
+  const span = (dmax - dmin) || 1;
+  const bright = (d) => (isFinite(d) ? 0.45 + 0.55 * Math.min(1, Math.max(0, (d - dmin) / span)) : 0.8); // nearer = brighter
+  ctx.lineCap = 'round';
+  const bones = [...scene.bones].sort((m, n) => (m.pa.d + m.pb.d) - (n.pa.d + n.pb.d));   // far → near
+  for (const o of bones) {
+    const t = bright((o.pa.d + o.pb.d) / 2);
+    ctx.strokeStyle = `rgba(${BONE_RGB},${0.35 + 0.65 * t})`;
+    ctx.lineWidth = 3 + 4 * t;
+    ctx.beginPath(); ctx.moveTo(o.pa.sx, o.pa.sy); ctx.lineTo(o.pb.sx, o.pb.sy); ctx.stroke();
+  }
+  const h = scene.head;
+  if (h && h.center) {
+    const t = bright(h.center.d);
+    ctx.strokeStyle = `rgba(${BONE_RGB},${0.45 + 0.55 * t})`;
+    ctx.lineWidth = 3 + 3 * t;
+    if (h.neck && h.neck.from && h.neck.to) { ctx.beginPath(); ctx.moveTo(h.neck.from.sx, h.neck.from.sy); ctx.lineTo(h.neck.to.sx, h.neck.to.sy); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(h.center.sx, h.center.sy, Math.max(6, h.r), 0, Math.PI * 2); ctx.stroke();
+    if (h.tick && h.tick.from && h.tick.to) { ctx.beginPath(); ctx.moveTo(h.tick.from.sx, h.tick.from.sy); ctx.lineTo(h.tick.to.sx, h.tick.to.sy); ctx.stroke(); }
+  }
+  const joints = [...scene.joints].sort((m, n) => m.d - n.d);
+  for (const p of joints) {
+    const t = bright(p.d);
+    ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * t})`;
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, 3 + 2 * t, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+const PRESET_DEFAULT = { yaw: 0.5, pitch: -0.05 };
+function Viewer3D({ frames, playheadT = null }) {
+  const tt = useT();
   const canvasRef = useRef(null);
-  const poseFrames = useMemo(() => frames.filter(f => f.worldLandmarks), [frames]);
+  const poseFrames = useMemo(() => smoothFramesForDisplay((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
   const maxR = useMemo(() => computeFit(poseFrames), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const rotRef = useRef({ yaw: 0.5, pitch: -0.05 });
-  const zoomRef = useRef(1);
-  const dragRef = useRef(null);
+  const [view, setView] = useState({ rot: PRESET_DEFAULT, zoom: 1 });
+  const pointersRef = useRef(new Map());
   const pinchRef = useRef(null);
   const idxRef = useRef(0);
-  const [, force] = useState(0);
-
   useEffect(() => { idxRef.current = idx; }, [idx]);
+
+  // Follow the clip: while not auto-playing, show the frame at the video's time.
   useEffect(() => {
-    if (!playing || poseFrames.length < 2) return;
-    let raf, last = performance.now(), acc = 0; const fps = 20;
+    if (playing || playheadT == null || !poseFrames.length) return;
+    const t0 = poseFrames[0].t;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < poseFrames.length; i++) { const d = Math.abs((poseFrames[i].t - t0) - playheadT); if (d < bd) { bd = d; best = i; } }
+    setIdx(best);
+  }, [playheadT, playing, poseFrames]);
+
+  useEffect(() => {
+    if (!playing || poseFrames.length < 2) return undefined;
+    let raf, last = performance.now(), acc = 0;
     const loop = (now) => {
       acc += now - last; last = now;
-      if (acc >= 1000 / fps) { acc = 0; idxRef.current = (idxRef.current + 1) % poseFrames.length; setIdx(idxRef.current); }
+      if (acc >= 50) { acc = 0; idxRef.current = (idxRef.current + 1) % poseFrames.length; setIdx(idxRef.current); }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -1980,127 +2218,96 @@ function Viewer3D({ frames }) {
   }, [playing, poseFrames.length]);
 
   useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
     const cur = poseFrames[Math.min(idx, poseFrames.length - 1)];
-    drawSkeleton(canvasRef.current, cur?.worldLandmarks, rotRef.current, zoomRef.current, maxR);
-  });
+    drawScene3D(c, cur ? buildScene3D(cur.worldLandmarks, { rot: view.rot, W: c.width, H: c.height, maxR, zoom: view.zoom }) : null);
+  }, [idx, poseFrames, view, maxR]);
 
-  const getXY = (e) => ({ x: e.clientX ?? e.touches?.[0]?.clientX, y: e.clientY ?? e.touches?.[0]?.clientY });
-  const pinchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-  const onDown = (e) => { if (e.touches?.length === 2) pinchRef.current = pinchDist(e.touches); else dragRef.current = getXY(e); };
-  const onMove = (e) => {
-    if (e.touches?.length === 2 && pinchRef.current) {
-      const d = pinchDist(e.touches);
-      zoomRef.current = Math.max(0.4, Math.min(3, zoomRef.current * (d / pinchRef.current)));
-      pinchRef.current = d; force(n => n + 1); return;
+  // Wheel zoom needs a NON-passive listener to stop the page scrolling.
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return undefined;
+    const onWheel = (e) => { e.preventDefault(); setView(v => ({ ...v, zoom: Math.max(0.4, Math.min(3, v.zoom * (e.deltaY < 0 ? 1.1 : 0.9))) })); };
+    c.addEventListener('wheel', onWheel, { passive: false });
+    return () => c.removeEventListener('wheel', onWheel);
+  }, [poseFrames.length]);
+
+  const onPointerDown = (e) => {
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    if (pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()];
+      pinchRef.current = Math.hypot(a.x - b.x, a.y - b.y);
     }
-    if (!dragRef.current) return;
-    const { x, y } = getXY(e);
-    rotRef.current.yaw += (x - dragRef.current.x) * 0.01;
-    rotRef.current.pitch = Math.max(-1.2, Math.min(1.2, rotRef.current.pitch + (y - dragRef.current.y) * 0.01));
-    dragRef.current = { x, y }; force(n => n + 1);
   };
-  const onUp = () => { dragRef.current = null; pinchRef.current = null; };
-  const onWheel = (e) => { e.preventDefault(); zoomRef.current = Math.max(0.4, Math.min(3, zoomRef.current * (e.deltaY < 0 ? 1.1 : 0.9))); force(n => n + 1); };
-  const preset = (yaw, pitch) => { rotRef.current = { yaw, pitch }; zoomRef.current = 1; force(n => n + 1); };
+  const onPointerMove = (e) => {
+    const prev = pointersRef.current.get(e.pointerId);
+    if (!prev) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    pointersRef.current.set(e.pointerId, cur);
+    if (pointersRef.current.size === 2 && pinchRef.current) {
+      const [a, b] = [...pointersRef.current.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const k = d / pinchRef.current; pinchRef.current = d;
+      setView(v => ({ ...v, zoom: Math.max(0.4, Math.min(3, v.zoom * k)) }));
+      return;
+    }
+    const dx = cur.x - prev.x, dy = cur.y - prev.y;
+    // Touch: horizontal orbit only (vertical belongs to page scroll). Mouse/pen: both axes.
+    const pitchOn = e.pointerType !== 'touch';
+    setView(v => ({ ...v, rot: { yaw: v.rot.yaw + dx * 0.01, pitch: pitchOn ? Math.max(-1.2, Math.min(1.2, v.rot.pitch + dy * 0.01)) : v.rot.pitch } }));
+  };
+  const onPointerEnd = (e) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
+  };
+  const preset = (yaw, pitch) => setView({ rot: { yaw, pitch }, zoom: 1 });
 
-  if (!poseFrames.length) return <Empty msg="No 3D pose captured in that clip." />;
+  if (!poseFrames.length) return <Empty msg={tt('No 3D pose captured in that clip.')} />;
   const f = Math.min(idx, poseFrames.length - 1);
+  const pill = (label, onClick, active = false) => (
+    <button type="button" onClick={onClick} style={{
+      flex: '1 1 0', minWidth: 'max-content', minHeight: 'var(--btn-h-in)', height: 'var(--btn-h-in)', boxSizing: 'border-box',
+      padding: '0 10px', background: active ? C.ac : 'transparent', color: '#FFF',
+      border: `1px solid ${active ? C.ac : C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.1em', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0,
+    }}>{label}</button>
+  );
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
-        <Pill onClick={() => setPlaying(p => !p)} active={playing}>{playing ? '❚❚ PAUSE' : '▶ PLAY'}</Pill>
-        <Pill onClick={() => preset(0, -0.05)}>{tr(readLang(), 'FRONT')}</Pill>
-        <Pill onClick={() => preset(Math.PI / 2, -0.05)}>{tr(readLang(), 'SIDE')}</Pill>
-        <Pill onClick={() => preset(0.5, -0.05)}>{tr(readLang(), 'RESET')}</Pill>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {pill(playing ? tt('PAUSE') : tt('PLAY'), () => setPlaying(p => !p), playing)}
+        {pill(tt('FRONT'), () => preset(0, -0.05))}
+        {pill(tt('SIDE'), () => preset(Math.PI / 2, -0.05))}
+        {pill(tt('RESET'), () => preset(PRESET_DEFAULT.yaw, PRESET_DEFAULT.pitch))}
       </div>
       <canvas ref={canvasRef} width={560} height={620}
-        onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-        onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp} onWheel={onWheel}
-        style={{ width: '100%', maxWidth: 340, height: 'auto', display: 'block', margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none', cursor: 'grab' }} />
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textAlign: 'center', marginTop: 6 }}>{tr(readLang(), 'DRAG ORBIT · PINCH / WHEEL ZOOM')}</div>
-      <input type="range" min={0} max={poseFrames.length - 1} value={f} onChange={e => { setPlaying(false); setIdx(Number(e.target.value)); }}
-        style={{ width: '100%', maxWidth: 340, display: 'block', margin: '10px auto 0', accentColor: C.ac }} />
-      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tr(readLang(), 'FRAME')} {f + 1} / {poseFrames.length}</div>
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd}
+        style={{ width: '100%', maxWidth: 380, height: 'auto', display: 'block', margin: '0 auto', background: C.videoBg, border: `1px solid ${C.cardBd}`, touchAction: 'pan-y', cursor: 'grab' }} />
+      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', textAlign: 'center', marginTop: 6 }}>{tt('DRAG ORBIT · PINCH / WHEEL ZOOM')}</div>
+      <input type="range" min={0} max={poseFrames.length - 1} value={f} aria-label={tt('FRAME')}
+        onChange={e => { setPlaying(false); setIdx(Number(e.target.value)); }}
+        style={{ width: '100%', maxWidth: 380, display: 'block', margin: '10px auto 0', accentColor: C.ac }} />
+      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 6 }}>{tt('FRAME')} {f + 1} / {poseFrames.length}</div>
     </div>
   );
 }
 
-const Pill = ({ onClick, active, children }) => (
-  <button onClick={onClick} style={{ padding: '6px 12px', background: active ? C.ac : 'transparent', color: '#FFF', border: `1px solid ${active ? C.ac : 'rgba(255,255,255,0.25)'}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 0 }}>{children}</button>
-);
+// Fill {key} placeholders AFTER translation, so the Hebrew template keeps its
+// own word order.
+const fillVars = (s, vars) => Object.keys(vars || {}).reduce((acc, k) => acc.split(`{${k}}`).join(String(vars[k])), s);
 
-function drawSkeleton(canvas, world, rot, zoom, maxR) {
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  if (!world) return;
-  const pts = frameToPoints3D(world);                 // y up, hip-centred metres
-  const cy = Math.cos(rot.yaw), sy = Math.sin(rot.yaw), cp = Math.cos(rot.pitch), sp = Math.sin(rot.pitch);
-  const S = (Math.min(W, H) * 0.40 / maxR) * zoom;
-  const proj = pts.map(p => {
-    if (!p) return null;
-    const xr = p.x * cy + p.z * sy;                    // yaw about vertical
-    const zr = -p.x * sy + p.z * cy;
-    const yr = p.y * cp - zr * sp;                     // pitch about horizontal
-    const zd = p.y * sp + zr * cp;                     // depth
-    return { sx: W / 2 + xr * S, sy: H / 2 - yr * S, d: zd };
-  });
-  let dmin = Infinity, dmax = -Infinity;
-  for (const p of proj) if (p) { if (p.d < dmin) dmin = p.d; if (p.d > dmax) dmax = p.d; }
-  const span = (dmax - dmin) || 1;
-  const bright = (d) => 0.45 + 0.55 * ((d - dmin) / span); // nearer = brighter
-  // bones, painter-sorted far→near
-  const bones = SKELETON_CONNECTIONS.map(([a, b]) => ({ pa: proj[a], pb: proj[b] })).filter(o => o.pa && o.pb);
-  bones.sort((m, n) => (m.pa.d + m.pb.d) - (n.pa.d + n.pb.d));
-  ctx.lineCap = 'round';
-  for (const o of bones) {
-    const t = bright((o.pa.d + o.pb.d) / 2);
-    ctx.strokeStyle = `rgba(57,189,255,${0.35 + 0.65 * t})`;
-    ctx.lineWidth = 3 + 4 * t;
-    ctx.beginPath(); ctx.moveTo(o.pa.sx, o.pa.sy); ctx.lineTo(o.pb.sx, o.pb.sy); ctx.stroke();
-  }
-  // joints, near→far so near sit on top
-  const joints = proj.map(p => p).filter(Boolean).sort((m, n) => m.d - n.d);
-  for (const p of joints) {
-    const t = bright(p.d);
-    ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * t})`;
-    ctx.beginPath(); ctx.arc(p.sx, p.sy, 2 + 2 * t, 0, Math.PI * 2); ctx.fill();
-  }
-  // head circle (skull) at the nose, sized by ear span / shoulder width
-  const nose = proj[0], e7 = proj[7], e8 = proj[8], s11 = proj[11], s12 = proj[12];
-  if (nose) {
-    let hr = 14;
-    if (e7 && e8) hr = Math.max(11, Math.hypot(e7.sx - e8.sx, e7.sy - e8.sy) * 0.95);
-    else if (s11 && s12) hr = Math.max(11, Math.hypot(s11.sx - s12.sx, s11.sy - s12.sy) * 0.35);
-    const t = bright(nose.d);
-    ctx.strokeStyle = `rgba(57,189,255,${0.4 + 0.6 * t})`; ctx.lineWidth = 2.5 + 1.5 * t;
-    ctx.beginPath(); ctx.arc(nose.sx, nose.sy, hr, 0, Math.PI * 2); ctx.stroke();
-  }
-}
-
-// ----------------------------- live draw ------------------------------------
-function drawLive(canvas, video, landmarks) {
-  if (!canvas || !video) return;
-  const ctx = canvas.getContext('2d');
-  const w = video.videoWidth, h = video.videoHeight;
-  if (!w || !h) return;
-  if (canvas.width !== w) canvas.width = w;
-  if (canvas.height !== h) canvas.height = h;
-  ctx.clearRect(0, 0, w, h);
-  if (!landmarks) return;
-  ctx.strokeStyle = '#39BDFF'; ctx.lineWidth = 3; ctx.fillStyle = '#39BDFF';
-  POSE_CONNECTIONS.forEach(([a, b]) => {
-    const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return;
-    ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke();
-  });
-  landmarks.forEach(lm => { if (!lm) return; ctx.beginPath(); ctx.arc(lm.x * w, lm.y * h, 4, 0, Math.PI * 2); ctx.fill(); });
+// Capture-quality sentence, translated (poseLab's `note` is English-only).
+function captureText(tt, cq) {
+  if (!cq) return '';
+  const pct = Math.round((cq.coverage || 0) * 100);
+  if (cq.grade === 'good') return tt('Body tracked in {n}% of frames.').replace('{n}', pct);
+  if (cq.grade === 'fair') return tt('Body tracked in {n}% of frames — usable, but film fuller and steadier for sharper numbers.').replace('{n}', pct);
+  return tt('Body tracked in only {n}% of frames — treat the numbers as rough. Film the whole body, steady camera, decent light.').replace('{n}', pct);
 }
 
 // ----------------------------- bits -----------------------------------------
-const Centre = ({ children }) => (
-  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontFamily: FN, textAlign: 'center', padding: 20 }}>{children}</div>
-);
 const Empty = ({ msg }) => (
   <div style={{ maxWidth: 420, margin: '40px auto', textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>{msg}</div>
 );
@@ -2125,12 +2332,9 @@ const Row = ({ cells, head, tone, onClick }) => { const tt = useT(); return (
     onMouseEnter={onClick ? (e) => { e.currentTarget.style.background = 'rgba(57,189,255,0.08)'; } : undefined}
     onMouseLeave={onClick ? (e) => { e.currentTarget.style.background = 'transparent'; } : undefined}>
     {cells.map((c, i) => (
-      <span key={i} style={{ fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'left' : 'right' }}>{c}</span>
+      <span key={i} style={{ fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'start' : 'end' }}>{c}</span>
     ))}
   </div>
 );
 };
-const btn = (bd, bg) => ({ background: bg, border: `1px solid ${bd}`, color: '#FFF', padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' });
-const BigBtn = ({ color, onClick, disabled, children }) => (
-  <button onClick={onClick} disabled={disabled} style={{ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.16em', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1 }}>{children}</button>
-);
+const btn = (bd, bg) => ({ background: bg, border: `1px solid ${bd}`, color: '#FFF', padding: '0 12px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', whiteSpace: 'nowrap', cursor: 'pointer' });

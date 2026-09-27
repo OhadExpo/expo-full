@@ -130,11 +130,49 @@ function clampAngleSeries(raw, t) {
 // ---------------------------------------------------------------------------
 // Channel signal — the joint-angle time series a rep cycle rides on.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// The movement the coach PICKED. Nothing in this module infers a movement from
+// the pose: the Movement Lab used to guess ("that's not a squat" — Ohad), and a
+// guess that is wrong one clip in five poisons every number built on it. The
+// coach chooses one of these explicitly; with none chosen the analysis stays
+// neutral (skeleton, joint ranges, raw speed traces) and never counts reps.
+// ---------------------------------------------------------------------------
+const KNE = ['L KNE', 'R KNE'], HIP = ['L HIP', 'R HIP'], ELB = ['L ELB', 'R ELB'], SHO = ['L SHO', 'R SHO'];
+export const MOVEMENTS = [
+  { key: 'squat', label: 'Squat', kind: 'knee', channels: KNE, region: 'lower', family: 'squat' },
+  { key: 'lunge', label: 'Lunge', kind: 'knee', channels: KNE, region: 'lower', family: 'squat', unilateral: true },
+  { key: 'hinge', label: 'Hinge', kind: 'hip', channels: HIP, region: 'lower', family: 'hinge' },
+  { key: 'press', label: 'Press', kind: 'elbow', channels: ELB, region: 'upper', family: 'press' },
+  { key: 'pull', label: 'Pull', kind: 'elbow', channels: ELB, region: 'upper', family: 'pull' },
+  { key: 'raise', label: 'Raise', kind: 'sho', channels: SHO, region: 'upper', family: 'raise' },
+  { key: 'jump', label: 'Jump', kind: 'knee', channels: KNE, region: 'lower', family: 'plyo', ballistic: true },
+];
+export function movementByKey(key) {
+  if (!key) return null;
+  if (typeof key === 'object') return key;
+  return MOVEMENTS.find((m) => m.key === key) || null;
+}
+
+// Which joint channel carries the rep cycle.
+//   movement !== undefined → the coach's explicit pick (null = neutral: no channel).
+//   movement === undefined → a caller that only has a LOGGED exercise title
+//     (Workout Review, the auto-analysis sweep). The title maps to a channel only
+//     when a rule matches it; an unmatched title gets NO channel. The old knee
+//     fallback read every unknown lift as a squat and counted it on the knee.
+export function resolveChannels(exerciseTitle, movement) {
+  if (movement !== undefined) {
+    const m = movementByKey(movement);
+    return m ? { kind: m.kind, channels: m.channels } : { kind: null, channels: [] };
+  }
+  const d = detectChannels(exerciseTitle);
+  return d.matched ? { kind: d.kind, channels: d.channels } : { kind: null, channels: [] };
+}
+
 // Returns { t[], angle[], kind, channels } where angle is median-smoothed and
 // aligned to the frame timestamps. Mirrors the live counter's averaging of the
 // L+R channel pair so asymmetry doesn't drop a rep.
-export function channelSignal(frames, exerciseTitle) {
-  const { kind, channels } = detectChannels(exerciseTitle);
+export function channelSignal(frames, exerciseTitle, movement) {
+  const { kind, channels } = resolveChannels(exerciseTitle, movement);
   const t = frames.map(f => f.t);
   const raw = frames.map(f => {
     const lms = f.worldLandmarks;
@@ -1152,9 +1190,246 @@ export const POSE_BONES = [
   [23, 25], [25, 27], [24, 26], [26, 28],
   [27, 31], [28, 32],
 ];
+// AXIS CONVENTION (one place, tested by scripts/verify-pose-overlay.mjs):
+// MediaPipe worldLandmarks are metres, hip-centred, x to the image RIGHT, y
+// DOWN, z toward the camera negative. Flipping y AND z is a 180° turn about x —
+// a proper rotation, so handedness survives (flipping only y would mirror the
+// body and put the face on the back of the head). Output: y UP, z toward the
+// viewer. `visibility` is carried through so a renderer can hide weak points.
 export function frameToPoints3D(worldLandmarks) {
   if (!worldLandmarks) return null;
-  return worldLandmarks.map(lm => lm ? { x: lm.x, y: -(lm.y ?? 0), z: -(lm.z ?? 0) } : null);
+  return worldLandmarks.map(lm => lm ? { x: lm.x, y: -(lm.y ?? 0), z: -(lm.z ?? 0), visibility: lm.visibility } : null);
+}
+
+// ---------------------------------------------------------------------------
+// Skeleton rendering — pure geometry, so the head and the visibility rules are
+// provable in node (scripts/verify-pose-overlay.mjs) instead of by eye.
+// ---------------------------------------------------------------------------
+// A landmark MediaPipe is less than 50% sure of is not drawn anywhere: it is
+// extrapolated, and drawing it puts a limb in a place the body never was.
+export const VIS_MIN = 0.5;
+export function lmVisible(p, min = VIS_MIN) {
+  return !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= min);
+}
+// Body only. The face is not eleven loose dots — it is ONE head, built from the
+// face landmarks by headGeometry below.
+export const OVERLAY_BONES = [
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 23], [12, 24], [23, 24],
+  [23, 25], [25, 27], [24, 26], [26, 28],
+  [27, 29], [29, 31], [27, 31], [28, 30], [30, 32], [28, 32],
+];
+export const OVERLAY_JOINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+
+const v3 = (p) => ({ x: p.x, y: p.y, z: p.z ?? 0 });
+const vmid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: ((a.z ?? 0) + (b.z ?? 0)) / 2 });
+const vsub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: (a.z ?? 0) - (b.z ?? 0) });
+const vlen = (a) => Math.hypot(a.x, a.y, a.z ?? 0);
+const vdist = (a, b) => vlen(vsub(a, b));
+const vadd = (a, b, k = 1) => ({ x: a.x + b.x * k, y: a.y + b.y * k, z: (a.z ?? 0) + (b.z ?? 0) * k });
+const pairMid = (a, b) => (a && b ? vmid(a, b) : null);
+
+// The head, from the FACE — never from the shoulder line. pt(i) returns the
+// landmark (any space: normalised image, pixels, or metres) or null when it is
+// not visible. Centre = ear midpoint (front/back view) or the midpoint of the
+// visible ear and the eyes/nose (side view — the far ear is occluded). Radius
+// from the ear span / ear-to-nose / eye-to-mouth distance, bounded by the torso
+// so one bad face point can't blow the head up. `face` is the nose (or eye
+// line) the facing tick points at. Returns null when no face point is visible.
+export function headGeometry(pt) {
+  const earL = pt(7), earR = pt(8), eyeL = pt(2), eyeR = pt(5), mouthL = pt(9), mouthR = pt(10), nose = pt(0);
+  const earMid = pairMid(earL, earR);
+  const oneEar = earL || earR;
+  const eyeMid = pairMid(eyeL, eyeR) || eyeL || eyeR;
+  const mouthMid = pairMid(mouthL, mouthR) || mouthL || mouthR;
+  const face = nose || eyeMid;
+  let center = null;
+  if (earMid) center = earMid;
+  else if (oneEar && face) center = vmid(oneEar, face);
+  else center = oneEar || eyeMid || nose || mouthMid;
+  if (!center) return null;
+  center = v3(center);
+  const cand = [];
+  if (earL && earR) cand.push(vdist(earL, earR) * 0.62);
+  if (face) cand.push(vdist(center, face) * 1.15);
+  if (eyeMid && mouthMid) cand.push(vdist(eyeMid, mouthMid) * 1.9);
+  let r = cand.length ? Math.max(...cand) : 0;
+  const shL = pt(11), shR = pt(12), hpL = pt(23), hpR = pt(24);
+  const sh = pairMid(shL, shR) || shL || shR;
+  const hp = pairMid(hpL, hpR) || hpL || hpR;
+  const torso = sh && hp ? vdist(sh, hp) : null;
+  if (torso) r = Math.min(Math.max(r, torso * 0.14), torso * 0.4);
+  else if (shL && shR && !(r > 0)) r = vdist(shL, shR) * 0.3;
+  if (!(r > 0)) return null;
+  return { center, r, face: face ? v3(face) : null, shoulder: sh ? v3(sh) : null };
+}
+
+// The neck + head as drawable pieces in ONE space: neck from the shoulder
+// midpoint to the edge of the head circle; the facing tick from the centre
+// toward the face, clipped to the radius.
+export function headParts(head) {
+  if (!head) return null;
+  const { center, r, face, shoulder } = head;
+  let neck = null;
+  if (shoulder) {
+    const d = vsub(shoulder, center); const L = vlen(d);
+    if (L > r) neck = { from: shoulder, to: vadd(center, d, r / L) };
+  }
+  let tick = null;
+  if (face) {
+    const d = vsub(face, center); const L = vlen(d);
+    if (L > r * 0.15) tick = { from: center, to: vadd(center, d, Math.min(1, r / L)) };
+  }
+  return { center, r, neck, tick };
+}
+
+// 2D overlay scene. lms = normalised image landmarks (y DOWN); box maps them to
+// canvas pixels: x_px = ox + x·dw, y_px = oy + y·dh. Joints under VIS_MIN are
+// listed in `hidden` and NEVER drawn; a bone is drawn only when BOTH ends are
+// visible.
+export function buildScene2D(lms, box, minVis = VIS_MIN) {
+  if (!lms || !box) return null;
+  const { ox = 0, oy = 0, dw, dh } = box;
+  const px = (i) => { const p = lms[i]; return lmVisible(p, minVis) ? { x: ox + p.x * dw, y: oy + p.y * dh, z: 0 } : null; };
+  const joints = [], hidden = [];
+  for (const i of OVERLAY_JOINTS) { const q = px(i); if (q) joints.push({ i, x: q.x, y: q.y }); else hidden.push(i); }
+  const bones = [];
+  for (const [a, b] of OVERLAY_BONES) { const pa = px(a), pb = px(b); if (pa && pb) bones.push({ a, b, x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y }); }
+  const head = headParts(headGeometry(px));
+  return { joints, bones, hidden, head };
+}
+
+// Orthographic orbit camera for the 3D view. p = frameToPoints3D point (y UP).
+// Screen y grows DOWN, hence H/2 − y·S. Returns { sx, sy, d } (d larger = nearer).
+export function projectPoint(p, rot, S, W, H) {
+  const cy = Math.cos(rot.yaw), sy = Math.sin(rot.yaw), cp = Math.cos(rot.pitch), sp = Math.sin(rot.pitch);
+  const xr = p.x * cy + (p.z ?? 0) * sy;
+  const zr = -p.x * sy + (p.z ?? 0) * cy;
+  const yr = p.y * cp - zr * sp;
+  const zd = p.y * sp + zr * cp;
+  return { sx: W / 2 + xr * S, sy: H / 2 - yr * S, d: zd };
+}
+
+// 3D scene from ONE frame's world landmarks (MediaPipe convention, y DOWN).
+// vis(i) optionally overrides visibility (e.g. from the 2D landmarks of the
+// same frame, which always carry it). Head built in metres, then projected.
+export function buildScene3D(worldLandmarks, { rot, W, H, maxR = 1, zoom = 1, vis = null, minVis = VIS_MIN } = {}) {
+  const pts = frameToPoints3D(worldLandmarks);
+  if (!pts) return null;
+  const S = (Math.min(W, H) * 0.40 / (maxR || 1)) * zoom;
+  const ok = (i) => {
+    const p = pts[i];
+    if (!p || !isReal(p.x) || !isReal(p.y)) return false;
+    const v = vis ? vis(i) : p.visibility;
+    return v == null || v >= minVis;
+  };
+  const P = pts.map((p, i) => (ok(i) ? projectPoint(p, rot, S, W, H) : null));
+  const joints = [], hidden = [];
+  for (const i of OVERLAY_JOINTS) { if (P[i]) joints.push({ i, ...P[i] }); else hidden.push(i); }
+  const bones = [];
+  for (const [a, b] of OVERLAY_BONES) if (P[a] && P[b]) bones.push({ a, b, pa: P[a], pb: P[b] });
+  const h3 = headParts(headGeometry((i) => (ok(i) ? pts[i] : null)));
+  let head = null;
+  if (h3) {
+    const pr = (q) => (q ? projectPoint(q, rot, S, W, H) : null);
+    const c = pr(h3.center);
+    head = {
+      center: c, r: h3.r * S,
+      neck: h3.neck ? { from: pr(h3.neck.from), to: pr(h3.neck.to) } : null,
+      tick: h3.tick ? { from: pr(h3.tick.from), to: pr(h3.tick.to) } : null,
+    };
+  }
+  return { joints, bones, hidden, head, S };
+}
+
+// Degrees between the neck direction (shoulder midpoint → head centre) and
+// screen-UP, in a y-DOWN screen space. 0 = head straight above the shoulders.
+export function headTiltFromVertical(shoulder, center) {
+  if (!shoulder || !center) return null;
+  const dx = center.x - shoulder.x, dy = center.y - shoulder.y;
+  const L = Math.hypot(dx, dy);
+  if (!(L > 0)) return null;
+  return Math.acos(Math.max(-1, Math.min(1, -dy / L))) * 180 / Math.PI;
+}
+
+// ---------------------------------------------------------------------------
+// One-Euro filter (Casiez, Roussel & Vogel, 2012) — low-latency smoothing:
+// heavy smoothing when a point is still (kills MediaPipe's frame-to-frame
+// jitter), almost none when it moves fast (no lag on a jump). Display only:
+// the analysis keeps reading the raw landmarks through its own median filters.
+// ---------------------------------------------------------------------------
+const oeAlpha = (cutoff, dt) => { const tau = 1 / (2 * Math.PI * cutoff); return 1 / (1 + tau / dt); };
+export function createOneEuro({ minCutoff = 1.0, beta = 0, dCutoff = 1.0 } = {}) {
+  let xPrev = null, dxPrev = 0, tPrev = null;
+  return {
+    filter(x, tSec) {
+      if (!isReal(x) || !isReal(tSec)) return x;
+      if (xPrev == null || tPrev == null || tSec < tPrev) { xPrev = x; dxPrev = 0; tPrev = tSec; return x; }
+      const dt = tSec - tPrev;
+      if (!(dt > 0)) return xPrev;
+      const dx = (x - xPrev) / dt;
+      const aD = oeAlpha(dCutoff, dt);
+      const dxHat = aD * dx + (1 - aD) * dxPrev;
+      const a = oeAlpha(minCutoff + beta * Math.abs(dxHat), dt);
+      const xHat = a * x + (1 - a) * xPrev;
+      xPrev = xHat; dxPrev = dxHat; tPrev = tSec;
+      return xHat;
+    },
+    reset() { xPrev = null; dxPrev = 0; tPrev = null; },
+  };
+}
+// Tuned per coordinate space: normalised image coords (a body is ~0.5 of the
+// frame) and metres (a body is ~1.7). At rest the cutoff sits near minCutoff;
+// a limb moving a body-length a second lifts it to ~10 Hz, so a fast rep lags
+// by well under a frame's worth of travel.
+export const ONE_EURO_IMAGE = { minCutoff: 1.0, beta: 12, dCutoff: 1.0 };
+export const ONE_EURO_WORLD = { minCutoff: 1.0, beta: 4, dCutoff: 1.0 };
+
+// One filter set per landmark per axis. A point that drops under VIS_MIN is
+// passed through untouched (the renderer hides it) and its filter is reset, so
+// when it reappears it starts from where it IS, not glides in from where it was.
+export function createPoseSmoother(params = ONE_EURO_IMAGE) {
+  let bank = [];
+  const get = (i) => (bank[i] || (bank[i] = { x: createOneEuro(params), y: createOneEuro(params), z: createOneEuro(params) }));
+  return {
+    smooth(lms, tMs) {
+      if (!lms) return lms;
+      const t = tMs / 1000;
+      return lms.map((p, i) => {
+        if (!p) return p;
+        const f = get(i);
+        if (!lmVisible(p)) { f.x.reset(); f.y.reset(); f.z.reset(); return p; }
+        return { ...p, x: f.x.filter(p.x, t), y: f.y.filter(p.y, t), z: p.z == null ? p.z : f.z.filter(p.z, t) };
+      });
+    },
+    reset() { bank = []; },
+  };
+}
+// Smooth a captured clip for DISPLAY (overlay + 3D). Returns new frame objects;
+// the input frames (which the analysis reads) are not touched. A backwards step
+// in t (a re-sorted or restarted clip) resets the filters.
+export function smoothFramesForDisplay(frames) {
+  if (!frames || !frames.length) return [];
+  const img = createPoseSmoother(ONE_EURO_IMAGE), wld = createPoseSmoother(ONE_EURO_WORLD);
+  // World points carry no visibility of their own in every build — borrow the
+  // 2D landmark's, same index, same frame.
+  const withVis = (w, l) => (w && l ? w.map((p, i) => (p && p.visibility == null && l[i] && l[i].visibility != null ? { ...p, visibility: l[i].visibility } : p)) : w);
+  return frames.map((f) => ({
+    t: f.t,
+    landmarks: f.landmarks ? img.smooth(f.landmarks, f.t) : null,
+    worldLandmarks: f.worldLandmarks ? wld.smooth(withVis(f.worldLandmarks, f.landmarks), f.t) : null,
+  }));
+}
+// Nearest captured frame to tMs (frames sorted by t). Returns null when the
+// closest one is further than maxGapMs — no pose there, so draw nothing rather
+// than freeze a stale skeleton over a moving body.
+export function frameAt(frames, tMs, maxGapMs = 120) {
+  if (!frames || !frames.length || !isReal(tMs)) return null;
+  let lo = 0, hi = frames.length - 1;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (frames[m].t < tMs) lo = m + 1; else hi = m; }
+  let best = lo;
+  if (lo > 0 && Math.abs(frames[lo - 1].t - tMs) < Math.abs(frames[lo].t - tMs)) best = lo - 1;
+  return Math.abs(frames[best].t - tMs) <= maxGapMs ? frames[best] : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1162,14 +1437,19 @@ export function frameToPoints3D(worldLandmarks) {
 // cropped, shaky, low-light or badly-angled clip yields confident-LOOKING but
 // garbage angles/velocities. Grade how well the body was actually tracked so the
 // UI can warn the coach when a read shouldn't be trusted. Honest by default.
-export function captureQuality(frames, title) {
+export function captureQuality(frames, title, movement) {
   if (!frames || !frames.length) return { coverage: 0, meanVis: null, grade: 'poor', note: 'No frames captured.' };
   // Judge only the joints that matter for THIS lift — an upper-body clip framed
   // on the torso (legs out of shot) must not be graded 'poor' because the legs
   // aren't visible, and vice-versa. Elbows (13/14) matter on presses.
+  // An explicit movement (the coach's pick) decides the region; null = neutral
+  // → judge the whole body. Only a title-only caller falls back to the name.
   const t = (title || '').toLowerCase();
-  const upper = /\b(bench|ohp|overhead|press|push[-\s]?up|dip|row|pull[-\s]?up|chin|pull[-\s]?down|lat|fly|raise|shrug|curl|tricep|bicep)\b/.test(t) && !/\bleg\b/.test(t);
-  const lower = /\b(squat|lunge|split|pistol|rfess|bulgarian|step[-\s]?up|deadlift|rdl|hinge|thrust|glute|leg|calf|jump|pogo|hop|bound|nordic|good[-\s]?morning)\b/.test(t);
+  const mv = movement !== undefined ? movementByKey(movement) : undefined;
+  const upper = mv !== undefined ? !!(mv && mv.region === 'upper')
+    : /\b(bench|ohp|overhead|press|push[-\s]?up|dip|row|pull[-\s]?up|chin|pull[-\s]?down|lat|fly|raise|shrug|curl|tricep|bicep)\b/.test(t) && !/\bleg\b/.test(t);
+  const lower = mv !== undefined ? !!(mv && mv.region === 'lower')
+    : /\b(squat|lunge|split|pistol|rfess|bulgarian|step[-\s]?up|deadlift|rdl|hinge|thrust|glute|leg|calf|jump|pogo|hop|bound|nordic|good[-\s]?morning)\b/.test(t);
   const KEY = (upper && !lower) ? [11, 12, 13, 14]
     : (lower && !upper) ? [23, 24, 25, 26, 27, 28]
       : [11, 12, 13, 14, 23, 24, 25, 26, 27, 28];
@@ -1211,10 +1491,17 @@ export function captureQuality(frames, title) {
 
 // Top-level: run the full battery on a captured clip.
 // ---------------------------------------------------------------------------
+// opts.movement — the coach's explicit pick (a MOVEMENTS key, or null for a
+// neutral read). When the key is PRESENT it overrides the title completely:
+// channel, ballistic counting and the capture-quality region all come from the
+// pick, and null means no rep counting at all. When absent, the logged title is
+// used as before (Workout Review / auto-analysis callers).
 export function analyzeClip(frames, exerciseTitle, opts = {}) {
   if (!frames || frames.length < 4) return { ok: false, reason: 'too-few-frames' };
+  const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
+  const mv = explicit ? movementByKey(opts.movement) : undefined;
   const fps = estimateFps(frames);
-  const { angle, kind, channels } = channelSignal(frames, exerciseTitle);
+  const { angle, kind, channels } = channelSignal(frames, exerciseTitle, mv);
   const reps = channels.length ? segmentReps(angle, fps, frames) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
@@ -1230,9 +1517,10 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   // meaningful jump metrics live in JUMP TEST).
   let repCount = reps.length;
   let countMethod = 'joint';
-  if (isBallistic(exerciseTitle)) {
-    const mv = movementRepCount(frames);
-    if (mv && mv.count > repCount && mv.range > 0.04) { repCount = mv.count; countMethod = 'flight'; }
+  const ballistic = explicit ? !!(mv && mv.ballistic) : isBallistic(exerciseTitle);
+  if (ballistic) {
+    const fc = movementRepCount(frames);
+    if (fc && fc.count > repCount && fc.range > 0.04) { repCount = fc.count; countMethod = 'flight'; }
   }
   // #242: a trailing re-rack (bar set-down that read as a tiny positive rep)
   // must not inflate the reported rep count. Subtract it from the JOINT count
@@ -1247,7 +1535,7 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   // the two when reading a spec. Honest by construction — a channel is present
   // only when its hard gate passed.
   const extRom = extendedJointRom(frames);
-  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle) };
+  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
 }
 
 // --- small helpers ---
