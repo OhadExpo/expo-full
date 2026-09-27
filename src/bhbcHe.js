@@ -840,6 +840,12 @@ Object.assign(HE, {
   'That session moved — reopen it': 'האימון הזה השתנה — פתח אותו מחדש',
   'That session moved — reopen the list': 'האימון הזה השתנה — פתח את הרשימה מחדש',
   Undo: 'ביטול',
+  // extra pass
+  '+{n} more on the Medical tab': 'ועוד {n} בלשונית הרפואית',
+  '+{n} more on the Schedule tab': 'ועוד {n} בלשונית הלו"ז',
+  'before he landed': 'לפני שנחת',
+  'N/A': 'לא רלוונטי',
+  Concussion: 'זעזוע מוח',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

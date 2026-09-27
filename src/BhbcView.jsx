@@ -3382,6 +3382,8 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
 </div>
                 );
               })}
+              {/* six rows fit the card; the rest are SAID, never silently dropped (#305 N-H6) */}
+              {injuries.length > 6 && <span style={{ color: C.tm, fontSize: 12 }}>{tr('+{n} more on the Medical tab').replace('{n}', injuries.length - 6)}</span>}
             </div>
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span><span style={{ color: C.tx, fontFamily: FN, fontWeight: 700 }}>{tr('All clear')}</span> <span style={mut}>{tr('— no active injuries.')}</span></span>
@@ -3416,6 +3418,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                 </div>
                 );
               })}
+              {sessions.length > 6 && <span style={{ color: C.tm, fontSize: 12 }}>{tr('+{n} more on the Schedule tab').replace('{n}', sessions.length - 6)}</span>}
             </div>
           : <span style={mut}>{tr('No team sessions scheduled this week.')}</span>}
       </Section>}
@@ -3863,7 +3866,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
                 </span>
                 {cells.map((c) => {
-                  const label = c.state === 'none' ? monDay(c.iso)
+                  const label = c.state === 'none' ? (t.arrival && c.iso < t.arrival && dayFx[c.iso] ? `${monDay(c.iso)} · ${tr('before he landed')}` : monDay(c.iso))
                     : `${monDay(c.iso)} · ${tr(FX_LABEL[c.kind] || 'Practice')} · ${tr(
                       c.state === 'in' ? 'attended' : c.state === 'played' ? 'played' : c.state === 'dnp' ? 'did not play' : c.state === 'pending' ? 'box score not in yet' : c.state === 'missed' ? 'missed' : c.state === 'excused' ? AVAIL[c.code] ? AVAIL[c.code].label : 'out' : 'attended')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}`;
                   const bands = [];
@@ -3986,7 +3989,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const liftedToday = per.filter((x) => x.since === 0).length;
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
-  const ink = (since, code = 1) => (code >= 4 ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6)
+  const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6)
   const CELL = 22;
 
   return (
@@ -4071,7 +4074,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 36, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
                     <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
                     </span>
                   </span>
@@ -4121,7 +4124,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
               then limited, then an overdue lift (7d+ or never), then everyone
               else in jersey order - the order he reads the board in. */}
           {[...rows].sort((a, b) => {
-            const rank = (r) => { const code = r.avail || 1; if (code >= 4) return 0; if (code === 3) return 1; if (code === 2) return 2; const ll = lastLift(r.t.id); const since = ll && today ? dayDiff(today, ll) : null; return since == null || since >= 7 ? 3 : 4; };
+            const rank = (r) => { const code = r.avail || 1; if (code >= 4) return 0; if (code === 3) return 1; if (code === 2) return 2; if (r.t.arrival && today && r.t.arrival > today) return 4; const ll = lastLift(r.t.id); const since = ll && today ? dayDiff(today, ll) : null; return since == null || since >= 7 ? 3 : 4; };
             return rank(a) - rank(b) || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
           }).map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
@@ -4140,7 +4143,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                       its TYPE - "CONCUSSION" - because its body part is literally
                       "Head / Concussion" and printing that wrapped to two rows. */}
                   {(() => {
-                    const inj = activeInjuries(medical, t.id)[0];
+                    const inj = worstInjury(medical, t.id);
                     // Body part + side for everyone, same as every other row.
                     // The head body part is literally "Head / Concussion", which
                     // wrapped to two lines, so it collapses at the slash. Printing
@@ -4169,7 +4172,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                           const ll = lastLift(t.id);
                           const since = ll && today ? dayDiff(today, ll) : null;
                           return (
-                            <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: (since == null || since >= 7) && (avail || 1) < 4 ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
+                            <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: (since == null || since >= 7) && (avail || 1) < 4 && !(t.arrival && t.arrival > today) ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
                               {tr('Last lift')} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                             </span>
                           );
@@ -4192,7 +4195,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                   // CALM BY DEFAULT (27.9, Ohad: "too much on the eyes"): only an
                   // overdue lift (7d+, or never) is coloured; the date is the title.
                   // ...and not for an athlete who is out (#305 N-K3)
-                  const col = (since == null || since >= 7) && (avail || 1) < 4 ? '#DE4E3B' : C.tx;
+                  const col = (since == null || since >= 7) && (avail || 1) < 4 && !(t.arrival && t.arrival > today) ? '#DE4E3B' : C.tx;   // nor for one not landed yet (#305 N-K5)
                   return (
                     // THE DATE IS A COLUMN, so the part in front of it gets a
                     // fixed width. The relative age runs from "2d" to
@@ -4237,7 +4240,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                   {/* Report / update an injury straight from the board — no need
                       to open the athlete first (Ohad: make medical easier to reach). */}
                   {onMedical && (() => {
-                    const inj = activeInjuries(medical, t.id)[0];
+                    const inj = worstInjury(medical, t.id);
                     return (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }}
                         title={inj ? tr('Update the medical report') : tr('Report an injury')} className="bhbc-ghost-btn"
@@ -4326,7 +4329,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   an injured athlete lost his position entirely while a fit one
                   kept it. Ohad flagged exactly this on the load board. */}
               {(() => {
-                const inj = activeInjuries(medical, t.id)[0];
+                const inj = worstInjury(medical, t.id);
                 const injShort = !inj ? null
                   : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
                 // TWO FIXED LINES, THE SAME IN EVERY CARD (27.9, Ohad: "ankle
@@ -5581,6 +5584,13 @@ export function byName(email) {
 }
 
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
+// THE ONE INJURY A ONE-LINE SLOT SHOWS IS THE WORST (#305 N-C18): the board
+// line, its MED button and the roster card took whichever record was filed
+// first, so a limited ankle could stand in for an out hamstring. Same order as
+// the Medical tab: out, non-contact, limited, available; then the oldest.
+const INJ_SEV = { out: 0, 'non-contact': 1, limited: 2, available: 3 };
+const worstInjury = (medical, id) => activeInjuries(medical, id).slice()
+  .sort((a, b) => (INJ_SEV[a.status] ?? 4) - (INJ_SEV[b.status] ?? 4) || String(a.onsetDate || '').localeCompare(String(b.onsetDate || '')))[0] || null;
 const resolvedInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => i.resolved);
 
 // WHAT THE MEDICAL RECORD SAYS ABOUT A GIVEN DAY — not only about today.
@@ -6227,9 +6237,9 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
         )}
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
           <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => pickBodyPart(e.target.value)} style={sel}><option value="">{tr('— select —')}</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>
-          <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => { setSide(e.target.value); setSideTouched(true); setSidePrefilled(false); }} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select>
+          <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => { setSide(e.target.value); setSideTouched(true); setSidePrefilled(false); }} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{tr(s)}</option>)}</select>
             {sidePrefilled && !headInjury && <span style={{ display: 'block', marginTop: 4, fontFamily: FN, fontSize: 10, color: C.tm }}>{tr('Same side as his earlier injury here')}</span>}</div>
-          <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tr(tp)}</option>)}</select></div>
         </div>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           {/* The modal renders through a PORTAL, outside .bhbc-zone, so the zone's
@@ -6255,7 +6265,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
               1px gap over the border colour draws every inner line once */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
             {Object.entries(MED_STATUS).map(([k, s]) => (
-              <button key={k} type="button" data-dirties onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'var(--c-sf)', border: 'none', padding: '0 14px', cursor: 'pointer' }}>{s.label}</button>
+              <button key={k} type="button" data-dirties onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'var(--c-sf)', border: 'none', padding: '0 14px', cursor: 'pointer' }}>{tr(s.label)}</button>
             ))}
           </div>
         </div>
