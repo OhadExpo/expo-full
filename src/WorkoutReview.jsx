@@ -1429,7 +1429,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           </div>
           <div style={{padding:'10px 10px 4px'}}>
             <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>{tr(readLang(), 'Loading…')}</div>}>
-              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
+              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || ''} tab={metricsTab} setTab={setMetricsTab} view="metrics"
                 recordedReps={recordedReps} targetReps={targetReps}
                 playheadT={videoTime * 1000}
                 onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />

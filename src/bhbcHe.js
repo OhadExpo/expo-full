@@ -134,7 +134,7 @@ export const HE = {
   'GAME': 'משחק',
   // A LIFT is one athlete's own weight-room session (24.9); the team block
   // before a practice is 'אימון כוח'. Two words, two things.
-  'Lift': 'הרמה',
+  'Lift': 'הרמה אישית',
   'Conditioning': 'קונדישן',
   'Recovery': 'התאוששות',
   'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה.',
@@ -370,6 +370,8 @@ export const HE = {
   Edit: 'עריכה',
   'Off / general prep': 'מנוחה / הכנה כללית',
   'General strength base': 'בסיס כוח כללי',
+  'General prep': 'הכנה כללית',
+  'In-season maintenance': 'שימור בעונה',
   'Max strength + power (heaviest, far from game)': 'כוח מקסימלי ועוצמה — הכי כבד, רחוק מהמשחק',
   'Strength + power': 'כוח ועוצמה',
   'Power / speed · moderate volume': 'עוצמה ומהירות · נפח בינוני',
@@ -784,12 +786,12 @@ Object.assign(HE, {
   // Ohad: "lifts should say log lift", "sc sessions should say log S&C
   // Session". The team block before a practice is אימון כוח; a player's own
   // weight-room session is הרמה.
-  'Log S&C Session': 'רישום אימון כוח',
-  'Log lift': 'רישום הרמה',
-  'Lifts': 'הרמות',
-  'S&C session': 'אימון כוח',
-  'S&C sessions': 'אימוני כוח',
-  'S&C': 'כוח',
+  'Log S&C Session': 'רישום כוח קבוצתי',
+  'Log lift': 'רישום הרמה אישית',
+  'Lifts': 'הרמות אישיות',
+  'S&C session': 'אימון כוח קבוצתי',
+  'S&C sessions': 'אימוני כוח קבוצתי',
+  'S&C': 'כוח קבוצתי',
   '28 days': '28 ימים',
   'Last lift': 'הרמה אחרונה',
   'Full line': 'כל הנתונים',

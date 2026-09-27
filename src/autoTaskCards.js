@@ -84,7 +84,7 @@ export function throttleWhatsAppTasks(rows) {
       // strongest pin so the merged card floats correctly.
       const sources = seed.__sources;
       // THE SAME TWO LINES AS EVERY OTHER ALERT (27.9, Ohad: "for occasions like
-      // yoav shamri and solomon I need better layout. ruling"): the action, an
+      // [these two] I need better layout. ruling"): the action, an
       // em dash, then the reasons - so the card renders "Reach out to X" over
       // "week skipped · at risk" exactly like "Call X" over "skipped W4 of
       // Block #27", instead of one wrapped bullet sentence.

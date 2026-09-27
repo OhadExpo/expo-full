@@ -289,7 +289,10 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
 
 export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) {
   const tt = useT();
-  const [title, setTitle] = useState('Squat');
+  // NO GUESSED EXERCISE (27.9, Ohad: "auto detection doesnt work and shouldnt
+  // be there"): the name is the one the clip was LOGGED under, or empty; the
+  // movement itself is picked inside the tool.
+  const [title, setTitle] = useState('');
   const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
   const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [], target: null }); // athlete+date+logged+prescribed of the picked clip
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
@@ -344,8 +347,8 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
                 Editable ONLY here, after a clip is loaded (Ohad: "must be fully
                 automated. i can only change it after analyzing, not before"). */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')} <span style={{ color: C.ac }}>· {tr(readLang(), 'AUTO')}</span></label>
-              <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('Detected from the clip. Change it only if the auto-detect is off.')}</div>
+              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')}</label>
+              <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('The name it was logged under. The movement is picked inside the tool.')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {QUICK_LIFTS.map(l => {
                   const on = title.trim().toLowerCase() === l.toLowerCase();
@@ -396,10 +399,10 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
               Keyed on the tool so switching tools clears a previous error. */}
           <ErrorBoundary key={tool || 'none'} inline>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
-            {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} onClose={close} />}
+            {tool === 'lab'     && <MovementLab exerciseTitle={title || ''} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || ''} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle={title || 'Vertical Jump'} initialMode="jump" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
+            {tool === 'live'    && <ARFormOverlay exerciseTitle={title || ''} onClose={close} />}
             {/* Camera / gallery ONLY — the reviewed-clip picker never feeds the
                 shot tool (Ohad 08-23: no previously-uploaded EXPO videos). */}
             {tool === 'shot'    && <ShotAnalyzer onClose={close} />}

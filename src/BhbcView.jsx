@@ -212,6 +212,9 @@ const secTitle = (s) => <SecTitleEl s={s} />;
 // a late-night session/availability write would land on the previous date
 // (audit 08-22). Same convention as MealLogger/ChallengesView/BookingPublic.
 const localISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// the ISRAEL day of a stored timestamp - slicing the ISO string gives the UTC
+// day, one day early for anything saved between 00:00 and 03:00 (27.9 review)
+const localDayOf = (ts) => { if (!ts) return ''; const d = new Date(ts); return Number.isNaN(d.getTime()) ? String(ts).slice(0, 10) : localISO(d); };
 const todayISO = () => localISO(new Date());
 const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return localISO(d); };
 // Nationality as text (flag emoji doesn't render on Windows Chrome → shows "US"
@@ -551,9 +554,18 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       tid = setTimeout(() => { bump(); arm(); }, Math.max(1000, next - n));
     };
     arm();
-    const onVis = () => { if (document.visibilityState === 'visible') bump(); };
+    // AND THE HOUR (27.9 review): a practice or game becomes "past" at its
+    // start time, not at the next unrelated re-render. A visible page
+    // re-renders on the quarter hour - every slot starts on one.
+    const qRef = { q: Math.floor(Date.now() / 900000) };
+    const iid = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const q = Math.floor(Date.now() / 900000);
+      if (q !== qRef.q) { qRef.q = q; setDayTick((x) => x + 1); }
+    }, 30000);
+    const onVis = () => { if (document.visibilityState === 'visible') { bump(); setDayTick((x) => x + 1); } };
     document.addEventListener('visibilitychange', onVis);
-    return () => { clearTimeout(tid); document.removeEventListener('visibilitychange', onVis); };
+    return () => { clearTimeout(tid); clearInterval(iid); document.removeEventListener('visibilitychange', onVis); };
   }, []);
   const today = todayISO();
   // Keyed on `today`, not [] — a tab left open past midnight kept the windows
@@ -836,6 +848,13 @@ function attendance28(rec, days) {
     setBhbcLoads((prev) => {
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
+        // NOT LANDED YET = NOT OWED THIS PRACTICE (27.9 review): the sheet
+        // shows him unticked, and writing that as attendance 'out' + an
+        // availability for the day turned into a red "missed" and a bigger
+        // denominator on every practice before he arrived. His record is
+        // left exactly as it was.
+        const who = roster.find((x) => x.id === id);
+        if (who && who.arrival && date < who.arrival) return;
         const rec = next[id] ? { ...next[id] } : emptyRec();
         // RE-SAVING A SLOT MUST REPLACE IT, NOT ADD TO IT.
         //
@@ -884,7 +903,7 @@ function attendance28(rec, days) {
     });
     const inCount = Object.values(entries || {}).filter((e) => e && e.attended !== false && e.avail < 4).length;
     toast('S&C session saved'); track('session', `logged the practice and an S&C session on ${fmtNumericDate(date)}${start ? ` ${start}` : ''} · ${min} min · ${inCount} in`); notify();
-  }, [setBhbcLoads, notify, track, currentUser]);
+  }, [setBhbcLoads, notify, track, currentUser, roster]);
 
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
   // readinessAutoreg engine (so the Load board + athlete cards show a real
@@ -1676,13 +1695,13 @@ function attendance28(rec, days) {
         {minutesFor && (
           <GameMinutesModal game={minutesFor} roster={roster} bhbcLoads={bhbcLoads} medical={medical}
             onClose={() => setMinutesFor(null)}
-            onSave={({ date, minutes }) => {
+            onSave={({ date, minutes, opened }) => {
               // ONLY WHAT CHANGED IS WRITTEN (#305 N-F1). The sheet holds every
               // player's minutes, and a Save with one correction rewrote all ten
               // records (and pinged every open zone for nothing). Untouched
               // players are left exactly as stored; a touched row keeps its
               // league line (applyGameMinutes edits the row, 27.9 review).
-              const saved = gameMinutesOf(bhbcLoads || {}, date);
+              const saved = opened || gameMinutesOf(bhbcLoads || {}, date);
               const changed = {};
               for (const [id, v] of Object.entries(minutes || {})) {
                 if ((Number(v) || 0) !== (Number(saved[id]) || 0)) changed[id] = v;
@@ -3956,14 +3975,17 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
+      {/* AN EQUAL-CELL GRID (27.9, Ohad: "practice > missed is a big unaligned
+          mess"): every swatch on one start edge, every label beside it, the
+          rows in step - no ragged wrap. */}
+      <div className="bhbc-legend-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', columnGap: 14, rowGap: 8, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
         {/* the legend draws the SAME marks the cells draw */}
         {[
           [[FX_COLOR.practice], null, tr('Practice')], [[FX_COLOR.scrimmage], null, tr('Scrimmage')],
           [[FX_COLOR.game], null, tr('Game played')], [[], FX_COLOR.game, tr('did not play')], [[], MISS, tr('missed')],
           ...(showSc ? [[[SC_COLOR], null, tr('S&C')]] : []), ...(showLift ? [[[FX_COLOR.lift], null, tr('Lift')]] : []),
         ].map(([bands, outline, lbl]) => (
-          <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
+          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm, whiteSpace: 'nowrap', minWidth: 0 }}>
             <CellMarks bands={bands} outline={outline} />{lbl}
           </span>
         ))}
@@ -4351,7 +4373,8 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
   const leaguePast = !!league.season && String(league.season).replace(/\s+/g, '') !== `${startYr}/${String((startYr + 1) % 100).padStart(2, '0')}`;
   const ppgFor = (t) => {
     const club = clubSeasonStats(t, loads);
-    if (club) return club.ppg;
+    // per field, like Player Stats: a club row with no box has no points (27.9 review)
+    if (club && club.ppg != null) return club.ppg;
     const lp = leaguePast ? null : leaguePlayerFor(league, t);
     return lp && lp.ppg != null ? lp.ppg : null;
   };
@@ -4692,31 +4715,38 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                     oversized next to them and why "PRACTICE · 120 MIN" needed two
                     lines in a column that fits it easily at 12. */}
                 {/* words stay whole (26.9: "PRACTIC / E" at 390): wrap BETWEEN words only */}
-                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flexShrink: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'normal', wordBreak: 'keep-all' }}>
+                {/* FIXED COLUMNS, ONE LINE (27.9, Ohad: "bad design ... with the sc 5
+                    min moving all the text"): date · time · session · a RESERVED S&C
+                    slot · count · chevron on every row, so a row with S&C lays out
+                    exactly like one without. The list is Past PRACTICES, so a
+                    practice row shows its minutes only; any other kind names itself. */}
+                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap' }}>
                   {/* THE DURATION IS ONE TOKEN, NOT TWO WORDS THAT MAY PART.
                       Measured 19.9 at 390 in Hebrew: this column is the one that
                       gives way, and every past-practice row broke "120 דק׳" in
                       half, leaving "דק׳" alone on a second line - eight rows, all
                       of them. The label may wrap; the NUMBER and its unit may
                       not. */}
-                  {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}
-                  {f.minutes ? <>{' · '}<span style={{ whiteSpace: 'nowrap' }}>{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span></> : null}
+                  {f.type !== 'practice' ? fxLabelFor(f.type, FX_LABEL[f.type] || 'Session') : null}
+                  {f.minutes ? <>{f.type !== 'practice' ? ' · ' : null}<span style={{ whiteSpace: 'nowrap' }}>{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span></> : null}
                   {densityOf(f) ? <>{' · '}<DensityBit f={f} /></> : null}
                 </span>
-                <div style={{ flex: 1 }} />
+                {/* the S&C slot is always there, empty when none ran */}
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 92, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>
+                  {d.scMinutes > 0 ? <>{tr('S&C')} <MinTok n={d.scMinutes} /></> : null}
+                </span>
                 {/* The two numbers a head coach actually asks for. */}
                 {/* THE WHOLE SQUAD OUT IS NOT A 0/10 PRACTICE (#305 B8) - on a
                     travel day nobody was owed it, and "0/10" reads as ten
                     no-shows. Said as what it is. Normal ink for a normal count:
                     colour only the exceptions (E1). */}
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 40, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                   {!d.trained.length && d.expected > 0 && d.out.length === d.expected ? <span style={{ color: C.td }}>{tr('all out')}</span> : `${d.trained.length}/${d.expected}`}
                 </span>
                 {/* The AU and RPE readouts are gone with the load model they
                     described (Ohad 23.9, no team RPEs). What a coach asks of
                     this row now is who trained and what the S&C block was.
                     Lifts are personal and never appear on a practice row. */}
-                {d.scMinutes > 0 && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>{d.scMinutes} {tr('min')} {tr('S&C')}</span>}
                 <svg aria-hidden width="9" height="6" viewBox="0 0 9 6" fill="none"
                   style={{ color: C.tm, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
                   <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -5692,7 +5722,7 @@ function medicalAvailOn(medical, athleteId, date) {
       // fallback. Getting this wrong only ever shortens a window, never
       // invents one, so a cleared athlete is never left stuck at Out.
       const endedOn = (notes.length ? notes[notes.length - 1].date : '')
-        || String(inj.updatedAt || '').slice(0, 10);
+        || localDayOf(inj.updatedAt);
       if (endedOn && date > endedOn) continue;
     }
     // WHICH STATUS WAS IN FORCE ON THAT DAY.
@@ -5708,7 +5738,7 @@ function medicalAvailOn(medical, athleteId, date) {
     //
     // A note dated AFTER the day describes a later state of the injury and says
     // nothing about it, so it is excluded either way.
-    const headlineOn = String(inj.updatedAt || inj.createdAt || '').slice(0, 10) || inj.onsetDate || '';
+    const headlineOn = localDayOf(inj.updatedAt || inj.createdAt) || inj.onsetDate || '';
     const dated = notes.filter((p) => p.status).map((p) => ({ d: p.date, s: p.status }));
     // A RESOLVED RECORD'S HEADLINE IS THE CLEARANCE (#305 B12). Resolving keeps
     // the status the PT last picked (often still "out"), and dated at updatedAt
@@ -5862,10 +5892,13 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
 function GameMinutesModal({ game, roster, bhbcLoads, medical = {}, onClose, onSave }) {
   const tr = useT();
   const date = game.date;
+  // what the sheet OPENED with - the save compares against this, not against
+  // the store at save time, or a game row the league logger wrote while the
+  // sheet was open would read as "cleared" and be deleted (27.9 review)
+  const [opened] = useState(() => gameMinutesOf(bhbcLoads || {}, date));
   const [mins, setMins] = useState(() => {
-    const saved = gameMinutesOf(bhbcLoads || {}, date);
     const out = {};
-    for (const t of roster || []) out[t.id] = saved[t.id] == null ? '' : String(saved[t.id]);
+    for (const t of roster || []) out[t.id] = opened[t.id] == null ? '' : String(opened[t.id]);
     return out;
   });
   const total = Object.values(mins).reduce((a, m) => a + (Number(m) || 0), 0);
@@ -5901,7 +5934,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, medical = {}, onClose, onSa
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
-        <Btn disabled={badMins} onClick={() => onSave({ date, minutes: mins })}>{tr('Save')}</Btn>
+        <Btn disabled={badMins} onClick={() => onSave({ date, minutes: mins, opened })}>{tr('Save')}</Btn>
       </div>
     </BModal>
   );
