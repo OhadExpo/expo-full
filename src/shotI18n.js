@@ -47,7 +47,25 @@ export const SHOT_I18N = {
       ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.'],
     ],
     record: 'RECORD →', gallery: 'FROM GALLERY', stopAnalyse: 'STOP & ANALYSE',
-    progress: { 'checking the clip': 'checking the clip', 'loading the clip': 'loading the clip', 'finding the athlete': 'finding the athlete', 'filling the dropped frames': 'filling the dropped frames', 'loading the detailed model': 'loading the detailed model', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
+    progress: { 'checking the clip': 'checking the clip', 'loading the model': 'loading the model', 'loading the clip': 'loading the clip', 'finding the athlete': 'finding the athlete', 'filling the dropped frames': 'filling the dropped frames', 'loading the detailed model': 'loading the detailed model', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
+    // The phone path (27.9, "stuck at 40%"): the watchdog line, its button, the
+    // keep-the-screen-on line under the bar, and every capture failure by code
+    // (shotCapture.js codeErr) - each says what to do next, never just "failed".
+    stalled: (stage, s) => `still ${stage} — no progress for ${s}s`,
+    stopRun: 'STOP',
+    keepOn: 'Keep this screen on and this app in front until it finishes — the phone pauses the analysis when the screen locks or you switch apps.',
+    liteModel: 'The detailed model did not load in time, so the shots were read with the fast model and the angles are less precise. Analyse again on Wi-Fi for the detailed read.',
+    errors: {
+      read: 'This video could not be opened. Pick it again, or film a new clip with the phone camera.',
+      readTimeout: 'The video did not open within 45 seconds. Pick it again. If it lives in the cloud (Google Photos, Drive), download it to the phone first.',
+      codec: 'This phone cannot play this video format (usually HEVC / HDR from another phone). Film it on this phone, or export it as a standard MP4 (H.264) and pick it again.',
+      decode: 'The phone stopped decoding this video partway through. Export it as a standard MP4 (H.264), or film it again on this phone.',
+      seek: 'The phone could not step through this video. Analyse again with the screen on, or film a shorter clip.',
+      model: 'The body-tracking model did not load on this phone. Check the connection and analyse again.',
+      noDuration: 'The length of this video could not be read. Pick it again, or film a new clip.',
+      noPerson: 'I could not find a person in this clip. Film the whole body, side-on, in good light.',
+      failed: 'The analysis stopped. Analyse the clip again.',
+    },
 
     // The twelve-frame preflight. Every line names the phone action that
     // fixes it - the point is that he can still do something about it.
@@ -209,7 +227,22 @@ export const SHOT_I18N = {
     // Forward CTA arrow points LEFT in RTL and sits at the logical end of the
     // string, so it renders on the visual left (Ohad's RTL arrow rule).
     record: 'צלם ←', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
-    progress: { 'checking the clip': 'בודק את הקליפ', 'loading the clip': 'טוען את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'filling the dropped frames': 'משלים פריימים חסרים', 'loading the detailed model': 'טוען את המודל המפורט', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
+    stalled: (stage, s) => `עדיין ${stage} — ${s} שניות בלי התקדמות`,
+    stopRun: 'עצור',
+    keepOn: 'תשאיר את המסך דלוק ואת האפליקציה פתוחה עד הסוף — הטלפון עוצר את הניתוח כשהמסך ננעל או כשאתה עובר לאפליקציה אחרת.',
+    liteModel: 'המודל המפורט לא נטען בזמן, אז הזריקות נקראו עם המודל המהיר והזוויות פחות מדויקות. תנתח שוב על Wi-Fi בשביל קריאה מפורטת.',
+    errors: {
+      read: 'לא הצלחתי לפתוח את הסרטון. תבחר אותו שוב, או תצלם קליפ חדש במצלמה של הטלפון.',
+      readTimeout: 'הסרטון לא נפתח תוך 45 שניות. תבחר אותו שוב. אם הוא שמור בענן (Google Photos, Drive), תוריד אותו קודם לטלפון.',
+      codec: 'הטלפון לא יודע לנגן את הפורמט של הסרטון הזה (בדרך כלל HEVC / HDR מטלפון אחר). תצלם אותו בטלפון הזה, או תייצא אותו כ-MP4 רגיל (H.264) ותבחר אותו שוב.',
+      decode: 'הטלפון הפסיק לפענח את הסרטון באמצע. תייצא אותו כ-MP4 רגיל (H.264), או תצלם אותו שוב בטלפון הזה.',
+      seek: 'הטלפון לא הצליח לעבור על הסרטון פריים אחרי פריים. תנתח שוב כשהמסך דלוק, או תצלם קליפ קצר יותר.',
+      model: 'מודל מעקב הגוף לא נטען בטלפון הזה. תבדוק את החיבור ותנתח שוב.',
+      noDuration: 'לא הצלחתי לקרוא את האורך של הסרטון. תבחר אותו שוב, או תצלם קליפ חדש.',
+      noPerson: 'לא מצאתי אדם בקליפ. תצלם את כל הגוף, מהצד, בתאורה טובה.',
+      failed: 'הניתוח נעצר. תנתח את הקליפ שוב.',
+    },
+    progress: { 'checking the clip': 'בודק את הקליפ', 'loading the model': 'טוען את המודל', 'loading the clip': 'טוען את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'filling the dropped frames': 'משלים פריימים חסרים', 'loading the detailed model': 'טוען את המודל המפורט', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
 
     preflight: {
       title: 'אי אפשר למדוד את הקליפ הזה כמו שצריך',
