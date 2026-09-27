@@ -642,6 +642,8 @@ Object.assign(HE, {
   'no focus yet': 'עוד אין פוקוס',
   // ---- medical board ----------------------------------------------------
   'Medical · Injury Board': 'רפואי · לוח פציעות',
+  'Injury Board': 'לוח פציעות',
+  'Concussion red flags': 'זעזוע מוח — סימני אזהרה',
   'Active Injuries': 'פציעות פעילות',
   'Roster Health': 'מצב הסגל',
   Out: 'בחוץ',

@@ -35,6 +35,8 @@ export const SHOT_I18N = {
     shot: 'Shot',
     shotHint: 'Release-angle band — pick the shot distance',
     shotTypes: { ft: 'Free throw', mid: 'Mid-range', three: 'Three' },
+    // the court's own short forms, shown only where the full word would not fit
+    shotTypesShort: { ft: 'FT', mid: 'Mid', three: '3PT' },
     height: 'Height', cmPlaceholder: 'cm',
     savedCm: '✓ SAVED', rescored: '✓ RESCORED', cmUnit: 'CM', forCm: 'FOR CM',
 
@@ -213,6 +215,7 @@ export const SHOT_I18N = {
     shot: 'סוג זריקה',
     shotHint: 'טווח זווית השחרור — תבחר את מרחק הזריקה',
     shotTypes: { ft: 'עונשין', mid: 'טווח בינוני', three: 'שלשה' },
+    shotTypesShort: { ft: 'עונשין', mid: 'בינוני', three: 'שלשה' },
     height: 'גובה', cmPlaceholder: 'ס״מ',
     savedCm: '✓ נשמר', rescored: '✓ החישוב עודכן', cmUnit: 'ס״מ', forCm: 'לחישוב ס״מ',
 

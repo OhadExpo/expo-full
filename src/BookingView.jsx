@@ -330,7 +330,7 @@ export default function BookingView({ trainees }) {
           control on pale cyan. Third instance of that bug today (the dashboard
           and plan-editor chevrons were the other two), and this one survived
           because /coach/calendar was not in the light/dark sweep's routes. */}
-      <CollapsibleSection title={tt('Weekly Availability')} count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
+      <CollapsibleSection title={tt('Availability')} count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
         right={<button onClick={addRule}
           style={{ ...stripBtnBase, border: '1px solid var(--c-stripTx)', color: 'var(--c-stripTx)' }}>{tb('+ ADD RULE')}</button>}>
         {/* WHAT THE CALENDAR ALREADY OWNS. The rules say when he CAN be booked;

@@ -217,7 +217,9 @@ export default function RevenueSheetCard() {
   if (months === null || events === null) return null;
   if (!months.length && !events.length) return null;
 
-  const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '7px 10px', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'normal', lineHeight: 1.25 };
+  // one row per header (27.9 #328 gate: 11 headers broke onto 2-3 rows at 390);
+  // the table scrolls sideways in its ScrollFade instead
+  const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '7px 10px', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap', lineHeight: 1.25 };
   const td = { fontFamily: FB, fontSize: 13, color: C.tx, padding: '7px 10px', borderBottom: `1px solid ${C.divider || C.cardBd}` };
   const totalPayments = clients.reduce((a, c) => a + c.payments.length, 0);
   const totalSessions = clients.reduce((a, c) => a + c.sessions, 0);

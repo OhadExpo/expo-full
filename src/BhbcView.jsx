@@ -203,7 +203,7 @@ const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: 
 // sites instead would guarantee one gets missed.
 function SecTitleEl({ s }) {
   const tr = useT();
-  return <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{typeof s === 'string' ? tr(s) : s}</span>;
+  return <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{typeof s === 'string' ? tr(s) : s}</span>;
 }
 const secTitle = (s) => <SecTitleEl s={s} />;
 
@@ -2065,9 +2065,13 @@ function GameLineModal({ line, onClose }) {
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>
           {[`${dow(line.date)} ${ddmm(line.date)}`, line.comp ? tr(COMP_SHORT[line.comp] || line.comp) : null, line.home == null ? null : tr(line.home ? 'Home' : 'Away'), b.starter ? tr('Starter') : null].filter(Boolean).join(' · ')}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
-          {tiles.map(([k, val, sub]) => (
-            <div key={k.short} style={{ background: 'var(--c-sf)', padding: '9px 10px', minWidth: 0 }}>
+        {/* hairlines are each cell's own border, not 1px of background showing
+            through a gap: at 360 the columns are 75.5px wide, so the gaps sat
+            on half pixels and every line drew at a different weight (#300 O5).
+            Borders snap to whole pixels. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}` }}>
+          {tiles.map(([k, val, sub], ti) => (
+            <div key={k.short} style={{ background: 'var(--c-sf)', padding: '9px 10px', minWidth: 0, borderInlineStart: ti % 4 ? `1px solid ${C.cardBd}` : 'none', borderTop: ti >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
               {/* numbers and +/- are LTR runs inside an RTL cell: isolated, or
                   Hebrew shows "-/+" and "12-" (27.9 LOOK at 360 he) */}
               {k.short === '+/-'
@@ -2282,7 +2286,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             </div>
           );
         })()}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+        <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {/* The biggest numbers on the card were three em-dashes for anyone whose
               history is gym-only: BHBC gym sessions are minutes with NO sRPE by
               design, so ACWR is genuinely undefined - but a bare dash reads as a
@@ -2338,7 +2342,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           if (!ms.weekLoad) return null;
           const monC = ms.monotony == null ? C.tx : ms.monotony >= 2.5 ? '#DE4E3B' : ms.monotony >= 2 ? '#E0A73A' : '#37B27C';
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+            <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
               {[['Week load', ms.weekLoad ? Math.round(ms.weekLoad).toLocaleString() : '—', C.tx], ['Monotony', ms.monotony != null ? ms.monotony.toFixed(2) : '—', monC], ['Strain', ms.strain != null ? Math.round(ms.strain).toLocaleString() : '—', C.td]].map(([k, v, c]) => (
                 <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
                   <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{k}</div>
@@ -2405,7 +2409,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             // row is full; with an odd count that neither fills, ALL takes the
             // whole first row and the kinds fill two columns under it.
             (() => { const n = kindChips.length + 1; const cols = n <= 3 ? n : n % 3 === 0 ? 3 : n % 2 === 0 ? 2 : 2; const allSpan = n > 3 && n % 3 !== 0 && n % 2 !== 0; return (
-            <div className="bhbc-hist-chips" data-allspan={allSpan ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
+            <div className="bhbc-hist-chips hl-grid" data-allspan={allSpan ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
               {['all', ...kindChips].map((k) => {
                 const on = effKind === k;
                 return (
@@ -2924,7 +2928,11 @@ function TravelStrip({ travel }) {
       <React.Fragment key={dir}>
         <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr(dir)}</span>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{d}{!l.tbd && l.dep ? ` · ${l.dep}` : ''}</span>
-        <span style={{ fontFamily: FN, fontSize: 11, color: C.td, minWidth: 0 }}>{l.tbd ? zoneT('TBD') : `${l.label} · ${l.flight}`}</span>
+        {/* where: on a phone its own row under the date (beside it, 150px
+            broke "TEL AVIV → BARCELONA ·" from its flight number and left the
+            dot hanging - 27.9 #300); it may only break between the route and
+            the flight, and the dot travels with the flight */}
+        <span className="bhbc-leg-where" style={{ fontFamily: FN, fontSize: 11, color: C.td, minWidth: 0 }}>{l.tbd ? zoneT('TBD') : <><span style={{ whiteSpace: 'nowrap' }}>{l.label}</span>{l.flight ? <>{' '}<span style={{ whiteSpace: 'nowrap' }}>{'· '}<bdi dir="ltr">{l.flight}</bdi></span></> : null}</>}</span>
       </React.Fragment>
     );
   };
@@ -4098,7 +4106,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
             ))}
             <span />
           </div>
-          <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
+          <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
             {sort.rows.map(({ t, cells, since, last, todayCode, went, owed }) => (
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
@@ -4301,7 +4309,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
               ))}
               <span />
             </div>
-            <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
+            <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {sort.rows.map(({ t, cells, since, last, todayCode }) => (
                 // A table row is never under 36 (24.9).
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
@@ -5322,8 +5330,8 @@ function ScheduleWeek({ fixtures, today }) {
   (fixtures || []).forEach((f) => { (byDate[f.date] = byDate[f.date] || []).push(f); });
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d; });
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
+    <div style={{ overflowX: 'auto', height: '100%' }}>
+      <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6, height: '100%' }}>
         {days.map((d) => {
           const di = isoOf(d); const isToday = di === today;
           const items = (byDate[di] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));   // a slot with no start time must not take the card down (#305 N-F2)
@@ -5389,14 +5397,17 @@ function ScheduleMonth({ fixtures, today }) {
     );
   };
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <div className="bhbc-cal-wrap" style={{ minWidth: 620 }}>
+    // fills the shared cell: the three views share the TALLEST one's height (so
+    // switching never jumps), and the month used to sit at the top of it with
+    // an empty band under the grid (27.9 #300, his #341 rule) - its weeks grow
+    <div style={{ overflowX: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="bhbc-cal-wrap" style={{ minWidth: 620, flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 14, color: C.tx, marginBottom: 8, letterSpacing: '0.02em' }}>{monFor(m, MON[m])} {y}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', marginBottom: 4 }}>
           {DOW.map((d, i) => <div key={d} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, textAlign: 'center', padding: '4px 0' }}>{dowIdxFor(i, d)}</div>)}
         </div>
-        <div style={{ borderTop: '1px solid var(--c-bd)', borderInlineStart: '1px solid var(--c-bd)' }}>
-          {weeks.map((week, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>{week.map(cell)}</div>)}
+        <div style={{ borderTop: '1px solid var(--c-bd)', borderInlineStart: '1px solid var(--c-bd)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {weeks.map((week, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', flex: 1 }}>{week.map(cell)}</div>)}
         </div>
       </div>
     </div>
@@ -6311,7 +6322,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   const rowOpens = canMedical || !!onOpen;
   return (
     <>
-      <Card padding={14} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? tr('Ohad + PT') : tr('view only')}</span>}>
+      <Card padding={14} leftStripe={ORANGE} header={secTitle('Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? tr('Ohad + PT') : tr('view only')}</span>}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 22 }}>
           {/* colour only the exceptions (#305 E1): cleared is the normal state, so it
               takes the plain ink; limited takes the legible amber token, the raw
@@ -6455,44 +6466,17 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
 
       {/* NO RETURN-TO-PLAY IN THE CLUB ZONE (27.9, Ohad: "remove completely all rtp everywhere on bhbc"). */}
 
-      {/* CONCUSSION — a different framework, deliberately its own section.
-          The ladder above is a LOAD progression for soft tissue: offload, restore
-          range, re-load. A head injury does not work that way, and running a
-          concussion up that ladder is the wrong management. This is the graduated
-          return-to-sport strategy (Concussion in Sport Group consensus): each step
-          at least 24 hours, symptom-limited, and the step into contact is a
-          MEDICAL decision, never the coach's and never this screen's. Collapsed by
-          default - it is reference, not a daily read. */}
-      <CollapsibleSection title={tr("Concussion — Graduated Return to Sport")} storageKey="bhbc-concussion" defaultOpen={false} leftStripe="#DE4E3B">
-        <div style={{ display: 'grid', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
-          {[
-            ['1', tr('Symptom-limited activity'), tr('Daily activities that do not provoke symptoms. No training.')],
-            ['2', tr('Light aerobic'), tr('Walking or stationary bike, low intensity. No resistance training.')],
-            ['3', tr('Sport-specific'), tr('Running and court movement, alone. No head-impact activity.')],
-            ['4', tr('Non-contact drills'), tr('Harder drills, passing, change of direction. Resistance training may resume.')],
-            ['5', tr('Full-contact practice'), tr('Only after written medical clearance. Normal training activities.')],
-            ['6', tr('Return to play'), tr('Normal game play.')],
-          ].map(([n, stage, detail]) => (
-            <div key={n} className="bhbc-rtp-row" style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
-              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: '#DE4E3B', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'break-word' }}>{stage}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'break-word' }}>{detail}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Pacing')}</span>
-            {tr('At least 24 hours per step. If symptoms come back, go back one step and try again after 24 hours symptom-free.')}
-          </div>
+      {/* CONCUSSION RED FLAGS ONLY (27.9 #312, Ohad: "remove completely all rtp
+          everywhere on bhbc"). The graduated return-to-sport ladder that lived
+          here was a return-to-play screen and has gone, with its pacing and its
+          clearance steps. The emergency referral signs stay: they are not a
+          return-to-play plan, and a head injury still needs them in reach.
+          Collapsed by default - reference, not a daily read. */}
+      <CollapsibleSection title={tr('Concussion red flags')} storageKey="bhbc-concussion" defaultOpen={false} leftStripe="#DE4E3B">
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginInlineEnd: 8 }}>{tr('Refer out')}</span>
             {tr('Deteriorating consciousness · repeated vomiting · seizure · worsening headache · neck pain · weakness or tingling · out-of-character behaviour — emergency assessment, same day.')}
           </div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>
-            {tr('Steps 5 and 6 need medical clearance. This screen tracks the plan; it does not clear anyone to play.')}
-          </div>
-        </div>
       </CollapsibleSection>
 
     </>
@@ -6643,7 +6627,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
           {/* hairlines BETWEEN the four cells too (26.9, Ohad: "no borders
               between each of them ... i need some type of inside border"): a
               1px gap over the border colour draws every inner line once */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+          <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
             {Object.entries(MED_STATUS).map(([k, s]) => (
               <button key={k} type="button" data-dirties onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'var(--c-sf)', border: 'none', padding: '0 14px', cursor: 'pointer' }}>{tr(s.label)}</button>
             ))}

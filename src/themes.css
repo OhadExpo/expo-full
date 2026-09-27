@@ -1392,8 +1392,12 @@ html.theme-switching *::after {
 .rail-scroll::-webkit-scrollbar{display:none}
 
 /* Portals (modals, drawers, the Training Analysis overlay) mount on <body>, outside
-   .app-root[dir]. BodyLang marks the body with the coach app's language. */
-body[data-lang="he"] > :not(#root) { direction: rtl; }
+   .app-root[dir]. BodyLang marks the body with the coach app's language.
+   A portal that declares its OWN direction keeps it (27.9 #300): the Shot
+   Analyzer's stage is a body child with dir="ltr" when the tool is in English,
+   and this rule out-ranked the attribute - the English tool came out mirrored
+   (".YOU WILL", "TORSO 0.09", the controls right to left). */
+body[data-lang="he"] > :not(#root):not([dir]) { direction: rtl; }
 
 /* ── TAP TARGETS ON A PHONE ────────────────────────────────────────────────
    Ohad, 21.9, after the OCD sweep counted them: "fix everything".
@@ -1734,4 +1738,23 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { line-height: 14px; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj] { font-size: 13px !important; line-height: 16px; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { height: 16px; }
+}
+
+/* HAIRLINE GRIDS (27.9 #300 O1/O5). A 1px gap over a coloured background
+   draws the line wherever the two neighbouring cells' snapped edges leave it:
+   on fractional columns (75.5px) or rows at a fractional page offset that is
+   0, 1 or 2px, so a grid's lines came out in different weights. Each line is
+   now a cell's own border, which snaps to one whole pixel. Tile grids: every
+   cell draws its top + start edge and is pulled 1px back over its neighbour;
+   the container clips the first row's and column's, and its own border is
+   the outer edge. Row lists: every row after the first draws its top. */
+.hl-grid { gap: 0 !important; background: var(--c-sf) !important; overflow: hidden; }
+.hl-grid > * { border-top: 1px solid var(--c-cardBd) !important; border-inline-start: 1px solid var(--c-cardBd) !important; margin-top: -1px; margin-inline-start: -1px; }
+.hl-rows { gap: 0 !important; }
+.hl-rows > * + * { border-top: 1px solid var(--c-cardBd); }
+
+/* A trip leg on a phone: direction + when on one row, where on the row under
+   it, starting under the date (27.9 #300). */
+@media (max-width: 480px) {
+  .bhbc-leg-where { grid-column: 2 / -1; }
 }

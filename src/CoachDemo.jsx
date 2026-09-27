@@ -305,7 +305,7 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           isolation belongs on the numeral, not on the box: the box now
           inherits the page direction and aligns with its own label. */}
       <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
-        <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' }}>
+        <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: 'nowrap' }}>
           {value}
           {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
         </span>
@@ -374,9 +374,10 @@ function DemoDashboard({ onJumpToTrainee }) {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
         gap: 10, marginBottom: 20,
       }}>
-        <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
+        {/* every tile carries a caption, as the real dashboard's do (27.9 #300 O9) */}
+        <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
         <StatCard label={T('Low Sessions')} value={String(lowSessions.length)} sub={T('≤ 2 LEFT')} accent={C.or} />
-        <StatCard label={T('Estimated Monthly')} value={nis(mrr)} accent={C.ac} />
+        <StatCard label={T('Estimated Monthly')} value={nis(mrr)} sub={T('Recurring committed')} accent={C.ac} />
         <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
       </div>
 
@@ -4179,10 +4180,11 @@ function DemoGroupFloor() {
       {/* Floor bar */}
       <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>{T('ON THE FLOOR ·')}{Object.values(checkedIn).filter(Boolean).length}/{roster.length} {T('CHECKED IN')}</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11 }}>+ {tr(readLang(), 'ADD')}</button>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11 }}>■ {tr(readLang(), 'FINISH')}</button>
+          {/* one row at 390 (27.9 #328 gate): the lead words step aside where they would not fit */}
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN, whiteSpace: 'nowrap' }}><SegWord full={`${T('ON THE FLOOR ·')}${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} short={`${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} /></span>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>+ {tr(readLang(), 'ADD')}</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>■ {tr(readLang(), 'FINISH')}</button>
           </div>
         </div>
       </div>
@@ -4673,8 +4675,8 @@ function DemoBilling() {
       </div>
       {panel(<>
         <div style={stripH}>
-          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, whiteSpace: 'nowrap' }}><SegWord full={<>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</>} short={<>{T('Requests')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{pending.length}</span>}</>} /></span>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10, whiteSpace: 'nowrap', flexShrink: 0 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
         </div>
         <div>
           {DEMO_PAYMENTS.map(p => {
