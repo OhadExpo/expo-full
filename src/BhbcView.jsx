@@ -11,7 +11,7 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
-import React, { useMemo, useState, useEffect, useCallback, lazy } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, confirmToast, usePersistentState, useEdgeFade } from './ui';
 import { ThemeToggle } from './ThemeToggle';
@@ -1743,6 +1743,30 @@ function BarChart({ series, w = 460, h = 88 }) {
 // the online league stats"). Every number the league publishes for the player,
 // read from the row the box-score logger wrote (or the league feed's line).
 // Nothing is computed that the source did not give, except shooting %.
+// FULL WORD FIRST, THE SHORT FORM ONLY WHEN IT WOULD OVERFLOW (27.9, Ohad:
+// "תשתדל להשתמש במילים מלאות אם זה נכנס בלי לגלוש"). Same font size either
+// way - only the wording changes (his 04:12 rule). Measured on mount and on
+// every resize: the cell decides, not a guess about the device.
+function FullOrShort({ full, short, style }) {
+  const ref = useRef(null);
+  const [useShort, setUseShort] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el || !short || short === full) return undefined;
+    const check = () => {
+      el.textContent = full;
+      const over = el.scrollWidth > el.clientWidth + 0.5;
+      el.textContent = over ? short : full;
+      setUseShort(over);
+    };
+    check();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    if (ro) ro.observe(el);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(check).catch(() => {});
+    return () => { if (ro) ro.disconnect(); };
+  }, [full, short]);
+  return <div ref={ref} title={useShort ? full : undefined} style={{ ...style, whiteSpace: 'nowrap', overflow: 'hidden', minWidth: 0 }}>{useShort ? short : full}</div>;
+}
+
 // the competition's short name for one-row lines (a title fits by wording)
 const COMP_SHORT = { 'Winner Cup': 'Cup', 'Winner League': 'League', 'Premier League': 'League', 'State Cup': 'Cup' };
 function GameLineModal({ line, onClose }) {
@@ -1757,12 +1781,14 @@ function GameLineModal({ line, onClose }) {
   // fitting/overlaying"): "TURNOVERS" at 9px ran 20px past a quarter of a 390
   // phone into BLOCKS. The league card above already reads PTS / REB / AST /
   // MIN, so the full line uses the same words, and every label fits its cell.
+  // [full word, short form, value, sub]: the full word wherever it fits
+  const L = (full, short) => ({ full: tr(full), short: tr(short) });
   const tiles = [
-    [tr('MIN'), v(line.min ?? b.min)], [tr('PTS'), v(b.pts)], [tr('PIR'), v(b.pir)], ['+/-', v(b.pm)],
-    ['FG', fg ? `${fg.m}/${fg.a}` : '—', fg ? pct(fg) : ''], ['2P', fg2 ? `${fg2.m}/${fg2.a}` : '—', fg2 ? pct(fg2) : ''],
-    ['3P', fg3 ? `${fg3.m}/${fg3.a}` : '—', fg3 ? pct(fg3) : ''], ['FT', ft ? `${ft.m}/${ft.a}` : '—', ft ? pct(ft) : ''],
-    [tr('OREB'), v(b.oreb)], [tr('DREB'), v(b.dreb)], [tr('REB'), v(b.reb)], [tr('AST'), v(b.ast)],
-    [tr('STL'), v(b.stl)], [tr('TO'), v(b.to)], [tr('BLK'), v(b.blk)], [tr('PF'), v(b.pf)],
+    [L('Minutes', 'MIN'), v(line.min ?? b.min)], [L('Points', 'PTS'), v(b.pts)], [L('PIR', 'PIR'), v(b.pir)], [L('+/-', '+/-'), v(b.pm)],
+    [L('FG', 'FG'), fg ? `${fg.m}/${fg.a}` : '—', fg ? pct(fg) : ''], [L('2P', '2P'), fg2 ? `${fg2.m}/${fg2.a}` : '—', fg2 ? pct(fg2) : ''],
+    [L('3P', '3P'), fg3 ? `${fg3.m}/${fg3.a}` : '—', fg3 ? pct(fg3) : ''], [L('FT', 'FT'), ft ? `${ft.m}/${ft.a}` : '—', ft ? pct(ft) : ''],
+    [L('Off. reb', 'OREB'), v(b.oreb)], [L('Def. reb', 'DREB'), v(b.dreb)], [L('Rebounds', 'REB'), v(b.reb)], [L('Assists', 'AST'), v(b.ast)],
+    [L('Steals', 'STL'), v(b.stl)], [L('Turnovers', 'TO'), v(b.to)], [L('Blocks', 'BLK'), v(b.blk)], [L('Fouls', 'PF'), v(b.pf)],
   ];
   return (
     <BModal open onClose={onClose} title={<>{line.opp ? `${tr('vs')} ${line.opp}` : tr('Game')}<span className="bm-lead"> · {monDay(line.date)}</span></>}>
@@ -1776,10 +1802,12 @@ function GameLineModal({ line, onClose }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {tiles.map(([k, val, sub]) => (
-            <div key={k} style={{ background: 'var(--c-sf)', padding: '9px 10px', minWidth: 0 }}>
+            <div key={k.short} style={{ background: 'var(--c-sf)', padding: '9px 10px', minWidth: 0 }}>
               {/* numbers and +/- are LTR runs inside an RTL cell: isolated, or
                   Hebrew shows "-/+" and "12-" (27.9 LOOK at 360 he) */}
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}><bdi dir={k === '+/-' ? 'ltr' : undefined}>{k}</bdi></div>
+              {k.short === '+/-'
+                ? <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}><bdi dir="ltr">+/-</bdi></div>
+                : <FullOrShort full={k.full} short={k.short} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }} />}
               <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}><bdi dir="ltr">{val}</bdi></div>
               {sub ? <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 1 }}>{sub}</div> : null}
             </div>

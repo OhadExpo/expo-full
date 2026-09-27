@@ -83,8 +83,13 @@ export function throttleWhatsAppTasks(rows) {
       // Body becomes a combined summary. Preserve newest timestamp +
       // strongest pin so the merged card floats correctly.
       const sources = seed.__sources;
-      seed.body = `Reach out to ${bidi(seed.target_label || 'trainee')} · ${sources.length} reasons:\n` +
-        sources.map(s => `• ${AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind}`).join('\n');
+      // THE SAME TWO LINES AS EVERY OTHER ALERT (27.9, Ohad: "for occasions like
+      // yoav shamri and solomon I need better layout. ruling"): the action, an
+      // em dash, then the reasons - so the card renders "Reach out to X" over
+      // "week skipped · at risk" exactly like "Call X" over "skipped W4 of
+      // Block #27", instead of one wrapped bullet sentence.
+      seed.body = `Reach out to ${bidi(seed.target_label || 'trainee')} — ` +
+        sources.map(s => String(AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind).toLowerCase()).join(' · ');
       seed.pinned = seed.pinned || r.pinned;
       seed.auto_kind = 'whatsapp_combined';
       // Keep the most-recent created_at so the sort places the merged

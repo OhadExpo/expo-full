@@ -26,6 +26,9 @@ const reasonsHe = (block) => block.split(String.fromCharCode(10)).map((l) => l.r
 const RULES = [
   [new RegExp(`^Build ${N} for ${N}$`), (m) => `לבנות ${m[1]} ל${m[2]}`],
   [new RegExp(`^Call ${N} — skipped W(\\d+) of ${N}$`), (m) => `להתקשר ל${m[1]} — דילג על שבוע ${m[2]} ב-${m[3]}`],
+  // the merged outreach card (27.9): "Reach out to X — week skipped · at risk"
+  [new RegExp(`^Reach out to ${N} — ([a-z ]+(?: · [a-z ]+)*)$`),
+    (m) => `ליצור קשר עם ${m[1]} — ` + m[2].split(' · ').map((r) => KIND_HE[r.trim().toUpperCase()] || r).join(' · ')],
   [new RegExp(`^Reach out to ${N} — (.+?), (.+)$`), (m) => `ליצור קשר עם ${m[1]} — ${quiet(m[2])}, ${quiet(m[3])}`],
   [new RegExp(`^Reach out to ${N} · (\\d+) reasons:\\n([\\s\\S]+)$`),
     (m) => `ליצור קשר עם ${m[1]} · ${m[2] === '2' ? 'שתי סיבות' : `${m[2]} סיבות`}:` + String.fromCharCode(10) + reasonsHe(m[3])],
