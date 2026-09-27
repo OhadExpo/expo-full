@@ -139,6 +139,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
     <CollapsibleSection
       bare
       title={tt('WEEKLY FOCUS · NO UPLOAD NEEDED')}
+      titleShort={tt('WEEKLY FOCUS')}
       storageKey="review-weekly-focus"
       defaultOpen={false}
       right={saveBadge}

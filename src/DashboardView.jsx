@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton, useEdgeFade } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton, useEdgeFade, SegWord } from './ui';
 import { traineeIdsFor, parseTraineeId } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -586,11 +586,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           there is room. Two rows of two is order; three and a stray is not. */}
       <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
         {[
-          { label: tt('Active Athletes'), short: he ? null : 'Athletes', value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
-          { label: tt('Low Sessions'), short: he ? 'מעט אימונים' : null, value: unknown(trainees) ? '—' : lowSessions, color: lowSessions > 0 ? C.or : C.gn },
+          { label: tt('Active Athletes'), short: he ? null : 'Athletes', value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, sub: tt('Active / roster'), subColor: C.td, color: C.gn },
+          { label: tt('Low Sessions'), short: he ? 'מעט אימונים' : null, value: unknown(trainees) ? '—' : lowSessions, sub: tt('2 or fewer sessions left'), subShort: tt('≤2 sessions left'), subColor: C.td, color: lowSessions > 0 ? C.or : C.gn },
           // Money KPIs — owner-only.
           ...(isOwner ? [
-            { label: tt('Estimated Monthly'), short: he ? null : 'Est. Monthly', value: unknown(trainees) ? '—' : `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+            { label: tt('Estimated Monthly'), short: he ? null : 'Est. Monthly', value: unknown(trainees) ? '—' : `₪${monthlyRate.toLocaleString()}`, sub: tt('Recurring committed'), subShort: tt('Recurring'), subColor: C.td, color: C.ac },
             // Label shortened from "Collected This Month" → "Collected MTD"
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
@@ -600,7 +600,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // With no app-marked money this month, the finance sheet's coaching total is the figure.
             (thisMonthPaid === 0 && sheet)
               ? { label: tt('Collected MTD'), short: he ? null : 'Collected', value: `₪${Math.round(sheet.thisMonth).toLocaleString()}`, sub: tt('From the sheets'), subColor: C.td, color: sheet.thisMonth > 0 ? C.gn : C.td }
-              : { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+              : { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : tt('Marked in the app'), subShort: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}%` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -643,7 +643,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   box, which read as a stray sentence rather than a caption on the
                   number. Tighter to the number, one notch smaller, wider tracking so it
                   reads as a caption, and it can never wrap to two lines in a 178px card. */}
-              {s.sub && <div style={{ fontSize: 9, fontFamily: FN, color: s.subColor, marginTop: 2, letterSpacing: '0.1em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.sub}</div>}
+              {s.sub && <div style={{ display: 'flex', fontSize: 9, fontFamily: FN, color: s.subColor, marginTop: 2, letterSpacing: '0.1em', lineHeight: 1.2, whiteSpace: 'nowrap', textTransform: 'uppercase', justifyContent: 'flex-start' }}><SegWord full={s.sub} short={s.subShort || s.sub} /></div>}
             </div>
           );
         })}
@@ -661,10 +661,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             right={<span className="strip-meta" style={{ fontSize: 10, fontFamily: FN, color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{tt('VISITS in Vercel Analytics')}</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
-                { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
+                { label: tt('CHAT SESSIONS'), value: funnel.sessions, color: refined ? C.tx : C.tm },
                 { label: tt('MESSAGES SENT'), value: funnel.messages, color: refined ? C.tx : C.tm },
-                { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
-                { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
+                { label: tt('EMAIL CAPTURES'), value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
+                { label: tt('WAITLIST'), value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
               ].map((s, i) => (
                 <div key={i} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
@@ -1042,12 +1042,16 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('MRR (ACTIVE)')}</span>
             <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>
-            <span style={subStyle}>{tt('Recurring committed')}</span>
+            <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap' }}><SegWord full={tt('Recurring committed')} short={tt('Recurring')} /></span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH' : '30D COLLECTED'))}</span>
             <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {sheet && <span style={{ ...subStyle, color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null ? tt('Synced from the sheet twice a day') : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}` : sheet.syncAgeH < 1 ? tt('Synced from the sheet just now') : tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))}</span>}
+            {sheet && <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap', color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null
+              ? <SegWord full={tt('Synced from the sheet twice a day')} short={tt('Synced twice a day')} />
+              : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}`
+              : sheet.syncAgeH < 1 ? <SegWord full={tt('Synced from the sheet just now')} short={tt('Synced just now')} />
+              : <SegWord full={tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))} short={tt('Synced {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))} />}</span>}
             {!sheet && delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
@@ -1073,12 +1077,12 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG LTV')}</span>
             <span style={numStyle}>{paymentsUnknown || avgLtv === 0 ? '—' : `₪${avgLtv.toLocaleString()}`}</span>
-            <span style={subStyle}>{avgLtv === 0 && !paymentsUnknown ? tt('No payments marked in the app') : tt('Per paying client')}</span>
+            <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap' }}>{avgLtv === 0 && !paymentsUnknown ? <SegWord full={tt('No payments marked in the app')} short={tt('None in the app')} /> : tt('Per paying client')}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG TICKET')}</span>
             <span style={numStyle}>{paymentsUnknown || avgTicket === 0 ? '—' : `₪${avgTicket.toLocaleString()}`}</span>
-            <span style={subStyle}>{avgTicket === 0 && !paymentsUnknown ? tt('No payments marked in the app') : tt('Per payment row')}</span>
+            <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap' }}>{avgTicket === 0 && !paymentsUnknown ? <SegWord full={tt('No payments marked in the app')} short={tt('None in the app')} /> : tt('Per payment row')}</span>
           </div>
         </div>
 

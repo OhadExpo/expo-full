@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile } from './ui';
+import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
@@ -481,11 +481,14 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             </colgroup>
             <thead>
               <tr>
-                {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements'], ['primaryMuscles', 'Primary Muscles'], ['secondaryMuscles', 'Secondary Muscles']].map(([k, l]) => {
+                {/* one row per header (27.9 #328 gate: the three right-hand
+                    headers broke at 1440 in their 8-9% columns): the full label
+                    where it fits, the short one where it would wrap */}
+                {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements', 'Joint Actions'], ['primaryMuscles', 'Primary Muscles', 'Primary'], ['secondaryMuscles', 'Secondary Muscles', 'Secondary']].map(([k, l, ls]) => {
                   const active = sortKey === k;
                   return (
-                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
-                      {tt(l)}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: ls ? 'nowrap' : 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                      {ls ? <SegWord full={tt(l)} short={tt(ls)} /> : tt(l)}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   );
                 })}

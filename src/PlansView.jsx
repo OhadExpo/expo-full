@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -4701,6 +4701,22 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         .prog-reveal { animation: progReveal 0.38s cubic-bezier(0.22,0.61,0.36,1) both; transform-origin: top; }
         @media (prefers-reduced-motion: reduce) { .prog-reveal { animation: none; } }
         @media (max-width: 620px) { .prog-actions .prog-spacer { display: none !important; } }
+        /* PHONE: THE DEMO'S ROW (27.9 #300). The five actions wrapped as a
+           flex row - PORTAL, PREVIEW, DUPLICATE, then SHARE and DELETE on a
+           second line under none of the first line's items, a 24px band
+           between. Now: the PORTAL toggle owns the first row, the four text
+           actions share the second, first and last on the card's edges - the
+           layout the demo already had. The 96px phone minimum on each text
+           action (4 x 96 > the card) gives way here. */
+        @media (max-width: 620px) {
+          .prog-actions { display: flex !important; flex-wrap: wrap !important; justify-content: space-between !important; column-gap: 8px !important; row-gap: 4px !important; align-items: center; }
+          .prog-actions > :not(.prog-txtbtn):not(.prog-spacer) { flex: 0 0 100%; justify-content: flex-start; }
+          .prog-actions .prog-txtbtn { min-width: 0 !important; }
+          /* tb() reserves the other language's width and centres the word in
+             it - "Preview" sat 11px in from the card edge (pixel-measured, the
+             box said 0). Spread edge to edge, the reserve only misaligns. */
+          .prog-actions .prog-txtbtn [aria-hidden="true"] { display: none; }
+        }
         /* Mobile: stack the rail ABOVE the list (full-width each) instead of a
            fixed 210px side column that crushes the cards off-screen (Ohad — mobile
            fit). The rail's athlete list already scrolls inside its own maxHeight. */
@@ -4803,7 +4819,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <BhbcBadge tid={row.tid} trainees={trainees} />
-                    <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('NO PROGRAM ASSIGNED')}</div>
+                    <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   </div>
                   {row.coupleMembers
                     ? row.coupleMembers.map(m => (
@@ -4949,7 +4965,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               return (
                 <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
                   <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div><BhbcBadge tid={row.tid} trainees={trainees} /></div>
-                  <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('No program assigned')}</div>
+                  <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   <div style={{flex:1}} />
                   {row.coupleMembers
                     ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (

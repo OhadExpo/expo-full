@@ -14,6 +14,7 @@ import { track } from '@vercel/analytics';
 import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import CoachChat from './CoachChat';
+import { SegWord } from './ui';
 
 // Vercel Analytics is no-op until it's enabled in the project dashboard, so
 // these track() calls are safe to ship before the dashboard is configured.
@@ -54,7 +55,7 @@ const STRINGS = {
   // Numbers are the real, already-public EXPO figures (same ones on
   // expo-il.co.il), framed as proof the platform runs live, not theory.
   'hero.stat1.num':      { en: '20+',  he: '20+' },
-  'hero.stat1.label':    { en: 'ATHLETES RUNNING LIVE', he: 'מתאמנים פעילים' },
+  'hero.stat1.label':    { en: 'ACTIVE ATHLETES', he: 'מתאמנים פעילים' },
   'hero.stat2.num':      { en: '90+',  he: '90+' },
   'hero.stat2.label':    { en: 'PROGRAMS BUILT', he: 'תוכניות שנבנו' },
   'hero.stat3.num':      { en: '500+', he: '500+' },
@@ -82,19 +83,19 @@ const STRINGS = {
     he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני.',
   },
   'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
-  'feat.prog.title':     { en: 'Block-based plan authoring', he: 'בניית תוכניות בבלוקים' },
+  'feat.prog.title':     { en: 'Block-based plans', he: 'בניית תוכניות בבלוקים' },
   'feat.prog.body': {
     en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx.',
     he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. ייבוא של הכל מ-xlsx בלחיצה.',
   },
   'feat.portal.tag':     { en: 'ATHLETE PORTAL',       he: 'פורטל מתאמנים' },
-  'feat.portal.title':   { en: 'Branded portal per athlete', he: 'פורטל אישי לכל מתאמן' },
+  'feat.portal.title':   { en: 'Branded portals', he: 'פורטל אישי לכל מתאמן' },
   'feat.portal.body': {
     en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in.',
     he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים.',
   },
   'feat.ops.tag':        { en: 'OPS',                  he: 'תפעול' },
-  'feat.ops.title':      { en: 'Dormant nudges via WhatsApp', he: 'תזכורות וואטסאפ למתאמנים ששקטו' },
+  'feat.ops.title':      { en: 'WhatsApp nudges', he: 'תזכורות בוואטסאפ' },
   'feat.ops.body': {
     en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record.",
     he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן.',
@@ -175,6 +176,7 @@ const STRINGS = {
   // home screen, and never reached the COACH demo at all, which is the thing
   // he is selling. The sticky bar now mirrors the desktop hero: coach first.
   'sticky.coach':        { en: 'SEE COACH VIEW',       he: 'הצד של המאמן' },
+  'sticky.coachShort':   { en: 'COACH VIEW',           he: 'הצד של המאמן' },
   'sticky.waitlist':     { en: 'WAITLIST →',           he: 'לרשימה ←' },
   'footer.line':         { en: '· COACHING PLATFORM · BUILT IN TEL AVIV · © {year} ALL RIGHTS RESERVED', he: '· פלטפורמת אימון · נבנה בתל אביב · © {year} כל הזכויות שמורות' },
   'footer.demo':         { en: 'DEMO',                 he: 'הדגמה' },
@@ -904,8 +906,8 @@ export default function CoachLanding({ lang = 'en' }) {
       }}>
         <a href="/demo/coach" style={{
           ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd2}`, padding: '0 14px', fontSize: 12,
-        }}>{t('sticky.coach')}</a>
+          border: `1px solid ${C.bd2}`, padding: '0 14px', fontSize: 12, whiteSpace: 'nowrap',
+        }}><SegWord full={t('sticky.coach')} short={t('sticky.coachShort')} /></a>
         <a href="#waitlist" style={{
           ...baseBtn, flex: 1, background: C.ac, color: '#000',
           padding: '0 14px', fontSize: 12,

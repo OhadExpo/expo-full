@@ -39,7 +39,8 @@ function QuestionSummary({ q, subs, rtl, tt }) {
   const none = subs.length - answered.length;
   const head = (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-      <div style={{ fontFamily: rtl ? FH : FB, fontSize: 14, fontWeight: 700, color: C.tx }}>{q.label}</div>
+      {/* his own form's question, word for word - it wraps, it is not reworded */}
+      <div data-allow-wrap="" style={{ fontFamily: rtl ? FH : FB, fontSize: 14, fontWeight: 700, color: C.tx }}>{q.label}</div>
       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>{answered.length} {tt('answers')}{none ? ` · ${none} ${tt('no answer')}` : ''}</span>
     </div>
   );
@@ -159,7 +160,7 @@ export default function IntakeResponses({ submissions = [], traineeNameFor }) {
               </select>
             </div>
             <div style={{ direction: rtl ? 'rtl' : 'ltr', border: `1px solid ${C.cardBd}` }}>
-              <div style={{ padding: '10px 12px', fontFamily: rtl ? FH : FB, fontSize: 15, fontWeight: 700, color: C.tx, borderBottom: `1px solid ${C.cardBd}` }}>{q.label}</div>
+              <div data-allow-wrap="" style={{ padding: '10px 12px', fontFamily: rtl ? FH : FB, fontSize: 15, fontWeight: 700, color: C.tx, borderBottom: `1px solid ${C.cardBd}` }}>{q.label}</div>
               {subs.map((s, i) => {
                 const v = s.payload?.[q.id];
                 return (

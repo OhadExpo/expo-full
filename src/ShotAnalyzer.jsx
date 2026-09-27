@@ -6,7 +6,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
 import { fmtNumericDate } from './dates';
-import { toast } from './ui';
+import { toast, SegWord } from './ui';
 import { captureShotFrames } from './shotCapture';
 import { preflightClip } from './clipPreflight';
 import { getCamera, stopStream } from './usePose';
@@ -387,6 +387,14 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
              one row. Wrapped, that invisible width landed at the head of the
              HEIGHT row and pushed it 87.6px in while HAND and SHOT sat at 14. */
           .shot-rescored { min-width: 0 !important; }
+          /* ONE ROW PER GROUP, EVERY CHIP ONE LINE (27.9 #300 O10): "FREE
+             THROW" and "MID-RANGE" broke onto two lines at 390. Each group is
+             the same grid - a label column and four equal cells - so AUTO
+             sits over AUTO, and a chip whose full word would not fit its cell
+             shows the court's short form (FT / MID / 3PT) at the same size. */
+          .shot-ctl-group { display: grid !important; grid-template-columns: 64px repeat(4, minmax(0, 1fr)); column-gap: 8px !important; width: 100%; }
+          .shot-ctl-group > button { min-width: 0; padding: 0 6px !important; }
+          .shot-ctl-group > input { width: 100% !important; }
           .shot-rescored[data-on="0"] { display: none !important; }
         }
       `}</style>
@@ -413,7 +421,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <button
           onClick={() => { setHandMode('auto'); try { localStorage.setItem(HAND_KEY, 'auto'); } catch { /* private mode */ } const h = detectedHand || 'R'; rescore(h, stature, shotType); }}
           title={T.handHint}
-          style={chip(handMode === 'auto')}>{T.auto || 'AUTO'}{handMode === 'auto' && detectedHand ? ` · ${detectedHand === 'L' ? T.left : T.right}` : ''}</button>
+          style={chip(handMode === 'auto')}><SegWord full={`${T.auto || 'AUTO'}${handMode === 'auto' && detectedHand ? ` · ${detectedHand === 'L' ? T.left : T.right}` : ''}`} short={T.auto || 'AUTO'} /></button>
         {/* When AUTO has picked a side, light that side up as well. Ohad: "when
             the auto hand picker chooses a hand i want the r/l hand in that menu
             to be hilighted like i manually chose it". The reading is already
@@ -434,7 +442,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           <button key={k}
             onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } rescore(k, stature, shotType); }}
             title={T.handHint}
-            style={chip(handMode === k || (handMode === 'auto' && hand === k))}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
+            style={chip(handMode === k || (handMode === 'auto' && hand === k))}><SegWord full={`${label}${handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}`} short={label} /></button>
         ))}
         </span>
         <span className="shot-ctl-group" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
@@ -447,7 +455,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           <button key={t.key}
             onClick={() => { setShotMode('manual'); setShotType(t.key); try { localStorage.setItem(SHOTMODE_KEY, 'manual'); localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } rescore(hand, stature, t.key); }}
             title={T.shotHint}
-            style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}{shotMode === 'auto' && detectedShot === t.key ? ' · AUTO' : ''}</button>
+            style={chip(shotType === t.key)}><SegWord full={`${(T.shotTypes[t.key] || t.label).toUpperCase()}${shotMode === 'auto' && detectedShot === t.key ? ' · AUTO' : ''}`} short={((T.shotTypesShort || {})[t.key] || T.shotTypes[t.key] || t.label).toUpperCase()} /></button>
         ))}
         </span>
         <span className="shot-rescored" data-on={rescored ? '1' : '0'} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#37B27C',
@@ -962,10 +970,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               second, so the eye reads it in the same order the shot happens. */}
           <div style={{ ...lbl, marginTop: 10, marginBottom: 4 }}>{(T.measuredOnSide ? T.measuredOnSide(hand === 'L' ? T.left : T.right) : 'MEASURED ON THE SHOOTING SIDE · ' + (hand === 'L' ? 'LEFT' : 'RIGHT'))}</div>
           <div className="shot-readout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
-            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2) + (T.unitTorso || ' torso'), T.metricsHelp && T.metricsHelp.elbowOffset], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2) + (T.unitTorso || ' torso')), T.metricsHelp && T.metricsHelp.wristEye]].map(([k, v, help]) => (
+            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, [fmt(rd.wristElbowX, 2), (T.unitTorso || ' torso').trim()], T.metricsHelp && T.metricsHelp.elbowOffset], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : [(rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2), (T.unitTorso || ' torso').trim()]), T.metricsHelp && T.metricsHelp.wristEye]].map(([k, v, help]) => (
               <div key={k} className="shot-metric" title={help || undefined} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                 <div style={{ ...lbl, minHeight: 24, lineHeight: '12px' }}>{k}</div>
-                <div className="shot-metric-v" style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: '20px' }}>{v}</div>
+                {/* a unit word rides small after its number, on the same line
+                    ("0.08 TORSO" at 15px wrapped in a phone tile - 27.9 O10) */}
+                <div className="shot-metric-v" style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: '20px', whiteSpace: 'nowrap' }}>{Array.isArray(v)
+                  ? <><bdi dir="ltr">{v[0]}</bdi><span style={{ fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.55)', marginInlineStart: 4 }}>{v[1]}</span></>
+                  : v}</div>
               </div>
             ))}
           </div>

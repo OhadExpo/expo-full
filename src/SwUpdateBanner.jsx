@@ -111,7 +111,11 @@ export default function SwUpdateBanner() {
     const cameraActive = () => { try { return [...document.querySelectorAll('video')].some(v => v.srcObject instanceof MediaStream && !v.paused); } catch { return false; } };
     const uploadActive = () => { try { return (window.__expoUploadInFlight | 0) > 0; } catch { return false; } };
     const workoutActive = () => { try { return (window.__expoWorkoutActive | 0) > 0; } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive();
+    // A Google sign-in coming back (the token in the URL, or its boot copy not
+    // spent yet) is never a moment to reload: a reload there is one way the
+    // return gets lost (27.9 #346).
+    const signingIn = () => { try { return /access_token=|[?&]code=/.test(window.location.href) || !!window.sessionStorage.getItem('expo-oauth-hash'); } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || signingIn();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
     const onVis = () => { if (document.visibilityState === 'hidden' && !busy()) tryUpdate(); };

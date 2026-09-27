@@ -96,8 +96,8 @@ const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Focus', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
   { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 2700, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', ev: { vj: 45, bj: 210, dl: 120, bp: 65 }, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
   { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 2000, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', ev: { vj: 55, bj: 245, dl: 175, bp: 95 }, plans: ['Block #2 — Strength', 'Block #1 — Base'] },
   { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 1600, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', ev: { vj: 30, bj: 160, dl: 80,  bp: 40 }, plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
@@ -112,7 +112,7 @@ const MOCK_TRAINEES = [
 // the block-history actually swaps the editor pane (not just styling).
 const BLOCK_DATA = {
   'Block #4': {
-    title: 'Block #4 — Push/Pull Volume',
+    title: 'Block #4 — Push/Pull',
     when: 'WEEK 2 OF 4',
     warmup: [
       { t: 'Cat-Cow + Thread the Needle', rx: '8 each side' },
@@ -305,7 +305,7 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           isolation belongs on the numeral, not on the box: the box now
           inherits the page direction and aligns with its own label. */}
       <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
-        <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block' }}>
+        <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: 'nowrap' }}>
           {value}
           {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
         </span>
@@ -374,9 +374,10 @@ function DemoDashboard({ onJumpToTrainee }) {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
         gap: 10, marginBottom: 20,
       }}>
-        <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
+        {/* every tile carries a caption, as the real dashboard's do (27.9 #300 O9) */}
+        <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
         <StatCard label={T('Low Sessions')} value={String(lowSessions.length)} sub={T('≤ 2 LEFT')} accent={C.or} />
-        <StatCard label={T('Estimated Monthly')} value={nis(mrr)} accent={C.ac} />
+        <StatCard label={T('Estimated Monthly')} value={nis(mrr)} sub={T('Recurring committed')} accent={C.ac} />
         <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
       </div>
 
@@ -926,10 +927,12 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('No athlete matches your filters. Clear them to see the full roster.')}</div>
             </div>
           ) : (
-            <div style={{
+            <div className="cd-cards-grid" style={{
               display: 'grid', gap: 12,
               gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
             }}>
+              {/* the real card's phone rules (TraineesView CARD_MOBILE_CSS) */}
+              <style>{`@media (max-width: 700px){ .cd-cards-grid{ grid-template-columns: minmax(0,1fr) !important; } .cd-contact{ height: auto !important; } .cd-couple{ flex-direction: column !important; align-items: center !important; gap: 12px; } .cd-couple > .cd-couple-div{ width: 100% !important; height: 1px !important; margin: 0 !important; } .cd-card-actions{ margin-top: 18px !important; } .cd-slot{ min-height: 0 !important; } }`}</style>
               {filtered.map(t => (
                 <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
               ))}
@@ -973,7 +976,7 @@ function MiniBWSparkline({ weight }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-        style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
+        style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 16, flexShrink: 1 }}
         aria-hidden="true">
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -989,20 +992,22 @@ function MiniBWSparkline({ weight }) {
 
 // Card layout uses 4 labeled blocks: IDENTITY (who) · TRAINING (relationship)
 // · BODYWEIGHT (one living metric) · FINANCIALS (revenue risk). Each block
-// answers one scan question, separated by a thin hairline so the eye anchors
-// on labels rather than parsing a single dense row.
+// answers one scan question. Spaced exactly like the real card (18px, no
+// hairline - the demo alone had hairlines; 27.9 #300 O11 parity).
 
-function CardSection({ label, children, center = false, dense = false }) {
+function CardSection({ label, children, center = false, dense = false, slot = 0 }) {
   return (
-    <div style={{ marginTop: dense ? 8 : 12, paddingTop: dense ? 8 : 10, borderTop: `1px solid rgba(57,189,255,0.149)` }}>
+    <div style={{ marginTop: dense ? 8 : 18 }}>
       <div style={{
         fontFamily: FN, fontSize: 9, color: C.acText, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
       }}>{label}</div>
-      <div style={{
+      {/* slot: the height reserved so every card's next label sits on one line
+          across a grid row - the real card's FIN_SLOT / three training rows */}
+      <div className={slot ? 'cd-slot' : undefined} style={{
         display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center',
-        justifyContent: center ? 'center' : 'flex-start',
+        justifyContent: center ? 'center' : 'flex-start', minHeight: slot || undefined,
       }}>{children}</div>
     </div>
   );
@@ -1032,7 +1037,7 @@ function TrainingBlock({ t, center = false }) {
   // so neighbouring cards line up vertically.
   const justify = center ? 'center' : 'flex-start';
   return (
-    <CardSection label={T('Training')} center={center}>
+    <CardSection label={T('Training')} center={center} slot={56}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{T(t.format)}</span>
@@ -1067,18 +1072,29 @@ function FinancialsBlock({ t, center = false }) {
   if (t.monthly > 0) {
     items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>{TN('₪{n}/MO', t.monthly)}</span>);
   }
+  let dormant = null;
   if (t.dormantDays != null) {
-    items.push(<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{readLang() === 'he' ? 'רדום' : T('DORMANT')} · {TN('{n}D', t.dormantDays)}</span>);
+    dormant = (<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{readLang() === 'he' ? 'רדום' : T('DORMANT')} · {TN('{n}D', t.dormantDays)}</span>);
   }
-  if (items.length === 0) {
+  if (items.length === 0 && !dormant) {
     return (
-      <CardSection label={T('Financials')} center={center}>
+      <CardSection label={T('Financials')} center={center} slot={38}>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>{T('NOT BILLABLE')}</span>
       </CardSection>
     );
   }
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
-  return <CardSection label={T('Financials')} center={center}>{interleaved}</CardSection>;
+  // DORMANT is its own second line: joined with a dot it wrapped and left the
+  // dot hanging at the end of the money line, and pushed every label below it
+  // 4px off its neighbours' (27.9 #300 O11). Two lines reserved on every card.
+  return (
+    <CardSection label={T('Financials')} center={center} slot={38}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: center ? 'center' : 'flex-start', gap: 4 }}>
+        {items.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>{interleaved}</div>}
+        {dormant}
+      </div>
+    </CardSection>
+  );
 }
 
 function BodyweightBlock({ weight, center = false }) {
@@ -1091,6 +1107,19 @@ function BodyweightBlock({ weight, center = false }) {
         </div>
       </div>
     </CardSection>
+  );
+}
+
+// PORTAL / EDIT exactly as the real athlete card draws them (27.9 #300 O11).
+function DemoCardActions() {
+  const b = { background: 'var(--c-sf)', cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 };
+  return (
+    <div className="cd-card-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 132px))', justifyContent: 'center', marginTop: 'auto', paddingTop: 8, gap: 8 }}>
+      <button onClick={e => e.stopPropagation()} title={T("Preview this athlete's portal (demo only)")} style={{ ...b, border: `1px solid ${C.cardBd}`, color: C.tm }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{T('PORTAL')}
+      </button>
+      <button onClick={e => e.stopPropagation()} style={{ ...b, border: `1px solid ${C.ac}`, color: C.ac }}>{T('EDIT')}</button>
+    </div>
   );
 }
 
@@ -1120,7 +1149,7 @@ function TraineeCard({ t, onClick }) {
         <span style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}><DemoStatusMenu initial={t.status} /></span>
       </div>
       {/* 80px contact slot — WhatsApp / phone / email, centered. */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
+      <div className="cd-contact" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
         <FakeWaButton />
         {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{t.phone}</span></div>}
         <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: '100%' }}>{t.email}</div>
@@ -1128,13 +1157,7 @@ function TraineeCard({ t, onClick }) {
       <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
       <BodyweightBlock weight={t.weight} center />
-      {/* Bottom action row — PORTAL / EDIT (demo, mirrors the real card). */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 8, gap: 8 }}>
-        <button onClick={e => e.stopPropagation()} title={T("Preview this athlete's portal (demo only)")} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{T('PORTAL')}
-        </button>
-        <button onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('EDIT')}</button>
-      </div>
+      <DemoCardActions />
     </div>
   );
 }
@@ -1216,11 +1239,11 @@ function CoupleCard({ t, onClick }) {
       {/* 80px member contact slot — two columns, SAME height as the single card's
           contact slot so WhatsApp icons, phones, emails and every divider below
           line up flush across every card (Ohad: alignment rules). */}
-      <div style={{ display: 'flex', height: 80, paddingTop: 4, overflow: 'hidden', alignItems: 'stretch' }}>
+      <div className="cd-contact cd-couple" style={{ display: 'flex', height: 80, flexShrink: 0, overflow: 'hidden', alignItems: 'stretch' }}>
         {(parsed ? [parsed.a, parsed.b] : [t.name]).map((member, mi) => (
           <React.Fragment key={mi}>
-            {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' }}>
+            {mi === 1 && <div className="cd-couple-div" style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, textAlign: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', minHeight: 22 }}>
                 <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{parsed ? `${member} ${parsed.surname}` : member}</div>
                 <FakeWaButton />
@@ -1232,7 +1255,7 @@ function CoupleCard({ t, onClick }) {
               {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{memberMeta[mi].phone}</span></div>}
               {/* An address wraps rather than being sliced: it was cut by up to
                   60px, and half an email is not an email. */}
-              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email}</div>}
+              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email.split('@')[0]}@<wbr />{memberMeta[mi].email.split('@')[1]}</div>}
             </div>
           </React.Fragment>
         ))}
@@ -1245,14 +1268,17 @@ function CoupleCard({ t, onClick }) {
           and split into two mini blocks under one shared label. */}
       <CardSection label={T('Bodyweight')} center>
         {parsed && [parsed.a, parsed.b].map((member, mi) => (
-          <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>{member.toUpperCase()}</div>
-            <div style={{ width: '100%', maxWidth: 160 }}>
+          // name BESIDE the curve, as the real couple card draws it - stacked,
+          // it made this card 14px taller than its row (27.9 #300 O11)
+          <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700, flexShrink: 0 }}>{member.toUpperCase()}</div>
+            <div style={{ width: '100%', maxWidth: 160, minWidth: 0 }}>
               <MiniBWSparkline weight={memberMeta[mi].weight} />
             </div>
           </div>
         ))}
       </CardSection>
+      <DemoCardActions />
     </div>
   );
 }
@@ -2684,7 +2710,7 @@ function DemoPrograms({ resetToken = 0 }) {
     });
   const isActiveBlock = BLOCK_HISTORY[0]?.key === activeBlock;
   // Title shown above the block contents — pivots on the selected program
-  // (e.g. "Block #4 — Pull Specialization") so each athlete's view feels
+  // (e.g. "Block #4 — Pull Focus") so each athlete's view feels
   // distinct, even though the underlying block data is shared in this demo.
   const headingTitle = selectedProgram?.name || block.title;
   // Subtitle clock label — show "TEMPLATE" instead of "WEEK 2 OF 4" when the
@@ -3547,7 +3573,7 @@ const DEMO_WEEK = 2;
 const MOCK_REVIEW_QUEUE = [
   {
     id: 'rv1', traineeName: 'נועה לוי', initials: 'NL',
-    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
+    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull', week: DEMO_WEEK,
     date: 'Today 09:14', doneSets: 18, totalSets: 20,
     exercises: [
       { name: 'BB Bench Press',     prescribed: '4×6-8 · 60kg', done: 4, sets: 4, hasVideo: true,  comments: 3, focus: true  },
@@ -3573,7 +3599,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv3', traineeName: 'גל מזרחי', initials: 'GM',
-    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 3,   // = 1 + idSeed('t2') % 4
+    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Focus', week: 3,   // = 1 + idSeed('t2') % 4
     date: 'Yesterday', doneSets: 14, totalSets: 14,
     exercises: [
       { name: 'Back Squat',         prescribed: '4×5 · 100kg',  done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
@@ -3586,7 +3612,7 @@ const MOCK_REVIEW_QUEUE = [
   // Already reviewed — the archive behind the real queue's SHOW REVIEWED.
   {
     id: 'rv4', traineeName: 'נועה לוי', initials: 'NL', reviewed: true,
-    dayName: 'Day C · Legs', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
+    dayName: 'Day C · Legs', planName: 'Block #4 — Push/Pull', week: DEMO_WEEK,
     date: '2 days ago', doneSets: 15, totalSets: 15,
     exercises: [
       { name: 'Back Squat',         prescribed: '4×5 · 70kg',   done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
@@ -3598,7 +3624,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv5', traineeName: 'גל מזרחי', initials: 'GM', reviewed: true,
-    dayName: 'Day B · Pull', planName: 'Block #4 — Pull Specialization', week: 3,
+    dayName: 'Day B · Pull', planName: 'Block #4 — Pull Focus', week: 3,
     date: '3 days ago', doneSets: 16, totalSets: 16,
     exercises: [
       { name: 'Pull-Up',            prescribed: '4×6',          done: 4, sets: 4, hasVideo: true,  comments: 1, focus: true  },
@@ -3640,7 +3666,7 @@ function DemoReview() {
   // the demo drops the invented subtab + "REVIEW QUEUE" banner to match.
   const weeklyFocus = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', marginBottom: 14 }}>
-      <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}>{T('WEEKLY FOCUS · NO UPLOAD NEEDED')}</span>
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}><SegWord full={T('WEEKLY FOCUS · NO UPLOAD NEEDED')} short={T('WEEKLY FOCUS')} /></span>
       <span style={{ color: C.tm, fontSize: 12 }}>▾</span>
     </div>
   );
@@ -3839,7 +3865,7 @@ function DemoReview() {
                 transition: 'border-color .15s', display: 'flex',
                 // WRAP AT PHONE WIDTH. The two actions are flexShrink 0 and
                 // took ~210px of a 360 screen, leaving the title block 102px —
-                // enough to break "Block #4 — Pull Specialization" over four
+                // enough to break "Block #4 — Pull Focus" over four
                 // lines and push "Day A · Push" 2px past its own edge. Wrapped,
                 // the title gets the full row and the actions sit under it.
                 flexWrap: 'wrap', rowGap: 8,
@@ -3963,13 +3989,13 @@ const demoCardStyle = (extra = {}) => ({
 // Mock plans the trainer can start workouts from — same shape as the real
 // app's planIndex (id, name, traineeId, dayNames). Ties to MOCK_TRAINEES.
 const MOCK_PLAN_INDEX = [
-  { id: 'p_noa_b4',   name: 'Block #4 — Push/Pull Volume', traineeId: 't1', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
-  { id: 'p_gal_b4',   name: 'Block #4 — Pull Specialization', traineeId: 't2', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+  { id: 'p_noa_b4',   name: 'Block #4 — Push/Pull', traineeId: 't1', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+  { id: 'p_gal_b4',   name: 'Block #4 — Pull Focus', traineeId: 't2', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
   { id: 'p_couple_b4', name: 'Block #4 — Couple Volume', traineeId: 't3', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
 ];
 
 const MOCK_IN_PROGRESS = [
-  { id: 'wip1', traineeId: 't1', dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', date: new Date().toISOString() },
+  { id: 'wip1', traineeId: 't1', dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull', date: new Date().toISOString() },
 ];
 
 function DemoWorkouts() {
@@ -4154,10 +4180,11 @@ function DemoGroupFloor() {
       {/* Floor bar */}
       <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>{T('ON THE FLOOR ·')}{Object.values(checkedIn).filter(Boolean).length}/{roster.length} {T('CHECKED IN')}</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11 }}>+ {tr(readLang(), 'ADD')}</button>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11 }}>■ {tr(readLang(), 'FINISH')}</button>
+          {/* one row at 390 (27.9 #328 gate): the lead words step aside where they would not fit */}
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN, whiteSpace: 'nowrap' }}><SegWord full={`${T('ON THE FLOOR ·')}${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} short={`${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('PRESENT')}`} /></span>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>+ {tr(readLang(), 'ADD')}</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>■ {tr(readLang(), 'FINISH')}</button>
           </div>
         </div>
       </div>
@@ -4648,8 +4675,8 @@ function DemoBilling() {
       </div>
       {panel(<>
         <div style={stripH}>
-          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, whiteSpace: 'nowrap' }}><SegWord full={<>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</>} short={<>{T('Requests')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{pending.length}</span>}</>} /></span>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10, whiteSpace: 'nowrap', flexShrink: 0 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
         </div>
         <div>
           {DEMO_PAYMENTS.map(p => {
@@ -5132,8 +5159,8 @@ export default function CoachDemo() {
             }}>{T('JOIN THE WAITLIST')}</a>
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
-              border: `1px solid ${C.bd2}`, padding: '0 22px', fontSize: 12,
-            }}>{T('NOW SEE THE ATHLETE VIEW →')}</a>
+              border: `1px solid ${C.bd2}`, padding: '0 22px', fontSize: 12, whiteSpace: 'nowrap',
+            }}><SegWord full={T('NOW SEE THE ATHLETE VIEW →')} short={T('ATHLETE VIEW →')} /></a>
           </div>
         </div>
       </main>

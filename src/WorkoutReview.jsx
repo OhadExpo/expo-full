@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate } from './dates';
+import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { blockNum } from './traineeUtils';
 import VideoEmbed, { safeUrl, canEmbed } from './VideoEmbed';
 // LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
@@ -1757,7 +1757,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                   <button onClick={() => seekTo(n.ts, n.id)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), n.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
-                  <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
+                  <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtNumericDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
                     <button onClick={() => startEdit(n, false, null)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
                   )}
@@ -1772,7 +1772,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                       <div key={r.id}>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
                           <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), r.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
-                          <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtPrettyDate(r.createdAt) : ''}</span>
+                          <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtNumericDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
                             <button onClick={() => startEdit(r, true, n.id)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>
                           )}
@@ -2740,7 +2740,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <span className="wr-dot">·</span>
                       <span style={{color:C.tx,fontWeight:700}}>W{wo.week}{planWeeks?`/${planWeeks}`:''}</span>
                       <span className="wr-dot">·</span>
-                      <span>{fmtPrettyDate(wo.date)}</span>
+                      {/* day/month/year in the tight meta row (#294; 27.9 #328 gate: the
+                          words-date broke onto two rows at 360) */}
+                      <span>{fmtNumericDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
                       <span>{doneSets}/{totalSets} {tt('sets')}</span>
                       {/* The video slot is ALWAYS 13px wide, filled or not. On

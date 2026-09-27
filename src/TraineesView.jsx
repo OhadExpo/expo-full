@@ -5,7 +5,7 @@ import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } fro
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { SideRail } from './SideRail';
-import { WhatsAppCheckInButton } from './whatsappButton';
+import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 
 // Clickable status pill for the athlete cards — same control as the trainee
 // page (Ohad: "click card status to change it"). stopPropagation everywhere so
@@ -96,22 +96,31 @@ function EmailsCell({ email, style }) {
     // words... never do."
     return <div style={{ ...style, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{breakableList(arr)}</div>;
   }
-  const visible = expanded ? arr : arr.slice(0, 2);
+  // Closed: the FIRST address and "+N" on one line. It used to show two
+  // addresses + "+1": at a card's width the second address was cut by an
+  // ellipsis, and on a phone the row wrapped and left "+1" alone on a line of
+  // its own (27.9 #300 O2). Open: one whole address per line.
+  if (expanded) {
+    return (
+      <div style={{ ...style, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        {arr.map((a, i) => <span key={i} style={{ lineHeight: 1.2, overflowWrap: 'break-word', maxWidth: '100%' }}>{breakableEmail(a)}</span>)}
+        <span onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
+          style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1, textTransform: 'uppercase' }}>{tr(readLang(), 'Less')}</span>
+      </div>
+    );
+  }
   return (
-    <div style={{
+    <div className="tv-emails-closed" style={{
       ...style,
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-      flexWrap: expanded ? 'wrap' : 'nowrap',
+      flexWrap: 'nowrap',
     }}>
-      <span style={expanded
-        ? { wordBreak: 'break-all', lineHeight: 1 }
-        : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, lineHeight: 1 }
-      }>{breakableList(visible)}</span>
+      <span style={{ minWidth: 0, lineHeight: 1.2, overflowWrap: 'break-word' }}>{breakableEmail(arr[0])}</span>
       <span
         onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-        style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1, minWidth: 34, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+        dir="ltr" style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', unicodeBidi: 'isolate' }}
       >
-        {expanded ? 'LESS' : `+${arr.length - 2}`}
+        {`+${arr.length - 1}`}
       </span>
     </div>
   );
@@ -278,7 +287,18 @@ const CARD_H = 412;
 // shared centre and into three different insets. The sweep caught it as 8
 // RAGGED findings in Hebrew — a change that fixed one card and broke another,
 // which is the reason to re-sweep after every one of these.
-const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-contact-slot *{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere !important; } .tv-contact-slot > div{ flex-wrap: wrap !important; } .tv-athlete-card{ height: auto !important; min-height: 412px !important; } }`;
+//
+// 27.9 (#300 O2/O3/O9, his #341 rule "too much extra space on the lower part of
+// each box ... make sure it never happens anywhere"): on a phone the cards are
+// ONE column, so the slots reserved to line a card up with its neighbour (the
+// 88px contact slot, the 34px money line, the 50px training rows, the 412px
+// card) line it up with nothing and leave an empty band - 42 to 99px above the
+// buttons, measured at 390. There, every card ends where its content ends and
+// the buttons sit one section-gap below the last section. A couple's two
+// members stack (side by side, a 165px column broke an address at its "@").
+// overflow-wrap: break-word, not anywhere - a whole address moves to its own
+// line before it is ever split.
+const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-contact-slot *{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: break-word !important; } .tv-contact-slot > div{ flex-wrap: wrap !important; } .tv-contact-slot .tv-emails-closed{ flex-wrap: nowrap !important; } .tv-contact-slot.tv-couple{ flex-direction: column !important; align-items: center; gap: 12px; } .tv-contact-slot.tv-couple > .tv-couple-div{ width: 100% !important; height: 1px !important; margin: 0 !important; } .tv-cards-grid{ grid-template-columns: minmax(0, 1fr) !important; grid-auto-rows: auto !important; } .tv-athlete-card{ height: auto !important; min-height: 0 !important; } .tv-athlete-card .tv-slot{ min-height: 0 !important; } .tv-athlete-card .tv-card-actions{ margin-top: 18px !important; } }`;
 const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
 
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
@@ -331,7 +351,7 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
       {/* Reserve 3 rows so the section is the same height on every card —
           keeps the Bodyweight divider + graph below it aligned across the
           grid regardless of which optional rows a given athlete has. */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 50 }}>
+      <div className="tv-slot" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 56 }}>
         {/* Row 1: format stands alone (e.g. GYM, SINGLE). Row 2: sessions-left
             + programs share one row. */}
         {format && (
@@ -376,7 +396,7 @@ function FinancialsBlock({ pay, monthly, center = false, clubAthlete = false }) 
   if (clubAthlete) {
     return (
       <CardSection label={tt('Club')} center={center}>
-        <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
+        <div className="tv-slot" style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{tt('Bnei Herzliya')}</span>
         </div>
       </CardSection>
@@ -400,7 +420,7 @@ function FinancialsBlock({ pay, monthly, center = false, clubAthlete = false }) 
   if (items.length === 0) {
     return (
       <CardSection label="Financials" center={center}>
-        <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
+        <div className="tv-slot" style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>{tt('Not billable')}</span>
         </div>
       </CardSection>
@@ -409,7 +429,7 @@ function FinancialsBlock({ pay, monthly, center = false, clubAthlete = false }) 
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
   return (
     <CardSection label="Financials" center={center}>
-      <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
+      <div className="tv-slot" style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
         {interleaved}
       </div>
     </CardSection>
@@ -891,7 +911,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
         // cards are the same height (the action row's marginTop:auto absorbs the
         // slack consistently, keeping internal dividers aligned across the row).
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
+        <div className="tv-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
           {filtered.map(t => {
             const couple = isCouple(t);
             const mpc = getMemberPlanCounts(t, planCounts);
@@ -934,7 +954,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                 <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
                   header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title={tt('Bnei Herzliya')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
                   headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-                  className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderInlineStart:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  className="tv-athlete-card" style={{minHeight:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderInlineStart:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY: name + status badge live in the card header
                       (Card's header + headerRight props). No duplicate body
                       banner — Ohad called the inner repeat useless 2026-05-12. */}
@@ -942,11 +962,11 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                       identity block, so a couple card's first row (name +
                       WhatsApp) and its section dividers line up with single
                       cards across the grid, always. */}
-                  <div className="tv-contact-slot" style={{display:'flex',width:'100%',alignSelf:'stretch',height:88,flexShrink:0,paddingTop:4,boxSizing:'border-box'}}>
+                  <div className="tv-contact-slot tv-couple" style={{display:'flex',width:'100%',alignSelf:'stretch',height:88,flexShrink:0,boxSizing:'border-box'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
-                        {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
-                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',gap:4,textAlign:'center',overflow:'hidden'}}>
+                        {mi === 1 && <div className="tv-couple-div" style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
+                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,textAlign:'center',overflow:'hidden'}}>
                           <div style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center',minHeight:28}}>
                             <div style={{
                               fontWeight:600,fontSize:13,color:C.tx,textAlign:'center',
@@ -1007,7 +1027,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                   </CardSection>
 
                   {!showArchived && (
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
+                    <div className="tv-card-actions" style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
                       {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title={tt("Preview this athlete's portal")} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
                       <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; editBaseRef.current = t; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>{tt('Edit')}</button>
                     </div>
@@ -1032,7 +1052,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
             <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
               header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title={tt('Bnei Herzliya')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
               headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-              className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderInlineStart:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+              className="tv-athlete-card" style={{minHeight:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderInlineStart:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
@@ -1042,10 +1062,13 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                   first divider below it — float card-to-card. A fixed slot
                   sized for the worst case (icon + 2-line email + phone) keeps
                   every card's dividers on the same horizontal lines. */}
-              <div className="tv-contact-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 88, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 28 }}>
+              {/* Content centred in the slot: with no phone the 28px WhatsApp
+                  row used to stay, empty, at the TOP edge and the address
+                  floated low (#314 rule, 27.9 #300). */}
+              <div className="tv-contact-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 88, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
+                {normalizePhoneIL(t.phone) && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 28 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
-                </div>
+                </div>}
                 {t.phone && (
                   <div dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center', unicodeBidi: 'isolate' }}>{t.phone}</div>
                 )}
@@ -1056,11 +1079,11 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center clubAthlete={isClubAthlete(t)} />
               <BodyweightBlock entries={bwEntries} center />
 
-              {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
+              {showArchived && <div className="tv-card-actions" style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ {tr(readLang(), 'Restore')}</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
               </div>}
-              {!showArchived && <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
+              {!showArchived && <div className="tv-card-actions" style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
                 {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title={tt("Preview this athlete's portal")} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
                 <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); editBaseRef.current = t; setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>{tt('Edit')}</button>
               </div>}
