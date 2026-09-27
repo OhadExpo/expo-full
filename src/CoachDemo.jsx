@@ -926,10 +926,12 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('No athlete matches your filters. Clear them to see the full roster.')}</div>
             </div>
           ) : (
-            <div style={{
+            <div className="cd-cards-grid" style={{
               display: 'grid', gap: 12,
               gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
             }}>
+              {/* the real card's phone rules (TraineesView CARD_MOBILE_CSS) */}
+              <style>{`@media (max-width: 700px){ .cd-cards-grid{ grid-template-columns: minmax(0,1fr) !important; } .cd-contact{ height: auto !important; } .cd-couple{ flex-direction: column !important; align-items: center !important; gap: 12px; } .cd-couple > .cd-couple-div{ width: 100% !important; height: 1px !important; margin: 0 !important; } .cd-card-actions{ margin-top: 18px !important; } .cd-slot{ min-height: 0 !important; } }`}</style>
               {filtered.map(t => (
                 <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
               ))}
@@ -989,20 +991,22 @@ function MiniBWSparkline({ weight }) {
 
 // Card layout uses 4 labeled blocks: IDENTITY (who) · TRAINING (relationship)
 // · BODYWEIGHT (one living metric) · FINANCIALS (revenue risk). Each block
-// answers one scan question, separated by a thin hairline so the eye anchors
-// on labels rather than parsing a single dense row.
+// answers one scan question. Spaced exactly like the real card (18px, no
+// hairline - the demo alone had hairlines; 27.9 #300 O11 parity).
 
-function CardSection({ label, children, center = false, dense = false }) {
+function CardSection({ label, children, center = false, dense = false, slot = 0 }) {
   return (
-    <div style={{ marginTop: dense ? 8 : 12, paddingTop: dense ? 8 : 10, borderTop: `1px solid rgba(57,189,255,0.149)` }}>
+    <div style={{ marginTop: dense ? 8 : 18 }}>
       <div style={{
         fontFamily: FN, fontSize: 9, color: C.acText, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
       }}>{label}</div>
-      <div style={{
+      {/* slot: the height reserved so every card's next label sits on one line
+          across a grid row - the real card's FIN_SLOT / three training rows */}
+      <div className={slot ? 'cd-slot' : undefined} style={{
         display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center',
-        justifyContent: center ? 'center' : 'flex-start',
+        justifyContent: center ? 'center' : 'flex-start', minHeight: slot || undefined,
       }}>{children}</div>
     </div>
   );
@@ -1032,7 +1036,7 @@ function TrainingBlock({ t, center = false }) {
   // so neighbouring cards line up vertically.
   const justify = center ? 'center' : 'flex-start';
   return (
-    <CardSection label={T('Training')} center={center}>
+    <CardSection label={T('Training')} center={center} slot={56}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{T(t.format)}</span>
@@ -1067,18 +1071,29 @@ function FinancialsBlock({ t, center = false }) {
   if (t.monthly > 0) {
     items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>{TN('₪{n}/MO', t.monthly)}</span>);
   }
+  let dormant = null;
   if (t.dormantDays != null) {
-    items.push(<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{readLang() === 'he' ? 'רדום' : T('DORMANT')} · {TN('{n}D', t.dormantDays)}</span>);
+    dormant = (<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{readLang() === 'he' ? 'רדום' : T('DORMANT')} · {TN('{n}D', t.dormantDays)}</span>);
   }
-  if (items.length === 0) {
+  if (items.length === 0 && !dormant) {
     return (
-      <CardSection label={T('Financials')} center={center}>
+      <CardSection label={T('Financials')} center={center} slot={38}>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>{T('NOT BILLABLE')}</span>
       </CardSection>
     );
   }
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
-  return <CardSection label={T('Financials')} center={center}>{interleaved}</CardSection>;
+  // DORMANT is its own second line: joined with a dot it wrapped and left the
+  // dot hanging at the end of the money line, and pushed every label below it
+  // 4px off its neighbours' (27.9 #300 O11). Two lines reserved on every card.
+  return (
+    <CardSection label={T('Financials')} center={center} slot={38}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: center ? 'center' : 'flex-start', gap: 4 }}>
+        {items.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>{interleaved}</div>}
+        {dormant}
+      </div>
+    </CardSection>
+  );
 }
 
 function BodyweightBlock({ weight, center = false }) {
@@ -1091,6 +1106,19 @@ function BodyweightBlock({ weight, center = false }) {
         </div>
       </div>
     </CardSection>
+  );
+}
+
+// PORTAL / EDIT exactly as the real athlete card draws them (27.9 #300 O11).
+function DemoCardActions() {
+  const b = { background: 'var(--c-sf)', cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 };
+  return (
+    <div className="cd-card-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 132px))', justifyContent: 'center', marginTop: 'auto', paddingTop: 8, gap: 8 }}>
+      <button onClick={e => e.stopPropagation()} title={T("Preview this athlete's portal (demo only)")} style={{ ...b, border: `1px solid ${C.cardBd}`, color: C.tm }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{T('PORTAL')}
+      </button>
+      <button onClick={e => e.stopPropagation()} style={{ ...b, border: `1px solid ${C.ac}`, color: C.ac }}>{T('EDIT')}</button>
+    </div>
   );
 }
 
@@ -1120,7 +1148,7 @@ function TraineeCard({ t, onClick }) {
         <span style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}><DemoStatusMenu initial={t.status} /></span>
       </div>
       {/* 80px contact slot — WhatsApp / phone / email, centered. */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
+      <div className="cd-contact" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
         <FakeWaButton />
         {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{t.phone}</span></div>}
         <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: '100%' }}>{t.email}</div>
@@ -1128,13 +1156,7 @@ function TraineeCard({ t, onClick }) {
       <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
       <BodyweightBlock weight={t.weight} center />
-      {/* Bottom action row — PORTAL / EDIT (demo, mirrors the real card). */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 8, gap: 8 }}>
-        <button onClick={e => e.stopPropagation()} title={T("Preview this athlete's portal (demo only)")} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{T('PORTAL')}
-        </button>
-        <button onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('EDIT')}</button>
-      </div>
+      <DemoCardActions />
     </div>
   );
 }
@@ -1216,11 +1238,11 @@ function CoupleCard({ t, onClick }) {
       {/* 80px member contact slot — two columns, SAME height as the single card's
           contact slot so WhatsApp icons, phones, emails and every divider below
           line up flush across every card (Ohad: alignment rules). */}
-      <div style={{ display: 'flex', height: 80, paddingTop: 4, overflow: 'hidden', alignItems: 'stretch' }}>
+      <div className="cd-contact cd-couple" style={{ display: 'flex', height: 80, flexShrink: 0, overflow: 'hidden', alignItems: 'stretch' }}>
         {(parsed ? [parsed.a, parsed.b] : [t.name]).map((member, mi) => (
           <React.Fragment key={mi}>
-            {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' }}>
+            {mi === 1 && <div className="cd-couple-div" style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, textAlign: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', minHeight: 22 }}>
                 <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{parsed ? `${member} ${parsed.surname}` : member}</div>
                 <FakeWaButton />
@@ -1232,7 +1254,7 @@ function CoupleCard({ t, onClick }) {
               {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{memberMeta[mi].phone}</span></div>}
               {/* An address wraps rather than being sliced: it was cut by up to
                   60px, and half an email is not an email. */}
-              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email}</div>}
+              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email.split('@')[0]}@<wbr />{memberMeta[mi].email.split('@')[1]}</div>}
             </div>
           </React.Fragment>
         ))}
@@ -1245,14 +1267,17 @@ function CoupleCard({ t, onClick }) {
           and split into two mini blocks under one shared label. */}
       <CardSection label={T('Bodyweight')} center>
         {parsed && [parsed.a, parsed.b].map((member, mi) => (
-          <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>{member.toUpperCase()}</div>
-            <div style={{ width: '100%', maxWidth: 160 }}>
+          // name BESIDE the curve, as the real couple card draws it - stacked,
+          // it made this card 14px taller than its row (27.9 #300 O11)
+          <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700, flexShrink: 0 }}>{member.toUpperCase()}</div>
+            <div style={{ width: '100%', maxWidth: 160, minWidth: 0 }}>
               <MiniBWSparkline weight={memberMeta[mi].weight} />
             </div>
           </div>
         ))}
       </CardSection>
+      <DemoCardActions />
     </div>
   );
 }
