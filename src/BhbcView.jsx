@@ -13,7 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, confirmToast, usePersistentState, useEdgeFade } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -36,6 +36,10 @@ import { isOwnerEmail } from './authRoles';
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
+// EVERY CONFIRMATION IN THE ZONE'S LANGUAGE (#305 N-E8). The zone's toasts
+// were English on the Hebrew screen - 'Lift logged' under a Hebrew button.
+// One wrapper, so no call site can forget; an untranslated line stays English.
+const toast = (msg, ...rest) => appToast(typeof msg === 'string' ? zoneT(msg) : msg, ...rest);
 // One ink + one hairline for every control in the header's right-hand cluster
 // (theme toggle, Sign out, ‹ EXPO, Preview as coach). They were drifting apart
 // — Sign out at 0.7 next to a toggle at 0.85 — which reads as two different
@@ -648,12 +652,29 @@ function attendance28(rec, days) {
     return { byDay: byDay.slice(0, 8), nextGame };
   }, [bhbcFixtures, today]);
 
+  // Roster changes go on the owner's Activity trail like every other write
+  // (#305 N-F5): who tagged or untagged a player was the one change it missed.
   const setTeam = useCallback((id, on) => {
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined, bhbcGhost: on ? t.bhbcGhost : undefined } : t));
-  }, [setTrainees]);
+    track('edit', on ? 'added an athlete to the club roster' : 'took an athlete off the club roster');
+  }, [setTrainees, track]);
   const setGhost = useCallback((id, on) => {
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, bhbcGhost: on || undefined } : t));
-  }, [setTrainees]);
+    track('edit', on ? 'set an athlete as a ghost' : 'counted a ghost athlete again');
+  }, [setTrainees, track]);
+  // ONE PERSON, ONE PROFILE (#305 N-F3). Typing a name that is already in
+  // EXPO made a second, empty profile beside the real one - his history, his
+  // program and his medical record stayed on the first. The name is matched
+  // exactly (case aside); a match is NOT tagged automatically, because two
+  // people can share a name - the coach ticks the right row himself.
+  const addAthlete = () => {
+    const name = newAthlete.trim();
+    if (!name) return;
+    const dup = trainees.find((t) => t && t.status !== 'Archived' && String(t.name || '').trim().toLowerCase() === name.toLowerCase());
+    if (dup) { toast(dup.team === 'BHBC' ? 'Already on the club roster' : 'Already in EXPO - tick him in the list below'); return; }
+    setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name, team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]);
+    setNewAthlete(''); toast('Added'); track('edit', 'added a new athlete to the club roster');
+  };
 
   // Per-player landing/arrival date — some sign late, first practices optional.
   const setArrival = useCallback((id, date) => {
@@ -756,7 +777,7 @@ function attendance28(rec, days) {
     // inside the updater above, so it is the row that was actually spliced.
     toast('Session removed', 'info', {
       ttl: 8000,
-      actions: [{ label: 'Undo', value: 'undo' }],
+      actions: [{ label: zoneT('Undo'), value: 'undo' }],
       onAction: (v) => {
         if (v !== 'undo' || !removed) return;
         setBhbcLoads((prev) => {
@@ -771,8 +792,10 @@ function attendance28(rec, days) {
         toast('Session restored'); notify();
       },
     });
+    // a delete is a change like any other (#305 N-F4)
+    track('session', `deleted a session on ${fmtNumericDate(date)}`);
     notify();
-  }, [setBhbcLoads, bhbcLoads, notify]);
+  }, [setBhbcLoads, bhbcLoads, notify, track]);
 
   // ONE ATHLETE'S OWN LIFT. Ohad, 24.9: "lifts needs to be independent and i
   // can log them even on days without practice, and theyre not team. just
@@ -1698,13 +1721,14 @@ function attendance28(rec, days) {
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'stretch' }}>
           <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); } }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) addAthlete(); }}
             placeholder={tr('Add a new athlete — full name')} style={{ flex: 1, height: 38, boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px' }} />
-          <Btn disabled={!newAthlete.trim()} onClick={() => { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); }}
+          <Btn disabled={!newAthlete.trim()} onClick={addAthlete}
             style={{ height: 38, boxSizing: 'border-box', background: newAthlete.trim() ? ORANGE : undefined, borderColor: newAthlete.trim() ? ORANGE : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>{tr('+ Add')}</Btn>
         </div>
         <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => (b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)).map((t) => {
+          {/* club first, by jersey; everyone else by name, so a player is findable (#305 N-A7) */}
+          {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => ((b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)) || (a.team === 'BHBC' ? (a.jersey ?? 999) - (b.jersey ?? 999) : String(a.name || '').localeCompare(String(b.name || '')))).map((t) => {
             const on = t.team === 'BHBC';
             return (
               <div key={t.id} className="bhbc-manage-row" style={{ padding: '9px 12px', border: `1px solid ${C.cardBd}`, borderInlineStart: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
@@ -2441,7 +2465,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
     // The sheet OPENS with anyone the medical record puts out on that date
     // already set to Out, so the coach is correcting a right answer instead of
     // remembering an absence. availOn reads the record for `date`, not today.
-    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: availOn(rec, medical, t.id, date), attended: true, bw: '', note: '' }; });
+    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: availOn(rec, medical, t.id, date), attended: !(t.arrival && date < t.arrival), bw: '', note: '' }; });
     setEntries(e);
     const list = (fixtures || []).filter((f) => f.date === date && isPracticeFx(f)).slice().sort((a2, b2) => (a2.start || '').localeCompare(b2.start || ''));
     // Default to the NEXT practice still ahead on the clock (so an evening log
@@ -2473,7 +2497,9 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
     nt = teamNt;
     setEntries((prev) => {
       const next = { ...prev };
-      Object.keys(next).forEach((id) => { next[id] = { ...next[id], attended: id in marks ? marks[id] : true, note: own[id] || '' }; });
+      // a player who has not landed by this date was not at it (#305 N-A6)
+      const landedBy = (id) => { const t = roster.find((x) => x.id === id); return !(t && t.arrival && date < t.arrival); };
+      Object.keys(next).forEach((id) => { next[id] = { ...next[id], attended: id in marks ? marks[id] : landedBy(id), note: own[id] || '' }; });
       return next;
     });
     setMinutes(min != null ? String(min) : (lastScMin ? String(lastScMin) : ''));
@@ -2703,7 +2729,7 @@ function ActivityView({ activity = [], tr, he }) {
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
           : people.map((p) => (
             <div key={p.by} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '9px 0', borderBottom: `1px solid ${C.cardBd}` }}>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, unicodeBidi: 'isolate', flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{p.by}</span>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, unicodeBidi: 'isolate', flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }} title={p.by}>{byName(p.by) || p.by /* the same name the change list uses (#305 N-E7) */}</span>
               <span style={{ ...lbl, flexShrink: 0 }}>{p.n} {p.n === 1 ? tr('action') : tr('actions')}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0 }}>{whenText(p.at, he)}</span>
             </div>
@@ -3286,7 +3312,9 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               const facts = [
                 gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd === 1 ? 'יום אחד' : `${gd} ימים`}` : `in ${gd} day${gd === 1 ? '' : 's'}`),
                 ...(flies ? [flies] : []),
-                nextGame.home === true ? tr('HOME') : nextGame.home === false ? tr('AWAY') : tr('Venue TBD'),
+                // 'Venue TBD' only when the venue IS unknown (#305 N-G2): a neutral
+                // cup tie with its arena typed in read "Venue TBD · Begin Arena"
+                ...(nextGame.home === true ? [tr('HOME')] : nextGame.home === false ? [tr('AWAY')] : nextGame.venue ? [] : [tr('Venue TBD')]),
                 ...(nextGame.venue ? [nextGame.venue] : []),
               ];
               return (
@@ -3727,6 +3755,9 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       } else if (markedOut) state = code >= 4 ? 'excused' : 'missed';
       else if (rowsOfDay.length || markedIn) state = 'in';
       else state = code >= 4 ? 'excused' : 'in';
+      // before he landed nothing was owed (#305 N-B1): no 'in', no 'did not
+      // play' for a day he was not in the country - unless a row says otherwise
+      if (t.arrival && d.iso < t.arrival && state !== 'played' && !rowsOfDay.length && !markedIn && !markedOut) state = 'none';
       if (state === 'in' || state === 'played') attended.push(d.iso);
       return { iso: d.iso, state, kind, mins, code, sc, lift };
     });
@@ -3751,7 +3782,8 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   const MISS = '#DE4E3B';
   const pct = (p) => (p.owed ? Math.round((p.went / p.owed) * 100) : null);
-  const pctInk = (v) => (v == null ? C.cardBd : v >= 90 ? '#37B27C' : v >= 75 ? 'var(--bhbc-amber-text, #E0A73A)' : MISS);
+  // colour only the exceptions (#305 N-E6): 90%+ is the normal state, plain ink
+  const pctInk = (v) => (v == null ? C.cardBd : v >= 90 ? C.tx : v >= 75 ? 'var(--bhbc-amber-text, #E0A73A)' : MISS);
   const monthOwed = per.reduce((a, p) => a + p.owed, 0);
   const monthWent = per.reduce((a, p) => a + p.went, 0);
 
@@ -3954,7 +3986,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const liftedToday = per.filter((x) => x.since === 0).length;
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
-  const ink = (since, code = 1) => (code >= 4 ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C');
+  const ink = (since, code = 1) => (code >= 4 ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6)
   const CELL = 22;
 
   return (
@@ -4502,9 +4534,16 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
     const daySlots = past.filter((x) => x.date === f.date)
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
     const trained = [], out = [], scMins = [], scNotes = [], notes = [], rowsBy = [];
+    let notYet = 0;
     for (const t of roster) {
       const rec = loads[t.id];
       const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
+      // NOT LANDED YET, NOT AT PRACTICE (#305 N-B1). The roster-status rule
+      // below counts everyone available as there; a signing who arrives on the
+      // 30th was being counted at the practices of the 20th. Before his
+      // arrival he is not owed the practice at all - out of the count and out
+      // of the denominator - unless something was actually logged for him.
+      if (t.arrival && f.date < t.arrival && !(rec && rec.attendance && rec.attendance[`${f.date}|${f.start || ''}`]) && !rows.some((r) => rowKind(r) === 'sc' || rowKind(r) === 'practice')) { notYet++; continue; }
       // An explicitly recorded attendance for this slot is the truth; the
       // session-row inference below only covers sessions logged before the
       // per-slot model existed.
@@ -4547,7 +4586,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
     // read, so the row needs an author for the same reason a medical record
     // does — you cannot ask a question of an unsigned entry.
     const loggers = [...new Set(rowsBy.filter(Boolean))];
-    return { trained, out, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, notes, loggers };
+    return { trained, out, expected: roster.length - notYet, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, notes, loggers };
   // medical belongs here (#305 N-D2): an injury filed or cleared while this
   // card is open moves who was out of a past practice, and without it the
   // rows kept the medical record as it was when the card first rendered.
@@ -4606,7 +4645,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                     no-shows. Said as what it is. Normal ink for a normal count:
                     colour only the exceptions (E1). */}
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {!d.trained.length && roster.length > 0 && d.out.length === roster.length ? <span style={{ color: C.td }}>{tr('all out')}</span> : `${d.trained.length}/${roster.length}`}
+                  {!d.trained.length && d.expected > 0 && d.out.length === d.expected ? <span style={{ color: C.td }}>{tr('all out')}</span> : `${d.trained.length}/${d.expected}`}
                 </span>
                 {/* The AU and RPE readouts are gone with the load model they
                     described (Ohad 23.9, no team RPEs). What a coach asks of
@@ -5674,10 +5713,15 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
 // nobody logged is a hole in every load number that week.
 function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
   const tr = useT();
+  // A GAME THAT HAS NOT TIPPED OFF HAS NO MINUTES TO ADD (#305 N-I2): today's
+  // 19:00 game sat here all afternoon asking for them. A start not on the
+  // calendar yet cannot be judged, so that one stays.
+  const nowD = new Date();
+  const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   const games = React.useMemo(() => (fixtures || [])
-    .filter((f) => f && (f.type === 'game' || f.type === 'scrimmage') && f.date && f.date <= today)
+    .filter((f) => f && (f.type === 'game' || f.type === 'scrimmage') && f.date && (f.date < today || (f.date === today && (!f.start || f.start <= nowHHMM))))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
-    .slice(0, 8), [fixtures, today]);
+    .slice(0, 8), [fixtures, today, nowHHMM]);
   if (!games.length) return null;
   return (
     <div style={{ marginBottom: 14 }}>

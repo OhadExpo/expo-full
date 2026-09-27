@@ -818,6 +818,28 @@ Object.assign(HE, {
   '4+ days': '4 ימים ומעלה',
   // L: schedule
   'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
+  // N: the zone's confirmations (toasts), in the zone's language
+  'Add minutes': 'חסרות דקות',
+  'Add the S&C minutes': 'חסרות דקות הכוח',
+  Added: 'נוסף',
+  'Already on the club roster': 'כבר בסגל של המועדון',
+  'Already in EXPO - tick him in the list below': 'כבר קיים ב-EXPO — סמן אותו ברשימה למטה',
+  'Check-in saved': 'הדיווח נשמר',
+  'Game updated': 'המשחק עודכן',
+  'Lift logged': 'ההרמה נרשמה',
+  'Medical record saved': 'התיק הרפואי נשמר',
+  'Minutes must be more than 0 — delete the session instead': 'הדקות צריכות להיות יותר מ-0 — אם צריך, מחק את האימון',
+  'Minutes saved': 'הדקות נשמרו',
+  'Pick a body part': 'בחר אזור בגוף',
+  'S&C session saved': 'אימון הכוח נשמר',
+  'Session added': 'האימון נוסף',
+  'Session removed': 'האימון נמחק',
+  'Session restored': 'האימון שוחזר',
+  'Session updated': 'האימון עודכן',
+  'Set a start time': 'חסרה שעת התחלה',
+  'That session moved — reopen it': 'האימון הזה השתנה — פתח אותו מחדש',
+  'That session moved — reopen the list': 'האימון הזה השתנה — פתח את הרשימה מחדש',
+  Undo: 'ביטול',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
