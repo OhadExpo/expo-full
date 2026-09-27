@@ -2737,7 +2737,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                 <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, lineHeight: 1, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
                 {/* 9, not 7.5: measured at 390px this was the smallest text in the zone,
                     and it labels the number a coach reads first. */}
-                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>{tr('days')}</div>
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>{tr(days === 1 ? 'day' : 'days')}</div>
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -2792,7 +2792,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
       <div className="bhbc-nextgame" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 28, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 4 }}>{tr('days')}</div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 4 }}>{tr(Math.max(0, days) === 1 ? 'day' : 'days')}</div>
         </div>
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {nextGame.comp && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{tr(nextGame.comp)}</div>}
