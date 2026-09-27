@@ -804,6 +804,11 @@ Object.assign(HE, {
   // G: the Today card
   'S&C not logged yet': 'כוח עוד לא נרשם',
   flies: 'טסים',
+  // H: the head coach report - where each line comes from
+  'From the club calendar': 'מלוח המועדון',
+  'From the club calendar and the logged S&C sessions': 'מלוח המועדון ומאימוני הכוח שנרשמו',
+  'From today’s availability, never better than the medical record': 'מהזמינות של היום — אף פעם לא טובה ממה שכתוב בתיק הרפואי',
+  'From the medical record': 'מהתיק הרפואי',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

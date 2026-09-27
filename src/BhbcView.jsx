@@ -3237,17 +3237,21 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // measured 25px of air above the row and 0 below it, which is what Ohad saw
   // as "too close to the bottom". The header strip already carries its own
   // bottom margin, so the first row must not add the full 8 on top of it.
-  const Section = ({ label, children, last, list, first }) => (
+  const Section = ({ label, children, last, list, first, src }) => (
 
     <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', ...(first ? { marginTop: -10, paddingTop: 12, paddingBottom: 12 } : null), borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
-      <div style={lbl}>{label}</div>
+      {/* WHERE THE LINE COMES FROM, on hover (#305 H1) */}
+      <div style={lbl} title={src}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>
   );
   return (
     <Card padding={14} leftStripe={NAVY} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}{/* the date is in the title already - printed twice it pushed the title onto two rows (26.9) */}</span>}>
       {/* NEXT GAME */}
-      <Section label={tr("Next game")} first>
+      {/* A SECTION WITH NOTHING TO SAY IS NOT PRINTED (#305 H4): no game on
+          the calendar, no Next game line; no sessions this week, no This week -
+          the Today line under it already says there is nothing on. */}
+      {nextGame && <Section label={tr("Next game")} first src={tr('From the club calendar')}>
         {nextGame
           ? (() => {
               // The row is a chain of `·`-separated FACTS, and the browser was
@@ -3281,21 +3285,21 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               );
             })()
           : <span style={mut}>{tr('No game scheduled.')}</span>}
-      </Section>
+      </Section>}
       {/* No FOCUS row: practice plans are gone (Ohad, 24.9: "no practice plans"). */}
       {/* WHAT IS ON TODAY. It was a card of its own directly below this one,
           repeating the game and the availability counts that are already
           here. Rendered bare, it keeps its chips and loses the second copy of
           everything else. */}
-      <Section label={tr("Today")}>
+      <Section label={tr("Today")} first={!nextGame} src={tr('From the club calendar and the logged S&C sessions')}>
         <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} loads={loads} />
       </Section>
-      <Section label={tr("Availability")} list>
+      <Section label={tr("Availability")} list src={tr('From today’s availability, never better than the medical record')}>
         <span><span style={{ color: C.tx, fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {countWord(available.length, 'available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {countWord(limited.length, 'limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
         {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 12 }}>{out.length ? `${tr('out')}: ${nameList(out)}. ` : ''}{limited.length ? `${countWord(limited.length, 'limited')}: ${nameList(limited)}.` : ''}</div>}
       </Section>
       {/* MEDICAL */}
-      <Section label={tr("Medical")} list>
+      <Section label={tr("Medical")} list last={!sessions.length} src={tr('From the medical record')}>
         {injuries.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {injuries.slice(0, 6).map(({ t, inj }, i, arr) => {
@@ -3345,7 +3349,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
             </span>}
       </Section>
       {/* THIS WEEK — team sessions */}
-      <Section label={tr("This week")} list last>
+      {sessions.length > 0 && <Section label={tr("This week")} list last src={tr('From the club calendar')}>
         {sessions.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {sessions.slice(0, 6).map((s, i) => {
@@ -3374,7 +3378,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               })}
             </div>
           : <span style={mut}>{tr('No team sessions scheduled this week.')}</span>}
-      </Section>
+      </Section>}
     </Card>
   );
 }
