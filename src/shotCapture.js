@@ -18,7 +18,7 @@
 // Output frames match what the analyser expects:
 //   [{ t(ms), landmarks (full-frame normalised), worldLandmarks (metric) }]
 // plus frames.dims, frames.fps, frames.windows and frames.stats.
-import { createPoseLandmarker } from './usePose';
+import { createPoseLandmarker } from './usePose.js';
 import { toGray, motionBlobs } from './ballTrack.js';
 
 const LM_HEAD = [0, 2, 5, 7, 8];
@@ -132,29 +132,154 @@ function boxAt(track, t) {
 // shot count, so the download is finished first and the pass runs against
 // memory. The timeout is a floor, not a target: a clip that will not buffer
 // still gets analysed, just with the old risk.
-const awaitBuffered = (v, { timeoutMs = 90000, onTick } = {}) => new Promise((res) => {
-  const t0 = performance.now();
+//
+// PHONES: a phone's media stack keeps a much smaller buffer than a desktop's,
+// so on a long or high-bitrate clip `buffered` may simply never reach the end -
+// the old loop then sat out its full 90 s with the bar frozen near 12%. When the
+// covered span stops growing for 8 s of active time the browser is not going to
+// buffer more, and waiting longer buys nothing.
+const awaitBuffered = (v, { timeoutMs = 90000, stallMs = 8000, onTick, clock = () => performance.now(), signal } = {}) => new Promise((res) => {
+  const t0 = clock();
+  let best = -1, grewAt = t0;
   const tick = () => {
+    if (signal?.aborted) return res({ ok: false, aborted: true });
     const d = v.duration;
     let covered = 0;
     try {
       for (let i = 0; i < v.buffered.length; i++) covered += v.buffered.end(i) - v.buffered.start(i);
     } catch { /* buffered can throw while the element is settling */ }
+    if (covered > best + 0.05) { best = covered; grewAt = clock(); }
     if (onTick && Number.isFinite(d) && d > 0) onTick(Math.min(1, covered / d));
     if (Number.isFinite(d) && d > 0 && covered >= d - 0.3) return res({ ok: true, covered });
-    if (performance.now() - t0 > timeoutMs) return res({ ok: false, covered });
+    if (clock() - grewAt > stallMs) return res({ ok: false, covered, plateau: true });
+    if (clock() - t0 > timeoutMs) return res({ ok: false, covered });
     setTimeout(tick, 150);
   };
   tick();
 });
 
-const seekTo = (v, time) => new Promise((res) => {
-  let done = false;
-  const fin = () => { if (!done) { done = true; res(); } };
-  v.onseeked = fin; v.onerror = fin;
-  setTimeout(fin, 600);
-  try { v.currentTime = time; } catch { fin(); }
+// ------------------------------------------------------------------------
+// PHONE ROBUSTNESS (27.9, Ohad: "the shot analyzer always gets stuck on 40%",
+// then again after the dropped-frame budget shipped). A phone breaks the
+// assumptions a desktop never tests: the screen locks four minutes into a
+// five-minute capture, the page is hidden, the browser stops presenting video
+// frames, play() is refused, a seek never lands, the GPU model never finishes
+// loading. Every await below is bounded, and every wait that is really a
+// phone being away does not count against a budget.
+// ------------------------------------------------------------------------
+
+// An Error the screen can translate: `code` keys T.errors in shotI18n.
+export const codeErr = (code, msg) => { const e = new Error(msg || code); e.code = code; return e; };
+const abortErr = () => codeErr('aborted', 'Stopped.');
+const hasDoc = typeof document !== 'undefined';
+
+// Hidden time is not work time. A phone that locks its screen freezes the
+// page: timers stall, playback pauses, nothing is presented. Budgets and stall
+// detectors run on ACTIVE time, and the work waits for the page to come back
+// instead of timing out against a clock that kept running while he was away.
+export function visibilityClock() {
+  const now = () => performance.now();
+  let hiddenTotal = 0;
+  let hiddenAt = hasDoc && document.hidden ? now() : null;
+  const waiters = new Set();     // one-shot: whenVisible()
+  const listeners = new Set();   // persistent: onVisible()
+  const onVis = () => {
+    if (document.hidden) { if (hiddenAt == null) hiddenAt = now(); return; }
+    if (hiddenAt != null) { hiddenTotal += now() - hiddenAt; hiddenAt = null; }
+    const ws = [...waiters]; waiters.clear();
+    for (const w of ws) w();
+    for (const l of [...listeners]) { try { l(); } catch { /* noop */ } }
+  };
+  if (hasDoc) document.addEventListener('visibilitychange', onVis);
+  return {
+    hidden: () => hasDoc && !!document.hidden,
+    activeNow: () => now() - hiddenTotal - (hiddenAt != null ? now() - hiddenAt : 0),
+    whenVisible: (signal) => (!hasDoc || !document.hidden || signal?.aborted)
+      ? Promise.resolve()
+      : new Promise((res) => { waiters.add(res); signal?.addEventListener('abort', res, { once: true }); }),
+    onVisible: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
+    dispose: () => {
+      if (hasDoc) document.removeEventListener('visibilitychange', onVis);
+      const ws = [...waiters]; waiters.clear(); listeners.clear();
+      for (const w of ws) w();
+    },
+  };
+}
+
+// A promise with a deadline measured on `clock` (active time by default), that
+// also gives up on abort. `onLate` receives a value that arrives after the
+// deadline, so a model that finally loads can still be closed instead of leaked.
+export function withDeadline(p, ms, err, { clock = () => performance.now(), signal, onLate } = {}) {
+  return new Promise((res, rej) => {
+    let done = false;
+    const t0 = clock();
+    const end = (fn, v) => { if (done) return false; done = true; clearInterval(iv); signal?.removeEventListener('abort', onAbort); fn(v); return true; };
+    const onAbort = () => end(rej, abortErr());
+    const iv = setInterval(() => { if (clock() - t0 > ms) end(rej, err); }, 250);
+    signal?.addEventListener('abort', onAbort, { once: true });
+    Promise.resolve(p).then((v) => { if (!end(res, v) && onLate) onLate(v); }, (e) => end(rej, e));
+  });
+}
+
+// Resolves true when the seek LANDED and false when it did not (timeout or
+// error) - a read after a seek that never landed is the previous frame under a
+// new timestamp, which is worse than no frame.
+//
+// 'seeked' means currentTime moved, not that the new frame is what a read now
+// returns (see clipPreflight.js: drawing straight after it gave the previous
+// frame, or a blank one). Where the browser offers it, wait for the frame
+// itself - briefly, because a seek to the frame already shown presents nothing.
+//
+// A phone that presents NO frames (the case the seek fallback exists for) also
+// presents none after a seek, and waiting 250 ms on every step would add minutes.
+// Three misses in a row on one element and it stops waiting for that element.
+const seekFrameMisses = new WeakMap();
+export const seekTo = (v, time, ms = 600) => new Promise((res) => {
+  let done = false, landed = false;
+  const fin = (ok) => { if (done) return; done = true; v.onseeked = null; res(ok); };
+  v.onseeked = () => {
+    landed = true;
+    const misses = seekFrameMisses.get(v) || 0;
+    if (typeof v.requestVideoFrameCallback === 'function' && misses < 3) {
+      let got = false;
+      try { v.requestVideoFrameCallback(() => { got = true; seekFrameMisses.set(v, 0); fin(true); }); } catch { fin(true); }
+      setTimeout(() => { if (!got && !done) seekFrameMisses.set(v, misses + 1); fin(true); }, 250);
+    } else fin(true);
+  };
+  v.onerror = () => fin(false);
+  setTimeout(() => { if (!landed) fin(false); }, ms);
+  try { v.currentTime = time; } catch { fin(false); }
 });
+
+// Read [from,to] by SEEKING, one frame every `step` seconds. Slower than
+// playback but it depends on nothing the phone can withhold: no play(), no
+// presented frames, no user gesture. It is the deterministic mode, the path for
+// browsers without requestVideoFrameCallback, and the fallback when playback
+// stalls. Waits (does not fail) while the page is hidden; fails LOUDLY when the
+// phone cannot seek this file at all, instead of reading stale frames forever.
+export async function stepThrough(v, { from, to, step, onFrame, run }) {
+  if (run.stepRegions) run.stepRegions.push({ from, to, step });
+  const SEEK_MIN = run.seekMs || 600, SEEK_MAX = run.seekMaxMs || 3000;
+  let misses = 0, seekMs = SEEK_MIN;
+  for (let t = from; t <= to + 1e-6; t += step) {
+    if (run.signal?.aborted) throw abortErr();
+    await run.vis.whenVisible(run.signal);
+    if (run.signal?.aborted) throw abortErr();
+    const ok = await seekTo(v, t, seekMs);
+    if (v.error) throw codeErr('decode', 'The phone stopped decoding this video.');
+    if (!ok) {
+      misses++;
+      // A 60 fps HEVC seek on a phone can simply be slow - give it longer
+      // before calling it lost, and only give up on a run of them.
+      seekMs = Math.min(SEEK_MAX, seekMs * 1.5);
+      if (misses >= 12) throw codeErr('seek', 'The phone could not step through this video.');
+      continue;
+    }
+    misses = 0; seekMs = Math.max(SEEK_MIN, seekMs * 0.9);
+    if (run.stats) run.stats.steppedFrames = (run.stats.steppedFrames || 0) + 1;
+    try { await onFrame(v, t); } catch (e) { if (e && e.code === 'aborted') throw e; }
+  }
+}
 
 /**
  * Play [from,to] at `rate` and call onFrame(video, mediaTimeSeconds) once per
@@ -174,32 +299,70 @@ const seekTo = (v, time) => new Promise((res) => {
 // The counter stays because it is what proved that, and because if the balance
 // ever tips — a faster machine, a lighter model — this is the first place the
 // frames would start disappearing instead.
-async function playThrough(v, { from, to, rate, onFrame, frameDur, drops, deterministic = false }) {
-  await seekTo(v, Math.max(0, from));
-  v.playbackRate = rate;
-  // The seek-step path sees every frame no matter how loaded the machine is.
-  // It is the fallback for browsers without requestVideoFrameCallback, and it
-  // is also the only way to get a repeatable shot count - so callers can ask
-  // for it deliberately.
-  if (deterministic || typeof v.requestVideoFrameCallback !== 'function') {
-    // Safari-old / unsupported: step by seeking (slow but correct).
-    for (let t = from; t <= to; t += frameDur) { await seekTo(v, t); await onFrame(v, t); }
+// No NEW presented frame for this long, while the page is visible and no frame
+// is being processed, means playback is not coming back on its own.
+const STALL_MS = 8000;
+
+// `run` carries the per-capture state the phone paths need:
+//   vis          visibilityClock()      signal   AbortSignal (STOP)
+//   mode         { stepOnly }           set once playback proved dead here,
+//                                       so later windows skip the 16 s probe
+//   stepRegions  where frames were read by seeking at a coarser step, so the
+//                dropped-frame pass does not mistake the step for holes
+//   stats        what happened, for the console line and the screen
+//
+// THE OLD HANG. The only exits were 'ended', mediaTime passing `to`, or a hard
+// timer at FOUR TIMES the playback length - six minutes on a 45 s clip at 0.5x.
+// Anything that stopped presentation on a phone (the screen dimming and
+// locking, the browser pausing a hidden video, a decoder starving) left the bar
+// frozen at the last frame's percentage for those six minutes: with the coarse
+// pass that is the bar sitting on 40%. Now a stall is noticed in 8 s of ACTIVE
+// time, playback is nudged once, and the rest of the range is read by seeking
+// - progress keeps moving and nothing is silently cut off.
+export async function playThrough(v, { from, to, rate, onFrame, frameDur, drops, deterministic = false, step, run }) {
+  const stepFor = step || frameDur;
+  // The seek-step path sees every frame no matter how loaded the machine is,
+  // and it is the only way to get a repeatable shot count - so callers can ask
+  // for it deliberately (at the source frame rate, exactly as before).
+  if (deterministic) { await stepThrough(v, { from, to, step: frameDur, onFrame, run: { ...run, stepRegions: null } }); return; }
+  if (typeof v.requestVideoFrameCallback !== 'function' || run.mode.stepOnly) {
+    await stepThrough(v, { from, to, step: stepFor, onFrame, run });
     return;
   }
-  await new Promise((resolve) => {
-    let last = -1, settled = false;
-    const stop = () => { if (settled) return; settled = true; try { v.pause(); } catch { /* noop */ } resolve(); };
-    let busy = false;
+  await seekTo(v, Math.max(0, from));
+  v.playbackRate = rate;
+  const res = await new Promise((resolve) => {
+    let last = -1, settled = false, busy = false, pending = false, frames = 0, nudged = false;
+    let lastNewAt = run.vis.activeNow();
+    const cleanup = [];
+    const finish = (why) => {
+      if (settled) return;
+      settled = true;
+      clearInterval(iv);
+      for (const c of cleanup) { try { c(); } catch { /* noop */ } }
+      try { v.pause(); } catch { /* noop */ }
+      resolve({ why, last, frames });
+    };
+    const request = () => {
+      if (settled || pending) return;
+      pending = true;
+      try { v.requestVideoFrameCallback(cb); } catch { pending = false; }
+    };
     const cb = async (_now, meta) => {
+      pending = false;
       if (settled) return;
       const mt = meta.mediaTime;
-      if (mt > to + 0.001) { stop(); return; }
+      if (mt > to + 0.001) { finish('done'); return; }
       // One callback per distinct source frame; skip re-presentations.
       const isNewFrame = mt > last + frameDur * 0.5;
       if (!busy && isNewFrame) {
-        busy = true; last = mt;
-        try { await onFrame(v, mt); } catch { /* noop */ }
+        busy = true; last = mt; frames++;
+        lastNewAt = run.vis.activeNow();
+        try { await onFrame(v, mt); } catch (e) { if (e && e.code === 'aborted') { busy = false; finish('aborted'); return; } }
         busy = false;
+        // A slow detection (a phone CPU, a first GPU shader compile) is work,
+        // not a stall - the clock restarts when the frame is done.
+        lastNewAt = run.vis.activeNow();
       } else if (busy && isNewFrame && drops) {
         // A genuinely new source frame arrived while pose detection was still
         // running, so it is discarded — not queued. This is the sole source of
@@ -207,13 +370,78 @@ async function playThrough(v, { from, to, rate, onFrame, frameDur, drops, determ
         drops.skipped = (drops.skipped || 0) + 1;
         drops.lastSkipMs = Math.round(mt * 1000);
       }
-      v.requestVideoFrameCallback(cb);
+      request();
     };
-    v.addEventListener('ended', stop, { once: true });
-    v.play().then(() => v.requestVideoFrameCallback(cb)).catch(stop);
-    // Hard stop: playback should take (to-from)/rate seconds; allow 4× slack.
-    setTimeout(stop, Math.max(4000, ((to - from) / rate) * 1000 * 4));
+    const onEnded = () => finish('done');
+    const onError = () => finish('error');
+    v.addEventListener('ended', onEnded);
+    v.addEventListener('error', onError);
+    cleanup.push(() => v.removeEventListener('ended', onEnded), () => v.removeEventListener('error', onError));
+    // Back from a locked screen / another app: the browser paused a hidden
+    // video and does not always resume it. Resume, and re-arm the callback.
+    cleanup.push(run.vis.onVisible(() => {
+      if (settled) return;
+      lastNewAt = run.vis.activeNow();
+      if (v.paused && !v.ended) { try { v.play().catch(() => {}); } catch { /* noop */ } }
+      request();
+    }));
+    if (run.signal) {
+      const onAbort = () => finish('aborted');
+      run.signal.addEventListener('abort', onAbort, { once: true });
+      cleanup.push(() => run.signal.removeEventListener('abort', onAbort));
+    }
+    const iv = setInterval(() => {
+      if (settled) return;
+      if (run.signal?.aborted) { finish('aborted'); return; }
+      if (v.error) { finish('error'); return; }
+      if (busy) return;
+      const quiet = run.vis.activeNow() - lastNewAt;
+      if (quiet < (run.stallMs || STALL_MS)) return;
+      // Already at the end and 'ended' simply never came: that is done.
+      if (v.ended || v.currentTime >= to - frameDur) { finish('done'); return; }
+      if (!nudged) {
+        nudged = true;
+        lastNewAt = run.vis.activeNow();
+        try { v.play().catch(() => {}); } catch { /* noop */ }
+        request();
+        return;
+      }
+      finish('stalled');
+    }, 500);
+    // Arm the callback BEFORE play() settles: a play() promise that stays
+    // pending while a phone loads the file must not also hold back the frames.
+    request();
+    let p;
+    try { p = v.play(); } catch (e) { p = Promise.reject(e); }
+    Promise.resolve(p).catch((e) => {
+      const name = e && e.name;
+      // Muted playback without a gesture is refused on some phones (iOS Low
+      // Power Mode, battery savers). Seeking needs no gesture - read by seeking.
+      if (name === 'NotAllowedError') { run.stats.blocked = true; finish('blocked'); }
+      else if (name === 'NotSupportedError') finish('error');
+      else if (name !== 'AbortError') finish('stalled');
+    });
   });
+  if (res.why === 'aborted') throw abortErr();
+  if (res.why === 'error') throw codeErr('decode', 'The phone stopped decoding this video.');
+  // 'done' is only done if the frames reached the end. A video can PLAY to its
+  // end while presenting nothing (a phone that does not composite an
+  // off-screen video) - 'ended' fires, zero frames were read, and the pass
+  // used to call that finished: "I could not find a person" about a clip full
+  // of him. The same applies to a tail the browser skipped. On a healthy pass
+  // the last frame sits within a frame or two of `to`, so this never fires.
+  const tailTol = Math.max(0.25, 4 * frameDur);
+  const tailMissing = res.frames === 0 || to - res.last > tailTol;
+  if (res.why === 'done' && !tailMissing) return;
+  // 'stalled', 'blocked', or a 'done' with its tail missing: read the rest by
+  // seeking, from the frame after the last one that arrived. Playback that
+  // never presented a single frame is dead on this phone - later windows go
+  // straight to seeking.
+  if (res.why === 'done') run.stats.tails = (run.stats.tails || 0) + 1;
+  else run.stats.stalls = (run.stats.stalls || 0) + 1;
+  if (res.frames === 0) run.mode.stepOnly = true;
+  const resume = res.last >= 0 ? res.last + stepFor : from;
+  if (resume <= to + 1e-6) await stepThrough(v, { from: resume, to, step: stepFor, onFrame, run });
 }
 
 // True frame rate from presentation timestamps, snapped to a standard rate.
@@ -242,7 +470,11 @@ async function measureFps(v) {
     };
     const to = setTimeout(finish, 2500);
     try { v.muted = true; v.currentTime = 0; } catch { /* noop */ }
-    v.play().then(() => v.requestVideoFrameCallback(onFrame)).catch(() => resolve(null));
+    // finish(), not resolve(): a refused play() used to leave the 2.5 s timer
+    // armed, and its v.pause() then landed inside the coarse pass.
+    let p;
+    try { p = v.play(); } catch (e) { p = Promise.reject(e); }
+    Promise.resolve(p).then(() => v.requestVideoFrameCallback(onFrame)).catch(() => finish());
   });
 }
 
@@ -264,7 +496,10 @@ async function measureFps(v) {
  * Not wired to any UI yet - it is here so the speed/reliability trade can be
  * MEASURED before anyone decides. See docs/shot-analyzer-next-2026-08-27.md.
  */
-export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 0.5, deterministic = false } = {}) {
+// `signal` (AbortSignal): STOP on the screen. The capture used to run on after
+// STOP with nobody listening, so the NEXT analysis shared the phone's CPU with
+// a ghost of the last one - and stalled for real.
+export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 0.5, deterministic = false, signal } = {}) {
   // Three settings, because measurement showed the two passes do not deserve
   // the same treatment. Three default-path captures on an IDLE machine returned
   // 11, 8 and 11 shots, and the per-run stats pinned the loss precisely:
@@ -285,12 +520,42 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
   const detFine = deterministic === true;
   let lmCoarse, lmFine, v, canvas;
   const report = (p, label) => { if (onProgress) onProgress(Math.max(0, Math.min(100, Math.round(p))), label); };
+  const vis = visibilityClock();
+  const clock = () => vis.activeNow();
+  const run = { vis, signal, mode: { stepOnly: false }, stepRegions: [], stats: { stalls: 0, blocked: false, fineModel: 'full' } };
+  const checkAbort = () => { if (signal?.aborted) throw abortErr(); };
+  // A model that never finishes loading (a slow connection, a GPU delegate that
+  // hangs instead of throwing on some phones) used to be an endless wait.
+  const loadModel = (opts, ms) => withDeadline(createPoseLandmarker(opts), ms,
+    codeErr('model', 'The body-tracking model did not load.'),
+    { clock, signal, onLate: (lm) => { try { lm.close(); } catch { /* noop */ } } });
+  // detect() that throws on every frame (a WebGL context the phone took back
+  // under memory pressure, a GPU the delegate cannot drive) was swallowed per
+  // frame and surfaced as "I could not find a person" - a confident wrong
+  // answer. Counted, the model is rebuilt ONCE, and a model that never
+  // produced a single result is reported as the model, not the clip.
+  const health = { ok: 0, err: 0, consec: 0, lastErr: null, rebuilt: false };
+  const detect = (lm, input) => {
+    try { const r = lm.detect(input); health.ok++; health.consec = 0; return r; }
+    catch (e) { health.err++; health.consec++; health.lastErr = e; return null; }
+  };
+  const maybeRebuild = async () => {
+    if (health.consec < 10 || health.rebuilt) return;
+    health.rebuilt = true; health.consec = 0;
+    try { lmCoarse.close(); } catch { /* noop */ }
+    lmCoarse = await loadModel({ runningMode: 'IMAGE', quality: 'lite', numPoses: 3 }, 45000);
+  };
   try {
     // IMAGE mode: frames arrive out of a normal decode order (we seek between
     // windows), and VIDEO mode rejects those outright as timestamp mismatches.
-    lmCoarse = await createPoseLandmarker({ runningMode: 'IMAGE', quality: 'lite', numPoses: 3 });
+    report(0, 'loading the model');
+    lmCoarse = await loadModel({ runningMode: 'IMAGE', quality: 'lite', numPoses: 3 }, 90000);
+    checkAbort();
     v = document.createElement('video');
-    v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
+    // Muted AND inline as ATTRIBUTES too: the muted property alone does not
+    // reflect, and some mobile autoplay checks read the attribute.
+    v.muted = true; v.defaultMuted = true; v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+    v.src = src; v.playsInline = true; v.preload = 'auto';
     v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
     document.body.appendChild(v);
     await new Promise((res, rej) => {
@@ -300,25 +565,62 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       // auto-analysis sweep is strictly sequential — the entire remaining
       // backlog never ran again for the rest of the session, with nothing shown
       // anywhere. Bounded so a bad clip fails and the next one proceeds.
-      const t = setTimeout(() => rej(new Error('Timed out reading that video.')), 45000);
+      const t = setTimeout(() => rej(codeErr('readTimeout', 'Timed out reading that video.')), 45000);
       v.onloadedmetadata = () => { clearTimeout(t); res(); };
-      v.onerror = () => { clearTimeout(t); rej(new Error('Could not read that video.')); };
+      v.onerror = () => {
+        clearTimeout(t);
+        // MEDIA_ERR_SRC_NOT_SUPPORTED (4): the phone cannot play this format.
+        rej(v.error && v.error.code === 4 ? codeErr('codec', 'This phone cannot play this video format.') : codeErr('read', 'Could not read that video.'));
+      };
     });
+    checkAbort();
+    // A clip whose AUDIO decodes but whose VIDEO does not (HEVC / HDR from
+    // another phone, on a phone without that decoder) still reaches metadata,
+    // with a 0x0 picture. Nothing would ever be presented; every later stage
+    // would wait on frames that cannot come. Say so now.
+    if (!v.videoWidth) {
+      await new Promise((res) => {
+        const done = () => { v.removeEventListener('loadeddata', done); v.removeEventListener('resize', done); res(); };
+        v.addEventListener('loadeddata', done); v.addEventListener('resize', done);
+        setTimeout(done, 5000);
+      });
+      if (!v.videoWidth) throw codeErr('codec', 'This phone cannot play this video format.');
+    }
     let dur = v.duration;
     if (!isFinite(dur) || dur <= 0) {
-      await new Promise((res) => { const d = () => { v.onseeked = null; res(); }; v.onseeked = d; setTimeout(d, 1500); try { v.currentTime = 1e7; } catch { d(); } });
+      // A MediaRecorder WebM carries no duration until the file is scanned to
+      // its end; seeking far past it forces the scan. A phone's in-memory
+      // recording can take longer than the old 1.5 s to scan - wait for the
+      // duration itself, up to 8 s.
+      await new Promise((res) => {
+        let settled = false;
+        const d = () => { if (settled) return; settled = true; v.onseeked = null; v.removeEventListener('durationchange', dc); res(); };
+        const dc = () => { if (isFinite(v.duration) && v.duration > 0) d(); };
+        v.onseeked = d; v.addEventListener('durationchange', dc);
+        setTimeout(d, 8000);
+        try { v.currentTime = 1e7; } catch { d(); }
+      });
       dur = v.duration; try { v.currentTime = 0; } catch { /* noop */ }
     }
-    if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
+    if (!isFinite(dur) || dur <= 0) throw codeErr('noDuration', 'Could not read that video (no duration).');
     const fps = (await measureFps(v)) || 30;
     try { v.pause(); v.currentTime = 0; } catch { /* noop */ }
     const frameDur = 1 / fps;
+    checkAbort();
 
     // The coarse pass decides the shot count, so it does not start until the
     // clip is in memory. See awaitBuffered above.
-    const buf = await awaitBuffered(v, { onTick: (f) => report(f * 12, 'loading the clip') });
+    const buf = await awaitBuffered(v, { onTick: (f) => report(f * 12, 'loading the clip'), clock, signal });
+    checkAbort();
     if (!buf.ok) report(12, 'loading the clip');
     const vw = v.videoWidth || 1080, vh = v.videoHeight || 1920;
+    // Where playback fails and the pass has to SEEK instead, reading every
+    // source frame of a whole clip would be ~2,700 seeks on a 45 s 60 fps phone
+    // clip. The coarse pass only has to see the hands above the head, which
+    // lasts a few hundred ms - 15 reads a second is plenty. The fine pass keeps
+    // up to 30 a second inside its windows.
+    const coarseStep = frameDur * Math.max(1, Math.round((1 / 15) / frameDur));
+    const fineStep = frameDur * Math.max(1, Math.round((1 / 30) / frameDur));
 
     // ------------------------------------------------------------ pass 1 ---
     // Whole clip at playback speed, fast model, whole frame: where is he, and
@@ -408,10 +710,13 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       // constant changes with capture density. Making them time-based would
       // make detection invariant to how many frames the browser hands us, which
       // is the disease this rate change only treats.
-      from: 0, to: dur, rate: coarseRate, frameDur, drops, deterministic: detCoarse,
-      onFrame: (vid, mt) => {
-        let r = null;
-        try { r = lmCoarse.detect(vid); } catch { /* noop */ }
+      from: 0, to: dur, rate: coarseRate, frameDur, drops, deterministic: detCoarse, step: coarseStep, run,
+      onFrame: async (vid, mt) => {
+        checkAbort();
+        // Read the frame FIRST, synchronously, while it is the presented one;
+        // only a failing streak pays for an await (the one-time rebuild).
+        const r = detect(lmCoarse, vid);
+        if (!r && health.consec >= 10 && !health.rebuilt) await maybeRebuild();
         const sub = pickSubject(r?.landmarks, prevC, stepFor(mt));
         if (sub.idx >= 0) {
           prevC = sub.centroid;
@@ -433,13 +738,19 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     // Gaps are found in the timestamps we did get, and only those windows are
     // re-read by seek, which is exact. A clean pass finds no gaps and pays
     // nothing.
+    checkAbort();
+    // Every read failed: that is the model on this phone, not an empty clip.
+    if (!health.ok && health.err) throw codeErr('model', 'The body-tracking model failed on this phone: ' + (health.lastErr?.message || health.lastErr));
     let recovered = 0, recoveryCapped = false;
     if (coarse.length > 1) {
       const gapMs = frameDur * 1000 * 2.5;
+      // A span read by SEEKING at coarseStep (playback failed there) is spaced
+      // by that step on purpose - it is not a hole to re-read frame by frame.
+      const stepped = (a, b) => run.stepRegions.some((g) => a >= g.from * 1000 - 1 && b <= (g.to + g.step) * 1000 + 1 && b - a <= g.step * 1000 * 1.6);
       const holes = [];
       for (let i = 1; i < coarse.length; i++) {
         const dt = coarse[i].t - coarse[i - 1].t;
-        if (dt > gapMs) holes.push({ from: coarse[i - 1].t, to: coarse[i].t });
+        if (dt > gapMs && !stepped(coarse[i - 1].t, coarse[i].t)) holes.push({ from: coarse[i - 1].t, to: coarse[i].t });
       }
       // A cap, because a pathologically bad pass could otherwise seek for
       // minutes - and it is REPORTED rather than silently truncating.
@@ -450,8 +761,10 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       // 600ms each plus a pose read - with no progress in between: ten minutes
       // of a bar pinned at 40%. Now it reports as it goes (40 -> 50) and it has
       // a WALL-CLOCK budget: 25s, then it stops and says it stopped.
+      // ACTIVE time: a screen that locks mid-pass used to spend the whole
+      // budget while the phone was asleep, and came back to a capped pass.
       const RECOVER_BUDGET_MS = 25000;
-      const recoverStart = Date.now();
+      const recoverStart = clock();
       let planned = 0;
       for (const h of holes) planned += Math.max(0, Math.floor((h.to - h.from - frameDur * 1500) / (frameDur * 1000)) + 1);
       planned = Math.max(1, Math.min(planned, MAX_RECOVER));
@@ -461,12 +774,16 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
         outer:
         for (const h of holes) {
           for (let tMsHole = h.from + frameDur * 1000; tMsHole < h.to - frameDur * 500; tMsHole += frameDur * 1000) {
-            if (recovered >= MAX_RECOVER || Date.now() - recoverStart > RECOVER_BUDGET_MS) { recoveryCapped = true; break outer; }
+            checkAbort();
+            await vis.whenVisible(signal);
+            checkAbort();
+            if (recovered >= MAX_RECOVER || clock() - recoverStart > RECOVER_BUDGET_MS) { recoveryCapped = true; break outer; }
             tried++;
-            if (tried % 5 === 0) report(40 + Math.min(1, Math.max(tried / planned, (Date.now() - recoverStart) / RECOVER_BUDGET_MS)) * 10, 'filling the dropped frames');
-            await seekTo(v, tMsHole / 1000);
-            let r = null;
-            try { r = lmCoarse.detect(v); } catch { /* a single frame may fail */ }
+            if (tried % 5 === 0) report(40 + Math.min(1, Math.max(tried / planned, (clock() - recoverStart) / RECOVER_BUDGET_MS)) * 10, 'filling the dropped frames');
+            // A seek that did not land would be read as the previous frame
+            // under this timestamp - skip it rather than record a wrong one.
+            if (!(await seekTo(v, tMsHole / 1000))) continue;
+            const r = detect(lmCoarse, v);
             const anchor = nearestSeen(tMsHole / 1000);
             const aStep = anchor ? (anchor.d > 0.5 ? Infinity : Math.max(0.05, anchor.d * 1.0)) : Infinity;
             const sub = pickSubject(r?.landmarks, anchor ? anchor.c : null, aStep);
@@ -487,7 +804,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const msCoarse = Math.round(performance.now() - t0);
     if (recovered) drops.recovered = recovered;
     if (recoveryCapped) drops.recoveryCapped = true;
-    if (track.length < 6) throw new Error('I could not find a person in this clip. Film the whole body, side-on, in good light.');
+    if (track.length < 6) throw codeErr('noPerson', 'I could not find a person in this clip. Film the whole body, side-on, in good light.');
 
     // Shot candidates: either wrist above the top of the head.
     const above = coarse.map((f) => {
@@ -537,7 +854,27 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     let prevGray = null, prevGrayT = -1e9;
     // The full model is a download on a phone's first run - say so, never a silent wait.
     report(50, 'loading the detailed model');
-    lmFine = await createPoseLandmarker({ runningMode: 'IMAGE', quality: 'full', numPoses: 1 });
+    // The detailed model is an UPGRADE, not a requirement. On a slow phone
+    // connection, or a GPU delegate that hangs instead of failing, it used to
+    // be an endless wait on 50%. Past 30 s of active time the windows are read
+    // with the fast model already in memory, and the stats say so.
+    let fineLm;
+    try {
+      lmFine = await loadModel({ runningMode: 'IMAGE', quality: 'full', numPoses: 1 }, 30000);
+      fineLm = lmFine;
+    } catch (e) {
+      if (e && e.code === 'aborted') throw e;
+      fineLm = lmCoarse; run.stats.fineModel = 'lite';
+    }
+    const fineHealth = { consec: 0 };
+    const detectFine = (input) => {
+      try { const r = fineLm.detect(input); fineHealth.consec = 0; return r; }
+      catch {
+        // Ten failures in a row on the detailed model: carry on with the fast one.
+        if (++fineHealth.consec >= 10 && fineLm !== lmCoarse) { fineLm = lmCoarse; run.stats.fineModel = 'lite'; fineHealth.consec = 0; }
+        return null;
+      }
+    };
     const fine = [];
     const totalMs = windows.reduce((a, w) => a + (w.to - w.from), 0) || 1;
     let doneMs = 0;
@@ -550,8 +887,9 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       let prevFineC = null, prevFineT = null;
       if (fine.length >= maxFine) break;
       await playThrough(v, {
-        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops, deterministic: detFine,
-        onFrame: (vid, mt) => {
+        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops, deterministic: detFine, step: fineStep, run,
+        onFrame: async (vid, mt) => {
+          checkAbort();
           if (fine.length >= maxFine) return;
           const b = boxAt(track, mt) || { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.9 };
           const bw = (b.x1 - b.x0) * vw, bh = (b.y1 - b.y0) * vh;
@@ -565,7 +903,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
           ctx.clearRect(0, 0, CROP, CROP);
           ctx.drawImage(vid, sx, sy, sideLen, sideLen, 0, 0, CROP, CROP);
           let r = null;
-          try { r = lmFine.detect(canvas); } catch { /* noop */ }
+          r = detectFine(canvas);
           const sub = pickSubject(r?.landmarks, null);
           if (sub.idx >= 0 && r.worldLandmarks?.[sub.idx]) {
             const mapped = r.landmarks[sub.idx].map((p) => (p ? { x: (sx + p.x * sideLen) / vw, y: (sy + p.y * sideLen) / vh, z: p.z, visibility: p.visibility } : p));
@@ -655,11 +993,18 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     // looks like a lower-frame-rate video.
     const seen = coarse.length + fine.length + drops.skipped;
     out.stats = { coarse: coarse.length, fine: fine.length, windows: windows.length, duration: dur, msCoarse, msFine,
-                  skipped: drops.skipped, skipRatio: seen ? Math.round((drops.skipped / seen) * 100) / 100 : 0 };
+                  skipped: drops.skipped, skipRatio: seen ? Math.round((drops.skipped / seen) * 100) / 100 : 0,
+                  // Phone paths: how often playback stalled and was finished by
+                  // seeking, whether play() was refused, which model read the
+                  // shots, and any detections that threw.
+                  stalls: run.stats.stalls, tails: run.stats.tails || 0, blocked: run.stats.blocked, stepOnly: run.mode.stepOnly,
+                  steppedFrames: run.stats.steppedFrames || 0, fineModel: run.stats.fineModel,
+                  detectErrors: health.err, rebuilt: health.rebuilt };
     report(100, 'done');
     try { console.log('[shot-capture]', JSON.stringify(out.stats), 'out', out.length); } catch { /* noop */ }
     return out;
   } finally {
+    vis.dispose();
     if (lmCoarse) try { lmCoarse.close(); } catch { /* noop */ }
     if (lmFine) try { lmFine.close(); } catch { /* noop */ }
     if (v) try { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); } catch { /* noop */ }
