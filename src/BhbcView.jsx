@@ -2746,6 +2746,8 @@ function ActivityView({ activity = [], tr, he }) {
               <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
             </div>
           ))}
+        {/* the trail keeps everything; the card shows the newest 120 and SAYS so (#305 N-O2) */}
+        {list.length > 120 && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, paddingTop: 8 }}>{tr('+{n} older changes not shown').replace('{n}', list.length - 120)}</div>}
       </Card>
     </>
   );

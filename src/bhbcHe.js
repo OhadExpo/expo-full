@@ -846,6 +846,7 @@ Object.assign(HE, {
   'before he landed': 'לפני שנחת',
   'N/A': 'לא רלוונטי',
   Concussion: 'זעזוע מוח',
+  '+{n} older changes not shown': 'ועוד {n} שינויים ישנים שלא מוצגים',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
