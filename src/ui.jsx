@@ -1398,44 +1398,45 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
 }
 
 // A segment label: the full word, or - only when the full word would not fit
-// its cell - the short word, at the same font size (27.9). The full word is
-// measured in a hidden sizer, so the label never switches back and forth and
-// never flashes (27.9 review).
+// its cell - the short word, at the same font size (27.9). The full word's
+// width is measured ONCE while it is really on screen and remembered; later
+// decisions compare that width with the space left, so the label never
+// flips back and forth, and no hidden copy of the text sits in the page (a
+// hidden sizer read as a 7-24px spill to the overflow gate, 27.9).
 export function SegWord({ full, short }) {
   const ref = React.useRef(null);
-  const sizer = React.useRef(null);
+  const fullW = React.useRef(0);
   const [useShort, setUseShort] = React.useState(false);
+  const decide = React.useCallback(() => {
+    const el = ref.current; const btn = el && el.parentElement;
+    if (!el || !btn || !short || !fullW.current) return;
+    const cs = getComputedStyle(btn);
+    const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const gap = parseFloat(cs.columnGap) || 0;
+    let others = 0;
+    for (const k of btn.children) if (k !== el) others += k.getBoundingClientRect().width + gap;
+    const next = fullW.current + others + pad > btn.clientWidth + 0.5;
+    setUseShort((p) => (p === next ? p : next));
+  }, [short]);
+  // while the FULL word shows, take its width, then decide
   React.useLayoutEffect(() => {
-    const el = ref.current; const btn = el && el.parentElement; const sz = sizer.current;
-    if (!el || !btn || !sz || !short) return undefined;
-    const measure = () => {
-      // everything in the button except this label, plus the full word
-      const cs = getComputedStyle(btn);
-      const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
-      const gap = parseFloat(cs.columnGap) || 0;
-      let others = 0;
-      for (const k of btn.children) if (k !== el) others += k.getBoundingClientRect().width + gap;
-      const need = pad + others + sz.getBoundingClientRect().width;
-      const next = need > btn.clientWidth + 0.5;
-      setUseShort((p) => (p === next ? p : next));
-    };
-    measure();
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (useShort) return;
+    const el = ref.current; if (!el) return;
+    fullW.current = el.getBoundingClientRect().width;
+    decide();
+  }, [useShort, full, decide]);
+  React.useEffect(() => {
+    const el = ref.current; const btn = el && el.parentElement;
+    if (!btn || !short) return undefined;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(decide) : null;
     if (ro) ro.observe(btn);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure).catch(() => {});
-    const late = [250, 1000].map((ms) => setTimeout(measure, ms));
-    return () => { late.forEach(clearTimeout); if (ro) ro.disconnect(); };
-  }, [full, short]);
-  return (
-    <span ref={ref} style={{ display:'inline-flex', alignItems:'center', lineHeight:1, minWidth:0, position:'relative' }}>
-      {useShort ? short : full}
-      {/* a zero-size, clipped box: the word inside keeps its real width to
-          measure, but adds nothing to any scroller's overflow (27.9 gate) */}
-      <span aria-hidden="true" style={{ position:'absolute', width:0, height:0, overflow:'hidden', visibility:'hidden', pointerEvents:'none', insetInlineStart:0, top:0 }}>
-        <span ref={sizer} style={{ display:'inline-block', whiteSpace:'nowrap' }}>{full}</span>
-      </span>
-    </span>
-  );
+    // the web font changes the full word's width: take it again, once
+    let alive = true;
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (alive) setUseShort(false); }).catch(() => {});
+    const late = [250, 1000].map((ms) => setTimeout(decide, ms));
+    return () => { alive = false; late.forEach(clearTimeout); if (ro) ro.disconnect(); };
+  }, [short, decide]);
+  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', lineHeight:1, flexShrink:0 }}>{useShort ? short : full}</span>;
 }
 
 export function useEdgeFade(ref) {

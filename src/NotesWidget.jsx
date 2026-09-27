@@ -991,7 +991,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const SEGS = [
             { id:'all',    label:tb('All'),         n:openRows.length },
             { id:'mine',   label:tb('General'),     n:manualRows.length },
-            { id:'alerts', label:tb('Auto-alerts'), short:tb('Alerts'), n:autoRows.length },
+            // the short word reserves only its OWN language's width (tb() reserves
+            // both, and the Hebrew fallback font made even the short word spill)
+            { id:'alerts', label:tb('Auto-alerts'), short:tr(readLang(), 'Alerts'), n:autoRows.length },
           ];
           return (
             <div>
