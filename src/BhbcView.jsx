@@ -4251,7 +4251,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                 <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
                   {/* THE NAME IS THE PART THAT GIVES WAY; the age is the number
                       being read (OCD sweep, 22.9). */}
-                  <span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word' /* never cut (26.9) */ }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
+                  <span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word' /* never cut (26.9) */ }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} י׳` : `${since}d`)}</span></span>
               ))}
             </span>
           </div>
@@ -6289,7 +6289,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                    <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
+                    <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
@@ -6364,7 +6364,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             return (
               <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 6, gap: 14, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 140, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
-                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
                   {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} {tr(hist > 1 ? 'records' : 'record')}</span>}
                 </div>
