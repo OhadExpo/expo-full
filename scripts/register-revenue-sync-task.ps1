@@ -17,7 +17,7 @@
 # Undo with:  Unregister-ScheduledTask -TaskName 'EXPO Revenue Sync' -Confirm:$false
 $ErrorActionPreference = 'Stop'
 $name = 'EXPO Revenue Sync'
-$repo = 'C:\Users\Administrator\Desktop\expo-full'
+$repo = Join-Path $env:USERPROFILE 'Desktop\expo-full'
 
 try { Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction Stop } catch {}
 

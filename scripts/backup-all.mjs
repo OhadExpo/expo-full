@@ -17,6 +17,7 @@
 //
 //   EXPO_PW=... node scripts/backup-all.mjs [--db-only]
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -27,7 +28,7 @@ const PW = process.env.EXPO_PW || '1234';
 const DB_ONLY = process.argv.includes('--db-only');
 
 const stamp = new Date().toISOString().slice(0, 10);
-const ROOT = process.env.EXPO_BACKUP_DIR || path.join('C:', 'Users', 'Administrator', 'expo-backups', stamp);
+const ROOT = process.env.EXPO_BACKUP_DIR || path.join(os.homedir(), 'expo-backups', stamp);
 fs.mkdirSync(path.join(ROOT, 'db'), { recursive: true });
 fs.mkdirSync(path.join(ROOT, 'storage'), { recursive: true });
 

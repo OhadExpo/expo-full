@@ -16,10 +16,12 @@
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const run = promisify(execFile);
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const PROFILE = 'C:\\Users\\Administrator\\chrome-debug-budget';
+const PROFILE = path.join(os.homedir(), 'chrome-debug-budget');
 
 const argv = process.argv.slice(2);
 const PORT = argv.shift() || '5192';

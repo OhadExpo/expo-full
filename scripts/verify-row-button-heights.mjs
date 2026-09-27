@@ -23,6 +23,8 @@
 //
 //   node scripts/verify-row-button-heights.mjs [base] [width] [route...]
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
@@ -47,7 +49,7 @@ const chromeUp = async () => {
 if (!(await chromeUp())) {
   spawn(String.raw`C:\Program Files\Google\Chrome\Application\chrome.exe`, [
     '--remote-debugging-port=9222',
-    String.raw`--user-data-dir=C:\Users\Administrator\chrome-debug-budget`,
+    `--user-data-dir=${path.join(os.homedir(), 'chrome-debug-budget')}`,
     '--no-first-run', '--no-default-browser-check',
     '--proxy-bypass-list=<-loopback>', 'about:blank',
   ], { detached: true, stdio: 'ignore' }).unref();

@@ -8,7 +8,7 @@
 # Interactive logon (the sync drives the signed-in debug Chrome, which needs a
 # desktop); StartWhenAvailable catches a missed run after the PC was asleep.
 $ErrorActionPreference = 'Stop'
-$repo = 'C:\Users\Administrator\Desktop\expo-full'
+$repo = Join-Path $env:USERPROFILE 'Desktop\expo-full'
 $node = (Get-Command node).Source
 $name = 'EXPO revenue sync (twice daily)'
 $action = New-ScheduledTaskAction -Execute $node -Argument 'scripts/sync-revenue.mjs' -WorkingDirectory $repo
