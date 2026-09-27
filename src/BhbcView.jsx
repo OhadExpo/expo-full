@@ -2046,7 +2046,11 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           const agoLabel = ago == null ? '' : heM
             ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
             : (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`);
-          const avg = [['PPG', leaguePlayer.ppg], ['RPG', leaguePlayer.rpg], ['APG', leaguePlayer.apg], ['MPG', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
+          // THE AVERAGES READ WITH THE SAME FOUR WORDS AS THE LAST GAME ABOVE,
+          // under one "season average" caption (27.9: "נק׳ למשחק" wrapped to two
+          // lines in a quarter of a phone; a title fits by wording, never a
+          // smaller font). Then the shooting, the rating and games played.
+          const avg = [['PTS', leaguePlayer.ppg], ['REB', leaguePlayer.rpg], ['AST', leaguePlayer.apg], ['MIN', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
           return (
             <div style={{ border: `1px solid ${ORANGE}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
@@ -2077,7 +2081,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
                       <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>{tr('vs')} {lastGLine.opp || '—'}</bdi></div>
                     </div>
-                    <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Full line')} {heM ? '‹' : '›'}</span>
+                    <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Full line')} ›</span>
                   </div>
                   {/* THE SAME FOUR COLUMNS as the season averages directly below.
                       They used to be pushed to the right edge on `margin-inline-start:
@@ -2089,18 +2093,19 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` }}>
                     {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ['MIN', lastG.min]].map(([k, v], i) => (
                       <div key={k} style={{ padding: '10px 12px', borderInlineEnd: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
-                        <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+                        <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
                         <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: k === 'PTS' ? ORANGE_DEEP : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+              <div style={{ padding: '8px 12px 0', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Season average')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
                 {avg.map(([k, v], i) => (
                   <div key={k} style={{ padding: '10px 12px', borderInlineEnd: (i % 4 !== 3) ? `1px solid ${C.cardBd}` : 'none', borderTop: i >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
-                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
-                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
+                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">{v}</bdi></div>
                   </div>
                 ))}
               </div>
@@ -5209,9 +5214,13 @@ function FormDots({ form }) {
 
 function StandingsTable({ standings }) {
   const tr = useT();
+  const heM = useHe();
   const cols = [
-    { k: 'gp', h: 'GP' }, { k: 'w', h: 'W' }, { k: 'l', h: 'L' },
-    { k: 'pf', h: 'PF' }, { k: 'pa', h: 'PA' }, { k: 'diff', h: '+/–' },
+    // THE LEAGUE'S OWN WORDS IN HEBREW (27.9, Ohad: "use the same stat terms
+    // as the league administration's site"): basket.co.il's standings read
+    // מש' / נצ' / הפ' / סל זכות / סל חובה / הפרש.
+    { k: 'gp', h: 'GP', he: 'GP' }, { k: 'w', h: 'W', he: 'W' }, { k: 'l', h: 'L', he: 'L' },
+    { k: 'pf', h: 'PF', he: 'Points for' }, { k: 'pa', h: 'PA', he: 'Points against' }, { k: 'diff', h: '+/–', he: 'Difference' },
   ];
   const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, padding: '8px 10px', textAlign: 'end', whiteSpace: 'nowrap' };
   return (
@@ -5221,7 +5230,7 @@ function StandingsTable({ standings }) {
           <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
             <th style={{ ...th, textAlign: 'center', width: 34 }}>#</th>
             <th style={{ ...th, textAlign: 'start' }}>{tr('Team')}</th>
-            {cols.map((c) => <th key={c.k} style={{ ...th, textAlign: 'center' }}>{c.h}</th>)}
+            {cols.map((c) => <th key={c.k} style={{ ...th, textAlign: 'center' }}>{heM ? tr(c.he) : c.h}</th>)}
             <th style={{ ...th, textAlign: 'center' }}>{tr('Form')}</th>
           </tr>
         </thead>
@@ -5332,7 +5341,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
           display:table (themes.css .bhbc-stats-table) + the player column
           pinned while the numbers scroll. */}
       <table className="bhbc-stats-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
-        <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, c.h))}</tr></thead>
+        <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, tr(c.h)))}</tr></thead>
         <tbody>
           {items.map(({ t, s }) => {
             const td = { fontFamily: FN, fontSize: 13, color: s ? C.tx : C.tm, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
