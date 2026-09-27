@@ -709,7 +709,6 @@ Object.assign(HE, {
   // said about one athlete ("did not turn up"), masculine singular.
   'absences': 'חיסורים',
   'missed': 'לא הגיע',
-  'Practice': 'אימון',
   'there': 'הגיעו',
   'none': 'אין',
 
@@ -759,7 +758,6 @@ Object.assign(HE, {
   'What the room did': 'מה עשו בחדר הכוח',
   'nothing written': 'לא נרשם כלום',
 
-  lifted: 'התאמנו',
 
   // ---- 24.9: S&C sessions and lifts are two different things -----------
   // Ohad: "lifts should say log lift", "sc sessions should say log S&C
@@ -773,7 +771,6 @@ Object.assign(HE, {
   'S&C': 'כוח',
   '28 days': '28 ימים',
   'Last lift': 'הרמה אחרונה',
-  'Last game': 'משחק אחרון',
   'Full line': 'כל הנתונים',
   'pts': 'נק׳',
   'S&C minutes': 'דקות כוח',
