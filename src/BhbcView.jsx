@@ -1919,8 +1919,9 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                     record. */}
                 {leagueUpdatedAt && (
                   <span className="strip-meta" style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}
-                    title="Official league feed (basket.co.il). Only games the league has published appear here.">
-                    {'ליגת העל · ' + fmtNumericDate(leagueUpdatedAt)}
+                    title={tr('Official league feed (basket.co.il). Only games the league has published appear here.')}>
+                    {/* in the zone's language (#305 N-D3): it was Hebrew on the English screen */}
+                    {tr('Premier League') + ' · ' + fmtNumericDate(leagueUpdatedAt)}
                   </span>
                 )}
               </div>
@@ -4350,10 +4351,11 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   // gone by — after the morning practice the coach is looking for the morning
   // practice, and excluding it by date alone hid exactly the session he had just
   // finished running.
-  const nowHHMM = useMemo(() => {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  }, [today]);
+  // Read the clock on every render (#305 L1). Memoised on `today` it froze at
+  // the first render of the day, so the 18:00 practice never became "past"
+  // for a coach who had the page open since the morning.
+  const nowD = new Date();
+  const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   // PRACTICES ONLY. A game is not a practice, and a legacy weights slot is not
   // one either - lifts are personal now and never appear here.
   const isPracticeFx = (f) => f && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
@@ -4416,7 +4418,10 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
     // does — you cannot ask a question of an unsigned entry.
     const loggers = [...new Set(rowsBy.filter(Boolean))];
     return { trained, out, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, notes, loggers };
-  }, [loads, roster, past]);
+  // medical belongs here (#305 N-D2): an injury filed or cleared while this
+  // card is open moves who was out of a past practice, and without it the
+  // rows kept the medical record as it was when the card first rendered.
+  }, [loads, roster, past, medical]);
 
   if (!past.length) return null;
   const names = (arr) => arr.map((t) => t.name).join(', ');
@@ -4912,13 +4917,19 @@ const leagueLogFor = (league, t) => {
   const old = heb ? Object.values(league?.archive || {}).flatMap((a) => ((a.players || []).find((p) => p.name === heb) || {}).log || []) : [];
   return [...((curP && curP.log) || []), ...old];
 };
-const relTime = (iso) => {
+// HOW OLD THE LEAGUE NUMBERS ARE, in the zone's language (#305 D3). It printed
+// "3h ago" on the Hebrew screen, and "4d ago" for a feed four days stale -
+// under a day it stays relative; older than that it says the DATE it is from,
+// day-first, from the feed's own updatedAt (a local date, never the UTC one).
+const relTime = (iso, he = false) => {
   if (!iso) return '';
-  const diff = (Date.now() - new Date(iso).getTime()) / 60000;
-  if (diff < 1) return 'just now';
-  if (diff < 60) return `${Math.round(diff)}m ago`;
-  if (diff < 1440) return `${Math.round(diff / 60)}h ago`;
-  return `${Math.round(diff / 1440)}d ago`;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const diff = (Date.now() - t) / 60000;
+  if (diff < 1) return he ? 'עכשיו' : 'just now';
+  if (diff < 60) return he ? `לפני ${Math.round(diff)} דק׳` : `${Math.round(diff)}m ago`;
+  if (diff < 1440) { const h = Math.round(diff / 60); return he ? (h === 1 ? 'לפני שעה' : `לפני ${h} שעות`) : `${h}h ago`; }
+  return `${he ? 'נכון ל-' : 'as of '}${ddmm(localISO(new Date(t)))}`;
 };
 
 function FormDots({ form }) {
@@ -5195,6 +5206,7 @@ function fixturesToGames(fixtures) {
 
 function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes }) {
   const tr = useT();
+  const heL = useHe();
   const leagueGames = Array.isArray(league.games) ? league.games : [];
   const playedGames = leagueGames.filter((g) => g.played);
   // A season whose every game is already played is HISTORICAL (last season) —
@@ -5228,7 +5240,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
         pastData
           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C828B' }} />{currentSeason} · {tr('Pre-season')}</span>
-          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? tr('Last season') : tr('Live')}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>
+          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? tr('Last season') : tr('Live')}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt, heL)}` : ''}</span>
       }>
         {showCurrent ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
