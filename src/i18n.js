@@ -1345,6 +1345,8 @@ export const HE = {
   "PRICING CTA": 'כפתור תמחור',
   "EXIT-INTENT": 'יציאה מהדף',
   "THIS MONTH · SHEET": 'החודש · גיליון',
+  "THIS MONTH": 'החודש',
+  "LAST 3 MONTHS": '3 החודשים האחרונים',
   "LAST 3 MONTHS · SHEET": '3 החודשים האחרונים · גיליון',
   "LAST 6 MONTHS · COLLECTED · SHEET": 'נכנס · 6 החודשים האחרונים · גיליון',
   "Synced from the sheet twice a day": 'מסונכרן מהגיליון פעמיים ביום',
