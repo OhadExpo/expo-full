@@ -1791,6 +1791,13 @@ export const HE = {
   // not contain. It never shows the internal id.
   'Athlete not on this roster': 'המתאמן לא ברשימה הזאת',
   OFFLINE: 'אופליין',
+  // Workout durability (27.9): a finished workout the server has not taken yet,
+  // and Complete refused for a workout with no ticked sets.
+  'WORKOUT NOT SAVED YET': 'האימון עוד לא נשמר',
+  'It is kept on this phone. Retrying until it goes through.': 'הוא שמור אצלך בטלפון. ממשיכים לנסות עד שיעבור.',
+  'It is kept on this phone. Sign in again and it will be sent.': 'הוא שמור אצלך בטלפון. תתחבר שוב והוא יישלח.',
+  'No sets ticked yet. Tick ✓ on the sets you did, then complete.': 'עוד לא סימנת אף סט. תסמן ✓ על הסטים שעשית ואז סיים.',
+  'Not saved. Your sets are still here. Tap complete again.': 'לא נשמר. הסטים שלך עדיין כאן. נסה שוב.',
   "Showing your last saved program. New logs are kept on this phone and sent when you're back online.":
     'מוצגת התוכנית האחרונה שנשמרה. מה שתרשום נשמר בטלפון ויישלח כשתחזור לרשת.',
   "We can't reach the server right now. Your program will be here when you're back online.":

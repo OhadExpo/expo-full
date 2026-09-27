@@ -36,6 +36,7 @@ import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { C, FN, FB } from './theme';
 import { tr, readLang } from './i18n';
+import { hasPendingWorkouts } from './offlineQueue';
 
 const IDLE_MS = 60000;
 const GRACE_MS = 12000;               // rule 1
@@ -111,7 +112,12 @@ export default function SwUpdateBanner() {
     const cameraActive = () => { try { return [...document.querySelectorAll('video')].some(v => v.srcObject instanceof MediaStream && !v.paused); } catch { return false; } };
     const uploadActive = () => { try { return (window.__expoUploadInFlight | 0) > 0; } catch { return false; } };
     const workoutActive = () => { try { return (window.__expoWorkoutActive | 0) > 0; } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive();
+    // A finished workout still waiting in the offline queue (not yet confirmed
+    // by the server) exists only on this device: never reload over it. The
+    // queue survives a reload, but a reload right after Complete is exactly the
+    // moment the old code lost sessions, so the update simply waits. (27.9)
+    const workoutUnsaved = () => { try { return hasPendingWorkouts(); } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
     const onVis = () => { if (document.visibilityState === 'hidden' && !busy()) tryUpdate(); };

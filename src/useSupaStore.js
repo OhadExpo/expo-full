@@ -1,7 +1,7 @@
 // src/useSupaStore.js — Supabase-backed storage hook (replaces useStore)
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
-import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
+import { enqueue, enqueueEntry, removeEntry, patchEntry, holdInflight, releaseInflight, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
 import { TRAINER_EMAILS } from './authRoles';
@@ -180,12 +180,17 @@ registerHandler('store.upsert', async ({ key, value }) => {
   const { error } = await supabase.from('store').upsert({ key, value, updated_at: new Date().toISOString() });
   if (error) throw error;
 });
-registerHandler('client_workouts.upsert', async ({ row }) => {
+// ONE write path for a workout row, used by the direct save AND the queue
+// replay, so the two can never drift apart again. (Before 27.9 the replay had
+// no plan_id fallback: a workout queued offline carried plan_id, the column does
+// not exist yet, and every replay failed with 42703 until it parked, forever.)
+export async function upsertWorkoutRow(row) {
   // form_videos is MERGED, never blindly overwritten. A parked (retry-exhausted)
   // upsert rotates to the queue tail and can drain AFTER the blob queue already
   // patched a cloudUrl onto the row — replaying the finish-time snapshot would
   // reset that slot to {pendingBlobId, cloudUrl:null}, orphaning uploaded bytes
-  // and showing the coach a forever-pending upload (audit 08-22).
+  // and showing the coach a forever-pending upload (audit 08-22). The same merge
+  // keeps a coach's reviewNotes when the athlete re-saves an existing log.
   if (row && row.id && row.form_videos) {
     try {
       const { data: existing } = await supabase.from('client_workouts').select('form_videos').eq('id', row.id).maybeSingle();
@@ -197,14 +202,26 @@ registerHandler('client_workouts.upsert', async ({ row }) => {
           const mine = merged[k];
           // keep the server's slot when it already carries a real uploaded URL
           if (sv && sv.cloudUrl && !(mine && mine.cloudUrl)) merged[k] = sv;
+          else if (sv && sv.reviewNotes !== undefined && mine && mine.reviewNotes === undefined) merged[k] = { ...mine, reviewNotes: sv.reviewNotes };
         }
         row = { ...row, form_videos: merged };
       }
     } catch { /* read failed — fall through to the plain upsert */ }
   }
-  const { error } = await supabase.from('client_workouts').upsert(row);
+  let { error } = await supabase.from('client_workouts').upsert(row);
+  // plan_id is what lets the portal tell two couple members' identically-named
+  // plans apart (audit #31). The column may not exist yet — retry without it.
+  // Matches both the Postgres (42703 'column "plan_id" ... does not exist') and
+  // the PostgREST schema-cache (PGRST204 "Could not find the 'plan_id' column")
+  // shapes of that error.
+  if (error && row && 'plan_id' in row && (/plan_id/i.test(error.message || '') || error.code === '42703' || error.code === 'PGRST204')) {
+    const rest = { ...row };
+    delete rest.plan_id;
+    ({ error } = await supabase.from('client_workouts').upsert(rest));
+  }
   if (error) throw error;
-});
+}
+registerHandler('client_workouts.upsert', async ({ row }) => { await upsertWorkoutRow(row); });
 registerHandler('client_workouts.update', async ({ id, patch }) => {
   // Update + ensure the row exists. The blob queue can race ahead of the
   // workout upsert (offline finish → online drain order is not guaranteed)
@@ -559,6 +576,10 @@ export function useSupaStore(key, initial) {
   return [data, save, loaded, loadError, saveLocal];
 }
 
+// Longest the athlete waits in the logger for the server after Complete. The
+// row is already durable in the offline queue before the request starts.
+const SAVE_WAIT_MS = 4000;
+
 // Client workouts hook — uses dedicated table
 export function useSupaClientWorkouts(initial = []) {
   const [data, setData] = useState(() => {
@@ -614,9 +635,18 @@ export function useSupaClientWorkouts(initial = []) {
             for (const item of queued) {
               if (item?.type !== 'client_workouts.upsert') continue;
               const r = item.payload?.row;
-              if (!r || !r.id || haveIds.has(r.id)) continue;
+              if (!r || !r.id) continue;
+              // A queued row is always NEWER than the server's copy (it is the
+              // athlete's re-save of an existing log that has not landed yet):
+              // it replaces the server version instead of being skipped, or
+              // History would show the old sets until the queue drained.
+              if (haveIds.has(r.id)) {
+                const at = mapped.findIndex(w => w.id === r.id);
+                if (at >= 0) mapped[at] = { ...mapped[at], planName: r.plan_name, dayName: r.day_name, week: r.week, date: r.date, autoregulation: r.autoregulation || {}, notes: r.notes || '', exercises: r.exercises || [] };
+                continue;
+              }
               mapped.push({
-                id: r.id, clientId: r.client_id, planName: r.plan_name,
+                id: r.id, clientId: r.client_id, planId: r.plan_id || null, planName: r.plan_name,
                 dayName: r.day_name, week: r.week, date: r.date,
                 autoregulation: r.autoregulation || {}, notes: r.notes || '',
                 exercises: r.exercises || [], formVideos: r.form_videos || [],
@@ -672,16 +702,35 @@ export function useSupaClientWorkouts(initial = []) {
     return () => window.removeEventListener('expo-cw-patched', onPatch);
   }, []);
 
-  const save = useCallback(async (next) => {
+  // save(next, { upsertIds }) returns a Promise of
+  //   { ok, confirmed, queued, permanent, authWait, settled }
+  //   ok        — the workout is SAFE: on the server, or durably in the queue
+  //   confirmed — the server acknowledged it
+  //   settled   — resolves when the network attempt itself is over (the SW
+  //               reload guard in ClientPortal holds until then)
+  // It resolves at the latest after SAVE_WAIT_MS even if the network hangs: by
+  // then the row is already durable in the queue, so a slow connection does not
+  // hold the athlete in the logger.
+  //
+  // Which rows are written: every NEW id, plus existing ids the caller names in
+  // opts.upsertIds (the athlete re-saving the log he already has for that
+  // plan/day/week). Named explicitly — never inferred from object identity — so
+  // a caller that rebuilds the array can not bulk-overwrite rows by accident.
+  // (Before 27.9 an existing id was never written at all.)
+  const save = useCallback((next, opts = {}) => {
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
     mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
     try { lsSnapshotRecent('expo-cw', val); } catch {}
-    // Find new workouts not yet in Supabase
-    const newItems = val.filter(w => !prev.find(p => p.id === w.id));
-    for (const w of newItems) {
+    const upsertIds = new Set(Array.isArray(opts.upsertIds) ? opts.upsertIds : []);
+    const prevIds = new Set(prev.map(p => p.id));
+    const toWrite = val.filter(w => w && w.id && (!prevIds.has(w.id) || upsertIds.has(w.id)));
+    if (toWrite.length === 0) return Promise.resolve({ ok: true, confirmed: true, queued: false, settled: Promise.resolve() });
+
+    let allDurable = true;
+    const jobs = toWrite.map(w => {
       const baseRow = {
         id: w.id, client_id: w.clientId, plan_name: w.planName,
         day_name: w.dayName, week: w.week, date: w.date,
@@ -689,31 +738,66 @@ export function useSupaClientWorkouts(initial = []) {
         exercises: w.exercises, form_videos: w.formVideos,
         reviewed_at: w.reviewedAt || null
       };
-      // plan_id is what lets the portal tell two couple members' identically-named
-      // plans apart (audit #31). The column may not exist yet — same pre-migration
-      // fallback usePlansStore uses for is_template_purchase, so this is a no-op
-      // until `scripts/migrations/2026-08-25-client-workouts-plan-id.sql` runs and
-      // starts working by itself the moment it does.
-      let row = w.planId ? { ...baseRow, plan_id: w.planId } : baseRow;
-      try {
-        let { error } = await supabase.from('client_workouts').upsert(row);
-        if (error && /column .*plan_id/i.test(error.message || '')) {
-          row = baseRow;
-          ({ error } = await supabase.from('client_workouts').upsert(row));
+      const row = w.planId ? { ...baseRow, plan_id: w.planId } : baseRow;
+      // DURABLE BEFORE NETWORK. The row goes into the critical queue FIRST,
+      // synchronously, before any await: a tab closed 50 ms after Complete, a
+      // silent SW reload, a dead phone — the queue replays it on the next
+      // launch. Before 27.9 the row was queued only AFTER a transient failure,
+      // and the logger deleted its draft before the server answered, so a
+      // permanent error or an interrupted request left the sets nowhere.
+      const entry = enqueueEntry({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
+      if (!entry.durable) allDurable = false;
+      holdInflight(w.id);
+      return (async () => {
+        try {
+          await upsertWorkoutRow(row);
+          removeEntry(entry.id); // confirmed — only now does the queue let go
+          return { confirmed: true, durable: entry.durable };
+        } catch (e) {
+          const msg = e?.message || String(e);
+          if (isTransient(e)) {
+            patchEntry(entry.id, { lastError: msg, attempts: 1 });
+            return { confirmed: false, durable: entry.durable };
+          }
+          // Permanent-looking error. It stays PARKED in the queue (never the old
+          // toast-and-vanish) and the portal shows "not saved yet". 42501 with no
+          // live session is an AUTH problem (the JWT lapsed while he trained),
+          // not a forbidden row: flag it; it drains the moment he signs in.
+          let authWait = false;
+          try {
+            const { data } = await supabase.auth.getSession();
+            const session = data && data.session;
+            authWait = !session || !!(session.expires_at && session.expires_at * 1000 < Date.now());
+          } catch { authWait = true; }
+          patchEntry(entry.id, { lastError: msg, attempts: 1, parked: true, stuck: true, authWait });
+          return { confirmed: false, durable: entry.durable, permanent: true, authWait };
+        } finally {
+          releaseInflight(w.id);
         }
-        if (error) {
-          if (isTransient(error)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
-          else emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });
-        }
-      } catch (e) {
-        if (isTransient(e)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
-        else emitSaveError({ key: 'client_workouts', op: 'save', msg: e?.message || 'save failed' });
-      }
-    }
+      })();
+    });
+    const settledResult = Promise.all(jobs).then(rs => {
+      const confirmed = rs.every(r => r.confirmed);
+      return {
+        ok: rs.every(r => r.confirmed || r.durable),
+        confirmed,
+        queued: !confirmed,
+        permanent: rs.some(r => r.permanent),
+        authWait: rs.some(r => r.authWait),
+      };
+    });
+    // Nudge the drainer once the direct attempt is over, so a queued row is
+    // retried promptly when the connection comes back.
+    settledResult.then(r => { if (!r.confirmed) setTimeout(() => { drain(); }, 2000); }).catch(() => {});
+    const timeout = new Promise(res => setTimeout(() => res({
+      ok: allDurable, confirmed: false, queued: true, pending: true,
+    }), SAVE_WAIT_MS));
+    const settled = settledResult.then(() => undefined, () => undefined);
+    return Promise.race([settledResult, timeout]).then(r => ({ ...r, settled }));
   }, []);
 
   // Toggle or set reviewed state on an existing workout. Patches the single
-  // row directly — save() only handles inserts, so this bypasses it.
+  // row directly (save() writes whole rows), so this bypasses it.
   const markReviewed = useCallback(async (id, reviewed = true) => {
     const ts = reviewed ? new Date().toISOString() : null;
     const next = dataRef.current.map(w => w.id === id ? { ...w, reviewedAt: ts } : w);

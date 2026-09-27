@@ -24,6 +24,7 @@ import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from '
 // just below.
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import { emitSaveError, lsSnapshot } from './useSupaStore';
+import { subscribe as subscribeQueue, getEntries as getQueueEntries, drain as drainQueue } from './offlineQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
@@ -374,6 +375,48 @@ function GooglePhotosEmbed({ url }) {
 
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
+// Completed (ticked) sets across a workout's exercises. The unit of "is this a
+// real workout": a row with 0 is refused by the logger (27.9).
+function countDoneSets(exercises) {
+  let n = 0;
+  for (const ex of (exercises || [])) for (const st of ((ex && ex.sets) || [])) if (st && st.done) n++;
+  return n;
+}
+
+// "WORKOUT NOT SAVED YET" (27.9). A finished workout the server has not taken
+// yet — offline, a lapsed session, or an error the owner has to fix — sits in
+// the offline queue and is shown HERE, on every portal page, until it lands.
+// Before, a permanent error was one toast and then the row vanished on the next
+// launch. Only this athlete's rows that already failed at least once are
+// listed (a save still in its first attempt is not "not saved" yet).
+function UnsavedWorkoutsBanner({ clientId }) {
+  const tt = useAppT();
+  const [rows, setRows] = useState([]);
+  const [retrying, setRetrying] = useState(false);
+  useEffect(() => subscribeQueue(() => {
+    try {
+      setRows(getQueueEntries().filter(e => e && e.type === 'client_workouts.upsert'
+        && (!clientId || e.payload?.row?.client_id === clientId)
+        && (e.lastError || e.parked)));
+    } catch { setRows([]); }
+  }), [clientId]);
+  if (!rows.length) return null;
+  const authWait = rows.some(e => e.authWait);
+  const retry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try { await drainQueue(); } catch { /* stays parked; the banner stays */ }
+    setRetrying(false);
+  };
+  return (
+    <div role="status" data-unsaved-workouts={rows.length} style={{background:'var(--c-sf)',borderBottom:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.rd}`,padding:'10px 20px',display:'flex',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
+      <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.rd,lineHeight:1.5}}>{tt('WORKOUT NOT SAVED YET')}{rows.length > 1 ? ` · ${rows.length}` : ''}</div>
+      <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140,lineHeight:1.5}}>{authWait ? tt('It is kept on this phone. Sign in again and it will be sent.') : tt('It is kept on this phone. Retrying until it goes through.')}</div>
+      <button data-unsaved-retry onClick={retry} disabled={retrying} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:retrying?'wait':'pointer',opacity:retrying?0.6:1}}>{tt('RETRY')}</button>
+    </div>
+  );
+}
+
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
   // A workout in progress: SwUpdateBanner neither shows nor reloads while this
@@ -415,10 +458,41 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     catch { return null; }
   }, [sessionKey, _legacySessionKey]);
 
+  // ONE ROW PER PLAN/DAY/WEEK (27.9). The log this athlete already has for this
+  // exact plan + day + week, if any. "AGAIN" on a finished day used to open a
+  // blank logger and Complete minted a brand-new row — an athlete's 0/20 row
+  // landed 53 s after his real 17/20 one. Now the logger opens THAT log for
+  // editing and Complete re-saves the same id. Daily routines are logged many
+  // times by design, so they are exempt. When several legacy rows exist, the
+  // one with the most completed sets is the real one.
+  const findExistingLog = (list) => {
+    if (day?.kind === 'daily' || plan?.kind === 'daily') return null;
+    const dup = nameAmbiguous ? new Set([plan.name]) : null;
+    let best = null, bestDone = -1;
+    for (const w of (list || [])) {
+      if (!w || w.dayName !== day.name || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, dup)) continue;
+      const d = countDoneSets(w.exercises);
+      if (d > bestDone) { best = w; bestDone = d; }
+    }
+    return best;
+  };
+  const [editOf] = useState(() => findExistingLog(priorWorkouts));
+
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
   // prescribed plan is never mutated — substitution lives only in this state.
-  const [substitutions, setSubstitutions] = useState(_restoredSession?.substitutions || {});
+  const [substitutions, setSubstitutions] = useState(() => {
+    if (_restoredSession?.substitutions) return _restoredSession.substitutions;
+    // Re-opening an existing log: carry its swaps, or a re-save would silently
+    // put the prescribed exercise back over what the athlete actually did.
+    const out = {};
+    for (const px of (editOf?.exercises || [])) {
+      const sb = px && px.substitution;
+      if (!sb || !px.eid) continue;
+      out[px.eid] = (trainerExercises || []).find(e => e && e.id === sb.toLibId) || { id: sb.toLibId || null, title: sb.to || '' };
+    }
+    return out;
+  });
   const [swapOpenForEid, setSwapOpenForEid] = useState(null);
   // F-31 — open the LiveRepCounter for a specific exercise. eid is the
   // unique exercise instance in the day. The counter is lazy-imported
@@ -456,10 +530,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return wuCount > 0 ? 'wu0' : 'checkin';
   });
-  const [notes, setNotes] = useState(_restoredSession?.notes || '');
+  const [notes, setNotes] = useState(_restoredSession?.notes || editOf?.notes || '');
   // Readiness check-in (autoregulation) — collected between warm-ups and the
   // first exercise, saved onto the workout. (Ohad: "couldn't see the check-in")
-  const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || { pain: '', sleep: '', energy: '' });
+  const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || (editOf?.autoregulation && Object.keys(editOf.autoregulation).length ? editOf.autoregulation : null) || { pain: '', sleep: '', energy: '' });
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
   const setCountFor = (ex) => {
@@ -513,6 +587,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         (prevOrder.length === curOrder.length && prevOrder.every((e, i) => e === curOrder[i]));
       if (sizesOk && identityOk) return _restoredSession.allSets;
     }
+    // Re-opening an existing log (AGAIN): start from what he already logged,
+    // matched by eid (position as the fallback), never from a blank sheet —
+    // a blank sheet completed by mistake is exactly the 0-set row incident.
+    if (editOf && Array.isArray(editOf.exercises)) {
+      return day.ex.map((ex, i) => {
+        const px = editOf.exercises.find(e => e && e.eid === ex.eid) || editOf.exercises[i];
+        const src = (px && Array.isArray(px.sets)) ? px.sets : [];
+        const count = Math.max(setCountFor(ex), src.length);
+        return Array.from({ length: count }, (_, si) => {
+          const st = src[si];
+          return st ? { reps: st.reps ?? '', load: st.load ?? '', rpe: st.rpe ?? '', done: !!st.done } : { reps: '', load: '', rpe: '', done: false };
+        });
+      });
+    }
     return day.ex.map(ex => {
       const count = setCountFor(ex);
       const prior = priorTopFor(ex.eid, (EX[ex.eid]?.t || '').toLowerCase().trim());
@@ -554,6 +642,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           delete out.phase; out.compressProgress = 0; out.uploadProgress = 0;
         }
         return out;
+      });
+    }
+    // Re-opening an existing log: keep its video slots (and the coach's
+    // reviewNotes on them) so a re-save can not blank a form video.
+    if (editOf && Array.isArray(editOf.formVideos) && editOf.formVideos.length) {
+      return day.ex.map((_, i) => {
+        const f = editOf.formVideos[i];
+        if (!f) return { note: '', has: false };
+        return { ...f, note: f.note || '', has: !!(f.has && (f.cloudUrl || f.pendingBlobId)), uploading: false };
       });
     }
     return day.ex.map(() => ({note:'',has:false}));
@@ -1355,17 +1452,32 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
   };
 
-  const finish = () => {
+  // Complete-screen state: 'saving' while the save is in flight, 'zero' when
+  // Complete was refused for 0 completed sets, 'failed' when the workout could
+  // not be made safe anywhere (server AND this device's queue both refused).
+  const [finishState, setFinishState] = useState(null);
+  const finish = async () => {
     // In-flight guard: two taps in the same tick both ran finish() to completion
     // (setLg(null) only unmounts on the next render), minting two workoutIds → two
-    // client_workouts rows + two pushes + a double session decrement. Once armed we
-    // unmount via onComplete, so no reset is needed.
+    // client_workouts rows + two pushes + a double session decrement.
     if (submittingRef.current) return;
+    // NO EMPTY ROWS (27.9): a workout with zero completed sets is not a workout.
+    // Two athletes carry 0-set rows, one of them 53 s after his real session.
+    // Refuse, say why, and stay in the logger with everything he typed.
+    if (countDoneSets(allSets.map(sets => ({ sets }))) === 0) { setFinishState('zero'); return; }
     submittingRef.current = true;
-    const workoutId = uid();
+    setFinishState('saving');
+    // Same plan + day + week already logged → re-save THAT row (same id, an
+    // upsert), never a second one. Looked up again NOW, not only at mount: the
+    // history may have arrived after the logger opened (fresh device).
+    const existingLog = findExistingLog(priorWorkouts) || editOf;
+    const workoutId = existingLog?.id || uid();
+    const prevFv = Array.isArray(existingLog?.formVideos) ? existingLog.formVideos : [];
     // Carry pendingBlobId on each form_video entry so the blob queue can find
     // and patch this workout once the upload eventually succeeds.
-    const formVideos = fv.map(f => ({
+    const formVideos = fv.map((f, i) => ({
+      // An existing log's slot keeps its other fields (the coach's reviewNotes).
+      ...(prevFv[i] && typeof prevFv[i] === 'object' ? prevFv[i] : {}),
       has: f.has,
       note: f.note,
       fileName: f.fileName || null,
@@ -1387,12 +1499,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // for downstream signals (which equipment is bottlenecking which
     // programs, etc.).
     const finishedAt = new Date().toISOString();
-    onComplete({
+    const result = await onComplete({
       // planId identifies WHICH plan this is, where the name cannot: two couple
       // members can hold plans with the same name and the same day names
       // (audit 08-22 #31).
       id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
-      week: weekNum + 1, date: finishedAt, notes, autoregulation: checkin,
+      // A re-saved log keeps the day it was trained and the coach's review mark.
+      week: weekNum + 1, date: existingLog?.date || finishedAt, notes, autoregulation: checkin,
+      reviewedAt: existingLog?.reviewedAt || null,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -1431,11 +1545,21 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         };
       }),
     });
-    // Workout committed — drop the in-progress draft. The trainee can start a
-    // fresh log next time without seeing stale set values from this session.
+    // The draft is dropped ONLY once the workout is safe — confirmed by the
+    // server or durably parked in the offline queue. Before 27.9 it was deleted
+    // the instant Complete was tapped, before the server answered, so any lost
+    // request took the athlete's only copy with it. If neither the server nor
+    // this device could keep it, stay here: the draft and every set survive,
+    // and Complete can be tapped again.
+    if (result && result.ok === false) {
+      submittingRef.current = false;
+      setFinishState('failed');
+      return;
+    }
     // Exit (← Exit / browser nav) intentionally KEEPS the draft so a trainee
     // can resume the same day mid-workout.
     clearSessionDraft();
+    onBack();
   };
 
   // Navigation helpers
@@ -1593,7 +1717,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
+          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
             {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
       </div></div>;
   }
@@ -1628,7 +1752,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
+          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
         </div>
       </div></div>;
   }
@@ -1716,7 +1840,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {fv.some(f => f.uploading) ? (
         <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
-        <button onClick={finish} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>✓ Complete Workout</button>
+        <>
+          {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && (
+            <div role="alert" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+              {tt('No sets ticked yet. Tick ✓ on the sets you did, then complete.')}
+            </div>
+          )}
+          {finishState === 'failed' && (
+            <div role="alert" data-finish-refused="failed" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+              {tt('Not saved. Your sets are still here. Tap complete again.')}
+            </div>
+          )}
+          <button data-complete-workout onClick={finish} disabled={finishState === 'saving'} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:finishState === 'saving' ? 'wait' : 'pointer',opacity:finishState === 'saving' ? 0.6 : 1}}>{finishState === 'saving' ? tt('Saving...') : '✓ Complete Workout'}</button>
+        </>
       )}
       {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>}
     </div></div>;
@@ -2117,7 +2253,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <div style={{display:'flex',gap:8,marginTop:20}}>
         {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
+        <button data-step-next onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
           {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
     </div></div>;
 }
@@ -2424,6 +2560,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // was shown W1, and tapping LOG filed the session under week 1, colliding
   // with their real W1 in every week-scoped view (done ✓, ghosts, PRs).
   const derivedFromEmptyRef = React.useRef(false);
+  // The open logger's week, frozen while it is open (see the Step Logger below).
+  const openLogRef = React.useRef(null);
   React.useEffect(() => {
     const name = activePlan?.name;
     if (!name) return;
@@ -2446,15 +2584,41 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // growth (the athlete completing a workout) can never yank the week away
     // from wherever they navigated manually.
   }, [activePlan?.name, cw.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const handleComplete = w => {
+  // Returns the save result to the logger ({ ok, confirmed, ... }); the logger
+  // closes itself (onBack) only once ok, and keeps its draft otherwise.
+  const handleComplete = async w => {
     // demoMode = coach-side preview. Writes must never touch the real
     // trainee's record. Bail before any setter so a future refactor that
     // wires real (non-noop) setters into preview can't leak through.
     // demoMode alone is not enough to decide this: the coach-side preview is
     // ALSO demoMode, and there the setters are the real ones. localWrites is
     // set only by DemoTraineePortal, whose setters are its own useState.
-    if (demoMode && !localWrites) { setLg(null); return; }
-    setClientWorkouts(prev => [...prev, w]);
+    if (demoMode && !localWrites) return { ok: true, confirmed: true };
+    // A re-save of the log he already has for this plan/day/week: no second
+    // session decrement, no second "finished a workout" push, no BW re-file.
+    const isResave = (clientWorkouts || []).some(x => x && x.id === w.id);
+    // Reload guard: the SW update banner never reloads while this is raised.
+    // It stays up until the network attempt is OVER (not just until the logger
+    // closes) — the row is in the offline queue either way, but a reload
+    // mid-request is the exact moment sessions used to vanish.
+    window.__expoWorkoutActive = (window.__expoWorkoutActive | 0) + 1;
+    let released = false;
+    const release = () => { if (released) return; released = true; window.__expoWorkoutActive = Math.max(0, (window.__expoWorkoutActive | 0) - 1); };
+    let res;
+    try {
+      const p = setClientWorkouts(prev => {
+        const at = prev.findIndex(x => x && x.id === w.id);
+        if (at < 0) return [...prev, w];
+        const next = [...prev]; next[at] = { ...prev[at], ...w }; return next;
+      }, { upsertIds: [w.id] });
+      res = (p && typeof p.then === 'function') ? await p : { ok: true, confirmed: true };
+    } catch (e) {
+      res = { ok: false, error: e };
+    }
+    if (res && res.settled && typeof res.settled.then === 'function') res.settled.then(release, release);
+    else release();
+    if (!res || res.ok === false) return res || { ok: false };
+    if (isResave) return res;
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.
     if (bw && Number.isFinite(parseFloat(bw))) {
@@ -2506,10 +2670,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       const next = deriveWeekIdx(activePlan, [...(cw || []), w], dupPlanNames);
       if (next > wk) setWk(next);
     }
-    setLg(null);
+    return res;
   };
 
   // Step Logger — find plan by index across visible plans
+  if (lg === null) openLogRef.current = null;
   if (lg !== null && trainee) {
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
@@ -2523,7 +2688,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // belongs to a DIFFERENT visible plan must file under THAT plan's own
     // current week, not the active block's — else a multi-plan athlete's
     // workout lands under the wrong week (done/AGAIN badge + ghosts too).
-    const logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw, dupPlanNames);
+    let logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw, dupPlanNames);
+    // Freeze the week for as long as THIS logger is open. Complete appends the
+    // row optimistically and advances the week before the logger closes; a new
+    // week here would change the key below and remount a fresh logger mid-save.
+    const openKey = `${lg}|${targetPlan.id || targetPlan.name}`;
+    if (openLogRef.current && openLogRef.current.key === openKey) logWeek = openLogRef.current.week;
+    else openLogRef.current = { key: openKey, week: logWeek };
     // key by the day's IDENTITY (plan + day index + week), not the flat `lg`
     // index: if portalVis updates over realtime mid-session and the same `lg`
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
@@ -2814,6 +2985,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         })()}
       </div>
       {offlineNote}
+      {!demoMode && <UnsavedWorkoutsBanner clientId={ci} />}
       {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
           knows it's clickable"). Same 3+3 grouping as the 05-16 spec, but as
           a SEGMENTED 3×2 GRID: one hairline box, hairlines between every
@@ -3390,8 +3562,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // LOG action per identity: bordered chip (BASE/TABLE/CONSOLE/
             // RAIL) or a text link (EDITORIAL/AIR).
             const actionEl = action && ((ident === 'EDITORIAL' || ident === 'AIR')
-              ? <button onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
-              : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
+              ? <button data-day-action={String(title || "")} onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
+              : <button data-day-action={String(title || "")} onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
             const titleGroup = (size, tracking) => (
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
                 {/* Count is BASELINE-aligned to the title, then lifted so its INK

@@ -28,7 +28,29 @@ const handlers = {};
 // (RLS 42501 would classify it permanent and silently DESTROY it). A's
 // entries drain when A signs back in. (audit 08-22)
 let currentUid = null;
-export function setQueueUser(uid) { currentUid = uid || null; }
+export function setQueueUser(uid) {
+  const was = currentUid;
+  currentUid = uid || null;
+  // A workout parked because the session had lapsed (42501 with no live JWT)
+  // waits for exactly this moment: drain as soon as a user is signed in again
+  // instead of making the athlete wait for the 30s tick. (workout durability 27.9)
+  if (currentUid && currentUid !== was && typeof window !== 'undefined') setTimeout(() => { drain(); }, 0);
+}
+
+// Workout rows are the one write that must NEVER leave the queue except by
+// landing on the server. A permanent-looking error (RLS, constraint) on one of
+// these parks it — kept, retried, and shown to the athlete as "not saved yet" —
+// instead of the toast-and-vanish every other permanent error gets. The athlete's
+// logged sets exist nowhere else once the logger closed. (workout durability 27.9)
+const NEVER_DROP_TYPES = new Set(['client_workouts.upsert']);
+
+// Dedupe keys whose write is being attempted RIGHT NOW by the direct save path
+// (useSupaClientWorkouts.save enqueues first, then upserts). drain() leaves those
+// entries alone so the same row is not written twice at once. In memory only: a
+// reload clears it, which is correct — nothing is in flight after a reload.
+const inflight = new Set();
+export function holdInflight(key) { if (key) inflight.add(key); }
+export function releaseInflight(key) { if (key) inflight.delete(key); }
 
 // In-memory mirror + persist flag. The queue holds an athlete's logged workout /
 // weigh-in, so a full localStorage must NOT silently drop it. Normal reads still
@@ -73,14 +95,22 @@ export function registerHandler(type, fn) {
 // `critical: true` marks a data-bearing write (a logged workout, a weigh-in)
 // that must NEVER be silently dropped. On repeated transient failure such an
 // entry is PARKED (kept + retried) instead of discarded after MAX_ATTEMPTS.
-export function enqueue({ type, payload, dedupeKey, critical }) {
+export function enqueue(opts) {
+  return enqueueEntry(opts).durable;
+}
+
+// Same as enqueue(), but also hands back the new entry's id so a caller that
+// enqueued BEFORE its own network attempt can remove exactly that entry once the
+// server confirms (and leave a newer version of the same row alone).
+export function enqueueEntry({ type, payload, dedupeKey, critical }) {
   const q = read();
   let next = q;
   if (dedupeKey) {
     next = q.filter(e => !(e.type === type && e.dedupeKey === dedupeKey));
   }
+  const id = 'q_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   next.push({
-    id: 'q_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+    id,
     uid: currentUid || undefined,
     type,
     payload,
@@ -90,10 +120,40 @@ export function enqueue({ type, payload, dedupeKey, critical }) {
     lastError: null,
     createdAt: Date.now(),
   });
-  // Returns false if localStorage couldn't persist (quota) — the entry is in
+  // durable is false if localStorage couldn't persist (quota) — the entry is in
   // memory only and won't survive a reload. A caller that trades a durable copy
-  // (blobQueue deleting an uploaded blob) for this reference MUST check it.
-  return write(next);
+  // (blobQueue deleting an uploaded blob, the logger deleting its draft) for this
+  // reference MUST check it.
+  return { id, durable: write(next) };
+}
+
+// Remove one entry by id (the direct save path's confirmed-success exit).
+export function removeEntry(id) {
+  const q = read();
+  if (!q.some(e => e.id === id)) return;
+  write(q.filter(e => e.id !== id));
+}
+
+// Merge fields into one entry by id (records a failed direct attempt so the
+// athlete-facing "not saved yet" state can show it). No-op if it is gone.
+export function patchEntry(id, patch) {
+  const q = read();
+  const i = q.findIndex(e => e.id === id);
+  if (i < 0) return;
+  const next = [...q];
+  next[i] = { ...q[i], ...patch };
+  write(next);
+}
+
+// Snapshot of the queue for UI (the athlete's "workout not saved yet" banner).
+export function getEntries() {
+  return read().map(e => ({ ...e }));
+}
+
+// SwUpdateBanner asks this before a silent reload: a workout row still waiting
+// in the queue means the athlete's session exists only on this device.
+export function hasPendingWorkouts() {
+  return read().some(e => NEVER_DROP_TYPES.has(e.type));
 }
 
 export function getCount() {
@@ -155,6 +215,14 @@ export async function drain() {
       const next = q[0];
       // Foreign-user entry (or signed-out): keep it, rotate to tail, never
       // attempt it under the wrong (or no) JWT.
+      // The direct save path is attempting this exact row right now — rotate it
+      // past this pass rather than writing the same row twice concurrently.
+      if (next.dedupeKey && inflight.has(next.dedupeKey)) {
+        if (cycledForeign.has(next.id)) break;
+        cycledForeign.add(next.id);
+        write([...q.slice(1), next]);
+        continue;
+      }
       if (next.uid && next.uid !== currentUid) {
         if (cycledForeign.has(next.id)) break; // full pass done — everything left is foreign
         cycledForeign.add(next.id);
@@ -197,6 +265,16 @@ export async function drain() {
           // Permanent errors (RLS/constraint/auth) can never succeed — drop now,
           // toast, and keep draining the rest. A non-critical op that exhausts
           // its retries is also dropped (its loss is tolerable).
+          // A workout row is never dropped, not even on a "permanent" error: RLS
+          // (42501) is also what a lapsed session looks like, and a constraint
+          // error today can be a policy the owner fixes tomorrow. Park it (kept,
+          // rotated to the tail, retried on the next trigger); the athlete sees
+          // it in the portal's "not saved yet" banner, so nothing is silent.
+          if (NEVER_DROP_TYPES.has(next.type) && isPermanent(e)) {
+            const rest = cur.filter(x => x.id !== next.id);
+            write([...rest, { ...target, parked: true, stuck: true }]);
+            break;
+          }
           if (isPermanent(e) || (target.attempts >= MAX_ATTEMPTS && !target.critical)) {
             const filtered = cur.filter(x => x.id !== next.id);
             write(filtered);
