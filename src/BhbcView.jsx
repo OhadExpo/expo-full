@@ -5084,7 +5084,11 @@ function ResultsList({ games, bhbcOnly }) {
   const tr = useT();
   const played = games.filter((g) => g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
   const todayStr = todayISO();
-  const upcoming = games.filter((g) => !g.played && (!g.date || g.date >= todayStr) && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
+  // THE NEXT GAME FIRST, ALWAYS (#305 C9). These arrive in the order the
+  // fixture store holds them, which is the order they were synced or typed -
+  // a cup tie added by hand landed at the bottom of the list it should head.
+  const upcoming = games.filter((g) => !g.played && (!g.date || g.date >= todayStr) && (!bhbcOnly || isBH(g.home) || isBH(g.away)))
+    .sort((a, b) => `${a.date || '9999'}${a.time || ''}`.localeCompare(`${b.date || '9999'}${b.time || ''}`));
   const byRound = {};
   // A playoff game has no "מחזור N" heading, so it used to fall into the
   // round-less bucket and render with no heading at all. It has a NAME now —
