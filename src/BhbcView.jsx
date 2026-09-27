@@ -133,7 +133,13 @@ const BModal = ({ children, title, ...rest }) => {
   <Modal
     themeAttr={zoneTheme}
     title={<><img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
-    headerStyle={{ background: NAVY, borderBottom: `3px solid ${ORANGE}`, color: '#fff' }}
+    // 12px above and below the 36px row (27.9 #348, Ohad: "the blue title at the
+    // top is so big for no reason" - it inherited the dialog's 28px top pad, so
+    // the bar stood ~100px for one line); the sides stay on the body's edge.
+    // Sticky `top` is measured inside the card's 28px padding, so it must be
+    // -28 too or the bar parks 16px below the card edge on a white band
+    // (28.9 LOOK at 1440); phones use themes.css' -16 override.
+    headerStyle={{ background: NAVY, borderBottom: `3px solid ${ORANGE}`, color: '#fff', paddingTop: 12, paddingBottom: 12, marginTop: -28, top: -28 }}
     // ONE ROW at every width (26.9): long titles carry their lead words in
     // .bm-lead, which steps aside on a phone (themes.css) - nothing is cut.
     titleStyle={{ color: '#fff', whiteSpace: 'nowrap' }}
@@ -206,6 +212,12 @@ function SecTitleEl({ s }) {
   return <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{typeof s === 'string' ? tr(s) : s}</span>;
 }
 const secTitle = (s) => <SecTitleEl s={s} />;
+
+// ONE MONTH/WEEK ARROW for the zone (27.9 #355, Ohad: "the left and right
+// arrows are huge buttons for no reason"): a bare chevron in a 32px tap area,
+// no box - the month between them is what reads. Was three sizes: 24x26 boxes
+// (attendance), 36x36 boxes (lifts) and input-sized boxes (week planner).
+const navArrow = (off) => ({ fontFamily: FN, fontSize: 16, fontWeight: 700, lineHeight: 1, color: off ? C.cardBd : C.tm, background: 'transparent', border: 'none', borderRadius: 0, height: 32, width: 28, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: off ? 'default' : 'pointer' });
 
 // A PLAYER'S NAME IS ONE ROW (27.9 #300, title gate: a two-word name broke
 // onto two lines in a 138px phone column and a 123px tablet one). The full
@@ -565,7 +577,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // followed on back/forward.
   const ZONE_PAGES = ['overview', 'roster', 'schedule', 'lifts', 'medical', 'games', 'activity'];
   const pageFromUrl = () => { const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/(?:coach\/)?bhbc\/([a-z]+)/); return m && ZONE_PAGES.includes(m[1]) ? m[1] : null; };
-  const [view, setView] = useState(() => pageFromUrl() || 'overview');   // overview | schedule | roster
+  // a coach's seat has no ACTIVITY page: /bhbc/activity opened blank for him
+  // (27.9 #375) - it lands on OVERVIEW instead (`coach` is the prop; the
+  // preview toggle cannot be on at first render)
+  const [view, setView] = useState(() => { const p = pageFromUrl(); return p && !(coach && p === 'activity') ? p : 'overview'; });   // overview | schedule | roster
   useEffect(() => {
     const m = window.location.pathname.match(/^\/(coach\/)?bhbc/);
     if (!m) return;
@@ -1679,9 +1694,10 @@ function attendance28(rec, days) {
             <button onClick={() => setPreviewCoach(false)} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer' }}>{tr('Exit preview')}</button>
           </div>
         )}
-        {/* ---- TOOLBAR ---- */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>{tr('Roster')} · {roster.length}</div>
+        {/* ---- TOOLBAR ---- the grey "ROSTER · 10" that led it is gone (27.9
+            #356, Ohad: "it doesnt need to say roster 10 twice. remove the top
+            grey one") - the count is on the ROSTER strip itself. */}
+        {(!asCoach || canLog) && <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {(!asCoach || canLog) && (
             <div className="bhbc-roster-actions" style={{ marginInlineStart: 'auto', gap: 8 }}>
               {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>}
@@ -1694,7 +1710,7 @@ function attendance28(rec, days) {
               {canLog && <Btn variant="ghost" onClick={() => { setScPreset(null); setPracticeOpen(true); }}>{tr('Log S&C Session')}</Btn>}
             </div>
           )}
-        </div>
+        </div>}
 
         {roster.length === 0 ? (
           <Card header={secTitle('Roster')}>
@@ -2275,7 +2291,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                       ordered like columns. i keep asking this request." */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` }}>
                     {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ['MIN', lastG.min]].map(([k, v], i) => (
-                      <div key={k} style={{ padding: '10px 12px', borderInlineEnd: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
+                      <div key={k} style={{ padding: '8px 12px', borderInlineEnd: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
                         <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
                         <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: k === 'PTS' ? ORANGE_DEEP : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
                       </div>
@@ -2286,7 +2302,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               <div style={{ padding: '8px 12px 0', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Season average')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
                 {avg.map(([k, v], i) => (
-                  <div key={k} style={{ padding: '10px 12px', borderInlineEnd: (i % 4 !== 3) ? `1px solid ${C.cardBd}` : 'none', borderTop: i >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
+                  <div key={k} style={{ padding: '8px 12px', borderInlineEnd: (i % 4 !== 3) ? `1px solid ${C.cardBd}` : 'none', borderTop: i >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
                     <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
                     <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">{v}</bdi></div>
                   </div>
@@ -2334,9 +2350,13 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             <div key={k} onClick={line ? () => setGameOpen(line) : undefined} role={line ? 'button' : undefined} tabIndex={line ? 0 : undefined}
               onKeyDown={line ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(line); } }) : undefined}
               className={line ? 'bhbc-row' : undefined}
-              style={{ background: 'var(--c-sf)', padding: '10px 12px', minWidth: 0, cursor: line ? 'pointer' : undefined }}>
+              // ONE COMPACT SCALE FOR THE POPUP (27.9 #349, Ohad: "why is
+              // everything so big?? all the boxes"): label 9, value 16, caption
+              // 10, 8px above and below - the tiles, the load grid and the
+              // league grid all read at the same size.
+              style={{ background: 'var(--c-sf)', padding: '8px 12px', minWidth: 0, cursor: line ? 'pointer' : undefined }}>
               <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{k}</div>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: v == null ? C.td : C.tx, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', whiteSpace: 'nowrap' }}>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: v == null ? C.td : C.tx, marginTop: 4, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', whiteSpace: 'nowrap' }}>
                 {v == null ? '—' : v}{v != null && unit ? <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 4 }}>{unit}</span> : null}
               </div>
               {sub ? <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 2, whiteSpace: 'nowrap' }}>{sub}</div> : null}
@@ -2353,9 +2373,9 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           return (
             <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
               {[['Week load', ms.weekLoad ? Math.round(ms.weekLoad).toLocaleString() : '—', C.tx], ['Monotony', ms.monotony != null ? ms.monotony.toFixed(2) : '—', monC], ['Strain', ms.strain != null ? Math.round(ms.strain).toLocaleString() : '—', C.td]].map(([k, v, c]) => (
-                <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
+                <div key={k} style={{ background: 'var(--c-sf)', padding: '8px 12px' }}>
                   <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{k}</div>
-                  <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 20, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+                  <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: c, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -2369,7 +2389,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
         )}
         {/* Medical / injury — shown on the athlete's profile too, not only the Medical tab */}
         <div style={{ border: `1px solid ${injuries.length ? '#DE4E3B' : C.cardBd}` /* only an injury is coloured (#305 E1) */ }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: injuries.length ? `1px solid ${C.cardBd}` : 'none' }}>
+          {/* 6px around the 36px controls, one pill width (27.9 #349: the header
+              and each record stood ~56px; OUT and AVAILABLE were different
+              widths, so the injury after them started at two x's) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', minHeight: 48, boxSizing: 'border-box', borderBottom: injuries.length ? `1px solid ${C.cardBd}` : 'none' }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>{tr('Medical')}</span>
             {!injuries.length && <StatusPill status="available" small />}
             {onInjury && <button onClick={onInjury} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 10px', cursor: 'pointer' }}>{injuries.length ? tr('Update') : `+ ${tr('Report injury')}`}</button>}
@@ -2378,8 +2401,8 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
             const lastP = (inj.progress || [])[0];
             return (
-              <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <StatusPill status={inj.status} small />
+              <div key={inj.id} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusPill status={inj.status} small full /></span>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
@@ -2418,12 +2441,12 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             // row is full; with an odd count that neither fills, ALL takes the
             // whole first row and the kinds fill two columns under it.
             (() => { const n = kindChips.length + 1; const cols = n <= 3 ? n : n % 3 === 0 ? 3 : n % 2 === 0 ? 2 : 2; const allSpan = n > 3 && n % 3 !== 0 && n % 2 !== 0; return (
-            <div className="bhbc-hist-chips hl-grid" data-allspan={allSpan ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
+            <div className="bhbc-hist-chips hl-grid" data-allspan={allSpan ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(max-content, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
               {['all', ...kindChips].map((k) => {
                 const on = effKind === k;
                 return (
                   <button key={k} onClick={() => setHistKind(k)} className="bhbc-ghost-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 'var(--btn-h)', minWidth: 0, boxSizing: 'border-box', padding: '0 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'var(--c-sf)', color: on ? '#fff' : C.tm, border: 'none' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 'var(--btn-h)', minWidth: 0, boxSizing: 'border-box', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'var(--c-sf)', color: on ? '#fff' : C.tm, border: 'none' }}>
                     {tr(k === 'all' ? 'All' : KIND_LABEL[k])}
                     <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>{k === 'all' ? activity.length : kindCount[k]}</span>
                   </button>
@@ -3591,22 +3614,21 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       <Section label={tr("Medical")} list last={!sessions.length} src={tr('From the medical record')}>
         {injuries.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
-              {injuries.slice(0, 6).map(({ t, inj }, i, arr) => {
+              {/* EVERY PLAYER, NO BORDERS (27.9 #351/#369, Ohad: "the players and
+                  rows and borders is not very asthetic" / "show all players
+                  instead" of "+1 more"). The 19.9 line above and beneath each
+                  athlete drew a double rule under the section line and closed
+                  only one of the two columns; the rows now read like THIS WEEK
+                  below them - one pitch, the names on one x, the injuries on
+                  the next. */}
+              {injuries.map(({ t, inj }, i) => {
                 const s = MED_STATUS[inj.status] || MED_STATUS.available;
                 return (
                   // Wraps for the same reason as the This-week rows: on a phone
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
-                  // EVERY ATHLETE HAS A LINE ABOVE AND BENEATH IT (Ohad, 19.9:
-                  // "make sure that every athlete always have a border above and
-                  // beneath it"). These six medical rows ran together as one block
-                  // of names with nothing between them - measured at 390, each row
-                  // was 15px tall with no separator on either edge. Each row now
-                  // carries its own line above and 7px of breathing room; the LAST
-                  // row adds the line beneath, so the block closes instead of
-                  // trailing off.
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px 96px minmax(0, 1fr) auto', alignItems: 'start', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '7px 0', borderTop: `1px solid ${C.cardBd}`, ...(i === arr.length - 1 ? { borderBottom: `1px solid ${C.cardBd}` } : null) }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px 96px minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '2px 0' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
@@ -3631,8 +3653,6 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
 </div>
                 );
               })}
-              {/* six rows fit the card; the rest are SAID, never silently dropped (#305 N-H6) */}
-              {injuries.length > 6 && <span style={{ color: C.tm, fontSize: 12 }}>{tr('+{n} more on the Medical tab').replace('{n}', injuries.length - 6)}</span>}
             </div>
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span><span style={{ color: C.tx, fontFamily: FN, fontWeight: 700 }}>{tr('All clear')}</span> <span style={mut}>{tr('— no active injuries.')}</span></span>
@@ -4077,10 +4097,10 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
-            style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
+            style={navArrow(false)}>{he ? '›' : '‹'}</button>
           <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
           <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
-            style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
+            style={navArrow(monthOff >= 0)}>{he ? '‹' : '›'}</button>
         </div>
         {/* The sentence gets its own line rather than being squeezed into the
             gap beside the pager - same rule as the weight room. */}
@@ -4292,10 +4312,10 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
-              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
+              style={navArrow(false)}>{he ? '›' : '‹'}</button>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
             <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
-              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
+              style={navArrow(monthOff >= 0)}>{he ? '‹' : '›'}</button>
           </div>
           <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('A box is a lift he logged. S&C shows when its toggle is on.')}</span>
         </div>
@@ -4414,11 +4434,25 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
     trend: (r) => ((r.series || []).some((v) => v > 0) ? (r.series || []).reduce((a, v) => a + (Number(v) || 0), 0) : null),
   });
   const headCols = [['jersey', '#'], ['name', tr('Athlete')], ...(hasLoad ? [['acwr', 'ACWR'], ['acute', tr('7d')]] : [['lift', tr('last lift')]]), ['avail', tr('Availability')], ...(hasRead ? [['ready', tr('Readiness')]] : [])];
+  // ONE START FOR EVERY INJURY (27.9 #352, Ohad: "i don't like that the
+  // injuries are not horizontally aligned from one row to another"). The
+  // injury followed each position ("GUARD · OTHER", "FORWARD-CENTER · ANKLE"),
+  // so it started wherever that word ended. The position slot takes the width
+  // of the longest position on this board (measured, so Hebrew and English
+  // both fit); desktop only - a phone stacks them (themes.css).
+  const loadInnerRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    const el = loadInnerRef.current; if (!el) return;
+    el.style.removeProperty('--pos-w');
+    let w = 0;
+    el.querySelectorAll('.bhbc-pos-inj [data-pos]').forEach((p) => { w = Math.max(w, p.scrollWidth); });
+    if (w) el.style.setProperty('--pos-w', `${Math.ceil(w)}px`);
+  });
   return (
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
       <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
 
-        <div className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
+        <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
           <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             {headCols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} />)}
@@ -5126,11 +5160,11 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
     <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}
       right={<span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' }}>{he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`}</span>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-        <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>{he ? '›' : '‹'}</button>
+        <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" aria-label={tr('Previous week')} style={navArrow(false)}>{he ? '›' : '‹'}</button>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>
           {monDay(days[0])} – {monDay(days[6])}
         </span>
-        <button onClick={() => shiftWeek(1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>{he ? '‹' : '›'}</button>
+        <button onClick={() => shiftWeek(1)} className="bhbc-ghost-btn" aria-label={tr('Next week')} style={navArrow(false)}>{he ? '‹' : '›'}</button>
         <button onClick={() => setAnchor(today)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{tr('This week')}</button>
         {/* Layout choice (Ohad: "an option for a horizontal layout for the days
             in addition the vertical"). Rows read well for a week with a few

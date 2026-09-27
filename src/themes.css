@@ -1758,3 +1758,10 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 480px) {
   .bhbc-leg-where { grid-column: 2 / -1; }
 }
+
+/* The load board's injury starts on one x (27.9 #352): the position slot is
+   the board's longest position (--pos-w, measured in BhbcView), no separator. */
+@media (min-width: 481px) {
+  .bhbc-load-inner .bhbc-pos-inj [data-pos] { display: inline-block; min-width: var(--pos-w, 0px); padding-inline-end: 10px; }
+  .bhbc-load-inner .bhbc-pos-inj [data-sep] { display: none; }
+}

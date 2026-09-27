@@ -1322,7 +1322,10 @@ function AuthedApp() {
   useEffect(() => {
     if (!tL) return;
     const p = window.location.pathname;
-    const onCoach = p === '/coach' || p.startsWith('/coach/') || /^\/bhbc\/?(login\/?)?$/.test(p);
+    // every club URL, the per-tab ones included (27.9 #375: a coach who
+    // refreshed on /bhbc/roster was rewritten to /coach/dashboard and landed
+    // on Overview - the tab URLs were missing from this list)
+    const onCoach = p === '/coach' || p.startsWith('/coach/') || /^\/bhbc(\/(login|overview|roster|schedule|lifts|medical|games|activity))?\/?$/.test(p);
     const onAthlete = p === '/athlete' || p.startsWith('/athlete/');
     const onLogin = p.startsWith('/login');
     if (isClient && !onAthlete) window.history.replaceState(null, '', keepHash('/athlete'));

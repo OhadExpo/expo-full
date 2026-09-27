@@ -739,6 +739,8 @@ Object.assign(HE, {
 
   // ---- the weight-room tab --------------------------------------------
   'Previous month': 'החודש הקודם',
+  'Previous week': 'השבוע הקודם',
+  'Next week': 'השבוע הבא',
   'Next month': 'החודש הבא',
   'Orange is an individual lift, navy is team S&C. The tint is the restriction on the day.': 'כתום זה אימון כוח אישי, כחול זה כוח קבוצתי. הגוון זה ההגבלה של אותו יום.',
   'nobody has lifted today': 'אף אחד לא עשה כוח היום',
