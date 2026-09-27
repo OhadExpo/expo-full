@@ -456,10 +456,12 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
   const hang = float || center;
   const slot = { display: 'inline-block', width: '0.8em', textAlign: 'center', letterSpacing: 0, visibility: on ? 'visible' : 'hidden' };
   return (
-    <Tag role={Tag === 'th' ? undefined : 'columnheader'} aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    // aria-sort belongs to a real column header: only the <th> form carries
+    // it; outside a table the button says its own state (27.9 review)
+    <Tag aria-sort={Tag === 'th' ? (on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
       onClick={go} title={title || (on ? tr(sort.dir === 'asc' ? 'Sort descending' : 'Sort ascending') : `${tr('Sort by')} ${label}`)}
       style={{ ...style, ...(on ? { color: ORANGE_DEEP } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-      <span role="button" tabIndex={0} aria-label={aLabel || undefined}
+      <span role="button" tabIndex={0} aria-label={Tag === 'th' ? (aLabel || undefined) : `${aLabel || label}${on ? ` · ${tr(sort.dir === 'asc' ? 'Sort ascending' : 'Sort descending')}` : ''}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
         style={hang ? { position: 'relative' } : undefined}>
         {label}
@@ -577,7 +579,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   useEdgeFade(headRef);
   // phones: the whole bar scrolls under the pinned crest; the far edge never
   // shows half a tab (the plate below covers exactly the overlap)
-  const railMask = useRailTrailMask(headRef, { items: '.bhbc-hdr-tabs button, .bhbc-header-ctrl > *', lead: '.bhbc-header-id' });
+  const trailPlate = React.useRef(null), leadPlate = React.useRef(null);
+  useRailTrailMask(headRef, { items: '.bhbc-hdr-tabs button, .bhbc-header-ctrl > *', lead: '.bhbc-header-id', trailRef: trailPlate, leadRef: leadPlate });
   // the crest plate's width is the bar's snap padding (a tab rests right after it)
   React.useLayoutEffect(() => {
     const el = headRef.current; const id = el && el.querySelector('.bhbc-header-id');
@@ -1458,6 +1461,10 @@ function attendance28(rec, days) {
              crest plate is the scroll padding, so a settled bar never slices a
              word at the crest. The far edge is covered by the rail plate. */
           .bhbc-hdr-tabs button{scroll-snap-align:start}
+          /* and the END of the bar is a snap point: without it mandatory snap
+             stopped at the last tab-start and the exit control stayed 23px past
+             the edge for good (27.9, found by the scroller-tail gate) */
+          .bhbc-header-ctrl{scroll-snap-align:end}
           .bhbc-header-inner::-webkit-scrollbar{display:none}
           .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
           /* The pinned identity block must be OPAQUE and must have an EDGE, or
@@ -1543,8 +1550,11 @@ function attendance28(rec, days) {
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: HDR_BG, borderBottom: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 2px 10px rgba(0,0,0,0.30)' }}>
-        {railMask.w > 0 && <div aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ position: 'absolute', top: 0, bottom: 1, [railMask.rtl ? 'left' : 'right']: 0, width: railMask.w, background: HDR_BG, zIndex: 4, pointerEvents: 'none' }} />}
-        {railMask.lw > 0 && <div aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ position: 'absolute', top: 0, bottom: 1, [railMask.rtl ? 'right' : 'left']: railMask.lx, width: railMask.lw, background: '#0E1C38', zIndex: 4, pointerEvents: 'none' }} />}
+        {/* the plates the rail hook sizes (no React state - the bar scrolls
+            without re-rendering the zone); they absorb a tap, so a covered
+            sliver of a tab cannot be tapped (27.9 review) */}
+        <div ref={trailPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: HDR_BG, zIndex: 4 }} />
+        <div ref={leadPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: '#0E1C38', zIndex: 4 }} />
         <div ref={headRef} className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="bhbc-header-id" data-rail-occluder="" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginInlineEnd: 6 }}>
             {/* The crest goes HOME, like the EXPO logo does. */}

@@ -53,7 +53,9 @@ async function measureTails(MAXGAP) {
   };
   const snippet = (el) => ((el && (el.textContent || el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('alt')))) || '').trim().replace(/\s+/g, ' ').slice(0, 30);
   const REPLACED = /^(img|svg|canvas|video|iframe|input|select|textarea|progress|meter)$/;
-  const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // a timer, not requestAnimationFrame: the gate's tabs are not focused and an
+  // unfocused tab never runs animation frames - the rAF wait hung every page
+  const frame = () => new Promise((r) => setTimeout(r, 40));
   const INF = { l: -1e9, r: 1e9, t: -1e9, b: 1e9 };
   const isect = (a, b) => ({ l: Math.max(a.l, b.l), r: Math.min(a.r, b.r), t: Math.max(a.t, b.t), b: Math.min(a.b, b.b) });
 
@@ -145,6 +147,7 @@ await runSweep({
   name: 'SCROLLER-TAIL',
   async measure(pg) {
     const res = await pg.evaluate(measureTails, MAXGAP);
+    if (process.env.DEBUG) console.log(JSON.stringify(res, null, 1));
     const failures = [];
     for (const s of res) {
       if (s.gap <= MAXGAP) continue;

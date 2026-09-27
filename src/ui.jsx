@@ -1300,41 +1300,72 @@ export function ScrollFade({ children, style, className }) {
   return <div ref={ref} className={className} style={{ overflowX: 'auto', ...style }}>{children}</div>;
 }
 
-// NO WORD SLICED AT THE FAR EDGE OF A SIDE-SCROLL RAIL (27.9, Ohad: "fix the
-// top menus to perfection"; his shots: "ACTI" / "A" cut at the edge). The rail
-// scrolls - he wants the side scroll - so SOMETHING is always half across the
-// trailing edge at rest. This measures that item once the rail settles and
-// returns the overlap in px; the caller lays an opaque plate of exactly that
-// width over the edge, so what shows is whole items and a clean end. The
-// leading edge is the caller's scroll-snap. Direction-aware (RTL trails left).
-//   scroller: the element that scrolls   items: selector of the rail's items
-//   lead: selector of a pinned block at the leading edge (the crest), optional
-export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null } = {}) {
-  const [mask, setMask] = React.useState({ w: 0, rtl: false, lw: 0, lx: 0 });
+// NO WORD SLICED AT THE EDGES OF A SIDE-SCROLL RAIL (27.9, Ohad: "fix the top
+// menus to perfection"; his shots: "ACTI" / "A" cut at the edge, "EDULE" under
+// the crest). The rail scrolls - he wants the side scroll - so at rest some item
+// is usually half across an edge. This measures that overlap and hides EXACTLY
+// it, so what shows is whole items and clean ends:
+//   clip: true      the rail itself gets a clip-path inset on both ends
+//   trailRef/leadRef plates (opaque, tap-absorbing) sized over the trailing
+//                   edge / beside the pinned lead block (the crest)
+//   active          a NEWLY active item (a tab tap, a route) is scrolled whole
+//                   to the start edge once; the coach's own scrolling after
+//                   that is left alone
+// It writes straight to the DOM - no React state - so scrolling the bar never
+// re-renders the page (27.9 review). Direction-aware: RTL trails left.
+export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
   React.useEffect(() => {
-    let el = null, t = 0, raf = 0, tries = 0, ro = null, lastActive = null;
+    let el = null, t = 0, ro = null, lastActive = null, alive = true;
+    const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
+    const apply = (w, lw, lx, rtl) => {
+      if (!el) return;
+      if (clip) {
+        const v = w || lw ? (rtl ? `inset(0 ${lw}px 0 ${w}px)` : `inset(0 ${w}px 0 ${lw}px)`) : '';
+        if (el.style.clipPath !== v) el.style.clipPath = v;
+      }
+      const put = (p, width, side, off) => {
+        const n = p && p.current; if (!n) return;
+        if (!width) { n.style.display = 'none'; return; }
+        n.style.display = 'block'; n.style.width = `${width}px`;
+        n.style.left = ''; n.style.right = '';
+        n.style[side] = `${off}px`;
+      };
+      put(trailRef, w, rtl ? 'left' : 'right', 0);
+      put(leadRef, lw, rtl ? 'right' : 'left', lx);
+    };
     const measure = () => {
-      // the rail element can be re-created (a sub-tab tap remounts it):
-      // follow the ref, not the element first seen
+      if (!alive) return;
+      // follow the ref, not the element first seen: the rail can be re-created
+      // (a sub-tab tap remounts it), and it can mount after the data loads
       const cur = ref && ref.current;
-      if (cur && cur !== el) {
+      if (cur !== el) {
         if (el) el.removeEventListener('scroll', later);
         if (ro) { ro.disconnect(); ro = null; }
-        el = cur;
-        el.addEventListener('scroll', later, { passive: true });
-        if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(later); ro.observe(el); }
+        el = cur || null;
+        if (el) {
+          el.addEventListener('scroll', later, { passive: true });
+          if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(later); ro.observe(el); }
+        }
       }
       if (!el) return;
-      if (window.innerWidth > maxWidth || el.scrollWidth <= el.clientWidth + 1) { setMask((m) => (m.w || m.lw ? { w: 0, rtl: m.rtl, lw: 0, lx: 0 } : m)); return; }
+      if (window.innerWidth > maxWidth || el.scrollWidth <= el.clientWidth + 1) { apply(0, 0, 0, false); hide(trailRef); hide(leadRef); return; }
       const rtl = getComputedStyle(el).direction === 'rtl';
       const r = el.getBoundingClientRect();
       const edge = rtl ? r.left : r.right;
-      // the LEADING edge is the pinned plate's inner edge (or the rail's start):
-      // at the end of the scroll range a tab can rest half under the crest,
-      // and snapping cannot move it - so that overlap is covered too
       const plate = lead ? el.querySelector(lead) : null;
       const pr = plate ? plate.getBoundingClientRect() : null;
       const ledge = pr ? (rtl ? pr.left : pr.right) : (rtl ? r.right : r.left);
+      if (active) {
+        const act = el.querySelector(active);
+        if (act && act !== lastActive) {
+          lastActive = act;
+          const a = act.getBoundingClientRect();
+          const sp = parseFloat(getComputedStyle(el).scrollPaddingInlineStart) || 0;
+          const s0 = pr ? ledge : (rtl ? r.right - sp : r.left + sp);
+          const whole = rtl ? (a.right <= s0 + 1 && a.left >= edge - 1) : (a.left >= s0 - 1 && a.right <= edge + 1);
+          if (!whole) { el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
+        }
+      }
       let w = 0, lw = 0;
       for (const it of el.querySelectorAll(items)) {
         if (plate && plate.contains(it)) continue;
@@ -1345,73 +1376,66 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         if (!rtl && b.left < ledge - 0.5 && b.right > ledge + 0.5) lw = Math.max(lw, b.right - ledge);
         if (rtl && b.right > ledge + 0.5 && b.left < ledge - 0.5) lw = Math.max(lw, ledge - b.left);
       }
-      // a NEWLY active item (a tab tap, a route) is brought whole to the start
-      // edge once; after that the coach's own scrolling is left alone
-      if (active) {
-        const act = el.querySelector(active);
-        if (act && act !== lastActive) {
-          lastActive = act;
-          const a = act.getBoundingClientRect();
-          const sp = parseFloat(getComputedStyle(el).scrollPaddingInlineStart) || 0;
-          const s0 = pr ? (rtl ? pr.left : pr.right) : (rtl ? r.right - sp : r.left + sp);
-          const whole = rtl ? (a.right <= s0 + 1 && a.left >= edge - 1) : (a.left >= s0 - 1 && a.right <= edge + 1);
-          if (!whole) { el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
-        }
-      }
-      w = Math.ceil(w); lw = Math.ceil(lw);
-      // lx: the leading plate's offset from the scroller's start side
       const lx = Math.round(rtl ? r.right - ledge : ledge - r.left);
-      setMask((m) => (m.w === w && m.rtl === rtl && m.lw === lw && m.lx === lx ? m : { w, rtl, lw, lx }));
+      apply(Math.ceil(w), Math.ceil(lw), lx, rtl);
     };
-    // every scroll frame (the plate follows the scroll, never lags a tap) and
-    // once more after it settles (snap lands a few frames after the last event)
+    // every scroll event (no state, so it is cheap) and once more after it
+    // settles - snap lands a few frames after the last event
     function later() { measure(); clearTimeout(t); t = setTimeout(measure, 140); }
-    const attach = () => {
-      el = ref && ref.current;
-      if (!el) { if (tries++ < 180) raf = setTimeout(attach, 16); return; }
-      measure();
-      el.addEventListener('scroll', later, { passive: true });
-      if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(later); ro.observe(el); }
-    };
-    attach();
+    measure();
     window.addEventListener('resize', later);
     const t2 = setTimeout(measure, 700);   // fonts land after first paint
-    // and a light poll: a programmatic scroll's event can be skipped (an
-    // unfocused tab dispatches scroll events on animation frames it never
-    // runs), and a plate a scroll behind shows a half tab or hides a whole one
-    const iv = setInterval(() => { if (window.innerWidth <= maxWidth) measure(); }, 150);
-    return () => { clearTimeout(t); clearTimeout(t2); clearInterval(iv); clearTimeout(raf); window.removeEventListener('resize', later); if (el) el.removeEventListener('scroll', later); if (ro) ro.disconnect(); };
-  }, [ref, items, lead, maxWidth, active]);
-  return mask;
+    // a light poll for what no event reports (a programmatic scroll in an
+    // unfocused tab, a remounted rail); phones only
+    const iv = setInterval(() => { if (window.innerWidth <= maxWidth) measure(); }, 250);
+    return () => {
+      alive = false; clearTimeout(t); clearTimeout(t2); clearInterval(iv);
+      window.removeEventListener('resize', later);
+      if (el) { el.removeEventListener('scroll', later); if (clip) el.style.clipPath = ''; }
+      if (ro) ro.disconnect();
+    };
+  }, [ref, items, lead, maxWidth, active, clip, trailRef, leadRef]);
 }
 
-// A segment label: the full word, or - only when the full word would push its
-// button past its cell - the short word. Measured before paint on every
-// resize, so it never flashes; the font never changes size (27.9).
+// A segment label: the full word, or - only when the full word would not fit
+// its cell - the short word, at the same font size (27.9). The full word is
+// measured in a hidden sizer, so the label never switches back and forth and
+// never flashes (27.9 review).
 export function SegWord({ full, short }) {
   const ref = React.useRef(null);
+  const sizer = React.useRef(null);
   const [useShort, setUseShort] = React.useState(false);
   React.useLayoutEffect(() => {
-    const el = ref.current; const btn = el && el.parentElement;
-    if (!el || !btn || !short) return undefined;
-    let tid = 0;
-    // measure with the FULL word in place: if it pushes the button past its
-    // cell, the short word goes in
-    const measure = () => setUseShort(btn.scrollWidth > btn.clientWidth + 0.5);
+    const el = ref.current; const btn = el && el.parentElement; const sz = sizer.current;
+    if (!el || !btn || !sz || !short) return undefined;
+    const measure = () => {
+      // everything in the button except this label, plus the full word
+      const cs = getComputedStyle(btn);
+      const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const gap = parseFloat(cs.columnGap) || 0;
+      let others = 0;
+      for (const k of btn.children) if (k !== el) others += k.getBoundingClientRect().width + gap;
+      const need = pad + others + sz.getBoundingClientRect().width;
+      const next = need > btn.clientWidth + 0.5;
+      setUseShort((p) => (p === next ? p : next));
+    };
     measure();
-    const ro = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => { setUseShort(false); clearTimeout(tid); tid = setTimeout(measure, 0); })
-      : null;
-    if (ro) { ro.observe(btn); ro.observe(el); }
-    // the web font lands after first paint and widens the word without
-    // resizing the cell - measure again then
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { setUseShort(false); clearTimeout(tid); tid = setTimeout(measure, 0); }).catch(() => {});
-    // and twice more while the page settles (the card can mount before its
-    // grid has its final width)
-    const late = [250, 1000].map((ms) => setTimeout(() => { setUseShort(false); setTimeout(measure, 0); }, ms));
-    return () => { clearTimeout(tid); late.forEach(clearTimeout); if (ro) ro.disconnect(); };
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (ro) ro.observe(btn);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure).catch(() => {});
+    const late = [250, 1000].map((ms) => setTimeout(measure, ms));
+    return () => { late.forEach(clearTimeout); if (ro) ro.disconnect(); };
   }, [full, short]);
-  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', lineHeight:1, minWidth:0 }}>{useShort ? short : full}</span>;
+  return (
+    <span ref={ref} style={{ display:'inline-flex', alignItems:'center', lineHeight:1, minWidth:0, position:'relative' }}>
+      {useShort ? short : full}
+      {/* a zero-size, clipped box: the word inside keeps its real width to
+          measure, but adds nothing to any scroller's overflow (27.9 gate) */}
+      <span aria-hidden="true" style={{ position:'absolute', width:0, height:0, overflow:'hidden', visibility:'hidden', pointerEvents:'none', insetInlineStart:0, top:0 }}>
+        <span ref={sizer} style={{ display:'inline-block', whiteSpace:'nowrap' }}>{full}</span>
+      </span>
+    </span>
+  );
 }
 
 export function useEdgeFade(ref) {

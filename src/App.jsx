@@ -12,8 +12,6 @@ import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost, toast, useEdgeFade, useRailTrailMask } from './ui';
-// both ends of a phone rail clipped to whole items: trailing w, leading lw
-const railClip = (m) => (m.rtl ? `inset(0 ${m.lw || 0}px 0 ${m.w || 0}px)` : `inset(0 ${m.w || 0}px 0 ${m.lw || 0}px)`);
 import BugReportButton from './BugReportButton';
 // LAZY: SensorLab renders only behind `isOwner`, but a static import puts it
 // and its five signal-processing modules (pulsePPG, acousticReps,
@@ -473,8 +471,11 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
           <circle cx="12" cy="19" r="1.5"/>
         </svg>
       </button>
-      {open && (
-        <div style={{
+      {/* PORTALLED (27.9 review): the phone rail clips its edges with a
+          clip-path, and a clip-path clips fixed descendants too - the menu
+          (Export, Change password) was cut to nothing below the bar. */}
+      {open && createPortal(
+        <div data-more-menu="" style={{
           // position:fixed lifts the popover out of the header's
           // stacking context so it floats above all page content. The
           // coords mirror the button's bottom-right corner.
@@ -562,7 +563,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
             );
           })}
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
@@ -894,11 +895,11 @@ function AuthedApp() {
   useEdgeFade(coachRailRef);
   // the rail's far edge never shows half a tab (27.9, #304): the part of the
   // tab crossing the edge is clipped away, so only whole tabs show at rest
-  const coachRailMask = useRailTrailMask(coachRailRef, { items: 'nav.hdr-scroll button, .hdr-right > *', maxWidth: 700, active: 'nav.hdr-scroll [aria-current="page"], nav.hdr-scroll [aria-selected="true"]' });
+  useRailTrailMask(coachRailRef, { items: 'nav.hdr-scroll button, .hdr-right > *', maxWidth: 700, clip: true, active: 'nav.hdr-scroll [aria-current="page"], nav.hdr-scroll [aria-selected="true"]' });
   // the section sub-tabs (Exercises: Library / Matching / Cleanup ...) scroll
   // the same way on a phone and get the same clean end
   const subtabRef = React.useRef(null);
-  const subtabMask = useRailTrailMask(subtabRef, { items: ':scope > button', maxWidth: 760, active: ':scope > [aria-selected="true"]' });
+  useRailTrailMask(subtabRef, { items: ':scope > button', maxWidth: 760, clip: true, active: ':scope > [aria-selected="true"]' });
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1422,6 +1423,7 @@ function AuthedApp() {
       const sc = coachRailRef.current;
       const railScrolls = sc && sc.scrollWidth > sc.clientWidth + 1 && getComputedStyle(sc).overflowX !== 'visible';
       if (!railScrolls) { if (el.scrollIntoView) el.scrollIntoView({ inline: 'nearest', block: 'nearest' }); return; }
+      if (window.innerWidth <= 700) return;   // the rail hook owns the phone rail
       const rtl = getComputedStyle(sc).direction === 'rtl';
       const r = sc.getBoundingClientRect(), t = el.getBoundingClientRect();
       const pad = 12;
@@ -1430,9 +1432,11 @@ function AuthedApp() {
       if (!whole) sc.scrollTo({ left: sc.scrollLeft + (rtl ? t.right - start : t.left - start), behavior: 'instant' });
       sc.dispatchEvent(new Event('scroll'));
     };
-    // a cold load renders the nav after the data: land again as it appears
-    const ts = [30, 450, 1200, 2500].map((ms) => setTimeout(land, ms));
-    return () => ts.forEach(clearTimeout);
+    // ONE run. On a phone the rail's own hook lands the active tab when it
+    // appears (a cold load included) and never again until it changes, so a
+    // coach swiping the rail is never pulled back (27.9 review).
+    const ts = setTimeout(land, 30);
+    return () => clearTimeout(ts);
   }, [tab]);
   const navTo = useCallback((newTab, newTrainee, hash) => {
     // Staff (non-owner coach) can never navigate to an owner-only tab — not even
@@ -1926,9 +1930,12 @@ function AuthedApp() {
                  word there (27.9 #304) */
               scroll-snap-type: x mandatory; }
             .hdr-rail nav.hdr-scroll button, .hdr-rail .hdr-right > * { scroll-snap-align: start; }
+            .hdr-rail .hdr-right { scroll-snap-align: end; }
             .hdr-rail::-webkit-scrollbar { display: none; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
-            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 16px !important; }
+            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 3px !important; }
+            /* the last icon's own inset + 3 = the page's 16px gutter; at 16 the rail
+               ended in 28px of nothing (27.9 scroller-tail gate) */
           }
           [dir="rtl"] nav.hdr-scroll button span{font-weight:800;letter-spacing:0}
           .nav-item-inactive{transition:color 120ms, background 120ms}
@@ -1981,7 +1988,7 @@ function AuthedApp() {
         `}</style>
         <div ref={coachBarRef} className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} onClick={()=>navTo('dashboard')} title={t('Back to dashboard')} style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
-          <div ref={coachRailRef} className="hdr-rail" style={coachRailMask.w || coachRailMask.lw ? { clipPath: railClip(coachRailMask) } : undefined}>
+          <div ref={coachRailRef} className="hdr-rail">
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
                 count digit (fontSize:10) baseline-aligns with the label
@@ -2104,7 +2111,7 @@ function AuthedApp() {
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
-              <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap', ...(subtabMask.w || subtabMask.lw ? { clipPath: railClip(subtabMask) } : {})}}>
+              <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
                   return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{tb(l)}</button>;
