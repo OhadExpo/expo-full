@@ -3960,17 +3960,27 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     // Body part + side for everyone, same as every other row.
                     // The head body part is literally "Head / Concussion", which
                     // wrapped to two lines, so it collapses at the slash. Printing
-                    // the TYPE instead was worse: Zack's record is typed Contusion,
+                    // the TYPE instead was worse: one record is typed Contusion,
                     // so the cell read "Contusion" for a concussion.
                     const injShort = !inj ? null
                       : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
                     return (
                       <div className="bhbc-pos-inj" style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, whiteSpace: 'nowrap' }}>
                         <span data-pos style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'}{injShort ? <span data-sep> ·</span> : ''}</span>
-                        {/* LAST LIFT between the position and the injury (27.9 03:22,
-                            Ohad: "injuries at the bottom. last lifted ... a line
-                            between the injuries and the position") - phones only;
-                            the desktop board keeps its LAST LIFT column */}
+                        {/* No warning glyph. Ohad: "no emojies or icons, just
+                            colors" - medText already carries the severity, and a
+                            triangle in front of every injured athlete was noise. */}
+                        {/* bigger and bolder (27.9, Ohad: "make the injuries slightly
+                            bigger or more noticeable but keep the perfect ocd design"):
+                            12px / 800 in its status colour, still starting on the
+                            position's edge - no tint box, no glyph. */}
+                        {injShort ? <span data-inj style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.03em', color: inj.status === 'available' ? C.td : medText(inj.status) }}>{injShort}</span> : <span data-inj-empty aria-hidden="true" />}
+                        {/* LAST LIFT on the bottom line, the injury in the middle
+                            (27.9 03:29, Ohad: "injury in the middle with a slightly
+                            bigger font size. And last lift at the bottom") - phones
+                            only; the desktop board keeps its LAST LIFT column. With
+                            no injury its slot stays EMPTY in the middle, never at
+                            an edge of the card (his rule, 03:30). */}
                         {(() => {
                           const ll = lastLift(t.id);
                           const since = ll && today ? dayDiff(today, ll) : null;
@@ -3980,14 +3990,6 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                             </span>
                           );
                         })()}
-                        {/* No warning glyph. Ohad: "no emojies or icons, just
-                            colors" - medText already carries the severity, and a
-                            triangle in front of every injured athlete was noise. */}
-                        {/* bigger and bolder (27.9, Ohad: "make the injuries slightly
-                            bigger or more noticeable but keep the perfect ocd design"):
-                            12px / 800 in its status colour, still starting on the
-                            position's edge - no tint box, no glyph. */}
-                        {injShort && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.03em', color: inj.status === 'available' ? C.td : medText(inj.status) }}>{injShort}</span>}
                       </div>
                     );
                   })()}

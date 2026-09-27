@@ -1709,17 +1709,24 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
     column-gap: 10px !important; row-gap: 6px !important; align-items: start !important;
   }
   .bhbc-zone .bhbc-load-row > *:nth-child(1) { width: 24px !important; height: 24px !important; font-size: 11px !important; align-self: start; margin-top: 3px; }
-  .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-area: name !important; align-self: start; }
+  /* FOUR LINES, EVENLY SPACED, EDGE TO EDGE OF THE CONTROL STACK (27.9 03:29 +
+     03:30, Ohad: "injury in the middle with a slightly bigger font size. And
+     last lift at the bottom" / an optional line that is absent "is never at a
+     edge of a text box"): name on the status button's top edge, LAST LIFT on
+     MED's bottom edge, position and injury between. With no injury the empty
+     slot keeps its height IN THE MIDDLE, so every card is the same box and no
+     gap ever sits at an edge. */
+  .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-area: name !important; align-self: stretch !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: calc(2 * var(--btn-h) + 6px); }
   .bhbc-zone .bhbc-load-row > [data-lbl="last lift"] { display: none !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] { grid-area: avail !important; padding: 0 !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > * { width: 112px !important; min-width: 0 !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="actions"] { grid-area: med !important; justify-self: stretch !important; width: 112px !important; max-width: 112px !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="actions"] > button { width: 100% !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row [data-name] { line-height: 16px; }
-  /* the injury line is RESERVED on every card, so LAST LIFT sits at one height
-     down the whole board, injured or not (14px position + 16px injury) */
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { min-height: 50px !important; display: flex !important; flex-direction: column !important; gap: 2px !important; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { display: contents !important; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj > * { display: block !important; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-sep] { display: none !important; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { line-height: 14px; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj] { font-size: 13px !important; line-height: 16px; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { height: 16px; }
 }
