@@ -848,13 +848,15 @@ function attendance28(rec, days) {
   // floor 4 gives the two states actually available, Out-Med and Out-Personal.
   // To go below the floor you change the medical record, which is where that
   // value really lives.
-  const cycleAvail = useCallback((id) => {
+  const cycleAvail = useCallback((id, to = null) => {
     const floor = activeInjuries(medical || {}, id)
       .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
     setBhbcLoads((prev) => {
       const rec = prev[id] ? { ...prev[id] } : emptyRec();
       const cur = Math.max(Number((rec.availability || {})[today]) || 1, floor);
-      rec.availability = { ...(rec.availability || {}), [today]: cur >= 5 ? floor : cur + 1 };
+      // a chosen status (the picker, 27.9 #345) - never below the medical floor
+      const next = to != null ? Math.max(Number(to) || 1, floor) : (cur >= 5 ? floor : cur + 1);
+      rec.availability = { ...(rec.availability || {}), [today]: next };
       return { ...prev, [id]: rec };
     });
     notify();
@@ -4355,6 +4357,17 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
 
 function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen, onMedical, today }) {
   const tr = useT();
+  // the athlete whose availability picker is open (one at a time); a tap
+  // anywhere else or Escape closes it without changing anything
+  const [availPick, setAvailPick] = useState(null);
+  useEffect(() => {
+    if (!availPick) return undefined;
+    const close = (e) => { if (!(e.target.closest && e.target.closest('[data-avail-pick]'))) setAvailPick(null); };
+    const esc = (e) => { if (e.key === 'Escape') setAvailPick(null); };
+    const t = setTimeout(() => document.addEventListener('pointerdown', close), 0);
+    document.addEventListener('keydown', esc);
+    return () => { clearTimeout(t); document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [availPick]);
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
   const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
@@ -4490,15 +4503,39 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     </div>
                   );
                 })()}
-                <div data-lbl="Availability">
+                <div data-lbl="Availability" style={{ position: 'relative' }}>
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
+                    // A STATE YOU SET, NOT A BUTTON YOU PRESS (27.9 #345, Ohad: "too
+                    // easy to accidentally tap" / "med and the status ... should not
+                    // look the same"). His control-material rule: an entry is an
+                    // underlined field, an action that opens something is a box.
+                    // One tap opens the choices; nothing changes until one is picked.
+                    <button onClick={(e) => { e.stopPropagation(); setAvailPick((p) => (p === t.id ? null : t.id)); }} aria-haspopup="listbox" aria-expanded={availPick === t.id}
+                      title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Change availability')}
+                      className="bhbc-avail-entry" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, borderRadius: 0, padding: '0 2px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}</span>
+                      <span aria-hidden="true" style={{ color: C.tm, fontSize: 9 }}>▾</span>
                     </button>
                   ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${AVAIL[avail].color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${AVAIL[avail].color} 45%, transparent)` : `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, padding: '0 2px', whiteSpace: 'nowrap' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </span>
+                  )}
+                  {cycleAvail && availPick === t.id && (
+                    <div role="listbox" aria-label={tr('Change availability')} onClick={(e) => e.stopPropagation()} data-avail-pick=""
+                      style={{ position: 'absolute', insetInlineEnd: 0, top: 'calc(100% + 4px)', zIndex: 30, minWidth: 180, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, boxShadow: C.cardShadow }}>
+                      {[1, 2, 3, 4, 5].map((code) => {
+                        const below = code < medFloor, on = code === avail;
+                        return (
+                          <button key={code} role="option" aria-selected={on} disabled={below}
+                            onClick={() => { cycleAvail(t.id, code); setAvailPick(null); }}
+                            title={below ? tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.') : undefined}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, width: '100%', height: 36, padding: '0 12px', border: 'none', borderBottom: `1px solid ${C.cardBd}`, background: on ? 'var(--c-sf2)' : 'transparent', color: below ? C.td : C.tx, opacity: below ? 0.5 : 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: below ? 'not-allowed' : 'pointer', textAlign: 'start', whiteSpace: 'nowrap' }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[code].color, flexShrink: 0 }} />{tr(AVAIL[code].label)}{on ? <span style={{ marginInlineStart: 'auto', color: C.tm }}>✓</span> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
                 {hasRead && (<div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>

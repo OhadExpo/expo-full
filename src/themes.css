@@ -1706,12 +1706,14 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 760px) {
   .bhbc-mob-lift { display: block; }
   .bhbc-zone .bhbc-load-row {
-    grid-template-columns: 24px minmax(0, 1fr) 112px !important;
+    grid-template-columns: 28px minmax(0, 1fr) 112px !important;
     grid-template-areas: "jersey name avail" "jersey name med" !important;
     grid-template-rows: auto auto !important;
     column-gap: 10px !important; row-gap: 6px !important; align-items: start !important;
   }
-  .bhbc-zone .bhbc-load-row > *:nth-child(1) { width: 24px !important; height: 24px !important; font-size: 11px !important; align-self: start; margin-top: 3px; }
+  /* the jersey spans exactly the name + position block (27.9 #345): 36px =
+     the name line's top to the position line's bottom */
+  .bhbc-zone .bhbc-load-row > *:nth-child(1) { width: 28px !important; height: 36px !important; font-size: 12px !important; align-self: start; margin-top: 0; }
   /* FOUR LINES, EVENLY SPACED, EDGE TO EDGE OF THE CONTROL STACK (27.9 03:29 +
      03:30, Ohad: "injury in the middle with a slightly bigger font size. And
      last lift at the bottom" / an optional line that is absent "is never at a
@@ -1722,7 +1724,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-area: name !important; align-self: stretch !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: calc(2 * var(--btn-h) + 6px); }
   .bhbc-zone .bhbc-load-row > [data-lbl="last lift"] { display: none !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] { grid-area: avail !important; padding: 0 !important; }
-  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > * { width: 112px !important; min-width: 0 !important; height: var(--btn-h) !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > .bhbc-avail-entry, .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > span { width: 112px !important; min-width: 0 !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="actions"] { grid-area: med !important; justify-self: stretch !important; width: 112px !important; max-width: 112px !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="actions"] > button { width: 100% !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row [data-name] { line-height: 16px; }

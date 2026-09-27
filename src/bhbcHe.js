@@ -795,6 +795,7 @@ Object.assign(HE, {
   '28 days': '28 ימים',
   'Last lift': 'הרמה אחרונה',
   'Full line': 'כל הנתונים',
+  'Change availability': 'שינוי זמינות',
   'pts': 'נק׳',
   'S&C minutes': 'דקות כוח',
   'Which practice': 'איזה אימון',
