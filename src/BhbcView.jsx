@@ -1608,10 +1608,39 @@ function attendance28(rec, days) {
         <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
       )}
         {minutesFor && (
-          <GameMinutesModal game={minutesFor} roster={roster} bhbcLoads={bhbcLoads}
+          <GameMinutesModal game={minutesFor} roster={roster} bhbcLoads={bhbcLoads} medical={medical}
             onClose={() => setMinutesFor(null)}
             onSave={({ date, minutes }) => {
-              setBhbcLoads((prev) => applyGameMinutes(prev, { date, minutes, emptyRec }));
+              // ONLY WHAT CHANGED IS WRITTEN, AND A ROW KEEPS ITS BOX SCORE
+              // (#305 N-F1). applyGameMinutes rebuilds every game row it touches
+              // as a bare {type, min} - so saving this sheet to correct ONE
+              // player's minutes stripped the league line (points, shooting,
+              // the opponent, the source) from all ten, the numbers the Games
+              // tab and the history popup are built from. Untouched players are
+              // left alone, and a touched row keeps every field but its minutes.
+              const saved = gameMinutesOf(bhbcLoads || {}, date);
+              const changed = {};
+              for (const [id, v] of Object.entries(minutes || {})) {
+                if ((Number(v) || 0) !== (Number(saved[id]) || 0)) changed[id] = v;
+              }
+              if (!Object.keys(changed).length) { setMinutesFor(null); return; }
+              setBhbcLoads((prev) => {
+                const next = applyGameMinutes(prev, { date, minutes: changed, emptyRec });
+                for (const id of Object.keys(changed)) {
+                  const old = (((prev[id] || {}).sessions || {})[date] || []).find((r) => r && rowKind(r) === 'game');
+                  const day = (((next[id] || {}).sessions || {})[date]) || null;
+                  if (!old || !day) continue;
+                  next[id] = { ...next[id], sessions: { ...next[id].sessions, [date]: day.map((r) => (r && r.type === 'Game' && !r.box && !r.kind ? { ...old, min: r.min, rpe: null, load: 0 } : r)) } };
+                }
+                return next;
+              });
+              // WHO PLAYED WHILE MARKED OUT (#305 F4). The game row is the fact
+              // for that day - the grids already show him as played - and the
+              // mismatch goes on the record instead of passing silently.
+              const clash = roster.filter((t) => Number(changed[t.id]) > 0 && availOn(bhbcLoads[t.id], medical, t.id, date) >= 4).length;
+              toast('Minutes saved');
+              track('game', `logged game minutes for ${fmtNumericDate(date)}${clash ? ` · ${clash} marked out that day played` : ''}`);
+              notify();
               setMinutesFor(null);
             }} />
         )}
@@ -3394,7 +3423,7 @@ function DensityBit({ f: fx, size = 11 }) {
 function TodayPanel({ today, fixtures, fx, rows, bare = false }) {
   const he = useHe();
   const tr = useT();
-  const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
   const next = fx.byDay[0];
   const av = { full: 0, mod: 0, out: 0 };
   rows.forEach((r) => { if (r.avail <= 1) av.full++; else if (r.avail <= 3) av.mod++; else av.out++; });
@@ -4821,7 +4850,7 @@ function ScheduleWeek({ fixtures, today }) {
       <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
         {days.map((d) => {
           const di = isoOf(d); const isToday = di === today;
-          const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+          const items = (byDate[di] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));   // a slot with no start time must not take the card down (#305 N-F2)
           const hasGame = items.some((f) => f.type === 'game');
           return (
             <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 6%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
@@ -4866,7 +4895,7 @@ function ScheduleMonth({ fixtures, today }) {
     const di = isoOf(dt);
     const inMonth = dt.getMonth() === m;
     const isToday = di === today;
-    const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+    const items = (byDate[di] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));   // a slot with no start time must not take the card down (#305 N-F2)
     return (
       <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
@@ -5594,7 +5623,7 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
 // team rpe to exist" / "remember i dont need team rpes", and a game RPE is a
 // team RPE. The field used to DEFAULT to 8 and write that invented number into
 // every athlete's record. Minutes played are an official fact and they stay.
-function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
+function GameMinutesModal({ game, roster, bhbcLoads, medical = {}, onClose, onSave }) {
   const tr = useT();
   const date = game.date;
   const [mins, setMins] = useState(() => {
@@ -5627,7 +5656,9 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
               <input type="number" min="0" max="60" inputMode="numeric" placeholder="—" aria-label={tr('Minutes played')}
                 value={v} onChange={(e) => setMins((p) => ({ ...p, [t.id]: e.target.value }))}
                 style={{ width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (Number(v) > 60 || Number(v) < 0 ? '#DE4E3B' : on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? ORANGE_DEEP : C.tm }}>{on ? tr('min') : tr('DNP')}</span>
+              {/* minutes for a player the day's record has OUT are said, not
+                  hidden (#305 F4): the save keeps the minutes and notes the clash */}
+              {(() => { const clash = on && availOn((bhbcLoads || {})[t.id], medical, t.id, date) >= 4; return <span title={clash ? tr('Marked out on this date - the minutes win for the day') : undefined} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: clash ? '#DE4E3B' : on ? ORANGE_DEEP : C.tm }}>{clash ? tr('was out') : on ? tr('min') : tr('DNP')}</span>; })()}
             </div>
           );
         })}

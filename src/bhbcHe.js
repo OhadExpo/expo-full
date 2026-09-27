@@ -798,6 +798,9 @@ Object.assign(HE, {
   'None assigned': 'עוד לא שויך בלוק',
   '1 practice': 'אימון אחד',
   practices: 'אימונים',
+  // F: safety
+  'Marked out on this date - the minutes win for the day': 'רשום בחוץ בתאריך הזה — הדקות קובעות לאותו יום',
+  'was out': 'היה בחוץ',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
