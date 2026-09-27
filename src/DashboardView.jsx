@@ -1042,7 +1042,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('MRR (ACTIVE)')}</span>
             <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>
-            <span style={subStyle}>{tt('Recurring committed')}</span>
+            <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap' }}><SegWord full={tt('Recurring committed')} short={tt('Recurring')} /></span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH' : '30D COLLECTED'))}</span>

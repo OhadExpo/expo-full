@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -4819,7 +4819,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <BhbcBadge tid={row.tid} trainees={trainees} />
-                    <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('No program yet')}</div>
+                    <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   </div>
                   {row.coupleMembers
                     ? row.coupleMembers.map(m => (
@@ -4965,7 +4965,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               return (
                 <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
                   <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div><BhbcBadge tid={row.tid} trainees={trainees} /></div>
-                  <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('No program yet')}</div>
+                  <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   <div style={{flex:1}} />
                   {row.coupleMembers
                     ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (

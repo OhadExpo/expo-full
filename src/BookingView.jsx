@@ -297,7 +297,7 @@ export default function BookingView({ trainees }) {
               which is why these say OPTIONAL rather than being required —
               nothing changes for a coach who writes one language. Shipping the
               columns without these inputs would have been half a feature. */}
-          <Input label={tt('Display name (EN, optional)')} value={draftSettings?.display_name_en || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name_en: e.target.value })} placeholder={draftSettings?.display_name || ''} />
+          <Input label={tt('English name, optional')} value={draftSettings?.display_name_en || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name_en: e.target.value })} placeholder={draftSettings?.display_name || ''} />
           <Input label={tt('Zoom URL')} style={{ textAlign: 'start' }} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
         </div>
         <div style={{ marginBottom: 10 }}>

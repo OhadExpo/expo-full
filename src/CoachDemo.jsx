@@ -96,8 +96,8 @@ const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - Number(n || 
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: 12, online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Focus', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
   { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 2700, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', payment: 'PAID', paidDaysAgo: 14, online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', ev: { vj: 45, bj: 210, dl: 120, bp: 65 }, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
   { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 2000, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', payment: 'PAID', paidDaysAgo: 21, online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', ev: { vj: 55, bj: 245, dl: 175, bp: 95 }, plans: ['Block #2 — Strength', 'Block #1 — Base'] },
   { id: 't5', name: 'מאיה רוזן', short: 'Maya', email: 'maya.rozen@example.co.il', phone: '+972528889900', status: 'On Hold', sessionsLeft: 0, monthly: 1600, format: 'Online', startDate: '2024-12-01', dormantDays: 9, lastWorkout: '9 days ago', payment: 'OVERDUE', overdueDays: 6, online: false, age: 33, weight: 60, height: 165, injuries: 'R knee — patellofemoral', goals: 'Return to running pain-free', ev: { vj: 30, bj: 160, dl: 80,  bp: 40 }, plans: ['Block #3 — Rehab', 'Block #2 — Base', 'Block #1 — Intake'] },
@@ -112,7 +112,7 @@ const MOCK_TRAINEES = [
 // the block-history actually swaps the editor pane (not just styling).
 const BLOCK_DATA = {
   'Block #4': {
-    title: 'Block #4 — Push/Pull Volume',
+    title: 'Block #4 — Push/Pull',
     when: 'WEEK 2 OF 4',
     warmup: [
       { t: 'Cat-Cow + Thread the Needle', rx: '8 each side' },
@@ -2710,7 +2710,7 @@ function DemoPrograms({ resetToken = 0 }) {
     });
   const isActiveBlock = BLOCK_HISTORY[0]?.key === activeBlock;
   // Title shown above the block contents — pivots on the selected program
-  // (e.g. "Block #4 — Pull Specialization") so each athlete's view feels
+  // (e.g. "Block #4 — Pull Focus") so each athlete's view feels
   // distinct, even though the underlying block data is shared in this demo.
   const headingTitle = selectedProgram?.name || block.title;
   // Subtitle clock label — show "TEMPLATE" instead of "WEEK 2 OF 4" when the
@@ -3573,7 +3573,7 @@ const DEMO_WEEK = 2;
 const MOCK_REVIEW_QUEUE = [
   {
     id: 'rv1', traineeName: 'נועה לוי', initials: 'NL',
-    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
+    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull', week: DEMO_WEEK,
     date: 'Today 09:14', doneSets: 18, totalSets: 20,
     exercises: [
       { name: 'BB Bench Press',     prescribed: '4×6-8 · 60kg', done: 4, sets: 4, hasVideo: true,  comments: 3, focus: true  },
@@ -3599,7 +3599,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv3', traineeName: 'גל מזרחי', initials: 'GM',
-    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 3,   // = 1 + idSeed('t2') % 4
+    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Focus', week: 3,   // = 1 + idSeed('t2') % 4
     date: 'Yesterday', doneSets: 14, totalSets: 14,
     exercises: [
       { name: 'Back Squat',         prescribed: '4×5 · 100kg',  done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
@@ -3612,7 +3612,7 @@ const MOCK_REVIEW_QUEUE = [
   // Already reviewed — the archive behind the real queue's SHOW REVIEWED.
   {
     id: 'rv4', traineeName: 'נועה לוי', initials: 'NL', reviewed: true,
-    dayName: 'Day C · Legs', planName: 'Block #4 — Push/Pull Volume', week: DEMO_WEEK,
+    dayName: 'Day C · Legs', planName: 'Block #4 — Push/Pull', week: DEMO_WEEK,
     date: '2 days ago', doneSets: 15, totalSets: 15,
     exercises: [
       { name: 'Back Squat',         prescribed: '4×5 · 70kg',   done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
@@ -3624,7 +3624,7 @@ const MOCK_REVIEW_QUEUE = [
   },
   {
     id: 'rv5', traineeName: 'גל מזרחי', initials: 'GM', reviewed: true,
-    dayName: 'Day B · Pull', planName: 'Block #4 — Pull Specialization', week: 3,
+    dayName: 'Day B · Pull', planName: 'Block #4 — Pull Focus', week: 3,
     date: '3 days ago', doneSets: 16, totalSets: 16,
     exercises: [
       { name: 'Pull-Up',            prescribed: '4×6',          done: 4, sets: 4, hasVideo: true,  comments: 1, focus: true  },
@@ -3666,7 +3666,7 @@ function DemoReview() {
   // the demo drops the invented subtab + "REVIEW QUEUE" banner to match.
   const weeklyFocus = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', marginBottom: 14 }}>
-      <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}>{T('WEEKLY FOCUS · NO UPLOAD NEEDED')}</span>
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}><SegWord full={T('WEEKLY FOCUS · NO UPLOAD NEEDED')} short={T('WEEKLY FOCUS')} /></span>
       <span style={{ color: C.tm, fontSize: 12 }}>▾</span>
     </div>
   );
@@ -3865,7 +3865,7 @@ function DemoReview() {
                 transition: 'border-color .15s', display: 'flex',
                 // WRAP AT PHONE WIDTH. The two actions are flexShrink 0 and
                 // took ~210px of a 360 screen, leaving the title block 102px —
-                // enough to break "Block #4 — Pull Specialization" over four
+                // enough to break "Block #4 — Pull Focus" over four
                 // lines and push "Day A · Push" 2px past its own edge. Wrapped,
                 // the title gets the full row and the actions sit under it.
                 flexWrap: 'wrap', rowGap: 8,
@@ -3989,13 +3989,13 @@ const demoCardStyle = (extra = {}) => ({
 // Mock plans the trainer can start workouts from — same shape as the real
 // app's planIndex (id, name, traineeId, dayNames). Ties to MOCK_TRAINEES.
 const MOCK_PLAN_INDEX = [
-  { id: 'p_noa_b4',   name: 'Block #4 — Push/Pull Volume', traineeId: 't1', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
-  { id: 'p_gal_b4',   name: 'Block #4 — Pull Specialization', traineeId: 't2', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+  { id: 'p_noa_b4',   name: 'Block #4 — Push/Pull', traineeId: 't1', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+  { id: 'p_gal_b4',   name: 'Block #4 — Pull Focus', traineeId: 't2', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
   { id: 'p_couple_b4', name: 'Block #4 — Couple Volume', traineeId: 't3', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
 ];
 
 const MOCK_IN_PROGRESS = [
-  { id: 'wip1', traineeId: 't1', dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', date: new Date().toISOString() },
+  { id: 'wip1', traineeId: 't1', dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull', date: new Date().toISOString() },
 ];
 
 function DemoWorkouts() {
@@ -5159,8 +5159,8 @@ export default function CoachDemo() {
             }}>{T('JOIN THE WAITLIST')}</a>
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
-              border: `1px solid ${C.bd2}`, padding: '0 22px', fontSize: 12,
-            }}>{T('NOW SEE THE ATHLETE VIEW →')}</a>
+              border: `1px solid ${C.bd2}`, padding: '0 22px', fontSize: 12, whiteSpace: 'nowrap',
+            }}><SegWord full={T('NOW SEE THE ATHLETE VIEW →')} short={T('ATHLETE VIEW →')} /></a>
           </div>
         </div>
       </main>

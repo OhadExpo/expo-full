@@ -13,7 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -206,6 +206,15 @@ function SecTitleEl({ s }) {
   return <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{typeof s === 'string' ? tr(s) : s}</span>;
 }
 const secTitle = (s) => <SecTitleEl s={s} />;
+
+// A PLAYER'S NAME IS ONE ROW (27.9 #300, title gate: a two-word name broke
+// onto two lines in a 138px phone column and a 123px tablet one). The full
+// name where it fits, the initial + surname where it would not - same size,
+// no cut.
+const initialName = (n) => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : String(n || ''); };
+function PlayerName({ name, style, ...rest }) {
+  return <span {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', ...style }}><SegWord full={name} short={initialName(name)} /></span>;
+}
 
 // LOCAL calendar date, not UTC. toISOString() is UTC, so between 00:00 and
 // 03:00 Israel time it returns YESTERDAY — "Today" would show the wrong day and
@@ -4426,7 +4435,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
               <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
-                  <div data-name style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
+                  <PlayerName data-name="" name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
                   {/* ONE line under the name, and the SAME line for everyone.
                       It used to be injury-OR-position, so some rows showed a
                       position and some an injury and the column read as two
@@ -4522,7 +4531,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                       title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Change availability')}
                       className="bhbc-avail-entry" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, borderRadius: 0, padding: '0 2px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}</span>
-                      <span aria-hidden="true" style={{ color: C.tm, fontSize: 9 }}>▾</span>
+                      {/* the app's one dropdown chevron (the status menus'), not a 9px ▾ */}
+                      <svg aria-hidden="true" viewBox="0 0 9 6" fill="none" width="9" height="6" style={{ color: C.tm, flexShrink: 0, transform: availPick === t.id ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </button>
                   ) : (
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, padding: '0 2px', whiteSpace: 'nowrap' }}>
@@ -5712,7 +5722,9 @@ function ResultsList({ games, bhbcOnly, fixtures = [], onPick = null }) {
               : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? tr('vs') : '@'}</span>}
             <span style={{ ...nameCell, fontWeight: 500, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{opp}</span>
           </div>
-          <div className="bhbc-game-detail" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'end', whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
+          {/* one row (27.9 title gate: "CHAMPIONS LEAGUE · BADALONA, SPAIN" broke at
+              768): the competition alone where the venue would not fit */}
+          <div className="bhbc-game-detail" style={{ display: 'flex', justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', whiteSpace: 'nowrap', minWidth: 0, textTransform: 'uppercase' }}><SegWord full={detail} short={tr(g.comp) || detail} /></div>
           {g.played
             ? <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, boxSizing: 'border-box', padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', color: won ? '#37B27C' : '#DE4E3B', background: `color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 13%, transparent)`, border: 'none' }}>{won ? 'W' : 'L'}</span>
             : g.homeKnown === false ? null
@@ -6362,7 +6374,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                    <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
                   <StatusPill status={inj.status} />
@@ -6410,7 +6422,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                  <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                   <div style={{ flex: 1 }} />
                   {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
@@ -6437,7 +6449,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
               <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 6, gap: 14, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 140, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
-                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                  <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
                   {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} {tr(hist > 1 ? 'records' : 'record')}</span>}
                 </div>
                 {/* colour = signal: a coloured status DOT, calm muted label — not a filled pill. */}

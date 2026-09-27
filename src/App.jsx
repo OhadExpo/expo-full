@@ -319,7 +319,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
         // gap:6 inherits from baseBtn, no per-child margins needed.
         style={{ ...baseBtn, height: HDR_ICON_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, borderRadius: 0, padding: '0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
         <span>{label}</span>
-        {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
+        {count != null && <span className="nav-count" style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
         <span style={{ fontSize: 10, lineHeight: 1, display: 'inline-block', transition: 'transform .2s cubic-bezier(.22,.61,.36,1)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {/* 17.9: fixed was not enough - the panel sits in the header's stacking context, so the page
@@ -1917,21 +1917,28 @@ function AuthedApp() {
                in a 56px bar). Centre it; the lift then centres the LETTERS on the tab row. */
             div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: visible !important; overflow-y: visible !important; padding-inline-start: 16px !important; padding-inline-end: 0 !important; background: inherit; }
             div.hdr-scroll > :first-child { position: static; z-index: auto; flex: 0 0 auto;
-              align-self: center; display: block; padding-inline-end: 12px;
+              align-self: center; display: block; padding-inline-end: 10px;
               border-inline-end: 1px solid var(--c-cardBd); }
             .hdr-rail { display: flex !important; align-items: center; flex: 1 1 auto; min-width: 0;
               height: 56px; overflow-x: auto; overflow-y: hidden;
               -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-              padding-inline-start: 12px;
+              padding-inline-start: 8px;
               /* so scrollIntoView never parks the active tab half-cut on the
                  rail's own edge */
-              scroll-padding-inline: 12px;
+              scroll-padding-inline: 8px;
               /* at rest a tab starts on the rail's start edge - never half a
                  word there (27.9 #304) */
               scroll-snap-type: x mandatory; }
             .hdr-rail nav.hdr-scroll button, .hdr-rail .hdr-right > * { scroll-snap-align: start; }
             .hdr-rail .hdr-right { scroll-snap-align: end; }
             .hdr-rail::-webkit-scrollbar { display: none; }
+            /* TWO WHOLE TABS AT 360 (27.9 #360, his phone: "top menu is fucked up
+               again" - the plate hid ATHLETES, which would have been cut, and
+               the rail showed the logo, DASHBOARD and 105px of nothing). The
+               count and 2px of each tab's padding give way on a phone; the
+               logo plate and the rail's start give 6px back. */
+            .hdr-rail .nav-count { display: none; }
+            .hdr-rail nav.hdr-scroll button { padding-inline: 6px !important; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
             .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 3px !important; }
             /* the last icon's own inset + 3 = the page's 16px gutter; at 16 the rail

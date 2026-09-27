@@ -484,7 +484,7 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
 //   titleNode   — custom JSX for the title (overrides `title`/`count`); use
 //                 for Hebrew/RTL or non-uppercase labels. Render it white so
 //                 it reads on the strip.
-export function CollapsibleSection({ title, titleNode, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children, domId, openSignal }) {
+export function CollapsibleSection({ title, titleShort, titleNode, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children, domId, openSignal }) {
   const tt = useT();
   const storeId = storageKey ? `expo-collapse:${storageKey}` : null;
   const [open, setOpen] = React.useState(() => {
@@ -562,7 +562,12 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
             color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
             overflowWrap: 'break-word', minWidth: 0,
-          }}>{tt(title)}{count != null && ` (${count})`}</span>
+            // titleShort: the words it falls back to where the full title would
+            // take a second row (27.9 #328) - same size, never cut
+            ...(titleShort ? { display: 'flex', whiteSpace: 'nowrap' } : null),
+          }}>{titleShort
+            ? <SegWord full={`${tt(title)}${count != null ? ` (${count})` : ''}`} short={`${tt(titleShort)}${count != null ? ` (${count})` : ''}`} />
+            : <>{tt(title)}{count != null && ` (${count})`}</>}</span>
         )}
         {/* flexWrap on the strip + the action cluster lets a wide button group
             drop to its own line on a phone instead of forcing horizontal page
