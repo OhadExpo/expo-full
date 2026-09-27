@@ -1743,6 +1743,8 @@ function BarChart({ series, w = 460, h = 88 }) {
 // the online league stats"). Every number the league publishes for the player,
 // read from the row the box-score logger wrote (or the league feed's line).
 // Nothing is computed that the source did not give, except shooting %.
+// the competition's short name for one-row lines (a title fits by wording)
+const COMP_SHORT = { 'Winner Cup': 'Cup', 'Winner League': 'League', 'Premier League': 'League', 'State Cup': 'Cup' };
 function GameLineModal({ line, onClose }) {
   const tr = useT();
   const b = line.box || {};
@@ -1751,24 +1753,34 @@ function GameLineModal({ line, onClose }) {
   const fg2 = ma(b.fg2), fg3 = ma(b.fg3 || b.tp), ft = ma(b.ft);
   const fg = fg2 && fg3 ? { m: fg2.m + fg3.m, a: fg2.a + fg3.a } : null;
   const v = (x) => (x == null || Number.isNaN(x) ? '—' : x);
+  // THE BOX SCORE'S OWN ABBREVIATIONS (27.9, Ohad: "turnovers is not
+  // fitting/overlaying"): "TURNOVERS" at 9px ran 20px past a quarter of a 390
+  // phone into BLOCKS. The league card above already reads PTS / REB / AST /
+  // MIN, so the full line uses the same words, and every label fits its cell.
   const tiles = [
-    [tr('Minutes'), v(line.min ?? b.min)], [tr('Points'), v(b.pts)], [tr('PIR'), v(b.pir)], ['+/-', v(b.pm)],
+    [tr('MIN'), v(line.min ?? b.min)], [tr('PTS'), v(b.pts)], [tr('PIR'), v(b.pir)], ['+/-', v(b.pm)],
     ['FG', fg ? `${fg.m}/${fg.a}` : '—', fg ? pct(fg) : ''], ['2P', fg2 ? `${fg2.m}/${fg2.a}` : '—', fg2 ? pct(fg2) : ''],
     ['3P', fg3 ? `${fg3.m}/${fg3.a}` : '—', fg3 ? pct(fg3) : ''], ['FT', ft ? `${ft.m}/${ft.a}` : '—', ft ? pct(ft) : ''],
-    [tr('Off. reb'), v(b.oreb)], [tr('Def. reb'), v(b.dreb)], [tr('Rebounds'), v(b.reb)], [tr('Assists'), v(b.ast)],
-    [tr('Steals'), v(b.stl)], [tr('Turnovers'), v(b.to)], [tr('Blocks'), v(b.blk)], [tr('Fouls'), v(b.pf)],
+    [tr('OREB'), v(b.oreb)], [tr('DREB'), v(b.dreb)], [tr('REB'), v(b.reb)], [tr('AST'), v(b.ast)],
+    [tr('STL'), v(b.stl)], [tr('TO'), v(b.to)], [tr('BLK'), v(b.blk)], [tr('PF'), v(b.pf)],
   ];
   return (
     <BModal open onClose={onClose} title={<>{line.opp ? `${tr('vs')} ${line.opp}` : tr('Game')}<span className="bm-lead"> · {monDay(line.date)}</span></>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>
-          {[`${dow(line.date)} ${monDay(line.date)}`, line.comp ? tr(line.comp) : null, line.home == null ? null : tr(line.home ? 'Home' : 'Away'), b.starter ? tr('Starter') : null].filter(Boolean).join(' · ')}
+        {/* ONE ROW AT THE HOUSE SIZE, FITTED BY WORDING (27.9, Ohad: "Friday to
+            starter need to fit in one row" / "font size must be the same
+            everywhere ... just use different wording"): the date day-first
+            and numeric, the competition's short name. */}
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>
+          {[`${dow(line.date)} ${ddmm(line.date)}`, line.comp ? tr(COMP_SHORT[line.comp] || line.comp) : null, line.home == null ? null : tr(line.home ? 'Home' : 'Away'), b.starter ? tr('Starter') : null].filter(Boolean).join(' · ')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {tiles.map(([k, val, sub]) => (
             <div key={k} style={{ background: 'var(--c-sf)', padding: '9px 10px', minWidth: 0 }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{k}</div>
-              <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</div>
+              {/* numbers and +/- are LTR runs inside an RTL cell: isolated, or
+                  Hebrew shows "-/+" and "12-" (27.9 LOOK at 360 he) */}
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}><bdi dir={k === '+/-' ? 'ltr' : undefined}>{k}</bdi></div>
+              <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}><bdi dir="ltr">{val}</bdi></div>
               {sub ? <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 1 }}>{sub}</div> : null}
             </div>
           ))}
@@ -1898,6 +1910,13 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
         </div>
         {leaguePlayer && (() => {
           const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+          // THE LAST GAME OPENS ITS FULL LINE (27.9, Ohad: "a clickable item or
+          // title to expand player stats like in the second screenshot"). The
+          // club's own row for that date wins (it carries the whole box and the
+          // opponent's English name); else the league log line itself.
+          const lastGRow = lastG && lastG.date ? (((rec && rec.sessions) || {})[lastG.date] || []).find((r) => rowKind(r) === 'game') : null;
+          const lastGLine = !lastG ? null : lastGRow ? gameLineOf(lastG.date, lastGRow)
+            : { date: lastG.date, opp: lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : null, min: lastG.min, box: lastG, source: 'basket.co.il' };
           const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
           const agoLabel = ago == null ? '' : heM
             ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
@@ -1925,10 +1944,14 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                 )}
               </div>
               {lastG && (
-                <>
-                  <div style={{ padding: '10px 12px' }}>
-                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
-                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>{tr('vs')} {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</bdi></div>
+                <div role="button" tabIndex={0} className="bhbc-row" onClick={() => setGameOpen(lastGLine)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(lastGLine); } }} style={{ cursor: 'pointer' }}>
+                  <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
+                      <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>{tr('vs')} {lastGLine.opp || '—'}</bdi></div>
+                    </div>
+                    <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Full line')} {heM ? '‹' : '›'}</span>
                   </div>
                   {/* THE SAME FOUR COLUMNS as the season averages directly below.
                       They used to be pushed to the right edge on `margin-inline-start:
@@ -1945,7 +1968,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                       </div>
                     ))}
                   </div>
-                </>
+                </div>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
                 {avg.map(([k, v], i) => (
@@ -5499,10 +5522,16 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
                 opponent and the kind were Nord 11 / the body font / Nord 9. Now
                 all Nord, the opponent the loudest, the kind a legible 10.5 tag,
                 and words wrap whole. */}
-            <span style={{ minWidth: 0, display: 'inline-flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 }}>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtNumericDate(g.date)}</span>
+            {/* THE SAME TWO LINES ON EVERY ROW (27.9 LOOK at 390: one row put its
+                date on its own line and the next four ran it inline, because a
+                long opponent wrapped and a short one did not). Line 1: the date
+                and the kind; line 2: the opponent. */}
+            <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtNumericDate(g.date)}</span>
+                {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Scrimmage')}</span>}
+              </span>
               <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx }}>{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}</span>
-              {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Scrimmage')}</span>}
             </span>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
               // THE THING STILL TO DO MUST NOT LOOK FAINTER THAN THE THING DONE.
@@ -5510,9 +5539,10 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
               // MINUTES carried C.ln, a hairline that vanishes on white - so the
               // completed row read as a button and the row still needing him read
               // as plain text. Backwards. The action takes the orange it uses
-              // everywhere else in this zone; the done state keeps its green.
-              color: n ? C.gn : ORANGE, border: '1px solid ' + (n ? C.gn : ORANGE),
-              height: 22, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              // everywhere else in this zone. The done state is plain (27.9:
+              // colour only the exceptions) - only the row still to do is orange.
+              color: n ? C.tm : ORANGE, border: '1px solid ' + (n ? C.cardBd : ORANGE),
+              height: 'var(--btn-h-in)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: '0 8px', lineHeight: 1, flexShrink: 0 }}>
               {n ? `${n} ${tr('logged')}` : tr('ADD MINUTES')}
             </span>
@@ -5581,9 +5611,11 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
 function StatusPill({ status, small, full }) {
   const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
+  const exc = !!MED_STATUS[status] && status !== 'available';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: `color-mix(in srgb, ${s.color} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 45%, transparent)`, borderRadius: 0, whiteSpace: 'nowrap' }}>
-      {/* tinted by status like the load board's chips (27.9: one language for status) */}
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: exc ? `color-mix(in srgb, ${s.color} 12%, transparent)` : 'var(--c-sf)', border: exc ? `1px solid color-mix(in srgb, ${s.color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+      {/* tinted by status like the load board's chips, and like them ONLY for the
+          exceptions (27.9: "colour only the exceptions") - AVAILABLE is plain */}
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
     </span>
   );
