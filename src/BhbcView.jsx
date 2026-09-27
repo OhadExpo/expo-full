@@ -1547,7 +1547,7 @@ function attendance28(rec, days) {
 
             {view === 'roster' && (
               <>
-                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} onOpen={setDetailFor} />
+                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} onOpen={setDetailFor} />
               </>
             )}
 
@@ -4226,8 +4226,21 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   );
 }
 
-function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, onOpen }) {
+function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, onOpen }) {
   const tr = useT();
+  // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
+  // first, the league feed only for a player with none - and never a league
+  // number from a season that is over (the Games tab shows those as last
+  // season; the card printed them as if current).
+  const nowS = new Date();
+  const startYr = nowS.getMonth() >= 7 ? nowS.getFullYear() : nowS.getFullYear() - 1;
+  const leaguePast = !!league.season && String(league.season).replace(/\s+/g, '') !== `${startYr}/${String((startYr + 1) % 100).padStart(2, '0')}`;
+  const ppgFor = (t) => {
+    const club = clubSeasonStats(t, loads);
+    if (club) return club.ppg;
+    const lp = leaguePast ? null : leaguePlayerFor(league, t);
+    return lp && lp.ppg != null ? lp.ppg : null;
+  };
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
       <div className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
@@ -4304,7 +4317,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, onOpen }) {
                     pushes its own hairline UP — which is the "borders don't
                     align from card to card" he reported on 02.09. Two words on
                     one line; the sessions text beside it is the flexible one. */}
-                {(() => { const lp = leaguePlayerFor(league, t); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('League points per game')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
+                {(() => { const ppg = ppgFor(t); return ppg != null ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('Points per game this season')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ppg} PPG</span></span> : null; })()}
                 <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null
                   ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} />
                   /* NO ACWR IS NOT THE SAME AS NO TRAINING. Without an RPE there
@@ -4313,7 +4326,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, onOpen }) {
                      athlete who trained twenty times in a month is being told
                      something false. Say what is known. */
                   : (att && att.n > 0
-                    ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : ''}</span>
+                    ? <span title={tr('Last 28 days')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min >= 60 ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? ` · ${att.min}′` : ''}</span>
                     : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>

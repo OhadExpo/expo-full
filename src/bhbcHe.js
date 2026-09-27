@@ -811,6 +811,9 @@ Object.assign(HE, {
   'From the medical record': 'מהתיק הרפואי',
   // I: games - "1 DAYS" under a count of one
   day: 'יום',
+  // J: roster cards
+  'Points per game this season': 'נקודות למשחק העונה',
+  'Last 28 days': '28 הימים האחרונים',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
