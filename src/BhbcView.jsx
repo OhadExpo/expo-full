@@ -425,6 +425,10 @@ function sortRowsBy(rows, spec, dir) {
 // `cols` maps a column key to its spec. defaultKey null = keep the rows in the
 // order they came in (the load board's worst-first) until a header is tapped.
 // A key that stops existing (last month's day) falls back to that order too.
+// the zone's table cells (#340): one header band, one row height, numbers end-aligned
+const BHBC_TH = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, height: 36, padding: '0 12px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap', verticalAlign: 'middle' };
+const BHBC_TD = { fontFamily: FN, fontSize: 13, height: 40, padding: '0 12px', textAlign: 'end', fontVariantNumeric: 'tabular-nums', verticalAlign: 'middle', borderBottom: '1px solid color-mix(in srgb, var(--c-cardBd) 65%, transparent)' };
+const BHBC_TD_SORTED = { background: `color-mix(in srgb, ${ORANGE} 6%, transparent)`, fontWeight: 800 };
 function useSort(rows, cols, defaultKey = null, defaultDir = null) {
   const firstDir = (k) => (k && cols[k] && sortSpec(cols[k]).asc ? 'asc' : 'desc');
   const [st, setSt] = useState(() => ({ key: defaultKey, dir: defaultDir || firstDir(defaultKey) }));
@@ -573,18 +577,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   useEdgeFade(headRef);
   // phones: the whole bar scrolls under the pinned crest; the far edge never
   // shows half a tab (the plate below covers exactly the overlap)
-  const railMask = useRailTrailMask(headRef, { items: '.bhbc-hdr-tabs button, .bhbc-header-ctrl > *' });
+  const railMask = useRailTrailMask(headRef, { items: '.bhbc-hdr-tabs button, .bhbc-header-ctrl > *', lead: '.bhbc-header-id' });
   // the crest plate's width is the bar's snap padding (a tab rests right after it)
   React.useLayoutEffect(() => {
     const el = headRef.current; const id = el && el.querySelector('.bhbc-header-id');
     if (el && id) el.style.setProperty('--crest-w', `${Math.round(id.getBoundingClientRect().width)}px`);
   });
-  React.useEffect(() => {
-    const el = navRef.current && navRef.current.querySelector('[aria-selected="true"]');
-    // 'nearest' first: a tab already fully on screen must not be yanked to the
-    // middle on every render. Only a tab that is clipped gets centred.
-    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'nearest', block: 'nearest' });
-  }, [view]);
+
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   // Owner-only "Preview as coach": renders the exact reduced surface a club coach
   // sees (no Manage roster / no ‹EXPO, medical view-only) without needing an account.
@@ -625,6 +624,37 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
     [trainees]
   );
+  React.useEffect(() => {
+    const el = navRef.current && navRef.current.querySelector('[aria-selected="true"]');
+    if (!el) return undefined;
+    // a timer, not requestAnimationFrame: a tab that is not focused never runs
+    // animation frames, and the bar must still land right when it is shown
+    const tid = setTimeout(() => {
+      const sc = headRef.current;
+      const phoneBar = sc && sc.scrollWidth > sc.clientWidth + 1 && getComputedStyle(sc).overflowX !== 'visible';
+      if (!phoneBar) { if (el.scrollIntoView) el.scrollIntoView({ inline: 'nearest', block: 'nearest' }); return; }
+      // THE PHONE BAR SCROLLS ITSELF (27.9 #304): scrollIntoView does not know
+      // the pinned crest plate or the end plate, and under mandatory snap it
+      // left the tapped tab half across the edge - hidden by the plate. A tab
+      // already fully between the crest and the edge stays where it is;
+      // otherwise the bar moves so the tab starts right at the crest.
+      const rtl = getComputedStyle(sc).direction === 'rtl';
+      const crest = sc.querySelector('.bhbc-header-id');
+      const r = sc.getBoundingClientRect(), t = el.getBoundingClientRect(), c = crest ? crest.getBoundingClientRect() : null;
+      const start = rtl ? (c ? c.left : r.right) : (c ? c.right : r.left);
+      const end = rtl ? r.left : r.right;
+      const fits = rtl ? (t.right <= start + 1 && t.left >= end - 1) : (t.left >= start - 1 && t.right <= end + 1);
+      if (fits) { sc.dispatchEvent(new Event('scroll')); return; }
+      const delta = rtl ? (t.right - start) : (t.left - start);
+      sc.scrollTo({ left: sc.scrollLeft + delta, behavior: 'instant' });
+      // the plates re-measure NOW, not on the next scroll event (an unfocused
+      // tab dispatches that on a frame it never runs)
+      sc.dispatchEvent(new Event('scroll'));
+    }, 30);
+    return () => clearTimeout(tid);
+  // re-run when the tabs first appear: they render only once the roster has
+  // loaded, so on a fresh page the first run found no active tab (27.9)
+  }, [view, roster.length > 0]);
   const ghosts = useMemo(
     () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived' && t.bhbcGhost)
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
@@ -1422,7 +1452,7 @@ function attendance28(rec, days) {
              the right edge. The whole bar is the horizontal scroller now and the
              identity block is sticky at its left, so the wordmark stays put
              while the tabs and controls slide under it. */
-          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scroll-padding-inline-start:calc(var(--crest-w,68px) + 20px)}
+          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding-block:0!important;padding-inline:14px 0!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scroll-padding-inline-start:var(--crest-w,88px)}
           /* AT REST A TAB STARTS RIGHT AFTER THE CREST (27.9, his shot: "EDULE"
              with SCH under the crest). Every tab is a snap point; the pinned
              crest plate is the scroll padding, so a settled bar never slices a
@@ -1436,7 +1466,12 @@ function attendance28(rec, days) {
              fill, a hairline on its trailing edge, and a short shadow so the
              content visibly passes behind it. align-items centre so the crest
              sits on the row's axis, not its top. */
-          .bhbc-header-id{position:sticky!important;left:-14px!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-left:-14px!important;padding:0 12px 0 14px!important;box-shadow:8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          .bhbc-header-id{position:sticky!important;inset-inline-start:-14px!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-inline-start:-14px!important;padding-block:0!important;padding-inline:14px 32px!important;box-shadow:8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          [dir="rtl"] .bhbc-header-id{box-shadow:-8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          /* the plate OWNS the gap before the first visible tab: a tab rests at
+             its edge, and no tail of the tab before it shows in between (27.9
+             LOOK: a sliver of OVERVIEW's last letter sat in that gap) */
+          .bhbc-hdr-tabs{padding-inline-start:0!important}
           /* The crest already says who this is; the words are 150px of a 390px bar. */
           .bhbc-wordmark{display:none!important}
           .bhbc-header-ctrl{order:3!important;flex:0 0 auto!important;padding:0 14px 0 0!important;margin-left:0!important}
@@ -1508,9 +1543,10 @@ function attendance28(rec, days) {
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: HDR_BG, borderBottom: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 2px 10px rgba(0,0,0,0.30)' }}>
-        {railMask.w > 0 && <div aria-hidden="true" data-rail-mask="" style={{ position: 'absolute', top: 0, bottom: 1, [railMask.rtl ? 'left' : 'right']: 0, width: railMask.w, background: HDR_BG, zIndex: 4, pointerEvents: 'none' }} />}
+        {railMask.w > 0 && <div aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ position: 'absolute', top: 0, bottom: 1, [railMask.rtl ? 'left' : 'right']: 0, width: railMask.w, background: HDR_BG, zIndex: 4, pointerEvents: 'none' }} />}
+        {railMask.lw > 0 && <div aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ position: 'absolute', top: 0, bottom: 1, [railMask.rtl ? 'right' : 'left']: railMask.lx, width: railMask.lw, background: '#0E1C38', zIndex: 4, pointerEvents: 'none' }} />}
         <div ref={headRef} className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginInlineEnd: 6 }}>
+          <div className="bhbc-header-id" data-rail-occluder="" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginInlineEnd: 6 }}>
             {/* The crest goes HOME, like the EXPO logo does. */}
             <img src="/bnei-herzliya-logo-w.png" alt={tr('Bnei Herzliya BC')} onClick={() => setView('overview')}
               style={{ height: 30, width: 'auto', display: 'block', cursor: 'pointer' }} title={tr('Overview')} />
@@ -4342,13 +4378,13 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
 
         <div className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
-          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '6px 2px 6px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             {headCols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} />)}
             {hasLoad ? <SortHeader k="trend" sort={sort} label={tr('14-day')} style={{ textAlign: 'end' }} /> : <div />}
           </div>
           {/* the phone's header: the columns a restacked row still shows */}
           <SortBar sort={sort} className="bhbc-load-sortbar" cols={headCols.filter(([k]) => k !== 'ready' && k !== 'acute')}
-            style={{ padding: '6px 2px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+            style={{ alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
           {sort.rows.map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
@@ -5503,8 +5539,14 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
     name: { get: (x) => x.t.name, asc: true },
     ...Object.fromEntries(cols.map((c) => [c.k, (x) => (x.s ? x.s[c.k] : null)])),
   }, 'ppg');
+  // ONE TABLE STYLE FOR THE ZONE (27.9, Ohad: "make the tables nicer, they're
+  // badly designed"): a 36px header band on the surface tint, 40px rows on a
+  // light hairline, numbers END-aligned in tabular figures so a column reads as
+  // a column, the jersey muted, and colour for ONE thing only - the column the
+  // table is sorted by (its cells tinted, its values bold). PPG used to be
+  // orange whatever the sort, which put colour on the rule, not the exception.
   const th = (k, h, first) => (
-    <SortHeader as="th" key={k} k={k} sort={sort} label={h} center={!first} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, padding: '8px 9px', textAlign: first ? 'start' : 'center' }} />
+    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'end' }} />
   );
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -5513,22 +5555,16 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
           769px, so the rows stopped at their content width inside a 620px box.
           display:table (themes.css .bhbc-stats-table) + the player column
           pinned while the numbers scroll. */}
-      <table className="bhbc-stats-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
-        <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, tr(c.h)))}</tr></thead>
+      <table className="bhbc-stats-table bhbc-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
+        <thead><tr>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, tr(c.h)))}</tr></thead>
         <tbody>
           {sort.rows.map(({ t, s }) => {
-            const td = { fontFamily: FN, fontSize: 13, color: s ? C.tx : C.tm, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
+            const td = { ...BHBC_TD, color: s ? C.tx : C.tm };
+            const cell = (k) => (sort.key === k ? { ...td, ...BHBC_TD_SORTED } : td);
             return (
-              <tr key={t.id} className="bhbc-row" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
-                <td style={{ ...td, textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: ORANGE_DEEP, marginInlineEnd: 11, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
-                <td style={{ ...td, color: C.td }}>{dash('gp', s ? s.gp : null)}</td>
-                <td style={td}>{dash('mpg', s ? s.mpg : null)}</td>
-                <td style={{ ...td, fontWeight: 800, color: s ? ORANGE_DEEP : C.tm }}>{dash('ppg', s ? s.ppg : null)}</td>
-                <td style={td}>{dash('rpg', s ? s.rpg : null)}</td>
-                <td style={td}>{dash('apg', s ? s.apg : null)}</td>
-                <td style={{ ...td, color: C.td }}>{dash('tpp', s ? s.tpp : null)}</td>
-                <td style={{ ...td, color: C.td }}>{dash('ftp', s ? s.ftp : null)}</td>
-                <td style={{ ...td, fontWeight: 700 }}>{dash('pirpg', s ? s.pirpg : null)}</td>
+              <tr key={t.id} className="bhbc-row bhbc-trow" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ cursor: 'pointer' }}>
+                <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
+                {cols.map((c) => <td key={c.k} style={cell(c.k)}>{dash(c.k, s ? s[c.k] : null)}</td>)}
               </tr>
             );
           })}
@@ -6238,14 +6274,14 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 and the header would no longer line up with anything. */}
             {/* The arrow's reserved slot takes the place of the 8px end margin
                 these labels carried, so no header grew. */}
-            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'end', padding: '0 0 7px', borderBottom: `1px solid ${C.cardBd}` }}>
+            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
               {injCols.map(([k, h]) => (
-                <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }} />
+                <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               ))}
               <div />
             </div>
             <SortBar sort={sort} className="bhbc-inj-sortbar" cols={injCols}
-              style={{ padding: '0 0 7px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+              style={{ alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
             {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (

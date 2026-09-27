@@ -431,6 +431,7 @@ export const HE = {
   "Unsaved changes": "שינויים שלא נשמרו",
   "You changed something here and did not save it.": "שינית כאן משהו ולא שמרת.",
   "Keep editing": "המשך לערוך",
+  "Alerts": "התראות",
   "The name it was logged under. The movement is picked inside the tool.": "השם שתחתיו זה נרשם ביומן. את התנועה בוחרים בתוך הכלי.",
   "responses": "תשובות",
   "Summary": "סיכום",

@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -991,7 +991,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const SEGS = [
             { id:'all',    label:tb('All'),         n:openRows.length },
             { id:'mine',   label:tb('General'),     n:manualRows.length },
-            { id:'alerts', label:tb('Auto-alerts'), n:autoRows.length },
+            { id:'alerts', label:tb('Auto-alerts'), short:tb('Alerts'), n:autoRows.length },
           ];
           return (
             <div>
@@ -1020,8 +1020,13 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               {/* Four segments with Hebrew labels overflow a 360px card by
                   33px. The rail scrolls instead of being cut, with the same
                   edge fade the coach header uses. */}
+              {/* ON A PHONE: THREE EQUAL CELLS THAT ALWAYS FIT (27.9 #304 - at 360
+                  the third segment sat half past the card's edge). Each label is
+                  its full word unless that would overflow its cell; then the
+                  short word, at the same size (his rule: wording, not a font). */}
+              <style>{`@media (max-width: 480px){ .tasks-seg{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));width:100%} .tasks-seg > button{justify-content:center;min-width:0;padding:0 6px!important} }`}</style>
               <div ref={segRef} className="rail-scroll" style={{ display:'flex', justifyContent:'flex-start', marginBottom:6 }}>
-                <div style={{ display:'inline-flex', flexShrink:0, border:`1px solid var(--c-cardBd)` }}>
+                <div className="tasks-seg" style={{ display:'inline-flex', flexShrink:0, border:`1px solid var(--c-cardBd)` }}>
                   {SEGS.map((s, i) => {
                     const active = v2Sub === s.id;
                     return (
@@ -1032,7 +1037,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                           color: active?'var(--c-ac)':'var(--c-tm)',
                           display:'inline-flex', alignItems:'center', gap:5 }}>
                         {/* count in parens, vertically centred with the label (Ohad). */}
-                        <span style={{ display:'inline-flex', alignItems:'center', lineHeight:1 }}>{s.label}</span>{s.n>0 && <span style={{ display:'inline-flex', alignItems:'center', fontSize:10, fontWeight:700, lineHeight:1, opacity: active?0.9:0.5 }}>({s.n})</span>}
+                        <SegWord full={s.label} short={s.short} />{s.n>0 && <span style={{ display:'inline-flex', alignItems:'center', fontSize:10, fontWeight:700, lineHeight:1, opacity: active?0.9:0.5 }}>({s.n})</span>}
                       </button>
                     );
                   })}
