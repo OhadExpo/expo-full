@@ -4069,12 +4069,12 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       {/* Sideways scroll is deliberate: a month of days cannot fit 390px. */}
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: 298 + days.list.length * CELL }}>
-          <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px' }}>
-            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }} />
+          <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6 }}>
+            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
             {days.list.map((d) => (
-              <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
+              <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
             ))}
-            <SortHeader k="pct" sort={sort} label={tr('attended')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+            <SortHeader k="pct" sort={sort} label={tr('attended')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
             <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
@@ -4273,12 +4273,12 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
             cannot fit 390px, and squeezing it makes it unreadable on both. */}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 298 + days.list.length * CELL }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px', gap: 0 }}>
-              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }} />
+            <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
+              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
-                <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
+                <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
               ))}
-              <SortHeader k="last" sort={sort} label={tr('last lift')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+              <SortHeader k="last" sort={sort} label={tr('last lift')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
               <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>

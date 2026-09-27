@@ -1406,7 +1406,10 @@ export function SegWord({ full, short }) {
     // the web font lands after first paint and widens the word without
     // resizing the cell - measure again then
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { setUseShort(false); clearTimeout(tid); tid = setTimeout(measure, 0); }).catch(() => {});
-    return () => { clearTimeout(tid); if (ro) ro.disconnect(); };
+    // and twice more while the page settles (the card can mount before its
+    // grid has its final width)
+    const late = [250, 1000].map((ms) => setTimeout(() => { setUseShort(false); setTimeout(measure, 0); }, ms));
+    return () => { clearTimeout(tid); late.forEach(clearTimeout); if (ro) ro.disconnect(); };
   }, [full, short]);
   return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', lineHeight:1, minWidth:0 }}>{useShort ? short : full}</span>;
 }
