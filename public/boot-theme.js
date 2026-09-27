@@ -81,3 +81,23 @@
     document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
+
+// THE CLUB INSTALLS AS THE CLUB (27.9, Ohad: "there should be a bhbc version
+// for this attached to bhbc sites" / "manifest and do whatever you find").
+// On any club route the page points at the club's own web-app manifest, icon,
+// title and theme colour before the browser reads them, so "Add to Home Screen"
+// installs "Bnei Herzliya" with the crest - and EXPO stays EXPO everywhere else.
+(function () {
+  try {
+    if (!/^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname)) return;
+    var apply = function () {
+      var m = document.querySelector('link[rel="manifest"]');
+      if (m) m.setAttribute('href', '/bhbc.webmanifest');
+      else { m = document.createElement('link'); m.rel = 'manifest'; m.href = '/bhbc.webmanifest'; document.head.appendChild(m); }
+      document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function (l) { l.setAttribute('href', '/bhbc-icon-180.png'); });
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.setAttribute('content', 'Bnei Herzliya');
+      var c = document.querySelector('meta[name="theme-color"]'); if (c) c.setAttribute('content', '#14294F');
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+  } catch (e) { /* never block boot */ }
+})();

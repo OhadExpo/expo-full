@@ -406,7 +406,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
   }
 
   return (
-    <Modal open={true} onClose={onClose} title={initial ? `Edit · ${initial.name}` : '+ New Challenge'} wide>
+    <Modal open={true} guard onClose={onClose} title={initial ? `Edit · ${initial.name}` : '+ New Challenge'} wide>
       {!initial && (
         <button onClick={() => setStage('pick')} style={{
           background: 'transparent', border: 'none', color: C.tm,

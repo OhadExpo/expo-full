@@ -31,7 +31,10 @@ console.log('AUTO-TASK THROTTLE\n');
   // Hebrew name cannot drag neighbouring digits into its RTL run. Strip them
   // before matching rather than pretending they are not there.
   const plain = (x) => String(x).replace(/[\u2066-\u2069]/g, '');
-  eq('the body names the athlete and counts the reasons', /Diego · 3 reasons:/.test(plain(out[0].body)), true);
+  // 27.9: the merged card reads like every other alert - the action, an em
+  // dash, then every reason on ONE line ("Reach out to X — a · b · c").
+  eq('the body is "action — reasons", one reason per source', /^Reach out to Diego — [a-z ]+ · [a-z ]+ · [a-z ]+$/.test(plain(out[0].body)), true);
+  eq('and has no line break or bullet', out[0].body.includes(String.fromCharCode(10)) || out[0].body.includes('•'), false);
   eq('it floats at the FRESHEST row time', out[0].created_at, '2026-08-03T00:00:00Z');
 }
 

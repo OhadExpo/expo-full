@@ -37,6 +37,7 @@ const suites = [
   'verify-lineage-core.mjs',         // e1RM (Epley) + topSet — the primitives every strength read rests on
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-pose-metrics-store.mjs',   // Bar-Speed vault reads: asymmetry injury-watch + readiness ref + velocity-loss trend
+  'verify-pose-overlay.mjs',         // Movement Lab skeleton: head upright (2D + 3D, negative control), hidden joints, One-Euro, no exercise guessing
   'verify-pose-report.mjs',          // buildPoseReport — persistable per-lift report payload (downsampled series + per-rep tables) for the Analysis velocity/ROM graphs
   'verify-detect-asymmetry.mjs',     // detectAsymmetry — raw L/R imbalance + anti-fabrication guards (feeds the injury flag)
   'verify-detect-faults.mjs',        // detectFaults — technique flags + family gates, plyo/real-elbow/word-boundary guards

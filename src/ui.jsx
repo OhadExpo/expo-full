@@ -886,8 +886,24 @@ function pushOverlay() {
 // app's. Ohad, looking at the program popup on production: "this doesnt look
 // anything like a bhbc branded page". Undefined everywhere else, so every other
 // modal in the product is untouched.
-export const Modal = ({ open, onClose, title, children, wide, sticky = false, themeAttr, headerStyle, titleStyle, closeStyle }) => {
+// `guard` (27.9, Ohad: "there needs to be a x (escape button) that is sensitive
+// to any changes and have a pop up loaded if clicked and info is not saved"):
+// the X is always there; the dialog watches its own fields (any input / change,
+// or a click on a control marked data-dirties), and leaving with changes - by
+// the X or Escape - asks first, inside the dialog: discard, or keep editing.
+export const Modal = ({ open, onClose, title, children, wide, sticky = false, guard = false, themeAttr, headerStyle, titleStyle, closeStyle }) => {
   const tt = useT();
+  const [dirty, setDirty] = React.useState(false);
+  const [asking, setAsking] = React.useState(false);
+  const dirtyRef = React.useRef(false);
+  dirtyRef.current = dirty;
+  const guardRef = React.useRef(guard);
+  guardRef.current = guard;
+  React.useEffect(() => { if (!open) { setDirty(false); setAsking(false); } }, [open]);
+  const requestClose = () => { if (guardRef.current && dirtyRef.current) { try { if (cardRef.current) cardRef.current.scrollTop = 0; } catch { /* noop */ } setAsking(true); } else onCloseRef.current?.(); };
+  const requestCloseRef = React.useRef(requestClose);
+  requestCloseRef.current = requestClose;
+  const markDirty = guard ? (e) => { const t = e.target; if (e.type === 'click') { if (t && t.closest && t.closest('[data-dirties]')) setDirty(true); return; } setDirty(true); } : undefined;
   const titleId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
@@ -913,7 +929,7 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, th
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
     const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); if (!stickyRef.current) onCloseRef.current?.(); return; }
+      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); if (guardRef.current) requestCloseRef.current(); else if (!stickyRef.current) onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       if (!layer.isTop()) return; // stacked overlays: only the top one traps Tab (audit 08-22)
       // Focus trap — keep Tab cycling inside the card. Without this,
@@ -993,14 +1009,27 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, th
       {/* max-height is themes.css's (.ui-modal-card: 100% of the wrapper's
           content box). It was 80vh here - on a phone that is 80% of the LARGE
           viewport, plus the 60px offset: ~70px past the visible bottom. */}
-      <div ref={cardRef} tabIndex={-1} data-theme={themeAttr} onClick={e => e.stopPropagation()} className={(closing ? 'motion-fall' : 'motion-rise') + ' ui-modal-card'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
+      <div ref={cardRef} tabIndex={-1} data-theme={themeAttr} onClick={e => e.stopPropagation()} onInputCapture={markDirty} onChangeCapture={markDirty} onClickCapture={markDirty} className={(closing ? 'motion-fall' : 'motion-rise') + ' ui-modal-card'} style={{ position: 'relative', background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         {/* Sticky title row: stays pinned (with the ✕) while the body scrolls —
             top:-28 + negative margins swallow the card's own padding so the row
             docks flush at the card top (Ohad, 2026-08-21). */}
         <div style={{ position: "sticky", top: -28, zIndex: 5, background: C.sf, margin: "-28px -28px 22px", padding: "28px 28px 14px", borderBottom: `1px solid ${C.bd}`, display: "flex", justifyContent: "space-between", alignItems: "center", ...headerStyle }}>
           <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 10, ...titleStyle }}>{title}</h3>
-          {!sticky && <button onClick={onClose} aria-label={tt('Close dialog')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14, ...closeStyle }}>✕</button>}
-        </div>{children}</div></div>);
+          {(guard || !sticky) && <button onClick={guard ? requestClose : onClose} aria-label={tt('Close dialog')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14, ...closeStyle }}>✕</button>}
+        </div>{children}
+        {asking && (
+          <div role="alertdialog" aria-label={tt('Unsaved changes')} style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'color-mix(in srgb, var(--c-sf) 94%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ width: 'min(360px, 100%)', border: `1px solid ${C.cardBd}`, background: C.sf, padding: 20, boxShadow: C.cardShadow, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx }}>{tt('Unsaved changes')}</div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{tt('You changed something here and did not save it.')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button type="button" onClick={() => setAsking(false)} style={{ height: 'var(--btn-h)', border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>{tt('Keep editing')}</button>
+                <button type="button" onClick={() => { setAsking(false); setDirty(false); onCloseRef.current?.(); }} style={{ height: 'var(--btn-h)', border: `1px solid ${C.rd}`, background: C.rd, color: '#fff', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>{tt("Don't save")}</button>
+              </div>
+            </div>
+          </div>
+        )}
+        </div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {
   const titleId = React.useId();

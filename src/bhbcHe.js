@@ -101,6 +101,8 @@ export const HE = {
   'attended': "נכח",
   'lift': "תרגיל",
   'lifts': "תרגילים",
+  'exercise': "תרגיל",
+  'exercises': "תרגילים",
   'set': "סט",
   'sets': "סטים",
   'Bodyweight': "משקל גוף",
@@ -132,7 +134,7 @@ export const HE = {
   'GAME': 'משחק',
   // A LIFT is one athlete's own weight-room session (24.9); the team block
   // before a practice is 'אימון כוח'. Two words, two things.
-  'Lift': 'הרמה',
+  'Lift': 'הרמה אישית',
   'Conditioning': 'קונדישן',
   'Recovery': 'התאוששות',
   'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה.',
@@ -216,20 +218,58 @@ export const HE = {
   'Semi Final': 'חצי גמר',
   'Final Series': 'סדרת הגמר',
   'Winner Cup': 'גביע וינר',
+  'Cup': 'גביע',
   'League': 'ליגה',
   'Update injury': 'עדכון פציעה',
   'Report injury': 'דיווח פציעה',
   'Update': 'עדכון',
   'Open in EXPO': 'פתיחה ב-EXPO',
   'Game played': 'שיחק במשחק',
+  'Over 240 minutes - check the number.': 'יותר מ-240 דקות — בדוק את המספר.',
+  'MED': 'רפואי',
+  'Show': 'הצג',
+  'This season only': 'העונה הזו בלבד',
+  'Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.': 'כל משחק שנרשם העונה — משחקים ודקות סופרים את כולם; נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה (מנהלת הליגה). לחיצה על שחקן — המשחקים שלו.',
   'Season': 'עונה',
   'PIR': 'מדד',
-  'Off. reb': 'ריב׳ התקפה',
-  'Def. reb': 'ריב׳ הגנה',
+  'Off. reb': 'ריבאונד התקפה',
+  'Def. reb': 'ריבאונד הגנה',
   'Rebounds': 'ריבאונדים',
   'Assists': 'אסיסטים',
   'Steals': 'חטיפות',
   'Turnovers': 'איבודים',
+  // THE LEAGUE'S HEBREW STAT TERMS (27.9, Ohad: "בעברית תשתמש באותם מושגים
+  // בסטטיסטיקה כמו באתר המנהלת"), read from basket.co.il's own box score and
+  // standings: דק, נק, 2 נק', 3 נק', עונשין, ריבאונדים הת/הג, אס, חט, אב,
+  // חסימות, עבירות, מדד, מש', נצ', הפ'.
+  'GP': 'משחקים',
+  'Season average': 'ממוצע עונתי',
+  'W': 'נצ׳',
+  'L': 'הפ׳',
+  'Points for': 'סל זכות',
+  'Points against': 'סל חובה',
+  'Difference': 'הפרש',
+  'MPG': 'דק׳ למשחק',
+  'PPG': 'נק׳ למשחק',
+  'RPG': 'ריב׳ למשחק',
+  'APG': 'אס׳ למשחק',
+  '3P%': '3 נק׳ %',
+  'FT%': 'עונשין %',
+  'FG': 'מהשדה',
+  '2P': '2 נק׳',
+  '3P': '3 נק׳',
+  'FT': 'עונשין',
+  // box-score abbreviations (the full line + the league card)
+  'MIN': 'דק׳',
+  'PTS': 'נק׳',
+  'OREB': 'ריב׳ הת׳',
+  'DREB': 'ריב׳ הג׳',
+  'REB': 'ריב׳',
+  'AST': 'אס׳',
+  'STL': 'חט׳',
+  'TO': 'אב׳',
+  'BLK': 'חס׳',
+  'PF': 'עב׳',
   'Blocks': 'חסימות',
   'Fouls': 'עבירות',
   'Starter': 'בחמישייה',
@@ -330,6 +370,8 @@ export const HE = {
   Edit: 'עריכה',
   'Off / general prep': 'מנוחה / הכנה כללית',
   'General strength base': 'בסיס כוח כללי',
+  'General prep': 'הכנה כללית',
+  'In-season maintenance': 'שימור בעונה',
   'Max strength + power (heaviest, far from game)': 'כוח מקסימלי ועוצמה — הכי כבד, רחוק מהמשחק',
   'Strength + power': 'כוח ועוצמה',
   'Power / speed · moderate volume': 'עוצמה ומהירות · נפח בינוני',
@@ -690,7 +732,6 @@ Object.assign(HE, {
   // said about one athlete ("did not turn up"), masculine singular.
   'absences': 'חיסורים',
   'missed': 'לא הגיע',
-  'Practice': 'אימון',
   'there': 'הגיעו',
   'none': 'אין',
 
@@ -740,20 +781,21 @@ Object.assign(HE, {
   'What the room did': 'מה עשו בחדר הכוח',
   'nothing written': 'לא נרשם כלום',
 
-  lifted: 'התאמנו',
 
   // ---- 24.9: S&C sessions and lifts are two different things -----------
   // Ohad: "lifts should say log lift", "sc sessions should say log S&C
   // Session". The team block before a practice is אימון כוח; a player's own
   // weight-room session is הרמה.
-  'Log S&C Session': 'רישום אימון כוח',
-  'Log lift': 'רישום הרמה',
-  'Lifts': 'הרמות',
-  'S&C session': 'אימון כוח',
-  'S&C sessions': 'אימוני כוח',
-  'S&C': 'כוח',
+  'Log S&C Session': 'רישום כוח קבוצתי',
+  'Log lift': 'רישום הרמה אישית',
+  'Lifts': 'הרמות אישיות',
+  'S&C session': 'אימון כוח קבוצתי',
+  'S&C sessions': 'אימוני כוח קבוצתי',
+  'S&C': 'כוח קבוצתי',
   '28 days': '28 ימים',
   'Last lift': 'הרמה אחרונה',
+  'Full line': 'כל הנתונים',
+  'pts': 'נק׳',
   'S&C minutes': 'דקות כוח',
   'Which practice': 'איזה אימון',
   'This practice': 'האימון הזה',
@@ -772,6 +814,73 @@ Object.assign(HE, {
   'no S&C session logged': 'לא נרשם אימון כוח',
 
   PRE_SEASON: 'טרום עונה',
+});
+
+// ---- #305 smarter, no new features (27.9) -------------------------------
+// Every line a label on something that already existed.
+Object.assign(HE, {
+  // A: logging
+  'Same side as his earlier injury here': 'אותו צד כמו בפציעה הקודמת שלו במקום הזה',
+  'That date has not happened yet.': 'התאריך הזה עוד לא הגיע.',
+  // B: derived facts
+  'all out': 'כולם בחוץ',
+  // D: staleness
+  'Premier League': 'ליגת העל',
+  'Official league feed (basket.co.il). Only games the league has published appear here.': 'הנתונים הרשמיים של הליגה (basket.co.il). מופיעים כאן רק משחקים שהליגה כבר פרסמה.',
+  // E: consistency
+  'None assigned': 'עוד לא שויך בלוק',
+  '1 practice': 'אימון אחד',
+  practices: 'אימונים',
+  // F: safety
+  'Marked out on this date - the minutes win for the day': 'רשום בחוץ בתאריך הזה — הדקות קובעות לאותו יום',
+  'was out': 'היה בחוץ',
+  // G: the Today card
+  'S&C not logged yet': 'כוח עוד לא נרשם',
+  flies: 'טסים',
+  // H: the head coach report - where each line comes from
+  'From the club calendar': 'מלוח המועדון',
+  'From the club calendar and the logged S&C sessions': 'מלוח המועדון ומאימוני הכוח שנרשמו',
+  'From today’s availability, never better than the medical record': 'מהזמינות של היום — אף פעם לא טובה ממה שכתוב בתיק הרפואי',
+  'From the medical record': 'מהתיק הרפואי',
+  // I: games - "1 DAYS" under a count of one
+  day: 'יום',
+  // J: roster cards
+  'Points per game this season': 'נקודות למשחק העונה',
+  'Last 28 days': '28 הימים האחרונים',
+  // K: lifts
+  '4+ days': '4 ימים ומעלה',
+  // L: schedule
+  'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
+  // N: the zone's confirmations (toasts), in the zone's language
+  'Add minutes': 'חסרות דקות',
+  'Add the S&C minutes': 'חסרות דקות הכוח',
+  Added: 'נוסף',
+  'Already on the club roster': 'כבר בסגל של המועדון',
+  'Already in EXPO - tick him in the list below': 'כבר קיים ב-EXPO — סמן אותו ברשימה למטה',
+  'Check-in saved': 'הדיווח נשמר',
+  'Game updated': 'המשחק עודכן',
+  'Lift logged': 'ההרמה נרשמה',
+  'Medical record saved': 'התיק הרפואי נשמר',
+  'Minutes must be more than 0 — delete the session instead': 'הדקות צריכות להיות יותר מ-0 — אם צריך, מחק את האימון',
+  'Minutes saved': 'הדקות נשמרו',
+  'Pick a body part': 'בחר אזור בגוף',
+  'S&C session saved': 'אימון הכוח נשמר',
+  'Session added': 'האימון נוסף',
+  'Session removed': 'האימון נמחק',
+  'Session restored': 'האימון שוחזר',
+  'Session updated': 'האימון עודכן',
+  'Set a start time': 'חסרה שעת התחלה',
+  'That session moved — reopen it': 'האימון הזה השתנה — פתח אותו מחדש',
+  'That session moved — reopen the list': 'האימון הזה השתנה — פתח את הרשימה מחדש',
+  Undo: 'ביטול',
+  // extra pass
+  '+{n} more on the Medical tab': 'ועוד {n} בלשונית הרפואית',
+  '+{n} more on the Schedule tab': 'ועוד {n} בלשונית הלו"ז',
+  'before he landed': 'לפני שנחת',
+  'N/A': 'לא רלוונטי',
+  Concussion: 'זעזוע מוח',
+  '+{n} older changes not shown': 'ועוד {n} שינויים ישנים שלא מוצגים',
+  'Over an hour - is that the practice length rather than the S&C block?': 'יותר משעה — זה לא אורך האימון במקום הבלוק של הכוח?',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

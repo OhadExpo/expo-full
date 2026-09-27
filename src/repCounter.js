@@ -65,7 +65,10 @@ export const CHANNEL_RULES = [
     channels: [] },
   { kind: 'hip',   rx: /\b(hip[-\s]?thrust|glute[-\s]?bridge|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|jefferson|clean|snatch|swing|kettlebell\s*swing|crab|reverse[-\s]?tabletop)\b/i,
     channels: ['L HIP', 'R HIP'] },
-  { kind: 'knee',  rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster|pogo)\b/i,
+  // plurals and the coach's own abbreviations count too (27.9 review: FFESS,
+  // Walking Lunges, Step Ups, Step-Down and "Squats/Leg Pressing" had fallen
+  // out of rep counting when the silent knee fallback was removed)
+  { kind: 'knee',  rx: /\b(squats?|lunges?|step[-\s]?(?:up|down)s?|split[-\s]?squats?|rfess|ffess|bulgarian|pistols?|leg[-\s]?press(?:es|ing)?|leg[-\s]?extensions?|leg[-\s]?curls?|jumps?|bounces?|goblet|thrusters?|pogos?)\b/i,
     channels: ['L KNE', 'R KNE'] },
   { kind: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|face[-\s]?pull|curl|extension|tricep|skull|dip|pushdown|kick[-\s]?back|pullover|hammer)\b/i,
     channels: ['L ELB', 'R ELB'] },

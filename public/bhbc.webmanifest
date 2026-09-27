@@ -1,0 +1,18 @@
+{
+  "id": "/bhbc",
+  "name": "Bnei Herzliya · S&C",
+  "short_name": "Bnei Herzliya",
+  "description": "Bnei Herzliya basketball S&C zone",
+  "start_url": "/bhbc",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#14294F",
+  "background_color": "#14294F",
+  "icons": [
+    { "src": "/bhbc-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/bhbc-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/bhbc-icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/bhbc-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

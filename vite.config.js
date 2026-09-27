@@ -35,7 +35,7 @@ export default defineConfig({
         // may still point at either URL; they are simply not precached.
         globIgnores: ['**/og-image*.png'],
       },
-      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css', 'bhbc.webmanifest', 'bhbc-icon-180.png', 'bhbc-icon-192.png', 'bhbc-icon-512.png', 'bhbc-icon-maskable-192.png', 'bhbc-icon-maskable-512.png'],
       manifest: {
         name: 'EXPO',
         short_name: 'EXPO',

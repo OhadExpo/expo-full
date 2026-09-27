@@ -843,7 +843,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           onClose={() => setShowContract(false)}
         />
       )}
-      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}} title={tr(readLang(), editPayId?"Edit Payment":"Add Payment")}>
+      <Modal open={showPayForm} guard onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}} title={tr(readLang(), editPayId?"Edit Payment":"Add Payment")}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
           <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />

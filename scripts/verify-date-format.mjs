@@ -1,68 +1,80 @@
-// EVERY DATE A HUMAN READS IS DAY / MONTH / YEAR.
+// EVERY DATE ON SCREEN IS DAY-FIRST.
 //
-// Ohad 2026-09-03: "on bhbc and expo make sure dates are displayed as
-// day/month/year" ... "everywhere!!!!!!!".
+// 27.9, Ohad: "make sure all the dates everywhere are day/month/year (dd/mm)".
+// A CONTENT gate over the RENDERED text of every coach route, every BHBC tab
+// and the demo (en + he): it fails on
+//   ISO       2026-09-25            (year first - a raw value leaking to screen)
+//   MM-DD     09-25                 (month first, the history column's old form)
+//   US        9/25/2026, 09/25      (month first with a day above 12, i.e. provably US)
+// Numbers that cannot be dates (a day part over 31, a month over 12) are not
+// flagged, so "8-12 reps" never trips it. Prints what it measured beside the zero.
 //
-// The trap is that `toLocaleDateString()` with no locale follows the MACHINE.
-// On this Windows box that is en-US, so 3 September renders "9/3/2026" — the
-// exact string an Israeli reads as 9 March. It looks right to whoever wrote it
-// and wrong to whoever uses it, which is why it needs a gate rather than care.
-//
-// Flags, in src/ only:
-//   1. toLocaleDateString/toLocaleString with NO locale, or `undefined`
-//   2. a date-display locale of 'en-US'
-//   3. an options object that lists `month` before `day`
-//
-// Exempt: Intl.DateTimeFormat used with formatToParts (timezone maths, where
-// the field order is irrelevant), and 'en-CA'/ISO keys, which are storage.
-import fs from 'node:fs';
-import path from 'node:path';
+//   node scripts/verify-date-format.mjs            (local preview :5199)
+//   BASE=https://expo-app.co.il node scripts/verify-date-format.mjs
+import P from 'puppeteer-core';
+import { signIn } from './lib/authed-page.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
-const SRC = 'src';
-const files = [];
-(function walk(d) {
-  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-    const p = path.join(d, e.name);
-    if (e.isDirectory()) walk(p);
-    else if (/\.(jsx?|tsx?)$/.test(e.name)) files.push(p);
+const BASE = process.env.BASE || 'http://127.0.0.1:5199';
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const COACH = ['dashboard', 'athletes', 'sessions', 'review', 'tasks', 'billing', 'intake', 'waitlist', 'challenges', 'calendar', 'programs', 'exercises', 'workouts', 'bugs'];
+const BHBC = ['overview', 'roster', 'schedule', 'lifts', 'medical', 'games', 'activity'];
+const DEMO = ['/demo/coach', '/demo/athlete'];
+const PATTERNS = [
+  ['ISO', /\b20\d{2}-\d{2}-\d{2}\b/g],
+  ['MM-DD', /(?<![\d/.-])(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(?![\d-])(?!\s*(?:[*x×]|min\b|reps?\b|sec\b|%))/gi],
+  ['US', /(?<![\d/])(0?[1-9]|1[0-2])\/(1[3-9]|2\d|3[01])(\/(20)?\d{2})?(?![\d/])/g],
+];
+
+const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 180000 });
+let pages = 0, chars = 0;
+const bad = [];
+async function scan(pg, label) {
+  // A CLOSED SECTION HIDES ITS DATES (27.9: the cleared-injury history printed
+  // raw ISO for a week because it loads collapsed). Open every collapsed
+  // section first - twice, for sections nested in sections.
+  for (let k = 0; k < 2; k++) {
+    await pg.evaluate(() => { document.querySelectorAll('[aria-expanded="false"]').forEach((el) => { try { el.click(); } catch (e) {} }); });
+    await wait(700);
   }
-})(SRC);
-
-const hits = [];
-for (const f of files) {
-  const src = fs.readFileSync(f, 'utf8');
-  const lines = src.split(/\r?\n/);
-  lines.forEach((line, i) => {
-    const at = { file: f, line: i + 1, text: line.trim().slice(0, 120) };
-    // A comment that NAMES the trap is not the trap. The first version of this
-    // gate reported four defects and all four were false - two month-only chart
-    // labels and two comments in dates.js - which is how a gate gets ignored.
-    const t = line.trim();
-    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return;
-    // A `month` with no `day` is a chart label ("Sep"), not a date.
-    const hasDay = /day\s*:/.test(line);
-    // formatToParts callers are doing timezone maths, not display.
-    const partsNearby = /formatToParts/.test(lines.slice(i, i + 3).join(' '));
-
-    if (/toLocaleDateString\s*\(\s*\)/.test(line)) hits.push({ ...at, why: 'toLocaleDateString() with no locale follows the machine (en-US here) → M/D/Y' });
-    if (/toLocaleDateString\s*\(\s*undefined/.test(line)) hits.push({ ...at, why: "locale `undefined` follows the machine → M/D/Y" });
-
-    if (!partsNearby && hasDay && /toLocale(Date)?String\s*\(\s*'en-US'/.test(line) && /month\s*:/.test(line)) {
-      hits.push({ ...at, why: "'en-US' puts the month before the day" });
+  const text = await pg.evaluate(() => document.body.innerText || '');
+  pages++; chars += text.length;
+  for (const [kind, rx] of PATTERNS) {
+    rx.lastIndex = 0;
+    let m;
+    while ((m = rx.exec(text))) {
+      const ctx = text.slice(Math.max(0, m.index - 30), m.index + m[0].length + 30).replace(/\s+/g, ' ');
+      bad.push(`${label}  ${kind} "${m[0]}"  …${ctx}…`);
     }
-    if (!partsNearby && hasDay && /Intl\.DateTimeFormat\s*\(\s*'en-US'/.test(line) && /month\s*:/.test(line)) {
-      hits.push({ ...at, why: "'en-US' DateTimeFormat puts the month before the day" });
-    }
-    // An options object that names month before day renders month-first.
-    const m = line.match(/\{[^{}]*\bmonth\s*:[^{}]*\bday\s*:[^{}]*\}/);
-    if (m && !partsNearby && !/formatToParts/.test(line)) {
-      hits.push({ ...at, why: 'options list `month` before `day`, so it renders month-first' });
-    }
-  });
+  }
 }
-
-for (const h of hits) console.log(`FAIL ${h.file}:${h.line}\n       ${h.why}\n       ${h.text}`);
-console.log(hits.length
-  ? `\n${hits.length} date(s) that do not read day/month/year`
-  : `\n0 — every date in ${files.length} source files reads day/month/year`);
-process.exit(hits.length ? 1 : 0);
+for (const lang of ['en', 'he']) {
+  const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
+  try {
+    await setWidth(pg, 1440, 950);
+    await pg.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
+    await signIn(pg, BASE);
+    for (const r of COACH) {
+      await pg.goto(`${BASE}/coach/${r}`, { waitUntil: 'domcontentloaded' });
+      await wait(4500);
+      await scan(pg, `${lang} /coach/${r}`);
+    }
+    for (const t of BHBC) {
+      await pg.goto(`${BASE}/coach/bhbc/${t}`, { waitUntil: 'domcontentloaded' });
+      for (let i = 0; i < 20; i++) { await wait(500); if (await pg.evaluate(() => document.querySelectorAll('.bhbc-hdr-tabs button').length > 2)) break; }
+      await wait(2000);
+      await scan(pg, `${lang} /coach/bhbc/${t}`);
+    }
+  } finally { await ctx.close(); }
+  const dctx = await b.createBrowserContext(); const dp = await dctx.newPage();
+  try {
+    await setWidth(dp, 1440, 950);
+    await dp.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); } catch (e) {} }, lang);
+    for (const r of DEMO) { await dp.goto(`${BASE}${r}`, { waitUntil: 'domcontentloaded' }); await wait(4000); await scan(dp, `${lang} ${r}`); }
+  } finally { await dctx.close(); }
+}
+await b.disconnect();
+console.log(`DATE-FORMAT GATE — ${pages} pages, ${chars} characters of rendered text, ${bad.length} month-first or ISO dates`);
+for (const x of bad.slice(0, 60)) console.log('  ' + x);
+if (pages === 0 || chars < 5000) { console.log('  FAIL: measured nothing'); process.exit(1); }
+process.exit(bad.length ? 1 : 0);

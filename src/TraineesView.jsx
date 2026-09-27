@@ -1071,7 +1071,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
       </div>{/* /two-column flex row */}
 
       {/* Edit/Create Modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? tt("Edit Athlete") : tt("New Athlete")} wide>
+      <Modal open={showForm} guard onClose={() => setShowForm(false)} title={editId ? tt("Edit Athlete") : tt("New Athlete")} wide>
         {form._members ? <>
           {/* COUPLE EDIT */}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>{tr(readLang(), 'Shared')}</div>

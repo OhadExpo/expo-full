@@ -172,9 +172,26 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   // When no progress arrives for 45s the screen names the stage and offers STOP;
   // a stopped run's late result is dropped (runIdRef).
   const runIdRef = useRef(0);
+  // STOP must actually stop the capture. It used to only drop the late
+  // result: the old capture ran on, and the next analysis shared the phone's
+  // CPU with it - which is a real stall of its own.
+  const abortRef = useRef(null);
   const lastProgAtRef = useRef(Date.now());
   const [quietFor, setQuietFor] = useState(0);
   useEffect(() => { lastProgAtRef.current = Date.now(); setQuietFor(0); }, [progress, progressLabel]);
+  // The clip's object URL is released when the next clip replaces it (a phone
+  // recording is held in memory - tens of MB per take - until it is revoked).
+  const urlRef = useRef(null);
+  const adoptUrl = (url) => {
+    const old = urlRef.current;
+    urlRef.current = url;
+    setSrcUrl(url);
+    if (old && old !== url) { try { URL.revokeObjectURL(old); } catch { /* already gone */ } }
+  };
+  useEffect(() => () => {
+    try { abortRef.current?.abort(); } catch { /* noop */ }
+    if (urlRef.current) { try { URL.revokeObjectURL(urlRef.current); } catch { /* noop */ } }
+  }, []);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(demoResult);
   const [shotIdx, setShotIdx] = useState(0);
@@ -191,18 +208,34 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 
   const analyze = useCallback(async (url, opts = {}) => {
     setError(null); setPhase('analyzing'); setProgress(0); setProgressLabel('');
+    lastProgAtRef.current = Date.now();
     const runId = ++runIdRef.current;
     const live = () => runIdRef.current === runId;
+    try { abortRef.current?.abort(); } catch { /* noop */ }
+    const ac = new AbortController();
+    abortRef.current = ac;
     try {
       // Twelve frames, a few seconds, before committing to the long capture.
       // A blocking finding stops here and says what to do with the phone still
       // in his hand; a warning rides along and is shown beside the results.
       if (!opts.skipPreflight) {
         setProgressLabel('checking the clip');
-        const pf = await preflightClip(url, { kind: 'shot', onProgress: (pct) => { if (live()) setProgress(Math.round(pct * 0.1)); } });
+        // Bounded: the preflight is advice, and a phone whose model or video
+        // never answers must not hold the real analysis at 0% forever.
+        const pf = await Promise.race([
+          preflightClip(url, { kind: 'shot', onProgress: (pct) => { if (live()) { lastProgAtRef.current = Date.now(); setProgress(Math.round(pct * 0.1)); } } }),
+          new Promise((res) => setTimeout(() => res(null), 60000)),
+        ]);
         if (!live()) return;
+        // Metadata but a 0x0 picture: the phone has no decoder for this video
+        // (HEVC / HDR from another phone). The twelve frames then read as
+        // "no one could be tracked", which sends him to re-film a clip that
+        // only needed re-exporting.
+        if (pf && pf.measured && pf.measured.dims && !pf.measured.dims.w && pf.measured.samples > 0) {
+          setError(T.errors.codec); setPhase('idle'); return;
+        }
         setPreflight(pf);
-        if (!pf.ok) { setPendingUrl(url); setPhase('preflight'); return; }
+        if (pf && !pf.ok) { setPendingUrl(url); setPhase('preflight'); return; }
       }
       // Two-pass ROI capture: find the athlete, then re-run pose on a crop
       // around him at the source frame cadence inside each shot window.
@@ -214,10 +247,16 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       // clip, so the fast path stays the default and this is the retry.
       const frames = await captureShotFrames(url, {
         deterministic: opts.deterministic || false,
-        onProgress: (pct, label) => { if (!live()) return; setProgress(pct); if (label) setProgressLabel(label); },
+        signal: ac.signal,
+        // Every call is a heartbeat, not only a changed percentage: a slow
+        // phone can take a few seconds per whole percent and is still working.
+        onProgress: (pct, label) => { if (!live()) return; lastProgAtRef.current = Date.now(); setProgress(pct); if (label) setProgressLabel(label); },
       });
       if (!live()) return;
       framesRef.current = frames;
+      // The detailed model did not load in time and the fast one read the
+      // shots - the numbers stand, but say they are the coarser read.
+      if (frames.stats && frames.stats.fineModel === 'lite') toast(T.liteModel, 'info', { ttl: 9000 });
       // Read the shooting hand off the clip unless the coach pinned one.
       const auto = detectShootingHand(frames);
       if (auto) setDetectedHand(auto);
@@ -241,16 +280,42 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       }
       setResult(r); setShotIdx(0); setPhase('results');
     } catch (e) {
-      if (!live()) return;
-      setError(e?.message || 'Analysis failed.'); setPhase('idle');
+      if (!live() || e?.code === 'aborted') return;
+      setError((e?.code && T.errors[e.code]) || e?.message || T.errors.failed); setPhase('idle');
     }
-  }, [hand, handMode, stature, shotType, shotMode]);
+  }, [hand, handMode, stature, shotType, shotMode, T]);
   useEffect(() => {
     if (phase !== 'analyzing') return undefined;
     const iv = setInterval(() => setQuietFor(Math.round((Date.now() - lastProgAtRef.current) / 1000)), 1000);
-    return () => clearInterval(iv);
+    // KEEP THE SCREEN ON. The capture takes minutes and a phone locks its
+    // screen after 30-60 s without a touch - the page is then hidden, the
+    // browser pauses the video, and the bar freezes wherever it was. The Screen
+    // Wake Lock holds the screen on while this screen is analysing; where the
+    // browser does not offer it, the line under the bar asks for it instead.
+    let lock = null, gone = false;
+    const acquire = async () => {
+      try {
+        if (gone || lock || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+        const l = await navigator.wakeLock.request('screen');
+        if (gone) { l.release().catch(() => {}); return; }
+        lock = l;
+        // The browser drops the lock itself when the page is hidden.
+        l.addEventListener('release', () => { if (lock === l) lock = null; });
+      } catch { /* refused (battery saver) - the on-screen line covers it */ }
+    };
+    // Time spent in another app is not a stall: the capture waits for the
+    // page to come back, so the watchdog restarts its count when it does.
+    const onVis = () => { if (document.visibilityState === 'visible') { lastProgAtRef.current = Date.now(); setQuietFor(0); acquire(); } };
+    acquire();
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      gone = true;
+      clearInterval(iv);
+      document.removeEventListener('visibilitychange', onVis);
+      if (lock) { lock.release().catch(() => {}); lock = null; }
+    };
   }, [phase]);
-  const stopRun = () => { runIdRef.current++; setPhase('idle'); setProgress(0); setProgressLabel(''); };
+  const stopRun = () => { runIdRef.current++; try { abortRef.current?.abort(); } catch { /* noop */ } setPhase('idle'); setProgress(0); setProgressLabel(''); };
 
   // Re-score the SAME frames when the hand / stature changes after analysis —
   // no re-capture needed.
@@ -278,7 +343,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   };
 
   const pickFile = () => fileRef.current?.click();
-  const onFile = (f) => { if (!f) return; const url = URL.createObjectURL(f); setSrcUrl(url); analyze(url); };
+  const onFile = (f) => { if (!f) return; const url = URL.createObjectURL(f); adoptUrl(url); analyze(url); };
 
   const startRecording = async () => {
     setError(null);
@@ -294,13 +359,13 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       rec.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'video/webm' });
         stopStream(streamRef.current); streamRef.current = null;
-        const url = URL.createObjectURL(blob); setSrcUrl(url); analyze(url);
+        const url = URL.createObjectURL(blob); adoptUrl(url); analyze(url);
       };
       recRef.current = rec; rec.start(200);
     } catch (e) { setError((T === SHOT_I18N.he ? 'המצלמה לא זמינה: ' : 'Camera unavailable: ') + (e?.message || e)); setPhase('idle'); }
   };
   const stopRecording = () => { try { recRef.current?.stop(); } catch { /* noop */ } };
-  const reset = () => { setResult(null); setPhase('idle'); setError(null); setSrcUrl(null); framesRef.current = null; setPreflight(null); setPendingUrl(null); };
+  const reset = () => { setResult(null); setPhase('idle'); setError(null); adoptUrl(null); framesRef.current = null; setPreflight(null); setPendingUrl(null); };
 
   const shot = result?.shots?.[shotIdx] || null;
 
@@ -495,12 +560,15 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
               style={{ width: 64, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.45)', color: '#FFF', fontFamily: FN, fontSize: 14, textAlign: 'center' }} />
             <span style={{ color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.4)' }}>{heightSaved ? T.savedCm : T.cmUnit}</span>
           </label>
+          {/* The one thing that stalls a phone mid-capture is the phone
+              leaving the page - so say it before it happens. */}
+          <div data-shot-keep-on style={{ marginTop: 18, maxWidth: 300, textAlign: 'center', fontFamily: FB, fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{T.keepOn}</div>
           {quietFor >= 45 && (
-            <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, maxWidth: 300, textAlign: 'center' }}>
+            <div data-shot-stalled style={{ marginTop: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, maxWidth: 300, textAlign: 'center' }}>
               <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-                {T === SHOT_I18N.he ? `עדיין ${(T.progress[progressLabel] || progressLabel)} — ${quietFor} שניות בלי התקדמות` : `still ${(T.progress[progressLabel] || progressLabel || 'working')} — no progress for ${quietFor}s`}
+                {T.stalled(T.progress[progressLabel] || T.progress[''], quietFor)}
               </div>
-              <button onClick={stopRun} style={{ height: 'var(--btn-h)', padding: '0 18px', background: 'transparent', color: '#FFF', border: '1px solid rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{T === SHOT_I18N.he ? 'עצור' : 'STOP'}</button>
+              <button onClick={stopRun} style={{ height: 'var(--btn-h)', padding: '0 18px', background: 'transparent', color: '#FFF', border: '1px solid rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{T.stopRun}</button>
             </div>
           )}
         </div>

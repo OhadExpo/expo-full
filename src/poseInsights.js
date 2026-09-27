@@ -6,7 +6,7 @@
 //
 // Both are geometry-grounded from the pose the camera already produces. Honest
 // limit surfaced everywhere: 2D markerless pose gives approximate in-plane
-// angles — these are flags to eyeball, never diagnoses.
+// angles — these are flags to eyeball, never a medical verdict.
 
 const med = (arr) => {
   const a = (arr || []).filter((x) => typeof x === 'number' && isFinite(x)).sort((p, q) => p - q);
@@ -17,28 +17,41 @@ const med = (arr) => {
 
 // ---- Auto Form-Fault Detector -------------------------------------------
 // result = analyzeClip output { kind, romTempo, velocity, jointRom, repCount }
-export function detectFaults(result, title) {
+// opts.movement — the coach's explicit pick (a poseLab MOVEMENTS entry or key,
+// or null). When the key is PRESENT the lift family comes from the pick only and
+// the title is ignored; null = no family checks at all (nothing is guessed).
+// Every fault/good carries `tpl` + `vars` beside the English `msg`, so the UI
+// can render it through the translator instead of shipping English.
+const FAMILY_OF = { squat: 'squat', lunge: 'squat', hinge: 'hinge', press: 'press', pull: 'pull', raise: 'raise', jump: 'plyo' };
+const fillTpl = (tpl, vars) => Object.keys(vars || {}).reduce((s, k) => s.split(`{${k}}`).join(String(vars[k])), tpl);
+
+export function detectFaults(result, title, opts = {}) {
   if (!result || !result.ok) return null;
-  const faults = [], good = [];
+  const faults = [], good = [], goodT = [];
+  const F = (sev, tpl, vars, why) => faults.push({ sev, msg: fillTpl(tpl, vars), tpl, vars: vars || {}, why });
+  const G = (tpl, vars) => { good.push(fillTpl(tpl, vars)); goodT.push({ tpl, vars: vars || {} }); };
   const t = (title || '').toLowerCase();
+  const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
+  const mvRaw = explicit ? opts.movement : undefined;
+  const fam = explicit ? ((mvRaw && typeof mvRaw === 'object' ? mvRaw.family : FAMILY_OF[mvRaw]) || null) : undefined;
   const rt = result.romTempo, vel = result.velocity, jr = result.jointRom;
   const jn = jr ? Object.fromEntries(jr.map((j) => [j.name, j])) : {};
   const reps = (rt && rt.perRep ? rt.perRep.filter(Boolean) : []);
 
   // ROM collapse across the set (fatigue / cheat reps)
   if (rt && rt.collapsedCount >= 2) {
-    faults.push({ sev: 'warn', msg: `${rt.collapsedCount} reps lost >15% of range`, why: 'depth is fading — the last reps aren\'t the same lift as the first. Fatigue or cheating range.' });
+    F('warn', '{n} reps lost >15% of range', { n: rt.collapsedCount }, 'depth is fading — the last reps aren\'t the same lift as the first. Fatigue or cheating range.');
   } else if (reps.length >= 3 && rt && rt.collapsedCount === 0) {
-    good.push('Full range held on every rep.');
+    G('Full range held on every rep.');
   }
 
   // Eccentric control
   const eccs = reps.map((r) => r.ecc).filter((x) => x > 0);
   const medEcc = med(eccs);
   if (medEcc != null && medEcc < 0.55 && reps.length >= 3) {
-    faults.push({ sev: 'warn', msg: `Dropping fast (~${medEcc.toFixed(1)}s lowering)`, why: 'almost no eccentric control — slow the negative for more stimulus and safer joints.' });
+    F('warn', 'Dropping fast (~{s}s lowering)', { s: medEcc.toFixed(1) }, 'almost no eccentric control — slow the negative for more stimulus and safer joints.');
   } else if (medEcc != null && medEcc >= 1.0) {
-    good.push(`Controlled ${medEcc.toFixed(1)}s eccentric.`);
+    G('Controlled {s}s eccentric.', { s: medEcc.toFixed(1) });
   }
 
   // Velocity cliff (VBT junk-volume signal). Loss % can read >100 when a late
@@ -48,9 +61,9 @@ export function detectFaults(result, title) {
     // At the extreme the last rep read ~0 velocity — usually a near-failure grind
     // OR pose noise on the final rep; either way an exact "99%" is false precision.
     const shown = vel.finalLossPct >= 90 ? '90%+' : `${Math.round(vel.finalLossPct)}%`;
-    faults.push({ sev: 'bad', msg: `Last rep ${shown} slower than the best`, why: 'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.' });
+    F('bad', 'Last rep {p} slower than the best', { p: shown }, 'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.');
   } else if (vel && vel.finalLossPct != null && vel.finalLossPct < 20 && vel.perRep && vel.perRep.filter(Boolean).length >= 3) {
-    good.push(`Bar speed held (${vel.finalLossPct}% loss) — quality reps throughout.`);
+    G('Bar speed held ({p}% loss) — quality reps throughout.', { p: vel.finalLossPct });
   }
 
   // Exercise-family geometry checks
@@ -59,19 +72,20 @@ export function detectFaults(result, title) {
   // positive that erodes trust). All families use \b word boundaries so a bare
   // substring can't misfire — "chin" must NOT match "maCHINe", "row" must NOT
   // match "naRROW", and a leg/calf/hack "press" is not an elbow-lockout lift.
-  const isPlyo = /\b(jump|pogo|plyo|bound|hop|depth[-\s]?drop|snap[-\s]?down)\b/.test(t);
-  const isSquat = !isPlyo && /\b(squat|lunge|split[-\s]?squat|step[-\s]?up|pistol|rfess|bulgarian)\b/.test(t);
-  const isPress = (/\b(bench|ohp|overhead|shoulder\s*press|chest\s*press|push[-\s]?up|dip)\b/.test(t) || (/\bpress\b/.test(t) && !/\b(leg|calf|hack)\b/.test(t)));
-  const isPull = /\bpull[-\s]?up|\bchin[-\s]?up|\brow\b|pull[-\s]?down|lat[-\s]?pull/.test(t);
+  // With an explicit pick the family IS the pick; the title is not consulted.
+  const isPlyo = explicit ? fam === 'plyo' : /\b(jump|pogo|plyo|bound|hop|depth[-\s]?drop|snap[-\s]?down)\b/.test(t);
+  const isSquat = explicit ? fam === 'squat' : (!isPlyo && /\b(squat|lunge|split[-\s]?squat|step[-\s]?up|pistol|rfess|bulgarian)\b/.test(t));
+  const isPress = explicit ? fam === 'press' : (/\b(bench|ohp|overhead|shoulder\s*press|chest\s*press|push[-\s]?up|dip)\b/.test(t) || (/\bpress\b/.test(t) && !/\b(leg|calf|hack)\b/.test(t)));
+  const isPull = explicit ? fam === 'pull' : /\bpull[-\s]?up|\bchin[-\s]?up|\brow\b|pull[-\s]?down|lat[-\s]?pull/.test(t);
   if (isSquat && jn['L KNE'] && jn['R KNE']) {
     const kneeMin = Math.min(jn['L KNE'].minDeg, jn['R KNE'].minDeg);
-    if (kneeMin > 100) faults.push({ sev: 'warn', msg: `Stopping high (knee bends to ~${kneeMin}°)`, why: 'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.' });
-    else if (kneeMin <= 95) good.push('Hitting depth (below parallel).');
+    if (kneeMin > 100) F('warn', 'Stopping high (knee bends to ~{d}°)', { d: kneeMin }, 'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.');
+    else if (kneeMin <= 95) G('Hitting depth (below parallel).');
   }
   if (isPress && (jn['L ELB'] || jn['R ELB'])) {
     const elbMax = Math.max(jn['L ELB']?.maxDeg || 0, jn['R ELB']?.maxDeg || 0);
-    if (elbMax && elbMax < 155) faults.push({ sev: 'warn', msg: `Short lockout (elbow to ~${elbMax}°)`, why: 'not finishing the press — cue full lockout or drop the load.' });
-    else if (elbMax >= 165) good.push('Full lockout at the top.');
+    if (elbMax && elbMax < 155) F('warn', 'Short lockout (elbow to ~{d}°)', { d: elbMax }, 'not finishing the press — cue full lockout or drop the load.');
+    else if (elbMax >= 165) G('Full lockout at the top.');
   }
   if (isPull && (jn['L ELB'] || jn['R ELB'])) {
     // Only judge on a REAL measured elbow min — a missing/untracked elbow must not
@@ -79,10 +93,10 @@ export function detectFaults(result, title) {
     // guard this; pull didn't).
     const mins = [jn['L ELB']?.minDeg, jn['R ELB']?.minDeg].filter((x) => typeof x === 'number');
     const elbMin = mins.length ? Math.min(...mins) : null;
-    if (elbMin != null && elbMin > 60) faults.push({ sev: 'warn', msg: `Partial pull (elbow only to ~${elbMin}°)`, why: 'not pulling to full contraction — half reps at the top.' });
+    if (elbMin != null && elbMin > 60) F('warn', 'Partial pull (elbow only to ~{d}°)', { d: elbMin }, 'not pulling to full contraction — half reps at the top.');
   }
 
-  return { faults, good, note: '2D phone pose — angles are approximate. Flags to eyeball, not diagnoses.' };
+  return { faults, good, goodT, note: '2D phone pose — angles are approximate. Flags to eyeball, not a medical verdict.' };
 }
 
 // ---- VBT auto-regulation — the "Perch from a phone" read ----------------
@@ -189,12 +203,23 @@ function relevantJoints(title) {
 }
 
 // jointRom = analyzeClip().jointRom = [{ name, maxDeg, minDeg, romDeg, samples }]
-export function detectAsymmetry(jointRom, title) {
+// opts.movement — explicit pick (MOVEMENTS entry/key or null). Present → the
+// pick decides unilateral + which joints drive the lift; null → screen every
+// pair, never treat as single-side. Absent → the title rules above.
+const REGION_OF = { squat: 'lower', lunge: 'lower', hinge: 'lower', jump: 'lower', press: 'upper', pull: 'upper', raise: 'upper' };
+export function detectAsymmetry(jointRom, title, opts = {}) {
   if (!jointRom || !jointRom.length) return null;
-  if (isUnilateral(title)) return { rows: [], worst: null, flagged: [], unilateral: true, note: 'Single-side lift — comparing left vs right in one clip isn\'t fair (one side is the working side by design). Track the working side over time in the injury trend instead.' };
+  const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
+  const mv = explicit ? opts.movement : undefined;
+  const mvKey = mv && typeof mv === 'object' ? mv.key : mv;
+  const uni = explicit ? !!(mv && (typeof mv === 'object' ? mv.unilateral : mvKey === 'lunge')) : isUnilateral(title);
+  const region = explicit ? (REGION_OF[mvKey] || null) : undefined;
+  if (uni) return { rows: [], worst: null, flagged: [], unilateral: true, note: 'Single-side lift — comparing left vs right in one clip isn\'t fair (one side is the working side by design). Track the working side over time in the injury trend instead.' };
   const byName = Object.fromEntries(jointRom.map((j) => [j.name, j]));
   const isFin = (x) => typeof x === 'number' && isFinite(x);
-  const relevant = relevantJoints(title);
+  const relevant = explicit
+    ? (region === 'lower' ? new Set(['Hips', 'Knees']) : region === 'upper' ? new Set(['Shoulders', 'Elbows']) : null)
+    : relevantJoints(title);
   const rows = [];
   for (const [label, ln, rn] of PAIRS) {
     if (relevant && !relevant.has(label)) continue; // skip joints not driving this lift
@@ -215,5 +240,5 @@ export function detectAsymmetry(jointRom, title) {
   if (!rows.length) return null;
   const worst = rows.reduce((m, r) => (r.asymPct > m.asymPct ? r : m), rows[0]);
   const flagged = rows.filter((r) => r.severity !== 'ok');
-  return { rows, worst, flagged, note: '2D pose reads in-plane travel only — a real flag is worth screening in person, not a diagnosis.' };
+  return { rows, worst, flagged, note: '2D pose reads in-plane travel only — a real flag is worth screening in person, not a medical verdict.' };
 }

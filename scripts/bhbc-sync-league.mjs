@@ -168,10 +168,15 @@ async function evalBox(page) {
 // box-score column map (0-indexed): 1=name,3=min,4=pts,7=3Pm/a,9=FTm/a,13=rebTot,16=stl,17=to,18=ast,21=pir,22=+/-
 function playerLine(c) {
   const madeAtt = (s) => { const m = String(s || '').match(/(\d+)\s*\/\s*(\d+)/); return m ? { m: +m[1], a: +m[2] } : { m: 0, a: 0 }; };
+  // The whole published line (27.9: "everything from the online league
+  // stats"), plus the jersey - the zone matches players by jersey, not by a
+  // spelling of the name that changes from season to season.
   return {
-    name: c[1], min: numOf(c[3]), pts: numOf(c[4]),
-    tp: madeAtt(c[7]), ft: madeAtt(c[9]),
-    reb: numOf(c[13]), stl: numOf(c[16]), to: numOf(c[17]), ast: numOf(c[18]),
+    name: c[1], jersey: c[0] !== '' && /\d/.test(c[0]) ? numOf(c[0]) : null, starter: /\*/.test(c[2] || ''),
+    min: numOf(c[3]), pts: numOf(c[4]),
+    fg2: madeAtt(c[5]), tp: madeAtt(c[7]), fg3: madeAtt(c[7]), ft: madeAtt(c[9]),
+    oreb: numOf(c[11]), dreb: numOf(c[12]), reb: numOf(c[13]), pf: numOf(c[14]), fd: numOf(c[15]),
+    stl: numOf(c[16]), to: numOf(c[17]), ast: numOf(c[18]), blk: numOf(c[19]), blka: numOf(c[20]),
     pir: numOf(c[21]), pm: numOf(c[22]),
   };
 }
@@ -226,6 +231,7 @@ function playerLine(c) {
     for (const c of bhbcTable.players) {
       const ln = playerLine(c); if (!ln.name) continue;
       const p = P(ln.name);
+      if (ln.jersey != null) p.jersey = ln.jersey;
       p.gp++; p.min += ln.min; p.pts += ln.pts; p.reb += ln.reb; p.ast += ln.ast; p.stl += ln.stl; p.to += ln.to;
       p.tpm += ln.tp.m; p.tpa += ln.tp.a; p.ftm += ln.ft.m; p.fta += ln.ft.a; p.pir += ln.pir; p.pm += ln.pm;
       p.log.push({ date: g.date, opp: oppName, ...ln });
@@ -268,7 +274,7 @@ function playerLine(c) {
   const prev = existing && existing.value;
   const archive = { ...((prev && prev.archive) || {}) };
   if (prev && prev.season && prev.season !== seasonLabel && Array.isArray(prev.players)) {
-    archive[prev.season] = { players: prev.players.map((p) => ({ name: p.name, log: p.log || [] })) };
+    archive[prev.season] = { players: prev.players.map((p) => ({ name: p.name, jersey: p.jersey ?? null, log: p.log || [] })) };
   }
   delete archive[seasonLabel];
   payload.archive = archive;
