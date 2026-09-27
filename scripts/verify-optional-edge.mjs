@@ -13,6 +13,10 @@
 // .bhbc-load-row, roster cards, medical rows, history rows, dashboard cards),
 // or - for class-less React output - sharing tag + inline style once colours
 // are stripped (tr/li are grouped by tag). Items 12..600px tall only.
+// Each list is ALSO judged column by column: the same child / grandchild of
+// every item (e.g. `.bhbc-load-row > :nth-child(2)`, the phone card's text
+// stack) is a list of its own, because the text box is often one column of the
+// row and another column's text would otherwise mask a moved line.
 //
 // LINES: every visible text node's Range rects inside the item, merged into
 // horizontal BANDS (rects that overlap vertically by more than half the
@@ -87,6 +91,14 @@ function measureLists(args) {
   const seenSets = new Set();
   const ids = new Map();
   const pid = (el) => { if (!ids.has(el)) ids.set(el, ids.size); return ids.get(el); };
+  // The same set of members reached two ways (two class tokens, a row and its
+  // only child): judge once.
+  const addGroup = (gdesc, items) => {
+    const key = items.map(pid).join(',');
+    if (seenSets.has(key)) return;
+    seenSets.add(key);
+    groups.push({ gdesc, items: items.slice(0, 200) });
+  };
   for (const parent of document.querySelectorAll('body, body *')) {
     if (parent.children.length < 3 || parent.closest('svg')) continue;
     const buckets = new Map();
@@ -104,11 +116,26 @@ function measureLists(args) {
     for (const [k, members] of buckets) {
       const items = members.filter((m) => { if (!shown(m)) return false; const h = m.getBoundingClientRect().height; return h >= 12 && h <= 600; });
       if (items.length < 3) continue;
-      // The same set of members reached through two class tokens: judge once.
-      const memberKey = pid(parent) + '|' + items.map((m) => [...parent.children].indexOf(m)).join(',');
-      if (seenSets.has(memberKey)) continue;
-      seenSets.add(memberKey);
-      groups.push({ parent, key: k, items: items.slice(0, 200) });
+      const gdesc = k.startsWith('c:') ? `${parent.tagName.toLowerCase()} > .${k.slice(2)}` : `${parent.tagName.toLowerCase()} > ${k.slice(2).split('|')[0]}[style]`;
+      addGroup(gdesc, items);
+      // THE TEXT BOX IS OFTEN A COLUMN OF THE ROW, NOT THE ROW. On the BHBC
+      // phone card the name / position / injury / last-lift stack is the row's
+      // SECOND child, and the MED button label in the next column sits on the
+      // same bottom line - measured over the whole row it would hide a moved
+      // line. So the same child (and grandchild) of every item is judged as a
+      // list of its own: `.bhbc-load-row > :nth-child(2)`.
+      const paths = new Set();
+      for (const it of items) for (let i = 0; i < Math.min(it.children.length, 12); i++) {
+        paths.add(String(i));
+        const c = it.children[i];
+        for (let j = 0; j < Math.min(c.children.length, 12); j++) paths.add(i + '.' + j);
+      }
+      for (const path of paths) {
+        const idx = path.split('.').map(Number);
+        const sub = items.map((it) => idx.reduce((el, i) => (el && el.children[i]) || null, it)).filter((el) => el && shown(el));
+        if (sub.length < 3) continue;
+        addGroup(`${gdesc} > ${idx.map((i) => `:nth-child(${i + 1})`).join(' > ')}`, sub);
+      }
     }
   }
 
@@ -125,7 +152,7 @@ function measureLists(args) {
     const max = Math.max(...data.map((d) => d.bs.length));
     const templates = data.filter((d) => d.bs.length === max);
     if (templates.length === data.length) continue;
-    const gdesc = g.key.startsWith('c:') ? `${g.parent.tagName.toLowerCase()} > .${g.key.slice(2)}` : `${g.parent.tagName.toLowerCase()} > ${g.key.slice(2).split('|')[0]}[style]`;
+    const gdesc = g.gdesc;
     const groupFails = [];
     for (const d of data) {
       if (d.bs.length === max) continue;

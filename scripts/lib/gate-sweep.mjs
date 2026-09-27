@@ -25,7 +25,8 @@
 //     beside the failure count, and a run that measured nothing EXITS 1.
 //
 // Env: BASE (default http://127.0.0.1:5199), WIDTHS, LANGS, ONLY (substring of
-// a route - e.g. ONLY=bhbc), PAGE_TIMEOUT, THEME (dark|light, default dark).
+// a route - e.g. ONLY=bhbc), PAGE_TIMEOUT, THEME (dark|light, default dark),
+// BREAK_CSS (a stylesheet injected after load, for break-testing a gate).
 import P from 'puppeteer-core';
 import { signIn } from './authed-page.mjs';
 import { setWidth } from './viewport.mjs';
@@ -36,6 +37,10 @@ export const LANGS = (process.env.LANGS || 'en,he').split(',').map((s) => s.trim
 export const PAGE_TIMEOUT = Number(process.env.PAGE_TIMEOUT || 60000);
 const ONLY = process.env.ONLY || null;
 const THEME = process.env.THEME || 'dark';
+// BREAK_CSS: a stylesheet injected after each page settles, to prove a gate
+// catches what it claims to (memory: prove a gate by BREAKING the fix). A run
+// with it set must FAIL; the summary says loudly that it was a break test.
+const BREAK_CSS = process.env.BREAK_CSS || '';
 export const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Coach tabs (SURFACES.md "Coach app" table, the ones reachable by a bare URL).
@@ -149,6 +154,7 @@ export async function runSweep({ name, measure }) {
             if (state.iw !== w) return { skip: `viewport is ${state.iw}, asked ${w} — NOT measured` };
             if (authed && state.login) return { skip: 'the login screen came back — NOT measured' };
             if (state.ink < 40) return { skip: `only ${state.ink} characters on screen (a splash?) — NOT measured` };
+            if (BREAK_CSS) { await pg.addStyleTag({ content: BREAK_CSS }); await wait(400); }
             await waitScrollIdle(pg);
             return await measure(pg, { route, lang, width: w, where });
           })(), PAGE_TIMEOUT, where);
@@ -193,6 +199,7 @@ export async function runSweep({ name, measure }) {
     await b.disconnect();
   }
 
+  if (BREAK_CSS) console.log(`\n*** BREAK TEST — injected on every page: ${BREAK_CSS.slice(0, 160)} ***`);
   console.log(`\n${name} GATE — ${pages} pages, ${elements} elements measured, ${failures.length} failures`);
   console.log(`  coverage: ${pages} of ${planned} planned route x language x width pages (langs ${LANGS.join(',')}; widths ${WIDTHS.join(',')}; ${BASE})${skipped.length ? `; ${skipped.length} NOT MEASURED` : ''}`);
   for (const f of failures.slice(0, 60)) console.log(`  FAIL ${f.where}  ${f.what}\n         ${f.detail}`);
