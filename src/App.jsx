@@ -11,7 +11,7 @@ import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus }
 import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
-import { Btn, baseBtn, ToastHost, toast, useEdgeFade } from './ui';
+import { Btn, baseBtn, ToastHost, toast, useEdgeFade, useRailTrailMask } from './ui';
 import BugReportButton from './BugReportButton';
 // LAZY: SensorLab renders only behind `isOwner`, but a static import puts it
 // and its five signal-processing modules (pulsePPG, acousticReps,
@@ -471,8 +471,11 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
           <circle cx="12" cy="19" r="1.5"/>
         </svg>
       </button>
-      {open && (
-        <div style={{
+      {/* PORTALLED (27.9 review): the phone rail clips its edges with a
+          clip-path, and a clip-path clips fixed descendants too - the menu
+          (Export, Change password) was cut to nothing below the bar. */}
+      {open && createPortal(
+        <div data-more-menu="" style={{
           // position:fixed lifts the popover out of the header's
           // stacking context so it floats above all page content. The
           // coords mirror the button's bottom-right corner.
@@ -560,7 +563,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
             );
           })}
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
@@ -890,6 +893,13 @@ function AuthedApp() {
   useEdgeFade(coachNavRef);
   useEdgeFade(coachBarRef);
   useEdgeFade(coachRailRef);
+  // the rail's far edge never shows half a tab (27.9, #304): the part of the
+  // tab crossing the edge is clipped away, so only whole tabs show at rest
+  useRailTrailMask(coachRailRef, { items: 'nav.hdr-scroll button, .hdr-right > *', maxWidth: 700, clip: true, active: 'nav.hdr-scroll [aria-current="page"], nav.hdr-scroll [aria-selected="true"]' });
+  // the section sub-tabs (Exercises: Library / Matching / Cleanup ...) scroll
+  // the same way on a phone and get the same clean end
+  const subtabRef = React.useRef(null);
+  useRailTrailMask(subtabRef, { items: ':scope > button', maxWidth: 760, clip: true, active: ':scope > [aria-selected="true"]' });
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1402,8 +1412,31 @@ function AuthedApp() {
   useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
 
   React.useEffect(() => {
-    const el = coachNavRef.current && coachNavRef.current.querySelector('[aria-current="page"], [aria-selected="true"]');
-    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+    // THE ACTIVE TAB IS ALWAYS WHOLE ON A PHONE (27.9 #304, measured at 390:
+    // on Tasks the active item sat at x=593, off-screen). scrollIntoView does
+    // not survive the rail's snap; the rail is scrolled explicitly so the tab
+    // starts on its start edge, and only when it is not already whole. Timers,
+    // not animation frames: an unfocused tab never runs frames.
+    const land = () => {
+      const el = coachNavRef.current && coachNavRef.current.querySelector('[aria-current="page"], [aria-selected="true"]');
+      if (!el) return;
+      const sc = coachRailRef.current;
+      const railScrolls = sc && sc.scrollWidth > sc.clientWidth + 1 && getComputedStyle(sc).overflowX !== 'visible';
+      if (!railScrolls) { if (el.scrollIntoView) el.scrollIntoView({ inline: 'nearest', block: 'nearest' }); return; }
+      if (window.innerWidth <= 700) return;   // the rail hook owns the phone rail
+      const rtl = getComputedStyle(sc).direction === 'rtl';
+      const r = sc.getBoundingClientRect(), t = el.getBoundingClientRect();
+      const pad = 12;
+      const start = rtl ? r.right - pad : r.left + pad, end = rtl ? r.left : r.right;
+      const whole = rtl ? (t.right <= start + 1 && t.left >= end - 1) : (t.left >= start - 1 && t.right <= end + 1);
+      if (!whole) sc.scrollTo({ left: sc.scrollLeft + (rtl ? t.right - start : t.left - start), behavior: 'instant' });
+      sc.dispatchEvent(new Event('scroll'));
+    };
+    // ONE run. On a phone the rail's own hook lands the active tab when it
+    // appears (a cold load included) and never again until it changes, so a
+    // coach swiping the rail is never pulled back (27.9 review).
+    const ts = setTimeout(land, 30);
+    return () => clearTimeout(ts);
   }, [tab]);
   const navTo = useCallback((newTab, newTrainee, hash) => {
     // Staff (non-owner coach) can never navigate to an owner-only tab — not even
@@ -1765,10 +1798,18 @@ function AuthedApp() {
       </div>
       <div style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.22em',color:'rgba(255,255,255,0.7)'}}>{t('Loading data...').toUpperCase()}</div>
     </div>);
+  // THE SAME LOADING EFFECT AS THE CLUB'S (27.9, Ohad: "i like the loading
+  // data screen for bhbc add the loading data effect to expo"): the mark, a
+  // thin track with a bar sweeping across it, and the spaced-caps kicker -
+  // in EXPO's own colours (the brand cyan on the app's background).
   if (!storesReady && !bootDeadline) return (
-    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:22}}>
+      <style>{`@keyframes expoLoad{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}`}</style>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>{t('Loading data...')}</div>
+      <div style={{width:160,height:3,background:'color-mix(in srgb, var(--c-tx) 14%, transparent)',overflow:'hidden'}}>
+        <div style={{width:'40%',height:'100%',background:'#39BDFF',animation:'expoLoad 1.1s ease-in-out infinite'}} />
+      </div>
+      <div style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.22em',color:C.tm}}>{t('Loading data...').toUpperCase()}</div>
     </div>);
 
   // BHBC = a fully separate ZONE — no EXPO coach nav at all (Ohad: "completely
@@ -1817,6 +1858,12 @@ function AuthedApp() {
           @media (max-width: 700px) {
             .subtab-scroll { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
             .subtab-scroll > button { flex: 0 0 auto; }
+          }
+          /* FOUR SUB-TABS ARE ONE CONTROL ON A PHONE (27.9 #304): equal cells
+             that always fit - nothing scrolls, so nothing can be half-shown */
+          @media (max-width: 480px) {
+            .subtab-scroll { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible !important; }
+            .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; }
           }
           /* THE NAV MUST NOT CLIP. Measured 2026-08-28: the header is capped at
              1200px, and below ~1000px of viewport the nine English labels no
@@ -1878,10 +1925,17 @@ function AuthedApp() {
               padding-inline-start: 12px;
               /* so scrollIntoView never parks the active tab half-cut on the
                  rail's own edge */
-              scroll-padding-inline: 12px; }
+              scroll-padding-inline: 12px;
+              /* at rest a tab starts on the rail's start edge - never half a
+                 word there (27.9 #304) */
+              scroll-snap-type: x mandatory; }
+            .hdr-rail nav.hdr-scroll button, .hdr-rail .hdr-right > * { scroll-snap-align: start; }
+            .hdr-rail .hdr-right { scroll-snap-align: end; }
             .hdr-rail::-webkit-scrollbar { display: none; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
-            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 16px !important; }
+            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 3px !important; }
+            /* the last icon's own inset + 3 = the page's 16px gutter; at 16 the rail
+               ended in 28px of nothing (27.9 scroller-tail gate) */
           }
           [dir="rtl"] nav.hdr-scroll button span{font-weight:800;letter-spacing:0}
           .nav-item-inactive{transition:color 120ms, background 120ms}
@@ -2057,7 +2111,7 @@ function AuthedApp() {
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
-              <div className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
+              <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
                   return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{tb(l)}</button>;

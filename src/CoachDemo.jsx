@@ -21,6 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
+import { SegWord } from './ui';
 
 // The demo is many small function components and a few module-level label
 // tables; one module-level helper (no hook) serves them all. Reads the
@@ -548,14 +549,16 @@ function DemoDashboard({ onJumpToTrainee }) {
             {/* 14 = the strip's inset: at 10 the toggle and the board's columns
                 started 4px outside the TASKS title (26.9, #215). */}
             <div style={{ padding: 14 }}>
+              {/* the same equal-cell phone control as the app's (27.9 #304) */}
+              <style>{`@media (max-width: 480px){ .tasks-seg{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));width:100%} .tasks-seg > button{justify-content:center;min-width:0;padding:0 6px!important} }`}</style>
               <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
-                <div style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
+                <div className="tasks-seg" style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
                   {SEGS.map(([id, label, n], i) => {
                     const on = taskScope === id;
                     return (
                       <button key={id} onClick={() => setTaskScope(id)}
                         style={{ minHeight: CTRL_H - 2, boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', padding: '0 12px', cursor: 'pointer', border: 'none', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', background: on ? 'rgba(57,189,255,0.094)' : 'transparent', color: on ? 'var(--c-ac)' : 'var(--c-tm)', display: 'inline-flex', alignItems: 'center', gap: 5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>{T(label)}</span>{n > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, lineHeight: 1, opacity: on ? 0.9 : 0.5 }}>({n})</span>}
+                        <SegWord full={T(label)} short={id === 'alerts' ? T('Alerts') : null} />{n > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, lineHeight: 1, opacity: on ? 0.9 : 0.5 }}>({n})</span>}
                       </button>
                     );
                   })}

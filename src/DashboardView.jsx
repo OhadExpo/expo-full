@@ -1026,6 +1026,8 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
     border: `1px solid ${C.cardBd}`,
     background: 'var(--c-sf)',
   };
+  // one row per tile label at every width (27.9, #328): the source (the
+  // sheet) is on the tile's own sub-line, so the label does not repeat it
   const labelStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 };
   const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em' };
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
@@ -1043,7 +1045,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             <span style={subStyle}>{tt('Recurring committed')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH · SHEET' : '30D COLLECTED'))}</span>
+            <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH' : '30D COLLECTED'))}</span>
             <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
             {sheet && <span style={{ ...subStyle, color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null ? tt('Synced from the sheet twice a day') : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}` : sheet.syncAgeH < 1 ? tt('Synced from the sheet just now') : tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))}</span>}
             {!sheet && delta30 !== null && (
@@ -1053,7 +1055,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{noDangle(tt(sheet ? 'LAST 3 MONTHS · SHEET' : '90D COLLECTED'))}</span>
+            <span style={labelStyle}>{noDangle(tt(sheet ? 'LAST 3 MONTHS' : '90D COLLECTED'))}</span>
             <span style={numStyle}>{sheet ? `₪${Math.round(sheet.last3).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
             <span style={subStyle}>{sheet ? tt('From the sheets') : tt('Trailing 3 months')}</span>
           </div>

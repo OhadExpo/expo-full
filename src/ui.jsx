@@ -1300,6 +1300,145 @@ export function ScrollFade({ children, style, className }) {
   return <div ref={ref} className={className} style={{ overflowX: 'auto', ...style }}>{children}</div>;
 }
 
+// NO WORD SLICED AT THE EDGES OF A SIDE-SCROLL RAIL (27.9, Ohad: "fix the top
+// menus to perfection"; his shots: "ACTI" / "A" cut at the edge, "EDULE" under
+// the crest). The rail scrolls - he wants the side scroll - so at rest some item
+// is usually half across an edge. This measures that overlap and hides EXACTLY
+// it, so what shows is whole items and clean ends:
+//   clip: true      the rail itself gets a clip-path inset on both ends
+//   trailRef/leadRef plates (opaque, tap-absorbing) sized over the trailing
+//                   edge / beside the pinned lead block (the crest)
+//   active          a NEWLY active item (a tab tap, a route) is scrolled whole
+//                   to the start edge once; the coach's own scrolling after
+//                   that is left alone
+// It writes straight to the DOM - no React state - so scrolling the bar never
+// re-renders the page (27.9 review). Direction-aware: RTL trails left.
+export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
+  React.useEffect(() => {
+    let el = null, t = 0, ro = null, lastActive = null, alive = true;
+    const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
+    const apply = (w, lw, lx, rtl) => {
+      if (!el) return;
+      if (clip) {
+        const v = w || lw ? (rtl ? `inset(0 ${lw}px 0 ${w}px)` : `inset(0 ${w}px 0 ${lw}px)`) : '';
+        if (el.style.clipPath !== v) el.style.clipPath = v;
+      }
+      const put = (p, width, side, off) => {
+        const n = p && p.current; if (!n) return;
+        if (!width) { n.style.display = 'none'; return; }
+        n.style.display = 'block'; n.style.width = `${width}px`;
+        n.style.left = ''; n.style.right = '';
+        n.style[side] = `${off}px`;
+      };
+      put(trailRef, w, rtl ? 'left' : 'right', 0);
+      put(leadRef, lw, rtl ? 'right' : 'left', lx);
+    };
+    const measure = () => {
+      if (!alive) return;
+      // follow the ref, not the element first seen: the rail can be re-created
+      // (a sub-tab tap remounts it), and it can mount after the data loads
+      const cur = ref && ref.current;
+      if (cur !== el) {
+        if (el) el.removeEventListener('scroll', later);
+        if (ro) { ro.disconnect(); ro = null; }
+        el = cur || null;
+        if (el) {
+          el.addEventListener('scroll', later, { passive: true });
+          if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(later); ro.observe(el); }
+        }
+      }
+      if (!el) return;
+      if (window.innerWidth > maxWidth || el.scrollWidth <= el.clientWidth + 1) { apply(0, 0, 0, false); hide(trailRef); hide(leadRef); return; }
+      const rtl = getComputedStyle(el).direction === 'rtl';
+      const r = el.getBoundingClientRect();
+      const edge = rtl ? r.left : r.right;
+      const plate = lead ? el.querySelector(lead) : null;
+      const pr = plate ? plate.getBoundingClientRect() : null;
+      const ledge = pr ? (rtl ? pr.left : pr.right) : (rtl ? r.right : r.left);
+      if (active) {
+        const act = el.querySelector(active);
+        if (act && act !== lastActive) {
+          lastActive = act;
+          const a = act.getBoundingClientRect();
+          const sp = parseFloat(getComputedStyle(el).scrollPaddingInlineStart) || 0;
+          const s0 = pr ? ledge : (rtl ? r.right - sp : r.left + sp);
+          const whole = rtl ? (a.right <= s0 + 1 && a.left >= edge - 1) : (a.left >= s0 - 1 && a.right <= edge + 1);
+          if (!whole) { el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
+        }
+      }
+      let w = 0, lw = 0;
+      for (const it of el.querySelectorAll(items)) {
+        if (plate && plate.contains(it)) continue;
+        const b = it.getBoundingClientRect();
+        if (b.width < 1) continue;
+        if (!rtl && b.left < edge - 0.5 && b.right > edge + 0.5) w = Math.max(w, edge - b.left);
+        if (rtl && b.right > edge + 0.5 && b.left < edge - 0.5) w = Math.max(w, b.right - edge);
+        if (!rtl && b.left < ledge - 0.5 && b.right > ledge + 0.5) lw = Math.max(lw, b.right - ledge);
+        if (rtl && b.right > ledge + 0.5 && b.left < ledge - 0.5) lw = Math.max(lw, ledge - b.left);
+      }
+      const lx = Math.round(rtl ? r.right - ledge : ledge - r.left);
+      apply(Math.ceil(w), Math.ceil(lw), lx, rtl);
+    };
+    // every scroll event (no state, so it is cheap) and once more after it
+    // settles - snap lands a few frames after the last event
+    function later() { measure(); clearTimeout(t); t = setTimeout(measure, 140); }
+    measure();
+    window.addEventListener('resize', later);
+    const t2 = setTimeout(measure, 700);   // fonts land after first paint
+    // a light poll for what no event reports (a programmatic scroll in an
+    // unfocused tab, a remounted rail); phones only
+    const iv = setInterval(() => { if (window.innerWidth <= maxWidth) measure(); }, 250);
+    return () => {
+      alive = false; clearTimeout(t); clearTimeout(t2); clearInterval(iv);
+      window.removeEventListener('resize', later);
+      if (el) { el.removeEventListener('scroll', later); if (clip) el.style.clipPath = ''; }
+      if (ro) ro.disconnect();
+    };
+  }, [ref, items, lead, maxWidth, active, clip, trailRef, leadRef]);
+}
+
+// A segment label: the full word, or - only when the full word would not fit
+// its cell - the short word, at the same font size (27.9). The full word's
+// width is measured ONCE while it is really on screen and remembered; later
+// decisions compare that width with the space left, so the label never
+// flips back and forth, and no hidden copy of the text sits in the page (a
+// hidden sizer read as a 7-24px spill to the overflow gate, 27.9).
+export function SegWord({ full, short }) {
+  const ref = React.useRef(null);
+  const fullW = React.useRef(0);
+  const [useShort, setUseShort] = React.useState(false);
+  const decide = React.useCallback(() => {
+    const el = ref.current; const btn = el && el.parentElement;
+    if (!el || !btn || !short || !fullW.current) return;
+    const cs = getComputedStyle(btn);
+    const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const gap = parseFloat(cs.columnGap) || 0;
+    let others = 0;
+    for (const k of btn.children) if (k !== el) others += k.getBoundingClientRect().width + gap;
+    const next = fullW.current + others + pad > btn.clientWidth + 0.5;
+    setUseShort((p) => (p === next ? p : next));
+  }, [short]);
+  // while the FULL word shows, take its width, then decide
+  React.useLayoutEffect(() => {
+    if (useShort) return;
+    const el = ref.current; if (!el) return;
+    fullW.current = el.getBoundingClientRect().width;
+    decide();
+  }, [useShort, full, decide]);
+  React.useEffect(() => {
+    const el = ref.current; const btn = el && el.parentElement;
+    if (!btn || !short) return undefined;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(decide) : null;
+    if (ro) ro.observe(btn);
+    // the web font changes the full word's width: take it again, once
+    let alive = true;
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (alive) setUseShort(false); }).catch(() => {});
+    const late = [250, 1000].map((ms) => setTimeout(decide, ms));
+    return () => { alive = false; late.forEach(clearTimeout); if (ro) ro.disconnect(); };
+  }, [short, decide]);
+  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', lineHeight:1, flexShrink:0 }}>{useShort ? short : full}</span>;
+}
+
 export function useEdgeFade(ref) {
   React.useEffect(() => {
     let el = null, ro = null, raf = 0, tries = 0;

@@ -104,8 +104,34 @@ function installProbe(TOL) {
       const cs = getComputedStyle(n);
       const r = n.getBoundingClientRect();
       if (cs.overflowX !== 'visible') { const l = r.left + n.clientLeft; L = Math.max(L, l); R = Math.min(R, l + n.clientWidth); }
+      // a clip-path inset() hides its edges as surely as an overflow box
+      const cp = /^inset\(([^)]*)\)/.exec(cs.clipPath || '');
+      if (cp) {
+        const v = cp[1].split(/\s+/).map((x) => parseFloat(x) || 0);
+        const [top, right = top, bottom = top, left = right] = v;
+        L = Math.max(L, r.left + left); R = Math.min(R, r.right - right);
+        T = Math.max(T, r.top + top); B = Math.min(B, r.bottom - bottom);
+      }
       if (cs.overflowY !== 'visible') { const t = r.top + n.clientTop; T = Math.max(T, t); B = Math.min(B, t + n.clientHeight); }
       if (cs.position === 'fixed') break;   // nothing above a fixed box clips it
+    }
+    // OPAQUE PLATES ARE EDGES TOO. A pinned crest plate or an end plate that the
+    // page marks [data-rail-occluder] paints over the rail's end: what you SEE
+    // stops at the plate, so the visible box stops there. A tab entirely
+    // behind the plate is "outside" (hidden whole - fine); a tab half behind
+    // it is SLICED (the plate itself is measured, not trusted).
+    const rr = el.getBoundingClientRect();
+    // plates can sit side by side (the crest, then a plate covering a tab's
+    // overlap next to it): repeat until the edges stop moving, so DOM order
+    // does not decide which plates count
+    const occ = [...document.querySelectorAll('[data-rail-occluder]')].map((o) => o.getBoundingClientRect())
+      .filter((b) => b.width >= 1 && b.bottom > rr.top && b.top < rr.bottom);
+    for (let moved = true, guard = 0; moved && guard < 10; guard++) {
+      moved = false;
+      for (const b of occ) {
+        if (b.left <= L + 1 && b.right > L + 0.5) { L = b.right; moved = true; }
+        if (b.right >= R - 1 && b.left < R - 0.5) { R = b.left; moved = true; }
+      }
     }
     return { L, R, T, B };
   };
