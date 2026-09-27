@@ -816,6 +816,8 @@ Object.assign(HE, {
   'Last 28 days': '28 הימים האחרונים',
   // K: lifts
   '4+ days': '4 ימים ומעלה',
+  // L: schedule
+  'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

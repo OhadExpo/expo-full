@@ -532,6 +532,25 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       .sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999)),
     [trainees]
   );
+  // THE DAY TURNS OVER WITH THE PAGE OPEN (#305 L1). `today` was read on each
+  // render, and nothing rendered at midnight - a tablet left on the Overview
+  // overnight showed yesterday's Today card until someone touched it. One
+  // timer to the next local midnight, and a check when the tab is shown again.
+  const [, setDayTick] = useState(0);
+  const dayRef = React.useRef(todayISO());
+  useEffect(() => {
+    let tid = null;
+    const bump = () => { const d = todayISO(); if (d !== dayRef.current) { dayRef.current = d; setDayTick((x) => x + 1); } };
+    const arm = () => {
+      const n = new Date();
+      const next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 5);
+      tid = setTimeout(() => { bump(); arm(); }, Math.max(1000, next - n));
+    };
+    arm();
+    const onVis = () => { if (document.visibilityState === 'visible') bump(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearTimeout(tid); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
   const today = todayISO();
   // Keyed on `today`, not [] — a tab left open past midnight kept the windows
   // pinned to the mount day while ACWR moved on, so the sparkline and the ratio
@@ -1526,7 +1545,7 @@ function attendance28(rec, days) {
                     should only let me attach an s&c team session"). The schedule
                     comes from the club calendar; a practice offers exactly one
                     action — attach the S&C team session to it. */}
-                <WeekPlanner fixtures={bhbcFixtures} today={today}
+                <WeekPlanner fixtures={bhbcFixtures} today={today} loads={bhbcLoads} athleteIds={roster.map((t) => t.id)}
                   onUpsert={null} onRemove={null}
                   onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null} />
                 {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
@@ -4639,7 +4658,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   );
 }
 
-function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
+function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc }) {
   const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
@@ -4649,6 +4668,24 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
   const horizontalWeek = wpLayout === 'columns';
   const isoOfDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const [anchor, setAnchor] = useState(today);
+  // THE WEEK FOLLOWS THE DAY (#305 L1): a page left open overnight kept
+  // yesterday's week once Saturday rolled into Sunday. The planner moves with
+  // the date only while it is still on the day it opened on - a week the
+  // coach paged to himself stays where he put it.
+  const openedOn = React.useRef(today);
+  useEffect(() => {
+    setAnchor((a) => (a === openedOn.current ? today : a));
+    openedOn.current = today;
+  }, [today]);
+  // THE S&C BUTTON SAYS WHAT IS ALREADY THERE (#305 L2 / L3). A practice whose
+  // S&C is logged reads "S&C ✓ 10′" in plain ink - still a button, since the
+  // sheet reopens on the record to correct it; one still to log keeps the
+  // orange action; a past practice with nothing logged is muted, not shouted
+  // (late logging still works, but a day gone by is not today's to-do).
+  const scOf = (d, f) => scLoggedFor(loads, athleteIds, { ...f, date: d }, fixtures);
+  const scLabel = (d, f) => { const sc = scOf(d, f); return sc ? <>{tr('S&C')} ✓ <MinTok n={sc.min} /></> : `+ ${tr('S&C')}`; };
+  const scTitle = (d, f) => tr(scOf(d, f) ? 'S&C logged - open it to correct' : 'Log S&C Session');
+  const scInk = (d, f) => (scOf(d, f) || d < today ? { color: C.tm, border: `1px solid ${C.cardBd}` } : { color: ORANGE, border: `1px solid ${ORANGE}` });
   const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
   const days = useMemo(() => {
     const d = new Date(`${anchor}T12:00:00`);
@@ -4753,8 +4790,8 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
                       {/* the number and its unit never part; a phone gets 120′ where "120 MIN" would break (26.9) */}
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{f.minutes ? <>{f.minutes}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></> : ''}</span>
                       {!horizontalWeek && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
-                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={tr('Log S&C Session')}
-                          style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, background: 'transparent', border: `1px solid ${ORANGE}`, height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ {tr('S&C')}</button>
+                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={scTitle(d, f)}
+                          style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', ...scInk(d, f), background: 'transparent', height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{scLabel(d, f)}</button>
                       )}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
                         <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✎</button>
@@ -4762,8 +4799,8 @@ function WeekPlanner({ fixtures = [], today, onUpsert, onRemove, onAttachSc }) {
                       </span>}
                     </div>
                       {horizontalWeek && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
-                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={tr('Log S&C Session')}
-                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE, background: 'transparent', border: `1px solid ${ORANGE}`, height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: '100%', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ {tr('S&C')}</button>
+                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={scTitle(d, f)}
+                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', ...scInk(d, f), background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: '100%', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{scLabel(d, f)}</button>
                       )}
                     </React.Fragment>
                   );
@@ -4961,8 +4998,11 @@ function ScheduleMonth({ fixtures, today }) {
     const inMonth = dt.getMonth() === m;
     const isToday = di === today;
     const items = (byDate[di] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));   // a slot with no start time must not take the card down (#305 N-F2)
+    // WHERE YOU ARE IN THE MONTH (#305 L4): today outlined in the zone's navy
+    // (an inset ring, so no cell moves; the theme-aware navy, which lifts to a
+    // light blue on the dark page), the days already gone dimmed.
     return (
-      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 2px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
