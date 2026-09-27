@@ -703,7 +703,9 @@ export default function MovementLab({
           dimmed preview - the results player replaces it when the read ends. */}
       {phase === 'analyzing' && srcUrl && (
         <div style={{ position: 'relative', width: '100%', background: C.videoBg, lineHeight: 0 }}>
-          <video src={srcUrl} muted playsInline preload="metadata" aria-hidden="true"
+          {/* #t=0.001: iOS Safari paints no first frame for a paused video
+              otherwise, and the preview would be the black box again */}
+          <video src={`${srcUrl}#t=0.001`} muted playsInline preload="metadata" aria-hidden="true"
             style={{ display: 'block', width: '100%', height: 'auto', maxHeight: isMobile ? '60vh' : '72vh', background: C.videoBg, opacity: 0.55 }} />
         </div>
       )}

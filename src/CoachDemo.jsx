@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord } from './ui';
+import { SegWord, useRailTrailMask } from './ui';
 
 // The demo is many small function components and a few module-level label
 // tables; one module-level helper (no hook) serves them all. Reads the
@@ -4750,6 +4750,13 @@ function programIdFromPath(p) {
 
 export default function CoachDemo() {
   const [tab, setTab] = useState(() => typeof window === 'undefined' ? 'dashboard' : tabFromPath(window.location.pathname));
+  // the phone top menu's no-slice plates + snap padding (27.9 #343)
+  const hdrRef = React.useRef(null), trailPlate = React.useRef(null), leadPlate = React.useRef(null);
+  useRailTrailMask(hdrRef, { items: '.cd-hdr > nav > *, .cd-pov > *, .cd-hdr > button, .cd-cta-waitlist', lead: '.cd-hdr > a:first-child', maxWidth: 860, trailRef: trailPlate, leadRef: leadPlate, active: '.cd-hdr > nav > [aria-selected="true"]' });
+  React.useLayoutEffect(() => {
+    const el = hdrRef.current; const id = el && el.querySelector(':scope > a:first-child');
+    if (el && id) el.style.setProperty('--crest-w', `${Math.round(id.getBoundingClientRect().width) + 8}px`);
+  });
   // Deep-link support: if the URL already points at a trainee, open it.
   const [selectedTrainee, setSelectedTrainee] = useState(() => typeof window === 'undefined' ? null : traineeIdFromPath(window.location.pathname));
   // Track where the trainee-detail view was reached from so the back button
@@ -4858,42 +4865,24 @@ export default function CoachDemo() {
         /* The note is a whole sentence or nothing: at 1440 it clipped to
            "MOCK DATA —" beside the nav. */
         @media (max-width: 1559px) { .cd-pov-note { display: none !important; } }
+        /* THE REAL APPS' TOP MENU ON A PHONE (27.9, Ohad: "top menu is bad.
+           should look like top menu's in expo and bhbc"). The 3x2 grid he
+           rejected on the coach app (#288) had stayed on the demo. Now: ONE
+           56px row that slides; the EXPO mark pinned at the start on an opaque
+           plate; each tab a snap point that rests right after the mark; the
+           far edge and the edge beside the mark covered by plates exactly over
+           any half-shown item (the same no-slice system as BHBC). */
         @media (max-width: 860px) {
-          .cd-hdr { flex-wrap: wrap !important; height: auto !important; overflow-x: visible !important; padding-top: 8px !important; padding-bottom: 8px !important; row-gap: 8px !important; }
-          /* A GRID, NOT A RAGGED WRAP. Letting it wrap put five tabs on one
-             row and תשלומים dangling alone on a second — measurably visible
-             and still ugly. Two tidy rows of three read as a designed menu.
-             1 1 100% with min-width 0, because with shrink 0 the strip kept
-             its content width (426px in Hebrew, 541 in English) and simply
-             hung off the edge again. */
-          .cd-hdr > nav { order: 3; flex: 1 1 100% !important; min-width: 0 !important; max-width: 100% !important; display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; overflow-x: visible !important; }
-          /* EVERY CELL GETS A BOUNDARY. With only the active tab boxed, the
-             other five were bare words floating in a dark field with
-             invisible gaps between them — six labels that read as a jumble
-             rather than as a menu. A hairline on each turns the grid into a
-             segmented control you can see the shape of, and one height means
-             the two rows line up instead of sizing themselves to their text. */
-          .cd-hdr > nav > * {
-            width: 100% !important; justify-content: center !important;
-            border: 1px solid var(--c-cardBd) !important;
-            min-height: 36px !important;   /* the one control height, not a second one */
-            /* the real app's phone cells, to the pixel (26.9 parity) */
-            font-size: 9.5px !important; letter-spacing: 0.02em !important; padding: 0 4px !important; gap: 4px !important;
-          }
-          .cd-hdr > nav > * span { font-size: 9.5px !important; }
-          .cd-hdr > nav > [aria-selected="true"] { border-color: var(--c-ac) !important; }
-          /* Logo first, actions after it, nav on its own row underneath —
-             the same reading order as the desktop bar. */
-          .cd-hdr > a:first-child { order: 0; }
-          .cd-hdr > button { order: 1; }
-          .cd-cta-waitlist { order: 2; margin-inline-start: auto !important; }
-          /* the demo-identity cluster takes the row after the nav; the sentence
-             has no room on a phone and the chip says enough */
-          /* two EQUAL cells, like the grid above it (26.9: the chip and the link sat at
-             the two ends at 125 and 175px wide - the one ragged row in the menu) */
-          .cd-pov { order: 4; flex: 1 1 100% !important; margin-inline-start: 0 !important; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px !important; }
-          .cd-pov > :not(.cd-pov-note) { width: 100% !important; justify-content: center !important; min-width: 0; white-space: nowrap !important; padding-inline: 6px !important; letter-spacing: 0.06em !important; }
+          .cd-hdr { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; gap: 8px !important; padding-inline: 0 !important; scroll-snap-type: x mandatory; scroll-padding-inline-start: var(--crest-w, 84px); }
+          .cd-hdr > a:first-child { position: sticky; inset-inline-start: 0; z-index: 3; flex: 0 0 auto !important; align-self: stretch; display: flex !important; align-items: center; background: var(--c-sf); padding-inline: 16px 16px; box-shadow: 8px 0 12px -8px rgba(0,0,0,0.7); }
+          [dir="rtl"] .cd-hdr > a:first-child { box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7); }
+          .cd-hdr > nav { flex: 0 0 auto !important; display: flex !important; gap: 6px !important; }
+          .cd-hdr > nav > * { flex: 0 0 auto; white-space: nowrap; scroll-snap-align: start; }
+          .cd-hdr > :last-child { scroll-snap-align: end; margin-inline-end: 16px !important; }
+          .cd-pov { flex: 0 0 auto !important; display: flex !important; gap: 6px !important; }
+          .cd-pov > :not(.cd-pov-note) { white-space: nowrap !important; }
           .cd-pov-note { display: none !important; }
+          .cd-cta-waitlist { flex: 0 0 auto; }
         }
         /* On a phone the waitlist button was wider than the EXPO logo and the
            brightest thing above the fold — a marketing CTA out-weighing both
@@ -4933,11 +4922,13 @@ export default function CoachDemo() {
             Ohad, three times: "the top menu is horrible". The banner's
             content now lives in the bar's middle — where the void was — and
             the bar is the real app's 56px. */}
-        <div className="cd-hdr" style={{
+        <div ref={trailPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: C.sf, zIndex: 4 }} />
+        <div ref={leadPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: C.sf, zIndex: 4 }} />
+        <div ref={hdrRef} className="cd-hdr" style={{
           maxWidth: 1280, margin: '0 auto', padding: '0 16px',
           display: 'flex', alignItems: 'center', height: 56, gap: 12, overflowX: 'auto',
         }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
+          <a href="/" data-rail-occluder="" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
           </a>
           {/* The COACH DEMO chip lived here and said the same thing as the

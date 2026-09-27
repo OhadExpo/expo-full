@@ -380,7 +380,7 @@ function BandPill({ band, value }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700,
       letterSpacing: '0.03em', color: c, background: `color-mix(in srgb, ${c} 13%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap',
+      border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap', lineHeight: 1,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
       {value != null && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</span>}
@@ -4617,11 +4617,15 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minWidth: 0, minHeight: 'var(--rc-stat, 32px)' }}>
                     <span style={{ fontFamily: FB, fontSize: 11, lineHeight: '14px', color: C.td, whiteSpace: 'nowrap' }}>{tr(t.position) || '—'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: injShort ? medText(inj.status) : 'transparent', whiteSpace: 'nowrap' }} aria-hidden={injShort ? undefined : 'true'}>{injShort ? `${injShort} · ${tr((MED_STATUS[inj.status] || {}).label || inj.status)}` : '·'}</span>
+                    {/* the reserved second line: the injury, or - for a player who
+                        has not landed yet - when he lands (it used to add a line
+                        of its own, so that card's row grew; 27.9 review) */}
+                    {!injShort && t.arrival && t.arrival > todayISO()
+                      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</span>
+                      : <span style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: injShort ? medText(inj.status) : 'transparent', whiteSpace: 'nowrap' }} aria-hidden={injShort ? undefined : 'true'}>{injShort ? `${injShort} · ${tr((MED_STATUS[inj.status] || {}).label || inj.status)}` : '·'}</span>}
                   </div>
                 );
               })()}
-              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><Plane size={9} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</div>}
               {/* #63, the unfinished half of "borders don't align from card to card"
                   (02.09). The card reserves a slot for the NAME and for the STAT
                   row but never for the FOOTER, so the one card whose footer wraps
@@ -4634,7 +4638,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   top-down flow pushed the footer through the bottom border. */}
               {/* the footer's text sits centred between the rule and the card's
                   edge: 12px above it, the card's 13px padding below */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
