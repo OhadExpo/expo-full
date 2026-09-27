@@ -1631,29 +1631,18 @@ function attendance28(rec, days) {
           <GameMinutesModal game={minutesFor} roster={roster} bhbcLoads={bhbcLoads} medical={medical}
             onClose={() => setMinutesFor(null)}
             onSave={({ date, minutes }) => {
-              // ONLY WHAT CHANGED IS WRITTEN, AND A ROW KEEPS ITS BOX SCORE
-              // (#305 N-F1). applyGameMinutes rebuilds every game row it touches
-              // as a bare {type, min} - so saving this sheet to correct ONE
-              // player's minutes stripped the league line (points, shooting,
-              // the opponent, the source) from all ten, the numbers the Games
-              // tab and the history popup are built from. Untouched players are
-              // left alone, and a touched row keeps every field but its minutes.
+              // ONLY WHAT CHANGED IS WRITTEN (#305 N-F1). The sheet holds every
+              // player's minutes, and a Save with one correction rewrote all ten
+              // records (and pinged every open zone for nothing). Untouched
+              // players are left exactly as stored; a touched row keeps its
+              // league line (applyGameMinutes edits the row, 27.9 review).
               const saved = gameMinutesOf(bhbcLoads || {}, date);
               const changed = {};
               for (const [id, v] of Object.entries(minutes || {})) {
                 if ((Number(v) || 0) !== (Number(saved[id]) || 0)) changed[id] = v;
               }
               if (!Object.keys(changed).length) { setMinutesFor(null); return; }
-              setBhbcLoads((prev) => {
-                const next = applyGameMinutes(prev, { date, minutes: changed, emptyRec });
-                for (const id of Object.keys(changed)) {
-                  const old = (((prev[id] || {}).sessions || {})[date] || []).find((r) => r && rowKind(r) === 'game');
-                  const day = (((next[id] || {}).sessions || {})[date]) || null;
-                  if (!old || !day) continue;
-                  next[id] = { ...next[id], sessions: { ...next[id].sessions, [date]: day.map((r) => (r && r.type === 'Game' && !r.box && !r.kind ? { ...old, min: r.min, rpe: null, load: 0 } : r)) } };
-                }
-                return next;
-              });
+              setBhbcLoads((prev) => applyGameMinutes(prev, { date, minutes: changed, emptyRec }));
               // WHO PLAYED WHILE MARKED OUT (#305 F4). The game row is the fact
               // for that day - the grids already show him as played - and the
               // mismatch goes on the record instead of passing silently.
