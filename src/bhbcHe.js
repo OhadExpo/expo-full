@@ -801,6 +801,9 @@ Object.assign(HE, {
   // F: safety
   'Marked out on this date - the minutes win for the day': 'רשום בחוץ בתאריך הזה — הדקות קובעות לאותו יום',
   'was out': 'היה בחוץ',
+  // G: the Today card
+  'S&C not logged yet': 'כוח עוד לא נרשם',
+  flies: 'טסים',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

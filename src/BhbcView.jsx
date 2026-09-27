@@ -322,6 +322,26 @@ function MinTok({ n }) {
   return <span style={{ whiteSpace: 'nowrap' }}>{n}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></span>;
 }
 
+// WAS THE TEAM S&C LOGGED FOR THIS PRACTICE? (#305 G1 / L2). Read off the
+// athletes' own rows, the same way Past practices reads them: a row carrying
+// this slot's start, or - for rows written before per-slot logging - a row
+// with no start on the day's first practice. Returns the block's minutes, or
+// null when nothing was logged. Never guessed.
+const COURT_PRACTICE = ['practice', 'shootaround', 'scrimmage'];
+function scLoggedFor(loads, athleteIds, f, fixtures) {
+  if (!f || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
+  const first = (fixtures || []).filter((x) => x && x.date === f.date && COURT_PRACTICE.includes(String(x.type || '').toLowerCase()))
+    .map((x) => String(x.start || '')).sort()[0];
+  for (const id of athleteIds || []) {
+    for (const r of ((((loads || {})[id] || {}).sessions || {})[f.date] || [])) {
+      if (!r || rowKind(r) !== 'sc' || !(Number(r.min) > 0)) continue;
+      const mine = r.start ? r.start === String(f.start || '') : first === String(f.start || '');
+      if (mine) return { min: Number(r.min) };
+    }
+  }
+  return null;
+}
+
 function Sparkline({ series, w = 100, h = 26, color = ORANGE }) {
   const vals = (series || []).map((v) => v || 0);
   const n = vals.length; const max = Math.max(1, ...vals);
@@ -1466,7 +1486,7 @@ function attendance28(rec, days) {
             {view === 'overview' && (
               <>
                 <ReturnLoadAlert roster={roster} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
-                <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
+                <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} loads={bhbcLoads} today={today} onOpen={setDetailFor}
                   onMedical={null}   /* see MED on the load board — same closure, one screen */
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null}
                   /* The staff brief is this report now: its COPY moved into the
@@ -3165,7 +3185,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   );
 }
 
-function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, onCopy, copied }) {
+function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpen, onMedical, onReportNew, onCopy, copied }) {
   const he = useHe();
   const tr = useT();
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
@@ -3183,7 +3203,10 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
   const out = rows.filter((r) => availOf(r) >= 4);
   const limited = rows.filter((r) => availOf(r) >= 2 && availOf(r) < 4);
   const available = rows.filter((r) => availOf(r) < 2);
-  const injuries = rows.flatMap((r) => activeInjuries(medical, r.t.id).map((inj) => ({ t: r.t, inj })));
+  // worst first, the order of the Medical tab and the board (#305 G4)
+  const SEV = { out: 0, 'non-contact': 1, limited: 2, available: 3 };
+  const injuries = rows.flatMap((r) => activeInjuries(medical, r.t.id).map((inj) => ({ t: r.t, inj })))
+    .sort((a, b) => (SEV[a.inj.status] ?? 4) - (SEV[b.inj.status] ?? 4) || String(a.inj.onsetDate || '').localeCompare(String(b.inj.onsetDate || '')));
   const nextGame = fx.nextGame;
   const gd = nextGame ? dayDiff(nextGame.date, today) : null;
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
@@ -3238,8 +3261,15 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               // The separators stay outside the atoms - they are where the line
               // is allowed to break.
               const atom = (t, extra) => <span style={{ whiteSpace: String(t).length <= 26 ? 'nowrap' : 'normal', ...extra }}>{t}</span>;
+              // THE TRAVEL DAY, when the trip leaves before game day (#305 G3):
+              // an away game two days out that flies tomorrow is really one day
+              // out for the S&C plan. Read off the trip's own first leg.
+              const outLeg = nextGame.travel && nextGame.travel.out;
+              const flies = outLeg && outLeg.date && outLeg.date < nextGame.date && outLeg.date >= today
+                ? `${tr('flies')} ${outLeg.date === today ? tr('today') : `${dow(outLeg.date)} ${monDay(outLeg.date)}`}` : null;
               const facts = [
                 gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd === 1 ? 'יום אחד' : `${gd} ימים`}` : `in ${gd} day${gd === 1 ? '' : 's'}`),
+                ...(flies ? [flies] : []),
                 nextGame.home === true ? tr('HOME') : nextGame.home === false ? tr('AWAY') : tr('Venue TBD'),
                 ...(nextGame.venue ? [nextGame.venue] : []),
               ];
@@ -3258,7 +3288,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
           here. Rendered bare, it keeps its chips and loses the second copy of
           everything else. */}
       <Section label={tr("Today")}>
-        <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} />
+        <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} loads={loads} />
       </Section>
       <Section label={tr("Availability")} list>
         <span><span style={{ color: C.tx, fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {countWord(available.length, 'available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {countWord(limited.length, 'limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
@@ -3373,13 +3403,20 @@ function staffBriefText({ today, fx, rows, medical, he, tr }) {
   // slot is the one he briefs. A weights session is not briefed. No focus
   // line any more: practice plans are gone (24.9).
   const period = slots.find((f) => f.type === 'practice') || null;
+  // THE SAME SPLIT AS THE CARD IT IS COPIED FROM (#305 G5). It used to read
+  // the injuries only, so a player Out for a personal reason - or set Limited
+  // by the coach with no injury filed - went into WhatsApp as available while
+  // the card above the Copy button counted him out.
   const limited = [], outList = [];
   for (const r of (rows || [])) {
+    const code = r.avail || 1;
+    if (code < 2) continue;
     const inj = activeInjuries(medical || {}, r.t.id);
     const worst = inj.find((i) => i.status === 'out') || inj.find((i) => i.status === 'non-contact') || inj.find((i) => i.status === 'limited');
     const label = (x) => [x.bodyPart, x.type].filter(Boolean).map((v) => tr(v)).join(' ');
-    if (worst && worst.status === 'out') outList.push({ name: r.t.name, detail: label(worst) });
-    else if (worst) limited.push({ name: r.t.name, detail: label(worst) + ' (' + tr((MED_STATUS[worst.status] || {}).label || worst.status) + ')' });
+    const detail = worst ? label(worst) + (code < 4 ? ' (' + tr((MED_STATUS[worst.status] || {}).label || worst.status) + ')' : '') : tr((AVAIL[code] || {}).label || '');
+    if (code >= 4) outList.push({ name: r.t.name, detail });
+    else limited.push({ name: r.t.name, detail });
   }
   const flat = (e) => e.name + ' — ' + e.detail;
   const availCount = (rows || []).length - limited.length - outList.length;
@@ -3420,7 +3457,7 @@ function DensityBit({ f: fx, size = 11 }) {
     </span>
   );
 }
-function TodayPanel({ today, fixtures, fx, rows, bare = false }) {
+function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
   const he = useHe();
   const tr = useT();
   const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
@@ -3433,10 +3470,27 @@ function TodayPanel({ today, fixtures, fx, rows, bare = false }) {
   // segment; all text one size.
   // A session chip and its density line. No plan under it: practice plans are
   // gone (Ohad, 24.9: "no practice plans").
+  // Under each of TODAY's practices: was its S&C logged (#305 G1)? The coach
+  // sees what is still his to log without opening the sheet. A practice that
+  // has started and has nothing logged is the one exception coloured.
+  const ids = (rows || []).map((r) => r.t.id);
+  const nowD = new Date();
+  const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
+  const scLine = (f) => {
+    if (f.date !== today || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
+    const sc = scLoggedFor(loads, ids, f, fixtures);
+    const started = !!f.start && f.start <= nowHHMM;
+    return (
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sc ? C.tm : started ? ORANGE_DEEP : C.td, whiteSpace: 'nowrap' }}>
+        {sc ? <>{tr('S&C')} ✓ <MinTok n={sc.min} /></> : tr('S&C not logged yet')}
+      </span>
+    );
+  };
   const chipWrap = (f, i, showDate) => (
     <span key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
       {chip(f, i, showDate)}
       <DensityBit f={f} />
+      {scLine(f)}
     </span>
   );
   const chip = (f, i, showDate) => (
