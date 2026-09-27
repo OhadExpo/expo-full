@@ -1678,7 +1678,10 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .bhbc-week-grid .bhbc-chip .min-tick { display: inline; }
 
 /* the history filter: two equal columns on a phone (27.9) */
-@media (max-width: 620px) { .bhbc-hist-chips { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (max-width: 620px) {
+  .bhbc-hist-chips { grid-template-columns: repeat(var(--hc-phone, 2), minmax(0, 1fr)) !important; }
+  .bhbc-hist-chips[data-allspan] > :first-child { grid-column: 1 / -1; }
+}
 
 /* BHBC player stats: a real table at every width, the name column pinned (27.9) */
 .bhbc-stats-table { display: table !important; }

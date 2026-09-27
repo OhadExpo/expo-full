@@ -16,8 +16,9 @@ const empty = () => ({ loads: {}, sessions: {}, readiness: {} });
 
 console.log('first save');
 let store = applyGameMinutes({}, { date: D, rpe: 8, minutes: { a1: 32, a2: 12, a3: 0 }, emptyRec: empty });
-ok('a starter gets rpe x minutes', store.a1.loads[D] === sessionLoad(32, 8), String(store.a1.loads[D]));
-ok('a bench player gets his own smaller load', store.a2.loads[D] === sessionLoad(12, 8), String(store.a2.loads[D]));
+// NO RPE, NO LOAD (Ohad 23.9): minutes are the fact; no load is ever derived.
+ok('a starter keeps his minutes and no derived load', store.a1.sessions[D][0].min === 32 && store.a1.loads[D] === undefined, JSON.stringify(store.a1));
+ok('a bench player keeps his own minutes', store.a2.sessions[D][0].min === 12, JSON.stringify(store.a2.sessions[D]));
 ok('a DNP gets no load entry at all', store.a3.loads[D] === undefined, JSON.stringify(store.a3.loads));
 ok('the session is recorded as a Game', (store.a1.sessions[D] || [])[0].type === 'Game');
 
@@ -29,7 +30,7 @@ ok('does not leave two Game sessions', (store.a1.sessions[D] || []).filter((s) =
 
 console.log('correcting the minutes');
 store = applyGameMinutes(store, { date: D, rpe: 8, minutes: { a1: 20 }, emptyRec: empty });
-ok('replaces rather than adds', store.a1.loads[D] === sessionLoad(20, 8), String(store.a1.loads[D]));
+ok('replaces rather than adds', store.a1.sessions[D].length === 1 && store.a1.sessions[D][0].min === 20, JSON.stringify(store.a1.sessions[D]));
 
 console.log('a game does not erase the rest of the day');
 let mixed = {
@@ -37,15 +38,15 @@ let mixed = {
 };
 mixed = applyGameMinutes(mixed, { date: D, rpe: 9, minutes: { b1: 25 }, emptyRec: empty });
 ok('the morning lift survives', (mixed.b1.sessions[D] || []).some((s) => s.type === 'Lift'));
-ok('the day totals lift + game', mixed.b1.loads[D] === 300 + sessionLoad(25, 9), String(mixed.b1.loads[D]));
+ok('the day keeps the lift load and adds none for the game', mixed.b1.loads[D] === 300, String(mixed.b1.loads[D]));
 mixed = applyGameMinutes(mixed, { date: D, rpe: 9, minutes: { b1: 0 }, emptyRec: empty });
 ok('setting minutes to zero removes only the game', mixed.b1.loads[D] === 300, String(mixed.b1.loads[D]));
 ok('and leaves the lift session', (mixed.b1.sessions[D] || []).length === 1);
 
 console.log('reopening the editor');
 ok('minutes come back', gameMinutesOf(store, D).a1 === 20, JSON.stringify(gameMinutesOf(store, D)));
-ok('rpe comes back', gameRpeOf(store, D) === 8, String(gameRpeOf(store, D)));
-ok('prior load is reported', priorGameLoad(store.a1, D) === sessionLoad(20, 8));
+ok('no rpe is ever stored', gameRpeOf(store, D) == null, String(gameRpeOf(store, D)));
+ok('no prior game load exists', !priorGameLoad(store.a1, D));
 
 console.log('other days are untouched');
 const other = applyGameMinutes({ c1: { loads: { '2026-08-01': 500 }, sessions: {}, readiness: {} } },
@@ -59,10 +60,21 @@ ok('with no invented rpe', ((noRpe.d1.sessions[D] || [])[0] || {}).rpe === null)
 ok('and zero load', ((noRpe.d1.sessions[D] || [])[0] || {}).load === 0 && noRpe.d1.loads[D] === undefined, JSON.stringify(noRpe.d1.loads));
 ok('the editor still opens on those minutes', gameMinutesOf(noRpe, D).d1 === 26);
 noRpe = applyGameMinutes(noRpe, { date: D, rpe: 7, minutes: { d1: 26 }, emptyRec: empty });
-ok('setting the rpe later computes the load', (noRpe.d1.loads || {})[D] === sessionLoad(26, 7), String((noRpe.d1.loads || {})[D]));
+ok('an rpe passed in is ignored - still no load', (noRpe.d1.loads || {})[D] === undefined, String((noRpe.d1.loads || {})[D]));
 ok('and does not double the row', (noRpe.d1.sessions[D] || []).filter((x) => x.type === 'Game').length === 1);
 const dnp = applyGameMinutes({}, { date: D, rpe: 0, minutes: { e1: 0 }, emptyRec: empty });
 ok('a DNP writes nothing at all', !((dnp.e1.sessions || {})[D] || []).length);
+
+console.log('re-saving keeps the official box score (27.9 review)');
+const box = { pts: 20, fg3: { m: 2, a: 5 }, reb: 4 };
+let official = { f1: { loads: {}, readiness: {}, sessions: { [D]: [{ kind: 'game', type: 'Game', min: 27, rpe: null, load: 0, attended: true, opp: 'X', comp: 'League', box, source: 'basket.co.il/1' }] } } };
+ok('the editor opens on the logger\'s minutes', gameMinutesOf(official, D).f1 === 27, JSON.stringify(gameMinutesOf(official, D)));
+official = applyGameMinutes(official, { date: D, minutes: gameMinutesOf(official, D), emptyRec: empty });
+const g1 = official.f1.sessions[D].find((x) => x.type === 'Game');
+ok('an unchanged save keeps box, opponent and source', g1 && g1.box === box && g1.opp === 'X' && g1.source === 'basket.co.il/1', JSON.stringify(g1));
+official = applyGameMinutes(official, { date: D, minutes: { f1: 29 }, emptyRec: empty });
+const g2 = official.f1.sessions[D].filter((x) => x.type === 'Game');
+ok('a corrected minute keeps the box and stays one row', g2.length === 1 && g2[0].min === 29 && g2[0].box === box, JSON.stringify(g2));
 
 console.log(fails ? `\n${fails} FAILED` : '\nall assertions passed');
 process.exit(fails ? 1 : 0);

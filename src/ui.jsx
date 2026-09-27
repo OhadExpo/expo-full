@@ -1024,7 +1024,7 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, gu
               <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{tt('You changed something here and did not save it.')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <button type="button" onClick={() => setAsking(false)} style={{ height: 'var(--btn-h)', border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>{tt('Keep editing')}</button>
-                <button type="button" onClick={() => { setAsking(false); setDirty(false); onCloseRef.current?.(); }} style={{ height: 'var(--btn-h)', border: `1px solid ${C.rd}`, background: C.rd, color: '#fff', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>{tt('Discard')}</button>
+                <button type="button" onClick={() => { setAsking(false); setDirty(false); onCloseRef.current?.(); }} style={{ height: 'var(--btn-h)', border: `1px solid ${C.rd}`, background: C.rd, color: '#fff', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>{tt("Don't save")}</button>
               </div>
             </div>
           </div>

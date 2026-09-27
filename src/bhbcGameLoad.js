@@ -49,7 +49,13 @@ export function applyGameMinutes(prev, { date, minutes = {}, emptyRec = () => ({
     const rec = { ...src, loads: { ...(src.loads || {}) }, sessions: { ...(src.sessions || {}) } };
 
     const prior = priorGameLoad(rec, date);
-    const kept = (rec.sessions[date] || []).filter((s) => !(s && s.type === GAME));
+    const isGame = (s) => s && (s.type === GAME || s.kind === 'game');
+    // THE GAME ROW IS EDITED, NOT REPLACED (27.9 review): the box-score logger
+    // writes the official line (box, opponent, competition, source) on this
+    // row. Rebuilding it as {type, min} deleted all of that the moment a coach
+    // opened the minutes editor and pressed Save, even with nothing changed.
+    const had = (rec.sessions[date] || []).find(isGame) || null;
+    const kept = (rec.sessions[date] || []).filter((s) => !isGame(s));
     // Whatever else happened that day survives untouched: a game does not erase
     // the morning's lift.
     const base = Math.max(0, (Number(rec.loads[date]) || 0) - prior);
@@ -57,7 +63,7 @@ export function applyGameMinutes(prev, { date, minutes = {}, emptyRec = () => ({
       // Minutes played are a real, official fact and they stay. The load does
       // not: there is no RPE to derive one from and there never will be.
       if (base > 0) rec.loads[date] = base; else delete rec.loads[date];
-      rec.sessions[date] = [...kept, { type: GAME, min: mins, rpe: null, load: 0, attended: true }];
+      rec.sessions[date] = [...kept, { ...(had || {}), type: GAME, min: mins, rpe: null, load: 0, attended: true }];
     } else {
       if (base > 0) rec.loads[date] = base; else delete rec.loads[date];
       if (kept.length) rec.sessions[date] = kept; else delete rec.sessions[date];
@@ -72,7 +78,7 @@ export function gameMinutesOf(loadsByAthlete, date) {
   const out = {};
   for (const [id, rec] of Object.entries(loadsByAthlete || {})) {
     const same = (rec && rec.sessions && rec.sessions[date]) || [];
-    const g = same.find((s) => s && s.type === GAME);
+    const g = same.find((s) => s && (s.type === GAME || s.kind === 'game'));
     if (g) out[id] = Number(g.min) || 0;
   }
   return out;

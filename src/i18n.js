@@ -574,6 +574,7 @@ export const HE = {
   "Comments": "תגובות",
   "Read-only": "לקריאה בלבד",
   "Discard": "ביטול",
+  "Don't save": "לא לשמור",
   "Select": "בחירה",
   "Member": "משתתף",
   "Confirm": "אישור",

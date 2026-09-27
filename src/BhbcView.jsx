@@ -1133,8 +1133,8 @@ function attendance28(rec, days) {
   /* 96px, the SAME number as the desktop grid, not auto. With auto the name
      track is the content width, so a short surname pulled the diagnosis column
      left and every row started its detail at a different x - measured at 390:
-     Knight at 78, Bryant 82, Francis 87, Hannahs 94, Menachem 103, Broughton
-     111, a 33px spread down six rows. 96 holds the longest surname in the
+     six surnames started at 78, 82, 87, 94, 103 and
+     111px, a 33px spread down six rows. 96 holds the longest surname in the
      squad and the UPDATE button that sits under it on a phone. */
   .bhbc-med-row{ grid-template-columns: 10px 96px minmax(0,1fr) !important; margin-inline-start: 0 !important; }
           .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
@@ -1432,10 +1432,11 @@ function attendance28(rec, days) {
               {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>}
               {/* TWO loggers, named for what they write (Ohad, 24.9: "lifts
                   should say log lift", "sc sessions should say log S&C
-                  Session"). The S&C one is the team's daily write and is the
-                  filled button; a lift is one athlete's own. */}
+                  Session"). All three share one weight (27.9). */}
               {canLog && <Btn variant="ghost" onClick={() => setLogFor('new')}>{tr('Log lift')}</Btn>}
-              {canLog && <Btn onClick={() => { setScPreset(null); setPracticeOpen(true); }} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Log S&C Session')}</Btn>}
+              {/* one weight for all three (27.9, Ohad: "log sc session should not be
+                  orange it's not more important than the others") */}
+              {canLog && <Btn variant="ghost" onClick={() => { setScPreset(null); setPracticeOpen(true); }}>{tr('Log S&C Session')}</Btn>}
             </div>
           )}
         </div>
@@ -1820,7 +1821,19 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
     label: `${s.opp ? `${tr('vs')} ${s.opp}` : tr('Game')} · ${s.min ? s.min + '\u00a0' + tr('min') : tr('played')}`,
     load: null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) }, by: s.by || null,
   } : { kind: rowKind(s), date: d, note: s.rpe == null ? (s.note || '') : '', label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
-  (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ kind: 'gym', date: d, label: `${tr('Gym')} · ${nEx} ${tr(nEx === 1 ? 'lift' : 'lifts')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`, load: null }); });
+  // GYM = LIFTS (27.9, Ohad: "what's the difference between gym and lifts? if
+  // you can combine it do so"). "Gym" was the athlete's EXPO workout, logged set
+  // by set in his own app; a Lift is the same session logged here in minutes.
+  // One kind, one chip. A lift logged here on the same day gets the EXPO detail
+  // appended instead of a second row; stored rows are untouched.
+  (workouts || []).forEach((w) => {
+    const d = String(w.date || w.completedAt || '').slice(0, 10); if (!d) return;
+    const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0);
+    const detail = `${nEx} ${tr(nEx === 1 ? 'exercise' : 'exercises')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`;
+    const same = activity.find((x) => x.kind === 'lift' && x.date === d && !x.expoDetail);
+    if (same) { same.label = `${same.label} · ${detail}`; same.expoDetail = true; }
+    else activity.push({ kind: 'lift', date: d, label: `${tr('Lift')} · ${detail}`, load: null, expoDetail: true });
+  });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ kind: 'other', date: d, label: `${tr('Bodyweight')} ${kg} ${tr('kg')}`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ kind: 'other', date: d, label: `${tr('Availability')} · ${tr(AVAIL[code].label)}`, load: null }); });
   // NOTES ARE STORED UNDER TWO KEYS. savePractice writes each note as both
@@ -1856,10 +1869,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   const allActivity = activity;
   activity = showPast ? allActivity : allActivity.filter((a) => seasonOfDate(a.date) === curSeason);
   // Counts per kind for the chips, then the visible rows grouped by month.
-  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C', lift: 'Lifts', gym: 'Gym', note: 'Notes', other: 'Other' };
+  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C', lift: 'Lifts', note: 'Notes', other: 'Other' };
   const kindCount = {};
   activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
-  const kindChips = ['game', 'practice', 'sc', 'lift', 'gym', 'note', 'other'].filter((k) => kindCount[k]);
+  const kindChips = ['game', 'practice', 'sc', 'lift', 'note', 'other'].filter((k) => kindCount[k]);
   const effKind = histKind === 'all' || kindChips.includes(histKind) ? histKind : 'all';
   const shownActivity = effKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === effKind);
   const monthKeys = [];
@@ -1956,26 +1969,34 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               RPE x minutes, which this zone never logs — they could only ever
               say "needs sRPE" (26.9, #230). */}
           {(() => {
-            const cut7 = daysAgoISO(6), cut28 = daysAgoISO(27);
-            let m7 = 0, n7 = 0, m28 = 0, n28 = 0, lastLift = null;
+            const cut7 = daysAgoISO(6);
+            let m7 = 0, n7 = 0, lastLift = null, lastGame = null;
             for (const [d, list] of Object.entries((rec && rec.sessions) || {})) {
               for (const r of (list || [])) {
                 if (!r || r.attended === false) continue;
                 const mm = Number(r.min) || 0;
-                if (d >= cut28) { n28++; m28 += mm; if (d >= cut7) { n7++; m7 += mm; } }
+                if (d >= cut7) { n7++; m7 += mm; }
                 if (rowKind(r) === 'lift' && (!lastLift || d > lastLift)) lastLift = d;
+                if (rowKind(r) === 'game' && (!lastGame || d > lastGame.date)) lastGame = gameLineOf(d, r);
               }
             }
             // One line per tile at 390 (26.9): the unit rides beside the number,
             // the date is day.month — "22 SEP" at 22px broke onto two lines.
             const dm = (iso) => { const d = parseISO(iso); return `${d.getDate()}.${d.getMonth() + 1}`; };
+            // LAST GAME in place of the 28-day total (27.9, Ohad: "show last game
+            // instead of one of the others"): its date, then his minutes and
+            // points; a tap opens the game's full line.
+            const gSub = lastGame ? [lastGame.min ? `${lastGame.min} ${tr('min')}` : tr('played'), lastGame.box && lastGame.box.pts != null ? `${lastGame.box.pts} ${tr('pts')}` : null].filter(Boolean).join(' · ') : tr('none logged');
             return [
               [tr('7 days'), m7 || null, tr('min'), n7 ? `${n7} ${tr('sessions')}` : tr('none logged')],
-              [tr('28 days'), m28 || null, tr('min'), n28 ? `${n28} ${tr('sessions')}` : tr('none logged')],
+              [tr('Last game'), lastGame ? dm(lastGame.date) : null, '', gSub, lastGame],
               [tr('Last lift'), lastLift ? dm(lastLift) : null, '', lastLift ? dow(lastLift) : tr('none logged')],
             ];
-          })().map(([k, v, unit, sub]) => (
-            <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px', minWidth: 0 }}>
+          })().map(([k, v, unit, sub, line]) => (
+            <div key={k} onClick={line ? () => setGameOpen(line) : undefined} role={line ? 'button' : undefined} tabIndex={line ? 0 : undefined}
+              onKeyDown={line ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(line); } }) : undefined}
+              className={line ? 'bhbc-row' : undefined}
+              style={{ background: 'var(--c-sf)', padding: '10px 12px', minWidth: 0, cursor: line ? 'pointer' : undefined }}>
               <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{k}</div>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: v == null ? C.td : C.tx, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', whiteSpace: 'nowrap' }}>
                 {v == null ? '—' : v}{v != null && unit ? <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 4 }}>{unit}</span> : null}
@@ -2053,10 +2074,13 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               little space" - 134 showed FOUR entries of twenty-one. 431 shows
               thirteen, which is a month of work, and still scrolls. */}
           {activity.length > 4 && kindChips.length > 1 && (
-            // ONE CONTROL, EQUAL CELLS (27.9, Ohad: "buttons all to lifts is bad
-            // design for ocd"): a segmented grid joined by hairlines - one row of
-            // equal cells where they fit, two equal columns on a phone.
-            <div className="bhbc-hist-chips" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(['all', ...kindChips].length, 6)}, minmax(0, 1fr))`, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
+            // ONE CONTROL, EQUAL CELLS, NO EMPTY CELL (27.9, Ohad: "buttons all to
+            // gym are badly displayed ... not ocd"): a segmented grid joined by
+            // hairlines. Desktop: one row. Phone: 2 or 3 equal columns so every
+            // row is full; with an odd count that neither fills, ALL takes the
+            // whole first row and the kinds fill two columns under it.
+            (() => { const n = kindChips.length + 1; const cols = n <= 3 ? n : n % 3 === 0 ? 3 : n % 2 === 0 ? 2 : 2; const allSpan = n > 3 && n % 3 !== 0 && n % 2 !== 0; return (
+            <div className="bhbc-hist-chips" data-allspan={allSpan ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
               {['all', ...kindChips].map((k) => {
                 const on = effKind === k;
                 return (
@@ -2068,6 +2092,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                 );
               })}
             </div>
+            ); })()
           )}
           {pastSeasons.length > 0 && (
             <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
@@ -2263,7 +2288,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Btn variant="ghost" onClick={fillAll} style={{ marginBottom: 1 }}>{tr('Baseline all OK')}</Btn>
+          <Btn variant="ghost" data-dirties onClick={fillAll} style={{ marginBottom: 1 }}>{tr('Baseline all OK')}</Btn>
         </div>
         {/* Helper as its own clean full-width line (was crammed into the top-right). */}
         <div style={{ fontFamily: FB, fontSize: 12, color: C.td, lineHeight: 1.5 }}>Sleep · energy · pain (0–10) · BW kg (optional). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</div>
@@ -2734,14 +2759,14 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
   // NATHAN" while the medical list right above it said DAESHON FRANCIS and
   // NATHAN KNIGHT. A squad is called by last names. Last token works for the
-  // Hebrew names too (עמית מנחם -> מנחם), and a one-word name is left alone.
+  // Hebrew names too (ישראל ישראלי -> ישראלי), and a one-word name is left alone.
   const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
   // FSI/PDI: a Hebrew first name inside an English sentence dragged the
   // closing bracket to the wrong side - "(Daeshon, Dusty, עמית, DJ +1)"
   // rendered with the paren orphaned. Isolating the run fixes it in both
   // languages without touching the surrounding direction.
   // The "+3" belongs OUTSIDE the bidi isolate. Inside it, a list ending in a
-  // Hebrew surname reorders to "3+ מנחם" - the plus lands on the wrong side of
+  // Hebrew surname reorders to "3+ ישראלי" - the plus lands on the wrong side of
   // the number. Isolating only the NAMES keeps the count in logical order.
   const names = (arr) => '⁨' + arr.slice(0, 4).map(first).join(', ') + '⁩'
     + (arr.length > 4 ? ` +${arr.length - 4}` : '');
@@ -3094,11 +3119,11 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
   // NATHAN" while the medical list right above it said DAESHON FRANCIS and
   // NATHAN KNIGHT. A squad is called by last names. Last token works for the
-  // Hebrew names too (עמית מנחם -> מנחם), and a one-word name is left alone.
+  // Hebrew names too (ישראל ישראלי -> ישראלי), and a one-word name is left alone.
   const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
   // Each NAME is its own bidi run (U+2068 FSI .. U+2069 PDI). Without it a
   // Hebrew surname among Latin ones pulls the commas and the closing full
-  // stop into its RTL run - the line read "limited: Bryant, .מנחם". Same
+  // stop into its RTL run - the line read "limited: <name>, .<שם>". Same
   // device the roster summary above already uses.
   const iso = (n) => '⁨' + n + '⁩';
   const nameList = (arr) => arr.slice(0, 5).map((r) => iso(first(r))).join(', ') + (arr.length > 5 ? ` +${arr.length - 5}` : '');
@@ -3214,7 +3239,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
                     <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}
                                         {/* THE OVERDUE CLAUSE GETS ITS OWN LINE, ALWAYS.
-                        Ohad 19.9, on Amit Menachem: "המשפט באיחור של עמית מנחם
+                        Ohad 19.9, on one athlete's row: "המשפט באיחור של [השחקן]
                         מוציא את הכל מאיזון. תתחיל משפטים כאלה משורה חדשה כדי שלא
                         יהיה אי סימטרי". Appended inline it wrapped mid-phrase -
                         'באיחור של 19' on one line and 'ימים' alone on the next -
@@ -4985,7 +5010,19 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   // A player with no league stats has nothing to rank, so he sorts LAST in
   // BOTH directions. Letting him take the -1 would put every dash at the top of
   // an ascending sort, which answers nobody's question.
-  const items = (roster || []).map((t) => ({ t, s: (loads && clubSeasonStats(t, loads)) || leaguePlayerFor(league, t) }))
+  // FIELD BY FIELD (27.9 review): GP and minutes come from every logged game;
+  // a box figure the logged games do not carry (no boxed game yet) falls back
+  // to the official league feed instead of reading as a dash.
+  const merged = (t) => {
+    const club = loads ? clubSeasonStats(t, loads) : null;
+    const lg = leaguePlayerFor(league, t);
+    if (!club) return lg;
+    if (!lg) return club;
+    const out = { ...club };
+    for (const k of ['ppg', 'rpg', 'apg', 'tpp', 'ftp', 'pirpg']) if (out[k] == null && lg[k] != null) out[k] = lg[k];
+    return out;
+  };
+  const items = (roster || []).map((t) => ({ t, s: merged(t) }))
     .sort((a, b) => {
       const av = a.s ? a.s[sort] : null, bv = b.s ? b.s[sort] : null;
       if (av == null && bv == null) return (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
@@ -5348,8 +5385,8 @@ function medicalAvailOn(medical, athleteId, date) {
     //
     // Two kinds of dated evidence, and the newest one at or before the day wins:
     // the progress notes, and the record's own headline `status`, which is
-    // dated by updatedAt. Menachem is the case that proves both are needed —
-    // his notes run non-contact → limited → available → limited (12.09) but the
+    // dated by updatedAt. One real record proves both are needed —
+    // its notes run non-contact → limited → available → limited (12.09) but the
     // headline was set to OUT on 15.09. Reading the notes alone made him
     // Limited on 19.09 and 20.09; reading the headline alone would have made
     // him Out on 12.09, when the note says he was Limited. Ordered by date,
@@ -5814,8 +5851,11 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
   const headInjury = /concussion/i.test(type || '') || /^head/i.test(bodyPart || '');
   const [onsetDate, setOnsetDate] = useState(injury?.onsetDate || todayISO());
   const [status, setStatus] = useState(injury?.status || 'out');
-  // the CURRENT pain: the latest rehab note's score when there is one (#305 A13)
-  const [pain, setPain] = useState(() => { const lp = injury ? latestPain(injury) : null; return lp ?? injury?.pain ?? ''; });
+  // The STORED pain stays the stored pain (27.9 review): pre-filling the latest
+  // rehab score here wrote it over the report-time value on any save, even a
+  // status-only one. The latest rehab score shows as the field's hint instead.
+  const [pain, setPain] = useState(() => injury?.pain ?? '');
+  const painHint = injury ? latestPain(injury) : null;
   const [mechanism, setMechanism] = useState(injury?.mechanism || '');
   // kept as stored and saved back unchanged - no RTP is shown or edited in the club zone (27.9 #312)
   const [rtpTarget] = useState(injury?.rtpTarget || '');
@@ -5911,7 +5951,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
           <div><label style={lbl}>{tr('Onset date')}</label>
             <input type="date" value={onsetDate} max={today} onChange={(e) => setOnsetDate(e.target.value)} style={sel} />
             <span style={{ display: 'block', marginTop: 4, fontFamily: FN, fontSize: 10, color: onsetDate > today ? '#DE4E3B' : C.tm }}>{agoText(onsetDate)}</span></div>
-          <div><label style={lbl}>{tr('Pain (0–10)')}</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
+          <div><label style={lbl}>{tr('Pain (0–10)')}</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder={painHint != null ? String(painHint) : '—'} style={sel} /></div>
 
         </div>
         <div>
