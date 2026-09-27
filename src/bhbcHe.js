@@ -796,6 +796,73 @@ Object.assign(HE, {
   PRE_SEASON: 'טרום עונה',
 });
 
+// ---- #305 smarter, no new features (27.9) -------------------------------
+// Every line a label on something that already existed.
+Object.assign(HE, {
+  // A: logging
+  'Same side as his earlier injury here': 'אותו צד כמו בפציעה הקודמת שלו במקום הזה',
+  'That date has not happened yet.': 'התאריך הזה עוד לא הגיע.',
+  // B: derived facts
+  'all out': 'כולם בחוץ',
+  // D: staleness
+  'Premier League': 'ליגת העל',
+  'Official league feed (basket.co.il). Only games the league has published appear here.': 'הנתונים הרשמיים של הליגה (basket.co.il). מופיעים כאן רק משחקים שהליגה כבר פרסמה.',
+  // E: consistency
+  'None assigned': 'עוד לא שויך בלוק',
+  '1 practice': 'אימון אחד',
+  practices: 'אימונים',
+  // F: safety
+  'Marked out on this date - the minutes win for the day': 'רשום בחוץ בתאריך הזה — הדקות קובעות לאותו יום',
+  'was out': 'היה בחוץ',
+  // G: the Today card
+  'S&C not logged yet': 'כוח עוד לא נרשם',
+  flies: 'טסים',
+  // H: the head coach report - where each line comes from
+  'From the club calendar': 'מלוח המועדון',
+  'From the club calendar and the logged S&C sessions': 'מלוח המועדון ומאימוני הכוח שנרשמו',
+  'From today’s availability, never better than the medical record': 'מהזמינות של היום — אף פעם לא טובה ממה שכתוב בתיק הרפואי',
+  'From the medical record': 'מהתיק הרפואי',
+  // I: games - "1 DAYS" under a count of one
+  day: 'יום',
+  // J: roster cards
+  'Points per game this season': 'נקודות למשחק העונה',
+  'Last 28 days': '28 הימים האחרונים',
+  // K: lifts
+  '4+ days': '4 ימים ומעלה',
+  // L: schedule
+  'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
+  // N: the zone's confirmations (toasts), in the zone's language
+  'Add minutes': 'חסרות דקות',
+  'Add the S&C minutes': 'חסרות דקות הכוח',
+  Added: 'נוסף',
+  'Already on the club roster': 'כבר בסגל של המועדון',
+  'Already in EXPO - tick him in the list below': 'כבר קיים ב-EXPO — סמן אותו ברשימה למטה',
+  'Check-in saved': 'הדיווח נשמר',
+  'Game updated': 'המשחק עודכן',
+  'Lift logged': 'ההרמה נרשמה',
+  'Medical record saved': 'התיק הרפואי נשמר',
+  'Minutes must be more than 0 — delete the session instead': 'הדקות צריכות להיות יותר מ-0 — אם צריך, מחק את האימון',
+  'Minutes saved': 'הדקות נשמרו',
+  'Pick a body part': 'בחר אזור בגוף',
+  'S&C session saved': 'אימון הכוח נשמר',
+  'Session added': 'האימון נוסף',
+  'Session removed': 'האימון נמחק',
+  'Session restored': 'האימון שוחזר',
+  'Session updated': 'האימון עודכן',
+  'Set a start time': 'חסרה שעת התחלה',
+  'That session moved — reopen it': 'האימון הזה השתנה — פתח אותו מחדש',
+  'That session moved — reopen the list': 'האימון הזה השתנה — פתח את הרשימה מחדש',
+  Undo: 'ביטול',
+  // extra pass
+  '+{n} more on the Medical tab': 'ועוד {n} בלשונית הרפואית',
+  '+{n} more on the Schedule tab': 'ועוד {n} בלשונית הלו"ז',
+  'before he landed': 'לפני שנחת',
+  'N/A': 'לא רלוונטי',
+  Concussion: 'זעזוע מוח',
+  '+{n} older changes not shown': 'ועוד {n} שינויים ישנים שלא מוצגים',
+  'Over an hour - is that the practice length rather than the S&C block?': 'יותר משעה — זה לא אורך האימון במקום הבלוק של הכוח?',
+});
+
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
  *  that compose a sentence ("בעוד 3 ימים") rather than look up a label. */
 export function useHe() {
