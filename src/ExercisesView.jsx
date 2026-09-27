@@ -498,9 +498,12 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 return (
                   <tr key={ex.id} className="ex-row" style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                     <td className="ex-name" style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                        {statusDot(ex)}
-                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{noDangle(ex.title)}</span>
+                      {/* THE DOT SITS ON THE FIRST LINE (27.9 #301 gate: 7.5px low on a
+                          wrapped name - it centred on the whole two-line block).
+                          An 18px box = the title's line, top-aligned. */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, minWidth: 0 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', height: 18, flexShrink: 0 }}>{statusDot(ex)}</span>
+                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px', color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{noDangle(ex.title)}</span>
                       </div>
                     </td>
                     {oneCell(ex.resistanceType)}
