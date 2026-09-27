@@ -11,7 +11,7 @@ import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus }
 import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
-import { Btn, baseBtn, ToastHost, toast, useEdgeFade } from './ui';
+import { Btn, baseBtn, ToastHost, toast, useEdgeFade, useRailTrailMask } from './ui';
 import BugReportButton from './BugReportButton';
 // LAZY: SensorLab renders only behind `isOwner`, but a static import puts it
 // and its five signal-processing modules (pulsePPG, acousticReps,
@@ -890,6 +890,9 @@ function AuthedApp() {
   useEdgeFade(coachNavRef);
   useEdgeFade(coachBarRef);
   useEdgeFade(coachRailRef);
+  // the rail's far edge never shows half a tab (27.9, #304): the part of the
+  // tab crossing the edge is clipped away, so only whole tabs show at rest
+  const coachRailMask = useRailTrailMask(coachRailRef, { items: 'nav.hdr-scroll button, .hdr-right > *', maxWidth: 700 });
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1878,7 +1881,11 @@ function AuthedApp() {
               padding-inline-start: 12px;
               /* so scrollIntoView never parks the active tab half-cut on the
                  rail's own edge */
-              scroll-padding-inline: 12px; }
+              scroll-padding-inline: 12px;
+              /* at rest a tab starts on the rail's start edge - never half a
+                 word there (27.9 #304) */
+              scroll-snap-type: x mandatory; }
+            .hdr-rail nav.hdr-scroll button, .hdr-rail .hdr-right > * { scroll-snap-align: start; }
             .hdr-rail::-webkit-scrollbar { display: none; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
             .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 16px !important; }
@@ -1934,7 +1941,7 @@ function AuthedApp() {
         `}</style>
         <div ref={coachBarRef} className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} onClick={()=>navTo('dashboard')} title={t('Back to dashboard')} style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
-          <div ref={coachRailRef} className="hdr-rail">
+          <div ref={coachRailRef} className="hdr-rail" style={coachRailMask.w ? { clipPath: coachRailMask.rtl ? `inset(0 0 0 ${coachRailMask.w}px)` : `inset(0 ${coachRailMask.w}px 0 0)` } : undefined}>
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
                 count digit (fontSize:10) baseline-aligns with the label

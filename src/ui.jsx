@@ -1300,6 +1300,51 @@ export function ScrollFade({ children, style, className }) {
   return <div ref={ref} className={className} style={{ overflowX: 'auto', ...style }}>{children}</div>;
 }
 
+// NO WORD SLICED AT THE FAR EDGE OF A SIDE-SCROLL RAIL (27.9, Ohad: "fix the
+// top menus to perfection"; his shots: "ACTI" / "A" cut at the edge). The rail
+// scrolls - he wants the side scroll - so SOMETHING is always half across the
+// trailing edge at rest. This measures that item once the rail settles and
+// returns the overlap in px; the caller lays an opaque plate of exactly that
+// width over the edge, so what shows is whole items and a clean end. The
+// leading edge is the caller's scroll-snap. Direction-aware (RTL trails left).
+//   scroller: the element that scrolls   items: selector of the rail's items
+//   lead: selector of a pinned block at the leading edge (the crest), optional
+export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760 } = {}) {
+  const [mask, setMask] = React.useState({ w: 0, rtl: false });
+  React.useEffect(() => {
+    let el = null, t = 0, raf = 0, tries = 0, ro = null;
+    const measure = () => {
+      if (!el) return;
+      if (window.innerWidth > maxWidth || el.scrollWidth <= el.clientWidth + 1) { setMask((m) => (m.w ? { w: 0, rtl: m.rtl } : m)); return; }
+      const rtl = getComputedStyle(el).direction === 'rtl';
+      const r = el.getBoundingClientRect();
+      const edge = rtl ? r.left : r.right;
+      let w = 0;
+      for (const it of el.querySelectorAll(items)) {
+        const b = it.getBoundingClientRect();
+        if (b.width < 1) continue;
+        if (!rtl && b.left < edge - 0.5 && b.right > edge + 0.5) w = Math.max(w, edge - b.left);
+        if (rtl && b.right > edge + 0.5 && b.left < edge - 0.5) w = Math.max(w, b.right - edge);
+      }
+      w = Math.ceil(w);
+      setMask((m) => (m.w === w && m.rtl === rtl ? m : { w, rtl }));
+    };
+    const later = () => { clearTimeout(t); t = setTimeout(measure, 140); };
+    const attach = () => {
+      el = ref && ref.current;
+      if (!el) { if (tries++ < 180) raf = requestAnimationFrame(attach); return; }
+      measure();
+      el.addEventListener('scroll', later, { passive: true });
+      if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(later); ro.observe(el); }
+    };
+    attach();
+    window.addEventListener('resize', later);
+    const t2 = setTimeout(measure, 700);   // fonts land after first paint
+    return () => { clearTimeout(t); clearTimeout(t2); cancelAnimationFrame(raf); window.removeEventListener('resize', later); if (el) el.removeEventListener('scroll', later); if (ro) ro.disconnect(); };
+  }, [ref, items, lead, maxWidth]);
+  return mask;
+}
+
 export function useEdgeFade(ref) {
   React.useEffect(() => {
     let el = null, ro = null, raf = 0, tries = 0;

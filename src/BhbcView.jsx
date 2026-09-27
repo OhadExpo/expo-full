@@ -13,7 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -488,6 +488,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const headRef = React.useRef(null);
   useEdgeFade(navRef);
   useEdgeFade(headRef);
+  // phones: the whole bar scrolls under the pinned crest; the far edge never
+  // shows half a tab (the plate below covers exactly the overlap)
+  const railMask = useRailTrailMask(headRef, { items: '.bhbc-hdr-tabs button, .bhbc-header-ctrl > *' });
+  // the crest plate's width is the bar's snap padding (a tab rests right after it)
+  React.useLayoutEffect(() => {
+    const el = headRef.current; const id = el && el.querySelector('.bhbc-header-id');
+    if (el && id) el.style.setProperty('--crest-w', `${Math.round(id.getBoundingClientRect().width)}px`);
+  });
   React.useEffect(() => {
     const el = navRef.current && navRef.current.querySelector('[aria-selected="true"]');
     // 'nearest' first: a tab already fully on screen must not be yanked to the
@@ -1327,7 +1335,12 @@ function attendance28(rec, days) {
              the right edge. The whole bar is the horizontal scroller now and the
              identity block is sticky at its left, so the wordmark stays put
              while the tabs and controls slide under it. */
-          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch}
+          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scroll-padding-inline-start:calc(var(--crest-w,68px) + 20px)}
+          /* AT REST A TAB STARTS RIGHT AFTER THE CREST (27.9, his shot: "EDULE"
+             with SCH under the crest). Every tab is a snap point; the pinned
+             crest plate is the scroll padding, so a settled bar never slices a
+             word at the crest. The far edge is covered by the rail plate. */
+          .bhbc-hdr-tabs button{scroll-snap-align:start}
           .bhbc-header-inner::-webkit-scrollbar{display:none}
           .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
           /* The pinned identity block must be OPAQUE and must have an EDGE, or
@@ -1408,6 +1421,7 @@ function attendance28(rec, days) {
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: HDR_BG, borderBottom: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 2px 10px rgba(0,0,0,0.30)' }}>
+        {railMask.w > 0 && <div aria-hidden="true" data-rail-mask="" style={{ position: 'absolute', top: 0, bottom: 1, [railMask.rtl ? 'left' : 'right']: 0, width: railMask.w, background: HDR_BG, zIndex: 4, pointerEvents: 'none' }} />}
         <div ref={headRef} className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginInlineEnd: 6 }}>
             {/* The crest goes HOME, like the EXPO logo does. */}
