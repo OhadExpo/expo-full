@@ -3934,11 +3934,15 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
     const n = per.map((p) => p.cells[i]).filter((c) => c && c.lift).length;
     return n || null;
   });
-  const due = [...per].filter((x) => x.since == null || x.since >= 4)
+  // DUE MEANS HE COULD HAVE LIFTED (#305 K1): an athlete out today is the
+  // physio's to load, not the weight room's to chase, and one who has not
+  // landed yet cannot be behind. Four days is the line (K2, said on the label).
+  const due = [...per].filter((x) => (x.since == null || x.since >= 4) && x.todayCode < 4 && !(x.t.arrival && x.t.arrival > today))
     .sort((a, b) => (b.since == null ? 1e9 : b.since) - (a.since == null ? 1e9 : a.since));
   const liftedToday = per.filter((x) => x.since === 0).length;
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
-  const ink = (since) => (since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C');
+  // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
+  const ink = (since, code = 1) => (code >= 4 ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C');
   const CELL = 22;
 
   return (
@@ -3951,7 +3955,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
         )}>
         {!!due.length && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(242,106,43,0.06)' }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')}</span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')} · {tr('4+ days')}</span>
             {/* A GRID, NOT A WRAP, SO THE TAGS LINE UP: two equal columns put
                 every chip on the same two edges (Ohad, 19.9). */}
             <span style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, minWidth: 0, flex: '1 1 100%' }}>
@@ -4023,7 +4027,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 36, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
                     <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
                     </span>
                   </span>
@@ -4121,7 +4125,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                           const ll = lastLift(t.id);
                           const since = ll && today ? dayDiff(today, ll) : null;
                           return (
-                            <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: since == null || since >= 7 ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
+                            <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: (since == null || since >= 7) && (avail || 1) < 4 ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
                               {tr('Last lift')} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                             </span>
                           );
@@ -4143,7 +4147,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                   const since = ll && today ? dayDiff(today, ll) : null;
                   // CALM BY DEFAULT (27.9, Ohad: "too much on the eyes"): only an
                   // overdue lift (7d+, or never) is coloured; the date is the title.
-                  const col = since == null || since >= 7 ? '#DE4E3B' : C.tx;
+                  // ...and not for an athlete who is out (#305 N-K3)
+                  const col = (since == null || since >= 7) && (avail || 1) < 4 ? '#DE4E3B' : C.tx;
                   return (
                     // THE DATE IS A COLUMN, so the part in front of it gets a
                     // fixed width. The relative age runs from "2d" to

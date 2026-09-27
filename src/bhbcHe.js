@@ -814,6 +814,8 @@ Object.assign(HE, {
   // J: roster cards
   'Points per game this season': 'נקודות למשחק העונה',
   'Last 28 days': '28 הימים האחרונים',
+  // K: lifts
+  '4+ days': '4 ימים ומעלה',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
