@@ -219,7 +219,9 @@ const todayISO = () => localISO(new Date());
 const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return localISO(d); };
 // Nationality as text (flag emoji doesn't render on Windows Chrome → shows "US"
 // letters at a wrong baseline and breaks row alignment).
-const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join(' · ');
+// dual nationality as ISR/USA: one short token that fits a card footer on one
+// row (27.9: "ISR · USA" wrapped the roster footer onto two lines)
+const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join('/');
 const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
 // `availability` is a DAY-level fact (medical / personal — it gates ACWR and
 // feeds the medical view). `attendance` is per SLOT, keyed `YYYY-MM-DD|HH:MM`,
@@ -4585,7 +4587,10 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             // borders don't align from card to card".
             // The footer is now PINNED to the bottom of the card, so the
             // hairline lands on the same y in every card whatever is above it.
-            height: 'var(--rc-h, 184px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
+            // NO EMPTY BAND AT THE BOTTOM (27.9, Ohad: "too much extra space on the
+            // lower part of each box"): the height comes from the content - every
+            // line above the rule is reserved, so every card is still the same box.
+            height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
@@ -4627,9 +4632,11 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   by the same 8px so nothing above it loses room — the card was
                   rebuilt in September precisely because a fixed height with
                   top-down flow pushed the footer through the bottom border. */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, minHeight: 'var(--rc-foot, 52px)', boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
+              {/* the footer's text sits centred between the rule and the card's
+                  edge: 12px above it, the card's 13px padding below */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
                     Measured at 900: every roster card footer is 30px except DJ
                     Burns and Noah Carter at 38, and the whole 8px is this span
@@ -4658,13 +4665,16 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             with no load, attendance or medical line to read. */}
         {ghosts.map((t) => (
           <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card"
-            style={{ position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '13px 15px', height: 'var(--rc-h, 184px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
+            style={{ position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '13px 15px', height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
             <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
             <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 'var(--rc-name, 36px)' }}>{t.name}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minHeight: 'var(--rc-stat, 32px)' }}>
               <span style={{ fontFamily: FB, fontSize: 11, lineHeight: '14px', color: C.td, whiteSpace: 'nowrap' }}>{tr(t.position) || '—'}</span>
+              {/* the same reserved second line as every active card, so the ghost
+                  is the same box (27.9: it was 25px shorter at 390) */}
+              <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', color: 'transparent' }}>·</span>
             </div>
-            <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: `1px dashed ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Ghost')} · {tr('not counted')}</div>
+            <div style={{ display: 'flex', alignItems: 'center', height: 31, boxSizing: 'border-box', marginTop: 'auto', paddingTop: 12, borderTop: `1px dashed ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Ghost')} · {tr('not counted')}</div>
           </div>
         ))}
       </div>
