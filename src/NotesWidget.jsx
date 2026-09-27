@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate } from './dates';
+import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
@@ -352,7 +352,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
         )}
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-          {fmtPrettyDate(n.created_at)}
+          {fmtNumericDate(n.created_at)}
         </span>
       </div>
 
@@ -1164,7 +1164,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
                       ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>{tt('CANCELLED')}</span>
-                      : n.completed_at && <span>{tt('done')} {fmtPrettyDate(n.completed_at)}</span>}
+                      : n.completed_at && <span>{tt('done')} {fmtNumericDate(n.completed_at)}</span>}
                     {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>

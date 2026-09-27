@@ -577,6 +577,7 @@ export const HE = {
   "Read-only": "לקריאה בלבד",
   "Discard": "ביטול",
   "Don't save": "לא לשמור",
+  'Less': 'פחות',
   "Select": "בחירה",
   "Member": "משתתף",
   "Confirm": "אישור",
