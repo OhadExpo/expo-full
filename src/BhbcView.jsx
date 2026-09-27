@@ -990,6 +990,10 @@ function attendance28(rec, days) {
     if (av && setBhbcLoads && !injury.resolved) {
       setBhbcLoads((prev) => {
         const r = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
+        // "Out · Pers" is not the injury's to change (#305 N-M2): a personal
+        // absence the coach set for today survived nothing but a medical save,
+        // which wrote the injury's status over it.
+        if (Number((r.availability || {})[today]) === 5) return prev;
         r.availability = { ...(r.availability || {}), [today]: av };
         return { ...prev, [athleteId]: r };
       });
@@ -5922,7 +5926,21 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : '—'}{latestPain(inj) != null ? <> · <span style={{ fontWeight: latestPain(inj) >= 4 ? 800 : 400, color: latestPain(inj) >= 6 ? '#DE4E3B' : latestPain(inj) >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.td }}>{tr('pain')} {latestPain(inj)}</span></> : ''}</div>
                   {/* WHO assessed this. With two PTs sharing the board, an
                       unsigned record cannot be questioned or followed up. */}
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}</div>
+                  {/* A RECORD NOBODY HAS TOUCHED IN TWO WEEKS SAYS SO (#305 M5). The
+                      last thing written is the newer of the record's own save and
+                      its newest rehab note; the label is the only colour here. */}
+                  {(() => {
+                    const lastNote = (inj.progress || []).map((x) => x && x.date).filter(Boolean).sort().pop() || '';
+                    const saved = inj.updatedAt ? localISO(new Date(inj.updatedAt)) : '';
+                    const last = [lastNote, saved].filter(Boolean).sort().pop() || '';
+                    const quiet = last ? dayDiff(todayISO(), last) : null;
+                    return (
+                      <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>
+                        {(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}
+                        {quiet != null && quiet >= 14 && <span style={{ display: 'block', marginTop: 2, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)', whiteSpace: 'nowrap' }}>{he ? `אין עדכון ${quiet} ימים` : `no update ${quiet}d`}</span>}
+                      </div>
+                    );
+                  })()}
                   <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{canMedical ? tr('Update ›') : ''}</div>
                 </div>
               );
@@ -5966,7 +5984,9 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
         <div>
           {roster.map((t) => {
             const act = activeInjuries(medical, t.id);
-            const status = act.length ? (act.find((i) => i.status === 'out') || act.find((i) => i.status === 'limited') || act[0]).status : 'available';
+            // the WORST of his active records, in the board's order (#305 N-M1):
+            // non-contact was skipped, so limited + non-contact read Limited
+            const status = act.length ? act.slice().sort((a, b) => (SEV[a.status] ?? 4) - (SEV[b.status] ?? 4))[0].status : 'available';
             const hist = ((medical[t.id] || {}).injuries || []).length;
             return (
               <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 6, gap: 14, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
