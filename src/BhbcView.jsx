@@ -2528,6 +2528,10 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
           <Input label={tr('S&C minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="10" />
         </div>
         {future && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#DE4E3B' }}>{tr('That date has not happened yet.')}</div>}
+        {/* THE PRACTICE'S LENGTH IS NOT THE S&C BLOCK'S (#305 N-F15) - the flat-
+            minutes mistake the 23.9 rebuild removed. Over an hour is said, not
+            refused: a long block is possible, a copied 120 is the usual cause. */}
+        {!future && Number(minutes) > 60 && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{tr('Over an hour - is that the practice length rather than the S&C block?')}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which practice')}</span>

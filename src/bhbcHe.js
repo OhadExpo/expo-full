@@ -847,6 +847,7 @@ Object.assign(HE, {
   'N/A': 'לא רלוונטי',
   Concussion: 'זעזוע מוח',
   '+{n} older changes not shown': 'ועוד {n} שינויים ישנים שלא מוצגים',
+  'Over an hour - is that the practice length rather than the S&C block?': 'יותר משעה — זה לא אורך האימון במקום הבלוק של הכוח?',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
