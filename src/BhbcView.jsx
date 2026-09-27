@@ -395,6 +395,89 @@ const Jersey = ({ n, size = 30 }) => (
   }}>{n ?? '–'}</span>
 );
 
+// ONE SORT FOR EVERY TABLE IN THE ZONE (27.9, Ohad: "All tables on bhbc needs
+// to be sorted by each columns and clickable. Make it perfect"). Player stats
+// was the only table that sorted, and it could not sort by name; every other
+// table in the zone had headers that did nothing. One hook and one header cell,
+// so every table answers a tap the same way:
+//   - tap a header = sort by it, tap it again = the other direction;
+//   - the FIRST tap is the useful end: names and jersey numbers A->Z / 1->99
+//     (a column spec of { get, asc: true }), everything else high->low - the
+//     newest date, the worst status, the biggest number (a plain getter);
+//   - a row with no value for the column sorts LAST in both directions (a
+//     dash at the top of a list answers nobody's question);
+//   - ties keep the order the rows arrived in, so a table sorts the same way
+//     on every tap and the untouched order (worst-first on the board) is the
+//     tie-break.
+const sortSpec = (s) => (typeof s === 'function' ? { get: s, asc: false } : s);
+const blankSortVal = (v) => v == null || v === '' || (typeof v === 'number' && Number.isNaN(v));
+function sortRowsBy(rows, spec, dir) {
+  const s = sortSpec(spec);
+  return rows.map((r, i) => ({ r, i, v: s.get(r) })).sort((a, b) => {
+    const an = blankSortVal(a.v), bn = blankSortVal(b.v);
+    if (an || bn) return an && bn ? a.i - b.i : an ? 1 : -1;
+    const d = typeof a.v === 'string' && typeof b.v === 'string'
+      ? a.v.localeCompare(b.v, undefined, { numeric: true, sensitivity: 'base' })
+      : a.v - b.v;
+    return (dir === 'asc' ? d : -d) || a.i - b.i;
+  }).map((x) => x.r);
+}
+// `cols` maps a column key to its spec. defaultKey null = keep the rows in the
+// order they came in (the load board's worst-first) until a header is tapped.
+// A key that stops existing (last month's day) falls back to that order too.
+function useSort(rows, cols, defaultKey = null, defaultDir = null) {
+  const firstDir = (k) => (k && cols[k] && sortSpec(cols[k]).asc ? 'asc' : 'desc');
+  const [st, setSt] = useState(() => ({ key: defaultKey, dir: defaultDir || firstDir(defaultKey) }));
+  const spec = st.key ? cols[st.key] : null;
+  const list = rows || [];
+  return {
+    rows: spec ? sortRowsBy(list, spec, st.dir) : list,
+    key: spec ? st.key : null,
+    dir: st.dir,
+    toggle: (k) => setSt((p) => (p.key === k ? { key: k, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: firstDir(k) })),
+  };
+}
+// The header cell. It keeps the table's OWN header style (passed in) and adds
+// only the accent colour and the arrow. The arrow's slot is always there -
+// hidden until the column is active - so tapping a header never changes its
+// width and never moves a column. A CENTRED header (and a day column of the
+// month grids, `float`) hangs its arrow just past the word without taking any
+// width at all instead: a reserved slot would push the word off the column's
+// centre - and in a 22px day column, off its own column.
+function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, float = false, title, aLabel }) {
+  const tr = useT();
+  const on = sort.key === k;
+  const glyph = on && sort.dir === 'asc' ? '↑' : '↓';
+  const go = () => sort.toggle(k);
+  const hang = float || center;
+  const slot = { display: 'inline-block', width: '0.8em', textAlign: 'center', letterSpacing: 0, visibility: on ? 'visible' : 'hidden' };
+  return (
+    <Tag role={Tag === 'th' ? undefined : 'columnheader'} aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      onClick={go} title={title || (on ? tr(sort.dir === 'asc' ? 'Sort descending' : 'Sort ascending') : `${tr('Sort by')} ${label}`)}
+      style={{ ...style, ...(on ? { color: ORANGE_DEEP } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+      <span role="button" tabIndex={0} aria-label={aLabel || undefined}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
+        style={hang ? { position: 'relative' } : undefined}>
+        {label}
+        {/* 0.7em hung: inside the cell's own 9-10px padding, so it never
+            reaches the next column's word or past the table's edge */}
+        <span aria-hidden="true" style={hang ? { ...slot, width: '0.7em', position: 'absolute', insetInlineStart: '100%', top: 0 } : { ...slot, marginInlineStart: '0.2em' }}>{glyph}</span>
+      </span>
+    </Tag>
+  );
+}
+// A PHONE HAS NO HEADER ROW on the load board and the injury board - their
+// rows restack below 620 / 760 and a column header would line up with nothing
+// (themes.css hides .bhbc-load-head / .bhbc-inj-head). The same headers, in the
+// same type, as one row of taps above the list instead, so the phone sorts too.
+function SortBar({ sort, cols, className, style }) {
+  return (
+    <div className={`bhbc-sortbar ${className || ''}`} style={{ flexWrap: 'wrap', columnGap: 16, rowGap: 6, ...style }}>
+      {cols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} />)}
+    </div>
+  );
+}
+
 // ---- component ----
 
 export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
@@ -1114,6 +1197,10 @@ function attendance28(rec, days) {
       <style>{`
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
         .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
+        /* the phone's sort row stands in for a header row the phone hides (SortBar) */
+        .bhbc-sortbar{display:none!important}
+        @media (max-width:620px){.bhbc-load-sortbar{display:flex!important}}
+        @media (max-width:760px){.bhbc-inj-sortbar{display:flex!important}}
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
         /* 17.9 (Ohad, phone): 'סקירה gets cut and i cannot scroll to where it fully seen'.
            'safe center' still centred the row once it overflowed, so the first tab sat half
@@ -3884,6 +3971,18 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const pctInk = (v) => (v == null ? C.cardBd : v >= 90 ? C.tx : v >= 75 ? 'var(--bhbc-amber-text, #E0A73A)' : MISS);
   const monthOwed = per.reduce((a, p) => a + p.owed, 0);
   const monthWent = per.reduce((a, p) => a + p.went, 0);
+  // SORTABLE LIKE EVERY TABLE IN THE ZONE (27.9). The name column A->Z; a DAY
+  // column by that day's mark - there first (more court minutes first), then a
+  // game still waiting for its box score, then excused (out), then missed /
+  // did not play; a day with no session for him sorts last either way. The
+  // last column by the share of practices he made.
+  const MARK = { played: 4, in: 3, pending: 2, excused: 1, missed: 0, dnp: 0 };
+  const markVal = (c) => (!c || MARK[c.state] == null ? null : MARK[c.state] + Math.min(c.mins || 0, 999) / 1000);
+  const sort = useSort(per, {
+    name: { get: (p) => p.t.name, asc: true },
+    pct: (p) => (p.owed ? p.went / p.owed + p.went / 1e4 : null),
+    ...Object.fromEntries(days.list.map((d, i) => [`d:${d.iso}`, (p) => markVal(p.cells[i])])),
+  });
 
   return (
     <Card leftStripe={FX_COLOR.practice} padding={0} header={secTitle('Practice Attendance')}
@@ -3935,11 +4034,11 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: 298 + days.list.length * CELL }}>
           <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px' }}>
-            <span />
+            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }} />
             {days.list.map((d) => (
-              <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+              <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
             ))}
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('attended')}</span>
+            <SortHeader k="pct" sort={sort} label={tr('attended')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
             <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
@@ -3950,7 +4049,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
             <span />
           </div>
           <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
-            {per.map(({ t, cells, since, last, todayCode, went, owed }) => (
+            {sort.rows.map(({ t, cells, since, last, todayCode, went, owed }) => (
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
                 onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
@@ -4089,6 +4188,14 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
   const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6)
   const CELL = 22;
+  // SORTABLE LIKE EVERY TABLE IN THE ZONE (27.9): the name A->Z, a DAY by that
+  // day's lift (the longest first; no lift that day sorts last either way), the
+  // last column by the date of his last lift, newest first - never lifted last.
+  const sort = useSort(per, {
+    name: { get: (p) => p.t.name, asc: true },
+    last: (p) => p.last,
+    ...Object.fromEntries(days.list.map((d, i) => [`d:${d.iso}`, (p) => (p.cells[i] && p.cells[i].lift ? 1 + Math.min(p.cells[i].mins || 0, 999) / 1000 : null)])),
+  });
 
   return (
     <>
@@ -4131,11 +4238,11 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 298 + days.list.length * CELL }}>
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px', gap: 0 }}>
-              <span />
+              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
-                <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+                <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
               ))}
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('last lift')}</span>
+              <SortHeader k="last" sort={sort} label={tr('last lift')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
               <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
@@ -4145,7 +4252,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
               <span />
             </div>
             <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
-              {per.map(({ t, cells, since, last, todayCode }) => (
+              {sort.rows.map(({ t, cells, since, last, todayCode }) => (
                 // A table row is never under 36 (24.9).
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
@@ -4209,6 +4316,26 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
     const d = Object.keys(ses).filter((k) => (ses[k] || []).some((r) => rowKind(r) === 'lift')).sort();
     return d.length ? d[d.length - 1] : null;
   };
+  // WHO NEEDS ATTENTION FIRST (27.9 #305 C1): OUT, then non-contact, then
+  // limited, then an overdue lift (7d+ or never), then everyone else in jersey
+  // order - the order he reads the board in. It stays the order until a header
+  // is tapped, and it is the tie-break after one is.
+  const worstFirst = [...rows].sort((a, b) => {
+    const rank = (r) => { const code = r.avail || 1; if (code >= 4) return 0; if (code === 3) return 1; if (code === 2) return 2; if (r.t.arrival && today && r.t.arrival > today) return 4; const ll = lastLift(r.t.id); const since = ll && today ? dayDiff(today, ll) : null; return since == null || since >= 7 ? 3 : 4; };
+    return rank(a) - rank(b) || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
+  });
+  const READ_SEV = { red: 3, amber: 2, green: 1 };
+  const sort = useSort(worstFirst, {
+    jersey: { get: (r) => r.t.jersey, asc: true },
+    name: { get: (r) => r.t.name, asc: true },
+    acwr: (r) => (r.acwr && r.acwr.ratio != null ? r.acwr.ratio : null),
+    acute: (r) => (r.acwr && r.acwr.acute ? r.acwr.acute : null),
+    lift: (r) => lastLift(r.t.id),                          // a date: newest first; never = last
+    avail: (r) => Math.min(r.avail || 1, 4),                // Out (med or personal) > non-contact > limited > full
+    ready: (r) => READ_SEV[r.readiness && r.readiness.level] ?? null,
+    trend: (r) => ((r.series || []).some((v) => v > 0) ? (r.series || []).reduce((a, v) => a + (Number(v) || 0), 0) : null),
+  });
+  const headCols = [['jersey', '#'], ['name', tr('Athlete')], ...(hasLoad ? [['acwr', 'ACWR'], ['acute', tr('7d')]] : [['lift', tr('last lift')]]), ['avail', tr('Availability')], ...(hasRead ? [['ready', tr('Readiness')]] : [])];
   return (
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
       <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
@@ -4216,15 +4343,13 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
         <div className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
           <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '6px 2px 6px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-            <div>#</div><div>{tr('Athlete')}</div>{hasLoad && <div>ACWR</div>}{hasLoad && <div>{tr('7d')}</div>}{!hasLoad && <div>{tr('last lift')}</div>}<div>{tr('Availability')}</div>{hasRead && <div>{tr('Readiness')}</div>}<div style={{ textAlign: 'end' }}>{hasLoad ? tr('14-day') : ''}</div>
+            {headCols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} />)}
+            {hasLoad ? <SortHeader k="trend" sort={sort} label={tr('14-day')} style={{ textAlign: 'end' }} /> : <div />}
           </div>
-          {/* WHO NEEDS ATTENTION FIRST (27.9 #305 C1): OUT, then non-contact,
-              then limited, then an overdue lift (7d+ or never), then everyone
-              else in jersey order - the order he reads the board in. */}
-          {[...rows].sort((a, b) => {
-            const rank = (r) => { const code = r.avail || 1; if (code >= 4) return 0; if (code === 3) return 1; if (code === 2) return 2; if (r.t.arrival && today && r.t.arrival > today) return 4; const ll = lastLift(r.t.id); const since = ll && today ? dayDiff(today, ll) : null; return since == null || since >= 7 ? 3 : 4; };
-            return rank(a) - rank(b) || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
-          }).map(({ t, acwr, series, readiness, avail }) => {
+          {/* the phone's header: the columns a restacked row still shows */}
+          <SortBar sort={sort} className="bhbc-load-sortbar" cols={headCols.filter(([k]) => k !== 'ready' && k !== 'acute')}
+            style={{ padding: '6px 2px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+          {sort.rows.map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
@@ -5267,19 +5392,26 @@ function StandingsTable({ standings }) {
     { k: 'pf', h: 'PF', he: 'Points for' }, { k: 'pa', h: 'PA', he: 'Points against' }, { k: 'diff', h: '+/–', he: 'Difference' },
   ];
   const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, padding: '8px 10px', textAlign: 'end', whiteSpace: 'nowrap' };
+  // the league's own order (rank) until a header is tapped; Form = wins in it
+  const sort = useSort(standings, {
+    rank: { get: (s) => s.rank, asc: true },
+    team: { get: (s) => s.team, asc: true },
+    ...Object.fromEntries(cols.map((c) => [c.k, (s) => s[c.k]])),
+    form: (s) => (s.form && s.form.length ? s.form.filter((r) => r === 'W').length : null),
+  }, 'rank');
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560 }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-            <th style={{ ...th, textAlign: 'center', width: 34 }}>#</th>
-            <th style={{ ...th, textAlign: 'start' }}>{tr('Team')}</th>
-            {cols.map((c) => <th key={c.k} style={{ ...th, textAlign: 'center' }}>{heM ? tr(c.he) : c.h}</th>)}
-            <th style={{ ...th, textAlign: 'center' }}>{tr('Form')}</th>
+            <SortHeader as="th" k="rank" sort={sort} label="#" center style={{ ...th, textAlign: 'center', width: 34 }} />
+            <SortHeader as="th" k="team" sort={sort} label={tr('Team')} style={{ ...th, textAlign: 'start' }} />
+            {cols.map((c) => <SortHeader as="th" key={c.k} k={c.k} sort={sort} label={heM ? tr(c.he) : c.h} center style={{ ...th, textAlign: 'center' }} />)}
+            <SortHeader as="th" k="form" sort={sort} label={tr('Form')} center style={{ ...th, textAlign: 'center' }} />
           </tr>
         </thead>
         <tbody>
-          {standings.map((s) => {
+          {sort.rows.map((s) => {
             const bh = isBH(s.team);
             const td = { fontFamily: FN, fontSize: 13, color: C.tx, padding: '9px 10px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
@@ -5337,13 +5469,12 @@ const clubSeasonStats = (t, loads) => {
 
 function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   const tr = useT();
-  const [sort, setSort] = useState('ppg');
   // Ohad: "it doesnt re-order the column based on up and down when i click on
   // the column headers." It sorted, but only ever DESCENDING - clicking the
   // active column did nothing and the arrow never flipped, so from his seat the
   // header was half dead. Clicking a new column starts descending (the useful
-  // default for a stat); clicking the active one flips it.
-  const [dir, setDir] = useState('desc');
+  // default for a stat); clicking the active one flips it. The zone's shared
+  // useSort now (27.9), which also sorts the Player column A->Z / Z->A.
   const cols = [
     { k: 'gp', h: 'GP' }, { k: 'mpg', h: 'MPG' }, { k: 'ppg', h: 'PPG' },
     { k: 'rpg', h: 'RPG' }, { k: 'apg', h: 'APG' }, { k: 'tpp', h: '3P%' },
@@ -5365,17 +5496,15 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
     for (const k of ['ppg', 'rpg', 'apg', 'tpp', 'ftp', 'pirpg']) if (out[k] == null && lg[k] != null) out[k] = lg[k];
     return out;
   };
+  // jersey order in, so every tie (and every dash) stays in jersey order
   const items = (roster || []).map((t) => ({ t, s: merged(t) }))
-    .sort((a, b) => {
-      const av = a.s ? a.s[sort] : null, bv = b.s ? b.s[sort] : null;
-      if (av == null && bv == null) return (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      const d = dir === 'asc' ? av - bv : bv - av;
-      return d || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
-    });
+    .sort((a, b) => (a.t.jersey ?? 999) - (b.t.jersey ?? 999));
+  const sort = useSort(items, {
+    name: { get: (x) => x.t.name, asc: true },
+    ...Object.fromEntries(cols.map((c) => [c.k, (x) => (x.s ? x.s[c.k] : null)])),
+  }, 'ppg');
   const th = (k, h, first) => (
-    <th key={k} onClick={() => { if (k === 'name') return; if (k === sort) setDir((d) => (d === 'desc' ? 'asc' : 'desc')); else { setSort(k); setDir('desc'); } }} title={k === 'name' ? undefined : (k === sort ? tr(dir === 'desc' ? 'Sort ascending' : 'Sort descending') : `${tr('Sort by')} ${h}`)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}</th>
+    <SortHeader as="th" key={k} k={k} sort={sort} label={h} center={!first} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, padding: '8px 9px', textAlign: first ? 'start' : 'center' }} />
   );
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -5387,7 +5516,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
       <table className="bhbc-stats-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
         <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, tr(c.h)))}</tr></thead>
         <tbody>
-          {items.map(({ t, s }) => {
+          {sort.rows.map(({ t, s }) => {
             const td = { fontFamily: FN, fontSize: 13, color: s ? C.tx : C.tm, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
               <tr key={t.id} className="bhbc-row" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
@@ -5409,10 +5538,16 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   );
 }
 
-function ResultsList({ games, bhbcOnly }) {
+function ResultsList({ games, bhbcOnly, fixtures = [], onPick = null }) {
   const tr = useT();
   const played = games.filter((g) => g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
   const todayStr = todayISO();
+  // A GAME ROW OPENS ITS GAME (27.9, Ohad: "all tables ... clickable"): a game
+  // that has been played and is on the club calendar opens the same minutes
+  // sheet the Minutes played list opens - who played and for how long. A game
+  // still ahead, or one the calendar never held, has nothing to open.
+  const fxOf = (g) => (onPick && g.date && g.date <= todayStr
+    ? (fixtures || []).find((f) => f && f.date === g.date && (f.type === 'game' || f.type === 'scrimmage')) || null : null);
   // THE NEXT GAME FIRST, ALWAYS (#305 C9). These arrive in the order the
   // fixture store holds them, which is the order they were synced or typed -
   // a cup tie added by hand landed at the bottom of the list it should head.
@@ -5452,8 +5587,12 @@ function ResultsList({ games, bhbcOnly }) {
     const won = g.played && bhScore > oppScore;
     const detail = [tr(g.comp), g.venue && tr(g.venue)].filter(Boolean).join(' · ');
     const nameCell = { fontFamily: FN, fontSize: 13, fontWeight: 800, color: C.tx, whiteSpace: 'nowrap' };
+    const fx = fxOf(g);
     return (
-      <div style={{ borderBottom: `1px solid ${C.cardBd}`, border: `1px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)` }}>
+      <div onClick={fx ? () => onPick(fx) : undefined} role={fx ? 'button' : undefined} tabIndex={fx ? 0 : undefined}
+        onKeyDown={fx ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(fx); } }) : undefined}
+        className={fx ? 'bhbc-row' : undefined}
+        style={{ borderBottom: `1px solid ${C.cardBd}`, border: `1px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)`, cursor: fx ? 'pointer' : undefined }}>
         <div className="bhbc-game-row" style={{ display: 'grid', gridTemplateColumns: '54px minmax(0,auto) 1fr 62px', gap: 14, alignItems: 'center', padding: '12px 12px' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? ddmm(g.date) : ''}</div>
           {/* Bnei Herzliya (constant) · vs/@/score · opponent — constant first token
@@ -5619,17 +5758,17 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
         <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} />
         {pastData ? (
           <>
-            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>}
+            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>}
             {playedGames.length > 0 && (
               <div style={{ marginTop: 14 }}>
                 <CollapsibleSection domId="bhbc-lastseason-games" storageKey="bhbc-lastseason-games" defaultOpen={false} title={`${league.season} · ${tr('Last season results')}`} bare padX={0}>
-                  <ResultsList games={playedGames} bhbcOnly />
+                  <ResultsList games={playedGames} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} />
                 </CollapsibleSection>
               </div>
             )}
           </>
         ) : (
-          allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>
+          allGames.length ? <ResultsList games={allGames} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>
         )}
       </Card>
     </>
@@ -6056,6 +6195,23 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
     .sort((a, b) => (SEV[a.inj.status] ?? 4) - (SEV[b.inj.status] ?? 4) || String(a.inj.onsetDate || '').localeCompare(String(b.inj.onsetDate || '')));
   const counts = { out: 0, limited: 0, nc: 0 };
   rows.forEach(({ inj }) => { if (inj.status === 'out') counts.out++; else if (inj.status === 'limited') counts.limited++; else if (inj.status === 'non-contact') counts.nc++; });
+  // SORTABLE LIKE EVERY TABLE IN THE ZONE (27.9). It opens on Status, worst
+  // first - the order above, so the arrow says what the order already is.
+  // Since = the onset date, newest first; the injury and the author by the
+  // words on screen, A->Z.
+  const injText = (inj) => [inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ');
+  const sort = useSort(rows, {
+    name: { get: (r) => r.t.name, asc: true },
+    injury: { get: (r) => injText(r.inj), asc: true },
+    status: (r) => 3 - (SEV[r.inj.status] ?? 3),
+    since: (r) => r.inj.onsetDate || null,
+    by: { get: (r) => byName(r.inj.updatedBy || r.inj.by), asc: true },
+  }, 'status');
+  const injCols = [['name', tr('Athlete')], ['injury', tr('Injury')], ['status', tr('Status')], ['since', tr('Since · pain')], ['by', tr('Reported by')]];
+  // A ROW ALWAYS OPENS SOMETHING: the record for staff who can edit it, the
+  // athlete's own card for everyone else.
+  const openRow = (t, inj) => (canMedical ? onEdit(t.id, inj.id) : onOpen && onOpen(t.id));
+  const rowOpens = canMedical || !!onOpen;
   return (
     <>
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? tr('Ohad + PT') : tr('view only')}</span>}>
@@ -6080,17 +6236,22 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 which. Same grid as the rows, so the labels sit over the
                 columns they name. Hidden on a phone, where the rows restack
                 and the header would no longer line up with anything. */}
+            {/* The arrow's reserved slot takes the place of the 8px end margin
+                these labels carried, so no header grew. */}
             <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'end', padding: '0 0 7px', borderBottom: `1px solid ${C.cardBd}` }}>
-              {[tr('Athlete'), tr('Injury'), tr('Status'), tr('Since · pain'), tr('Reported by'), ''].map((h, i) => (
-                <div key={i} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{h}</div>
+              {injCols.map(([k, h]) => (
+                <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }} />
               ))}
+              <div />
             </div>
-            {rows.map(({ t, inj }) => {
+            <SortBar sort={sort} className="bhbc-inj-sortbar" cols={injCols}
+              style={{ padding: '0 0 7px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+            {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
-                <div key={t.id + inj.id} className="bhbc-row bhbc-inj-row" onClick={() => canMedical && onEdit(t.id, inj.id)}
-                  role={canMedical ? 'button' : undefined} tabIndex={canMedical ? 0 : undefined}
-                  onKeyDown={canMedical ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEdit(t.id, inj.id); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
+                <div key={t.id + inj.id} className="bhbc-row bhbc-inj-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
+                  role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
+                  onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
@@ -6136,10 +6297,10 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length}</span>}>
             <div>
               {past.map(({ t, inj }) => (
-                <div key={t.id + inj.id} className="bhbc-row" onClick={() => canMedical && onEdit(t.id, inj.id)}
-                  role={canMedical ? 'button' : undefined} tabIndex={canMedical ? 0 : undefined}
-                  onKeyDown={canMedical ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEdit(t.id, inj.id); } }) : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
+                <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
+                  role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
+                  onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
                   <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
