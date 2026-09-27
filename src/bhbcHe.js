@@ -789,6 +789,8 @@ Object.assign(HE, {
   // A: logging
   'Same side as his earlier injury here': 'אותו צד כמו בפציעה הקודמת שלו במקום הזה',
   'That date has not happened yet.': 'התאריך הזה עוד לא הגיע.',
+  // B: derived facts
+  'all out': 'כולם בחוץ',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

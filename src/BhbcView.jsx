@@ -3701,7 +3701,8 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
             <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
             {perDay.map((v, i) => (
-              <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{v == null ? '—' : v.went}</span>
+              // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8)
+              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{v == null || !v.expected ? '—' : v.went}</span>
             ))}
             <span />
           </div>
@@ -4465,8 +4466,12 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                 </span>
                 <div style={{ flex: 1 }} />
                 {/* The two numbers a head coach actually asks for. */}
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: d.trained.length ? '#37B27C' : C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                  {d.trained.length}/{roster.length}
+                {/* THE WHOLE SQUAD OUT IS NOT A 0/10 PRACTICE (#305 B8) - on a
+                    travel day nobody was owed it, and "0/10" reads as ten
+                    no-shows. Said as what it is. Normal ink for a normal count:
+                    colour only the exceptions (E1). */}
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                  {!d.trained.length && roster.length > 0 && d.out.length === roster.length ? <span style={{ color: C.td }}>{tr('all out')}</span> : `${d.trained.length}/${roster.length}`}
                 </span>
                 {/* The AU and RPE readouts are gone with the load model they
                     described (Ohad 23.9, no team RPEs). What a coach asks of
@@ -5405,7 +5410,13 @@ function medicalAvailOn(medical, athleteId, date) {
     // nothing about it, so it is excluded either way.
     const headlineOn = String(inj.updatedAt || inj.createdAt || '').slice(0, 10) || inj.onsetDate || '';
     const dated = notes.filter((p) => p.status).map((p) => ({ d: p.date, s: p.status }));
-    if (inj.status && headlineOn) dated.push({ d: headlineOn, s: inj.status, headline: true });
+    // A RESOLVED RECORD'S HEADLINE IS THE CLEARANCE (#305 B12). Resolving keeps
+    // the status the PT last picked (often still "out"), and dated at updatedAt
+    // that status held the athlete OUT for the whole day he was cleared - the
+    // board, the grids and the S&C sheet all still read him out until
+    // midnight. On and after the day it was closed, a resolved record says
+    // available; every day before keeps its own evidence.
+    if (inj.status && headlineOn) dated.push({ d: headlineOn, s: inj.resolved ? 'available' : inj.status, headline: true });
     // Equal dates: the headline is the current state, so it sorts last and wins.
     dated.sort((a, b) => String(a.d).localeCompare(String(b.d)) || (a.headline ? 1 : 0) - (b.headline ? 1 : 0));
     const prior = dated.filter((p) => p.d <= date).pop();
