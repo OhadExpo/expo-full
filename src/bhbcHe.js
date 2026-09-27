@@ -783,6 +783,14 @@ Object.assign(HE, {
   PRE_SEASON: 'טרום עונה',
 });
 
+// ---- #305 smarter, no new features (27.9) -------------------------------
+// Every line a label on something that already existed.
+Object.assign(HE, {
+  // A: logging
+  'Same side as his earlier injury here': 'אותו צד כמו בפציעה הקודמת שלו במקום הזה',
+  'That date has not happened yet.': 'התאריך הזה עוד לא הגיע.',
+});
+
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places
  *  that compose a sentence ("בעוד 3 ימים") rather than look up a label. */
 export function useHe() {

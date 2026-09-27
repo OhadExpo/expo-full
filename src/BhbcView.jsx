@@ -1615,7 +1615,7 @@ function attendance28(rec, days) {
         // as a progress note - always dated today. The modal now lists the athlete's active records,
         // opens a blank one on "+ New injury", and offers the recent games as the onset date.
         return <InjuryModal key={injuryFor.injuryId || 'new'} athlete={ath} injury={existing} currentUser={currentUser}
-          active={activeInjuries(medical, injuryFor.athleteId)} today={today}
+          active={activeInjuries(medical, injuryFor.athleteId)} history={((medical[injuryFor.athleteId] || {}).injuries) || []} today={today}
           onSwitch={(id) => setInjuryFor({ athleteId: injuryFor.athleteId, injuryId: id })}
           onClose={() => setInjuryFor(null)} onSave={(injury) => { saveInjury({ athleteId: injuryFor.athleteId, injury }); setInjuryFor(null); }} />;
       })()}
@@ -2407,7 +2407,10 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
   // One height for every bordered control on the sheet (24.9: 36 everywhere).
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box' };
-  const canSave = Number(minutes) > 0;
+  // An S&C block on a date still ahead has not run - the sheet logs, it does
+  // not plan (#305 N-A4).
+  const future = !!date && date > todayISO();
+  const canSave = Number(minutes) > 0 && !future;
   const inCount = Object.values(entries).filter((e) => e && e.attended !== false && e.avail < 4).length;
   // THE NAME COLUMN NEEDS A FLOOR, NOT A FRACTION. Measured 19.9 at 390: every
   // name broke in half ("ZACK / BRYANT") at ~86px. minmax gives it 152px before
@@ -2420,9 +2423,10 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
         {/* bhbc-form-grid: the ≤620px rule in themes.css stacks these into
             full-width rows on a phone. */}
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.8fr', gap: 10, alignItems: 'end' }}>
-          <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input label={tr('Date')} type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
           <Input label={tr('S&C minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="10" />
         </div>
+        {future && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#DE4E3B' }}>{tr('That date has not happened yet.')}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which practice')}</span>
@@ -2443,8 +2447,13 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
             24.9 ("practices gets logged from the players availability"); the
             per-player In/Out, BW and note controls are gone. */}
         {(() => {
-          const ins = roster.filter((t) => { const e = entries[t.id]; return e && e.avail < 4; });
-          const outs = roster.filter((t) => { const e = entries[t.id]; return e && e.avail >= 4; });
+          // The SAME rule as the count beside Save and as the write: out for the
+          // day, or already marked out of THIS practice on an earlier save. The
+          // list used to read the day only, so a re-opened slot could say
+          // "In · 10" over "9/10 at this practice" (#305 N-A5).
+          const isIn = (e) => e && e.avail < 4 && e.attended !== false;
+          const ins = roster.filter((t) => isIn(entries[t.id]));
+          const outs = roster.filter((t) => { const e = entries[t.id]; return e && !isIn(e); });
           const line = (label, list, color) => (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', fontFamily: FB, fontSize: 12, color: C.tx }}>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color, flexShrink: 0 }}>{label} · {list.length}</span>
@@ -5839,11 +5848,29 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   );
 }
 
-function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', active = [], today = todayISO(), onSwitch = null }) {
+function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', active = [], history = [], today = todayISO(), onSwitch = null }) {
   const tr = useT();
   const he = useHe();
   const [bodyPart, setBodyPart] = useState(injury?.bodyPart || '');
   const [side, setSide] = useState(injury?.side || 'N/A');
+  // A RE-INJURY STARTS ON THE SIDE HIS RECORD ALREADY KNOWS (#305 A12). Only on
+  // a NEW report, only until the side is touched, and only when every earlier
+  // record of that body part names the same side - two different sides on file
+  // prefill nothing, because then the record cannot tell which one this is.
+  const [sidePrefilled, setSidePrefilled] = useState(false);
+  const [sideTouched, setSideTouched] = useState(!!injury);
+  const knownSideFor = (part) => {
+    if (!part || injury) return null;
+    const sides = [...new Set((history || []).filter((i) => i && i.bodyPart === part && i.side && i.side !== 'N/A').map((i) => i.side))];
+    return sides.length === 1 ? sides[0] : null;
+  };
+  const pickBodyPart = (part) => {
+    setBodyPart(part);
+    if (sideTouched) return;
+    const known = knownSideFor(part);
+    setSide(known || 'N/A');
+    setSidePrefilled(!!known);
+  };
   const [type, setType] = useState(injury?.type || '');
   // A concussion has no left or right. Leaving the picker live invites a wrong
   // answer into the record, so it is pinned to N/A while the injury is a head
@@ -5938,8 +5965,9 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
           </div>
         )}
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
-          <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">{tr('— select —')}</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>
-          <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => setSide(e.target.value)} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => pickBodyPart(e.target.value)} style={sel}><option value="">{tr('— select —')}</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => { setSide(e.target.value); setSideTouched(true); setSidePrefilled(false); }} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select>
+            {sidePrefilled && !headInjury && <span style={{ display: 'block', marginTop: 4, fontFamily: FN, fontSize: 10, color: C.tm }}>{tr('Same side as his earlier injury here')}</span>}</div>
           <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
         </div>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
@@ -6071,7 +6099,10 @@ function LiftModal({ open, initialAthlete, roster, loads = {}, onClose, onSave }
   // A TYPO NEVER BECOMES A RECORD (27.9 #305 F2): a lift over 4 hours is not
   // a lift, it is a missing keystroke - Save waits and says why.
   const tooLong = Number(minutes) > 240;
-  const canSave = !!athleteId && !!date && Number(minutes) > 0 && !tooLong;
+  // A LIFT THAT HAS NOT HAPPENED IS NOT A RECORD (#305 N-A3): a date after
+  // today is a mis-tap on the picker, never a lift.
+  const future = !!date && date > todayISO();
+  const canSave = !!athleteId && !!date && Number(minutes) > 0 && !tooLong && !future;
   // One height for every bordered control on the sheet (24.9: 36 everywhere).
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
@@ -6086,10 +6117,11 @@ function LiftModal({ open, initialAthlete, roster, loads = {}, onClose, onSave }
           </select>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input label={tr('Date')} type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
           <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => { setMinTyped(true); setMinutes(e.target.value); }} placeholder="40" />
         </div>
         {tooLong && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#DE4E3B', textAlign: 'center' }}>{tr('Over 240 minutes - check the number.')}</div>}
+        {future && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#DE4E3B', textAlign: 'center' }}>{tr('That date has not happened yet.')}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={lab}>{tr('Note (optional)')}</label>
           <input value={note} onChange={(e) => setNote(e.target.value)}
