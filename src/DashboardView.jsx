@@ -18,6 +18,7 @@ import { syncAutoTasks } from './autoTasks';
 // Moved to src/clubAthlete.js - it was defined four times.
 import { isClubAthlete } from './clubAthlete';
 import { noDangle } from './script';
+import OwedCard from './OwedCard';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
@@ -35,7 +36,7 @@ function DormantWhatsAppButton({ trainee, days }) {
   return <WhatsAppCheckInButton name={target.name} phone={target.phone} gender={target.gender} days={days} />;
 }
 
-export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
+export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout, onOpenBilling }) {
   const tt = useT();
   const he = useHe();
   // Package values like 'Sessions 8' carry the count inside the string, so
@@ -694,6 +695,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         maxBar={maxBar}
         sheet={sheet}
       />}
+
+      {/* OWED (#386): who owes, how much, and why - the roster sheet's unpaid
+          sessions + pending requests + the overdue list, one row per client. */}
+      {isOwner && <OwedCard trainees={trainees} overdue={overduePayment} onOpenBilling={onOpenBilling} onSelectTrainee={onSelectTrainee} />}
 
       {/* STORAGE — slim ops indicator, placed directly under Revenue/billing
           (Ohad) so the money block reads first, then the ops footnote. Color

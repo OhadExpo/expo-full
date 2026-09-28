@@ -25,13 +25,14 @@ import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
 import { tr, readLang, useT, useTB } from './i18n';
 import RevenueSheetCard from './RevenueSheetCard';
+import OwedCard from './OwedCard';
 
 const fmtCurrency = (amount, currency = 'ils') => {
   const sym = currency === 'usd' ? '$' : '₪';
   return `${sym}${Number(amount).toLocaleString()}`;
 };
 
-export default function BillingView({ trainees }) {
+export default function BillingView({ trainees, onSelectTrainee }) {
   const tt = useT();
   const tb = useTB();
   const [requests, setRequests] = useState([]);
@@ -173,6 +174,8 @@ export default function BillingView({ trainees }) {
       </div>
       {/* WHAT THE SHEETS RECORD. Owner-only data, so this renders nothing
           for staff or athletes. The manual ledger below is unaffected. */}
+      {/* OWED, expanded: every client, every detail (#386). */}
+      <OwedCard trainees={trainees} onSelectTrainee={onSelectTrainee} expanded />
       <RevenueSheetCard />
       {/* REQUESTS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>

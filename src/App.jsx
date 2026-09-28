@@ -2107,7 +2107,7 @@ function AuthedApp() {
               back on the programs list. tab + trainee already reset a stuck
               recovery card on navigation. */}
           <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}`} inline>
-          {tab==="dashboard"&&<DashboardView dataIncomplete={dataIncomplete} isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTraineeMessages={id=>navTo("trainees",id,"messages")} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
+          {tab==="dashboard"&&<DashboardView dataIncomplete={dataIncomplete} isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTraineeMessages={id=>navTo("trainees",id,"messages")} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}
@@ -2138,11 +2138,11 @@ function AuthedApp() {
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
           {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVisSynced} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts}/>}
-          {tab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
+          {tab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
           {tab==="bugs"&&<BugsView/>}
           {tab==="challenges"&&<ChallengesView trainees={trainees} clientWorkouts={clientWorkouts} bwLog={bwLog} />}
           {tab==="calendar"&&<BookingView trainees={trainees} />}
-          {tab==="billing"&&<BillingView trainees={trainees} />}
+          {tab==="billing"&&<BillingView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} />}
           {/* Sessions = owner-only TRIAL. The tab is hidden for staff (not in
               STAFF_TABS) and the URL guard redirects non-owners; this isOwner
               gate is belt-and-suspenders so it can never render for anyone but

@@ -88,8 +88,27 @@ function runGames() {
     if (/read-back OK/.test(out)) runLeague('a game was logged');
   });
 }
-say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games every 20 min`);
+// OWED, from the roster sheet, every 20 minutes (#386). It fails soft and says
+// so in one line; a cycle with nothing new stays quiet.
+let owedRunning = false, owedLast = '';
+function runOwed() {
+  if (owedRunning) return;
+  owedRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/sync-owed-cycle.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', () => {
+    owedRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 400);
+    if (line && line !== owedLast) say(line);
+    owedLast = line;
+  });
+}
+say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + owed every 20 min`);
 tick();
 setInterval(tick, 60 * 1000);
 runGames();
 setInterval(runGames, 20 * 60 * 1000);
+runOwed();
+setInterval(runOwed, 20 * 60 * 1000);
