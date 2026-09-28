@@ -51,7 +51,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const COACH_TABS = ['dashboard', 'trainees', 'programs', 'exercises', 'sessions', 'review', 'tasks', 'billing'];
 const SET = process.env.SET || 'demo';
-const BHBC_TABS = ['overview', 'roster', 'schedule', 'lifts', 'medical', 'games'];
+const BHBC_TABS = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'];
 const APP_SURFACES = [
   ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'bugs', 'chat-audit']
     .map((t) => [`app-${t}`, `/coach/${t}`]),

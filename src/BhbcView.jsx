@@ -161,6 +161,19 @@ const cardKey = (header) => {
   const s = header && header.props && header.props.s;
   return typeof s === 'string' ? s : '';
 };
+// AN ACTION IN ITS OWN CARD'S STRIP (29.9 #396, Ohad: "i don't need the manage
+// roster, log lift, log sc session to be appearing on all the screens. they
+// need to appear where they fit"). The COPY button's build: 26px, light on the
+// navy strip. A click never toggles the card (the strip ignores controls).
+function StripBtn({ onClick, children, title }) {
+  return (
+    <button type="button" onClick={onClick} title={title} className="bhbc-strip-btn"
+      style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 'var(--btn-h-in, 26px)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>
+      {children}
+    </button>
+  );
+}
+
 function Card({ header, headerRight, children, ...rest }) {
   const key = cardKey(header);
   const [open, setOpen] = usePersistentState('bhbc-open-' + (key || 'card'), true);
@@ -578,7 +591,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the main menu for each page - same rules as in expo"): /coach/bhbc/roster,
   // /bhbc/schedule for a club coach. Read on load, written on every tab change,
   // followed on back/forward.
-  const ZONE_PAGES = ['overview', 'roster', 'schedule', 'lifts', 'medical', 'games', 'activity'];
+  const ZONE_PAGES = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'];
   const pageFromUrl = () => { const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/(?:coach\/)?bhbc\/([a-z]+)/); return m && ZONE_PAGES.includes(m[1]) ? m[1] : null; };
   // a coach's seat has no ACTIVITY page: /bhbc/activity opened blank for him
   // (27.9 #375) - it lands on OVERVIEW instead (`coach` is the prop; the
@@ -1230,7 +1243,7 @@ function attendance28(rec, days) {
   // Lifts is the personal weight-room record (kind:'lift' only). The old
   // owner-only "Sessions" tab (EXPO's set-by-set logger) is gone: a lift is
   // logged with "Log lift", an S&C session with "Log S&C Session" (24.9).
-  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]])];
+  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['practices', tr('Practices')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]])];
 
   // Never sit on a tab that is not in the list. 'Activity' disappears in the
   // coach view, but `view` was not reset when 'Preview as coach' was switched
@@ -1697,23 +1710,8 @@ function attendance28(rec, days) {
             <button onClick={() => setPreviewCoach(false)} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer' }}>{tr('Exit preview')}</button>
           </div>
         )}
-        {/* ---- TOOLBAR ---- the grey "ROSTER · 10" that led it is gone (27.9
-            #356, Ohad: "it doesnt need to say roster 10 twice. remove the top
-            grey one") - the count is on the ROSTER strip itself. */}
-        {(!asCoach || canLog) && <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {(!asCoach || canLog) && (
-            <div className="bhbc-roster-actions" style={{ marginInlineStart: 'auto', gap: 8 }}>
-              {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>}
-              {/* TWO loggers, named for what they write (Ohad, 24.9: "lifts
-                  should say log lift", "sc sessions should say log S&C
-                  Session"). All three share one weight (27.9). */}
-              {canLog && <Btn variant="ghost" onClick={() => setLogFor('new')}>{tr('Log lift')}</Btn>}
-              {/* one weight for all three (27.9, Ohad: "log sc session should not be
-                  orange it's not more important than the others") */}
-              {canLog && <Btn variant="ghost" onClick={() => { setScPreset(null); setPracticeOpen(true); }}>{tr('Log S&C Session')}</Btn>}
-            </div>
-          )}
-        </div>}
+        {/* (The toolbar that repeated MANAGE ROSTER · LOG LIFT · LOG S&C on every
+            tab is gone - each lives in its own card's strip now, 29.9 #396.) */}
 
         {roster.length === 0 ? (
           <Card header={secTitle('Roster')}>
@@ -1751,12 +1749,27 @@ function attendance28(rec, days) {
             )}
 
             {view === 'lifts' && (
-              <LiftsTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
+              <LiftsTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor}
+                action={canLog ? <StripBtn onClick={() => setLogFor('new')}>{tr('Log lift')}</StripBtn> : null} />
             )}
 
             {view === 'schedule' && (
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
+                {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
+                    after week planner, before practice attendance"). */}
+                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} />
+                <MicrocycleView fx={fx} today={today} />
+              </>
+            )}
+
+            {/* PRACTICES, apart from the SCHEDULE (29.9 #401, Ohad: "split practices
+                and scheduele, and leave each element, table and built where it
+                fits"): the week's practices with their S&C, who was at each, and
+                what was done. The calendar, the next game and the microcycle stay
+                on SCHEDULE. */}
+            {view === 'practices' && (
+              <>
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
                 {/* fixtures={bhbcFixtures} was MISSING, and the prop defaults to []
                     - so the planning board showed "WEEK PLANNER (0 SESSIONS · 0
@@ -1772,10 +1785,8 @@ function attendance28(rec, days) {
                     action — attach the S&C team session to it. */}
                 <WeekPlanner fixtures={bhbcFixtures} today={today} loads={bhbcLoads} athleteIds={roster.map((t) => t.id)}
                   onUpsert={null} onRemove={null}
-                  onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null} />
-                {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
-                    after week planner, before practice attendance"). */}
-                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} />
+                  onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null}
+                  action={canLog ? <StripBtn onClick={() => { setScPreset(null); setPracticeOpen(true); }}>{tr('Log S&C Session')}</StripBtn> : null} />
                 {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
                     want an easy way to view the history of who trained
                     (basketball) and who didn't like the weight room view").
@@ -1785,13 +1796,13 @@ function attendance28(rec, days) {
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
                 <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} medical={medical} />
-                <MicrocycleView fx={fx} today={today} />
               </>
             )}
 
             {view === 'roster' && (
               <>
-                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} onOpen={setDetailFor} />
+                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} onOpen={setDetailFor}
+                  action={!asCoach ? <StripBtn onClick={() => setManageOpen(true)}>{tr('Manage roster')}</StripBtn> : null} />
               </>
             )}
 
@@ -3037,14 +3048,14 @@ function ActivityView({ activity = [], tr, he }) {
       <Card padding={14} leftStripe={ORANGE} header={secTitle('What changed')}>
         {list.length === 0
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
-          : list.slice(0, 120).map((e, i) => (
+          : <div className="bhbc-list">{list.slice(0, 120).map((e, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
               <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1')}</span>
               <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
             </div>
-          ))}
+          ))}</div>}
         {/* the trail keeps everything; the card shows the newest 120 and SAYS so (#305 N-O2) */}
         {list.length > 120 && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, paddingTop: 8 }}>{tr('+{n} older changes not shown').replace('{n}', list.length - 120)}</div>}
       </Card>
@@ -3059,7 +3070,7 @@ function FixturesAheadPanel({ fixtures, today }) {
   let prevDate = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0]?.date;
   return (
     <Card padding={14} leftStripe={NAVY} header={secTitle('Road Ahead')}>
-      <div>
+      <div className="bhbc-list">
         {games.map((g, i) => {
           const days = dayDiff(g.date, today);
           const gap = prevDate ? dayDiff(g.date, prevDate) : null; prevDate = g.date;
@@ -4239,7 +4250,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
 // which is what "combined or messed up" looked like. One kind, one colour.
 //
 // Nothing here invents data. No lift logged means no bar - not a zero.
-function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
+function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action = null }) {
   const tr = useT();
   const he = useHe();
   const [monthOff, setMonthOff] = useState(0);          // 0 = this month, -1 = last
@@ -4322,7 +4333,8 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
       <Card leftStripe={NAVY} padding={0} header={secTitle('Lifts')}
         headerRight={(
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
-            <span>{liftedToday ? `${liftedToday} ${countWord(liftedToday, 'lifted today')}` : tr('nobody has lifted today')}</span>
+            <span className="strip-meta">{liftedToday ? `${liftedToday} ${countWord(liftedToday, 'lifted today')}` : tr('nobody has lifted today')}</span>
+            {action}
           </span>
         )}>
         {!!due.length && (
@@ -4673,7 +4685,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   );
 }
 
-function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, onOpen }) {
+function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, onOpen, action = null }) {
   const tr = useT();
   // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
   // first, the league feed only for a player with none - and never a league
@@ -4690,7 +4702,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     return lp && lp.ppg != null ? lp.ppg : null;
   };
   return (
-    <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
+    <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
       {/* 264, not 232 (29.9 #380): a card's footer - height · nation · PPG ...
           sessions · hours - needs ~260px; at 820 three 240px cards clipped
           "23 SESSIONS · 5H" by 20px. 264 gives two columns there, three from
@@ -4766,8 +4778,13 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   top-down flow pushed the footer through the bottom border. */}
               {/* the footer's text sits centred between the rule and the card's
                   edge: 12px above it, the card's 13px padding below */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
+              {/* ONE BASELINE (29.9 #397, Ohad: "the bottom row on each athlete card is
+                  not aligned. not the text, and not the text compared to the top and
+                  bottom borders"): the right group's wrapper kept the default line box
+                  and sat its text ~2px low, and the height was 11px beside 10px.
+                  Every piece is 10px on line-height 1, aligned on the baseline. */}
+              <div className="bhbc-rc-foot" style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0, lineHeight: 1 }}>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
                     Measured at 900: every roster card footer is 30px except DJ
@@ -4779,7 +4796,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                     align from card to card" he reported on 02.09. Two words on
                     one line; the sessions text beside it is the flexible one. */}
                 {(() => { const ppg = ppgFor(t); return ppg != null ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('Points per game this season')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ppg} PPG</span></span> : null; })()}
-                <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null
+                <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'baseline', lineHeight: 1 }}>{acwr.ratio != null
                   ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} />
                   /* NO ACWR IS NOT THE SAME AS NO TRAINING. Without an RPE there
                      is no load and no ratio - but the sessions and their minutes
@@ -5126,7 +5143,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   );
 }
 
-function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc }) {
+function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc, action = null }) {
   const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
@@ -5200,7 +5217,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
     // ONE ROW (26.9): the counts are a caption beside the title, not part of
     // it — appended to the title they wrapped it to two lines at 390.
     <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}
-      right={<span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' }}>{he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`}</span>}>
+      right={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' }}>{he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`}</span>{action}</span>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" aria-label={tr('Previous week')} style={navArrow(false)}>{he ? '›' : '‹'}</button>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>
@@ -5710,7 +5727,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
     <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'end' }} />
   );
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="bhbc-list" style={{ overflowX: 'auto' }}>
       {/* THE TABLE FILLS ITS SCROLLER (27.9, Ohad: "why the extra white space?
           useless"): index.html turns every table into display:block under
           769px, so the rows stopped at their content width inside a 620px box.

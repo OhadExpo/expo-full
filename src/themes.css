@@ -1831,3 +1831,23 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
      asymmetry. 2px on top moves the centred block 1px down (29.9 #395). */
   .bhbc-zone .bhbc-load-row > *:nth-child(2) { padding-top: 2px; }
 }
+
+/* NO BOTTOM RULE ON A LIST'S LAST ROW (29.9 #419, Ohad: "i want it with no
+   buttom border ever, anywhere!!!"): the box's own edge ends the list - a last
+   row's own rule 10-15px above it read as a stray extra line (Previous
+   injuries, Roster health, the load board). Rows keep their rule between them. */
+.bhbc-zone .bhbc-row:last-child { border-bottom-color: transparent !important; }
+
+/* THE FIRST ROW UNDER A TITLE STRIP (29.9 #418, Ohad: "zack bryant has a very
+   empty space above his row ... the first name after each title everywhere"):
+   the card body's 12px top padding stacked on the row's own, so the first row
+   sat 22px under the strip and 10px over its rule while every other row is
+   10 / 10. A body that opens straight into a row list has no top padding. */
+.bhbc-zone .title-strip + div:has(> div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
+.bhbc-zone .title-strip + div:has(> :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child) { padding-top: 0 !important; }
+/* the same for any list marked .bhbc-list and the load board's scroller */
+.bhbc-zone :has(> :is(.bhbc-list, .bhbc-load-scroll):first-child) { padding-top: 0 !important; }
+.bhbc-zone .bhbc-list > :last-child { border-bottom-color: transparent !important; }
+/* NEXT GAME on a phone (29.9 #404, measured 9 under the strip / 12 over the
+   travel rule): 2px on top centres the stacked block between them. */
+@media (max-width: 620px) { .bhbc-zone .bhbc-nextgame { padding-top: 2px; } }
