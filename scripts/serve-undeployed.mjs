@@ -14,10 +14,14 @@
 import http from 'node:http';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 
 const PORT = Number(process.argv[2] || 8920);
 const REPO = process.cwd();
-const NOTES = 'C:/Users/Administrator/expo-private-backups/queue';
+// Home dir in forward-slash form (C:/Users/<you>) and Git Bash form (/c/Users/<you>).
+const HOME_FWD = os.homedir().replace(/\\/g, '/');
+const HOME_BASH = HOME_FWD.replace(/^([A-Za-z]):/, (_, d) => '/' + d.toLowerCase());
+const NOTES = `${HOME_FWD}/expo-private-backups/queue`;
 const SHOTS = 'audit-out/beforeafter';
 
 const git = (a) => { try { return execSync('git ' + a, { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim(); } catch { return ''; } };
@@ -176,7 +180,7 @@ a{color:var(--ac)}
     <tr><td>branch <span class="muted">bhbc-hebrew</span></td><td class="n"><code>${esc(d.branch)}</code> · ${d.ahead} ahead</td></tr>
     <tr><td>candidate <span class="muted">${esc(d.candName || 'none cut')}</span></td><td class="n">${d.candName ? `<code>${esc(d.cand)}</code> · ${d.candAhead} ahead` : '<span class="bad">no deploy tree</span>'}${d.candBehind ? ` · <span class="bad">${d.candBehind} behind the branch — RE-CUT</span>` : d.candName ? ' · <span class="ok">up to date</span>' : ''}</td></tr>
   </table>
-  <pre>! cd /c/Users/Administrator/Desktop/expo-full &amp;&amp; ${d.candBehind || !d.candName ? 'bash scripts/cut-deploy-tree.sh &amp;&amp; ' : ''}git push origin ${esc(d.candName || '&lt;tree&gt;')}:master</pre>
+  <pre>! cd ${esc(HOME_BASH)}/Desktop/expo-full &amp;&amp; ${d.candBehind || !d.candName ? 'bash scripts/cut-deploy-tree.sh &amp;&amp; ' : ''}git push origin ${esc(d.candName || '&lt;tree&gt;')}:master</pre>
   ${d.candBehind ? `<p class="bad">The tree is ${d.candBehind} commit${d.candBehind === 1 ? '' : 's'} behind the branch. Pushing it now ships less than is finished — cut a fresh one first.</p>` : ''}
   <p class="muted">rollback <code>git push --force-with-lease origin ${esc(d.prod)}:master</code></p>
 </div>

@@ -19,6 +19,7 @@
 //   DRY=1 node scripts/bhbc-english-names.mjs
 //         node scripts/bhbc-english-names.mjs
 import fs from 'node:fs';
+import os from 'node:os';
 import { createClient } from '@supabase/supabase-js';
 
 const DRY = !!process.env.DRY;
@@ -35,7 +36,7 @@ if (auth.error) { console.log('sign-in failed: ' + auth.error.message); process.
 // expo-private-backups/bhbc/name-map.mjs; this refuses to run without it
 // rather than keeping a copy.
 const MAP_PATH = process.env.BHBC_NAME_MAP
-  || 'C:/Users/Administrator/expo-private-backups/bhbc/name-map.mjs';
+  || `${os.homedir().replace(/\\/g, '/')}/expo-private-backups/bhbc/name-map.mjs`;
 let RENAME, FILL;
 try {
   ({ RENAME, FILL } = await import('file:///' + MAP_PATH.replace(/\\/g, '/')));

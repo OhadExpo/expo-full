@@ -15,6 +15,7 @@
 //
 //   node scripts/audit-handoff.mjs
 import fs from 'node:fs';
+import os from 'node:os';
 import { execSync } from 'node:child_process';
 import http from 'node:http';
 import { createClient } from '@supabase/supabase-js';
@@ -153,7 +154,8 @@ check(5, '1 Sep is 9 lifters × 12 min = 108, as the UI line says',
 // ---------------------------------------------------------------- pass 6
 say('');
 say('--- PASS 6 · the memory this handoff points at exists ---');
-const MEM = 'C:/Users/Administrator/.claude/projects/C--Users-Administrator-Desktop-expo-full/memory';
+// ~/.claude/projects/<home-derived project key>/memory -- same string as before on the laptop, portable elsewhere
+const MEM = `${os.homedir().replace(/\\/g, '/')}/.claude/projects/${os.homedir().replace(/[^A-Za-z0-9]/g, '-')}-Desktop-expo-full/memory`;
 for (const m of ['MEMORY.md', 'project_bhbc_replan_2026_09_06.md', 'project_handoff_2026_09_06.md']) {
   check(6, `memory/${m}`, fs.existsSync(`${MEM}/${m}`));
 }
