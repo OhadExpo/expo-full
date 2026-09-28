@@ -472,21 +472,30 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Anything else — a real repeat of the day hours later, a rebuilt block that
   // kept its name — is a NEW row. Daily routines are always new rows.
   const REUSE_WINDOW_MS = 2 * 60 * 60 * 1000;
-  const findExistingLog = (list) => {
+  // AUDIT 29.9 (#391 pass 1): only a RECENT row is ever reused - an old EMPTY
+  // row used to be reused at any age, so Thursday's real session was filed
+  // under Monday's date. A row dated in the future (device clock ahead) is not
+  // "recent". `emptyOnly` is the finish-time lookup: a row the logger did NOT
+  // open with may be reused only when it holds no ticked set, so a blank logger
+  // on a fresh device can never overwrite a real 17/20 row.
+  const findExistingLog = (list, { emptyOnly = false } = {}) => {
     if (day?.kind === 'daily' || plan?.kind === 'daily') return null;
     if (nameAmbiguous) return null;
     if (Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name).length > 1) return null;
     let best = null, bestAt = -Infinity;
+    const now = Date.now();
     for (const w of (list || [])) {
       if (!w || w.dayName !== day.name || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, null)) continue;
       const at = Date.parse(w.date || '') || 0;
-      const recent = at > 0 && Date.now() - at < REUSE_WINDOW_MS;
-      if (!recent && countDoneSets(w.exercises) > 0) continue; // a real earlier session — never overwrite it
+      const recent = at > 0 && at <= now && now - at < REUSE_WINDOW_MS;
+      if (!recent) continue;
+      if (emptyOnly && countDoneSets(w.exercises) > 0) continue;
       if (at > bestAt) { best = w; bestAt = at; }
     }
     return best;
   };
   const [editOf] = useState(() => findExistingLog(priorWorkouts));
+  const workoutIdRef = useRef(null);
 
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
@@ -595,7 +604,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const prevOrder = _restoredSession.exOrder;
       const identityOk = !Array.isArray(prevOrder) ||
         (prevOrder.length === curOrder.length && prevOrder.every((e, i) => e === curOrder[i]));
-      if (sizesOk && identityOk) return _restoredSession.allSets;
+      // AUDIT 29.9: a stale draft from another day on this device must not
+      // replace a saved log that holds MORE ticked sets (device B's old partial
+      // draft over device A's finished 17/20).
+      const draftDone = _restoredSession.allSets.reduce((a, rows) => a + (rows || []).filter((x) => x && x.done).length, 0);
+      const savedDone = editOf ? countDoneSets(editOf.exercises) : 0;
+      if (sizesOk && identityOk && draftDone >= savedDone) return _restoredSession.allSets;
     }
     // Re-opening an existing log (AGAIN): start from what he already logged,
     // matched by eid (position as the fallback), never from a blank sheet —
@@ -1493,8 +1507,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // Same plan + day + week already logged → re-save THAT row (same id, an
     // upsert), never a second one. Looked up again NOW, not only at mount: the
     // history may have arrived after the logger opened (fresh device).
-    const existingLog = findExistingLog(priorWorkouts) || editOf;
-    const workoutId = existingLog?.id || uid();
+    // The log this logger OPENED WITH (editOf, its sets were seeded in), else a
+    // recent EMPTY row to fill; never a real row the logger never loaded. And
+    // ONE id per logger session: a Complete retried after a failure (or after a
+    // throw past the save) re-saves the same row instead of minting a second.
+    const existingLog = editOf || findExistingLog(priorWorkouts, { emptyOnly: true });
+    const workoutId = workoutIdRef.current || existingLog?.id || uid();
+    workoutIdRef.current = workoutId;
     // Carry pendingBlobId on each form_video entry so the blob queue can find
     // and patch this workout once the upload eventually succeeds. Only the
     // athlete's own fields: the coach's (reviewNotes…) are merged from the
@@ -1521,7 +1540,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // for downstream signals (which equipment is bottlenecking which
     // programs, etc.).
     const finishedAt = new Date().toISOString();
-    const result = await onComplete({
+    const result = await Promise.resolve().then(() => onComplete({
       // planId identifies WHICH plan this is, where the name cannot: two couple
       // members can hold plans with the same name and the same day names
       // (audit 08-22 #31).
@@ -1569,7 +1588,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // resave: this Complete re-saves an existing row (no second session
     // decrement / "finished a workout" push / BW re-file). Decided HERE, from
     // the same lookup that chose the id, not re-derived by the caller.
-    }, { resave: !!existingLog });
+    }, { resave: !!existingLog })).catch((e) => {
+      // Something past the write threw (the decrement, the BW file...). The row
+      // may well be saved; either way the athlete gets his button back, and a
+      // second tap re-saves the SAME id (workoutIdRef).
+      try { console.error('[logger] complete threw', e); } catch { /* no console */ }
+      return { ok: false, error: e };
+    });
     // The draft is dropped ONLY once the workout is safe — confirmed by the
     // server or durably parked in the offline queue. Before 27.9 it was deleted
     // the instant Complete was tapped, before the server answered, so any lost
@@ -2839,13 +2864,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </button>
               );
             })()}
-            <button onClick={()=>setShowPwModal(true)} title={tr(readLang(), 'Change password')} aria-label={tr(readLang(), 'Change password')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:'0 10px',minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
+            <button onClick={()=>setShowPwModal(true)} title={tr(lang || readLang(), 'Change password')} aria-label={tr(lang || readLang(), 'Change password')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:'0 10px',minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'0 10px',marginInlineEnd:-10,minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',lineHeight:1}}>{tt('LOG OUT')} {readLang() === 'he' ? '←' : '→'}</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'0 10px',marginInlineEnd:-10,minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',lineHeight:1}}>{tt('LOG OUT')} {(lang || readLang()) === 'he' ? '←' : '→'}</button>
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,

@@ -224,8 +224,20 @@ export async function upsertWorkoutRow(row) {
   // row, and a re-save of an existing log carries this device's copy of slots
   // the coach has since commented on (audit 08-22, review 27.9).
   if (row && row.id && row.form_videos) {
+    // AUDIT 29.9 (#391 pass 1): a FAILED read (error or timeout) used to fall
+    // through to a plain upsert of this device's slots - on a re-save that
+    // deleted the coach's reviewNotes, on a replay a cloudUrl the blob queue had
+    // patched in. Now it throws a code-less error, which the queue treats as
+    // transient: the row stays queued and is retried, never written blind.
+    let existing = null;
+    {
+      let res;
+      try { res = await withTimeout(() => supabase.from('client_workouts').select('form_videos').eq('id', row.id).maybeSingle()); }
+      catch (e) { throw new Error('form_videos read failed - retrying: ' + (e?.message || e)); }
+      if (res && res.error) throw new Error('form_videos read failed - retrying: ' + (res.error.message || res.error));
+      existing = res ? res.data : null;
+    }
     try {
-      const { data: existing } = await withTimeout(() => supabase.from('client_workouts').select('form_videos').eq('id', row.id).maybeSingle());
       const srv = existing && existing.form_videos;
       if (srv && typeof srv === 'object') {
         const merged = Array.isArray(srv) ? [...(row.form_videos || [])] : { ...(row.form_videos || {}) };
@@ -233,7 +245,7 @@ export async function upsertWorkoutRow(row) {
         for (const [k, sv] of entries) merged[k] = mergeFormVideoSlot(sv, merged[k]);
         row = { ...row, form_videos: merged };
       }
-    } catch { /* read failed — fall through to the plain upsert */ }
+    } catch { /* a malformed server slot - keep this device's */ }
   }
   if (planIdColumnMissing && row && 'plan_id' in row) { row = { ...row }; delete row.plan_id; }
   let { error } = await withTimeout(() => supabase.from('client_workouts').upsert(row));

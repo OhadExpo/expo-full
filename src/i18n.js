@@ -2805,7 +2805,7 @@ export function readLang() {
     const saved = localStorage.getItem(LANG_KEY);
     if (saved === 'he' || saved === 'en') return saved;
   } catch { /* private mode */ }
-  // NOBODY HAS CHOSEN YET -> ASK THE BROWSER.
+  // NOBODY HAS CHOSEN YET -> ENGLISH (it used to ask the browser; history below).
   //
   // Ohad, 22.9: "make the hebrew go from 10% to over 90% on all of our
   // platforms". A big part of that 10% was not a missing translation at all:
