@@ -4124,7 +4124,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
 
       {/* Sideways scroll is deliberate: a month of days cannot fit 390px. */}
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 298 + days.list.length * CELL }}>
+        <div style={{ minWidth: 298 + 28 + days.list.length * CELL }}>
           <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6 }}>
             <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
             {days.list.map((d) => (
@@ -4330,7 +4330,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
         {/* The grid scrolls sideways on a phone by design - a month of days
             cannot fit 390px, and squeezing it makes it unreadable on both. */}
         <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 298 + days.list.length * CELL }}>
+          <div style={{ minWidth: 298 + 28 + days.list.length * CELL }}>
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
               <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
@@ -4452,7 +4452,9 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
     const el = loadInnerRef.current; if (!el) return;
     el.style.removeProperty('--pos-w');
     let w = 0;
-    el.querySelectorAll('.bhbc-pos-inj [data-pos]').forEach((p) => { w = Math.max(w, p.scrollWidth); });
+    // the column holds the NAME above the position (29.9 #395), so it is as
+    // wide as the longest of either on this board
+    el.querySelectorAll('.bhbc-pos-inj [data-pos], .bhbc-load-row [data-name]').forEach((p) => { w = Math.max(w, p.scrollWidth); });
     if (w) el.style.setProperty('--pos-w', `${Math.ceil(w)}px`);
   });
   return (
@@ -4663,7 +4665,11 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
   };
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
-      <div className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
+      {/* 264, not 232 (29.9 #380): a card's footer - height · nation · PPG ...
+          sessions · hours - needs ~260px; at 820 three 240px cards clipped
+          "23 SESSIONS · 5H" by 20px. 264 gives two columns there, three from
+          ~1100. */}
+      <div className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: 12 }}>
         {rows.map(({ t, acwr, att }) => (
           <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${acwr.band.color}`, padding: '13px 15px',
             // EVERY ROSTER CARD IS THE SAME BOX.
@@ -6327,7 +6333,7 @@ function LoadOutputCard({ rows, loads, medical }) {
             const injured = activeInjuries(medical, t.id).length > 0;
             return (
               <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', borderBottom: `1px solid ${C.cardBd}` }}>
-                <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                 <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: injured ? ORANGE : C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
                 <div style={{ flex: 1 }} />
                 {/* The arithmetic, spelled out, isolated LTR so the x and the
@@ -6420,7 +6426,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                    <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
+                    <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
@@ -6468,7 +6474,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
-                  <span style={{ display: 'inline-block', width: 18, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                  <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                   <div style={{ flex: 1 }} />
