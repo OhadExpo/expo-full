@@ -156,7 +156,7 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
         {!loaded ? <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'var(--c-td)', minHeight: 36, display: 'flex', alignItems: 'center' }}>{tt('Loading…')}</div>
           : list.length === 0 ? <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'var(--c-td)', minHeight: 36, display: 'flex', alignItems: 'center' }}>{tt('Nobody owes anything')}</div>
           : (
-            <div role="list" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div role="list" className="app-list" style={{ display: 'flex', flexDirection: 'column' }}>
               {(expanded ? list : list.slice(0, 8)).map((e) => (
                 <button key={e.key} type="button" role="listitem" data-owed-row onClick={() => setOpen(e)}
                   style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px 20px', columnGap: 12, rowGap: 4, alignItems: 'center', height: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>

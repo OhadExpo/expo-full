@@ -1026,7 +1026,9 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
   const refined = isRefined5b();
   const PAD = 18;
   const metricStyle = {
-    display: 'flex', flexDirection: 'column', gap: 2,
+    // centred in the row's height: a tile with a one-line sub sat 10 above /
+    // 16 below beside a taller neighbour (rule-rhythm 29.9 #404)
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
     padding: '10px 14px',
     border: `1px solid ${C.cardBd}`,
     background: 'var(--c-sf)',

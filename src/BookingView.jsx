@@ -336,7 +336,7 @@ export default function BookingView({ trainees }) {
         {/* WHAT THE CALENDAR ALREADY OWNS. The rules say when he CAN be booked;
             his calendar says when he already is. Both have to be true before a
             slot is offered to a stranger. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, color: C.tm }}>
+        <div className="app-first-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, color: C.tm }}>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{tt('From your calendar')}</span>
           <span style={{ color: C.tx }}>
             {calBusy.connected === false

@@ -1846,8 +1846,18 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .bhbc-zone .title-strip + div:has(> div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
 .bhbc-zone .title-strip + div:has(> :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child) { padding-top: 0 !important; }
 /* the same for any list marked .bhbc-list and the load board's scroller */
-.bhbc-zone :has(> :is(.bhbc-list, .bhbc-load-scroll):first-child) { padding-top: 0 !important; }
-.bhbc-zone .bhbc-list > :last-child { border-bottom-color: transparent !important; }
+/* app-wide (29.9 #418 #419): a row list marked .bhbc-list / .app-list opens
+   flush under its strip and its last row draws no rule of its own */
+:has(> :is(.bhbc-list, .app-list, .bhbc-load-scroll):first-child),
+:has(> :first-child > .app-list:first-child) { padding-top: 0 !important; }
+:is(.bhbc-list, .app-list) > :last-child { border-bottom-color: transparent !important; }
 /* NEXT GAME on a phone (29.9 #404, measured 9 under the strip / 12 over the
    travel rule): 2px on top centres the stacked block between them. */
 @media (max-width: 620px) { .bhbc-zone .bhbc-nextgame { padding-top: 2px; } }
+
+/* LAST ROWS draw no rule of their own (29.9 #419, rule-rhythm): the exercise
+   library table, the revenue ledger. */
+.ex-row:last-child, .ex-row:last-child > td { border-bottom-color: transparent !important; }
+.rs-table tbody > tr:last-child > td { border-bottom-color: transparent !important; }
+/* a body whose first child is a ruled info row opens flush under its strip */
+:has(> .app-first-row:first-child) { padding-top: 0 !important; }

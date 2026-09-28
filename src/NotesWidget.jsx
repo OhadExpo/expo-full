@@ -162,7 +162,7 @@ function FitCentered({ children, style }) {
         itself behind an ellipsis at 390px. minHeight 32 still holds the row at
         one line whenever the text fits, so desktop is unchanged. */
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid ${tone}`, padding: '0 8px', minHeight: 'var(--btn-h)', boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      style={{ border: `1px solid ${tone}`, padding: '1.6px 8px 0', /* ink centred: the 13px caps name sat 0.8px high (rule-rhythm 29.9) */ minHeight: 'var(--btn-h)', boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px
@@ -1007,7 +1007,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   .hist-zones{flex-direction:column;align-items:stretch;gap:1px;padding:4px 0}
                   .hist-zones > span{text-align:start !important}
                   .hist-zones > span:nth-child(2){text-align:start !important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-                  .mini-task-row{flex-wrap:wrap;row-gap:1px;padding-block:5px !important}
+                  .mini-task-row{flex-wrap:wrap;row-gap:1px;padding-block:5.8px 4.2px !important}
                   .mini-task-row > span:nth-child(2){flex:1 0 100% !important;text-align:start !important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
                   /* name and its status chip share line one, the sentence gets line two */
                   .mini-task-row > span:nth-child(1){order:1}

@@ -97,7 +97,14 @@ for (const lang of LANGS) for (const W of WIDTHS) {
               const sib = [...el.parentElement.children].filter(vis);
               if (sib.length >= 2 && sib.every((s) => bw(getComputedStyle(s), 'Bottom'))) {
                 let box = el.parentElement, end = null;
-                for (let i = 0; box && i < 4; i++, box = box.parentElement) { const bcs = getComputedStyle(box); const bb2 = box.getBoundingClientRect(); if (bw(bcs, 'Bottom') || bcs.backgroundColor !== getComputedStyle(box.parentElement || box).backgroundColor) { end = bb2.bottom; break; } }
+                let tail = false;
+                for (let i = 0, cur = el; box && i < 4; i++, cur = box, box = box.parentElement) {
+                  // content after the row inside the box = the row is not the list's end
+                  if (i > 0 && [...box.children].slice([...box.children].indexOf(cur) + 1).some(vis)) { tail = true; break; }
+                  const bcs = getComputedStyle(box); const bb2 = box.getBoundingClientRect();
+                  if (bw(bcs, 'Bottom') || bcs.backgroundColor !== getComputedStyle(box.parentElement || box).backgroundColor) { end = bb2.bottom; break; }
+                }
+                if (tail) end = null;
                 if (end != null && end - rb.bottom <= 16 && end - rb.bottom >= 0) out.push({ k: 'LASTRULE', t: lab(el), d: `own bottom rule ${Math.round(end - rb.bottom)}px above the box edge` });
               }
             }
@@ -118,6 +125,9 @@ for (const lang of LANGS) for (const W of WIDTHS) {
             // (the next row's top rule), like every row below it
             const k0 = kids[0], c0 = getComputedStyle(k0), r0 = k0.getBoundingClientRect();
             if (r0.height > 90) continue; // a tile grid, not a row list
+            if (bw(c0, 'Top')) continue; // a boxed tile is judged by CENTRE, not here
+            // a LIST is rows separated by rules; a row of controls is not one
+            if (!kids.every((k) => { const kc = getComputedStyle(k); return bw(kc, 'Bottom') || bw(kc, 'Top'); }) && !kids.slice(0, -1).every((k) => bw(getComputedStyle(k), 'Bottom'))) continue;
             const rule0 = bw(c0, 'Bottom') ? r0.bottom - parseFloat(c0.borderBottomWidth) : (bw(getComputedStyle(kids[1]), 'Top') ? kids[1].getBoundingClientRect().top : null);
             if (rule0 != null) {
               const above = inks[0].t - sb.bottom, below = rule0 - inks[0].b;
