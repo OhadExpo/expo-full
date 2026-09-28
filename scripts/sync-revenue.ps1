@@ -4,7 +4,7 @@
 # node script does the work. PYTHONUTF8 is set here because the sheets are
 # Hebrew and the parser writes UTF-8 JSON.
 $ErrorActionPreference = 'Stop'
-Set-Location (Join-Path $env:USERPROFILE 'Desktop\expo-full')
+Set-Location $(if ($env:EXPO_REPO) { $env:EXPO_REPO } else { Join-Path $env:USERPROFILE 'Desktop\expo-full' })
 $env:PYTHONUTF8 = '1'
 & node 'scripts\sync-revenue.mjs'
 exit $LASTEXITCODE
