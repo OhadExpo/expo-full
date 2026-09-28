@@ -1753,6 +1753,7 @@ function AuthedApp() {
   if (isClient) return (<LangCtx.Provider value={lang}><div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
     <ErrorBoundary inline>
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
+      lang={lang} onSetLang={setLang}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
     </ErrorBoundary>
   </Suspense></div></LangCtx.Provider>);

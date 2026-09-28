@@ -2297,7 +2297,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null }) {
   const tt = useAppT();
   const tb = useTB();
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
@@ -2805,7 +2805,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* (Bnei Herzliya co-brand lives as the big crest above the greeting
                 below — the tiny header logo was removed per Ohad.) */}
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:14}}>
+          {/* ONE RHYTHM (29.9 #390, measured): 36px boxes that hug their ink
+              with 10px each side, 8px between boxes, so the ink gaps are equal
+              in English and Hebrew; the last control's ink sits on the
+              divider's end edge (-10px end margin). */}
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
             {!demoMode && (() => {
               // trainee.email is either a string or an array (up to 3 per
               // memory project_auth_state). Flatten to the first non-empty
@@ -2816,13 +2820,32 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               const reporter = arr.find(e => typeof e === 'string' && e.trim()) || '';
               return <BugReportButton role="athlete" reporterEmail={reporter} variant="athlete" />;
             })()}
-            <button onClick={()=>setShowPwModal(true)} title={tr(readLang(), 'Change password')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
+            {/* EN / עב for the athlete (Ohad 29.9 #390). The coach's control's
+                type: it shows the language it switches TO. NEVER DURING A WORKOUT: the logger replaces this whole
+                screen while it is open, and a finished workout that is still
+                being saved (__expoWorkoutActive) refuses the switch too - a
+                re-render there is not worth any risk to his sets. Not on the
+                sign-in screens (#270) - those render before this portal exists. */}
+            {onSetLang && !demoMode && !embedded && (() => {
+              const cur = lang === 'he' ? 'he' : 'en';
+              const flip = () => { if ((window.__expoWorkoutActive | 0) > 0) return; onSetLang(cur === 'he' ? 'en' : 'he'); };
+              return (
+                <button type="button" data-portal-lang onClick={flip} title={cur === 'he' ? 'Switch to English' : 'עברית'} aria-label={cur === 'he' ? 'Switch to English' : 'עברית'}
+                  style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:'0 10px',minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',lineHeight:1}}>
+                  {/* no width reservation: a tap re-renders the whole portal in the
+                      other language, so the row is re-laid out anyway, and a
+                      reserved width left the English ink gaps 30 / 28 */}
+                  <span>{cur === 'he' ? 'EN' : 'עב'}</span>
+                </button>
+              );
+            })()}
+            <button onClick={()=>setShowPwModal(true)} title={tr(readLang(), 'Change password')} aria-label={tr(readLang(), 'Change password')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:'0 10px',minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tb('LOG OUT')} {readLang() === 'he' ? '←' : '→'}</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'0 10px',marginInlineEnd:-10,minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',lineHeight:1}}>{tt('LOG OUT')} {readLang() === 'he' ? '←' : '→'}</button>
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,

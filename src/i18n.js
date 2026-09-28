@@ -2816,10 +2816,10 @@ export function readLang() {
   // Only the FIRST visit is affected — an explicit choice is stored above and
   // always wins, in both directions. `iw` is the legacy ISO code for Hebrew and
   // some Android builds still send it.
-  try {
-    const tags = [navigator.language, ...(navigator.languages || [])].filter(Boolean);
-    if (tags.some((t) => /^(he|iw)\b/i.test(t))) return 'he';
-  } catch { /* no navigator */ }
+  // SUPERSEDED 29.9 (#390, Ohad: "make sure the automatically first screen
+  // unless changed is english"): the first screen is ENGLISH for everyone until
+  // they switch - the same rule the sign-in screens already follow (#270). The
+  // stored choice above still wins, in both directions.
   return 'en';
 }
 
