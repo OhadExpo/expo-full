@@ -1996,7 +1996,7 @@ function attendance28(rec, days) {
         const aPlans = (planIndex || []).filter((p) => String(p.traineeId || '').split('__')[0] === detailFor);
         const curPlan = aPlans.slice().sort((a, b) => _bn(b.name) - _bn(a.name))[0] || null;
         const program = { count: aPlans.length, current: curPlan ? curPlan.name : null };
-        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program}
+        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program} fixtures={bhbcFixtures} medicalAll={medical}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           leaguePlayer={(() => { const lp = leaguePlayerFor(league, row.t); return lp ? { ...lp, log: (lp.log || []).map((g) => withCalendarOpp(bhbcFixtures, g)) } : lp; })()} leagueLog={leagueLogFor(league, row.t).map((g) => withCalendarOpp(bhbcFixtures, g))} initialKind={{ lifts: 'lift', games: 'game' }[view] || 'all'} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
           injuries={activeInjuries(medical, detailFor)}
@@ -2116,7 +2116,7 @@ function GameLineModal({ line, onClose }) {
   );
 }
 
-function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
+function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession, fixtures = [], medicalAll = null }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const heM = useHe();
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
@@ -2235,85 +2235,6 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${av.color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${av.color} 45%, transparent)` : `1px solid ${C.cardBd}`, padding: '0 11px' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</span>
           )}
         </div>
-        {leaguePlayer && (() => {
-          const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
-          // THE LAST GAME OPENS ITS FULL LINE (27.9, Ohad: "a clickable item or
-          // title to expand player stats like in the second screenshot"). The
-          // club's own row for that date wins (it carries the whole box and the
-          // opponent's English name); else the league log line itself.
-          const lastGRow = lastG && lastG.date ? (((rec && rec.sessions) || {})[lastG.date] || []).find((r) => rowKind(r) === 'game') : null;
-          const lastGLine = !lastG ? null : lastGRow ? gameLineOf(lastG.date, lastGRow)
-            : { date: lastG.date, opp: lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : null, min: lastG.min, box: lastG, source: 'basket.co.il' };
-          const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
-          const agoLabel = ago == null ? '' : heM
-            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
-            : (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`);
-          // THE AVERAGES READ WITH THE SAME FOUR WORDS AS THE LAST GAME ABOVE,
-          // under one "season average" caption (27.9: "נק׳ למשחק" wrapped to two
-          // lines in a quarter of a phone; a title fits by wording, never a
-          // smaller font). Then the shooting, the rating and games played.
-          const avg = [['PTS', leaguePlayer.ppg], ['REB', leaguePlayer.rpg], ['AST', leaguePlayer.apg], ['MIN', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
-          return (
-            <div style={{ border: `1px solid ${ORANGE}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>{tr('League Stats')}</span>
-                {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{leagueSeason}</span>}
-                {/* WHERE THESE NUMBERS COME FROM, and how old they are.
-                    Ohad read "LAST GAME - VS MACCABI TEL AVIV" as the club's
-                    last game and said "that's not even correct we had a playoff
-                    game against holon". The card was right about the FEED and
-                    silent about the feed's limits: re-scraped live, basket.co.il
-                    publishes 194 games for this season and BHBC appears in 26 of
-                    them, the newest being that Maccabi game. A panel that states
-                    its source and its date cannot be mistaken for the club's own
-                    record. */}
-                {leagueUpdatedAt && (
-                  <span className="strip-meta" style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}
-                    title={tr('Official league feed (basket.co.il). Only games the league has published appear here.')}>
-                    {/* in the zone's language (#305 N-D3): it was Hebrew on the English screen */}
-                    {tr('Premier League') + ' · ' + fmtNumericDate(leagueUpdatedAt)}
-                  </span>
-                )}
-              </div>
-              {lastG && (
-                <div role="button" tabIndex={0} className="bhbc-row" onClick={() => setGameOpen(lastGLine)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(lastGLine); } }} style={{ cursor: 'pointer' }}>
-                  <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
-                      <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>{tr('vs')} {lastGLine.opp || '—'}</bdi></div>
-                    </div>
-                    <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Full line')} ›</span>
-                  </div>
-                  {/* THE SAME FOUR COLUMNS as the season averages directly below.
-                      They used to be pushed to the right edge on `margin-inline-start:
-                      auto` with a flat 14px gap, so PTS/REB/AST/MIN landed at 933 /
-                      970 / 1007 / 1046 while the grid under them started its columns
-                      at 443 / 604 / 764 / 924 - two stat rows in one card on two
-                      different rhythms. Ohad: "the stats on the right should be
-                      ordered like columns. i keep asking this request." */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` }}>
-                    {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ['MIN', lastG.min]].map(([k, v], i) => (
-                      <div key={k} style={{ padding: '8px 12px', borderInlineEnd: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
-                        <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
-                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: k === 'PTS' ? ORANGE_DEEP : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div style={{ padding: '8px 12px 0', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Season average')}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-                {avg.map(([k, v], i) => (
-                  <div key={k} style={{ padding: '8px 12px', borderInlineEnd: (i % 4 !== 3) ? `1px solid ${C.cardBd}` : 'none', borderTop: i >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
-                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
-                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">{v}</bdi></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
         <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {/* The biggest numbers on the card were three em-dashes for anyone whose
               history is gym-only: BHBC gym sessions are minutes with NO sRPE by
@@ -2334,6 +2255,29 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                 if (d >= cut7) { n7++; m7 += mm; }
                 if (rowKind(r) === 'lift' && (!lastLift || d > lastLift)) lastLift = d;
                 if (rowKind(r) === 'game' && (!lastGame || d > lastGame.date)) lastGame = gameLineOf(d, r);
+              }
+            }
+            // PRACTICES COUNT TOO (29.9 #412, Ohad: "sessions should be drawn from
+            // games and practices and lifts together"). A practice is never
+            // stored per player - the attendance grid draws it from the club
+            // calendar + that day's availability - so the tile only ever saw
+            // lifts, games and S&C. Same rule as the grid: a practice /
+            // scrimmage / shootaround that has happened, he was available
+            // (not OUT) and the coach did not mark him out. A day that already
+            // holds a practice row is not counted twice.
+            {
+              const id = row && row.t && row.t.id;
+              const att = (rec && rec.attendance) || {};
+              const ses = (rec && rec.sessions) || {};
+              const todayIso = daysAgoISO(0);
+              const nowHM = new Date().toTimeString().slice(0, 5);
+              for (const f of (fixtures || [])) {
+                if (!f || !f.date || f.cancelled || !['practice', 'scrimmage', 'shootaround'].includes(f.type)) continue;
+                if (f.date < cut7 || f.date > todayIso || (f.date === todayIso && (f.start || '99:99') > nowHM)) continue;
+                if ((ses[f.date] || []).some((r) => r && rowKind(r) === 'practice')) continue;
+                if (att[`${f.date}|${f.start || ''}`] === 'out') continue;
+                if (id && availOn(rec || {}, medicalAll || {}, id, f.date) >= 4) continue;
+                n7++; m7 += Number(f.minutes) || 0;
               }
             }
             // One line per tile at 390 (26.9): the unit rides beside the number,
@@ -2481,7 +2425,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                 const seasonGroups = seasonHead ? monthKeys.filter((k) => seasonOf(k) === season).map((k) => byMonth[k]).flat() : null;
                 const head = seasonHead ? (
                   <button onClick={() => setSeasonOpen((p) => ({ ...p, [season]: !sOpen }))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '0 9px', minHeight: 36, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: ORANGE_DEEP, color: '#fff', border: 'none', borderBottom: `1px solid ${C.cardBd}` }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '0 9px', minHeight: 36, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: NAVY_DEEP, color: '#fff', border: 'none', borderBottom: `1px solid ${C.cardBd}` /* navy like its months (29.9 #405: the orange bar was "horrible") */ }}>
                     <svg aria-hidden="true" width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ width: 10, flexShrink: 0, transform: sOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>
                       <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -2557,6 +2501,88 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             </div>
           ) : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>{tr('No history logged yet.')}</div>}
         </div>
+        {/* LEAGUE STATS LAST (29.9 #406, Ohad: "leage stats should be last, after
+            medical, and full history"): what he can do today first, the season's
+            numbers after. */}
+        {leaguePlayer && (() => {
+          const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+          // THE LAST GAME OPENS ITS FULL LINE (27.9, Ohad: "a clickable item or
+          // title to expand player stats like in the second screenshot"). The
+          // club's own row for that date wins (it carries the whole box and the
+          // opponent's English name); else the league log line itself.
+          const lastGRow = lastG && lastG.date ? (((rec && rec.sessions) || {})[lastG.date] || []).find((r) => rowKind(r) === 'game') : null;
+          const lastGLine = !lastG ? null : lastGRow ? gameLineOf(lastG.date, lastGRow)
+            : { date: lastG.date, opp: lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : null, min: lastG.min, box: lastG, source: 'basket.co.il' };
+          const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
+          const agoLabel = ago == null ? '' : heM
+            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
+            : (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`);
+          // THE AVERAGES READ WITH THE SAME FOUR WORDS AS THE LAST GAME ABOVE,
+          // under one "season average" caption (27.9: "נק׳ למשחק" wrapped to two
+          // lines in a quarter of a phone; a title fits by wording, never a
+          // smaller font). Then the shooting, the rating and games played.
+          const avg = [['PTS', leaguePlayer.ppg], ['REB', leaguePlayer.rpg], ['AST', leaguePlayer.apg], ['MIN', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
+          return (
+            <div style={{ border: `1px solid ${ORANGE}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>{tr('League Stats')}</span>
+                {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{leagueSeason}</span>}
+                {/* WHERE THESE NUMBERS COME FROM, and how old they are.
+                    Ohad read "LAST GAME - VS MACCABI TEL AVIV" as the club's
+                    last game and said "that's not even correct we had a playoff
+                    game against holon". The card was right about the FEED and
+                    silent about the feed's limits: re-scraped live, basket.co.il
+                    publishes 194 games for this season and BHBC appears in 26 of
+                    them, the newest being that Maccabi game. A panel that states
+                    its source and its date cannot be mistaken for the club's own
+                    record. */}
+                {leagueUpdatedAt && (
+                  <span className="strip-meta" style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}
+                    title={tr('Official league feed (basket.co.il). Only games the league has published appear here.')}>
+                    {/* in the zone's language (#305 N-D3): it was Hebrew on the English screen */}
+                    {tr('Premier League') + ' · ' + fmtNumericDate(leagueUpdatedAt)}
+                  </span>
+                )}
+              </div>
+              {lastG && (
+                <div role="button" tabIndex={0} className="bhbc-row" onClick={() => setGameOpen(lastGLine)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(lastGLine); } }} style={{ cursor: 'pointer' }}>
+                  <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
+                      <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>{tr('vs')} {lastGLine.opp || '—'}</bdi></div>
+                    </div>
+                    <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Full line')} ›</span>
+                  </div>
+                  {/* THE SAME FOUR COLUMNS as the season averages directly below.
+                      They used to be pushed to the right edge on `margin-inline-start:
+                      auto` with a flat 14px gap, so PTS/REB/AST/MIN landed at 933 /
+                      970 / 1007 / 1046 while the grid under them started its columns
+                      at 443 / 604 / 764 / 924 - two stat rows in one card on two
+                      different rhythms. Ohad: "the stats on the right should be
+                      ordered like columns. i keep asking this request." */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` }}>
+                    {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ['MIN', lastG.min]].map(([k, v], i) => (
+                      <div key={k} style={{ padding: '8px 12px', borderInlineEnd: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
+                        <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
+                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: k === 'PTS' ? ORANGE_DEEP : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{ padding: '8px 12px 0', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Season average')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
+                {avg.map(([k, v], i) => (
+                  <div key={k} style={{ padding: '8px 12px', borderInlineEnd: (i % 4 !== 3) ? `1px solid ${C.cardBd}` : 'none', borderTop: i >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
+                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
+                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">{v}</bdi></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         {/* BODYWEIGHT LAST. Ohad: "put the bw graph at the bottom". It is a
             trend, not a headline - the stats, load and medical answer "can he
             train today", and the weight chart is what you scroll to. */}
@@ -2567,7 +2593,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           </div>
         )}
         {program && (program.current || program.count > 0) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, boxSizing: 'border-box', padding: '12px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, lineHeight: '16px', flexWrap: 'wrap' } /* ONE baseline for label, block, count and link (29.9 #407) */}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Current block')}</span>
             <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || tr('None assigned')}</span>
             {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} {tr('total')}</span>}
@@ -2589,7 +2615,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
               medical strip above, and the fourth button is what squeezed the row to
               155px and wrapped its own label onto two lines. Three buttons fit. */}
-          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('View program')}</Btn>}
+          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>{tr('View program')}</Btn>}
         </div>
       </div>
       {gameOpen && <GameLineModal line={gameOpen} onClose={() => setGameOpen(null)} />}
@@ -6531,18 +6557,8 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
 
       {/* NO RETURN-TO-PLAY IN THE CLUB ZONE (27.9, Ohad: "remove completely all rtp everywhere on bhbc"). */}
 
-      {/* CONCUSSION RED FLAGS ONLY (27.9 #312, Ohad: "remove completely all rtp
-          everywhere on bhbc"). The graduated return-to-sport ladder that lived
-          here was a return-to-play screen and has gone, with its pacing and its
-          clearance steps. The emergency referral signs stay: they are not a
-          return-to-play plan, and a head injury still needs them in reach.
-          Collapsed by default - reference, not a daily read. */}
-      <CollapsibleSection title={tr('Concussion red flags')} storageKey="bhbc-concussion" defaultOpen={false} leftStripe="#DE4E3B">
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginInlineEnd: 8 }}>{tr('Refer out')}</span>
-            {tr('Deteriorating consciousness · repeated vomiting · seizure · worsening headache · neck pain · weakness or tingling · out-of-character behaviour — emergency assessment, same day.')}
-          </div>
-      </CollapsibleSection>
+      {/* (The concussion red-flags card is gone - 29.9 #417, Ohad: "remove the
+          concussion red flags completely, i never asked for it".) */}
 
     </>
   );

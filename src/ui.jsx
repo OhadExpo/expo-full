@@ -541,7 +541,10 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
   return (
     <div id={domId} style={outerStyle}>
       <div className="title-strip"
-        onClick={toggle}
+        // A CONTROL IN THE STRIP IS NOT THE STRIP (29.9 #402, "when i click copy
+        // it shouldnt collapse"): a click on a button / link / field inside the
+        // strip's right cluster does its own job and never toggles the card.
+        onClick={(e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; toggle(); }}
         role="button" tabIndex={0}
         aria-expanded={open}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
@@ -810,7 +813,8 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // padding to cancel: pad 14, no bleed. Ohad 13.9: "the hebrew titles are
         // not aligned right" - the title sat flush on the card edge.
         <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={children ? 12 : -padNum}
-          onClick={onHeaderClick}
+          // a control in the strip (COPY...) never toggles the card (29.9 #402)
+          onClick={onHeaderClick ? (e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; onHeaderClick(e); } : undefined}
           role={onHeaderClick ? 'button' : undefined}
           tabIndex={onHeaderClick ? 0 : undefined}
           ariaExpanded={onHeaderClick ? headerAriaExpanded : undefined}
@@ -967,10 +971,15 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, gu
     const t = setTimeout(() => {
       const node = cardRef.current;
       if (!node) return;
-      const focusable = node.querySelector(
-        'input, textarea, select, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
-      );
-      (focusable || node).focus?.();
+      // A FIELD takes focus (the form is what you came to type in); otherwise
+      // the card itself does - never the first tappable ROW, which then opened
+      // wearing a focus frame as if selected (29.9 #408: "blue border around
+      // the last game ... looks bad"). Tab still reaches every control.
+      const field = node.querySelector('input:not([type="hidden"]), textarea, select');
+      if (field) { field.focus?.(); return; }
+      if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '-1');
+      node.style.outline = 'none';
+      node.focus?.({ preventScroll: true });
     }, 0);
     return () => {
       window.removeEventListener('keydown', onKey);
