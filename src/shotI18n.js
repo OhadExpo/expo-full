@@ -103,6 +103,19 @@ export const SHOT_I18N = {
     quality: { good: 'good', fair: 'fair', poor: 'poor' },
     summary: (f, w, o, q, p, fps) => `${f} to fix · ${w} to watch · ${o} OK · tracking ${q} (${p}% of shot frames) · ${fps} fps`,
     shotOf: (i, n) => `VIEWING SHOT ${i} OF ${n} DETECTED`,
+    // The one-row rep picker: SHOT 10 / 11 between two arrows.
+    shotWord: 'SHOT', prevShot: 'Previous shot', nextShot: 'Next shot',
+    // The dot on the option AUTO is using - detected, or the default when the
+    // clip could not show it. Never both called a detection.
+    autoPicked: 'AUTO is using this - read from the clip',
+    autoFallback: 'AUTO is using this - the clip could not show it, so this is the default',
+    // The clip-warning line, collapsed: the finding's title and this phrase.
+    warnShort: {
+      'no-body': 'film him in frame', 'rarely-seen': 'keep him in frame',
+      'no-headroom': 'the ball leaves the frame', 'head-cut': 'tilt the phone up',
+      'too-far': 'move closer', 'low-res': 'film at normal quality', 'too-dark': 'more light',
+    },
+    warnOpen: 'Show what the clip is missing', warnDismiss: 'Hide for this clip',
     atSec: (t) => `at ${t}s`,
     scopeHint: (n) => `scorecard = this shot · session = all ${n}`,
     shotTip: (i, t, s) => `Shot ${i} at ${t}s, score ${s}`,
@@ -279,6 +292,15 @@ export const SHOT_I18N = {
     quality: { good: 'טוב', fair: 'בינוני', poor: 'חלש' },
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
+    shotWord: 'זריקה', prevShot: 'הזריקה הקודמת', nextShot: 'הזריקה הבאה',
+    autoPicked: 'זה מה שהאוטומטי משתמש בו - זוהה בקליפ',
+    autoFallback: 'זה מה שהאוטומטי משתמש בו - הקליפ לא הראה את זה, אז זו ברירת המחדל',
+    warnShort: {
+      'no-body': 'צלם אותו בתוך הפריים', 'rarely-seen': 'תשאיר אותו בפריים',
+      'no-headroom': 'הכדור יוצא מהפריים', 'head-cut': 'תרים את הטלפון',
+      'too-far': 'תתקרב', 'low-res': 'צלם באיכות רגילה', 'too-dark': 'צריך יותר אור',
+    },
+    warnOpen: 'מה חסר בצילום', warnDismiss: 'להסתיר בקליפ הזה',
     atSec: (t) => `בשנייה ${t}`,
     scopeHint: (n) => `כרטיס הניקוד = הזריקה הזאת · האימון = כל ${n}`,
     shotTip: (i, t, s) => `זריקה ${i} בשנייה ${t}, ניקוד ${s}`,
