@@ -117,7 +117,11 @@ export default function SwUpdateBanner() {
     // queue survives a reload, but a reload right after Complete is exactly the
     // moment the old code lost sessions, so the update simply waits. (27.9)
     const workoutUnsaved = () => { try { return hasPendingWorkouts(); } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved();
+    // A Google sign-in coming back (the token in the URL, or its boot copy not
+    // spent yet) is never a moment to reload: a reload there is one way the
+    // return gets lost (27.9 #346).
+    const signingIn = () => { try { return /access_token=|[?&]code=/.test(window.location.href) || !!window.sessionStorage.getItem('expo-oauth-hash'); } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
     const onVis = () => { if (document.visibilityState === 'hidden' && !busy()) tryUpdate(); };

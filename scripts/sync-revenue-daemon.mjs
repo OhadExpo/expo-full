@@ -12,6 +12,7 @@
 // State: audit-out/sheets/daemon.json  Log: audit-out/sheets/daemon.log
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +22,16 @@ const SLOTS = [9, 21]; // local hours
 const CATCH_UP_MS = 12 * 3600 * 1000;
 fs.mkdirSync(path.dirname(STATE), { recursive: true });
 const say = (m) => { const s = `${new Date().toISOString()}  ${m}\n`; process.stdout.write(s); fs.appendFileSync(LOG, s); };
+// ONE WRITER (pc-migrate 2026-09-27 §2.2): this daemon writes prod, so it runs
+// only on the machine named in the User env var EXPO_DAEMON_HOST. A stray start
+// anywhere else - or on a machine without the variable - is a logged no-op.
+// Case-insensitive: os.hostname() is the mixed-case DNS name (laptop: "OhadTop"),
+// while %COMPUTERNAME% and the brief's value are upper-case.
+const WANT_HOST = (process.env.EXPO_DAEMON_HOST || '').trim().toUpperCase();
+if (!WANT_HOST || os.hostname().toUpperCase() !== WANT_HOST) {
+  say(`daemon NOT started: host ${os.hostname()} is not EXPO_DAEMON_HOST (${process.env.EXPO_DAEMON_HOST || 'unset'}) - exiting`);
+  process.exit(0);
+}
 const load = () => { try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch { return { lastOk: 0, lastSlot: '' }; } };
 const save = (st) => fs.writeFileSync(STATE, JSON.stringify(st));
 let running = false;

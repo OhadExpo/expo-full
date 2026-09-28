@@ -1547,6 +1547,8 @@ export const HE = {
   "Unused Links": 'קישורים שלא נוצלו',
   "ON THE FLOOR": 'מתאמנים עכשיו',
   "CHECKED IN": 'נכנסו',
+  // the short form of the floor strip at 360 (28.9): 'CHECKED IN' spilled 6px beside ADD + FINISH
+  "PRESENT": 'נכנסו',
   FINISH: 'סיים',
   "ADD ATHLETES": 'הוסף מתאמנים',
   "BUG REPORTS": 'דיווחי באגים',

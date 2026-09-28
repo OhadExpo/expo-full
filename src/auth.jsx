@@ -1,6 +1,6 @@
 // src/auth.jsx — Supabase Auth context for EXPO
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase, AUTH_TOKEN_KEY, reviveSession } from './supabase';
 import { setQueueUser } from './offlineQueue';
@@ -170,13 +170,40 @@ export function AuthProvider({ children, clientList }) {
       }).catch(() => { exchanging = false; dropCodeFromUrl(); finishBoot(); });
       return true;
     };
+    // THE GOOGLE RETURN THAT WAS NEVER READ (27.9 #346). public/boot-auth.js
+    // copies a returned #access_token before any app code runs. If supabase-js
+    // did not turn it into a session (the hash was gone by the time it looked),
+    // spend the copy here. Two minutes old at most; used once; always cleared.
+    let hashTried = false;
+    const HASH_KEY = 'expo-oauth-hash';
+    const dropHashCopy = () => { try { sessionStorage.removeItem(HASH_KEY); } catch { /* blocked */ } };
+    const spendTokenHash = () => {
+      if (hashTried) return false;
+      hashTried = true;
+      let saved = null;
+      try { saved = JSON.parse(sessionStorage.getItem(HASH_KEY) || 'null'); } catch { /* blocked */ }
+      dropHashCopy();
+      if (!saved || !saved.h || Date.now() - (saved.at || 0) > 120000) return false;
+      const p = new URLSearchParams(String(saved.h).replace(/^#/, ''));
+      const access_token = p.get('access_token'), refresh_token = p.get('refresh_token');
+      if (!access_token || !refresh_token) return false;
+      exchanging = true;
+      supabase.auth.setSession({ access_token, refresh_token }).then(({ data }) => {
+        exchanging = false;
+        if (booted) return;
+        apply(data?.session || null);
+        finishBoot();
+      }).catch(() => { exchanging = false; if (!booted) finishBoot(); });
+      return true;
+    };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (booted) return;
-      if (s) { if (codeInUrl()) dropCodeFromUrl(); apply(s); finishBoot(); return; }
+      if (s) { if (codeInUrl()) dropCodeFromUrl(); dropHashCopy(); apply(s); finishBoot(); return; }
       // No session yet. If a code is in the URL, spend it ourselves; if this
       // device holds a refresh token, the listener will bring one in. Either
       // way, do NOT open the door here - the watchdog decides when to give up.
       if (spendCode()) return;
+      if (spendTokenHash()) return;
       if (stillArriving()) return;
       // LAST CHANCE BEFORE SHOWING A LOGIN SCREEN: the refresh-token cookie.
       //
@@ -195,6 +222,7 @@ export function AuthProvider({ children, clientList }) {
     }).catch(() => {
       if (booted) return;
       if (spendCode()) return;
+      if (spendTokenHash()) return;
       if (!stillArriving()) finishBoot();
     });
     // 8s for a visitor with nothing stored; a returning user (or one mid-OAuth)
@@ -208,6 +236,10 @@ export function AuthProvider({ children, clientList }) {
       // WITHOUT a session — and either way that is the definitive answer, so
       // the splash ends here. (Waiting only for a truthy session parked anyone
       // with an expired token on the boot splash for the full watchdog.)
+      // A null INITIAL_SESSION while a Google return is waiting in the copy is
+      // not "signed out" yet: spend the copy first (#346).
+      if (s) dropHashCopy();
+      else if (spendTokenHash()) return;
       if (!exchanging) finishBoot();
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
@@ -383,6 +415,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const oauthBusyRef = useRef(false);
   // SIGN-IN IS ENGLISH, WITH NO SWITCH (27.9, Ohad: "he/eng should not appear
   // on sign in - only en - heb later after signing-in"). The stored choice is
   // left alone, so an athlete who reads Hebrew gets Hebrew the moment he is in.
@@ -470,6 +503,12 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   }, []);
 
   const handleOAuth = async (provider) => {
+    // ONE FLOW PER TAP (27.9 #346: the auth log shows two /authorize calls a
+    // second apart on the attempt that failed). State updates too late to stop
+    // a second tap; a ref does not.
+    if (oauthBusyRef.current) return;
+    oauthBusyRef.current = true;
+    setTimeout(() => { oauthBusyRef.current = false; }, 8000);
     setError('');
     // Say it BEFORE the round trip, not after Google has refused.
     if (inEmbeddedBrowser()) {

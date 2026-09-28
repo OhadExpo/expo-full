@@ -976,7 +976,7 @@ function MiniBWSparkline({ weight }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-        style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
+        style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 16, flexShrink: 1 }}
         aria-hidden="true">
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -4181,7 +4181,7 @@ function DemoGroupFloor() {
       <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           {/* one row at 390 (27.9 #328 gate): the lead words step aside where they would not fit */}
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN, whiteSpace: 'nowrap' }}><SegWord full={`${T('ON THE FLOOR ·')}${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} short={`${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} /></span>
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN, whiteSpace: 'nowrap' }}><SegWord full={`${T('ON THE FLOOR ·')}${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} short={`${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('PRESENT')}`} /></span>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>+ {tr(readLang(), 'ADD')}</button>
             <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>■ {tr(readLang(), 'FINISH')}</button>

@@ -91,6 +91,7 @@ const sameDayGame = (f, g) => f.type === 'game' && g.type === 'game' && f.date =
 const out = [];
 const used = new Set();
 let updated = 0, added = 0, dropped = 0, kept = 0;
+const changed = [];   // rows whose fields really differ (updated counts every match)
 for (const f of existing) {
   const inWindow = f.date >= winLo && f.date <= winHi;
   // A game keeps its league facts and takes the calendar's clock.
@@ -104,6 +105,8 @@ for (const f of existing) {
     if (asScrim && cal === asScrim) merged.type = 'scrimmage';
     if (f.type === 'game') { merged.opponent = f.opponent || cal.opponent; merged.venue = f.venue || cal.venue; merged.comp = f.comp || cal.comp; if (cal.start) delete merged.timeTBD; }
     else { merged.location = cal.location || f.location; }
+    const diff = ['start', 'end', 'minutes', 'type', 'location', 'title', 'opponent', 'venue'].filter((k) => JSON.stringify(merged[k] ?? null) !== JSON.stringify(f[k] ?? null));
+    if (diff.length) changed.push(`${f.date} ${f.type} ${f.start || ''} → ${diff.map((k) => `${k}: ${JSON.stringify(f[k] ?? null)}→${JSON.stringify(merged[k] ?? null)}`).join(', ')}`);
     out.push(merged); updated++;
   } else if (inWindow && (f.type !== 'game' || f.source === 'calendar')) { dropped++; }
   else { out.push(f); kept++; }
@@ -111,6 +114,8 @@ for (const f of existing) {
 for (const c of sessions) if (!used.has(key(c))) { out.push(c); added++; }
 out.sort((a, b) => (a.date + (a.start || '')).localeCompare(b.date + (b.start || '')));
 const byType = {}; for (const f of out) byType[f.type] = (byType[f.type] || 0) + 1;
+console.log(`really changed: ${changed.length}`);
+for (const c of changed) console.log(`  ${c}`);
 console.log(`fixtures: ${existing.length} → ${out.length} · updated ${updated} · added ${added} · dropped ${dropped} (absent from the calendar) · kept outside window ${kept}`);
 console.log('by type:', JSON.stringify(byType));
 if (DRY) { console.log('--dry: nothing written'); process.exit(0); }

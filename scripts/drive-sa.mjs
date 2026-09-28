@@ -10,10 +10,11 @@
 //   node scripts/drive-sa.mjs list <fileId>          revisions with dates
 //   node scripts/drive-sa.mjs harvest <fileId> <dir> [max]   export every revision as xlsx
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'C:/Users/Administrator/.claude/secrets/gsheets-sa.json';
+const KEY = process.env.GOOGLE_APPLICATION_CREDENTIALS || `${os.homedir().replace(/\\/g, '/')}/.claude/secrets/gsheets-sa.json`;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 export async function saToken(scope = 'https://www.googleapis.com/auth/drive.readonly') {
