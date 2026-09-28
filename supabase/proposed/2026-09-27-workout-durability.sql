@@ -87,13 +87,20 @@ create trigger client_workouts_history_trg
   after update or delete on public.client_workouts
   for each row execute function public.client_workouts_keep_history();
 
--- ── 3. No empty workouts from the athlete seat ───────────────────────────────
--- Rejects an athlete-seat INSERT/UPDATE whose exercises carry ZERO done sets —
--- the 0/20 and 0/14 rows. Staff are exempt (coach-side logging and repairs).
+-- ── 3. No EMPTY workouts from the athlete seat ───────────────────────────────
+-- Rejects an athlete-seat row whose exercises are TRULY empty: no ticked set,
+-- no reps/load typed on any set, and no form video. That is the same rule the
+-- logger enforces before Complete (review 27.9: numbers without a tick, or a
+-- video alone, are real work — 6 + 5 of the live 0-done rows are those).
+-- Staff are exempt (coach-side logging and repairs).
+--
+-- It fires on INSERT, and on UPDATE ONLY when exercises actually changed.
+-- Measured 27.9: 31 live rows already have exercises with 0 done sets. A
+-- form-video attach (blobQueue) or a comment reply (updateFormVideos) upserts
+-- {id, form_videos} onto such a row — the trigger must not bounce those.
 -- A row whose exercises array is EMPTY is allowed: blobQueue can race ahead of
 -- the workout upsert and create a stub {id, form_videos} that the queued
--- workout row then fills in; rejecting the stub would bounce a form-video
--- upload. The client refuses 0-set Complete first; this is the second line.
+-- workout row then fills in.
 -- Raised as SQLSTATE 23514 (check_violation) so the client classifies it as a
 -- permanent error — and since 27.9 a permanent error on a workout PARKS it in
 -- the queue with a visible "not saved yet" banner instead of dropping it.
@@ -103,18 +110,28 @@ language plpgsql
 set search_path = public
 as $$
 declare
-  done_sets int;
+  real_sets int;
+  has_video boolean;
 begin
   if is_staff() then
     return new;
   end if;
+  if tg_op = 'UPDATE' and new.exercises is not distinct from old.exercises then
+    return new;
+  end if;
   if jsonb_typeof(new.exercises) = 'array' and jsonb_array_length(new.exercises) > 0 then
-    select count(*) into done_sets
+    select count(*) into real_sets
       from jsonb_array_elements(new.exercises) e,
            jsonb_array_elements(case when jsonb_typeof(e->'sets') = 'array' then e->'sets' else '[]'::jsonb end) s
-     where (s->>'done') = 'true';
-    if done_sets = 0 then
-      raise exception 'a workout needs at least one completed set'
+     where (s->>'done') = 'true'
+        or coalesce(btrim(s->>'reps'), '') <> ''
+        or coalesce(btrim(s->>'load'), '') <> '';
+    select exists (
+      select 1 from jsonb_array_elements(case when jsonb_typeof(new.form_videos) = 'array' then new.form_videos else '[]'::jsonb end) f
+       where (f->>'has') = 'true' or coalesce(f->>'cloudUrl', '') <> '' or coalesce(f->>'pendingBlobId', '') <> ''
+    ) into has_video;
+    if real_sets = 0 and not has_video then
+      raise exception 'a workout needs at least one logged set or video'
         using errcode = '23514';
     end if;
   end if;
@@ -124,7 +141,7 @@ $$;
 
 drop trigger if exists client_workouts_reject_empty_trg on public.client_workouts;
 create trigger client_workouts_reject_empty_trg
-  before insert or update on public.client_workouts
+  before insert or update of exercises on public.client_workouts
   for each row execute function public.client_workouts_reject_empty();
 
 commit;

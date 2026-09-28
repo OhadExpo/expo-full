@@ -1794,9 +1794,13 @@ export const HE = {
   // Workout durability (27.9): a finished workout the server has not taken yet,
   // and Complete refused for a workout with no ticked sets.
   'WORKOUT NOT SAVED YET': 'האימון עוד לא נשמר',
+  'Workout not saved yet — kept on this device and retrying.': 'האימון עוד לא נשמר. הוא שמור במכשיר וממשיכים לנסות.',
+  'Signed out — the workout is kept on this device and is sent when you sign in again.': 'התנתקת. האימון שמור במכשיר ויישלח כשתתחבר שוב.',
   'It is kept on this phone. Retrying until it goes through.': 'הוא שמור אצלך בטלפון. ממשיכים לנסות עד שיעבור.',
   'It is kept on this phone. Sign in again and it will be sent.': 'הוא שמור אצלך בטלפון. תתחבר שוב והוא יישלח.',
   'No sets ticked yet. Tick ✓ on the sets you did, then complete.': 'עוד לא סימנת אף סט. תסמן ✓ על הסטים שעשית ואז סיים.',
+  'Some sets have numbers but no ✓. Tick them, or complete as is.': 'יש סטים עם מספרים בלי ✓. תסמן אותם, או סיים ככה.',
+  'TICK THEM + COMPLETE': 'סמן וסיים',
   'Not saved. Your sets are still here. Tap complete again.': 'לא נשמר. הסטים שלך עדיין כאן. נסה שוב.',
   "Showing your last saved program. New logs are kept on this phone and sent when you're back online.":
     'מוצגת התוכנית האחרונה שנשמרה. מה שתרשום נשמר בטלפון ויישלח כשתחזור לרשת.',

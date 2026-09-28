@@ -458,21 +458,31 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     catch { return null; }
   }, [sessionKey, _legacySessionKey]);
 
-  // ONE ROW PER PLAN/DAY/WEEK (27.9). The log this athlete already has for this
-  // exact plan + day + week, if any. "AGAIN" on a finished day used to open a
-  // blank logger and Complete minted a brand-new row — an athlete's 0/20 row
-  // landed 53 s after his real 17/20 one. Now the logger opens THAT log for
-  // editing and Complete re-saves the same id. Daily routines are logged many
-  // times by design, so they are exempt. When several legacy rows exist, the
-  // one with the most completed sets is the real one.
+  // NO DUPLICATE / EMPTY ROWS, WITHOUT OVERWRITING A REAL SESSION (27.9).
+  // "AGAIN" on a finished day used to open a blank logger and Complete minted a
+  // brand-new row — an athlete's 0/20 row landed 53 s after his real 17/20 one.
+  // The log for this plan + day + week is RE-SAVED (same id) only when that is
+  // safely the same session:
+  //   - it was completed less than REUSE_WINDOW_MS ago (a correction, a double
+  //     finish), or it has 0 completed sets (an empty row to be filled in);
+  //   - the day's name is unique in the plan (two "Day B"s in one plan can not
+  //     be told apart by name, and rows carry no day index);
+  //   - the plan's name is unique in the portal (the live table has no plan_id
+  //     column yet, so a couple's identically-named plans match by name only).
+  // Anything else — a real repeat of the day hours later, a rebuilt block that
+  // kept its name — is a NEW row. Daily routines are always new rows.
+  const REUSE_WINDOW_MS = 2 * 60 * 60 * 1000;
   const findExistingLog = (list) => {
     if (day?.kind === 'daily' || plan?.kind === 'daily') return null;
-    const dup = nameAmbiguous ? new Set([plan.name]) : null;
-    let best = null, bestDone = -1;
+    if (nameAmbiguous) return null;
+    if (Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name).length > 1) return null;
+    let best = null, bestAt = -Infinity;
     for (const w of (list || [])) {
-      if (!w || w.dayName !== day.name || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, dup)) continue;
-      const d = countDoneSets(w.exercises);
-      if (d > bestDone) { best = w; bestDone = d; }
+      if (!w || w.dayName !== day.name || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, null)) continue;
+      const at = Date.parse(w.date || '') || 0;
+      const recent = at > 0 && Date.now() - at < REUSE_WINDOW_MS;
+      if (!recent && countDoneSets(w.exercises) > 0) continue; // a real earlier session — never overwrite it
+      if (at > bestAt) { best = w; bestAt = at; }
     }
     return best;
   };
@@ -1453,18 +1463,31 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
 
   // Complete-screen state: 'saving' while the save is in flight, 'zero' when
-  // Complete was refused for 0 completed sets, 'failed' when the workout could
-  // not be made safe anywhere (server AND this device's queue both refused).
+  // Complete was refused for a truly empty log, 'unticked' when sets carry
+  // numbers but no ✓ (offer to tick them), 'failed' when the workout could not
+  // be made safe anywhere (server AND this device's queue both refused).
   const [finishState, setFinishState] = useState(null);
-  const finish = async () => {
+  const isFilledUnticked = (st) => !!st && !st.done && !st.prefill && (String(st.reps ?? '').trim() !== '' || String(st.load ?? '').trim() !== '');
+  const countFilledUnticked = (sets2d) => { let n = 0; for (const rows of (sets2d || [])) for (const st of (rows || [])) if (isFilledUnticked(st)) n++; return n; };
+  const hasAttachedVideo = () => fv.some(f => f && (f.has || f.cloudUrl || f.pendingBlobId));
+  const finish = async (opts = {}) => {
     // In-flight guard: two taps in the same tick both ran finish() to completion
     // (setLg(null) only unmounts on the next render), minting two workoutIds → two
     // client_workouts rows + two pushes + a double session decrement.
     if (submittingRef.current) return;
-    // NO EMPTY ROWS (27.9): a workout with zero completed sets is not a workout.
-    // Two athletes carry 0-set rows, one of them 53 s after his real session.
-    // Refuse, say why, and stay in the logger with everything he typed.
-    if (countDoneSets(allSets.map(sets => ({ sets }))) === 0) { setFinishState('zero'); return; }
+    // NO EMPTY ROWS (27.9). Only a TRULY empty log is refused: no ticked set,
+    // no numbers typed, no video. Numbers without ✓ are real work (6 of the 31
+    // live 0-done rows have them) — offer to tick them, and a second Complete
+    // saves as is. A video alone is a real log too, and must never be orphaned.
+    const setsNow = opts.tickFilled
+      ? allSets.map(rows => (rows || []).map(st => isFilledUnticked(st) ? { ...st, done: true, prefill: false } : st))
+      : allSets;
+    if (opts.tickFilled) setAllSets(setsNow);
+    const doneNow = countDoneSets(setsNow.map(sets => ({ sets })));
+    const filledNow = countFilledUnticked(setsNow);
+    const videoNow = hasAttachedVideo();
+    if (doneNow === 0 && filledNow === 0 && !videoNow) { setFinishState('zero'); return; }
+    if (doneNow === 0 && filledNow > 0 && !videoNow && finishState !== 'unticked') { setFinishState('unticked'); return; }
     submittingRef.current = true;
     setFinishState('saving');
     // Same plan + day + week already logged → re-save THAT row (same id, an
@@ -1472,12 +1495,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // history may have arrived after the logger opened (fresh device).
     const existingLog = findExistingLog(priorWorkouts) || editOf;
     const workoutId = existingLog?.id || uid();
-    const prevFv = Array.isArray(existingLog?.formVideos) ? existingLog.formVideos : [];
     // Carry pendingBlobId on each form_video entry so the blob queue can find
-    // and patch this workout once the upload eventually succeeds.
-    const formVideos = fv.map((f, i) => ({
-      // An existing log's slot keeps its other fields (the coach's reviewNotes).
-      ...(prevFv[i] && typeof prevFv[i] === 'object' ? prevFv[i] : {}),
+    // and patch this workout once the upload eventually succeeds. Only the
+    // athlete's own fields: the coach's (reviewNotes…) are merged from the
+    // SERVER copy at write time (upsertWorkoutRow), never from this device's.
+    const formVideos = fv.map((f) => ({
       has: f.has,
       note: f.note,
       fileName: f.fileName || null,
@@ -1505,8 +1527,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // (audit 08-22 #31).
       id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
       // A re-saved log keeps the day it was trained and the coach's review mark.
+      // (reviewedAt is deliberately absent: the coach's mark is never re-sent.)
       week: weekNum + 1, date: existingLog?.date || finishedAt, notes, autoregulation: checkin,
-      reviewedAt: existingLog?.reviewedAt || null,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -1534,7 +1556,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // be shorter than the newly-targeted day's exercise list. Unguarded,
           // this threw at the exact moment of committing — white screen, and the
           // athlete's whole session lost on the last tap.
-          sets: (allSets[i] || []).map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
+          sets: (setsNow[i] || []).map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
           substitution: sub ? {
             from: prescribedTitle,
             fromEid: ex.eid,
@@ -1544,7 +1566,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           } : null,
         };
       }),
-    });
+    // resave: this Complete re-saves an existing row (no second session
+    // decrement / "finished a workout" push / BW re-file). Decided HERE, from
+    // the same lookup that chose the id, not re-derived by the caller.
+    }, { resave: !!existingLog });
     // The draft is dropped ONLY once the workout is safe — confirmed by the
     // server or durably parked in the offline queue. Before 27.9 it was deleted
     // the instant Complete was tapped, before the server answered, so any lost
@@ -1841,9 +1866,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
         <>
-          {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && (
+          {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && countFilledUnticked(allSets) === 0 && !hasAttachedVideo() && (
             <div role="alert" dir="auto" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
               {tt('No sets ticked yet. Tick ✓ on the sets you did, then complete.')}
+            </div>
+          )}
+          {finishState === 'unticked' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && (
+            <div role="alert" dir="auto" data-finish-refused="unticked" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.or}`,color:C.or,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+              <div style={{marginBottom:10}}>{tt('Some sets have numbers but no ✓. Tick them, or complete as is.')}</div>
+              <button data-tick-filled onClick={() => finish({ tickFilled: true })} style={{width:'100%',padding:12,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>{tt('TICK THEM + COMPLETE')}</button>
             </div>
           )}
           {finishState === 'failed' && (
@@ -1851,7 +1882,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               {tt('Not saved. Your sets are still here. Tap complete again.')}
             </div>
           )}
-          <button data-complete-workout onClick={finish} disabled={finishState === 'saving'} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:finishState === 'saving' ? 'wait' : 'pointer',opacity:finishState === 'saving' ? 0.6 : 1}}>{finishState === 'saving' ? tt('Saving...') : '✓ Complete Workout'}</button>
+          <button data-complete-workout onClick={() => finish()} disabled={finishState === 'saving'} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:finishState === 'saving' ? 'wait' : 'pointer',opacity:finishState === 'saving' ? 0.6 : 1}}>{finishState === 'saving' ? tt('Saving...') : '✓ Complete Workout'}</button>
         </>
       )}
       {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>}
@@ -2586,7 +2617,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   }, [activePlan?.name, cw.length]); // eslint-disable-line react-hooks/exhaustive-deps
   // Returns the save result to the logger ({ ok, confirmed, ... }); the logger
   // closes itself (onBack) only once ok, and keeps its draft otherwise.
-  const handleComplete = async w => {
+  const handleComplete = async (w, meta = {}) => {
     // demoMode = coach-side preview. Writes must never touch the real
     // trainee's record. Bail before any setter so a future refactor that
     // wires real (non-noop) setters into preview can't leak through.
@@ -2596,7 +2627,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     if (demoMode && !localWrites) return { ok: true, confirmed: true };
     // A re-save of the log he already has for this plan/day/week: no second
     // session decrement, no second "finished a workout" push, no BW re-file.
-    const isResave = (clientWorkouts || []).some(x => x && x.id === w.id);
+    // The logger decides (meta.resave, from the lookup that chose the id); the
+    // local-list check is only the fallback for a caller that does not say.
+    const isResave = typeof meta.resave === 'boolean' ? meta.resave : (clientWorkouts || []).some(x => x && x.id === w.id);
     // Reload guard: the SW update banner never reloads while this is raised.
     // It stays up until the network attempt is OVER (not just until the logger
     // closes) — the row is in the offline queue either way, but a reload

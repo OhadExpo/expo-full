@@ -15,6 +15,16 @@
 //   (e) permanent    — the upsert answered 403/42501 → the workout stays parked,
 //                      "WORKOUT NOT SAVED YET" is on screen; unblock + RETRY →
 //                      it lands and the banner goes
+//   (f) real repeat  — the same day trained again more than 2 h later (the
+//                      first row's date is moved back 3 h) → TWO rows, the
+//                      first one untouched
+//   (g) coach fields — the owner marks the row reviewed and leaves a note on a
+//                      video slot; the athlete re-saves it (AGAIN + Complete)
+//                      → reviewed_at and the note survive
+//
+// Hygiene: every page stubs /api/push/send (no push reaches the owner) and
+// blocks + counts any store write other than the presence row (no session
+// decrement, no roster write). Both counts must be zero, or the gate fails.
 //
 // Every row it writes carries a run marker in `notes`; cleanup deletes ONLY rows
 // with that marker that did not exist before the run (as the athlete; if the
@@ -120,11 +130,32 @@ const browser = await P.launch({
   protocolTimeout: 240000,
 });
 
-async function openSeat(lang = 'en') {
-  const ctx = await browser.createBrowserContext();
+const hygiene = { pushes: 0, storeWrites: [] };
+// Every page the gate opens goes through this: pushes are answered locally,
+// non-presence store writes are blocked and recorded, and a clause can add its
+// own rule (page.__rule) that returns true when it handled the request.
+async function guardedPage(ctx) {
   const page = await ctx.newPage();
   await page.setBypassServiceWorker(true);
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await page.setRequestInterception(true);
+  page.on('request', (r) => {
+    const u = r.url();
+    if (/\/api\/push\/send/.test(u)) { hygiene.pushes++; r.respond({ status: 204, body: '' }).catch(() => {}); return; }
+    if (/\/rest\/v1\/store/.test(u) && /^(POST|PATCH|PUT|DELETE)$/.test(r.method()) && !/"key":"expo-presence-/.test(String(r.postData() || ''))) {
+      hygiene.storeWrites.push(`${r.method()} ${String(r.postData() || '').slice(0, 80)}`);
+      r.respond({ status: 204, body: '' }).catch(() => {});
+      return;
+    }
+    try { if (page.__rule && page.__rule(r)) return; } catch (e) { /* fall through */ }
+    r.continue().catch(() => {});
+  });
+  return page;
+}
+
+async function openSeat(lang = 'en') {
+  const ctx = await browser.createBrowserContext();
+  const page = await guardedPage(ctx);
   await page.evaluateOnNewDocument((l) => {
     try { localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {}
     try { if (!localStorage.getItem('expo-lang')) localStorage.setItem('expo-lang', l); } catch (e) {}
@@ -213,7 +244,8 @@ async function openDay(page) {
   return inLogger(page);
 }
 
-const clauses = { a: false, b: false, c: false, d: false, e: false };
+const clauses = { a: false, b: false, c: false, d: false, e: false, f: false, g: false };
+const TOTAL = Object.keys(clauses).length;
 try {
   // ── setup: choose the day ───────────────────────────────────────────────
   {
@@ -258,15 +290,12 @@ try {
     await portal(page);
     if (await openDay(page)) {
       const w = await walk(page, 1); await setNotes(page, M);
-      await page.setRequestInterception(true);
-      page.on('request', (r) => { if (/\/rest\/v1\/client_workouts/.test(r.url()) && r.method() !== 'GET') r.abort('failed').catch(() => {}); else r.continue().catch(() => {}); });
+      page.__rule = (r) => { if (/\/rest\/v1\/client_workouts/.test(r.url()) && r.method() !== 'GET') { r.abort('failed').catch(() => {}); return true; } return false; };
       await clickComplete(page);
       await wait(60);
       await page.close({ runBeforeUnload: false });
       const serverNow = await markerRows(M);
-      const page2 = await ctx.newPage();
-      await page2.setBypassServiceWorker(true);
-      await page2.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      const page2 = await guardedPage(ctx);
       await portal(page2);
       await pollRows(M, 1, 60000); await wait(3000);
       const rows = await markerRows(M);
@@ -323,7 +352,7 @@ try {
       await shot(page, 'd-zero-sets-he');
       await wait(4000);
       const rows = await markerRows(M);
-      check('d', 'Complete with 0 ticked sets is refused on screen, stays in the logger, no row', !!refused && still && rows.length === 0, `en="${refused}" he="${refusedHe}" stayed=${still} rows=${rows.length}`);
+      check('d', 'an empty log (nothing ticked, typed or filmed) is refused on screen in English AND Hebrew, stays in the logger, no row', !!refused && !!refusedHe && /[\u0590-\u05FF]/.test(refusedHe || '') && still && rows.length === 0, `en="${refused}" he="${refusedHe}" stayed=${still} rows=${rows.length}`);
       clauses.d = true;
     } else check('d', 'could open the day', false);
     await ctx.close(); await cleanup(RUN + '-d');
@@ -337,12 +366,13 @@ try {
     if (await openDay(page)) {
       const w = await walk(page, 1); await setNotes(page, M);
       let block = true;
-      await page.setRequestInterception(true);
-      page.on('request', (r) => {
+      page.__rule = (r) => {
         if (block && /\/rest\/v1\/client_workouts/.test(r.url()) && r.method() !== 'GET') {
           r.respond({ status: 403, contentType: 'application/json', body: JSON.stringify({ code: '42501', message: 'new row violates row-level security policy for table "client_workouts"', details: null, hint: null }) }).catch(() => {});
-        } else r.continue().catch(() => {});
-      });
+          return true;
+        }
+        return false;
+      };
       await clickComplete(page);
       const closed = await waitClosed(page, 10000);
       // the banner renders once the failed attempt is recorded — give it up to 10 s
@@ -367,6 +397,70 @@ try {
     } else check('e', 'could open the day', false);
     await ctx.close(); await cleanup(RUN + '-e');
   }
+
+  // ── (f) a real repeat of the day, hours later → a second row ────────────
+  {
+    const M = RUN + '-f';
+    const { ctx, page } = await openSeat('en');
+    await portal(page);
+    if (await openDay(page)) {
+      const w1 = await walk(page, 2); await setNotes(page, M);
+      await clickComplete(page); await waitClosed(page, 10000);
+      const first = await pollRows(M, 1, 30000);
+      // the first session happened 3 h ago (fixture row, this run's marker only)
+      const threeH = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
+      const upd = first[0] ? await sb.from('client_workouts').update({ date: threeH }).eq('id', first[0].id).like('notes', M + '%') : { error: { message: 'no first row' } };
+      await portal(page); // fresh history from the server
+      const label = await actionLabel(page, DAY);
+      await clickAction(page, DAY); await wait(1500);
+      const notesAtOpen = await page.evaluate(() => (document.querySelector('textarea') || {}).value || '');
+      const w2 = await walk(page, 1); await setNotes(page, M + '-2');
+      await clickComplete(page); await waitClosed(page, 10000);
+      await pollRows(M, 2, 30000); await wait(2000);
+      const rows = await markerRows(M);
+      const orig = rows.find((r) => first[0] && r.id === first[0].id);
+      check('f', `${label} + Complete 3 h after a real session → TWO rows, the first untouched`, !upd.error && rows.length === 2 && !!orig && doneOf(orig) === w1.ticked && rows.some((r) => r.id !== orig.id && doneOf(r) === w2.ticked), `update=${upd.error ? upd.error.message : 'ok'} rows=${rows.length} first=${orig ? doneOf(orig) : '-'}/${w1.ticked} second=${w2.ticked} openedBlank=${notesAtOpen === ''}`);
+      clauses.f = true;
+    } else check('f', 'could open the day', false);
+    await ctx.close(); await cleanup(RUN + '-f');
+  }
+
+  // ── (g) the coach's review mark and note survive an athlete re-save ─────
+  {
+    const M = RUN + '-g';
+    const { ctx, page } = await openSeat('en');
+    await portal(page);
+    if (await openDay(page)) {
+      const w = await walk(page, 1); await setNotes(page, M);
+      await clickComplete(page); await waitClosed(page, 10000);
+      const first = await pollRows(M, 1, 30000);
+      // the OWNER reviews it: reviewed_at + a note on the first video slot
+      const own = createClient(URL_, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const si = await own.auth.signInWithPassword({ email: OWNER, password: PW });
+      const reviewedAt = new Date().toISOString();
+      const note = { t: 0, text: 'gate review note ' + RUN, author: 'trainer' };
+      let ownErr = si.error ? si.error.message : null;
+      if (!ownErr && first[0]) {
+        const cur = await own.from('client_workouts').select('form_videos').eq('id', first[0].id).maybeSingle();
+        const fvs = Array.isArray(cur.data && cur.data.form_videos) ? [...cur.data.form_videos] : [];
+        fvs[0] = { ...(fvs[0] || { has: false, note: '' }), reviewNotes: [note] };
+        const u = await own.from('client_workouts').update({ reviewed_at: reviewedAt, form_videos: fvs }).eq('id', first[0].id).like('notes', M + '%');
+        ownErr = u.error ? u.error.message : null;
+      }
+      await own.auth.signOut().catch(() => {});
+      // the athlete re-opens the day (within 2 h → the same row) and completes it again
+      await portal(page);
+      await clickAction(page, DAY); await wait(1500);
+      await walk(page, 0);
+      await clickComplete(page); await waitClosed(page, 10000); await wait(5000);
+      const { data: after } = await sb.from('client_workouts').select('id,reviewed_at,form_videos,exercises').eq('id', first[0] ? first[0].id : '-').maybeSingle();
+      const rows = await markerRows(M);
+      const kept = after && after.reviewed_at && (after.form_videos || [])[0] && JSON.stringify((after.form_videos[0].reviewNotes || [])).includes('gate review note ' + RUN);
+      check('g', 'owner review mark + note survive the athlete re-saving the same row', !ownErr && rows.length === 1 && !!kept && doneOf(after) === w.ticked, `owner=${ownErr || 'ok'} rows=${rows.length} reviewed_at=${after ? after.reviewed_at : '-'} noteKept=${!!kept} done=${after ? doneOf(after) : '-'}/${w.ticked}`);
+      clauses.g = true;
+    } else check('g', 'could open the day', false);
+    await ctx.close(); await cleanup(RUN + '-g');
+  }
 } catch (e) {
   check('-', 'gate ran to the end', false, String(e && e.message || e).slice(0, 200));
 } finally {
@@ -374,12 +468,13 @@ try {
   let left = 0;
   try { await cleanup(RUN); left = (await markerRows(RUN)).length; } catch (e) { left = -1; }
   check('-', 'cleanup: no rows of this run left', left === 0, `left=${left}`);
+  check('-', 'hygiene: no push reached the owner, no store write besides presence', hygiene.storeWrites.length === 0, `pushes stubbed=${hygiene.pushes} storeWrites=${hygiene.storeWrites.length}${hygiene.storeWrites.length ? ' ' + hygiene.storeWrites.join(' | ') : ''}`);
   await browser.close().catch(() => {});
   await sb.auth.signOut().catch(() => {});
 }
 
 const measured = Object.entries(clauses).filter(([, v]) => v).map(([k]) => k);
 const failed = results.filter((r) => !r.ok).length;
-console.log(`coverage: clauses measured ${measured.length}/5 [${measured.join(',') || 'none'}] · ${results.length} checks · ${failed} broken · fixture seat only`);
-if (measured.length < 5) console.log('FAIL: not every clause was measured — a partial run proves nothing about the rest');
-process.exit(failed || measured.length < 5 ? 1 : 0);
+console.log(`coverage: clauses measured ${measured.length}/${TOTAL} [${measured.join(',') || 'none'}] · ${results.length} checks · ${failed} broken · fixture seat only`);
+if (measured.length < TOTAL) console.log('FAIL: not every clause was measured — a partial run proves nothing about the rest');
+process.exit(failed || measured.length < TOTAL ? 1 : 0);

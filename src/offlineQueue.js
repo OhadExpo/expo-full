@@ -44,13 +44,9 @@ export function setQueueUser(uid) {
 // logged sets exist nowhere else once the logger closed. (workout durability 27.9)
 const NEVER_DROP_TYPES = new Set(['client_workouts.upsert']);
 
-// Dedupe keys whose write is being attempted RIGHT NOW by the direct save path
-// (useSupaClientWorkouts.save enqueues first, then upserts). drain() leaves those
-// entries alone so the same row is not written twice at once. In memory only: a
-// reload clears it, which is correct — nothing is in flight after a reload.
-const inflight = new Set();
-export function holdInflight(key) { if (key) inflight.add(key); }
-export function releaseInflight(key) { if (key) inflight.delete(key); }
+// (Two writes of one workout row never overlap: useSupaStore runs the direct
+// save and this queue's replay of client_workouts rows on one serial chain per
+// row id, and each write checks its entry is still the current version.)
 
 // In-memory mirror + persist flag. The queue holds an athlete's logged workout /
 // weigh-in, so a full localStorage must NOT silently drop it. Normal reads still
@@ -152,8 +148,11 @@ export function getEntries() {
 
 // SwUpdateBanner asks this before a silent reload: a workout row still waiting
 // in the queue means the athlete's session exists only on this device.
+// Only THIS user's entries that can still land by themselves count: another
+// account's parked row (shared device) or a stuck one (needs the owner / a
+// sign-in) would otherwise hold every future app update back indefinitely.
 export function hasPendingWorkouts() {
-  return read().some(e => NEVER_DROP_TYPES.has(e.type));
+  return read().some(e => NEVER_DROP_TYPES.has(e.type) && !e.stuck && (!e.uid || e.uid === currentUid));
 }
 
 export function getCount() {
@@ -215,14 +214,6 @@ export async function drain() {
       const next = q[0];
       // Foreign-user entry (or signed-out): keep it, rotate to tail, never
       // attempt it under the wrong (or no) JWT.
-      // The direct save path is attempting this exact row right now — rotate it
-      // past this pass rather than writing the same row twice concurrently.
-      if (next.dedupeKey && inflight.has(next.dedupeKey)) {
-        if (cycledForeign.has(next.id)) break;
-        cycledForeign.add(next.id);
-        write([...q.slice(1), next]);
-        continue;
-      }
       if (next.uid && next.uid !== currentUid) {
         if (cycledForeign.has(next.id)) break; // full pass done — everything left is foreign
         cycledForeign.add(next.id);
@@ -251,7 +242,9 @@ export async function drain() {
         continue;
       }
       try {
-        await handler(next.payload);
+        // The entry is passed too, so a handler can tell whether it is still the
+        // current version of its row when its turn on the row's chain comes.
+        await handler(next.payload, next);
         // Re-read to avoid clobbering newer enqueues that landed during
         // the await.
         const cur = read();
@@ -271,8 +264,13 @@ export async function drain() {
           // rotated to the tail, retried on the next trigger); the athlete sees
           // it in the portal's "not saved yet" banner, so nothing is silent.
           if (NEVER_DROP_TYPES.has(next.type) && isPermanent(e)) {
+            const wasParked = target.parked;
             const rest = cur.filter(x => x.id !== next.id);
             write([...rest, { ...target, parked: true, stuck: true }]);
+            // Surface ONCE when it first parks (a coach-side save has no banner).
+            if (!wasParked && onErrorHook) {
+              try { onErrorHook({ type: next.type, payload: next.payload, msg: 'Workout not saved yet — kept on this device and retrying.' }); } catch {}
+            }
             break;
           }
           if (isPermanent(e) || (target.attempts >= MAX_ATTEMPTS && !target.critical)) {
