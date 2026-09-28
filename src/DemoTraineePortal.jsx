@@ -4,7 +4,7 @@
 // their athletes would see, without an account or any DB pollution.
 import React, { useState } from 'react';
 import ClientPortal from './ClientPortal';
-import { useT } from './i18n';
+import { useT, readLang, LANG_KEY } from './i18n';
 import { C, FN } from './theme';
 import {
   DEMO_CLIENT_ID,
@@ -73,6 +73,11 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
         trainees={[DEMO_TRAINEE]}
         onDecrementSession={onDecrementSession}
         updateFormVideos={updateFormVideos}
+        // PARITY (#390): the demo athlete has the same EN / עב switch as the
+        // real portal. The demo reads its language once on load, so a switch
+        // stores the choice and reloads.
+        lang={readLang()}
+        onSetLang={(l) => { try { localStorage.setItem(LANG_KEY, l); } catch { /* private mode */ } window.location.reload(); }}
         demoMode
         demoPlans={DEMO_PLANS}
         onFilmSet={onFilmSet}

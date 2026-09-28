@@ -2826,7 +2826,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 being saved (__expoWorkoutActive) refuses the switch too - a
                 re-render there is not worth any risk to his sets. Not on the
                 sign-in screens (#270) - those render before this portal exists. */}
-            {onSetLang && !demoMode && !embedded && (() => {
+            {onSetLang && !embedded && (() => {
               const cur = lang === 'he' ? 'he' : 'en';
               const flip = () => { if ((window.__expoWorkoutActive | 0) > 0) return; onSetLang(cur === 'he' ? 'en' : 'he'); };
               return (
