@@ -122,7 +122,7 @@ function ClipWarnings({ findings, T }) {
   const phrase = (T.warnShort && T.warnShort[first.key]) || '';
   const more = findings.length - 1;
   return (
-    <div data-shot-warn style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,165,2,0.45)', background: 'rgba(255,165,2,0.08)', padding: '4px 14px' }}>
+    <div data-shot-warn style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,165,2,0.45)', background: 'rgba(255,165,2,0.08)', padding: '4px var(--g)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} title={T.warnOpen}
           style={{ flex: 1, minWidth: 0, height: CTL_H, display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', padding: 0, margin: 0, cursor: 'pointer', color: WARN_INK, textAlign: 'start', lineHeight: 'normal' }}>
@@ -449,6 +449,13 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       {/* The top bar is the PARENT's, and it is on screen before any clip is
           analysed - so its rules cannot live in the results stylesheet. */}
       <style>{`
+        /* ONE GUTTER (28.9 #388, "ocd order ... vertically, horizontally"):
+           every bar, strip and column starts on the same x - 16px on a phone,
+           24 on a tablet, 32 on a desktop. The top bar used 14, the warning
+           strip 14, the results 16. */
+        .shot-stage { --g: 16px; }
+        @media (min-width: 621px) { .shot-stage { --g: 24px; } }
+        @media (min-width: 980px) { .shot-stage { --g: 32px; } }
         @media (max-width: 620px) {
           /* The spacer pushes the controls right on one desktop row. Once the
              bar wraps it just eats the leading space of whatever row it lands
@@ -493,7 +500,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         }
       `}</style>
       {/* top bar */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px var(--g)', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ ...ghost, ...boxed(CTL_SM), padding: '0 12px', fontSize: 10 }}>{T.back}</button>
         <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: CYAN }}>{lang === 'he' && T.toolTitle ? T.toolTitle : toolLabel}</div>
         <button onClick={() => setLangPersist(lang === 'he' ? 'en' : 'he')} title={T.langTitle} style={{ ...chip(false), fontSize: 10 }}>{T.langBtn}</button>
@@ -563,7 +570,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 
       {/* body */}
       {phase === 'idle' && (
-        <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--g)' }}>
           <div style={{ maxWidth: 720, width: '100%' }}>
             <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>{T.idleTitle}</div>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 18 }}>
@@ -596,7 +603,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       )}
 
       {phase === 'preflight' && preflight && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--g)', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* The class, not just the inline colour: a light-theme rule in
               themes.css repaints EVERY inline letter-spacing:0.18em label in
               the AA-on-white cyan with !important, which on this black stage
@@ -993,22 +1000,25 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
            (Ohad 08-24: "i want everything to fit without scrolling"). */
         /* (top-bar mobile rules live in the PARENT — this block only
            renders once there are results.) */
-        /* CHECKPOINT ROWS ON A PHONE. Seven fixed columns needed 362px and a
-           360px phone has 328 inside the page padding, so the name column
-           collapsed to one word per line and the row pushed the page sideways.
-           Two lines instead: name, status, jump and chevron on the first; the
-           target, the points it is worth and the value on the second. */
+        /* CHECKPOINT ROWS (28.9 #388). One grid, named areas, the same seven
+           pieces at every width: dot, name, target, status (+ the points it is
+           worth), value, the frame jump, the chevron. The status is plain
+           coloured text (CLAUDE.md: badges add padding that breaks alignment);
+           the only bordered thing in a row is the 36px jump.
+           Wide: name / target on the left, value · status · jump · chevron each
+           in a fixed column spanning both lines, so every row shares its x's. */
+        .shot-check-grid { display: grid; grid-template-columns: 8px minmax(0, 1fr) 112px 96px 36px 12px;
+          grid-template-areas: "d n v m j c" "d t v m j c"; column-gap: 12px; row-gap: 2px; align-items: center; padding: 12px; cursor: pointer; }
+        /* Phone: the name gets the row (jump + chevron beside it), then status
+           · points ...... value, then the target in full. */
         @media (max-width: 620px) {
-          .shot-check-grid { grid-template-columns: 8px minmax(0, 1fr) auto auto 36px 12px !important; column-gap: 8px !important; row-gap: 2px !important; padding: 9px 10px !important; }
-          .shot-check-text { display: contents; }
-          .shot-check-grid > span:first-child { grid-column: 1; grid-row: 1; }
-          .shot-check-name { grid-column: 2 / span 2; grid-row: 1; min-width: 0; }
-          .shot-check-status { grid-column: 4; grid-row: 1; }
-          .shot-check-jump { grid-column: 5; grid-row: 1; }
-          .shot-check-chev { grid-column: 6; grid-row: 1; }
-          .shot-check-target { grid-column: 2; grid-row: 2; min-width: 0; }
-          .shot-check-gain { grid-column: 3; grid-row: 2; }
-          .shot-check-val { grid-column: 4 / -1; grid-row: 2; }
+          .shot-check-grid { grid-template-columns: 8px minmax(0, 1fr) auto 36px 12px;
+            grid-template-areas: "d n n j c" ". m v j c" ". t t t t"; column-gap: 10px; row-gap: 4px; }
+        }
+        /* EIGHT tiles in each grid, so 2 x 4 on a phone and 4 x 2 from a tablet
+           up - never a row with an empty cell (28.9 #388). */
+        @media (min-width: 621px) {
+          .shot-readout, .shot-info { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
         @media (min-width: 980px) {
           .shot-wrap { overflow: hidden !important; }
@@ -1025,11 +1035,10 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           /* Fixed column counts, not auto-fill: eight read-outs in an auto-fill
              grid wrapped 5 + 3 and the info tiles came out at different heights.
              Two rows of four, three even columns, nothing ragged. */
-          .shot-readout { grid-template-columns: repeat(4, 1fr) !important; }
-          .shot-info { grid-template-columns: repeat(3, 1fr) !important; }
+          .shot-readout, .shot-info { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
       `}</style>
-      <div className="shot-print shot-results" style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1440, margin: '0 auto', padding: 16 }}>
+      <div className="shot-print shot-results" style={{ display: 'flex', gap: 'var(--g)', alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1440, margin: '0 auto', padding: 'var(--g)' }}>
         {/* LEFT — player */}
         <div className="shot-left" style={{ flex: '1 1 420px', minWidth: 300, maxWidth: 640 }}>
           <div ref={wrapRef} className="shot-video" style={{ '--shot-ar': result.aspect || 1.7778, position: 'relative', width: '100%', aspectRatio: result.aspect ? `${result.aspect}` : '16/9', background: '#000', border: '1px solid rgba(255,255,255,0.15)' }}>
@@ -1040,13 +1049,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', padding: '3px 8px', color: 'rgba(255,255,255,0.8)' }}>{T.frameOf ? T.frameOf(cur + 1, n, fmt(tMs / 1000, 2)) : `F${cur + 1}/${n} · ${fmt(tMs / 1000, 2)}s`}</div>
           </div>
           {/* transport */}
-          <div className="shot-noprint" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => step(-10)} style={chip(false)} title={T.back10}>«10</button>
-            <button onClick={() => step(-1)} style={chip(false)} title={T.prev1}>‹ 1</button>
-            <button onClick={() => { const v = videoRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); } else v.pause(); }} style={chip(playing)}>{playing ? '❚❚' : '▶'}</button>
-            <button onClick={() => step(1)} style={chip(false)} title={T.next1}>1 ›</button>
-            <button onClick={() => step(10)} style={chip(false)} title={T.fwd10}>10»</button>
-            <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => userSeek(Number(e.target.value))} style={{ flex: 1, minWidth: 120, accentColor: '#39BDFF' }} />
+          {/* TRANSPORT: five EQUAL cells (they were each as wide as their own
+              label) and the scrubber - beside them on a wide column, on a row
+              of its own on a phone. */}
+          <div className="shot-noprint shot-transport" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 44px) minmax(0, 1fr)', columnGap: 6, rowGap: 8, alignItems: 'center', marginTop: 8 }}>
+            {[[() => step(-10), T.back10, '«10'], [() => step(-1), T.prev1, '‹ 1'], [() => { const v = videoRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); } else v.pause(); }, '', playing ? '❚❚' : '▶'], [() => step(1), T.next1, '1 ›'], [() => step(10), T.fwd10, '10»']].map(([fn, tip, label], k) => (
+              <button key={k} onClick={fn} title={tip || undefined} style={{ ...chip(k === 2 && playing), width: '100%', minWidth: 0, padding: 0 }}>{label}</button>
+            ))}
+            <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => userSeek(Number(e.target.value))} style={{ width: '100%', minWidth: 0, margin: 0, accentColor: '#39BDFF' }} />
           </div>
           {/* STANCE -> LAND is ONE SEQUENCE, so it gets one strip: equal
               columns, one height, no wrapping to a ragged second row. Sized by
@@ -1067,18 +1077,21 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               the two rows"). Each chip's basis is a half-row's share, so the
               first row takes ceil(n/2) chips and the rest grow to fill the
               second - both rows full, every chip in a row the same width. */}
-          <div className="shot-noprint" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} data-phase-key={p.key} data-idx={p.idx} data-active={p.key === activePhaseKey ? '1' : '0'} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(p.key === activePhaseKey), padding: '0 4px', minWidth: 0, flex: `1 1 calc(${100 / Math.ceil(shot.phases.length / 2)}% - 4px)`, letterSpacing: '0.06em', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
+          {/* PHASES: one grid, ceil(n/2) EQUAL columns - the flex version grew
+              the shorter second row's cells wider than the first row's. */}
+          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.ceil(shot.phases.length / 2)}, minmax(0, 1fr))`, gap: 6, marginTop: 8 }}>
+            {shot.phases.map((p) => <button key={p.key} data-phase-key={p.key} data-idx={p.idx} data-active={p.key === activePhaseKey ? '1' : '0'} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(p.key === activePhaseKey), width: '100%', padding: '0 4px', minWidth: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
           </div>
           {/* per-frame readout */}
           {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
               first line, then the arm chain elbow → forearm → wrist on the
               second, so the eye reads it in the same order the shot happens. */}
           <div style={{ ...lbl, marginTop: 10, marginBottom: 4 }}>{(T.measuredOnSide ? T.measuredOnSide(hand === 'L' ? T.left : T.right) : 'MEASURED ON THE SHOOTING SIDE · ' + (hand === 'L' ? 'LEFT' : 'RIGHT'))}</div>
-          <div className="shot-readout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
+          <div className="shot-readout" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
             {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, [fmt(rd.wristElbowX, 2), (T.unitTorso || ' torso').trim()], T.metricsHelp && T.metricsHelp.elbowOffset], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : [(rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2), (T.unitTorso || ' torso').trim()]), T.metricsHelp && T.metricsHelp.wristEye]].map(([k, v, help]) => (
-              <div key={k} className="shot-metric" title={help || undefined} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                <div style={{ ...lbl, minHeight: 24, lineHeight: '12px' }}>{k}</div>
+              <div key={k} className="shot-metric" title={help || undefined} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '8px 10px', height: 56, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                {/* ONE ROW per label, fitted by wording (memory feedback_titles_fit_by_wording) */}
+                <div style={{ ...lbl, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>{k}</div>
                 {/* a unit word rides small after its number, on the same line
                     ("0.08 TORSO" at 15px wrapped in a phone tile - 27.9 O10) */}
                 <div className="shot-metric-v" style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: '20px', whiteSpace: 'nowrap' }}>{Array.isArray(v)
@@ -1190,7 +1203,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           {/* Six single-width read-outs fill two clean rows of three; the two
               long ones (chain order, session consistency) get a row each
               instead of stretching one tile taller than its neighbours. */}
-          <div className="shot-info" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, marginBottom: 14 }}>
+          <div className="shot-info" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginBottom: 14 }}>
             {[[T.info.dipToRelease, shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + (T.unitMs || ' ms') : '—'],
               // Third slot = an action for the value. Only the height prompt has
               // one; every other tile is a reading, and a reading is not a button.
@@ -1204,11 +1217,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               // Scaled off the ball itself — no calibration, nothing to enter.
               [T.info.ballSpeed, shot.info.ballSpeedMs != null ? shot.info.ballSpeedMs + (T.unitMps || ' m/s') : '—'],
               [T.info.ballRise, shot.info.ballRiseM != null ? shot.info.ballRiseM + (T.unitM || ' m') : '—'],
-              [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + (T.unitMs || ' ms')],
-              [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v, act]) => (
-              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div>
+              // (TRACKED was a ninth tile repeating the verdict line's "tracking
+              // poor (52% of shot frames)" - dropped, so the grid is 2 x 4 / 4 x 2.)
+              [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + (T.unitMs || ' ms')]].map(([k, v, act]) => (
+              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '8px 10px', height: 56, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}><div style={{ ...lbl, whiteSpace: 'nowrap', overflow: 'hidden' }}>{k}</div>
                 {act
-                  ? <button type="button" onClick={act} dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start', background: 'transparent', border: 'none', padding: 0, color: '#39BDFF', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{v}</button>
+                  ? <button type="button" onClick={act} dir="ltr" style={{ alignSelf: 'flex-start', minHeight: 0, height: 'auto', lineHeight: 'normal', fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start', background: 'transparent', border: 'none', padding: 0, color: '#39BDFF', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{v}</button>
                   : <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start' }}>{v}</div>}
               </div>
             ))}
@@ -1485,18 +1499,19 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                       status chip and jump arrow shares an x with the row above.
                       Flex sized each by its own text, which is why 135 and
                       -0.24 TORSO ended in different places. */}
-                  <div className="shot-check-grid" style={{ display: 'grid', gridTemplateColumns: '8px minmax(0, 1fr) 132px 34px 60px 36px 18px', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer' }} onClick={() => setOpenGuide((s) => { const nx = new Set(s); nx.has(c.key) ? nx.delete(c.key) : nx.add(c.key); return nx; })}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
-                    <div className="shot-check-text" style={{ minWidth: 0 }}>
-                      <div className="shot-check-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>{c.label}</div>
-                      <div className="shot-check-target" style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{c.target}</div>
-                    </div>
-                    <div className="shot-check-val" dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate', textAlign: 'end' }}>{c.display}</div>
-                    <span className="shot-check-gain" dir="ltr" title={gainOf(c) > 0 ? T.gainPts(gainOf(c)) : undefined} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                      color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate', whiteSpace: 'nowrap', textAlign: 'end' }}>{c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 ? `+${gainOf(c)}` : ''}</span>
-                    <span className="shot-check-status" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, height: 18, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 4px' }}>{st.label}</span>
-                    {showJump ? <button className="shot-noprint shot-check-jump" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), width: CTL_H, minWidth: 0, padding: 0 }} title={T.jumpFrame}>▸</button> : <span className="shot-check-jump" />}
-                    <span className="shot-check-chev" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', height: 18, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+                  <div className="shot-check-grid" onClick={() => setOpenGuide((s) => { const nx = new Set(s); nx.has(c.key) ? nx.delete(c.key) : nx.add(c.key); return nx; })}>
+                    <span style={{ gridArea: 'd', width: 8, height: 8, borderRadius: '50%', background: st.color }} />
+                    <div className="shot-check-name" style={{ gridArea: 'n', minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', lineHeight: '16px' }}>{c.label}</div>
+                    <div className="shot-check-target" style={{ gridArea: 't', minWidth: 0, fontSize: 11, lineHeight: '15px', color: 'rgba(255,255,255,0.55)' }}>{c.target}</div>
+                    <span className="shot-check-meta" style={{ gridArea: 'm', minWidth: 0, display: 'inline-flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap', lineHeight: '16px' }}>
+                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: st.color }}>{st.label}</span>
+                      {c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 && <span dir="ltr" title={T.gainPts(gainOf(c))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate' }}>{`+${gainOf(c)}`}</span>}
+                    </span>
+                    <div className="shot-check-val" dir="ltr" style={{ gridArea: 'v', justifySelf: 'end', fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate', lineHeight: '16px' }}>{c.display}</div>
+                    {showJump
+                      ? <button className="shot-noprint shot-check-jump" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), gridArea: 'j', width: CTL_H, minWidth: 0, padding: 0 }} title={T.jumpFrame}>▸</button>
+                      : <span className="shot-check-jump" style={{ gridArea: 'j', width: CTL_H }} />}
+                    <span className="shot-check-chev" style={{ gridArea: 'c', color: 'rgba(255,255,255,0.5)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transform: open ? 'rotate(180deg)' : 'none' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="10" height="7" style={{ display: 'block' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                   </div>
                   {open && (
                     <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
