@@ -1367,9 +1367,11 @@ html.theme-switching *::after {
    gets ~150 at 768; from 901 the desktop grid already leaves it 175+). And
    at every width the injury cell may break inside a word rather than overlap
    its neighbour - a break is readable, an overlap is not. */
-@media (min-width: 761px) and (max-width: 900px) {
+@media (min-width: 761px) and (max-width: 1199px) {
+  /* 29.9 #380: the by-column was 80px and "REPORTED BY" / "NO UPDATE 14D"
+     (~110px) ran into UPDATE ›; it takes 120 now, to 1199px (was 900). */
   .bhbc-zone .bhbc-inj-head,
-  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 100px 104px 80px 64px !important; gap: 10px !important; }
+  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 100px 96px 120px 64px !important; gap: 10px !important; }
 }
 .bhbc-zone .bhbc-inj-row > :nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
 
@@ -1764,4 +1766,34 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (min-width: 481px) {
   .bhbc-load-inner .bhbc-pos-inj [data-pos] { display: inline-block; min-width: var(--pos-w, 0px); padding-inline-end: 10px; }
   .bhbc-load-inner .bhbc-pos-inj [data-sep] { display: none; }
+}
+
+/* BHBC MONTH CALENDAR BELOW DESKTOP (29.9 #380, tablet overflow audit): a
+   month column is ~100px on a tablet, so "16:00 PRACTICE" was clipped and a game
+   chip broke its venue into one word per line. Each chip stacks the time over a
+   one-word kind (full or short, same size); the venue lives in the week and
+   list views. */
+@media (max-width: 1199px) {
+  .bhbc-cal-chip { flex-direction: column; align-items: flex-start !important; gap: 0 !important; }
+  .bhbc-cal-where { display: none !important; }
+}
+
+
+/* DASHBOARD ALERT RAIL on a tablet (29.9 #380): three 280px cards in a
+   sideways-scrolling row cut the third card off and squeezed names to
+   "DAESHON F…". Two equal columns that wrap instead; phones stack (above),
+   desktop keeps the one row. */
+@media (min-width: 621px) and (max-width: 1199px) {
+  .alert-rail { flex-wrap: wrap !important; overflow-x: visible !important; }
+  .alert-rail > * { flex: 1 1 calc(50% - 6px) !important; min-width: 0 !important; }
+}
+
+/* EXERCISE MATCHING below desktop (29.9 #380): the three-part card squeezed its
+   suggestions into ~280px (names one word per line) and stacked CHANGE / NEW /
+   SKIP down an empty column. One column: title + where it is used, the
+   suggestions at full width, then the actions as one row of equal buttons. */
+@media (max-width: 1199px) {
+  .em-card { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; gap: 12px !important; }
+  .em-card > .em-head, .em-card > .em-sugg { flex: none !important; width: 100%; }
+  .em-actions { display: grid !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px !important; }
 }

@@ -27,18 +27,38 @@
 // measure ink rather than boxes.
 //
 //   node scripts/verify-no-text-overflow.mjs [--only <substring>]
+//
+// TABLET + THE REAL APP (28.9 #380, Ohad: "audit all overflowing text on tablet
+// view"). The list above is the demo; the signed-in app was never in it.
+//   WIDTHS=tablet   768x1024, 820x1180, 1024x768, 1024x1366, 1180x820 as a
+//                   TOUCH tablet (tablet UA), not a narrow desktop
+//   SET=app         the signed-in coach app + BHBC (owner seat, from SURFACES.md)
+//   SET=athlete     the athlete portal (EXPO_EMAIL = the fixture athlete)
+//   THEMES=dark     one theme (layout is identical across themes - memory
+//                   reference_theme_geometry_parity - so a width sweep can halve)
+//   CDP=<url>       the browser to drive (headless: http://[::1]:9444 - a
+//                   hidden tab of the visible Chrome paints no frames)
 import fs from 'node:fs';
 import P from 'puppeteer-core';
 import { setWidth } from './lib/viewport.mjs';
+import { signIn } from './lib/authed-page.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
-const OUT = 'audit-out/text-overflow';
+const OUT = process.env.OUT || 'audit-out/text-overflow';
 fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const COACH_TABS = ['dashboard', 'trainees', 'programs', 'exercises', 'sessions', 'review', 'tasks', 'billing'];
-const SURFACES = [
+const SET = process.env.SET || 'demo';
+const BHBC_TABS = ['overview', 'roster', 'schedule', 'lifts', 'medical', 'games'];
+const APP_SURFACES = [
+  ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'bugs', 'chat-audit']
+    .map((t) => [`app-${t}`, `/coach/${t}`]),
+  ...BHBC_TABS.map((t) => [`bhbc-${t}`, `/coach/bhbc/${t}`]),
+];
+const ATHLETE_SURFACES = [['portal', '/']];
+const DEMO_SURFACES = [
   ['landing', '/demo'],
   ['landing-he', '/demo/he'],
   ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
@@ -54,33 +74,54 @@ const SURFACES = [
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],
   ['booking', '/book'],
-].filter(([n]) => !ONLY || n.includes(ONLY));
+];
+const SURFACES = (SET === 'app' ? APP_SURFACES : SET === 'athlete' ? ATHLETE_SURFACES : DEMO_SURFACES).filter(([n]) => !ONLY || ONLY.split(',').some((o) => n.includes(o)));
+const SIGNED = SET === 'app' || SET === 'athlete';
 
 const LANGS = ['en', 'he'];
 // 360 is the narrowest he has asked about and where one-word-per-line appears.
-const WIDTHS = [[360, 800], [390, 844], [1440, 950]];
-const THEMES = ['dark', 'light'];
+const TABLET = process.env.WIDTHS === 'tablet';
+const WIDTHS = TABLET ? [[768, 1024], [820, 1180], [1024, 768], [1024, 1366], [1180, 820]] : [[360, 800], [390, 844], [1440, 950]];
+const THEMES = process.env.THEMES ? process.env.THEMES.split(',') : ['dark', 'light'];
 
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.padEnd(30)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, nodes = 0;
 
-for (const [name, route] of SURFACES) {
-  for (const lang of LANGS) {
-    for (const [w, h] of WIDTHS) {
-      for (const theme of THEMES) {
+// Signed-in sets sign in ONCE per language x width x theme and walk every route
+// in that one context; the demo set keeps one fresh context per combination.
+const signedCtx = new Map();
+async function pageFor(lang, w, h, theme) {
+  if (!SIGNED) { const ctx = await b.createBrowserContext(); return { ctx, pg: await ctx.newPage(), fresh: true }; }
+  const key = `${lang}|${w}|${theme}`;
+  if (signedCtx.has(key)) return signedCtx.get(key);
+  const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
+  await setWidth(pg, w, h, { tablet: TABLET });
+  await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
+  await pg.evaluateOnNewDocument((L, T) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-shot-lang', L); localStorage.setItem('expo-theme', T); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } }, lang, theme);
+  await signIn(pg, BASE);
+  const v = { ctx, pg, fresh: false };
+  signedCtx.set(key, v);
+  return v;
+}
+for (const lang of LANGS) {
+  for (const [w, h] of WIDTHS) {
+    for (const theme of THEMES) {
+      for (const [name, route] of SURFACES) {
         const id = `${name}/${lang}/${w}/${theme}`;
-        const ctx = await b.createBrowserContext();
-        const pg = await ctx.newPage();
+        const { ctx, pg, fresh } = await pageFor(lang, w, h, theme);
         try {
-          await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
+          if (fresh) await setWidth(pg, w, h, { tablet: TABLET });   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
           await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
           await pg.evaluateOnNewDocument((L, T) => {
             try {
               if (!localStorage.getItem('expo-lang')) localStorage.setItem('expo-lang', L);
               localStorage.setItem('expo-lang', L);
+              // the club zone and the Shot Analyzer keep their OWN language keys
+              localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L));
+              localStorage.setItem('expo-shot-lang', L);
               localStorage.setItem('expo-theme', T);
               localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
             } catch (e) { /* private mode */ }
@@ -183,17 +224,19 @@ for (const [name, route] of SURFACES) {
             push('SPILL', r.spill, (x) => `"${x.t}" paints ${x.by}px outside its container`);
             push('ONEWORD', r.oneword, (x) => `"${x.t}" ${x.words} words over ${x.lines} lines in ${x.w}px`);
           }
+          // A signed-in route that lands on the login screen was NOT measured.
+          if (SIGNED && await pg.evaluate(() => !!document.querySelector('input[type="password"]'))) { add({ kind: 'UNSET', id, detail: 'landed on the login screen - NOT judged' }); continue; }
           measured++;
         } catch (e) {
           add({ kind: 'ERROR', id, detail: 'harness: ' + String(e.message || e).slice(0, 110) });
         } finally {
-          await pg.close().catch(() => {});
-          await ctx.close().catch(() => {});
+          if (fresh) { await pg.close().catch(() => {}); await ctx.close().catch(() => {}); }
         }
       }
     }
   }
 }
+for (const { ctx } of signedCtx.values()) await ctx.close().catch(() => {});
 b.disconnect();
 
 fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));

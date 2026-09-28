@@ -313,6 +313,9 @@ const monDay = (iso) => { const d = parseISO(iso); return monDayFor(d, `${d.getD
 const dayDiff = (a, b) => Math.round((parseISO(a) - parseISO(b)) / 86400000);
 const FX_COLOR = { game: ORANGE, practice: '#4E7FCB', lift: '#6C7A93', scrimmage: '#C7692A', shootaround: '#5E9BD6' };
 const FX_LABEL = { game: 'Game', practice: 'Practice', lift: 'Weights', scrimmage: 'Scrimmage', shootaround: 'Shootaround' };
+// The month cell's short form when the full word does not fit its column
+// (tablet widths, 29.9 #380): same size, shorter word - never a clipped word.
+const FX_LABEL_SHORT = { game: 'Game', practice: 'Prac', lift: 'Lift', scrimmage: 'Scrim', shootaround: 'Shoot' };
 // The team S&C block's own colour in the grids (teal - not the lift slate, not
 // the practice blue, not a restriction tint).
 const SC_COLOR = '#2A9D8F';
@@ -4050,7 +4053,9 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   });
   // The answer to "who didn't", surfaced instead of hunting for it in the grid.
   const absentees = per.filter((p) => p.missed > 0).sort((a, b) => b.missed - a.missed);
-  const CELL = 22;
+  // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
+  // into the next column at 22.
+  const CELL = 24;
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   const MISS = '#DE4E3B';
   const pct = (p) => (p.owed ? Math.round((p.went / p.owed) * 100) : null);
@@ -4274,7 +4279,9 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
   const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6)
-  const CELL = 22;
+  // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
+  // into the next column at 22.
+  const CELL = 24;
   // SORTABLE LIKE EVERY TABLE IN THE ZONE (27.9): the name A->Z, a DAY by that
   // day's lift (the longest first; no lift that day sorts last either way), the
   // last column by the date of his last lift, newest first - never lifted last.
@@ -4816,7 +4823,10 @@ function MicrocycleView({ fx, today }) {
   return (
     <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{tr('→')} {g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Game')} · {until === 0 ? tr('today') : daysFor(until)}</span>}>
       <div style={{ overflowX: 'auto' }}>
-        <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
+        {/* 160, not 120 (29.9 #380): each emphasis phrase stays on one line
+            ("hold intensity, cut volume" ~150px) and spilled out of a 120px
+            card; the strip scrolls below desktop either way */}
+        <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(160px, 1fr))`, gap: 8, minWidth: days.length * 160 }}>
           {days.map((d) => (
 
   // TODAY AND GAME DAY ARE NOT THE SAME THING AND MUST NOT LOOK IT.
@@ -5431,9 +5441,12 @@ function ScheduleMonth({ fixtures, today }) {
       <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 2px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
+          <div key={i} className="bhbc-cal-chip" style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-            <span style={{ color: FX_COLOR[f.type] || NAVY, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9 }} dir="ltr">{fxWhere(f)}</span> : null}</span>
+            {/* one word, never broken: the full kind, or its short form when the
+                column is too narrow (SegWord measures) */}
+            <span className="bhbc-cal-kind" style={{ color: FX_COLOR[f.type] || NAVY, display: 'flex', minWidth: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxLabelFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
+            {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="ltr">{fxWhere(f)}</span> : null}
           </div>
         ))}
         {items.length > 3 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>{tr('+{n} more').replace('{n}', items.length - 3)}</div>}

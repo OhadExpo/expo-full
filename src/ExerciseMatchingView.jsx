@@ -242,8 +242,8 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
         const skipped = dec && dec.action === 'skip';
         return (
           <Card key={g.key} leftStripe={chosen ? '#2E9E6B' : skipped ? C.bd : C.or} style={{ opacity: skipped ? 0.6 : 1 }}>
-            <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+            <div className="em-card" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.or, background: `color-mix(in srgb, ${C.or} 14%, transparent)`, padding: '2px 7px' }}>{g.count}×</span>
@@ -253,7 +253,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                 </div>
                 {chosen && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: '#2E9E6B', marginTop: 8 }}>→ {chosen.title || chosen.t}</div>}
               </div>
-              <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+              <div className="em-sugg" style={{ flex: '1 1 320px', minWidth: 0 }}>
                 {top ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {g.suggestions.slice(0, 3).map((s) => {
@@ -275,7 +275,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                   </div>
                 ) : <div style={{ fontFamily: FB, fontSize: 12, color: C.td, padding: '8px 0' }}>{tt('No close library match — Change to search, or leave to create later.')}</div>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+              <div className="em-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                 <Btn variant="ghost" onClick={() => setPickerFor({ key: g.key, title: g.title })}>{tt('Change…')}</Btn>
                 {setExercises && <Btn variant="ghost" onClick={() => createInLibrary(g)}>{tt('+ New')}</Btn>}
                 <Btn variant="ghost" onClick={() => setDecision(g.key, 'skip')}>{tt('Skip')}</Btn>
