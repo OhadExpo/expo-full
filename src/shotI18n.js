@@ -37,7 +37,7 @@ export const SHOT_I18N = {
     shotTypes: { ft: 'Free throw', mid: 'Mid-range', three: 'Three' },
     // the court's own short forms, shown only where the full word would not fit
     shotTypesShort: { ft: 'FT', mid: 'Mid', three: '3PT' },
-    height: 'Height', cmPlaceholder: 'cm',
+    height: 'Height', cmPlaceholder: 'cm', saveBtn: 'SAVE',
     savedCm: '✓ SAVED', rescored: '✓ RESCORED', cmUnit: 'CM', forCm: 'FOR CM',
 
     idleTitle: 'Analyse a jump shot, frame by frame.',
@@ -107,8 +107,8 @@ export const SHOT_I18N = {
     shotWord: 'SHOT', prevShot: 'Previous shot', nextShot: 'Next shot',
     // The dot on the option AUTO is using - detected, or the default when the
     // clip could not show it. Never both called a detection.
-    autoPicked: 'AUTO is using this - read from the clip',
-    autoFallback: 'AUTO is using this - the clip could not show it, so this is the default',
+    autoPicked: 'AUTO: read from the clip',
+    autoFallback: 'AUTO: the clip does not show it, so this is the default',
     // The clip-warning line, collapsed: the finding's title and this phrase.
     warnShort: {
       'no-body': 'film him in frame', 'rarely-seen': 'keep him in frame',
@@ -229,7 +229,7 @@ export const SHOT_I18N = {
     shotHint: 'טווח זווית השחרור — תבחר את מרחק הזריקה',
     shotTypes: { ft: 'עונשין', mid: 'טווח בינוני', three: 'שלשה' },
     shotTypesShort: { ft: 'עונשין', mid: 'בינוני', three: 'שלשה' },
-    height: 'גובה', cmPlaceholder: 'ס״מ',
+    height: 'גובה', cmPlaceholder: 'ס״מ', saveBtn: 'שמור',
     savedCm: '✓ נשמר', rescored: '✓ החישוב עודכן', cmUnit: 'ס״מ', forCm: 'לחישוב ס״מ',
 
     idleTitle: 'ניתוח זריקה, פריים אחר פריים.',
@@ -293,14 +293,14 @@ export const SHOT_I18N = {
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
     shotWord: 'זריקה', prevShot: 'הזריקה הקודמת', nextShot: 'הזריקה הבאה',
-    autoPicked: 'זה מה שהאוטומטי משתמש בו - זוהה בקליפ',
-    autoFallback: 'זה מה שהאוטומטי משתמש בו - הקליפ לא הראה את זה, אז זו ברירת המחדל',
+    autoPicked: 'אוטומטי: זוהה בקליפ',
+    autoFallback: 'אוטומטי: לא רואים את זה בקליפ, אז זו ברירת המחדל',
     warnShort: {
       'no-body': 'צלם אותו בתוך הפריים', 'rarely-seen': 'תשאיר אותו בפריים',
       'no-headroom': 'הכדור יוצא מהפריים', 'head-cut': 'תרים את הטלפון',
       'too-far': 'תתקרב', 'low-res': 'צלם באיכות רגילה', 'too-dark': 'צריך יותר אור',
     },
-    warnOpen: 'מה חסר בצילום', warnDismiss: 'להסתיר בקליפ הזה',
+    warnOpen: 'מה חסר בצילום', warnDismiss: 'הסתר בקליפ הזה',
     atSec: (t) => `בשנייה ${t}`,
     scopeHint: (n) => `כרטיס הניקוד = הזריקה הזאת · האימון = כל ${n}`,
     shotTip: (i, t, s) => `זריקה ${i} בשנייה ${t}, ניקוד ${s}`,

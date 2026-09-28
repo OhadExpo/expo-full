@@ -51,6 +51,21 @@ const CTL_SM = CTL_H;
 // border-box, so line-height cannot move the button itself.
 const boxed = (h) => ({ height: h, minHeight: 0, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 'normal', paddingTop: 0, paddingBottom: 0 });
 const ghost = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', padding: '0 14px', cursor: 'pointer', borderRadius: 0, ...boxed(CTL_H) };
+// HEIGHT: an actual SAVE button, then only a green check (Ohad 28.9 #387:
+// "replace the saved with an actual save button (then just keep the green check
+// when updated)"). One fixed slot for both states, so the row never moves when
+// SAVE turns into the check; typing a new value brings SAVE back.
+const SAVE_W = 72;
+function HeightSave({ saved, empty, onSave, T }) {
+  return (
+    <span style={{ width: SAVE_W, height: CTL_H, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      {saved
+        ? <span data-height-saved role="img" aria-label={T.savedCm} title={T.savedCm} style={{ color: '#37B27C', fontSize: 16, fontWeight: 700, lineHeight: 'normal' }}>✓</span>
+        : <button type="button" data-height-save disabled={empty} onClick={onSave}
+            style={{ ...ghost, width: '100%', minWidth: 0, padding: 0, opacity: empty ? 0.35 : 1, cursor: empty ? 'default' : 'pointer' }}>{T.saveBtn}</button>}
+    </span>
+  );
+}
 // This tool renders on its own ALWAYS-DARK stage, so it must not use theme
 // tokens for accents: in the light theme C.ac resolves to #0E0F12 and every
 // accented element (selected chips, labels, the pose dots) disappeared into
@@ -381,6 +396,16 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const flashRef = useRef(null);
   const [rescored, setRescored] = useState(false);
   useEffect(() => () => clearTimeout(flashRef.current), []);
+  // SAVE (button or Enter): remember the height, and on the results screen
+  // re-score the same frames with it. Leaving the box no longer saves by itself
+  // - the button is the save.
+  const saveHeight = (rescoreToo) => {
+    const v = String(statureRef.current ?? stature).trim();
+    if (!v) return;
+    try { localStorage.setItem(STATURE_KEY, v); } catch { /* private mode */ }
+    if (rescoreToo) rescore(hand, v, shotType);
+    setHeightSaved(true);
+  };
   const rescore = (h, st, type) => {
     const frames = framesRef.current; if (!frames) return;
     const r = analyzeShotClip(frames, { hand: h, statureCm: Number(st) || null, shotType: type || shotType });
@@ -445,16 +470,14 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
              three cells beside it - same columns as HAND and SHOT above. */
           .shot-ctl-note { grid-column: 3 / -1; min-width: 0 !important; }
         }
-        /* WHAT AUTO PICKED - marked ONCE, with a dot. The filled chip is the
-           setting (AUTO, or the side / type he pinned); the dot is what AUTO is
-           reading from the clip. The old chips said it twice ("AUTO · RIGHT" on
-           one chip, "RIGHT · AUTO" on the next). A pseudo-element, so it takes
-           no width from the label and SegWord never has to shorten for it. */
-        .shot-auto-pick { position: relative; }
+        /* WHAT AUTO PICKED is lit like a manual pick (Ohad 08-24: "i want the
+           r/l hand in that menu to be hilighted like i manually chose it"), and
+           said ONCE: the old labels said it twice ("AUTO · RIGHT" on one chip,
+           "RIGHT · AUTO" on the next - 27.9 #361). AUTO lit = the setting; the
+           lit side / type = what AUTO is reading. */
         /* Tracking belongs to Latin capitals; spread Hebrew letters read as
            separate glyphs and cost the width that keeps a word on one row. */
         .shot-stage[dir="rtl"] .shot-ctl-group > button { letter-spacing: 0 !important; }
-        .shot-auto-pick::after { content: ''; position: absolute; top: 5px; inset-inline-end: 5px; width: 5px; height: 5px; border-radius: 50%; background: ${CYAN}; }
         /* ONE SCROLLER ON A PHONE (27.9, "i cannot scroll lower than this at
            all"). Below the desktop split the stage was a fixed column: the top
            bar and the clip warnings never scrolled, the results scrolled in
@@ -501,7 +524,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             <button key={k} data-auto-pick={picked ? '1' : undefined} className={picked ? 'shot-auto-pick' : undefined}
               onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } rescore(k, stature, shotType); }}
               title={picked ? (detectedHand === k ? T.autoPicked : T.autoFallback) : T.handHint}
-              style={chip(handMode === k)}><SegWord full={label} short={label} /></button>
+              style={chip(handMode === k || picked)}><SegWord full={label} short={label} /></button>
           );
         })}
         </span>
@@ -517,7 +540,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             <button key={t.key} data-auto-pick={picked ? '1' : undefined} className={picked ? 'shot-auto-pick' : undefined}
               onClick={() => { setShotMode('manual'); setShotType(t.key); try { localStorage.setItem(SHOTMODE_KEY, 'manual'); localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } rescore(hand, stature, t.key); }}
               title={picked ? (detectedShot === t.key ? T.autoPicked : T.autoFallback) : T.shotHint}
-              style={chip(shotMode === 'manual' && shotType === t.key)}><SegWord full={(T.shotTypes[t.key] || t.label).toUpperCase()} short={((T.shotTypesShort || {})[t.key] || T.shotTypes[t.key] || t.label).toUpperCase()} /></button>
+              style={chip(shotType === t.key)}><SegWord full={(T.shotTypes[t.key] || t.label).toUpperCase()} short={((T.shotTypesShort || {})[t.key] || T.shotTypes[t.key] || t.label).toUpperCase()} /></button>
           );
         })}
         </span>
@@ -525,16 +548,14 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
         <input ref={heightBoxRef} value={stature}
           onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-          onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } rescore(hand, stature, shotType); setHeightSaved(true); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveHeight(true); } }}
           placeholder={T.cmPlaceholder} inputMode="numeric"
           style={{ width: 56, height: CTL_SM, boxSizing: 'border-box', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '0 2px', textAlign: 'center', outline: 'none' }} />
-        {/* ONE confirmation slot for every re-score (hand, shot type or
-            height). The standalone RESCORED flash used to sit between the SHOT
-            and HEIGHT groups, so on a phone it appeared as a row of its own and
-            shoved HEIGHT down for two seconds. */}
-        <span className="shot-ctl-note" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', whiteSpace: 'nowrap', color: rescored || heightSaved ? '#37B27C' : 'rgba(255,255,255,0.35)', minWidth: 74 }}>
-          {rescored ? T.rescored : heightSaved ? T.savedCm : (String(stature).trim() ? T.cmUnit : '')}
+        {/* ONE slot after the box: SAVE, then the check. A hand / shot-type
+            re-score shows the same check (it used to be a RESCORED flash that
+            took a row of its own on a phone). */}
+        <span className="shot-ctl-note" style={{ display: 'inline-flex', alignItems: 'center', minWidth: 0 }}>
+          <HeightSave saved={heightSaved || rescored} empty={!String(stature).trim()} onSave={() => saveHeight(true)} T={T} />
         </span>
         </span>
         </>)}
@@ -628,10 +649,10 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             {T.height}
             <input value={stature} inputMode="numeric" placeholder={T.cmPlaceholder}
               onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
-              onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } setHeightSaved(true); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveHeight(false); } }}
               style={{ width: 64, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.45)', color: '#FFF', fontFamily: FN, fontSize: 14, textAlign: 'center' }} />
-            <span style={{ color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.4)' }}>{heightSaved ? T.savedCm : T.cmUnit}</span>
           </label>
+          <div style={{ marginTop: 10 }}><HeightSave saved={heightSaved} empty={!String(stature).trim()} onSave={() => saveHeight(false)} T={T} /></div>
           {/* The one thing that stalls a phone mid-capture is the phone
               leaving the page - so say it before it happens. */}
           <div data-shot-keep-on style={{ marginTop: 18, maxWidth: 300, textAlign: 'center', fontFamily: FB, fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{T.keepOn}</div>
