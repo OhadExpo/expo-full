@@ -1020,6 +1020,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
         @media (min-width: 621px) {
           .shot-readout, .shot-info { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
+        /* STACKED (below the desktop split) the player column takes the full
+           width, so its right edge is the report's right edge (820: the player
+           stopped at 640 while the report below ran to 772). */
+        @media (max-width: 979px) {
+          .shot-left, .shot-right { max-width: none !important; flex-basis: 100% !important; }
+        }
         @media (min-width: 980px) {
           .shot-wrap { overflow: hidden !important; }
           .shot-results { flex-wrap: nowrap !important; height: 100%; min-height: 0; align-items: stretch !important; }
@@ -1052,7 +1058,10 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           {/* TRANSPORT: five EQUAL cells (they were each as wide as their own
               label) and the scrubber - beside them on a wide column, on a row
               of its own on a phone. */}
-          <div className="shot-noprint shot-transport" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 44px) minmax(0, 1fr)', columnGap: 6, rowGap: 8, alignItems: 'center', marginTop: 8 }}>
+          {/* dir=ltr: time runs left to right in every language - the chart's
+              axis does, and a mirrored row put "«10" on the right with the
+              slider running backwards (28.9 #388, Hebrew LOOK). */}
+          <div dir="ltr" className="shot-noprint shot-transport" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 44px) minmax(0, 1fr)', columnGap: 6, rowGap: 8, alignItems: 'center', marginTop: 8 }}>
             {[[() => step(-10), T.back10, '«10'], [() => step(-1), T.prev1, '‹ 1'], [() => { const v = videoRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); } else v.pause(); }, '', playing ? '❚❚' : '▶'], [() => step(1), T.next1, '1 ›'], [() => step(10), T.fwd10, '10»']].map(([fn, tip, label], k) => (
               <button key={k} onClick={fn} title={tip || undefined} style={{ ...chip(k === 2 && playing), width: '100%', minWidth: 0, padding: 0 }}>{label}</button>
             ))}
