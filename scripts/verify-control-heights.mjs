@@ -264,6 +264,13 @@ for (const [name, route] of SURFACES) {
               // a title strip or a chip takes the one NESTED height (26); it is
               // still held to ONE height among its own kind, so a 24 next to a
               // 26 in a strip is still a fault.
+              // A STRIP IS NOT A CONTROL INSIDE ITSELF (28.9). A collapsible
+              // strip whose handle is a bordered <button class="title-strip">
+              // matched closest() on itself, so the 41px strip was held against
+              // the 26px buttons it carries - it only stayed silent while its
+              // title wrapped to two rows (skipped as multi-line). Strip height
+              // is the strips gate's job.
+              if (el.classList.contains('title-strip')) continue;
               const key = el.closest('.title-strip, .bhbc-chip') ? 'nested' : 'control';
               (buckets[key] = buckets[key] || []).push({
                 h: Math.round(bb.height),
