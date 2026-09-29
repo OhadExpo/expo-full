@@ -3571,12 +3571,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             })()}</div>}
           <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}> · <span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb} {tt("KG")}</span></span>:''}</div>
             <div style={{display:'flex',gap:4}}>
-            {/* KG matches the week cells: 32px border-box in every identity;
-                underline material where the identity is underline/bare. */}
+            {/* KG matches the week cells: the ONE control height (--btn-h, 36)
+                in every identity - it was a fixed 32 after the buttons beside it
+                went to 36 (29.9, control-heights RAGGED on /demo/athlete, live
+                in production too). Underline material where the identity is
+                underline/bare. */}
             <input value={bw} onChange={e => setBw(e.target.value)} placeholder={tt("KG")} type="number" disabled={!activePlan}
               style={(ident === 'EDITORIAL' || ident === 'AIR')
-                ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
-                : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+                ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:'var(--btn-h)',padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
+                : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:'var(--btn-h)',padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt("SAVE")}</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>{tt("REST")}</span>{activePlan.rest}</div>}
@@ -3856,8 +3859,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: day.name,
             count: `${day.ex.length} ${tt('EX')}`,
             extras: <>
-              {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:28,boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
-              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
+              {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',minWidth:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
+              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
             </>,
             action: { label: tt(done ? 'AGAIN' : 'START'), onClick: () => setLg(dayIdx) },
             rows: day.ex.map((ex,i) => {
