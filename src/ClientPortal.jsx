@@ -2847,10 +2847,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           "pages glitch from left to right"). */}
       <style>{`html{scrollbar-gutter:stable}`}</style>
       <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:(ident==='CONSOLE'||ident==='RAIL')?'none':`1px solid ${C.bd2}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
+        <div className="pv-toprow" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
           {/* Bnei Herzliya crest — top row, horizontally centered, sized to the
               EXPO mark's height (Ohad: "all the way up, same size as the EXPO logo"). */}
-          {isBnei && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
+          {isBnei && <img className="pv-crest" src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
@@ -3248,7 +3248,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const range = maxBw - minBw;
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
-      <div className="motion-view" style={{padding:'14px 20px 20px'}}>
+      <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt("ENTRIES")}</div>
@@ -3405,7 +3405,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const checkinCount = cw.filter(w => hasReadiness(w.autoregulation)).length;
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
-      <div className="motion-view" style={{padding:'14px 20px 20px'}}>
+      <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount}{tt('CHECK-IN')}{checkinCount===1?'':'S'}</div>
@@ -3418,7 +3418,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // History
   if (vw === 'hist' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
-    <div className="motion-view" style={{padding:'14px 20px 20px'}}>
+    <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:14}}>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt('HISTORY')} · {cw.length} {tt(cw.length === 1 ? 'SESSION' : 'SESSIONS')}</div>
         {/* Graph button — same shape as the coach dashboard buttons; opens the
@@ -3492,7 +3492,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // MEAL LOG page — full-screen, lazy-loaded.
   if (vw === 'meal' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
-    <div className="motion-view" style={{padding:'14px 20px 28px'}}>
+    <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 28px'}}>
       {ci ? (
         // a failure in the meal logger stays in its box: the header and the
         // tabs above it keep working (29.9 #436)
@@ -3509,7 +3509,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Program view before 2026-05-16.
   if (vw === 'msg' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
-    <div className="motion-view" style={{padding:'14px 20px 28px'}}>
+    <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 28px'}}>
       {ci ? (
         <ErrorBoundary inline>
           {!demoMode && <PushToggle role="athlete" />}
@@ -3528,7 +3528,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice().sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-1)[0]?.bw;   // chronologically latest, not last-appended (re-saving an older week reorders the array)
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
-      <div className="motion-view" style={{padding:'14px 20px 20px'}}>
+      <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         {/* flex-end so the WEEK strip and KG box bottom-align exactly — their
             labels differ by a sub-pixel, and centring offset the boxes ~0.8px
             (Ohad: "kg and wk4 not aligned"). */}

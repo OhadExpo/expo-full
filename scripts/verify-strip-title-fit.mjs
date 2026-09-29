@@ -75,7 +75,7 @@ const MEASURE = () => {
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const findings = []; let measured = 0, combos = 0;
+const findings = []; let measured = 0, combos = 0, errors = 0;
 try {
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
   // signed in for REAL, or nothing measured means anything (the shared Chrome's
@@ -93,6 +93,8 @@ try {
         const id = `${s.id}/${lang}/${w}`;
         try {
           await pg.goto(BASE + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          await wait(1500);
+          if (s.url.startsWith('/coach') && /\/login/.test(pg.url())) throw new Error('landed on /login - signed out, NOT measured');
           for (let k = 0; k < 30; k++) { await wait(500); if (await pg.evaluate(() => !/LOADING DATA/.test(document.body.innerText.slice(0, 200)))) break; }
           // wait for the page to SETTLE: the strip count the same on two looks a
           // second apart (a roster renders its 26 cards after the data lands; a
@@ -103,7 +105,7 @@ try {
           const r = await pg.evaluate(MEASURE);
           combos++; measured += r.measured;
           for (const f of r.out) { findings.push({ id, ...f }); console.log(`${f.lines > 1 ? 'WRAP ' : ''}${f.spill ? 'SPILL ' : ''}${id.padEnd(34)} "${f.title}" ${f.lines} line(s), title ${f.titleW}px in a ${f.stripW}px ${f.cls}`); }
-        } catch (e) { console.log(`ERROR ${id} ${String(e).slice(0, 100)}`); }
+        } catch (e) { errors++; console.log(`ERROR ${id} ${String(e).slice(0, 100)}`); }
       }
     }
   }
@@ -111,4 +113,5 @@ try {
 fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));
 console.log(`\n${combos} of ${SURFACES.length * WIDTHS.length * LANGS.length} surface x width x language, ${measured} strips measured. Titles not on one line / squeezed / spilling: ${findings.length}`);
 if (!measured) { console.log('FAIL: measured nothing'); process.exit(1); }
+if (errors) { console.log(`FAIL: ${errors} surface(s) not measured (signed out / crashed) - not a pass (AUDIT-470)`); process.exit(1); }
 process.exit(findings.length ? 1 : 0);

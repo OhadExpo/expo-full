@@ -20,7 +20,7 @@
 import fs from 'node:fs';
 import P from 'puppeteer-core';
 import { setWidth } from './lib/viewport.mjs';
-import { signIn } from './lib/authed-page.mjs';
+import { signIn, assertAuthed, looksLikeLogin } from './lib/authed-page.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5234';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
@@ -48,12 +48,19 @@ for (const lang of LANGS) for (const W of WIDTHS) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   await setWidth(pg, W, H, { tablet: W > 620 && W < 1200 });
   await pg.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, lang);
-  await signIn(pg, BASE);
+  // SIGNED IN FOR REAL, or every /coach route measures the login page and reads
+  // "0 findings" (AUDIT-470: the result was ignored and a cold context often
+  // showed a blank /login, so signIn returned "already signed in")
+  const needsAuth = ROUTES.some(([, r]) => r.startsWith('/coach'));
+  let authed = !needsAuth;
+  for (let k = 0; k < 3 && !authed; k++) { await signIn(pg, BASE); authed = await assertAuthed(pg, BASE); }
+  if (!authed) findings.push({ id: `${lang}/${W}`, k: 'ERROR', d: 'not signed in - the /coach routes were NOT measured' });
   for (const [name, route] of ROUTES) {
     const id = `${name}/${lang}/${W}`;
     try {
       await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
       let prev = -1; for (let i = 0; i < 25; i++) { await wait(600); const len = await pg.evaluate(() => document.body.innerText.length); if (len === prev && len > 200) break; prev = len; }
+      if (route.startsWith('/coach') && (/\/login/.test(pg.url()) || looksLikeLogin(await pg.evaluate(() => document.body.innerText.slice(0, 600))))) throw new Error('landed on the sign-in page - NOT measured');
       const pageH = await pg.evaluate(() => document.documentElement.scrollHeight);
       const seen = new Set();
       for (let y = 0; y < pageH; y += Math.round(H * 0.85)) {

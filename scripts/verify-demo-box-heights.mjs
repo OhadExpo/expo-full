@@ -107,6 +107,8 @@ try {
             await pg.evaluate((g) => { const c = document.querySelector(g); if (c) c.click(); }, G);
             for (let k = 0; k < 20; k++) { await wait(600); if (await pg.evaluate(() => !!document.querySelector('.td-actions'))) break; }
             await wait(1500);
+            // the click must have OPENED the athlete page, or the list gets measured as it (AUDIT-470)
+            if (!(await pg.evaluate(() => !!document.querySelector('.td-actions')))) { side[which] = []; continue; }
           }
           if (which === 'demo' && process.env.BREAK) await pg.evaluate(() => { for (const x of document.querySelectorAll('button')) x.style.minHeight = `${x.getBoundingClientRect().height + 6}px`; });
           side[which] = await pg.evaluate(collect);
@@ -130,7 +132,7 @@ try {
             for (const h of hs) if (!near(h, R.get(k))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...R.get(k)] });
           } else if (label && RL.has(label)) {
             for (const h of hs) if (!near(h, RL.get(label))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...RL.get(label)] });
-          } else if (kind !== 'row' || label === '') {
+          } else {   // labelled rows too: fixture names never equal real names, so a row was never judged (AUDIT-470)
             // no box of that kind on the real page at all = nothing to compare (the
             // demo's opened PR row; a real page with no open row) - not a finding
             if (!kindH[kind] || !kindH[kind].size) continue;

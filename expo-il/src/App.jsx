@@ -2395,7 +2395,7 @@ function QuizModal({ open, onClose }) {
               <button key={String(o.v)} onClick={() => setAns(cur.key, o.v)}
                 style={{
                   ...baseBtn,
-                  display: 'block', width: '100%', textAlign: 'start',
+                  display: 'block', width: '100%', textAlign: 'start', lineHeight: 1.35,   // an answer can wrap: the button base's tight line would stack its lines (AUDIT-470)
                   background: on ? C.acD : C.sf2,
                   color: on ? C.ac : C.tx,
                   border: on ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,

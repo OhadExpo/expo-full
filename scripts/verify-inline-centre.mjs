@@ -106,6 +106,7 @@ function measure(tol, brk) {
     runs.push({ el, txt: raw.slice(0, 26), l: r.left, rt: r.right, t: r.top, b: r.bottom, c: (top + bot) / 2, size: parseFloat(cs.fontSize), fam: cs.fontFamily.split(',')[0], box: boxOf(el) });
   }
   const out = [];
+  let compared = 0;
   const seen = new Set();
   for (let i = 0; i < runs.length; i++) for (let j = 0; j < runs.length; j++) {
     if (i === j) continue;
@@ -125,18 +126,19 @@ function measure(tol, brk) {
     const cpH = cp.getBoundingClientRect().height;
     if (cpH > 1.6 * Math.max(a.b - a.t, b.b - b.t) + 4) continue;
     const d = b.c - a.c;
+    compared++;
     if (Math.abs(d) <= tol) continue;
     const key = `${a.txt}|${b.txt}`;
     if (seen.has(key)) continue; seen.add(key);
     out.push({ a: a.txt, as: a.size, b: b.txt, bs: b.size, d: +d.toFixed(2) });
   }
-  return { runs: runs.length, out };
+  return { runs: runs.length, compared, out };
 }
 
 const b = await P.connect({ browserURL: CDP, defaultViewport: null, protocolTimeout: 300000 });
 const ctx = await b.createBrowserContext();
 const pg = await ctx.newPage();
-let bad = 0, pairsMeasured = 0;
+let bad = 0, pairsMeasured = 0, pairsCompared = 0;
 const report = [];
 try {
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private */ } });
@@ -155,7 +157,7 @@ try {
         await pg.evaluate(() => document.fonts && document.fonts.ready);
         const r = await pg.evaluate(measure, TOL, !!process.env.BREAK);
         const id = `${route} ${lang} ${w}`;
-        pairsMeasured += r.runs;
+        pairsMeasured += r.runs; pairsCompared += r.compared;
         if (r.runs < 10) { bad++; console.log(`${id}: only ${r.runs} text runs - NOT measured`); continue; }
         report.push({ id, ...r });
         bad += r.out.length;
@@ -169,5 +171,7 @@ try {
   fs.writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 1));
   await ctx.close(); b.disconnect();
 }
-console.log(`\n${bad} same-line pairs off centre by > ${TOL}px (${pairsMeasured} runs measured)${process.env.BREAK ? ' (BREAK run: must be > 0)' : ''}`);
+console.log(`\n${bad} same-line pairs off centre by > ${TOL}px (${pairsCompared} pairs compared, ${pairsMeasured} runs read)${process.env.BREAK ? ' (BREAK run: must be > 0)' : ''}`);
+// zero pairs COMPARED is a filter that matched nothing, not a pass (AUDIT-470)
+if (!pairsCompared) { console.log('FAIL: no same-line pair was compared'); process.exit(1); }
 process.exit(bad ? 1 : 0);

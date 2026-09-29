@@ -1806,7 +1806,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .bhbc-zone .bhbc-load-row > *:nth-child(2) > [data-name] { grid-column: 1; grid-row: 1; line-height: 16px; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj { display: contents !important; }
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { grid-column: 1; grid-row: 2; min-width: 0; padding-inline-end: 0; line-height: 14px; }
-  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { grid-column: 2; grid-row: 1 / span 2; align-self: center; line-height: 16px; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { grid-column: 2; grid-row: 1 / span 2; align-self: center; line-height: 16px; white-space: normal; overflow-wrap: break-word; }   /* spans both lines, so a long injury wraps onto the second instead of clipping (770px: 'Lower back L' in 92px; AUDIT-470) */
 }
 
 /* BHBC MONTH CALENDAR BELOW DESKTOP (29.9 #380, tablet overflow audit): a
@@ -1950,6 +1950,24 @@ select.avail-select:dir(rtl) {
 /* Programs, an athlete with no program (29.9 #404): one line on desktop sits
    centred at 12/12; on a phone the row wraps under its name and 11/13 centres
    it - measured both ways. */
+/* A CLUB-ZONE control row that stepped out of its navy strip (#452 useStripFit)
+   sits on the CARD BODY, not the strip - and the zone pins --c-stripTx to white
+   in both themes, so in light the row's StripBtns / meta / countdown were white
+   on white (AUDIT-470, layout reviewer). The row takes the body's ink, its strip
+   buttons a card border. */
+.bhbc-zone [data-strip-actions] { --c-stripTx: var(--c-tx); }
+.bhbc-zone [data-strip-actions] .bhbc-strip-btn { background: transparent !important; border-color: var(--c-cardBd) !important; }
+
+/* The athlete portal's club crest is centred on the top row - but at 430px and
+   under that row has no room for it (logo + EN/עב + lock + bug + LOG OUT leave
+   ~11px at 360), and the absolute crest painted over the controls (AUDIT-470,
+   measured 35px overlap at 360). There it drops to its own centred line right
+   under the top row: still centred, still at the top, covering nothing. */
+@media (max-width: 430px) {
+  .pv-toprow:has(> .pv-crest) { flex-wrap: wrap; }
+  .pv-toprow > .pv-crest { position: static !important; transform: none !important; order: 3; flex-basis: 100%; height: 32px !important; margin-top: 6px; object-fit: contain; }
+}
+
 /* The demo's tables end on the card's edge, as the real ones: the last row
    draws no rule of its own (the LASTRULE gate, first run over the demo, #460) */
 .cd-lr:last-child { border-bottom: none !important; }

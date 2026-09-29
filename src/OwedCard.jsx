@@ -60,7 +60,7 @@ function mergeOwed(rows, requests, overdue, trainees) {
   }
   for (const q of requests) get(q.trainee_id || `req:${q.id}`, nameOf(q.trainee_id) || q.reference || '—', q.trainee_id).requests.push(q);
   for (const o of overdue || []) {
-    const e = byKey.get(o.id) || (!o.id ? null : get(o.id, o.nameLocal || o.name, o.id));
+    const e = byKey.get(o.id) || (!o.id ? null : get(o.id, (he ? (o.nameLocal || o.name) : (nameOf(o.id) || o.name || o.nameLocal)), o.id));   // the name in the UI's language, as the other two sources (AUDIT-470)
     // A client the SHEET covers is judged by the sheet's own last payment: the
     // app's payment list lags it (it read "overdue 243 days" for a client the
     // sheet shows paid 23 days ago).
@@ -105,7 +105,8 @@ function summaryLine(e, tt) {
   }
   if (s && s.onlineDue) return facts([`${tt('Monthly')} ${s.prices.month}`, `${tt('last paid')} ${shortDate(s.last_payment)}`]);
   if (e.requests.length) return `${e.requests.length} ${tt('Pending requests')}`;
-  if (e.overdue) return e.overdue.never ? tt('No payment recorded') : `${tt('last paid')} ${e.overdue.days} ${tt('days')}`;
+  // "ago", or it reads as "paid for the last 12 days" (AUDIT-470)
+  if (e.overdue) return e.overdue.never ? tt('No payment recorded') : (readLang() === 'he' ? `שילם לפני ${e.overdue.days} ימים` : `last paid ${e.overdue.days} days ago`);
   return '';
 }
 

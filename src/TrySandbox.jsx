@@ -128,7 +128,9 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
     // the demo run sheet calls the best in the product, sold to Israeli
     // coaches. Direction belongs in markup, not CSS, and on the container —
     // per-span isolation cannot supply it.
-    <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} data-theme="dark" style={{
+    // ...except around the REAL athlete portal, whose layout stays LTR in Hebrew by
+    // his rule (#391) - an rtl wrapper mirrored it on /try only (AUDIT-470)
+    <div dir={readLang() === 'he' && !isTraineePortal ? 'rtl' : 'ltr'} data-theme="dark" style={{
       background: C.bg, color: C.tx, minHeight:'100vh',
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>

@@ -153,7 +153,7 @@ const MEASURE = (tol) => {
 
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
-const findings = []; let measured = 0, combos = 0; const skippedAll = { multi: 0, overflow: 0, empty: 0 };
+const findings = []; let measured = 0, combos = 0, errors = 0; const skippedAll = { multi: 0, overflow: 0, empty: 0 };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
@@ -182,7 +182,7 @@ try {
           combos++; measured += r.measured; for (const k of Object.keys(skippedAll)) skippedAll[k] += r.skipped[k];
           const seen = new Set();
           for (const f of r.out) { const key = f.what + f.off; if (seen.has(key)) continue; seen.add(key); findings.push({ id, ...f }); console.log(`OFF ${String(f.off).padStart(5)}px  ${id.padEnd(34)} ${f.what}  (above ${f.above} / below ${f.below}, h ${f.h})`); }
-        } catch (e) { console.log(`ERROR ${id} ${String(e).slice(0, 100)}`); }
+        } catch (e) { errors++; console.log(`ERROR ${id} ${String(e).slice(0, 100)}`); }
       }
     }
   }
@@ -190,4 +190,6 @@ try {
 fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));
 console.log(`\n${combos} of ${SURFACES.length * WIDTHS.length * LANGS.length} surface x width x language measured, ${measured} boxes measured against their own content (skipped: ${skippedAll.multi} multi-line, ${skippedAll.overflow} overflowing, ${skippedAll.empty} empty). Off centre by more than ${TOL}px: ${findings.length}`);
 if (!measured) { console.log('FAIL: measured nothing'); process.exit(1); }
+// a surface that errored (signed out, a crash) was NOT measured: not a pass (AUDIT-470)
+if (errors) { console.log(`FAIL: ${errors} surface(s) not measured`); process.exit(1); }
 process.exit(findings.length ? 1 : 0);

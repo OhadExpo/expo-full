@@ -728,6 +728,8 @@ export const HE = {
   total: 'סה״כ',
   '+ Generate Link': '+ קישור חדש',
   'Hide reviewed': 'הסתר פניות שנבדקו',
+  // the review screen's toggle - the fallback above says "inquiries" (AUDIT-470)
+  'HIDE REVIEWED': 'הסתר שנבדקו',
   'Copy URL': 'העתק קישור',
   'No date': 'בלי תאריך',
   'By status': 'לפי סטטוס',

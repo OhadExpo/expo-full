@@ -1774,7 +1774,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             maxWidth: '100%', alignSelf: 'stretch',
             // ONE TYPE SYSTEM (29.9 #448 audit): a title with any Hebrew in it was set
             // in Heebo whole, so its English words lost Nord's capitals - "Call נדבר
-            // skipped W3 of Block #4" beside "CALL YOAV SHAMRI SKIPPED W2". FB is Nord
+            // skipped W3 of Block #4" beside "CALL [ATHLETE] SKIPPED W2". FB is Nord
             // with Heebo behind it: Hebrew letters still come from Heebo, English
             // from Nord, in every title.
             fontFamily: FB,

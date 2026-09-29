@@ -163,7 +163,9 @@ export default function SwUpdateBanner() {
     const pathAtFind = window.location.pathname;
     const idle = setInterval(() => {
       setTick((n) => n + 1);
-      if (!forced && window.location.pathname !== pathAtFind && !busy()) { silentApply(); return; }
+      // a navigation lands on the new build - but never over typed text (AUDIT-470:
+      // an upload ending after the coach moved page and started a note reloaded it)
+      if (!forced && window.location.pathname !== pathAtFind && !busy() && !writing()) { silentApply(); return; }
       if (Date.now() - lastActivity >= IDLE_MS && autoOk()) tryUpdate();
     }, 1000);
 
