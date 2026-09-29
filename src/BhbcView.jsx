@@ -5262,9 +5262,23 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   // orange action; a past practice with nothing logged is muted, not shouted
   // (late logging still works, but a day gone by is not today's to-do).
   const scOf = (d, f) => scLoggedFor(loads, athleteIds, { ...f, date: d }, fixtures);
-  const scLabel = (d, f) => { const sc = scOf(d, f); return sc ? <>{tr('S&C')} ✓ <MinTok n={sc.min} /></> : `+ ${tr('S&C')}`; };
+  // In the tag the word is the short one - Hebrew "כוח", as the caption above
+  // already writes "+ כוח" (29.9 #458: "כוח קבוצתי ✓ 10′" did not fit one width)
+  const scWord = he ? 'כוח' : tr('S&C');
+  const scLabel = (d, f) => { const sc = scOf(d, f); return sc ? <>{scWord} ✓ <MinTok n={sc.min} /></> : `+ ${scWord}`; };
   const scTitle = (d, f) => tr(scOf(d, f) ? 'S&C logged - open it to correct' : 'Log S&C Session');
   const scInk = (d, f) => (scOf(d, f) || d < today ? { color: C.tm, border: `1px solid ${C.cardBd}` } : { color: ORANGE, border: `1px solid ${ORANGE}` });
+  // THE S&C CONTROL (29.9 #458, his phone: "The sc button is too vertically big
+  // and should all be the same horizontal length no matter the text"). The
+  // button keeps its finger-sized tap area (--btn-h-in, 32 on a touch screen)
+  // but draws nothing; its FACE is a 22px tag of ONE width - "+ S&C" and
+  // "S&C ✓ 10′" the same box - sitting inside the 36px chip with air around it.
+  const scBtn = (d, f, full) => (
+    <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn bhbc-sc-btn" title={scTitle(d, f)}
+      style={{ marginInlineStart: full ? 0 : 'auto', width: full ? '100%' : 'var(--sc-w)', flexShrink: 0, background: 'transparent', border: 'none', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      <span className="bhbc-sc-face" style={{ ...scInk(d, f), width: '100%', height: 22, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'var(--c-sf)' }}>{scLabel(d, f)}</span>
+    </button>
+  );
   const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
   const days = useMemo(() => {
     const d = new Date(`${anchor}T12:00:00`);
@@ -5366,23 +5380,22 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                   // CANCEL / RESTORE: a quiet bordered action; a cancel asks first
                   // (the session drops out of every count), a restore does not.
                   const cancelBtn = onCancel && court ? (
-                    <button type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className="bhbc-ghost-btn"
+                    <button type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className={'bhbc-ghost-btn' + (off || horizontalWeek ? '' : ' bhbc-cancel-btn')} aria-label={tr(off ? 'Restore this session' : 'Cancel this session')}
                       onClick={async (e) => { const el = e.currentTarget; if (off) { onCancel(f, false); return; } if (await confirmToast(he ? `לבטל את האימון של ${f.start || ''}? הוא יישאר בלוח, מחוק, ולא ייספר בשום מקום.` : `Cancel the ${f.start || ''} ${tr(FX_LABEL[f.type] || 'session').toLowerCase()}? It stays on the calendar, struck through, and counts nowhere.`, { okLabel: he ? 'ביטול האימון' : 'Cancel session', cancelLabel: he ? 'חזרה' : 'Back' })) onCancel(f, true); try { el.blur(); document.activeElement?.blur?.(); } catch { /* gone */ } }}
                       title={tr(off ? 'Restore this session' : 'Cancel this session')}
-                      style={{ marginInlineStart: horizontalWeek ? 0 : (off ? 'auto' : 0), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: horizontalWeek ? '100%' : undefined, boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tr(off ? 'Restore' : 'Cancel')}</button>
+                      style={{ marginInlineStart: horizontalWeek ? 0 : (off ? 'auto' : 0), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: horizontalWeek ? '100%' : undefined, boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{off || horizontalWeek ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
                   ) : null;
                   return (
                     <React.Fragment key={i}>
                     <div className={off ? 'bhbc-chip fx-cancelled' : 'bhbc-chip'} data-fx-cancelled={off ? '' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px ${off ? 'dashed' : 'solid'} ${off ? C.cardBd : (FX_COLOR[f.type] || NAVY)}`, background: 'var(--c-sf)', height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 9px' }}>
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
-                      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
+                      <span className={'bhbc-chip-meta bhbc-kind-' + String(f.type || '').toLowerCase()} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       {/* the number and its unit never part; a phone gets 120′ where "120 MIN" would break (26.9) */}
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{f.minutes ? <>{f.minutes}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></> : ''}</span>
                       {off && <span className="fx-cancelled-tag" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', textDecoration: 'none' }}>{tr('Cancelled')}</span>}
                       {!horizontalWeek && off && cancelBtn}
                       {!horizontalWeek && !off && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
-                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={scTitle(d, f)}
-                          style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', ...scInk(d, f), background: 'transparent', height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{scLabel(d, f)}</button>
+                        scBtn(d, f, false)
                       )}
                       {!horizontalWeek && !off && cancelBtn}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
@@ -5391,8 +5404,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                       </span>}
                     </div>
                       {horizontalWeek && !off && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
-                        <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={scTitle(d, f)}
-                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', ...scInk(d, f), background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: '100%', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{scLabel(d, f)}</button>
+                        scBtn(d, f, true)
                       )}
                       {horizontalWeek && cancelBtn}
                     </React.Fragment>

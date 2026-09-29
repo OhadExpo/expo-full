@@ -2036,3 +2036,30 @@ select.avail-select:dir(rtl) {
   table.dash-roster { display: table !important; width: 100% !important; white-space: normal !important; }
   table.dash-roster .dash-opt { display: none !important; }
 }
+
+/* THE WEEK PLANNER'S S&C CONTROL (29.9 #458): one width whatever it says - the
+   widest label ("S&C ✓ 10′", Hebrew "כוח ✓ 10′") plus air - and a 22px face
+   inside a tap area of the nested height. The face gets the hover tint, not the
+   invisible button around it. */
+:root { --sc-w: 96px; }
+@media (max-width: 480px) { :root { --sc-w: 84px; } }
+.bhbc-sc-btn:hover .bhbc-sc-face { background: color-mix(in srgb, currentColor 8%, var(--c-sf)) !important; }
+.bhbc-sc-btn:focus-visible { outline: none; }
+.bhbc-sc-btn:focus-visible .bhbc-sc-face { outline: 2px solid var(--c-ac); outline-offset: 1px; }
+/* ...and on a phone the chip keeps ONE row with its actions in it: a practice
+   chip's kind word steps aside (the blue time already says practice - games and
+   the rest keep theirs), and CANCEL is a 28px ⊘ square (the confirm still asks).
+   At 390 time + PRACTICE + 120' + S&C + CANCEL wanted ~330px of a 250px chip. */
+.bhbc-cancel-btn .cx-icon { display: none; }
+/* CANCEL draws the same 22px face as the S&C tag beside it, at every width */
+.bhbc-chip .bhbc-cancel-btn { border-color: transparent !important; background: transparent !important; padding: 0 !important; }
+.bhbc-chip .bhbc-cancel-btn:hover { border-color: transparent !important; }
+.bhbc-cancel-btn .cx-full { display: inline-flex; align-items: center; height: 22px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--c-cardBd); background: var(--c-sf); }
+.bhbc-chip .bhbc-cancel-btn:hover .cx-full { border-color: currentColor; }
+@media (max-width: 480px) {
+  .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none; }
+  .bhbc-cancel-btn { width: 28px !important; min-width: 28px !important; padding: 0 !important; font-size: 13px !important; letter-spacing: 0 !important; }
+  .bhbc-cancel-btn .cx-full { display: none; }
+  .bhbc-cancel-btn .cx-icon { display: inline-flex; width: 26px; height: 22px; box-sizing: border-box; align-items: center; justify-content: center; border: 1px solid var(--c-cardBd); background: var(--c-sf); font-size: 12px; line-height: 1; }
+  .bhbc-chip .bhbc-cancel-btn:hover .cx-icon { border-color: currentColor; }
+}
