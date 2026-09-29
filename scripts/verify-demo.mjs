@@ -221,6 +221,7 @@ for (const [name, route] of SURFACES) {
             if (/[֐-׿]/.test(t)) continue;
             if (!/[A-Za-z]/.test(t)) continue;
             if (ALLOW.test(t) || /@|https?:|^\+?\d/.test(t)) continue;
+            if (/^[\w.+-]+$/.test(t) && src.includes(t + '@')) continue; // an email's local part, drawn apart from its @domain (29.9: 'yael.cohen')
             if (fixtures.includes(t)) continue;       // a NAME from the fixtures
             if (DEMO_NAMES.has(t)) continue;          // a name: / title: value
             if (!src.includes(t)) continue;           // data, not UI
