@@ -1880,3 +1880,11 @@ select.avail-select {
 @media (max-width: 620px) {
   .bhbc-lifts-scroll [style*="inset-inline-end"] { position: static !important; }
 }
+
+/* A cancelled session (BHBC, 29.9 #398): still on the calendar, struck through
+   and quiet; its CANCELLED tag and RESTORE action stay legible.
+   A line-through on a container is painted through its flex children too and
+   they cannot opt out, so the planner chip (which holds the RESTORE button)
+   strikes its three facts one by one instead. */
+.fx-cancelled:not(.bhbc-chip) { opacity: 0.55; text-decoration: line-through; text-decoration-thickness: 1px; }
+.bhbc-chip.fx-cancelled > .bhbc-chip-meta { opacity: 0.55; text-decoration: line-through; text-decoration-thickness: 1px; }

@@ -421,9 +421,17 @@ function MinTok({ n }) {
 // with no start on the day's first practice. Returns the block's minutes, or
 // null when nothing was logged. Never guessed.
 const COURT_PRACTICE = ['practice', 'shootaround', 'scrimmage'];
+// A CANCELLED SESSION (29.9 #398, Ohad: "allow me to cancel a basketball
+// workout, for example this morning session got cancelled"). It stays on the
+// calendar, struck through, so the week still reads true - and it never counts:
+// not attendance, not the S&C slot, not the 7-day tile, not the staff brief,
+// not the week's session count. The flag lives on the fixture row; the calendar
+// sync keeps unknown fields on a row it matches (date + type + start), so the
+// next sync does not bring it back. A moved start time is a new session.
+const isCancelled = (f) => !!(f && f.cancelled);
 function scLoggedFor(loads, athleteIds, f, fixtures) {
-  if (!f || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
-  const first = (fixtures || []).filter((x) => x && x.date === f.date && COURT_PRACTICE.includes(String(x.type || '').toLowerCase()))
+  if (!f || isCancelled(f) || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
+  const first = (fixtures || []).filter((x) => x && !isCancelled(x) && x.date === f.date && COURT_PRACTICE.includes(String(x.type || '').toLowerCase()))
     .map((x) => String(x.start || '')).sort()[0];
   for (const id of athleteIds || []) {
     for (const r of ((((loads || {})[id] || {}).sessions || {})[f.date] || [])) {
@@ -1226,6 +1234,17 @@ function attendance28(rec, days) {
     });
     toast(orig ? 'Session updated' : 'Session added'); track('schedule', `${orig ? 'changed' : 'added'} a slot on ${fmtNumericDate(clean.date)}`); notify();
   }, [setBhbcFixtures, notify, track]);
+  const setFixtureCancelled = useCallback((f, on) => {
+    if (!setBhbcFixtures || !f) return;
+    setBhbcFixtures((prev) => (prev || []).map((x) => {
+      if (!sameSlot(x, f)) return x;
+      const next = { ...x };
+      if (on) { next.cancelled = true; next.cancelledAt = new Date().toISOString(); }
+      else { delete next.cancelled; delete next.cancelledAt; }
+      return next;
+    }));
+    toast(on ? 'Session cancelled' : 'Session restored'); track('schedule', `${on ? 'cancelled' : 'restored'} the ${f.start || ''} ${f.type || 'session'} on ${fmtNumericDate(f.date)}`); notify();
+  }, [setBhbcFixtures, notify, track]);
   const removeFixture = useCallback((f) => {
     if (!setBhbcFixtures) return;
     setBhbcFixtures((prev) => (prev || []).filter((x) => !sameSlot(x, f)));
@@ -1829,9 +1848,10 @@ function attendance28(rec, days) {
                     letting me edit practice plans. no need for it!!!!" / "bhbc
                     should only let me attach an s&c team session"). The schedule
                     comes from the club calendar; a practice offers exactly one
-                    action — attach the S&C team session to it. */}
+                    action — attach the S&C team session to it. 29.9 #398 adds the
+                    second he asked for: CANCEL (and RESTORE) a session. */}
                 <WeekPlanner fixtures={bhbcFixtures} today={today} loads={bhbcLoads} athleteIds={roster.map((t) => t.id)}
-                  onUpsert={null} onRemove={null}
+                  onUpsert={null} onRemove={null} onCancel={canLog ? setFixtureCancelled : null}
                   onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null}
                   action={canLog ? <StripBtn onClick={() => { setScPreset(null); setPracticeOpen(true); }}>{tr('Log S&C Session')}</StripBtn> : null} />
                 {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
@@ -2328,7 +2348,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               const todayIso = daysAgoISO(0);
               const nowHM = new Date().toTimeString().slice(0, 5);
               for (const f of (fixtures || [])) {
-                if (!f || !f.date || f.cancelled || !['practice', 'scrimmage', 'shootaround'].includes(f.type)) continue;
+                if (!f || !f.date || isCancelled(f) || !['practice', 'scrimmage', 'shootaround'].includes(f.type)) continue;
                 if (f.date < cut7 || f.date > todayIso || (f.date === todayIso && (f.start || '99:99') > nowHM)) continue;
                 if ((ses[f.date] || []).some((r) => r && rowKind(r) === 'practice')) continue;
                 if (att[`${f.date}|${f.start || ''}`] === 'out') continue;
@@ -2784,7 +2804,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
   const [date, setDate] = useState(() => initialDate || todayISO());
   // Only court slots are practices. A game is not one, and a legacy weights
   // slot is not one either — lifts are personal now.
-  const isPracticeFx = (f) => f && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
+  const isPracticeFx = (f) => f && !isCancelled(f) && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
   const dayFx = (fixtures || []).filter((f) => f.date === date && isPracticeFx(f)).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
   const [slotStart, setSlotStart] = useState('');
   const [minutes, setMinutes] = useState('');
@@ -3606,7 +3626,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpe
   const gd = nextGame ? dayDiff(nextGame.date, today) : null;
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const weekEnd = addDays(today, 7);
-  const sessions = (fixtures || []).filter((f) => f.type !== 'game' && f.date >= today && f.date <= weekEnd).sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || ''));
+  const sessions = (fixtures || []).filter((f) => f.type !== 'game' && !isCancelled(f) && f.date >= today && f.date <= weekEnd).sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || ''));
   const mut = { color: C.tm };
   // The label shares the VALUE's first-line box (13px x 1.5 = 19.5px) instead of
 // hanging on its own 9px one. Ohad: "nothing is center aligned". These rows
@@ -3803,7 +3823,7 @@ function staffBriefText({ today, fx, rows, medical, he, tr }) {
   // The S&C period sits at the START of a basketball practice, so the practice
   // slot is the one he briefs. A weights session is not briefed. No focus
   // line any more: practice plans are gone (24.9).
-  const period = slots.find((f) => f.type === 'practice') || null;
+  const period = slots.find((f) => f.type === 'practice' && !isCancelled(f)) || null;
   // THE SAME SPLIT AS THE CARD IT IS COPIED FROM (#305 G5). It used to read
   // the injuries only, so a player Out for a personal reason - or set Limited
   // by the coach with no injury filed - went into WhatsApp as available while
@@ -3878,7 +3898,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
   const nowD = new Date();
   const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   const scLine = (f) => {
-    if (f.date !== today || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
+    if (f.date !== today || isCancelled(f) || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
     const sc = scLoggedFor(loads, ids, f, fixtures);
     const started = !!f.start && f.start <= nowHHMM;
     return (
@@ -3895,7 +3915,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
     </span>
   );
   const chip = (f, i, showDate) => (
-    <span key={i} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${FX_COLOR[f.type] || NAVY}` }}>
+    <span key={i} className={isCancelled(f) ? 'fx-cancelled' : undefined} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${FX_COLOR[f.type] || NAVY}` }}>
       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-stripTx)', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY, padding: '5px 8px', display: 'inline-flex', alignItems: 'center' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
       {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 12, color: C.td, padding: '5px 9px 5px 2px', display: 'inline-flex', alignItems: 'center' }}><MinTok n={f.minutes} /></span>}
@@ -4027,7 +4047,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const [showLift, setShowLift] = usePersistentState('bhbc-att-lift', false);
 
   const COURT = ['practice', 'game', 'scrimmage', 'shootaround'];
-  const isCourtFx = (f) => f && COURT.includes(String(f.type || '').toLowerCase());
+  const isCourtFx = (f) => f && !isCancelled(f) && COURT.includes(String(f.type || '').toLowerCase());
   // WHAT COUNTS AS BEING AT THE PRACTICE. A court row (attendance), a game
   // row (minutes played), or the team S&C row logged WITH that practice — the
   // S&C block runs at the start of the practice, so an S&C row is a record of
@@ -4972,7 +4992,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   // PRACTICES ONLY. A game is not a practice, and a legacy weights slot is not
   // one either - lifts are personal now and never appear here.
-  const isPracticeFx = (f) => f && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
+  const isPracticeFx = (f) => f && !isCancelled(f) && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
   const past = useMemo(() => (fixtures || [])
     .filter((f) => isPracticeFx(f) && (f.date < today || (f.date === today && (f.start || '') && f.start <= nowHHMM)))
     .sort((a, b) => b.date.localeCompare(a.date) || (b.start || '').localeCompare(a.start || ''))
@@ -5160,7 +5180,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   );
 }
 
-function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc, action = null }) {
+function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc, onCancel = null, action = null }) {
   const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
@@ -5203,7 +5223,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   }, [fixtures, days]);
   // SESSIONS ARE THE NON-GAME SLOTS (#305 E5): counting every slot put the
   // week's game in both numbers - "6 sessions · 1 game" for five practices.
-  const weekCount = days.reduce((a, d) => a + ((byDay[d] || []).filter((f) => f.type !== 'game').length), 0);
+  const weekCount = days.reduce((a, d) => a + ((byDay[d] || []).filter((f) => f.type !== 'game' && !isCancelled(f)).length), 0);
   const gameCount = days.reduce((a, d) => a + ((byDay[d] || []).filter((f) => f.type === 'game').length), 0);
 
   // A new slot is a PRACTICE. There is no team weights slot to plan any more:
@@ -5284,26 +5304,40 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                 {list.map((f, i) => {
                   const isEditing = editing && editing.orig && sameSlotKey(editing.orig, f);
                   if (isEditing) return null;
+                  const off = isCancelled(f);
+                  const court = ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
+                  // CANCEL / RESTORE: a quiet bordered action; a cancel asks first
+                  // (the session drops out of every count), a restore does not.
+                  const cancelBtn = onCancel && court ? (
+                    <button type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className="bhbc-ghost-btn"
+                      onClick={async (e) => { const el = e.currentTarget; if (off) { onCancel(f, false); return; } if (await confirmToast(he ? `לבטל את האימון של ${f.start || ''}? הוא יישאר בלוח, מחוק, ולא ייספר בשום מקום.` : `Cancel the ${f.start || ''} ${tr(FX_LABEL[f.type] || 'session').toLowerCase()}? It stays on the calendar, struck through, and counts nowhere.`, { okLabel: he ? 'ביטול האימון' : 'Cancel session', cancelLabel: he ? 'חזרה' : 'Back' })) onCancel(f, true); try { el.blur(); document.activeElement?.blur?.(); } catch { /* gone */ } }}
+                      title={tr(off ? 'Restore this session' : 'Cancel this session')}
+                      style={{ marginInlineStart: horizontalWeek ? 0 : (off ? 'auto' : 0), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: horizontalWeek ? '100%' : undefined, boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tr(off ? 'Restore' : 'Cancel')}</button>
+                  ) : null;
                   return (
                     <React.Fragment key={i}>
-                    <div className="bhbc-chip" style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, background: 'var(--c-sf)', height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 9px' }}>
+                    <div className={off ? 'bhbc-chip fx-cancelled' : 'bhbc-chip'} data-fx-cancelled={off ? '' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px ${off ? 'dashed' : 'solid'} ${off ? C.cardBd : (FX_COLOR[f.type] || NAVY)}`, background: 'var(--c-sf)', height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 9px' }}>
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       {/* the number and its unit never part; a phone gets 120′ where "120 MIN" would break (26.9) */}
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{f.minutes ? <>{f.minutes}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></> : ''}</span>
-                      {!horizontalWeek && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
+                      {off && <span className="fx-cancelled-tag" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', textDecoration: 'none' }}>{tr('Cancelled')}</span>}
+                      {!horizontalWeek && off && cancelBtn}
+                      {!horizontalWeek && !off && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
                         <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={scTitle(d, f)}
                           style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', ...scInk(d, f), background: 'transparent', height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{scLabel(d, f)}</button>
                       )}
+                      {!horizontalWeek && !off && cancelBtn}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
                         <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✎</button>
                         <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title={tr('Remove session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
                       </span>}
                     </div>
-                      {horizontalWeek && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
+                      {horizontalWeek && !off && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
                         <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn" title={scTitle(d, f)}
                           style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', ...scInk(d, f), background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: '100%', boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{scLabel(d, f)}</button>
                       )}
+                      {horizontalWeek && cancelBtn}
                     </React.Fragment>
                   );
                 })}
@@ -5423,7 +5457,7 @@ function ScheduleList({ fx, today }) {
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
               {d.items.map((f, i) => (
-                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
+                <span key={i} className={isCancelled(f) ? 'fx-cancelled' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
                   <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                   {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}><MinTok n={f.minutes} /></span>}
@@ -5465,7 +5499,7 @@ function ScheduleWeek({ fixtures, today }) {
               </div>
               <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {items.map((f, i) => (
-                  <div key={i} style={{ border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
+                  <div key={i} className={isCancelled(f) ? 'fx-cancelled' : undefined} style={{ border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
                     <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, textTransform: 'uppercase' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</div>
                     <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start}{Number(f.minutes) > 0 ? <>{' · '}<MinTok n={f.minutes} /></> : null}</div>
                     {fxWhere(f) && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }} dir="ltr">{fxWhere(f)}</div>}
@@ -5507,7 +5541,7 @@ function ScheduleMonth({ fixtures, today }) {
       <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 2px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
-          <div key={i} className="bhbc-cal-chip" style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
+          <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
             {/* one word, never broken: the full kind, or its short form when the
                 column is too narrow (SegWord measures) */}

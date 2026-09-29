@@ -856,6 +856,11 @@ Object.assign(HE, {
   '4+ days': '4 ימים ומעלה',
   '6+ days': '6 ימים ומעלה',
   'to add': 'להוספה',
+  'Cancelled': 'בוטל',
+  'Restore': 'שחזור',
+  'Cancel this session': 'ביטול האימון הזה',
+  'Restore this session': 'שחזור האימון הזה',
+  'Session cancelled': 'האימון בוטל',
   // L: schedule
   'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
   // N: the zone's confirmations (toasts), in the zone's language
