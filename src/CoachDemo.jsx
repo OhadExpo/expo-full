@@ -3704,9 +3704,9 @@ function DemoReview() {
   // 2026-05-28 (in-person logging moved out), so Review is a SINGLE surface —
   // the demo drops the invented subtab + "REVIEW QUEUE" banner to match.
   const weeklyFocus = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box', marginBottom: 14 }}>
+    <div className="title-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 20 }}>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)' }}><SegWord full={T('WEEKLY FOCUS · NO UPLOAD NEEDED')} short={T('WEEKLY FOCUS')} /></span>
-      <span style={{ color: C.tm, fontSize: 12 }}>▾</span>
+      <StripCaret open={false} />
     </div>
   );
 
@@ -3887,6 +3887,9 @@ function DemoReview() {
   return (
     <section>
       <style>{`@media (max-width: 760px){ .cd-rv-strip .cd-rv-repeat{ display: none !important; } }`}</style>
+      {/* the real page's intro (WorkoutReview) */}
+      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 4 }}>{T('WORKOUT REVIEW')}</div>
+      <div style={{ color: C.tm, fontSize: 11, marginBottom: 16, fontFamily: FB }}>{T('Review completed workouts, watch client form videos, and write focus notes for next week.')}</div>
       {weeklyFocus}
 
       {(() => {
@@ -3901,9 +3904,9 @@ function DemoReview() {
               real strip (#376): at 760 and under the plan name + week boxes -
               said again in the cards below - step aside, exactly as
               WorkoutReview's .wr-strip-repeat does. */}
-          <div className="cd-rv-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 8 }}>
+          <div className="cd-rv-strip title-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'nowrap', gap: 8, minWidth: 0, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
-              <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}>{isHeb(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>
+              <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}><bdi>{isHeb(data.name) ? data.name : data.name.toUpperCase()}</bdi> ({data.workouts.length})</span>
               <span className="cd-rv-repeat" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, color: 'var(--c-ac)', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>· {data.workouts[0].planName}</span>
                 <span style={{ display: 'inline-flex', gap: 3, verticalAlign: 'middle' }}>
@@ -3911,7 +3914,10 @@ function DemoReview() {
                 </span>
               </span>
             </span>
-            <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>{T('Athlete page →')}</button>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' }}><span>{T('Athlete page')} {readLang() === 'he' ? '←' : '→'}</span></button>
+              <StripCaret open />
+            </span>
           </div>
           {data.workouts.map((wo, wi) => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
@@ -3926,37 +3932,37 @@ function DemoReview() {
                   <span style={{ flex: 1, height: 1, background: C.cardBd }} />
                 </div>
               )}
-              <div onClick={() => setSelectedId(wo.id)} style={{
-                background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-                padding: '12px 14px', marginBottom: 6, cursor: 'pointer', // 14 = the group strip's inset (26.9)
-                transition: 'border-color .15s', display: 'flex',
-                // WRAP AT PHONE WIDTH. The two actions are flexShrink 0 and
-                // took ~210px of a 360 screen, leaving the title block 102px —
-                // enough to break "Block #4 — Pull Focus" over four
-                // lines and push "Day A · Push" 2px past its own edge. Wrapped,
-                // the title gets the full row and the actions sit under it.
-                flexWrap: 'wrap', rowGap: 8,
-                justifyContent: 'space-between', alignItems: 'center',
-              }}
+              {/* THE REAL DAY CARD (WorkoutReview .wr-day-card): the day, then the block
+                  in cyan and W n/4 · dd/mm/yyyy · sets · the 13px video slot; REVIEW →
+                  and DELETE (red text) off to the end; on a phone the themes.css rules
+                  put the meta on its own grid line under the actions. */}
+              <div className="wr-day-card" onClick={() => setSelectedId(wo.id)} role="button" tabIndex={0}
+                style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 6, cursor: 'pointer', transition: 'border-color .15s', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.cardBd}>
-                <div style={{ minWidth: 0, flex: '1 1 190px' }}>
-                  <div className="cd-rv-title" style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    {/* A bare text node inside a flex row is an anonymous flex
-                        item and shrinks to its minimum content width: "Day A ·
-                        Push" came out over five lines in 102px. A day title is
-                        four short words and should never break. */}
-                    <span style={{ whiteSpace: 'nowrap' }}>{wo.dayName}</span>
-                    <span style={{ fontWeight: 400, color: C.tm, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere' }}>{wo.planName}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: C.tx, letterSpacing: '0.01em' }}>{wo.dayName}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
-                    W{wo.week} · {RT(wo.date)} · {wo.doneSets}/{wo.totalSets} {T('sets')}
-                    {hasFormVids && <span style={{ color: C.gn, marginInlineStart: 4, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                    {/* the block, as the real card names it ("Block #19"); the week header above says the rest */}
+                    <span style={{ fontFamily: FN, fontSize: 12, color: C.ac, letterSpacing: '0.04em' }}>{String(wo.planName).split(' — ')[0]}</span>
+                    <span className="wr-meta" style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em' }}>
+                      <span className="wr-dot">·</span>
+                      <span style={{ color: C.tx, fontWeight: 700 }}>W{wo.week}/4</span>
+                      <span className="wr-dot">·</span>
+                      <span>{fmtNumericDate(dAgo(/^yesterday/i.test(wo.date) ? 1 : /^today/i.test(wo.date) ? 0 : (parseInt(wo.date, 10) || 2)))}</span>
+                      <span className="wr-dot">·</span>
+                      <span>{wo.doneSets}/{wo.totalSets} {T('sets')}</span>
+                      <span style={{ width: 13, height: 13, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>}
+                      </span>
+                    </span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginInlineStart: 12, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setSelectedId(wo.id)} title={T('Review this workout')} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('REVIEW →')}</button>
-                  <button onClick={e => e.stopPropagation()} title={T('Delete this workout (demo only)')} style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
+                  <button onClick={() => setSelectedId(wo.id)} title={T('Review this workout')} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('REVIEW →')}</button>
+                  <button onClick={e => e.stopPropagation()} title={T('Delete this workout (demo only)')} style={{ background: 'transparent', border: 'none', color: C.rd, borderRadius: 0, padding: '5px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
                 </div>
               </div>
               </React.Fragment>

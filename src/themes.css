@@ -2071,3 +2071,32 @@ select.avail-select:dir(rtl) {
 .kpi-value { display: flex; align-items: center; min-height: 48px; white-space: nowrap; overflow: hidden; text-overflow: clip;
   font-size: clamp(20px, 17cqw, var(--c-kpiNumberSize, 30px)) !important; }
 @media (max-width: 700px) { .kpi-value { min-height: 40px; } }
+
+/* THE REVIEW DAY CARD ON A PHONE (moved from WorkoutReview.jsx 29.9 - the demo's
+   review renders the same card) */
+@media (max-width: 760px){
+  .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
+  .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
+  /* ONE RIGHT EDGE PER CARD. Measured at 390: the video icon sat
+     0.8px short of the card's inner edge, the DELETE label 10.8px and
+     the set count 19.8px - three staggered right edges down one card.
+     DELETE is the outer one, so its own trailing padding is what puts
+     it out of line; drop it and the label lands on the same edge as
+     the icon. The set count stays inset because it is a COLUMN with
+     the icon after it, not an edge. */
+  .wr-day-card > div:last-child > button:last-child{ padding-inline-end: 0 !important; }
+  /* Mobile: the meta takes its own full-width line and its items (week /
+     date / sets / video icon) spread edge-to-edge with even spacing;
+     the dot separators hide (the spacing is the separator now). */
+  /* space-between spaced the fields by each card's OWN content, so
+     three identical stacked cards put the same field at three
+     different x. Measured at 390 (scripts/probe-review-meta.mjs):
+     the date drifted 2px and the set count 8px between cards.
+     A grid gives every card the same tracks: week at 0, the date at
+     one fixed x, the sets and the video slot placed from the right
+     edge. 5em holds "W12/16" without squeezing the date. */
+  .wr-day-card .wr-meta{ width: 100% !important; display: grid !important; grid-template-columns: 5em 1fr auto auto !important; align-items: center !important; gap: 0 6px !important; }
+  .wr-day-card .wr-meta > *{ min-width: 0; }
+  .wr-day-card .wr-meta .wr-dot{ display: none !important; }
+  .wr-strip-repeat{ display: none !important; }
+}

@@ -2664,7 +2664,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
               onMouseEnter={e=>e.currentTarget.style.borderColor='var(--c-stripTx)'}
               onMouseLeave={e=>e.currentTarget.style.borderColor='color-mix(in srgb, var(--c-stripTx) 55%, transparent)'}>
-              {tb('Athlete page')} →
+              {/* one inline run: in a flex button the pieces were separate items and the
+                  space collapsed ("ATHLETE PAGE→"); forward is ← in Hebrew (29.9 #448) */}
+              <span>{tb('Athlete page')} {readLang() === 'he' ? '←' : '→'}</span>
             </button>
           ) : null}>
           {(() => {
@@ -2782,32 +2784,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               a narrow column next to the buttons and wrapped to 3 lines. Stack the
               card (content full-width so the meta fits on one line, buttons in a
               tidy row below) + tight padding. Desktop keeps 12/16 side-by-side. */}
-          <style>{`@media (max-width: 760px){
-            .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
-            .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
-            /* ONE RIGHT EDGE PER CARD. Measured at 390: the video icon sat
-               0.8px short of the card's inner edge, the DELETE label 10.8px and
-               the set count 19.8px - three staggered right edges down one card.
-               DELETE is the outer one, so its own trailing padding is what puts
-               it out of line; drop it and the label lands on the same edge as
-               the icon. The set count stays inset because it is a COLUMN with
-               the icon after it, not an edge. */
-            .wr-day-card > div:last-child > button:last-child{ padding-inline-end: 0 !important; }
-            /* Mobile: the meta takes its own full-width line and its items (week /
-               date / sets / video icon) spread edge-to-edge with even spacing;
-               the dot separators hide (the spacing is the separator now). */
-            /* space-between spaced the fields by each card's OWN content, so
-               three identical stacked cards put the same field at three
-               different x. Measured at 390 (scripts/probe-review-meta.mjs):
-               the date drifted 2px and the set count 8px between cards.
-               A grid gives every card the same tracks: week at 0, the date at
-               one fixed x, the sets and the video slot placed from the right
-               edge. 5em holds "W12/16" without squeezing the date. */
-            .wr-day-card .wr-meta{ width: 100% !important; display: grid !important; grid-template-columns: 5em 1fr auto auto !important; align-items: center !important; gap: 0 6px !important; }
-            .wr-day-card .wr-meta > *{ min-width: 0; }
-            .wr-day-card .wr-meta .wr-dot{ display: none !important; }
-            .wr-strip-repeat{ display: none !important; }
-          }`}</style>
+          {/* the day-card phone rules live in themes.css (.wr-day-card) - the demo's review uses them too */}
           {pending.length === 0 && !showReviewed && (
             <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
               <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>{tt("ALL CAUGHT UP")}</div>
@@ -2822,7 +2799,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
               <button onClick={() => setShowReviewed(v => !v)}
                 style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '7px 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                {showReviewed ? <>✕ {tb('HIDE REVIEWED')} ({reviewedCount})</> : <>{tb('SHOW REVIEWED')} ({reviewedCount})</>}
+                {/* one inline run ("SHOW REVIEWED(30)" - the flex button collapsed the space) */}
+                <span>{showReviewed ? <>✕ {tb('HIDE REVIEWED')} ({reviewedCount})</> : <>{tb('SHOW REVIEWED')} ({reviewedCount})</>}</span>
               </button>
             </div>
           )}
