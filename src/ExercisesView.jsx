@@ -385,7 +385,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       </div>
 
       {onOpenClassify && unclassifiedCount > 0 && (
-        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', textAlign: 'start', marginBottom: 14, padding: '6px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', lineHeight: 1.2 /* a tight line: the mixed-size words sat 1px low in a normal one (#467) */, textAlign: 'start', marginBottom: 14, padding: '6px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: narrowUI ? 'nowrap' : undefined }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> {narrowUI ? tt('Unclassified') : tt('exercises are unclassified')}</span>
           <span className="ex-bnr-sub" style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
           <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, whiteSpace: 'nowrap' }}>{narrowUI ? tt('Classify →') : tt('Classify at scale →')}</span>
@@ -547,7 +547,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     {chipCell(ex.jointMovements, 210)}
                     {chipCell(ex.primaryMuscles, 230)}
                     {chipCell(ex.secondaryMuscles, 210)}
-                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap', lineHeight: 0 /* the drawn icons are the content: a text line lifted them 1.3-1.9px (#467) */ }}>
                       {hasVideo(ex) && <span title={tt('Has a demo video')} style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><PlayGlyph /></span>}
                       {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><NotesGlyph /></span>}
                       {!hasVideo(ex) && !hasNotes(ex) && emptyDot}

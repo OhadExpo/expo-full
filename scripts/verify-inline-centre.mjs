@@ -87,6 +87,13 @@ function measure(tol, brk) {
     const cs = getComputedStyle(el);
     let txt = raw;
     if (cs.textTransform === 'uppercase') txt = txt.toUpperCase();
+    // HEBREW BY ITS LETTER BODIES (box-centring's rule): a name's ן ק hang below
+    // and ל rises above, so raw ink moved the centre with the spelling of each
+    // name. Map them to body-only letters and drop the geresh before measuring.
+    if (/[֐-׿]/.test(txt)) txt = txt.replace(/[ךןףץקל]/g, (ch) => ({ 'ך': 'כ', 'ן': 'ו', 'ף': 'פ', 'ץ': 'צ', 'ק': 'ה', 'ל': 'ג' }[ch])).replace(/[׳״’'"]/g, '');
+    // a suffix INSIDE a bigger run ("63.3" + its "kg") is part of that run - the
+    // neighbour compares against the figure, not its unit
+    if (el.parentElement && [...el.parentElement.childNodes].some((x) => x.nodeType === 3 && x.nodeValue.trim()) && parseFloat(getComputedStyle(el.parentElement).fontSize) > parseFloat(cs.fontSize)) continue;
     cv.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
     const m = cv.measureText(txt);
     const fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent;

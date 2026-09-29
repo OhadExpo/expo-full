@@ -62,7 +62,7 @@ function QuestionSummary({ q, subs, rtl, tt }) {
   } else if (q.type === 'number') {
     const vals = answered.map((s) => asNum(s.payload[q.id])).filter((n) => n != null).sort((a, b) => a - b);
     const stat = (l, v) => (
-      <div style={{ border: `1px solid ${C.cardBd}`, padding: '8px 10px', minWidth: 0 }}>
+      <div style={{ border: `1px solid ${C.cardBd}`, padding: '7px 10px 9px' /* the text font sits 1px low in its line: 7/9 centres the letters (#467 measured) */, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{l}</div>
         <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{v == null ? '—' : v}</div>
       </div>
@@ -79,7 +79,7 @@ function QuestionSummary({ q, subs, rtl, tt }) {
     body = (
       <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 260, overflowY: 'auto', border: `1px solid ${C.cardBd}` }}>
         {answered.map((s, i) => (
-          <div key={s.id} style={{ padding: '8px 10px', borderTop: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', gap: 10, alignItems: 'baseline' }}>
+          <div key={s.id} style={{ padding: '7px 10px 9px' /* 1px low at 8/8 (#467) */, borderTop: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', gap: 10, alignItems: 'baseline' }}>
             <span style={{ fontFamily: rtl ? FH : FB, fontSize: 13, color: C.tx, flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{String(s.payload[q.id])}</span>
             <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{s.who}</span>
           </div>

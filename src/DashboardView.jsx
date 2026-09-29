@@ -1062,7 +1062,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
   // one row per tile label at every width (27.9, #328): the source (the
   // sheet) is on the tile's own sub-line, so the label does not repeat it
   const labelStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 };
-  const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em' };
+  const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 };   // a normal line left room under the digits: a tile read 16 above / 18 below (#467)
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
 
   return (

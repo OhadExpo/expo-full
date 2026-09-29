@@ -457,7 +457,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
             ].map(([lab, val, sub, col], i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' /* the real metricStyle: centred in the row's height (#404, ported #460) */, gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
-                <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 /* as the real tile (#467) */, fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2 }}>{sub}</span>
               </div>
             ))}
@@ -3608,7 +3608,7 @@ function DemoExercises() {
                       </div>
                     </td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{chips(e.primaryJoints, 160)}{chips(e.jointMovements, 200)}{chips(e.primaryMuscles, 200)}{chips(e.secondaryMuscles, 190)}
-                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap', lineHeight: 0 /* the drawn icons are the content: a text line lifted them 1.3-1.9px (#467) */ }}>
                       {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><PlayGlyph /></span>}
                       {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><NotesGlyph /></span>}
                     </td>
@@ -4270,9 +4270,9 @@ function DemoSessionExercise({ ex, open, onToggle, doneUpTo, index }) {
           </span>
           <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><CaretGlyph /></span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-          <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{String(ex.prescribed).replace(/\s*×\s*/g, '×')}</span>
-          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{sets.length}</span>{' '}{T('DONE')}</span>
+        <div style={{ display: 'flex', alignItems: 'center' /* as the real prescription row (#467) */, gap: 8, marginTop: 4 }}>
+          <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1, unicodeBidi: 'isolate' }}>{String(ex.prescribed).replace(/\s*×\s*/g, '×')}</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{sets.length}</span>{' '}{T('DONE')}</span>
         </div>
       </div>
       {open && (

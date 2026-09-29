@@ -757,13 +757,13 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-                  <span style={{ display: 'inline-block', width: 18, flexShrink: 0, fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: allDone ? C.gn : C.tm }}>{allDone ? '✓' : (ei + 1)}</span>{ex.title}
+                  <span style={{ display: 'inline-block', width: 18, flexShrink: 0, fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: allDone ? C.gn : C.tm }}>{allDone ? <CheckGlyph /> : (ei + 1)}</span>{ex.title}
                 </span>
                 <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><CaretGlyph /></span>
               </div>
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center' /* one centre for 2x12 and its 10px count (a shared baseline put the caps 1px apart; #467) */, gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{ex.sets.length}</span> {tt('DONE')}</span>
               </div>
