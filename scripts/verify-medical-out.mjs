@@ -31,11 +31,18 @@ function slice(decl) {
   throw new Error(`unbalanced: ${decl}`);
 }
 
+// a one-line declaration is taken whole: brace-matching would stop inside a
+// template literal's ${...}
+const line = (decl) => { const i = SRC.indexOf(decl); if (i < 0) throw new Error(`NOT FOUND in BhbcView.jsx: ${decl}`); return SRC.slice(i, SRC.indexOf(String.fromCharCode(10), i)); };
+// medicalAvailOn reads the headline's date through localDayOf -> localISO
+// (29.9: this gate threw "localDayOf is not defined" and measured nothing -
+// it was not in the build, so nobody saw it)
+const HELPERS = [line('const localISO ='), line('const localDayOf =')].join(String.fromCharCode(10));
 const MAP = slice('const MEDICAL_STATUS_AVAIL =');
 const FN = slice('function medicalAvailOn(');
 const FN2 = slice('function availOn(');
 // eslint-disable-next-line no-new-func
-const { medicalAvailOn, availOn } = new Function(`${MAP};${FN};${FN2};return { medicalAvailOn, availOn };`)();
+const { medicalAvailOn, availOn } = new Function(`${HELPERS};${MAP};${FN};${FN2};return { medicalAvailOn, availOn };`)();
 
 let pass = 0, fail = 0;
 const is = (label, got, want) => {
@@ -74,17 +81,17 @@ is('12.09 still reads Limited', medicalAvailOn(EASING, 'A', '2026-09-12'), 2);
 // what caught this. His notes end at "limited" on 12.09, but the record's own
 // status was set to "out" on 15.09. Reading only the notes made him Limited on
 // 19.09 and 20.09, which is not what the medical record says.
-const MENACHEM = { A: { injuries: [{ id: 'i1', status: 'out', onsetDate: '2026-08-24', resolved: false,
+const REAL_RECORD = { A: { injuries: [{ id: 'i1', status: 'out', onsetDate: '2026-08-24', resolved: false,
   updatedAt: '2026-09-15T09:00:00.000Z',
   progress: [{ date: '2026-08-24', status: 'non-contact' }, { date: '2026-08-31', status: 'limited' },
     { date: '2026-09-06', status: 'available' }, { date: '2026-09-07', status: 'available' },
     { date: '2026-09-12', status: 'limited' }] }] } };
 console.log('notes up to 12.09 (limited), headline set to Out on 15.09:');
-is('25.08 reads Non-contact (the 24.08 note)', medicalAvailOn(MENACHEM, 'A', '2026-08-25'), 3);
-is('06.09 reads Full (cleared that day)', medicalAvailOn(MENACHEM, 'A', '2026-09-06'), 1);
-is('13.09 reads Limited (the 12.09 note, headline not yet set)', medicalAvailOn(MENACHEM, 'A', '2026-09-13'), 2);
-is('19.09 reads Out (the 15.09 headline is newer)', medicalAvailOn(MENACHEM, 'A', '2026-09-19'), 4);
-is('20.09 reads Out', medicalAvailOn(MENACHEM, 'A', '2026-09-20'), 4);
+is('25.08 reads Non-contact (the 24.08 note)', medicalAvailOn(REAL_RECORD, 'A', '2026-08-25'), 3);
+is('06.09 reads Full (cleared that day)', medicalAvailOn(REAL_RECORD, 'A', '2026-09-06'), 1);
+is('13.09 reads Limited (the 12.09 note, headline not yet set)', medicalAvailOn(REAL_RECORD, 'A', '2026-09-13'), 2);
+is('19.09 reads Out (the 15.09 headline is newer)', medicalAvailOn(REAL_RECORD, 'A', '2026-09-19'), 4);
+is('20.09 reads Out', medicalAvailOn(REAL_RECORD, 'A', '2026-09-20'), 4);
 
 // Two injuries at once: the worst one wins.
 const TWO = { A: { injuries: [

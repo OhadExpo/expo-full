@@ -148,6 +148,10 @@ export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop,
       return ctx.getImageData(0, 0, S, S).data;
     };
     const out = [];
+    // THREE SEEKS IN A ROW THAT NEVER LAND = this video cannot be read this way
+    // (a stalled decoder, an unindexed recording). Stop and say so rather than
+    // wait 5 s a frame for an hour (29.9 audit round 2).
+    let missedInARow = 0;
     for (let si = 0; si < releasesMs.length; si++) {
       // quiet level: 1.0 -> 0.4 s before the release; the shot: release ->
       // +2.4 s (the ball reaches the rim 0.6-1.4 s after release). Both at the
@@ -161,7 +165,11 @@ export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop,
       for (let i = 0; i < times.length; i++) {
         if (typeof shouldStop === 'function' && shouldStop()) { const e = new Error('stopped'); e.code = 'aborted'; throw e; }
         if (times[i] < 0 || times[i] > dur) { frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue; }
-        if (!(await seek(times[i]))) { frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue; }
+        if (!(await seek(times[i]))) {
+          if (++missedInARow >= 3) { const e = new Error('Could not read the rim in this video.'); e.code = 'unreadable'; throw e; }
+          frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue;
+        }
+        missedInARow = 0;
         const px = read();
         const gray = new Int16Array(S * S); const mask = new Uint8Array(S * S);
         for (let p = 0, q = 0; p < S * S; p++, q += 4) gray[p] = (px[q] * 299 + px[q + 1] * 587 + px[q + 2] * 114) / 1000;

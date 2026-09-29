@@ -501,6 +501,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
   const [editOf] = useState(() => findExistingLog(priorWorkouts));
   const workoutIdRef = useRef(null);
+  // true once a Complete in THIS logger got past the write (handleComplete
+  // says so before the decrement): only then is a retry a re-save
+  const wroteRef = useRef(false);
 
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
@@ -1593,10 +1596,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // resave: this Complete re-saves an existing row (no second session
     // decrement / "finished a workout" push / BW re-file). Decided HERE, from
     // the same lookup that chose the id, not re-derived by the caller.
-    // A retry after a throw past the write finds its own row already in the
-    // list (same id, workoutIdRef): that is a re-save too, never a second
-    // session decrement (29.9 audit).
-    }, { resave: !!existingLog || (priorWorkouts || []).some((x) => x && x.id === workoutId) })).catch((e) => {
+    // A retry after a throw PAST THE WRITE is a re-save too - never a second
+    // session decrement. Decided by whether the write actually landed
+    // (onWritten), not by the row being in the list: the list gains the row
+    // optimistically, so a write that FAILED would have turned the retry into
+    // a "re-save" and the decrement / push / week advance would never run
+    // (29.9 audit round 2).
+    }, { resave: !!existingLog || wroteRef.current, onWritten: () => { wroteRef.current = true; } })).catch((e) => {
       // Something past the write threw (the decrement, the BW file...). The row
       // may well be saved; either way the athlete gets his button back, and a
       // second tap re-saves the SAME id (workoutIdRef).
@@ -2710,6 +2716,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     if (res && res.settled && typeof res.settled.then === 'function') res.settled.then(release, release);
     else release();
     if (!res || res.ok === false) return res || { ok: false };
+    // the write landed (server or durable queue): from here a retry of this
+    // same logger is a re-save, whatever throws below
+    try { if (typeof meta.onWritten === 'function') meta.onWritten(); } catch { /* the caller's flag only */ }
     if (isResave) return res;
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.

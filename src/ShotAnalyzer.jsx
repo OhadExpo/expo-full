@@ -1201,15 +1201,17 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                   const a = {};
                   res.forEach((rr, i) => { const k = result.shots[i].index; a[k] = his(k) ? { ...rr, overridden: true } : rr; });
                   setAuto(a);
-                  setMade((m) => {
-                    const n = { ...m };
-                    res.forEach((rr, i) => {
-                      const k = result.shots[i].index;
-                      if (n[k] !== undefined && !filled.has(k)) return;
-                      if (rr.outcome === 'made' || rr.outcome === 'missed') { n[k] = rr.outcome === 'made'; filled.add(k); } else { delete n[k]; filled.delete(k); }
-                    });
-                    return n;
+                  // computed ONCE, outside any updater: React may run an updater
+                  // twice (StrictMode), and one that also edits a ref is not
+                  // idempotent (29.9 audit round 2)
+                  const n = { ...madeRef.current }; const nextFilled = new Set(filled);
+                  res.forEach((rr, i) => {
+                    const k = result.shots[i].index;
+                    if (n[k] !== undefined && !filled.has(k)) return;
+                    if (rr.outcome === 'made' || rr.outcome === 'missed') { n[k] = rr.outcome === 'made'; nextFilled.add(k); } else { delete n[k]; nextFilled.delete(k); }
                   });
+                  autoFilledRef.current = nextFilled;
+                  setMade(n);
                   setAutoRun('done');
                 }).catch((err) => { if (live() && !(err && err.code === 'aborted')) setAutoRun({ error: T.autoFail }); });
               }} style={{ position: 'absolute', inset: 0, cursor: 'crosshair', background: 'rgba(0,0,0,0.12)' }}>
@@ -1640,6 +1642,9 @@ function MakeMissRead({ shots, made, T }) {
   const thirds = useMemo(() => makesByThird(shots, made), [shots, made]);
   if (!c.makes && !c.misses) return null;
   const iso = (x) => <span dir="ltr" style={{ unicodeBidi: 'isolate', display: 'inline-block' }}>{x}</span>;
+  // the number isolated; a Hebrew unit reads in the sentence after it, a
+  // symbol / Latin unit stays inside the isolate (as the spread lines, 29.9)
+  const numUnit = (v, u) => (/[\u0590-\u05FF]/.test(u) ? <><bdi dir="ltr">{v}</bdi>{u}</> : <bdi dir="ltr">{v}{u}</bdi>);
   const unit = (u) => (u === 'ms' ? (T.unitMs || ' ms') : u === 'm/s' ? (T.unitMps || ' m/s') : u === 'm' ? (T.unitM || ' m') : u === 'cm' ? (T.unitCm || ' cm') : u);
   const L = c.lead;
   return (
@@ -1648,7 +1653,7 @@ function MakeMissRead({ shots, made, T }) {
       {!c.ready && <div data-makemiss-need>{T.mmNeed(c.makes, c.misses, c.needMakes, c.needMisses, CONTRAST_MIN.makes, CONTRAST_MIN.misses)}</div>}
       {c.ready && L && (
         <div data-makemiss-lead={L.key} style={{ color: '#E0A73A' }}>
-          {T.mmMisses(T.mmNames[L.key])} {iso(<b>{L.missMean}{unit(L.unit)}</b>)} · {T.mmMakes} {iso(<b style={{ color: '#FFF' }}>{L.makeMean}{unit(L.unit)}</b>)}
+          {T.mmMisses(T.mmNames[L.key])} <b>{numUnit(L.missMean, unit(L.unit))}</b> · {T.mmMakes} <b style={{ color: '#FFF' }}>{numUnit(L.makeMean, unit(L.unit))}</b>
           {' '}({T.mmCounts(L.nMiss, L.nMake)}). {T.mmLeadNote}
         </div>
       )}

@@ -127,8 +127,22 @@ for (const lang of LANGS) for (const W of WIDTHS) {
             // row's extent is its text ink plus the border boxes nested in it.
             const inkBoxes = (el) => {
               const i0 = inkOf(el); let t = i0 ? i0.t : Infinity, bb = i0 ? i0.b : -Infinity;
+              // a border counts only when it SHOWS: the box and every ancestor up to
+              // the row visible, nothing on the way positioned out of flow, and a
+              // border colour that differs from the background behind it
+              // (audit round 2: an invisible sizing border must not read as ink)
+              const shows = (d) => {
+                for (let x = d; x && x !== el; x = x.parentElement) {
+                  const k = getComputedStyle(x);
+                  if (!vis(x) || k.position === 'absolute' || k.position === 'fixed') return false;
+                }
+                const k = getComputedStyle(d);
+                let bg = 'rgba(0, 0, 0, 0)';
+                for (let x = d.parentElement; x; x = x.parentElement) { const c = getComputedStyle(x).backgroundColor; if (!/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(c)) { bg = c; break; } }
+                return k.borderTopColor !== bg && k.borderBottomColor !== bg;
+              };
               for (const d of el.querySelectorAll('*')) {
-                if (!vis(d) || !bordered(d) || getComputedStyle(d).position === 'absolute') continue;
+                if (!bordered(d) || !shows(d)) continue;
                 const r = d.getBoundingClientRect(); if (!r.width || !r.height) continue;
                 t = Math.min(t, r.top); bb = Math.max(bb, r.bottom);
               }

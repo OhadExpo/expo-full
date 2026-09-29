@@ -2419,7 +2419,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               const ses = (rec && rec.sessions) || {};
               for (const f of fx7) {
                 const day = (ses[f.date] || []).filter((r) => r && r.attended !== false);
-                if (day.some((r) => rowKind(r) === 'practice' || rowKind(r) === 'game')) continue;
+                // its own row counts it: a practice / shootaround by a practice
+                // row, a scrimmage by a game row. A GAME row never swallows the
+                // morning shootaround of a game day (29.9 audit round 2).
+                if (day.some((r) => rowKind(r) === 'practice' || (f.type === 'scrimmage' && rowKind(r) === 'game'))) continue;
                 const hadSc = day.some((r) => rowKind(r) === 'sc');
                 if (!hadSc && att[`${f.date}|${f.start || ''}`] === 'out') continue;
                 if (!hadSc && id && availOn(rec || {}, medicalAll || {}, id, f.date) >= 4) continue;
@@ -6226,7 +6229,15 @@ function medicalAvailOn(medical, athleteId, date) {
     //
     // A note dated AFTER the day describes a later state of the injury and says
     // nothing about it, so it is excluded either way.
-    const headlineOn = localDayOf(inj.updatedAt || inj.createdAt) || inj.onsetDate || '';
+    // A RESOLVED record's headline is its CLEARANCE, so it is dated at the
+    // end (updatedAt, else the last note) - never at the onset. Without an
+    // updatedAt it fell back to onsetDate, the clearance landed on day one and
+    // the whole injury window read Full (29.9: verify-medical-out, revived,
+    // caught it - it had been dead since this function started calling
+    // localDayOf). No end date = no headline evidence.
+    const headlineOn = inj.resolved
+      ? (localDayOf(inj.updatedAt) || (notes.length ? notes[notes.length - 1].date : ''))
+      : (localDayOf(inj.updatedAt || inj.createdAt) || inj.onsetDate || '');
     const dated = notes.filter((p) => p.status).map((p) => ({ d: p.date, s: p.status }));
     // A RESOLVED RECORD'S HEADLINE IS THE CLEARANCE (#305 B12). Resolving keeps
     // the status the PT last picked (often still "out"), and dated at updatedAt
