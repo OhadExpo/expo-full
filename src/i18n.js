@@ -906,6 +906,8 @@ export const HE = {
     'דמו בלבד — באפליקציה המלאה זה פותח את כרטיס המתאמן לעריכה.',
   'Demo only — in the full app this archives the athlete and stops their billing.':
     'דמו בלבד — באפליקציה המלאה זה מעביר את המתאמן לארכיון ועוצר את החיוב.',
+  'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את כלי הספרייה: התאמת כותרות שלא זוהו, סיווג מרוכז וניקוי כפילויות.',
   'Demo only — in the full app this opens the training analysis: progression across blocks and what to program next.':
     'דמו בלבד — באפליקציה המלאה זה פותח את ניתוח האימונים: ההתקדמות לאורך הבלוקים ומה לתכנת הלאה.',
   'Demo only — in the full app this sends a WhatsApp reminder with a payment link.':
@@ -1501,6 +1503,7 @@ export const HE = {
   "No video": 'בלי וידאו',
   "— resolution/movement/position blank": '— התנגדות / תנועה / מנח ריקים',
   "Classify at scale →": 'סיווג מרוכז ←',
+  "Classify →": 'סיווג ←',
   "of": 'מתוך',
   "— refine the search, or": '— תצמצם את החיפוש, או',
   "uncontacted": 'לא היה קשר',

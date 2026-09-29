@@ -87,6 +87,17 @@ export function useStripFit(active, stripRef, titleRef, rightRef, extra = 0, dep
   return stacked;
 }
 
+// THE SORT ARROW, drawn (29.9 #447): the ↑/↓ glyph is taller than the capitals
+// and hangs below the baseline, so "↓ SOONEST" read 1.5px low beside centred
+// letters. An SVG exactly the capitals' height, sitting on the baseline, spans
+// the same band the letters do.
+export function SortArrow({ up }) {
+  return (
+    <svg aria-hidden width="0.5em" height="0.7em" viewBox="0 0 6 9" fill="none" style={{ display: 'inline-block', verticalAlign: 'baseline', flexShrink: 0, marginInlineEnd: '0.4em' }}>
+      <path d={up ? 'M3 8.3V0.9M0.8 3.1L3 0.9 5.2 3.1' : 'M3 0.7V8.1M0.8 5.9L3 8.1 5.2 5.9'} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 export const STRIP_BTN_H = 26;
 export const stripBtnBase = {
   height: STRIP_BTN_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,

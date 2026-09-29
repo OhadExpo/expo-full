@@ -29,7 +29,7 @@ import { localiseAutoBody } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
@@ -701,17 +701,6 @@ function RailOpt({ label, count, active, onClick, title }) {
       <span style={{ flex: 1, textAlign: 'start', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       {count != null && <span style={{ paddingInlineEnd: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
     </button>
-  );
-}
-// THE SORT ARROW, drawn (29.9 #447): the ↑/↓ glyph is taller than the capitals
-// and hangs below the baseline, so "↓ SOONEST" read 1.5px low beside centred
-// letters. An SVG exactly the capitals' height, sitting on the baseline, spans
-// the same band the letters do.
-function SortArrow({ up }) {
-  return (
-    <svg aria-hidden width="0.5em" height="0.7em" viewBox="0 0 6 9" fill="none" style={{ display: 'inline-block', verticalAlign: 'baseline', flexShrink: 0, marginInlineEnd: '0.4em' }}>
-      <path d={up ? 'M3 8.3V0.9M0.8 3.1L3 0.9 5.2 3.1' : 'M3 0.7V8.1M0.8 5.9L3 8.1 5.2 5.9'} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 // Active-sort label with direction arrow (mirrors SortBar.activeDirParts).

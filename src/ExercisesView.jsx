@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord } from './ui';
+import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
@@ -83,6 +83,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors Programs
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);   // phone: the SHOW / FILTER BY rail folds into FILTERS (n)
   const ROW_CAP = 200;
 
   // Toggle a value in/out of a filter's selection set.
@@ -154,7 +155,13 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
 
   const filtered = useMemo(() => {
     let out = (exercises || []).filter(e => passFilters(e, null));
+    // A title that does not start with a letter is a set/rep note that landed in
+    // the library ("5*3", "(SUPERSET ...", "^ SUPER ..."): by name, those follow
+    // the exercises in either direction - they were the first 30 rows a coach saw
+    // (29.9 #443). The data is untouched.
+    const noteLike = (e) => !/^[\p{L}]/u.test(String(e.title || '').trim());
     out = out.slice().sort((a, b) => {
+      if (sortKey === 'title') { const na = noteLike(a), nb = noteLike(b); if (na !== nb) return na ? 1 : -1; }
       const av = String(a[sortKey] || ''), bv = String(b[sortKey] || '');
       const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base', numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
@@ -334,7 +341,14 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
              actions still wanted 412px in a 366px box, so the actions column
              sat off the right edge - the very thing being fixed. 240 leaves
              room for both. */
-          .ex-table td:first-child, .ex-table th:first-child { max-width: 240px !important; }
+          .ex-table td:first-child, .ex-table th:first-child { max-width: none !important; }
+          /* ONE action slot (#443): edit + delete side by side - the forced
+             white-space above stacked them and every phone row was 89px */
+          .ex-table td.ex-act { white-space: nowrap !important; }
+          /* the name column takes what MEDIA leaves (its 30% desktop share left
+             ~110px empty beside the icons on a phone) */
+          .ex-table col:first-child { width: auto !important; }
+          .ex-bnr-sub { display: none !important; }
         }
         .filt { transition: color .12s, border-color .12s; }
         .filt:not(.filt-on):hover { color: var(--c-tx) !important; border-bottom-color: var(--c-tm) !important; }
@@ -344,35 +358,37 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
 
       {/* Header — title + live count (left) + TABLE/GRID toggle (right),
           mirroring the Programs page toggle EXACTLY (Ohad: "like in programs"). */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>
+        <h2 style={{ margin: 0, minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: narrowUI ? '0.1em' : '0.18em', color: C.tx, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           {tt("Exercises")} <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length.toLocaleString()}{anyFilter ? ` of ${(exercises || []).length.toLocaleString()}` : ''}</span>
         </h2>
-        <div style={{ display: 'flex', gap: 6, width: RIGHT_CTL_W }}>
+        <div style={{ display: 'flex', gap: 6, width: narrowUI ? 132 : RIGHT_CTL_W, flexShrink: 0 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
             return (
               <button key={v} onClick={() => setView(v)} aria-pressed={on} title={tt(v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise')}
-                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(label)}</button>
+                style={{ flex: 1, height: 'var(--btn-h)', boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(label)}</button>
             );
           })}
         </div>
       </div>
 
       {/* Search + Add — prominent, full width. */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
+      {/* Search + ADD share ONE row at every width (29.9 #443: on a phone ADD
+          dropped to a line of its own, one of five blocks above the first row). */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'stretch' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>
           <input type="text" placeholder={tr(readLang(), narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)")} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
-            style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'start', width: '100%' }} />
+            style={{ ...baseInput, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', fontSize: 13, textAlign: 'start', width: '100%' }} />
         </div>
-        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</Btn>
+        <Btn onClick={openNew} style={{ height: 'var(--btn-h)', width: narrowUI ? 'auto' : RIGHT_CTL_W, flexShrink: 0, padding: '0 14px', fontSize: 11, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {narrowUI ? tt('Add') : tr(readLang(), 'Add Exercise')}</Btn>
       </div>
 
       {onOpenClassify && unclassifiedCount > 0 && (
-        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'start', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
-          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> {tt('exercises are unclassified')}</span>
-          <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
-          <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>{tt('Classify at scale →')}</span>
+        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', textAlign: 'start', marginBottom: 14, padding: '6px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: narrowUI ? 'nowrap' : undefined }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> {narrowUI ? tt('Unclassified') : tt('exercises are unclassified')}</span>
+          <span className="ex-bnr-sub" style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
+          <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, whiteSpace: 'nowrap' }}>{narrowUI ? tt('Classify →') : tt('Classify at scale →')}</span>
         </button>
       )}
 
@@ -383,7 +399,18 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           (has video / has notes / unclassified), row 2 = FILTER BY xlsx parameter.
           Labels give the block a spine instead of a flat wall of look-alike chips;
           "Secondary Muscles" no longer dangles onto its own line. */}
-      <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
+      {/* On a phone the two filter rows took seven lines above the first
+          exercise (29.9 #443); they fold into one FILTERS (n) row that opens them. */}
+      {narrowUI && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: filtersOpen ? 8 : 14 }}>
+          <button onClick={() => setFiltersOpen(o => !o)} aria-expanded={filtersOpen}
+            style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', borderRadius: 0, cursor: 'pointer', background: 'transparent', border: `1px solid ${activeFilterCount ? C.ac : C.cardBd}`, color: activeFilterCount ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {tt('Filters')}{activeFilterCount ? ` (${activeFilterCount})` : ''}<StripCaret open={filtersOpen} color="currentColor" />
+          </button>
+          {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, height: 'var(--btn-h)', color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
+        </div>
+      )}
+      {(!narrowUI || filtersOpen) && <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
         {/* NO inline padding: the hanging indent is padding-inline-start on
             .ex-filtrow, and an inline `padding` shorthand silently wipes it
             while the label's negative margin still applies - which pulled both
@@ -393,7 +420,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
           {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
           {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
-          {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
+          {anyFilter && !narrowUI && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
         </div>
         <div className="ex-filtrow ex-filtrow--second" style={{ borderTop: `1px solid ${C.cardBd}` }}>
           <span className="ex-filtrow-l" style={rowLabel}>{tt('Filter by').replace(' ', '\u00a0')}</span>
@@ -405,7 +432,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
           <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
         </div>
-      </div>
+      </div>}
       {/* Click-away backdrop to dismiss an open filter menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
 
@@ -477,7 +504,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
               <col className="ex-taxo" style={{ width: '9%' }} />
               <col className="ex-taxo" style={{ width: '9%' }} />
               <col style={{ width: '58px' }} />
-              <col style={{ width: '56px' }} />
+              {!narrowUI && <col style={{ width: '64px' }} />}
             </colgroup>
             <thead>
               <tr>
@@ -488,25 +515,29 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                   const active = sortKey === k;
                   return (
                     <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: ls ? 'nowrap' : 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
-                      {ls ? <SegWord full={tt(l)} short={tt(ls)} /> : tt(l)}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                      {ls ? <SegWord full={tt(l)} short={tt(ls)} /> : tt(l)}{active && <span style={{ marginInlineStart: 5 }}><SortArrow up={sortDir === 'asc'} /></span>}
                     </th>
                   );
                 })}
                 <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>{tt("Media")}</th>
-                <th style={{ borderBottom: `1px solid ${C.cardBd}`, position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }} />
+                {!narrowUI && <th style={{ borderBottom: `1px solid ${C.cardBd}`, position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }} />}
               </tr>
             </thead>
             <tbody>
               {rows.map(ex => {
                 return (
-                  <tr key={ex.id} className="ex-row" style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+                  // on a phone the ROW is the edit target: two 40px touch icons made a
+                  // 92px column that pushed delete off the card and set every row
+                  // to 53px (29.9 #443); delete is in the form
+                  <tr key={ex.id} className="ex-row" style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: narrowUI ? 'pointer' : undefined }}
+                    {...(narrowUI ? { role: 'button', tabIndex: 0, onClick: () => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setForm({ ...ex }); setEditId(ex.id); setShowForm(true); } } } : {})}>
                     <td className="ex-name" style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
                       {/* THE DOT SITS ON THE FIRST LINE (27.9 #301 gate: 7.5px low on a
                           wrapped name - it centred on the whole two-line block).
                           An 18px box = the title's line, top-aligned. */}
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, minWidth: 0 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', height: 18, flexShrink: 0 }}>{statusDot(ex)}</span>
-                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px', color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{noDangle(ex.title)}</span>
+                        <bdi dir="auto" title={ex.title} style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px', color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textAlign: readLang() === 'he' ? 'right' : 'left' /* every line on the column's start edge, whatever the title's own direction */ }}>{noDangle(ex.title)}</bdi>
                       </div>
                     </td>
                     {oneCell(ex.resistanceType)}
@@ -521,14 +552,16 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                       {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
                       {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
                     </td>
-                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
-                      <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title={tt('Edit exercise')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                      </button>
-                      <button onClick={() => setConfirmDelete(ex.id)} title={tt('Delete exercise')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                      </button>
-                    </td>
+                    {!narrowUI && (
+                      <td className="ex-act" style={{ padding: '6px 6px', whiteSpace: 'nowrap', textAlign: 'end' }}>
+                        <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title={tt('Edit exercise')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                        <button onClick={() => setConfirmDelete(ex.id)} title={tt('Delete exercise')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -570,6 +603,9 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             <div style={{ gridColumn: '1 / -1' }}><TextArea label="Coaching Cues" value={form.cues} onChange={e => setForm({ ...form, cues: e.target.value })} placeholder={tt('Brace core, drive through heels...')} /></div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+            {/* the same confirm as the table's delete icon - on a phone the row
+                opens this form and the icons are gone (29.9 #443) */}
+            {editId && <Btn variant="danger" onClick={() => { const id = editId; setShowForm(false); setConfirmDelete(id); }} style={{ marginInlineEnd: 'auto' }}>{tt('Delete')}</Btn>}
             <Btn variant="ghost" onClick={() => setShowForm(false)}>{tt("Cancel")}</Btn>
             <Btn onClick={handleSave}>{tr(readLang(), editId ? 'Update' : 'Create')}</Btn>
           </div>

@@ -1730,20 +1730,7 @@ function AuthedApp() {
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
-          .subtab-scroll::-webkit-scrollbar{display:none}
-          /* The Exercises hub sub-tabs wrapped to a second row at 390 -
-             LIBRARY MATCHING CLASSIFY on one line, CLEANUP alone on the next.
-             Ohad on the header: one row, the rest scrolls. Same grammar here. */
-          @media (max-width: 700px) {
-            .subtab-scroll { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-            .subtab-scroll > button { flex: 0 0 auto; }
-          }
-          /* FOUR SUB-TABS ARE ONE CONTROL ON A PHONE (27.9 #304): equal cells
-             that always fit - nothing scrolls, so nothing can be half-shown */
-          @media (max-width: 480px) {
-            .subtab-scroll { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible !important; }
-            .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; }
-          }
+          /* the .subtab-scroll rules live in themes.css (the demo's Exercises hub uses them too) */
           /* THE NAV MUST NOT CLIP. Measured 2026-08-28: the header is capped at
              1200px, and below ~1000px of viewport the nine English labels no
              longer fit — DASHBOARD and PORTAL were cut at both ends (14px over

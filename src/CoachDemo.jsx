@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -233,6 +233,11 @@ const MOCK_EXERCISES = [
   { name: 'Hanging Leg Raise',  category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Hip', jointMovements: 'Hip Flexion', primaryMuscles: 'Rectus Abdominis, Hip Flexors', secondaryMuscles: 'Obliques', cues: 'Posterior tilt first, control the swing, legs toward the bar.' },
   { name: 'Plank',              category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Prone',        movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Trunk', jointMovements: 'Trunk Anti-Extension', primaryMuscles: 'Rectus Abdominis', secondaryMuscles: 'Transverse Abdominis', cues: 'Ribs down, squeeze the glutes, one straight line.' },
   { name: 'Cable Pallof Press', category: 'Core',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Anti-Rotation', pattern: 'Rotation/Anti-Rotation',  laterality: 'Unilateral', primaryJoints: 'Trunk', jointMovements: 'Trunk Anti-Rotation', primaryMuscles: 'Obliques', secondaryMuscles: 'Transverse Abdominis', cues: 'Resist the rotation, press straight out, breathe.' },
+  // Unclassified, as most of a real library is (the sheet's columns blank):
+  // the real page leads with the CLASSIFY banner, and the demo needs rows for it.
+  { name: 'Copenhagen Plank',   category: 'Core',      resistanceType: '', bodyPosition: '', movementType: '', pattern: '', laterality: '', primaryJoints: '', jointMovements: '', primaryMuscles: '', secondaryMuscles: '', cues: 'Top knee on the bench, hips high, long line head to heel.' },
+  { name: 'Sled Push',          category: 'Full Body', resistanceType: '', bodyPosition: '', movementType: '', pattern: '', laterality: '', primaryJoints: '', jointMovements: '', primaryMuscles: '', secondaryMuscles: '', cues: '' },
+  { name: 'Med-Ball Scoop Toss', category: 'Full Body', resistanceType: '', bodyPosition: '', movementType: '', pattern: '', laterality: '', primaryJoints: '', jointMovements: '', primaryMuscles: '', secondaryMuscles: '', cues: '' },
 ];
 
 // ─── Shared bits ──────────────────────────────────────────────────────────
@@ -3290,6 +3295,10 @@ function DemoExercises() {
   const activeFilterCount = Object.values(filters).reduce((n, a) => n + (a && a.length ? 1 : 0), 0) + Object.values(flags).filter(Boolean).length;
   const clearFilters = () => { setSearch(''); setFilters(emptyFilters); setFlags({ video: false, notes: false, missing: false }); setOpenKey(null); };
   const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors real ExercisesView
+  // the real page's phone behaviour (29.9 #443): FILTERS (n) folds the rail, the row opens the exercise
+  const narrowUI = useIsMobile(700);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [exNote, setExNote] = useState(null);
 
   // Close the open filter menu on Escape (a click-catcher backdrop handles outside
   // clicks) — same affordance as the real ExercisesView.
@@ -3323,7 +3332,9 @@ function DemoExercises() {
     if (skip !== 'missing' && flags.missing && !demoUnclassified(e)) return false;
     return true;
   };
-  const filtered = MOCK_EXERCISES.filter(e => pass(e, null));
+  // A-Z by name, like the real library's default sort (the EXERCISE ↑ header)
+  const filtered = MOCK_EXERCISES.filter(e => pass(e, null)).slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+  const unclassifiedCount = MOCK_EXERCISES.filter(demoUnclassified).length;
   // Faceted option list [value, count]: OR facets skip their own dimension, AND
   // facets count inside the current selection — the real counts rule.
   const dynOpts = (k) => {
@@ -3388,47 +3399,67 @@ function DemoExercises() {
 
   return (
     <section>
-      {/* Header — title + live count (left) + TABLE/GRID toggle (right), mirroring
-          the redesigned real ExercisesView. */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
+      {/* The real Exercises hub's sub-tabs (App.jsx): LIBRARY + the three tools. */}
+      <div className="subtab-scroll" style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 16, flexWrap: 'wrap' }}>
+        {[['library', 'Library'], ['matching', 'Matching'], ['classify', 'Classify'], ['cleanup', 'Cleanup']].map(([r, l]) => {
+          const on = r === 'library';
+          return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : r)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
+        })}
+      </div>
+      {exNote && <div style={{ fontFamily: FB, fontSize: 11.5, color: C.ac, margin: '-6px 0 12px' }}>{T('Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.')}</div>}
+
+      {/* Header — title + live count + TABLE / GRID, one row at every width. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>
+        <h2 style={{ margin: 0, minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: narrowUI ? '0.1em' : '0.18em', color: C.tx, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           {tr(readLang(), 'Exercises')} <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length}</span>
         </h2>
-        <div style={{ display: 'flex', gap: 6, width: 200 }}>
+        <div style={{ display: 'flex', gap: 6, width: narrowUI ? 132 : 200, flexShrink: 0 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
-            return <button key={v} onClick={() => setView(v)} style={{ flex: 1, minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
+            return <button key={v} onClick={() => setView(v)} aria-pressed={on} style={{ flex: 1, height: 'var(--btn-h)', boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
           })}
         </div>
       </div>
 
-      {/* Search + Add Exercise — mirrors the real ExercisesView top row: cyan
-          search + Add Exercise both h30, Add = toggle width (200), one line. */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
-          <input
-            type="search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={T('Search exercises (title, muscle, joint, position…)')}
-            style={{
-              width: '100%', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
-              height: 30, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, lineHeight: '30px', outline: 'none',
-            }}
-          />
+      {/* Search + ADD on ONE row (the real page, 29.9 #443). */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'stretch' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>
+          <input type="search" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={T(narrowUI ? 'Search exercises…' : 'Search exercises (title, muscle, joint, position…)')}
+            style={{ ...appBaseInput, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', fontSize: 13, textAlign: 'start', width: '100%' }} />
         </div>
-        <button style={{ minHeight: CTRL_H, boxSizing: 'border-box', width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</button>
+        <button onClick={() => setExNote('add')} style={{ ...appBaseBtn, height: 'var(--btn-h)', width: narrowUI ? 'auto' : 200, flexShrink: 0, padding: '0 14px', fontSize: 11, whiteSpace: 'nowrap', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac }}>+ {narrowUI ? T('Add') : T('Add Exercise')}</button>
       </div>
+
+      {/* The real page's CLASSIFY banner - one line on a phone. */}
+      {unclassifiedCount > 0 && (
+        <button onClick={() => { setFlags(m => ({ ...m, missing: !m.missing })); }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', textAlign: 'start', marginBottom: 14, padding: '6px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: narrowUI ? 'nowrap' : undefined }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount}</span> {narrowUI ? T('Unclassified') : T('exercises are unclassified')}</span>
+          {!narrowUI && <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{T('— resolution/movement/position blank')}</span>}
+          <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, whiteSpace: 'nowrap' }}>{narrowUI ? T('Classify →') : T('Classify at scale →')}</span>
+        </button>
+      )}
+
+      {/* On a phone the two filter rows fold into FILTERS (n), as on the real page. */}
+      {narrowUI && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: filtersOpen ? 8 : 14 }}>
+          <button onClick={() => setFiltersOpen(o => !o)} aria-expanded={filtersOpen}
+            style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', borderRadius: 0, cursor: 'pointer', background: 'transparent', border: `1px solid ${activeFilterCount ? C.ac : C.cardBd}`, color: activeFilterCount ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {T('Filters')}{activeFilterCount ? ` (${activeFilterCount})` : ''}<StripCaret open={filtersOpen} color="currentColor" />
+          </button>
+          {(activeFilterCount > 0 || q) && <button onClick={clearFilters} title={T('Clear all filters')} style={{ ...railBase, minHeight: 0, height: 'var(--btn-h)', marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
+        </div>
+      )}
 
       {/* Two rows like the real ExercisesView: SHOW (flag chips) and FILTER BY
           (the sheet's columns), each led by a muted role label. */}
-      <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
+      {(!narrowUI || filtersOpen) && <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 6px' }}>
           <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Show')}</span>
           {[['video', `▶ ${T('Video')} (${flagCount('video', demoHasVideo)})`, C.ac], ['notes', `☰ ${T('Notes')} (${flagCount('notes', demoHasNotes)})`, C.or], ['missing', `∅ ${T('Unclassified')} (${flagCount('missing', demoUnclassified)})`, C.or]].map(([k, label, color]) => (
             <button key={k} onClick={() => toggleFlag(k)} style={{ ...railBase, borderBottomColor: flags[k] ? color : 'transparent', color: flags[k] ? color : C.tm }}>{label}</button>
           ))}
-          {(activeFilterCount > 0 || q) && <button onClick={clearFilters} title={T('Clear all filters')} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
+          {(activeFilterCount > 0 || q) && !narrowUI && <button onClick={clearFilters} title={T('Clear all filters')} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '6px 1px 12px', borderTop: `1px solid ${C.cardBd}` }}>
           <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Filter by')}</span>
@@ -3440,13 +3471,10 @@ function DemoExercises() {
           <FilterPill label="Primary Muscles" k="primaryMuscles" />
           <FilterPill label="Secondary Muscles" k="secondaryMuscles" />
         </div>
-      </div>
+      </div>}
       {/* Click-catcher backdrop: an outside click closes the open menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
 
-      <div style={{ fontSize: 11, color: C.tm, marginBottom: 10, fontFamily: FN }}>
-        {readLang() === 'he' ? (filtered.length === 1 ? 'תרגיל אחד' : `${filtered.length} תרגילים`) : `${filtered.length} exercise${filtered.length !== 1 ? 's' : ''}`}
-      </div>
 
       {filtered.length === 0 ? (
         <div style={{
@@ -3519,18 +3547,18 @@ function DemoExercises() {
                 out: with the demo's short names they gave Joint Movements 138px at
                 1440 and every value broke one word per line (overflow gate, 26.9). */}
             <colgroup>
-              <col />
+              <col style={{ width: narrowUI ? 'auto' : '30%' }} />
               {Array.from({ length: 7 }, (_, j) => <col key={j} className="cd-ex-taxo" />)}
               <col style={{ width: '58px' }} />
-              <col style={{ width: '56px' }} />
+              {!narrowUI && <col style={{ width: '64px' }} />}
             </colgroup>
             <thead>
               <tr>
-                {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
-                  <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T(h)}</th>
+                {[['Exercise'], ['Resistance'], ['Position'], ['Movement'], ['Joints'], ['Joint Movements', 'Joint Actions'], ['Primary Muscles', 'Primary'], ['Secondary Muscles', 'Secondary']].map(([h, hs]) => (
+                  <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: h === 'Exercise' ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{hs ? <SegWord full={T(h)} short={T(hs)} /> : T(h)}{h === 'Exercise' && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>
                 ))}
                 <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T('Media')}</th>
-                <th style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }} />
+                {!narrowUI && <th style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }} />}
               </tr>
             </thead>
             <tbody>
@@ -3540,12 +3568,12 @@ function DemoExercises() {
                 // which is what an Israeli S&C coach actually says.
                 const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
-                  <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H }}>
+                  <tr key={i} onClick={narrowUI ? () => setExNote('edit') : undefined} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H, cursor: narrowUI ? 'pointer' : undefined }}>
                     <td style={{ padding: '9px 12px 9px 14px', maxWidth: 260 }}>
                       {/* The real row's status dot: cyan = video, orange = cues only. */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: demoHasVideo(e) ? C.ac : demoHasNotes(e) ? C.or : 'transparent', border: (demoHasVideo(e) || demoHasNotes(e)) ? 'none' : `1px solid ${C.td}` }} />
-                        <span style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{e.name}</span>
+                        <bdi dir="auto" style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textAlign: readLang() === 'he' ? 'right' : 'left' }}>{e.name}</bdi>
                       </div>
                     </td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
@@ -3553,8 +3581,8 @@ function DemoExercises() {
                       {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12 }}>▶</span>}
                       {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
                     </td>
-                    {/* Edit / delete, as on the real row — inert in the demo. */}
-                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
+                    {/* Edit / delete, as on the real row - desktop; on a phone the row opens it */}
+                    {!narrowUI && (<>                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
                       <button title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'default', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
@@ -3562,6 +3590,7 @@ function DemoExercises() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                       </button>
                     </td>
+                    </>)}
                   </tr>
                 );
               })}
