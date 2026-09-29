@@ -213,9 +213,9 @@ const BLOCK_DATA = {
 // primaryMuscles / secondaryMuscles / cues) so the demo table/compare populate
 // like the real app — parity with the redesigned ExercisesView.
 const MOCK_EXERCISES = [
-  { name: 'BB Bench Press',     category: 'Chest',     resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Horizontal Adduction, Elbow Extension', primaryMuscles: 'Pectoralis Major', secondaryMuscles: 'Anterior Deltoid, Triceps', cues: 'Retract the scapula, drive the feet, bar to mid-chest.' },
+  { name: 'BB Bench Press',     category: 'Chest',     resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Horizontal Adduction, Elbow Extension', primaryMuscles: 'Pectoralis Major', secondaryMuscles: 'Anterior Deltoid, Triceps', cues: 'Retract the scapula, drive the feet, bar to mid-chest.' },
   { name: 'DB Incline Press',   category: 'Chest',     resistanceType: 'Dumbbell',   bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Flexion, Elbow Extension', primaryMuscles: 'Upper Pectoralis', secondaryMuscles: 'Anterior Deltoid, Triceps', cues: 'Slight arch, stack the dumbbells over the elbows.' },
-  { name: 'Cable Fly',          category: 'Chest',     resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Shoulder', jointMovements: 'Shoulder Horizontal Adduction', primaryMuscles: 'Pectoralis Major', secondaryMuscles: 'Anterior Deltoid', cues: 'Soft elbows, hug a barrel, squeeze at the midline.' },
+  { name: 'Cable Fly',          category: 'Chest',     resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Shoulder', jointMovements: 'Horizontal Adduction', primaryMuscles: 'Pectoralis Major', secondaryMuscles: 'Anterior Deltoid', cues: 'Soft elbows, hug a barrel, squeeze at the midline.' },
   { name: 'Standing OHP',       category: 'Shoulders', resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Vertical Push',           laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Flexion, Elbow Extension', primaryMuscles: 'Anterior Deltoid', secondaryMuscles: 'Triceps, Upper Traps', cues: 'Brace hard, bar over mid-foot, head through at the top.' },
   { name: 'Lateral Raise',      category: 'Shoulders', resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lateral Raise', pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Shoulder', jointMovements: 'Shoulder Abduction', primaryMuscles: 'Lateral Deltoid', secondaryMuscles: 'Supraspinatus', cues: 'Lead with the elbows, no shrug, control the lowering.' },
   { name: 'BB Deadlift',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral',  primaryJoints: 'Hip, Knee', jointMovements: 'Hip Extension, Knee Extension', primaryMuscles: 'Gluteus Maximus, Hamstrings', secondaryMuscles: 'Erector Spinae, Quadriceps', cues: 'Wedge in, lats tight, push the floor away.' },
@@ -3520,14 +3520,19 @@ function DemoExercises() {
                 out: with the demo's short names they gave Joint Movements 138px at
                 1440 and every value broke one word per line (overflow gate, 26.9). */}
             <colgroup>
-              <col style={{ width: narrowUI ? 'auto' : '30%' }} />
+              {/* the name column sizes by content: a fixed 30% (or a 200px floor) squeezed
+                  the demo's long taxonomy values to one word per line (overflow gate, 29.9) */}
+              <col />
               {Array.from({ length: 7 }, (_, j) => <col key={j} className="cd-ex-taxo" />)}
               <col style={{ width: '58px' }} />
               {!narrowUI && <col style={{ width: '64px' }} />}
             </colgroup>
             <thead>
               <tr>
-                {[['Exercise'], ['Resistance'], ['Position'], ['Movement'], ['Joints'], ['Joint Movements', 'Joint Actions'], ['Primary Muscles', 'Primary'], ['Secondary Muscles', 'Secondary']].map(([h, hs]) => (
+                {/* full header words: the real table's short ones exist because its columns are fixed
+                    narrow; here the words hold the columns wide enough that the demo's long
+                    taxonomy values never break one word per line (overflow gate, 29.9) */}
+                {[['Exercise'], ['Resistance'], ['Position'], ['Movement'], ['Joints'], ['Joint Movements'], ['Primary Muscles'], ['Secondary Muscles']].map(([h, hs]) => (
                   <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: h === 'Exercise' ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{hs ? <SegWord full={T(h)} short={T(hs)} /> : T(h)}{h === 'Exercise' && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>
                 ))}
                 <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T('Media')}</th>
@@ -3539,6 +3544,21 @@ function DemoExercises() {
                 // taxo: the six CLOSED lists get their Hebrew name; the anatomy
                 // columns pass through taxoHe untouched and stay English,
                 // which is what an Israeli S&C coach actually says.
+                // the real chipCell: a multi-value column is one small chip per value (up to
+                // 3, then +n), the row of chips wraps - never a value broken one word per line
+                const chips = (v, max = 210) => {
+                  const vals = String(v || '').split(',').map((x) => x.trim()).filter(Boolean);
+                  return (
+                    <td className="cd-ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max }}>
+                      {vals.length === 0 ? <span style={{ color: C.td }}>·</span> : (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
+                          {vals.slice(0, 3).map((x, n) => <span key={n} style={{ display: 'inline-block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.15, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', padding: '2px 6px' }}>{taxoHe(x, readLang())}</span>)}
+                          {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap' }}>+{vals.length - 3}</span>}
+                        </div>
+                      )}
+                    </td>
+                  );
+                };
                 const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
                   <tr key={i} onClick={narrowUI ? () => setExNote('edit') : undefined} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H, cursor: narrowUI ? 'pointer' : undefined }}>
@@ -3549,7 +3569,7 @@ function DemoExercises() {
                         <bdi dir="auto" style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textAlign: readLang() === 'he' ? 'right' : 'left' }}>{e.name}</bdi>
                       </div>
                     </td>
-                    {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
+                    {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{chips(e.primaryJoints, 160)}{chips(e.jointMovements, 200)}{chips(e.primaryMuscles, 200)}{chips(e.secondaryMuscles, 190)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12 }}>▶</span>}
                       {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
