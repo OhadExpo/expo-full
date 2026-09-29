@@ -168,9 +168,14 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
                 <button key={e.key} type="button" role="listitem" data-owed-row onClick={() => setOpen(e)}
                   style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
                   <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}><bdi>{e.name}</bdi></span>
-                  <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', color: e.amount > 0 ? C.or : 'var(--c-tm)' }}>{e.amount > 0 ? ils(e.amount) : '—'}</span>
+                  {/* no amount (a monthly client): the MONTH DUE tag takes the amount's
+                      place, one tier like every other row (29.9 #448 audit: "—" over
+                      the tag made those rows two-tier on the right) */}
+                  {e.amount > 0
+                    ? <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', color: C.or }}>{ils(e.amount)}</span>
+                    : <span style={{ justifySelf: 'end' }}><Tag e={e} tt={tt} /></span>}
                   <span data-owed-summary style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', minWidth: 0, lineHeight: 1.6 }}>{summaryLine(e, tt)}</span>
-                  <span style={{ justifySelf: 'end' }}><Tag e={e} tt={tt} /></span>
+                  <span style={{ justifySelf: 'end' }}>{e.amount > 0 ? <Tag e={e} tt={tt} /> : null}</span>
                 </button>
               ))}
             </div>

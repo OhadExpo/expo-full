@@ -22,7 +22,7 @@
 // Both tables are owner-only, so for staff and athletes the queries return
 // nothing and the card renders nothing at all.
 import React, { useEffect, useState, useMemo } from 'react';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip, ScrollFade } from './ui';
@@ -35,7 +35,8 @@ import { noDangle } from './script';
 const Chev = ({ open }) => (
   <svg aria-hidden width="11" height="7" viewBox="0 0 9 6" fill="none" style={{
     color: C.ac, display: 'inline-block', width: 14, flexShrink: 0,
-    transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
+    // closed points INTO the row: right in English, left in Hebrew (29.9 #448 audit)
+    transform: open ? 'rotate(0deg)' : (readLang() === 'he' ? 'rotate(90deg)' : 'rotate(-90deg)'), transition: 'transform 180ms ease',
   }}>
     <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
@@ -231,7 +232,8 @@ export default function RevenueSheetCard() {
             sat 18px above the strip's centre (26.9). The title keeps one line at
             the start; the meta wraps inside its own column at the end. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ flexShrink: 0 }}>{tt('From the sheets')}</span>
+          {/* the house strip title (13 / 700 / 0.04em / caps) - it was larger and lighter than every other strip */}
+          <span style={{ flexShrink: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: FN, color: 'var(--c-stripTx)' }}>{tt('From the sheets')}</span>
           <span className="strip-meta" style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
             {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')} · {totalPayments} {tt('payments')} · {totalSessions} {tt('sessions counted')}
           </span>
@@ -299,7 +301,7 @@ export default function RevenueSheetCard() {
                     <td style={{ ...td, textAlign: 'end', color: est ? C.tx : C.td }} dir="ltr" title={est ? `${est.n} ${tt('payments')}${est.unknown ? ` · ${est.unknown} ${tt('without an amount')}` : ''}` : ''}>
                       {est ? ILS(est.est) : '—'}{est && est.unknown ? <span style={{ color: C.or }}> +{est.unknown}?</span> : null}
                     </td>
-                    <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : Math.abs(gap) <= Math.max(300, base * 0.1) ? C.gn : C.or }} dir="ltr">{gap == null ? '—' : (gap > 0 ? '+' : '') + ILS(gap).replace('₪', '') + ' ₪'}</td>
+                    <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : Math.abs(gap) <= Math.max(300, base * 0.1) ? C.gn : C.or }} dir="ltr">{gap == null ? '—' : (gap > 0 ? '+' : gap < 0 ? '−' : '') + ILS(Math.abs(gap))}</td>
                     <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{g.other ? ILS(g.other) : '—'}</td>
                   </tr>
                   {isOpenM && (

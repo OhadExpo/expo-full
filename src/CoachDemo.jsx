@@ -331,6 +331,39 @@ function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac,
 // clickable and does nothing is the thing he objected to — but the panel
 // itself should never have been on a screen shown to a buyer.
 
+// THE OWED CARD (the real OwedCard): the dashboard's, and billing's expanded one
+function DemoOwedCard({ onJumpToTrainee, onNav, expanded = false }) {
+  const [owedOpen, setOwedOpen] = useState(true);
+  const nis = (n) => '₪' + Math.round(n).toLocaleString('en-US');
+        const owed = MOCK_TRAINEES.filter((t) => t.payment === 'OVERDUE');
+  const total = owed.reduce((a, t) => a + (t.monthly || 0), 0);
+  const NB = '\u00a0';
+  const facts = (parts) => parts.map((x) => String(x).replace(/ /g, NB)).join(`${NB}· `);
+  return (
+    <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14, background: C.sf }}>
+      <div className="title-strip" onClick={() => setOwedOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+        <span>{T('Owed')} ({owed.length})</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span dir="ltr" style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.75 }}>{nis(total)}</span><StripCaret open={owedOpen} /></span>
+      </div>
+      {owedOpen && <div style={{ padding: '0 14px 14px' }}>
+        {owed.map((t, n) => (
+          <button key={t.id} type="button" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: n < owed.length - 1 ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
+            <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}><bdi>{t.name}</bdi></span>
+            <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.or }}>{nis(t.monthly || 0)}</span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', minWidth: 0, lineHeight: 1.6, textTransform: 'uppercase' }}>{facts([`${t.isCouple ? 12 : 8} ${T(t.isCouple ? 'couple' : 'personal')}`, `${T('since')} ${fmtNumericDate(dAgo((t.overdueDays || 0) + 30)).slice(0, 5)}`])}</span>
+            <span />
+          </button>
+        ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, marginTop: 12 }}>
+          <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase' }}>{T('From the roster sheet')} · {T('synced')} 12{T('m ago')}</span>
+          {!expanded && <button type="button" onClick={() => onNav && onNav('billing')} style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('Billing')} {readLang() === 'he' ? '←' : '→'}</button>}
+        </div>
+      </div>}
+    </div>
+  );
+}
+
 function DemoDashboard({ onJumpToTrainee, onNav }) {
   // Messages: MARK ALL READ clears the unread dots, as on the real card.
   const [msgsRead, setMsgsRead] = useState(false);
@@ -340,7 +373,6 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
   const [taskScope, setTaskScope] = useState('mine');
   const [revOpen, setRevOpen] = useState(true);   // the real revenue card collapses
   // the real cards' collapse carets + expanders (29.9 #448)
-  const [owedOpen, setOwedOpen] = useState(true);
   const [tasksOpen, setTasksOpen] = useState(true);
   const [msgsOpen, setMsgsOpen] = useState(true);
   const [answeredOpen, setAnsweredOpen] = useState(false);
@@ -452,37 +484,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         </div>}
       </div>
 
-      {/* OWED - the real dashboard's card under Revenue (OwedCard): who owes, how
-          much, since when, from the roster sheet. The demo's overdue clients. */}
-      {(() => {
-        const owed = MOCK_TRAINEES.filter((t) => t.payment === 'OVERDUE');
-        const total = owed.reduce((a, t) => a + (t.monthly || 0), 0);
-        const NB = '\u00a0';
-        const facts = (parts) => parts.map((x) => String(x).replace(/ /g, NB)).join(`${NB}· `);
-        return (
-          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14, background: C.sf }}>
-            <div className="title-strip" onClick={() => setOwedOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
-              <span>{T('Owed')} ({owed.length})</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span dir="ltr" style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.75 }}>{nis(total)}</span><StripCaret open={owedOpen} /></span>
-            </div>
-            {owedOpen && <div style={{ padding: '0 14px 14px' }}>
-              {owed.map((t, n) => (
-                <button key={t.id} type="button" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
-                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: n < owed.length - 1 ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
-                  <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}><bdi>{t.name}</bdi></span>
-                  <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.or }}>{nis(t.monthly || 0)}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', minWidth: 0, lineHeight: 1.6, textTransform: 'uppercase' }}>{facts([`${t.isCouple ? 12 : 8} ${T(t.isCouple ? 'couple' : 'personal')}`, `${T('since')} ${fmtNumericDate(dAgo((t.overdueDays || 0) + 30)).slice(0, 5)}`])}</span>
-                  <span />
-                </button>
-              ))}
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, marginTop: 12 }}>
-                <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase' }}>{T('From the roster sheet')} · {T('synced')} 12{T('m ago')}</span>
-                <button type="button" onClick={() => onNav && onNav('billing')} style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('Billing')} {readLang() === 'he' ? '←' : '→'}</button>
-              </div>
-            </div>}
-          </div>
-        );
-      })()}
+      <DemoOwedCard onJumpToTrainee={onJumpToTrainee} onNav={onNav} />
 
       {/* STORAGE - the real dashboard's slim meter under OWED */}
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 14px', minHeight: 36, boxSizing: 'border-box', padding: '8px 14px', border: `1px solid ${C.cardBd}`, background: C.sf, marginBottom: 14 }}>
@@ -4801,7 +4803,7 @@ const DEMO_REFERENCE_CLIP = 'bvaCXyXeBvU';
 
 const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td }, trial: { label: 'TRIAL', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
-function DemoBilling() {
+function DemoBilling({ onJumpToTrainee }) {
   // CHASE and MARK PAID were inert — no onClick at all — on the screen the run
   // sheet calls his strongest, where he invites the buyer to add the column up.
   // A control that looks live and does nothing is the exact thing he objected
@@ -4827,7 +4829,6 @@ function DemoBilling() {
   const [amount, setAmount] = useState('600');
   const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
   const panel = (children) => <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 16 }}>{children}</div>;
-  const stripH = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` };
   const outstanding = pending.reduce((s, p) => s + p.amount, 0);
   const collected = DEMO_PAYMENTS.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
   // OUTSTANDING and OVERDUE printed the identical figure side by side, which
@@ -4857,15 +4858,19 @@ function DemoBilling() {
     <section>
       {/* At-a-glance summary tiles — mirrors the real BillingView redesign
           (Outstanding / Overdue / Collected this month). */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+      <h2 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Billing')}</h2>
+      {/* the real tiles' grid (.kpi-grid): 2 + the odd one full width on a phone */}
+      <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
         {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending')}`, C.or)}
         {sumTile('Overdue', fmtIls(lateAmt), readLang() === 'he' ? `${lateRows.length} · מעל 14 יום` : `${lateRows.length} · ≥ 14d`, C.rd)}
         {sumTile('Collected MTD', fmtIls(collected), T('received'), C.gn)}
       </div>
+      {/* OWED, expanded - the real billing page's second section */}
+      <DemoOwedCard onJumpToTrainee={onJumpToTrainee || (() => {})} expanded />
       {panel(<>
-        <div style={stripH}>
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, whiteSpace: 'nowrap' }}><SegWord full={<>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{readLang() === 'he' ? (pending.length === 1 ? 'אחת ממתינה' : `${pending.length} ממתינות`) : `${pending.length} ${T('PENDING')}`}</span>}</>} short={<>{T('Requests')}{pending.length > 0 && <span style={{ color: C.or }}>{' · '}{pending.length}</span>}</>} /></span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10, whiteSpace: 'nowrap', flexShrink: 0 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
+        <div className="title-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}>
+          <span style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('PAYMENT REQUESTS')} · {pending.length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : T('Waiting')}</span></span>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-stripTx)', border: '1px solid var(--c-stripTx)', height: 'var(--btn-h-in)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', fontSize: 10, whiteSpace: 'nowrap' }}>+ {T('NEW REQUEST')}</button>
         </div>
         <div>
           {DEMO_PAYMENTS.map(p => {
@@ -4897,12 +4902,12 @@ function DemoBilling() {
         </div>
       </>)}
       {panel(<>
-        <div style={stripH}><span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('ROSTER STATUS')}</span></div>
-        <div>
+        <div className="title-strip" style={{ display: 'flex', alignItems: 'center', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}><span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('ROSTER STATUS')}</span></div>
+        <div style={{ padding: '0 14px' }}>
           {/* ALL of them. It showed the first five of eight under a heading
               that says ROSTER STATUS, so three paying athletes were simply
               missing from the only panel that claims to list the roster. */}
-          {MOCK_TRAINEES.map((t) => {
+          {MOCK_TRAINEES.map((t, ri) => {
             // READ THE ROSTER, do not hard-code by row index. This array said
             // דניאל = PENDING while his own card said PAID, and מאיה = PAID while she
             // is OVERDUE everywhere else. A coach comparing two tabs in a demo
@@ -4912,8 +4917,8 @@ function DemoBilling() {
             // PENDING — pending on an invoice that does not exist. Three states.
             const st = PAY_STATUS[t.payment === 'PAID' ? 'paid' : (!t.monthly ? 'trial' : 'pending')];
             return (
-              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: `1px solid ${C.cardBd}` }}>
-                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{t.name}</span>
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 36, boxSizing: 'border-box', padding: '6px 0', borderBottom: ri < MOCK_TRAINEES.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}><bdi>{t.name}</bdi></span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: 'none', padding: '2px 0' }}>{T(st.label)}</span>
               </div>
             );
@@ -5309,7 +5314,7 @@ export default function CoachDemo() {
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'sessions'  && <DemoSessions mode={sessionsMode} />}
         {tab === 'tasks'     && <DemoTasks />}
-        {tab === 'billing'   && <DemoBilling />}
+        {tab === 'billing'   && <DemoBilling onJumpToTrainee={onJumpToTrainee} />}
         {/* Review WORKOUTS is ALWAYS mounted — display:none otherwise — so the
             /demo iframe loads its wasm + pose model in the background while the
             visitor explores. By the time they click Review, the engine is warm. */}
