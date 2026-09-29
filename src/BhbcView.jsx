@@ -3988,7 +3988,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingTop: 7, paddingBottom: 7, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* as every 22px tag: Nord's normal line rode the caps 1.25px high (#467) */, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
           <Segmented text={tr(focus.emphasis)} style={{ fontFamily: FB, fontSize: 13, color: C.tx }} />
         </div>
       )}

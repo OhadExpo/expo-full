@@ -108,6 +108,19 @@ export function SortArrow({ up }) {
 // the text around it and drawn in its colour. It replaces the ▾ / ▸ text
 // triangles - below 12px a Nord triangle renders as a dash, and two caret
 // shapes on one page read as two systems. `rot` turns it (0 = down, -90 = end).
+// DRAWN SYMBOLS (29.9 #467): Nord has no ▶ ☰ ✕ - each came from a fallback font
+// whose box sat the glyph 1px off the centre of its cell / button. Drawn, sized
+// to the text, centred by geometry.
+export function PlayGlyph() {
+  return <svg aria-hidden viewBox="0 0 8 9" width="0.75em" height="0.85em" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M0.5 0.6v7.8L7.6 4.5z" fill="currentColor" /></svg>;
+}
+export function NotesGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 8" width="0.85em" height="0.7em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M0.5 1h9M0.5 4h9M0.5 7h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>;
+}
+export function CrossGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>;
+}
+
 // THE CHECK GLYPH (29.9 #460): Nord has no ✓ - the fallback font's taller box
 // lifted a "✓ IN" label 2px off its button's centre. Drawn, sized to the text.
 export function CheckGlyph() {

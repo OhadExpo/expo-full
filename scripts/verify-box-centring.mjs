@@ -115,7 +115,7 @@ const MEASURE = (tol) => {
     if (r.bottom < 0 || r.top > innerHeight * 6) continue;
     const cs = getComputedStyle(el);
     const inTop = r.top + (parseFloat(cs.borderTopWidth) || 0), inBot = r.bottom - (parseFloat(cs.borderBottomWidth) || 0);
-    let t = Infinity, b = -Infinity, multi = false, n = 0; const parts = [];
+    let t = Infinity, b = -Infinity, multi = false, n = 0, chart = false; const parts = [];
     const take = (k) => { if (!k) return; if (k.multi) { multi = true; return; } t = Math.min(t, k.top); b = Math.max(b, k.bot); n++; parts.push(k); };
     // letters owned by this box
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -129,7 +129,9 @@ const MEASURE = (tol) => {
     for (const d of el.querySelectorAll('svg, img, *')) {
       if (d === el || owner(d) !== el || !vis(d)) continue;
       const tag = d.tagName.toLowerCase();
-      if (tag === 'svg') take(svgInk(d));
+      // a CHART (a wide svg, no text in the box) draws data, not a glyph to centre:
+      // the waveform on the marketing page read "10.4px off" where its line sat
+      if (tag === 'svg') { const q = d.getBoundingClientRect(); if (q.height >= 24 && q.width > 3 * q.height && !(el.innerText || '').trim()) { chart = true; continue; } take(svgInk(d)); }
       else if (tag === 'img') take(window.__ink(d));
       else if (boxSet.has(d) && getComputedStyle(d).position !== 'absolute') { const q = d.getBoundingClientRect(); take({ top: q.top, bot: q.bottom }); }
     }
@@ -137,7 +139,7 @@ const MEASURE = (tol) => {
     // (a kanban column's header over its cards), not one line to centre
     if (!multi && parts.some((a) => parts.some((q) => q !== a && q.top > a.bot + 1))) multi = true;
     if (multi) { skipped.multi++; continue; }
-    if (!n) { skipped.empty++; continue; }
+    if (!n || chart) { skipped.empty++; continue; }
     if (t < inTop - 1 || b > inBot + 1) { skipped.overflow++; continue; }
     measured++;
     const above = t - inTop, below = inBot - b, off = (above - below) / 2;

@@ -3046,7 +3046,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // padding 10/10, groups share one baseline.
           if (hv === '4') return (
             <div className="pv5-hdr-row" style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',alignItems:'center',columnGap:10,rowGap:6}}><style>{`/* Three columns leave the block name 101px at 360, and "BLOCK #4 — Hypertrophy" then breaks over three lines. The comment above already says the row should wrap at this width; a three-column grid cannot. One column below 420. */
-              @media (max-width: 420px) { .pv5-hdr-row { grid-template-columns: 1fr !important; } }`}</style>
+              @media (max-width: 420px) { .pv5-hdr-row { grid-template-columns: auto auto !important; justify-content: space-between; row-gap: 8px; } .pv5-hdr-row > .pv5-hdr-name { grid-column: 1 / -1; } }`}</style>
               {/* The block name WRAPS; it used to truncate. Truncating did stop the
                   week + left groups being shoved off a phone, but it cost the athlete
                   the name of the block he is training: measured on /demo/athlete at
@@ -3054,7 +3054,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   HYPE...". Letting the row wrap gives the name a full line and moves
                   the week group under it instead, which is the same answer the header
                   nav needed at this width. Nothing wraps at desktop. */}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
+              {/* a phone: the name on line one, THIS WEEK and LEFT sharing line two
+                  (three stacked lines took ~140px for one line of facts; #459 c) */}
+              <span className="pv5-hdr-name" style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
@@ -3125,7 +3127,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // miss as the portal rendering outside the language provider.
         const NAV = [
           ['prog', tt('PROGRAM')], ['bwt', tt('BW')], ['meal', tt('MEAL LOG')],
-          ['hist', `${tt('HISTORY')} (${cw.length})`], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
+          ['hist', cw.length ? `${tt('HISTORY')} (${cw.length})` : tt('HISTORY') /* never "(0)" (#459 g) */], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
         ];
         const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
 
@@ -3171,7 +3173,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',
                     cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                     transition:'background .12s, color .12s'}}>
-                  {vw===k ? '▸ ' : ''}{l}{unreadDot(k)}
+                  {/* no caret on the active tab alone - it pushed that one label off
+                      the centre of its cell (#459 f); the fill says which is open */}
+                  {l}{unreadDot(k)}
                 </button>
               )}
             </div>
@@ -3535,7 +3539,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               hairline box, active cell filled) so it speaks the same boxed
               language as the header stats strip; label style matches the
               strip cell labels. */}
-          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>{tt("WEEK")}</div>
+          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700,textAlign:'center' /* over the week buttons, as BW sits over KG - it floated over W4 in Hebrew (#459 a/b) */}}>{tt("WEEK")}</div>
             {/* Weeks per identity. All fixed 32px so the KG input stays
                 level in every version. */}
             {(() => {
@@ -3800,7 +3804,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             accent: C.or,
             borderColor: C.cardBd,
             title: `${tt('Warm-Up')} · ${vp.name}`,
-            count: `(${vp.warmup.length})`,
+            count: `${vp.warmup.length} ${tt('EX')}`,   // one count format with the day cards (#459 e)
             countColor: C.or,
             // warm-up owns ORANGE (number + title + rail); its tempo goes muted
             // so the warm-up's colour is clearly different from the tempo, which

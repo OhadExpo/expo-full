@@ -138,9 +138,14 @@ function buildBuyLink(program, t) {
 // as twelve distinct heights on one page (17..50px). Height comes from this
 // token now; padding only sets the horizontal inset.
 const CTRL_H = 36;
+// a drawn ↓ sized to the label (the glyph is not in Nord; #467)
+function DownGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 11" width="0.8em" height="0.9em" fill="none" style={{ display: 'inline-block', flexShrink: 0 }}><path d="M5 1v8.5M1.5 6L5 9.5 8.5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
 const baseBtn = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 18px',
-  minHeight: CTRL_H, boxSizing: 'border-box',
+  minHeight: CTRL_H, boxSizing: 'border-box', lineHeight: 1,   // a tight line: in a normal one Hebrew (Heebo) sat 1-1.5px low in the 36px box (#467)
   borderRadius: 0, border: 'none', fontFamily: FN, fontSize: 11, fontWeight: 700,
   cursor: 'pointer', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'all 0.15s',
 };
@@ -665,7 +670,8 @@ function Hero({ onOpenQuiz }) {
           background: C.ac, color: '#000', padding: '0 28px',
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
         }}>
-          {t('hero.cta.browse')}
+          {/* the ↓ drawn: Nord has none, and the fallback glyph hung 1.5px below the words (#467) */}
+          {String(t('hero.cta.browse')).replace(/\s*↓\s*$/, '')}<DownGlyph />
         </a>
         <a href="https://expo-app.co.il/try"
            target="_blank" rel="noopener"
@@ -1869,7 +1875,7 @@ function WhyTemplates() {
           background: C.ac, color: '#000', padding: '12px 24px',
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
-          {t('why.cta')}
+          {String(t('why.cta')).replace(/\s*↓\s*$/, '')}<DownGlyph />
         </a>
       </div>
       <p style={{

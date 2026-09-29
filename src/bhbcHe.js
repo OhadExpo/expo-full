@@ -134,7 +134,7 @@ export const HE = {
   'GAME': 'משחק',
   // A LIFT is one athlete's own weight-room session (24.9); the team block
   // before a practice is 'אימון כוח'. Two words, two things.
-  'Lift': 'הרמה אישית',
+  'Lift': 'כוח אישי',
   'Conditioning': 'קונדישן',
   'Recovery': 'התאוששות',
   'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה.',
@@ -457,7 +457,7 @@ export const HE = {
   'Session load · RPE x minutes': 'עומס אימון · RPE כפול דקות',
   'No load logged yet': 'עוד לא נרשם עומס',
   '7 days': '7 ימים',
-  'Log session': 'הוספת אימון',
+  'Log session': 'רישום אימון',
   'Back from injury, loading too fast': 'חזר מפציעה ועולה בעומס מהר מדי',
   'back': 'חזר לפני',
   'days': 'ימים',
@@ -791,8 +791,8 @@ Object.assign(HE, {
   // Session". The team block before a practice is אימון כוח; a player's own
   // weight-room session is הרמה.
   'Log S&C Session': 'רישום כוח קבוצתי',
-  'Log lift': 'רישום הרמה אישית',
-  'Lifts': 'הרמות אישיות',
+  'Log lift': 'רישום כוח אישי',
+  'Lifts': 'כוח אישי',
   'S&C session': 'אימון כוח קבוצתי',
   'S&C sessions': 'אימוני כוח קבוצתי',
   'S&C': 'כוח קבוצתי',
@@ -843,7 +843,7 @@ Object.assign(HE, {
   'S&C not logged yet': 'כוח עוד לא נרשם',
   flies: 'טסים',
   // H: the head coach report - where each line comes from
-  'From the club calendar': 'מלוח המועדון',
+  'From the club calendar': 'מהלו״ז של המועדון',
   'From the club calendar and the logged S&C sessions': 'מלוח המועדון ומאימוני הכוח שנרשמו',
   'From today’s availability, never better than the medical record': 'מהזמינות של היום — אף פעם לא טובה ממה שכתוב בתיק הרפואי',
   'From the medical record': 'מהתיק הרפואי',

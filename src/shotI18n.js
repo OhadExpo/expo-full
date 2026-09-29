@@ -301,7 +301,7 @@ export const SHOT_I18N = {
     savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps === 1 ? 'זריקה אחת' : `${reps} זריקות`}`,
     savedToast: 'ניתוח הזריקה נשמר', saveFail: 'השמירה נכשלה', copiedToast: 'הסיכום הועתק', copyFail: 'ההעתקה נכשלה',
 
-    verdictNa: 'סיימנו לקרוא את הזריקה', verdictOk: 'מכניקה נקייה', verdictMid: 'בסיס טוב — יש כמה דברים להדק', verdictLow: 'בונים את השרשרת מחדש מהרגליים למעלה',
+    verdictNa: 'הזריקה נותחה', verdictOk: 'מכניקה נקייה', verdictMid: 'בסיס טוב — יש כמה דברים להדק', verdictLow: 'בונים את השרשרת מחדש מהרגליים למעלה',
     quality: { good: 'טוב', fair: 'בינוני', poor: 'חלש' },
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,

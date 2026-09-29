@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret } from './ui';
+import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret, PlayGlyph, NotesGlyph } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
@@ -548,8 +548,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     {chipCell(ex.primaryMuscles, 230)}
                     {chipCell(ex.secondaryMuscles, 210)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {hasVideo(ex) && <span title={tt('Has a demo video')} style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
-                      {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                      {hasVideo(ex) && <span title={tt('Has a demo video')} style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><PlayGlyph /></span>}
+                      {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><NotesGlyph /></span>}
                       {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
                     </td>
                     {!narrowUI && (

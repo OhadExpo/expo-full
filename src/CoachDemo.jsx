@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -3588,7 +3588,7 @@ function DemoExercises() {
                     <td className="cd-ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max }}>
                       {vals.length === 0 ? <span style={{ color: C.td }}>·</span> : (
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
-                          {vals.slice(0, 3).map((x, n) => <span key={n} data-l10n-data="" style={{ display: 'inline-block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.15, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', padding: '2px 6px' }}>{taxoHe(x, readLang())}</span>)}
+                          {vals.slice(0, 3).map((x, n) => <span key={n} data-l10n-data="" style={{ display: 'inline-block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', padding: '2px 6px' }}>{taxoHe(x, readLang())}</span>)}
                           {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap' }}>+{vals.length - 3}</span>}
                         </div>
                       )}
@@ -3609,8 +3609,8 @@ function DemoExercises() {
                     </td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{chips(e.primaryJoints, 160)}{chips(e.jointMovements, 200)}{chips(e.primaryMuscles, 200)}{chips(e.secondaryMuscles, 190)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12 }}>▶</span>}
-                      {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                      {demoHasVideo(e) && <span title={T('Has a demo video')} style={{ color: C.ac, marginInlineEnd: demoHasNotes(e) ? 8 : 0, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><PlayGlyph /></span>}
+                      {demoHasNotes(e) && <span title={T('Has coaching cues')} style={{ color: C.or, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><NotesGlyph /></span>}
                     </td>
                     {/* Edit / delete, as on the real row - desktop; on a phone the row opens it */}
                     {!narrowUI && (<>                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
@@ -4373,7 +4373,7 @@ function DemoGroupFloor() {
                 <span style={{ display: 'inline-flex', gap: 8, flexShrink: 0 }}>
                   <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, height: 'var(--btn-h)', minHeight: 0, minWidth: 72, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.cardBd}`, padding: '0 10px', fontSize: 10 }}>{inFloor ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckGlyph />{T('IN')}</span> : T('CHECK IN')}</button>
                   {/* the real card's remove - a 36px square */}
-                  <button title={T('Demo only')} style={{ ...baseBtn, width: 'var(--btn-h)', height: 'var(--btn-h)', minHeight: 0, minWidth: 0, padding: 0, background: 'transparent', color: C.rd, border: `1px solid ${C.cardBd}`, fontSize: 12 }}>✕</button>
+                  <button title={T('Demo only')} style={{ ...baseBtn, width: 'var(--btn-h)', height: 'var(--btn-h)', minHeight: 0, minWidth: 0, padding: 0, background: 'transparent', color: C.rd, border: `1px solid ${C.cardBd}`, fontSize: 12 }}><CrossGlyph /></button>
                 </span>
               </div>
               <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>

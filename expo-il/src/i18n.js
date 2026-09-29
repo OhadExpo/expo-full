@@ -265,7 +265,7 @@ const STRINGS = {
   'why.col3.autoreg':    { en: 'Coach-driven',         he: 'לפי המאמן' },
 
   // Form review row
-  'why.row.form':        { en: 'FORM REVIEW',          he: 'בדיקת ביצוע' },
+  'why.row.form':        { en: 'FORM REVIEW',          he: 'בדיקת טכניקה' },
   'why.col1.form':       { en: 'Mirror only',          he: 'מראה בלבד' },
   'why.col2.form':       { en: 'Auto rep counter + side-by-side compare', he: 'ספירת חזרות אוטומטית + השוואת סרטונים' },
   'why.col3.form':       { en: 'Personal video feedback', he: 'משוב אישי על סרטון' },
@@ -540,7 +540,7 @@ const STRINGS = {
     en: "Tap the bar to add a rep. The path lights a trough at each tap — that's exactly how the portal counts off your real video.",
     he: 'תלחץ על הגרף כדי להוסיף חזרה. המסלול מאיר נקודת תחתית בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
   },
-  'demo.rep.reset':   { en: '↺ RESET',              he: '↺ אפס' },
+  'demo.rep.reset':   { en: '↺ RESET',              he: '↺ איפוס' },
   'demo.cmp.h':       { en: 'Side-by-side · interactive', he: 'השוואה צד-לצד · אינטראקטיבי' },
   'demo.cmp.body': {
     en: 'Tap a tile to focus it — same UI as the portal when you compare today against your last attempt at the same load.',
