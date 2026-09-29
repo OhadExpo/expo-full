@@ -2140,6 +2140,22 @@ function FullOrShort({ full, short, style }) {
 
 // the competition's short name for one-row lines (a title fits by wording)
 const COMP_SHORT = { 'Winner Cup': 'Cup', 'Winner League': 'League', 'Premier League': 'League', 'State Cup': 'Cup' };
+// ONE SECTION HEAD IN THE ATHLETE POPUP (29.9 #413, Ohad: "the entire card pop
+// up can be slightly better designed"). Medical was a 48px row with a pill in
+// it, Full history a 38px white row, League Stats a navy strip inside an
+// orange frame, Bodyweight a bare 9px caption - four sections, four headers.
+// Now every section is the same bordered box under the same 40px band: the
+// label, its meta right after it, an action (if any) at the end.
+function PopHead({ label, meta = null, right = null, flush = false, dataKey }) {
+  return (
+    <div data-pop-head={dataKey || ''} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 40, boxSizing: 'border-box', padding: '0 12px', background: 'var(--c-sf2)', borderBottom: flush ? 'none' : `1px solid ${C.cardBd}` }}>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, whiteSpace: 'nowrap' }}>{label}</span>
+      {meta != null && meta !== '' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{meta}</span> : null}
+      {right ? <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>{right}</span> : null}
+    </div>
+  );
+}
+
 function GameLineModal({ line, onClose }) {
   const tr = useT();
   const b = line.box || {};
@@ -2415,16 +2431,14 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           {/* 6px around the 36px controls, one pill width (27.9 #349: the header
               and each record stood ~56px; OUT and AVAILABLE were different
               widths, so the injury after them started at two x's) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', minHeight: 48, boxSizing: 'border-box', borderBottom: injuries.length ? `1px solid ${C.cardBd}` : 'none' }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>{tr('Medical')}</span>
-            {!injuries.length && <StatusPill status="available" small />}
-            {onInjury && <button onClick={onInjury} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 10px', cursor: 'pointer' }}>{injuries.length ? tr('Update') : `+ ${tr('Report injury')}`}</button>}
-          </div>
+          <PopHead dataKey="medical" label={tr('Medical')} flush={!injuries.length}
+            meta={injuries.length ? null : <><span style={{ width: 7, height: 7, borderRadius: '50%', background: MED_STATUS.available.color }} />{tr('Available')}</>}
+            right={onInjury ? <button onClick={onInjury} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{injuries.length ? tr('Update') : `+ ${tr('Report injury')}`}</button> : null} />
           {injuries.map((inj) => {
             const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
             const lastP = (inj.progress || [])[0];
             return (
-              <div key={inj.id} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusPill status={inj.status} small full /></span>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
@@ -2445,12 +2459,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             neutral card - rather than League Stats' filled navy strip, which
             belongs to the marquee block. */}
         <div style={{ border: `1px solid ${C.cardBd}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: activity.length ? `1px solid ${C.cardBd}` : 'none' }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>{tr('Full history')}</span>
-            {activity.length ? (
-              <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{activity.length}</span>
-            ) : null}
-          </div>
+          <PopHead dataKey="history" label={tr('Full history')} meta={activity.length || null} flush={!activity.length} />
           {/* The cut must land ON a divider, never through a row: the pitch is
               pinned at 33 (font-independent, so Heebo cannot shift it) and the cap
               is a whole number of rows plus the 2px border-box border.
@@ -2526,7 +2535,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                         <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{monFor(d0.getMonth(), MON[d0.getMonth()])} {d0.getFullYear()}</span>
-                      <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, color: ORANGE, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{monthSummary(group)}</span>
+                      <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, color: 'color-mix(in srgb, var(--c-stripTx, #fff) 78%, transparent)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{monthSummary(group)}</span>
                     </button>
                     {open && group.map((a, i) => (
                 <div key={i} onClick={a.gameLine ? () => setGameOpen(a.gameLine) : undefined} role={a.gameLine ? 'button' : undefined} tabIndex={a.gameLine ? 0 : undefined}
@@ -2599,27 +2608,15 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           // smaller font). Then the shooting, the rating and games played.
           const avg = [['PTS', leaguePlayer.ppg], ['REB', leaguePlayer.rpg], ['AST', leaguePlayer.apg], ['MIN', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
           return (
-            <div style={{ border: `1px solid ${ORANGE}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap' }}>{tr('League Stats')}</span>
-                {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{leagueSeason}</span>}
-                {/* WHERE THESE NUMBERS COME FROM, and how old they are.
-                    Ohad read "LAST GAME - VS MACCABI TEL AVIV" as the club's
-                    last game and said "that's not even correct we had a playoff
-                    game against holon". The card was right about the FEED and
-                    silent about the feed's limits: re-scraped live, basket.co.il
-                    publishes 194 games for this season and BHBC appears in 26 of
-                    them, the newest being that Maccabi game. A panel that states
-                    its source and its date cannot be mistaken for the club's own
-                    record. */}
-                {leagueUpdatedAt && (
-                  <span className="strip-meta" style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}
-                    title={tr('Official league feed (basket.co.il). Only games the league has published appear here.')}>
-                    {/* in the zone's language (#305 N-D3): it was Hebrew on the English screen */}
-                    {tr('Premier League') + ' · ' + fmtNumericDate(leagueUpdatedAt)}
-                  </span>
-                )}
-              </div>
+            <div style={{ border: `1px solid ${C.cardBd}` }}>
+              {/* WHERE THESE NUMBERS COME FROM, and how old they are (the feed
+                  publishes only the league's own games - Ohad read its last
+                  game as the club's). In the zone's language (#305 N-D3). */}
+              <PopHead dataKey="league" label={tr('League Stats')} meta={leagueSeason || null} right={leagueUpdatedAt ? (
+                <span className="strip-meta" style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  title={tr('Official league feed (basket.co.il). Only games the league has published appear here.')}>
+                  {tr('Premier League') + ' · ' + fmtNumericDate(leagueUpdatedAt)}
+                </span>) : null} />
               {lastG && (
                 <div role="button" tabIndex={0} className="bhbc-row" onClick={() => setGameOpen(lastGLine)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(lastGLine); } }} style={{ cursor: 'pointer' }}>
@@ -2641,7 +2638,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                     {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ['MIN', lastG.min]].map(([k, v], i) => (
                       <div key={k} style={{ padding: '8px 12px', borderInlineEnd: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
                         <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr(k)}</div>
-                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: k === 'PTS' ? ORANGE_DEEP : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
                       </div>
                     ))}
                   </div>
@@ -2663,9 +2660,9 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             trend, not a headline - the stats, load and medical answer "can he
             train today", and the weight chart is what you scroll to. */}
         {bw && bw.length > 0 && (
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>{tr('Bodyweight')}</div>
-            <BWChart entries={bw} />
+          <div style={{ border: `1px solid ${C.cardBd}` }}>
+            <PopHead dataKey="bw" label={tr('Bodyweight')} />
+            <div style={{ padding: 12 }}><BWChart entries={bw} /></div>
           </div>
         )}
         {program && (program.current || program.count > 0) && (
