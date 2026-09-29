@@ -975,7 +975,9 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, gu
       // the card itself does - never the first tappable ROW, which then opened
       // wearing a focus frame as if selected (29.9 #408: "blue border around
       // the last game ... looks bad"). Tab still reaches every control.
-      const field = node.querySelector('input:not([type="hidden"]), textarea, select');
+      // (A status control in the card's header is a choice, not the form -
+      // it opts out with data-no-autofocus, 29.9 #409.)
+      const field = node.querySelector('input:not([type="hidden"]):not([data-no-autofocus]), textarea:not([data-no-autofocus]), select:not([data-no-autofocus])');
       if (field) { field.focus?.(); return; }
       if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '-1');
       node.style.outline = 'none';

@@ -293,6 +293,43 @@ const AVAIL = {
   5: { label: 'Out · Pers', color: '#7C828B' },
 };
 
+// THE ONE AVAILABILITY CONTROL (29.9 #410 + #409, Ohad: "the dropdown is not
+// working perfectly, research on expo tasks how you did it perfectly and apply
+// the system of dropdown everywhere" / "full - status change it to the same
+// built"). EXPO Tasks' status pill is a NATIVE <select> dressed as the control:
+// the browser opens, positions, scrolls and closes it, onChange always fires,
+// and the keyboard works - the custom popover it replaced jumped and swallowed
+// clicks, and so did ours. Same here: the underlined status entry (his rule: an
+// entry is underlined, an action is a box), the status dot and the app's chevron
+// are drawn around a real <select>. Options under the medical floor are disabled
+// (the medical record owns them). Every event stops at the control, so a pick
+// never also opens the row or the card behind it.
+function AvailSelect({ avail, floor = 1, onPick, readOnly = false, minWidth = 132 }) {
+  const tr = useT();
+  const av = AVAIL[avail] || AVAIL[1];
+  const box = { position: 'relative', display: 'inline-flex', alignItems: 'center', minWidth, height: 'var(--btn-h)', boxSizing: 'border-box', borderBottom: `2px solid ${avail > 1 ? av.color : C.cardBd}` };
+  const txt = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, whiteSpace: 'nowrap' };
+  const dot = <span aria-hidden="true" style={{ position: 'absolute', insetInlineStart: 2, top: '50%', width: 7, height: 7, marginTop: -3.5, borderRadius: '50%', background: av.color, pointerEvents: 'none' }} />;
+  if (readOnly || !onPick) {
+    return <span data-avail="" style={{ ...box, ...txt, gap: 7, padding: '0 2px' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</span>;
+  }
+  const stop = (e) => e.stopPropagation();
+  const floorTitle = `${tr(AVAIL[floor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}`;
+  return (
+    <span data-avail="" style={box} onClick={stop} onMouseDown={stop} onPointerDown={stop} onKeyDown={stop}>
+      {dot}
+      <select className="avail-select" data-no-autofocus="" value={avail} aria-label={tr('Change availability')} title={floor > 1 ? floorTitle : tr('Change availability')}
+        onChange={(e) => onPick(Number(e.target.value))} onClick={stop} onMouseDown={stop} onKeyDown={stop}
+        style={{ ...txt, textAlign: 'start', textAlignLast: 'start', width: '100%', height: '100%', minHeight: 0, boxSizing: 'border-box', margin: 0, paddingBlock: 0, paddingInlineStart: 16, paddingInlineEnd: 18, background: 'transparent', border: 'none', borderRadius: 0, outlineOffset: 2, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}>
+        {[1, 2, 3, 4, 5].map((code) => (
+          <option key={code} value={code} disabled={code < floor}>{tr(AVAIL[code].label)}</option>
+        ))}
+      </select>
+      <svg aria-hidden="true" viewBox="0 0 9 6" fill="none" width="9" height="6" style={{ position: 'absolute', insetInlineEnd: 2, top: '50%', marginTop: -3, color: C.tm, pointerEvents: 'none' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    </span>
+  );
+}
+
 
 const DENSITY_BANDS = [
   { max: 20, key: 'Low Intensity', color: '#37B27C' },
@@ -2016,7 +2053,7 @@ function attendance28(rec, days) {
           onLog={canLog ? () => { setLiftReturn(detailFor); setLogFor(detailFor); setDetailFor(null); } : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
-          onCycleAvail={canLog ? () => cycleAvail(detailFor) : null}
+          onCycleAvail={canLog ? (code) => cycleAvail(detailFor, code) : null}
           onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
       })()}
@@ -2142,7 +2179,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
-  const av = AVAIL[avail];
+  const availFloor = (injuries || []).reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
   // Unified activity: the zone's own session rows + detailed EXPO gym sessions (client_workouts).
   let activity = [];
   // TWO DISTINCT KINDS, NAMED. Ohad, 24.9: the team S&C block and a personal
@@ -2238,13 +2275,11 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr(t.position) || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
-          {/* THE SAME CHIP AS THE LOAD BOARD'S (#305 E1): tinted only when he is
-              not Full, so the popup and the board say one thing one way. */}
-          {onCycleAvail ? (
-            <button onClick={onCycleAvail} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${av.color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${av.color} 45%, transparent)` : `1px solid ${C.cardBd}`, padding: '0 11px', cursor: 'pointer', transition: 'color .12s, border-color .12s' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</button>
-          ) : (
-            <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: avail > 1 ? `color-mix(in srgb, ${av.color} 12%, transparent)` : 'transparent', border: avail > 1 ? `1px solid color-mix(in srgb, ${av.color} 45%, transparent)` : `1px solid ${C.cardBd}`, padding: '0 11px' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</span>
-          )}
+          {/* THE LOAD BOARD'S OWN CONTROL (29.9 #409): one availability entry,
+              one build, on the board and here. */}
+          <span style={{ marginInlineStart: 'auto', display: 'inline-flex' }}>
+            <AvailSelect avail={avail} floor={availFloor} onPick={onCycleAvail} />
+          </span>
         </div>
         <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {/* The biggest numbers on the card were three em-dashes for anyone whose
@@ -4439,17 +4474,6 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
 
 function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen, onMedical, today }) {
   const tr = useT();
-  // the athlete whose availability picker is open (one at a time); a tap
-  // anywhere else or Escape closes it without changing anything
-  const [availPick, setAvailPick] = useState(null);
-  useEffect(() => {
-    if (!availPick) return undefined;
-    const close = (e) => { if (!(e.target.closest && e.target.closest('[data-avail-pick]'))) setAvailPick(null); };
-    const esc = (e) => { if (e.key === 'Escape') setAvailPick(null); };
-    const t = setTimeout(() => document.addEventListener('pointerdown', close), 0);
-    document.addEventListener('keydown', esc);
-    return () => { clearTimeout(t); document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
-  }, [availPick]);
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
   const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
@@ -4601,41 +4625,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     </div>
                   );
                 })()}
-                <div data-lbl="Availability" style={{ position: 'relative' }}>
-                  {cycleAvail ? (
-                    // A STATE YOU SET, NOT A BUTTON YOU PRESS (27.9 #345, Ohad: "too
-                    // easy to accidentally tap" / "med and the status ... should not
-                    // look the same"). His control-material rule: an entry is an
-                    // underlined field, an action that opens something is a box.
-                    // One tap opens the choices; nothing changes until one is picked.
-                    <button onClick={(e) => { e.stopPropagation(); setAvailPick((p) => (p === t.id ? null : t.id)); }} aria-haspopup="listbox" aria-expanded={availPick === t.id}
-                      title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Change availability')}
-                      className="bhbc-avail-entry" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, borderRadius: 0, padding: '0 2px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}</span>
-                      {/* the app's one dropdown chevron (the status menus'), not a 9px ▾ */}
-                      <svg aria-hidden="true" viewBox="0 0 9 6" fill="none" width="9" height="6" style={{ color: C.tm, flexShrink: 0, transform: availPick === t.id ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    </button>
-                  ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, borderBottom: `2px solid ${avail > 1 ? AVAIL[avail].color : C.cardBd}`, padding: '0 2px', whiteSpace: 'nowrap' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
-                    </span>
-                  )}
-                  {cycleAvail && availPick === t.id && (
-                    <div role="listbox" aria-label={tr('Change availability')} onClick={(e) => e.stopPropagation()} data-avail-pick=""
-                      style={{ position: 'absolute', insetInlineEnd: 0, top: 'calc(100% + 4px)', zIndex: 30, minWidth: 180, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, boxShadow: C.cardShadow }}>
-                      {[1, 2, 3, 4, 5].map((code) => {
-                        const below = code < medFloor, on = code === avail;
-                        return (
-                          <button key={code} role="option" aria-selected={on} disabled={below}
-                            onClick={() => { cycleAvail(t.id, code); setAvailPick(null); }}
-                            title={below ? tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.') : undefined}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, width: '100%', height: 36, padding: '0 12px', border: 'none', borderBottom: `1px solid ${C.cardBd}`, background: on ? 'var(--c-sf2)' : 'transparent', color: below ? C.td : C.tx, opacity: below ? 0.5 : 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: below ? 'not-allowed' : 'pointer', textAlign: 'start', whiteSpace: 'nowrap' }}>
-                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[code].color, flexShrink: 0 }} />{tr(AVAIL[code].label)}{on ? <span style={{ marginInlineStart: 'auto', color: C.tm }}>✓</span> : null}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div data-lbl="Availability">
+                  <AvailSelect avail={avail} floor={medFloor} onPick={cycleAvail ? (code) => cycleAvail(t.id, code) : null} />
                 </div>
                 {hasRead && (<div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />

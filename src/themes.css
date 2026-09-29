@@ -1733,7 +1733,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-area: name !important; align-self: stretch !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: calc(2 * var(--btn-h) + 6px); }
   .bhbc-zone .bhbc-load-row > [data-lbl="last lift"] { display: none !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] { grid-area: avail !important; padding: 0 !important; }
-  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > .bhbc-avail-entry, .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > span { width: 112px !important; min-width: 0 !important; height: var(--btn-h) !important; }
+  .bhbc-zone .bhbc-load-row > [data-lbl="Availability"] > span { width: 112px !important; min-width: 0 !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="actions"] { grid-area: med !important; justify-self: stretch !important; width: 112px !important; max-width: 112px !important; }
   .bhbc-zone .bhbc-load-row > [data-lbl="actions"] > button { width: 100% !important; height: var(--btn-h) !important; }
   .bhbc-zone .bhbc-load-row [data-name] { line-height: 16px; }
@@ -1861,3 +1861,14 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .rs-table tbody > tr:last-child > td { border-bottom-color: transparent !important; }
 /* a body whose first child is a ruled info row opens flush under its strip */
 :has(> .app-first-row:first-child) { padding-top: 0 !important; }
+
+/* The availability control (BHBC, 29.9 #410): a native select dressed as an
+   underlined entry - it draws its own dot and chevron, so no global chevron. */
+select.avail-select {
+  background-image: none !important;
+  padding-right: 18px !important;
+}
+[dir="rtl"] select.avail-select, select.avail-select:dir(rtl) {
+  padding-right: 16px !important;
+  padding-left: 18px !important;
+}
