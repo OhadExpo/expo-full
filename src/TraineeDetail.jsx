@@ -620,30 +620,6 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           .td-hdr-contact { flex-basis: 100%; white-space: normal !important; word-break: break-word; }
           .td-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
         }
-        /* THE ACTION BAR + SECTION TABS (#456) - see the bar below */
-        .td-actions { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-        .td-actions > .td-act { flex: 0 0 auto; }
-        .td-actions > .td-notif { margin-inline-start: auto; }
-        .td-secs { display: flex; flex-wrap: wrap; column-gap: 18px; row-gap: 2px; width: 100%; align-items: center; }
-        .td-sec .td-sec-short { display: none; }
-        @media (max-width: 900px) {
-          .td-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-          .td-actions > .td-act { width: 100%; min-width: 0; padding: 0 6px !important; }
-          .td-actions > .td-back { grid-row: 1; grid-column: 1; }
-          .td-actions > .td-notif { grid-row: 1; grid-column: 2 / 4; margin: 0; width: 100%; min-width: 0; }
-          .td-actions:not(.td-archived) > .td-log { grid-column: span 2; }
-        }
-        @media (max-width: 620px) {
-          /* the section tabs: the same 3-column grid, text centred in equal
-             cells, the active one underlined; VIEW ALL widens so the last row
-             is never ragged */
-          .td-secs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 8px; row-gap: 0; }
-          .td-secs > .td-sec { width: 100%; min-width: 0; height: var(--btn-h) !important; }
-          .td-secs.td-secs-r2 > .td-sec:first-child { grid-column: span 2; }
-          .td-secs.td-secs-r1 > .td-sec:first-child { grid-column: 1 / -1; }
-          .td-sec .td-sec-full { display: none; }
-          .td-sec .td-sec-short { display: inline; }
-        }
       `}</style>
       {/* 17.9, Ohad on the two rows here: "designed ugly, un-asthetic and not nice
           for the eye or ocd aligned". Two faults, both now gone:

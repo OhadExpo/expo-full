@@ -1365,11 +1365,11 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
 function DemoNotifToggle() {
   const [off, setOff] = useState(false);
   return (
-    <button onClick={() => setOff(o => !o)} title={T("Demo only — mute this athlete's notifications")}
-      style={{ background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: off ? C.td : C.tx }}>{T('NOTIFICATION')}</span>
-      <span style={{ width: 36, height: 20, borderRadius: 10, background: off ? C.sf3 : 'rgba(46,213,115,0.251)', border: `1px solid ${off ? C.bd2 : 'rgba(46,213,115,0.376)'}`, position: 'relative', transition: 'all .15s' }}>
-        <span style={{ width: 16, height: 16, borderRadius: 8, background: off ? C.td : C.gn, position: 'absolute', top: 1, left: off ? 1 : 18, transition: 'all .15s' }} />
+    <button className="td-notif" onClick={() => setOff(o => !o)} title={T("Demo only — mute this athlete's notifications")} aria-pressed={!off}
+      style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: off ? C.td : C.tx, whiteSpace: 'nowrap' }}>{T('NOTIFICATION')}</span>
+      <span style={{ width: 34, height: 18, borderRadius: 9, background: off ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
+        <span style={{ width: 14, height: 14, borderRadius: 7, background: off ? C.tm : C.ac, position: 'absolute', top: 2, insetInlineStart: off ? 2 : 18, transition: 'all .15s' }} />
       </span>
     </button>
   );
@@ -1776,6 +1776,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
     portal: 'Demo only — in the full app this opens what the athlete sees in their portal.',
     edit: 'Demo only — in the full app this opens the athlete’s record for editing.',
     archive: 'Demo only — in the full app this archives the athlete and stops their billing.',
+    analysis: 'Demo only — in the full app this opens the training analysis: progression across blocks and what to program next.',
   };
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
@@ -1801,6 +1802,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // clicking the active tab again returns to View All. Mirrors TraineeDetail.jsx.
   const toggleSec = (id) => setActiveSecs(prev => (prev.size === 1 && prev.has(id)) ? new Set() : new Set([id]));
   const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
+  const DEMO_ACT = { ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '0 12px', height: 'var(--btn-h)', minHeight: 0, boxSizing: 'border-box', whiteSpace: 'nowrap' };
   return (
     <section>
       {/* Mobile: the Vitals grid's fixed repeat(3,132px) (396px + gaps)
@@ -1811,41 +1813,24 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           .demo-td-vitals { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
         }
       `}</style>
-      {/* Back + action bar. Left-aligned BACK then the action cluster —
-          same layout + button set as the real coach app's TraineeDetail
-          (LOG SESSION / PORTAL / EDIT / NOTIFICATION toggle / ARCHIVE).
-          Demo-only: clicks are no-ops, tooltipped "Demo only". For a solo
-          athlete the status menu lives inside the identity card strip (as in
-          the real app); couples keep it here since their layout has no strip. */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
-        <button onClick={onBack} style={{
-          ...baseBtn, background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`,
-        }}>{backLabel}</button>
-        {isCouple && <DemoStatusMenu />}
-        <button onClick={() => setActionNote('log')} style={{
-          ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
-        }}>{T('LOG SESSION')}</button>
-        <button onClick={() => setActionNote('portal')} style={{
-          ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
-        }}>{T('PORTAL')}</button>
-        <button onClick={() => setActionNote('edit')} style={{
-          ...baseBtn, background: 'transparent', color: C.tx,
-          border: `1px solid ${C.bd}`, padding: '0 14px', fontSize: 11,
-        }}>{T('EDIT')}</button>
+      {/* The real athlete page's action bar, 1:1 (29.9 #456): the same order,
+          the same grid (themes.css .td-actions) - one row on a desktop, BACK |
+          NOTIFICATION / EDIT | PORTAL | ANALYSIS / LOG SESSION | ARCHIVE on a
+          phone. A couple's status menu lives in its identity card. */}
+      <div className="td-actions">
+        <button className="td-act td-back" onClick={onBack} style={{ ...DEMO_ACT, color: 'var(--c-ac)' }}>{backLabel}</button>
+        <button className="td-act" onClick={() => setActionNote('edit')} style={DEMO_ACT}>{T('EDIT')}</button>
+        <button className="td-act" onClick={() => setActionNote('portal')} style={DEMO_ACT}>{T('PORTAL')}</button>
+        <button className="td-act" onClick={() => setActionNote('analysis')} style={DEMO_ACT}>{T('ANALYSIS')}</button>
+        <button className="td-act td-log" onClick={() => setActionNote('log')} style={DEMO_ACT}>{T('LOG SESSION')}</button>
+        <button className="td-act" onClick={() => setActionNote('archive')} style={{ ...DEMO_ACT, color: 'var(--c-tm)' }}>{T('ARCHIVE')}</button>
         <DemoNotifToggle />
-        <button onClick={() => setActionNote('archive')} style={{
-          ...baseBtn, background: 'transparent', color: C.rd,
-          border: `1px solid rgba(255,71,87,0.251)`, padding: '0 14px', fontSize: 11,
-        }}>{T('ARCHIVE')}</button>
-        {actionNote && (
-          <div style={{ flex: '1 1 100%', fontFamily: FB, fontSize: 11.5, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8, marginTop: 2 }}>
-            {T(ACTION_NOTE[actionNote])}
-          </div>
-        )}
       </div>
+      {actionNote && (
+        <div style={{ fontFamily: FB, fontSize: 11.5, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8, margin: '-4px 0 14px' }}>
+          {T(ACTION_NOTE[actionNote])}
+        </div>
+      )}
 
       {/* Couple branch: per-member columns first (name/email/phone/age/
           weight/height/goals/injuries/BW), then a row of SHARED panels
@@ -1959,7 +1944,6 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         // cluster → section cards (Vitals·Injuries·Goals, Bodyweight, Billing,
         // Programs, Recent Workouts) stacked full-width, not the old 2-col
         // key/value panels.
-        const isHeb = /[֐-׿]/.test(trainee.name || '');
         const overdue = trainee.payment === 'OVERDUE';
         const workoutsCount = trainee.dormantDays != null ? 4 : 12;
         const perSession = trainee.monthly ? Math.round(trainee.monthly / 8) : 0;
@@ -1993,28 +1977,25 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         const secTitle = (t) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{T(t)}</span>;
         return (
         <div>
-          {/* Identity header strip — name (cyan, glow) + email·phone on the
-              left, interactive status dropdown on the right (real app parity). */}
-          <DemoDetailCard style={{ marginBottom: 8 }}
-            headerRight={<DemoStatusMenu />}
-            header={<span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, minWidth: 0, fontWeight: 700, fontSize: isHeb ? 16 : 14, fontFamily: isHeb ? FH : undefined, letterSpacing: isHeb ? 0 : '0.04em', textTransform: isHeb ? 'none' : 'uppercase' }}>
-              <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
-              <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500, minWidth: 0 }}>{trainee.email}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
-            </span>}>
-            {/* Header stat cluster removed (#139 parity): its facts live in their
-                real homes — billing terms in Billing, Format in Vitals. Header is
-                just identity + status. */}
-          </DemoDetailCard>
+          {/* No identity band: the real athlete page removed it (Ohad: "remove the
+              cyan line beneath [name]" - the coach clicked in from the roster, and
+              status lives on the roster card's menu). 1:1 with it (29.9 #456). */}
 
           {/* Section-filter tab bar — WRAPS to fit (real parity): every tag stays
               visible, no horizontal scroll. Empty = everything shows. */}
           <div style={{ margin: '0 0 16px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {[['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['messages', 'Messages'], ['crm', 'Coach History'], ['eval', 'Evaluation'], ['overload', 'Overload']].map(([id, l]) => {
-                const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
-                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{T(l)}</button>;
-              })}
-            </div>
+            {(() => {
+              // the real athlete page's tabs, in its order (TraineeDetail SEC_TABS)
+              const tabs = [['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['messages', 'Messages'], ['crm', 'Coach History', 'History'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['eval', 'Evaluation'], ['overload', 'Overload']];
+              return (
+                <div className={'td-secs' + (tabs.length % 3 === 2 ? ' td-secs-r2' : tabs.length % 3 === 1 ? ' td-secs-r1' : '')} role="group" aria-label={T('Filter sections')}>
+                  {tabs.map(([id, l, short]) => {
+                    const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
+                    return <button key={id} className="td-sec" aria-pressed={active} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 28, boxSizing: 'border-box', padding: '0 1px', borderRadius: 0, flex: '0 0 auto', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? 'var(--c-ac)' : 'transparent'}`, color: active ? 'var(--c-ac)' : C.tm, fontFamily: FN, fontSize: 10.5, fontWeight: active ? 800 : 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{short ? <><span className="td-sec-full">{T(l)}</span><span className="td-sec-short">{T(short)}</span></> : T(l)}</button>;
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* VITALS · INJURIES · GOALS (context — shown in View All) */}

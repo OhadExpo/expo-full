@@ -591,9 +591,8 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
               title={active ? tt(m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : (readLang() === 'he' ? SORT_TIP_HE[m.id] : `${tt('Sort by')} ${tt(m.label)}`)}
               style={{ ...seg(active), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
-                  {a && <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1, flexShrink:0 }}>{a}</span>}
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{t}</span>
+                <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {a && <SortArrow up={a === '↑'} />}{t}
                 </span>
               ); })() : tt(m.label)}
             </button>
@@ -704,14 +703,26 @@ function RailOpt({ label, count, active, onClick, title }) {
     </button>
   );
 }
+// THE SORT ARROW, drawn (29.9 #447): the ↑/↓ glyph is taller than the capitals
+// and hangs below the baseline, so "↓ SOONEST" read 1.5px low beside centred
+// letters. An SVG exactly the capitals' height, sitting on the baseline, spans
+// the same band the letters do.
+function SortArrow({ up }) {
+  return (
+    <svg aria-hidden width="0.5em" height="0.7em" viewBox="0 0 6 9" fill="none" style={{ display: 'inline-block', verticalAlign: 'baseline', flexShrink: 0, marginInlineEnd: '0.4em' }}>
+      <path d={up ? 'M3 8.3V0.9M0.8 3.1L3 0.9 5.2 3.1' : 'M3 0.7V8.1M0.8 5.9L3 8.1 5.2 5.9'} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 // Active-sort label with direction arrow (mirrors SortBar.activeDirParts).
 function sortRailLabel(mode, sortDir, tt = (x) => x) {
   const d = sortDir === 'desc';
+  const lab = (up, t) => <><SortArrow up={up} />{t}</>;
   switch (mode) {
-    case 'date':     return d ? '↑ ' + tt('Latest') : '↓ ' + tt('Soonest');
-    case 'newest':   return d ? '↓ ' + tt('Newest') : '↑ ' + tt('Oldest');
-    case 'priority': return d ? '↑ ' + tt('Low')    : '↓ ' + tt('High');
-    case 'status':   return d ? '↑ ' + tt('Done') : '↓ ' + tt('To Do');
+    case 'date':     return d ? lab(true, tt('Latest')) : lab(false, tt('Soonest'));
+    case 'newest':   return d ? lab(false, tt('Newest')) : lab(true, tt('Oldest'));
+    case 'priority': return d ? lab(true, tt('Low'))    : lab(false, tt('High'));
+    case 'status':   return d ? lab(true, tt('Done')) : lab(false, tt('To Do'));
     case 'name':     return d ? 'Z → A'    : 'A → Z';
     default:         return tt('Manual');
   }

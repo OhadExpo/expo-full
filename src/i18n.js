@@ -906,6 +906,8 @@ export const HE = {
     'דמו בלבד — באפליקציה המלאה זה פותח את כרטיס המתאמן לעריכה.',
   'Demo only — in the full app this archives the athlete and stops their billing.':
     'דמו בלבד — באפליקציה המלאה זה מעביר את המתאמן לארכיון ועוצר את החיוב.',
+  'Demo only — in the full app this opens the training analysis: progression across blocks and what to program next.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את ניתוח האימונים: ההתקדמות לאורך הבלוקים ומה לתכנת הלאה.',
   'Demo only — in the full app this sends a WhatsApp reminder with a payment link.':
     'דמו בלבד — באפליקציה המלאה זה שולח תזכורת בוואטסאפ עם קישור לתשלום.',
   'Demo only — in the full app this marks the request paid and updates the ledger.':

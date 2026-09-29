@@ -93,7 +93,7 @@ const MEASURE = (tol) => {
     // letters. The finals ך ן ף ץ and ק drop below the line and ל rises above it;
     // measured as ink they read 1.5px low ("נקה", "בדיקה") or 1.5px high ("לוח",
     // "הכל") while the word sits centred. Each is measured as its body twin.
-    if (/[\u0590-\u05FF]/.test(shown)) shown = shown.replace(/[ךןףץקל]/g, (c) => ({ 'ך': 'כ', 'ן': 'ו', 'ף': 'פ', 'ץ': 'צ', 'ק': 'ה', 'ל': 'ג' }[c]));
+    if (/[\u0590-\u05FF]/.test(shown)) shown = shown.replace(/[ךןףץקל]/g, (c) => ({ 'ך': 'כ', 'ן': 'ו', 'ף': 'פ', 'ץ': 'צ', 'ק': 'ה', 'ל': 'ג' }[c])).replace(/[\u05F3\u05F4\u2019'"]/g, '');   // geresh / gershayim ride above the bodies too
     const m = cx.measureText(shown);
     const contentH = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
     const base = lb.y + (lb.height - contentH) / 2 + m.fontBoundingBoxAscent;

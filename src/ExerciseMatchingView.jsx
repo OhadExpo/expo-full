@@ -13,6 +13,10 @@ import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMa
 import { supabase } from './supabase';
 import { useT, readLang, tr } from './i18n';
 
+// VIEW: a tag of its own height, its word on its centre (29.9 #447: as a bare
+// span it stretched with a wrapped row and the word sat 11px high in a 40px box)
+const VIEW_TAG = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 8px', height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', lineHeight: 1, flexShrink: 0, cursor: 'pointer' };
+
 // Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
 // "similar"). These are small UPPERCASE labels printed directly on the card, so
 // unlike a filled chip the colour has to carry itself against the background.
@@ -126,7 +130,7 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
               {(ex.cues || ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm }}>✎</span>}
               {onPeek && <span role="button" tabIndex={0} title={tt('Preview this exercise')} onClick={(e) => { e.stopPropagation(); onPeek(ex); }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPeek(ex); } }}
-                style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>}
+                style={VIEW_TAG}>{tt('VIEW')}</span>}
             </button>
           ))}
           {!results.length && <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: 16, textAlign: 'center' }}>No library exercise matches “{q}”.</div>}
@@ -268,7 +272,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{tr(readLang(), s.why)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>
+                            style={VIEW_TAG}>{tt('VIEW')}</span>
                         </button>
                       );
                     })}
