@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -4190,7 +4190,7 @@ function DemoInlineVideo({ title }) {
 // athletes on the floor showed byte-identical progress — and the one who had
 // not checked in yet still showed two sets of squats done. A coach reads that
 // in a second.
-function DemoSessionExercise({ ex, open, onToggle, doneUpTo }) {
+function DemoSessionExercise({ ex, open, onToggle, doneUpTo, index }) {
   const sets = doneUpTo == null ? ex.sets : ex.sets.map((x, i) => ({ ...x, done: i < doneUpTo }));
   const doneCount = sets.filter(s => s.done).length;
   const allDone = doneCount === sets.length && sets.length > 0;
@@ -4199,13 +4199,15 @@ function DemoSessionExercise({ ex, open, onToggle, doneUpTo }) {
     <div style={{ border: `1px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
       <div onClick={onToggle} style={{ padding: 8, cursor: 'pointer' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-          <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-            {allDone && <span style={{ color: C.gn, marginInlineEnd: 4 }}>✓</span>}{ex.title}
+          <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3, display: 'flex', gap: 8 }}>
+            {/* the real row's grey index (29.9 #448) */}
+            {index != null && <span style={{ fontFamily: FN, color: C.td, fontWeight: 700, flexShrink: 0 }}>{index}</span>}
+            <span>{allDone && <span style={{ color: C.gn, marginInlineEnd: 4 }}>✓</span>}{ex.title}</span>
           </span>
           <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-          <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
+          <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{String(ex.prescribed).replace(/\s*×\s*/g, '×')}</span>
           <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{sets.length}</span>{' '}{T('DONE')}</span>
         </div>
       </div>
@@ -4236,6 +4238,47 @@ function DemoSessionExercise({ ex, open, onToggle, doneUpTo }) {
   );
 }
 
+// THE REAL FLOOR BAR, 1:1 (SessionsView.jsx FloorBar): the same strip, the same
+// useStripFit rule (the title never squeezed - the pair steps under it), the
+// same chip row.
+function DemoFloorBar({ roster, checkedIn }) {
+  const n = Object.values(checkedIn).filter(Boolean).length;
+  const rowRef = React.useRef(null), titleRef = React.useRef(null), btnsRef = React.useRef(null);
+  const stacked = useStripFit(true, rowRef, titleRef, btnsRef, 0, [n, roster.length]);
+  const stripBtn = { ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' };
+  const buttons = (
+    <div ref={stacked ? undefined : btnsRef} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0, width: stacked ? '100%' : undefined }}>
+      <button title={T('Demo only')} style={{ ...stripBtn, minWidth: 88 }}>+ {tr(readLang(), 'ADD')}</button>
+      <button title={T('Demo only')} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tr(readLang(), 'FINISH')}</button>
+    </div>
+  );
+  return (
+    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden', marginBottom: 12 }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', ...DEMO_STRIP_H }}>
+        <div ref={rowRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, width: '100%' }}>
+          <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>
+            {T('ON THE FLOOR')} · <span dir="ltr" style={{ unicodeBidi: 'isolate', marginInlineStart: '0.3em' }}>{n}/{roster.length}</span><span className="strip-meta">&nbsp;{T('CHECKED IN')}</span>
+          </span>
+          {!stacked && buttons}
+        </div>
+      </div>
+      {stacked && <div style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 14 }}>
+        {roster.map((t, ai) => {
+          const inn = !!checkedIn[ai];
+          return (
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: inn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${inn ? C.ac : C.cardBd}` }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: inn ? C.gn : C.td }} />
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, minWidth: 0 }}><bdi>{t.name}</bdi></span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{inn ? `→ ${T(DEMO_SESSION_DAY[0].title)}` : T('not in')}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DemoGroupFloor() {
   // slice(0, 3) put גל on the gym floor — a man whose own card says dormant
   // 18 days and whose format is Online. Three tabs then disagreed about the
@@ -4246,19 +4289,14 @@ function DemoGroupFloor() {
   const [checkedIn, setCheckedIn] = useState({ 0: true, 1: true });
   return (
     <div>
-      {/* Floor bar */}
-      <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
-          {/* one row at 390 (27.9 #328 gate): the lead words step aside where they would not fit */}
-          <span style={{ flex: 1, minWidth: 0, display: 'flex', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN, whiteSpace: 'nowrap' }}><SegWord full={`${T('ON THE FLOOR ·')}${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('CHECKED IN')}`} short={`${Object.values(checkedIn).filter(Boolean).length}/${roster.length} ${T('PRESENT')}`} /></span>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>+ {tr(readLang(), 'ADD')}</button>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 11, whiteSpace: 'nowrap' }}>■ {tr(readLang(), 'FINISH')}</button>
-          </div>
-        </div>
-      </div>
+      {/* THE REAL FLOOR BAR (SessionsView FloorBar, 29.9 #448): the navy strip
+          with ON THE FLOOR · n/m (CHECKED IN steps aside on a phone), the joined
+          ADD | FINISH pair - under the strip when the title needs the room - and
+          the athletes' chip row. */}
+      <DemoFloorBar roster={roster} checkedIn={checkedIn} />
       {/* Athlete cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+      {/* 3 per row at 1440, as the real grid (4 slots of 300px left one empty) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12 }}>
         {roster.map((t, ai) => {
           const inFloor = !!checkedIn[ai];
           return (
@@ -4268,7 +4306,11 @@ function DemoGroupFloor() {
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A')} · {readLang() === 'he' ? `${tr('he', 'W')}${1 + (idSeed(t.id) % 4)}` : <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`W${1 + (idSeed(t.id) % 4)}`}</span>}</div>
                 </div>
-                <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
+                <span style={{ display: 'inline-flex', gap: 8, flexShrink: 0 }}>
+                  <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, height: 'var(--btn-h)', minHeight: 0, minWidth: 72, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.cardBd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
+                  {/* the real card's remove - a 36px square */}
+                  <button title={T('Demo only')} style={{ ...baseBtn, width: 'var(--btn-h)', height: 'var(--btn-h)', minHeight: 0, minWidth: 0, padding: 0, background: 'transparent', color: C.rd, border: `1px solid ${C.cardBd}`, fontSize: 12 }}>✕</button>
+                </span>
               </div>
               <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {DEMO_SESSION_DAY.map(ex => {
@@ -4276,7 +4318,7 @@ function DemoGroupFloor() {
                   // Different athletes are at different points in the same
                   // session, and nobody has lifted anything before checking in.
                   const pace = [ex.sets.length, Math.max(0, ex.sets.length - 2), 1][ai] ?? 0;
-                  return <DemoSessionExercise key={ex.id} ex={ex} open={!!open[k]} doneUpTo={inFloor ? pace : 0} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
+                  return <DemoSessionExercise key={ex.id} index={DEMO_SESSION_DAY.indexOf(ex) + 1} ex={ex} open={!!open[k]} doneUpTo={inFloor ? pace : 0} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
                 })}
               </div>
             </div>
@@ -4378,7 +4420,8 @@ function DemoSingle() {
 // has no pill pair of its own any more (#448).
 function DemoSessions({ mode = 'group' }) {
   return (
-    <section>
+    // the real Sessions page's column: 1100 wide, centred (SessionsView)
+    <section style={{ maxWidth: 1100, margin: '0 auto' }}>
       {mode === 'single' ? <DemoSingle /> : <DemoGroupFloor />}
     </section>
   );

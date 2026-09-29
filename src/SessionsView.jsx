@@ -723,7 +723,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · ${tt('W')}${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tb('✓ IN') : tb('CHECK IN')}</button>
+          <button onClick={onToggleIn} style={{ ...miniBtn, height: 'var(--btn-h)', minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tb('✓ IN') : tb('CHECK IN')}</button>
           <button onClick={async () => {
             // Warn if the coach logged sets on this card — finishSession only
             // writes athletes still on the roster, so removing them discards that
@@ -733,7 +733,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               ? `Remove ${name || 'this athlete'} from the floor? The sets you logged for them here are NOT saved yet and will be discarded.`
               : `Remove ${name || 'this athlete'} from the floor?`;
             if (await confirmToast(msg, { okLabel: 'Remove', cancelLabel: 'Keep' })) onRemove();
-          }} title={tt('Remove from session')} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
+          }} title={tt('Remove from session')} style={{ ...miniBtn, width: 'var(--btn-h)', height: 'var(--btn-h)', padding: 0, flexShrink: 0, color: C.rd, border: `1px solid ${C.cardBd}` }} /* a 36px square beside the 36px CHECK IN (29.9 #448: 27x36 on a desktop, 40x36 on a phone) */>✕</button>
         </div>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
