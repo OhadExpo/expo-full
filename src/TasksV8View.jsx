@@ -1772,7 +1772,12 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           ...(phone ? { order: -1, flex: '1 1 0%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div dir="auto" style={{
             maxWidth: '100%', alignSelf: 'stretch',
-            fontFamily: heb ? FH : FB,
+            // ONE TYPE SYSTEM (29.9 #448 audit): a title with any Hebrew in it was set
+            // in Heebo whole, so its English words lost Nord's capitals - "Call נדבר
+            // skipped W3 of Block #4" beside "CALL YOAV SHAMRI SKIPPED W2". FB is Nord
+            // with Heebo behind it: Hebrew letters still come from Heebo, English
+            // from Nord, in every title.
+            fontFamily: FB,
             fontSize: compact ? (heb ? 13 : 12) : (heb ? 14 : 13),
             fontWeight: 500,
             // Shared line box so a MIXED Hebrew (Heebo) + English (Nord) title

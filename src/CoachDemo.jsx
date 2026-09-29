@@ -4572,6 +4572,85 @@ const STATUS_COLS = [
   { id: 'stuck',   label: 'STUCK',       color: '#C0392B' },
   { id: 'done',    label: 'DONE',        color: '#2E9E5B' },
 ];
+// THE REAL TASKS LIST (TasksV8View LIST view), 1:1: one panel - the add row
+// first, then a group per status (TO DO / IN PROGRESS / WAITING / STUCK), the
+// AUTO-ALERTS group, and DONE folded into one bar. A row: the urgency pill, the
+// SHARED tag, the OVERDUE badge, the title centred, the status button; on a
+// phone the title and status lead, the pill and tags go under them.
+const DEMO_TASK_PRIO = { 1: 'high', 2: 'normal', 3: 'urgent', 4: 'high', 5: 'low', 6: 'normal', 7: 'normal', 8: 'normal', 9: 'normal' };
+const PRIO_INK = { urgent: C.rd, high: '#FFFFFF', normal: 'var(--c-tm)', low: 'var(--c-td)' };
+function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
+  const open = visible.filter((t) => t.status !== 'done');
+  const done = visible.filter((t) => t.status === 'done');
+  const groups = [
+    ...STATUS_COLS.slice(0, 4).map((c) => ({ key: c.id, label: c.label, color: c.color, rows: open.filter((t) => t.src !== 'auto' && t.status === c.id) })),
+    { key: 'auto', label: 'AUTO-ALERTS', color: '#5B6B7A', rows: open.filter((t) => t.src === 'auto') },
+  ].filter((g) => g.rows.length);
+  const statusBtn = (t) => {
+    const col = STATUS_COLS.find((c) => c.id === t.status) || STATUS_COLS[0];
+    const on = t.status === 'working';
+    return <button type="button" title={T('Demo only')} className="dtl-status" style={{ width: 128, height: 'var(--btn-h)', boxSizing: 'border-box', background: on ? '#D4A000' : 'transparent', border: `1px solid ${on ? '#D4A000' : 'var(--c-tm)'}`, color: on ? '#0a0a0b' : 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', justifySelf: 'end' }}>{T(col.label)}</button>;
+  };
+  return (
+    <div style={{ border: `1px solid ${C.cardBd}`, background: C.sf }}>
+      <style>{`
+        .dtl-row { display: grid; grid-template-columns: 96px minmax(0, 230px) minmax(0, 1fr) 128px; grid-template-areas: "prio meta title status"; align-items: center; column-gap: 16px; padding: 8px 12px; }
+        .dtl-prio { grid-area: prio; } .dtl-meta { grid-area: meta; } .dtl-title { grid-area: title; } .dtl-status { grid-area: status; }
+        @media (max-width: 700px) {
+          .dtl-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title status" "prio meta"; row-gap: 8px; column-gap: 12px; }
+          .dtl-meta { justify-self: start; }
+          .dtl-prio { justify-self: start; }
+        }
+      `}</style>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 46, padding: '0 14px', borderBottom: `1px solid ${C.cardBd}` }}>
+        <span aria-hidden style={{ width: 20, height: 20, border: `1px solid ${C.ac}`, color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, lineHeight: 1 }}>+</span>
+        <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, flex: 1 }}>{T('Add a task…')}</span>
+        <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: 'var(--c-td)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Enter to save')}</span>
+      </div>
+      {groups.map((g) => (
+        <div key={g.key}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 30, padding: '0 14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: C.tx, textTransform: 'uppercase' }}>
+            <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color }} />
+            <span style={{ flex: 1 }}>{T(g.label)}</span>
+            <span style={{ color: C.tm }}>{g.rows.length}</span>
+            <StripCaret open color="var(--c-tm)" size={9} />
+          </div>
+          {g.rows.map((t) => {
+            const prio = DEMO_TASK_PRIO[t.id] || 'normal';
+            const overdue = /OVERDUE/i.test(t.due);
+            return (
+              <div key={t.id} className="dtl-row">
+                <span className="dtl-prio" style={{ width: 96, height: 'var(--btn-h)', boxSizing: 'border-box', border: `1px solid ${prio === 'normal' ? C.cardBd : PRIO_INK[prio]}`, color: PRIO_INK[prio], display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{T(prio)}</span>
+                <span className="dtl-meta" style={{ display: 'inline-flex', alignItems: 'center', gap: 14, minWidth: 0, justifySelf: 'end' }}>
+                  {t.who === 'SHARED' && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: 'var(--c-tm)', textTransform: 'uppercase' }}>{T('Shared')}</span>}
+                  {overdue && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', color: C.tx, background: 'var(--c-sf2)', padding: '5px 8px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Overdue')} <span style={{ opacity: 0.55 }}>· {T('Yesterday')}</span></span>}
+                </span>
+                <span className="dtl-title" dir="auto" style={{ fontFamily: FB, fontSize: 13, fontWeight: 500, color: C.tx, textAlign: 'center', unicodeBidi: 'plaintext', lineHeight: 1.3, minWidth: 0 }}>{taskTitle(t)}</span>
+                {statusBtn(t)}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {done.length > 0 && (
+        <button type="button" onClick={() => setDoneOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, minHeight: 36, padding: '0 14px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'start' }}>
+          <StripCaret open={doneOpen} color="var(--c-tm)" size={9} />
+          <span>{T('Done')} · {done.length}</span>
+          {!doneOpen && <span style={{ marginInlineStart: 'auto', opacity: 0.6 }}>{T('Click to expand')}</span>}
+        </button>
+      )}
+      {doneOpen && done.map((t) => (
+        <div key={t.id} className="dtl-row" style={{ opacity: 0.6 }}>
+          <span className="dtl-prio" />
+          <span className="dtl-meta" />
+          <span className="dtl-title" dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tm, textAlign: 'center', textDecoration: 'line-through' }}>{taskTitle(t)}</span>
+          <span className="dtl-status" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: C.gn, justifySelf: 'end', textTransform: 'uppercase' }}>✓ {T('Done')}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DemoTasks() {
   const rail = useNarrowRail();
   // THE BOARD OPENED ON ONE OWNER AND THE TAB BADGE COUNTED ALL EIGHT.
@@ -4580,7 +4659,8 @@ function DemoTasks() {
   // defaulted to OHAD and had no "All" option at all, so nothing could ever
   // fill them. A prospect reads an empty column as a feature that does not work.
   const [owner, setOwner] = useState('ALL');
-  const [view, setView] = useState('board');
+  const [view, setView] = useState('list');   // the real Tasks page opens on LIST
+  const [doneOpen, setDoneOpen] = useState(false);
   const [quickFilter, setQuickFilter] = useState('all');
   const [sortBy, setSortBy] = useState('soonest');
   const [boardGroup, setBoardGroup] = useState('status');
@@ -4611,14 +4691,13 @@ function DemoTasks() {
     return rows;
   }, [owner, search, quickFilter, sortBy]);
   const counts = { ALL: DEMO_TASKS.length, OHAD: DEMO_TASKS.filter(t => t.who === 'OHAD').length, YUVAL: DEMO_TASKS.filter(t => t.who === 'YUVAL').length, SHARED: DEMO_TASKS.filter(t => t.who === 'SHARED').length };
-  const bySrc = (s) => visible.filter(t => t.src === s);
   return (
     <section>
       {/* Header — TASKS title + List/Board segmented toggle (mirrors TasksV8View). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Tasks')}</h2>
-        <div style={{ display: 'inline-flex', border: `1px solid ${C.bd}` }}>
-          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, background: view === v ? C.ac : 'transparent', color: view === v ? '#0E0F12' : C.tm, border: 'none', padding: '0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{T(v === 'list' ? 'List' : 'Board')}</button>)}
+        <div style={{ display: 'inline-flex', gap: 8 }}>
+          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, width: 80, background: view === v ? C.ac : 'transparent', color: view === v ? '#FFFFFF' : C.tm, border: `1px solid ${view === v ? C.ac : C.cardBd}`, padding: '0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{T(v === 'list' ? 'List' : 'Board')}</button>)}
         </div>
       </div>
       {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
@@ -4635,10 +4714,10 @@ function DemoTasks() {
         <div style={{ flex: 1, minWidth: 0 }}>
       {/* Composer (collapsed affordance) */}
       {/* An input in all but tag, and 57px tall beside 36px controls. */}
-      <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box' }) }}>
+      {view === 'board' && <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box' }) }}>
         <span style={{ color: C.ac, fontSize: 16, fontWeight: 700 }}>+</span>
         <span style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Add a task…')}</span>
-      </div>
+      </div>}
       {/* BOARD = status kanban (mirrors the real board); LIST = source-grouped */}
       {view === 'board' ? (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' }}>
@@ -4670,31 +4749,7 @@ function DemoTasks() {
           })}
         </div>
       ) : (
-        ['center', 'athlete', 'manual', 'auto'].map(s => {
-          const rows = bySrc(s);
-          if (!rows.length) return null;
-          const meta = TASK_SRC[s];
-          return (
-            <div key={s} style={{ marginBottom: 18 }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: meta.color, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 8, height: 8, background: meta.color, display: 'inline-block' }} />{T(meta.label)} <span style={{ color: C.td }}>{rows.length}</span>
-              </div>
-              {rows.map(t => {
-                const col = STATUS_COLS.find(c => c.id === t.status) || STATUS_COLS[0];
-                const overdue = /OVERDUE/i.test(t.due);
-                return (
-                  <div key={t.id} style={demoCardStyle({ marginBottom: 6, border: `1px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
-                    <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{taskTitle(t)}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{T(t.due)}</span>
-                      <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF', background: col.color, padding: '3px 7px' }}>{T(col.label)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })
+        <DemoTaskList visible={visible} doneOpen={doneOpen} setDoneOpen={setDoneOpen} />
       )}
         </div>{/* /right column */}
       </div>{/* /two-column layout */}
