@@ -906,6 +906,10 @@ export const HE = {
     'דמו בלבד — באפליקציה המלאה זה פותח את כרטיס המתאמן לעריכה.',
   'Demo only — in the full app this archives the athlete and stops their billing.':
     'דמו בלבד — באפליקציה המלאה זה מעביר את המתאמן לארכיון ועוצר את החיוב.',
+  'Demo only — in the full app this opens the new-exercise form.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את הטופס לתרגיל חדש.',
+  'Demo only — in the full app this opens the exercise to edit, or delete.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את התרגיל לעריכה או למחיקה.',
   'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.':
     'דמו בלבד — באפליקציה המלאה זה פותח את כלי הספרייה: התאמת כותרות שלא זוהו, סיווג מרוכז וניקוי כפילויות.',
   'Demo only — in the full app this opens the training analysis: progression across blocks and what to program next.':

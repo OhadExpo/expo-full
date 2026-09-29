@@ -949,7 +949,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
             <StripCaret open={allAthletesOpen} color={'var(--c-stripTx)'} />
           </div>
-          <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }} inert={allAthletesOpen ? undefined : ''} /* hidden = not reachable by keyboard (29.9 audit) */>
           {/* the filter belongs to the table it filters (29.9 #444: it floated
               alone, centred at 300px, between the alert cards and this card) */}
           <div style={{ padding: '12px 14px 12px' }}>

@@ -360,7 +360,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           mirroring the Programs page toggle EXACTLY (Ohad: "like in programs"). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>
         <h2 style={{ margin: 0, minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: narrowUI ? '0.1em' : '0.18em', color: C.tx, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-          {tt("Exercises")} <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length.toLocaleString()}{anyFilter ? ` of ${(exercises || []).length.toLocaleString()}` : ''}</span>
+          {tt("Exercises")} <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length.toLocaleString()}{anyFilter && !narrowUI /* one line beside TABLE/GRID on a phone (29.9 audit) */ ? ` of ${(exercises || []).length.toLocaleString()}` : ''}</span>
         </h2>
         <div style={{ display: 'flex', gap: 6, width: narrowUI ? 132 : RIGHT_CTL_W, flexShrink: 0 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {

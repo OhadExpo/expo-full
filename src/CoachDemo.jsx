@@ -2275,6 +2275,15 @@ function DemoPrograms({ resetToken = 0 }) {
   // Training Analysis opens per athlete from the card's ANALYSIS button, as a full
   // page with a Back bar - the real PlansView (it was a third toggle here, #448)
   const [lineageFor, setLineageFor] = useState(null);
+  // the overlay's BACK says "(Esc)": Escape closes it, and it opens with BACK focused (29.9 audit)
+  const lineageBackRef = React.useRef(null);
+  useEffect(() => {
+    if (!lineageFor) return undefined;
+    const k = (e) => { if (e.key === 'Escape') setLineageFor(null); };
+    window.addEventListener('keydown', k);
+    const id = setTimeout(() => { try { lineageBackRef.current && lineageBackRef.current.focus(); } catch { /* gone */ } }, 0);
+    return () => { window.removeEventListener('keydown', k); clearTimeout(id); };
+  }, [lineageFor]);
   // Preview / Duplicate / Share / Delete were `onClick={e => e.stopPropagation()}`
   // — they looked live, had a handler, and did nothing, with only a `title`
   // tooltip to say so. A title is invisible on a phone and to a keyboard. Same
@@ -2474,7 +2483,7 @@ function DemoPrograms({ resetToken = 0 }) {
           <div role="dialog" aria-modal="true" aria-label={T('Training Analysis')}
             style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--c-bg, #0a0a0b)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
             <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <button onClick={() => setLineageFor(null)} title={T('Back (Esc)')}
+              <button ref={lineageBackRef} onClick={() => setLineageFor(null)} title={T('Back (Esc)')}
                 style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T('← BACK')}</button>
             </div>
             <div style={{ flex: 1, padding: '18px 16px 60px' }}>
@@ -3274,6 +3283,15 @@ function DemoExercises() {
   const narrowUI = useIsMobile(700);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [exNote, setExNote] = useState(null);
+  // each demo action says what IT would do, in a toast at the foot of the screen
+  // where it is seen wherever the tap was (29.9 audit: one sentence for every
+  // action, drawn above the header - off-screen after tapping a row)
+  const EX_NOTE = {
+    add: 'Demo only — in the full app this opens the new-exercise form.',
+    edit: 'Demo only — in the full app this opens the exercise to edit, or delete.',
+    tools: 'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.',
+  };
+  useEffect(() => { if (!exNote) return undefined; const id = setTimeout(() => setExNote(null), 3600); return () => clearTimeout(id); }, [exNote]);
 
   // Close the open filter menu on Escape (a click-catcher backdrop handles outside
   // clicks) — same affordance as the real ExercisesView.
@@ -3378,10 +3396,12 @@ function DemoExercises() {
       <div className="subtab-scroll" style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 16, flexWrap: 'wrap' }}>
         {[['library', 'Library'], ['matching', 'Matching'], ['classify', 'Classify'], ['cleanup', 'Cleanup']].map(([r, l]) => {
           const on = r === 'library';
-          return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : r)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
+          return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : 'tools')} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
         })}
       </div>
-      {exNote && <div style={{ fontFamily: FB, fontSize: 11.5, color: C.ac, margin: '-6px 0 12px' }}>{T('Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.')}</div>}
+      {exNote && createPortal(
+        <div role="status" style={{ position: 'fixed', insetInline: 16, bottom: 16, margin: '0 auto', maxWidth: 420, zIndex: 1300, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, padding: '10px 14px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.45, textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>{T(EX_NOTE[exNote] || EX_NOTE.tools)}</div>,
+        document.body)}
 
       {/* Header — title + live count + TABLE / GRID, one row at every width. */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>

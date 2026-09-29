@@ -215,9 +215,9 @@ function Card({ header, headerRight, children, ...rest }) {
       headerAriaExpanded={open}
       bodyShown={shown}
       bodyMs={CARD_MS}
-      headerRight={(
+      headerRight={headerRight}
+      headerFixed={(
         <>
-          {headerRight}
           {/* The chevron STATES the state; the whole strip is the target. An
               SVG, not a glyph: Nord renders U+25BE as a faint dash, which read
               as a stray hyphen at the end of the strip rather than a control. */}
