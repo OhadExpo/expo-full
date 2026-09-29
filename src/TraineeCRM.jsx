@@ -21,7 +21,7 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState, stripBtnBase, StripCaret } from './ui';
 import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
@@ -382,10 +382,11 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {tt('COACH HISTORY')}
             </span>
-            <span aria-hidden style={{ color: refined ? 'var(--c-stripTx)' : C.tx, fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <button onClick={() => setShowLog(true)}
             style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac, flexShrink: 0 }}>{tt('+ LOG')}</button>
+          {/* the caret at the strip's far end, like every other strip (29.9 #444) */}
+          <span aria-hidden onClick={() => setOpen(o => !o)} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}><StripCaret open={open} color={refined ? 'var(--c-stripTx)' : C.tx} /></span>
         </div>
       </RefinedHeaderStrip>
 

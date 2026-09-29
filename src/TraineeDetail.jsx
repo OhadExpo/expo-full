@@ -573,6 +573,10 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       }
     }
   };
+  // one control height and one border for every action (#456; they were 30px
+  // beside the house 36)
+  const TD_ACT_BASE = { fontSize: 11, padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', whiteSpace: 'nowrap' };
+  const TD_ACT = { ...TD_ACT_BASE, border: `1px solid ${C.cardBd}` };
   const SEC_TABS = [
     { id: 'all', label: t('View All') },
     { id: 'vitals', label: t('Vitals') },
@@ -580,7 +584,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
     // under it but an empty ledger with their name on it (Ohad, 21.9).
     ...(isClubAthleteRow(td) ? [] : [{ id: 'billing', label: t('Billing') }]),
     { id: 'messages', label: t('Messages') },
-    { id: 'crm', label: t('Coach History') },
+    { id: 'crm', label: t('Coach History'), short: t('History') },
     { id: 'bw', label: t('Bodyweight') },
     { id: 'readiness', label: t('Readiness') },
     { id: 'workouts', label: t('Workouts') },
@@ -615,12 +619,32 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           .td-hdr-identity { flex-wrap: wrap !important; min-width: 0; max-width: 100%; row-gap: 2px; }
           .td-hdr-contact { flex-basis: 100%; white-space: normal !important; word-break: break-word; }
           .td-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
-          /* On a phone the action strip wraps, and holding NOTIFICATION at the
-             far end left a hole in the middle of the second line. Let it pack. */
-          .td-notif { margin-inline-start: 0 !important; }
+        }
+        /* THE ACTION BAR + SECTION TABS (#456) - see the bar below */
+        .td-actions { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+        .td-actions > .td-act { flex: 0 0 auto; }
+        .td-actions > .td-notif { margin-inline-start: auto; }
+        .td-secs { display: flex; flex-wrap: wrap; column-gap: 18px; row-gap: 2px; width: 100%; align-items: center; }
+        .td-sec .td-sec-short { display: none; }
+        @media (max-width: 900px) {
+          .td-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .td-actions > .td-act { width: 100%; min-width: 0; padding: 0 6px !important; }
+          .td-actions > .td-back { grid-row: 1; grid-column: 1; }
+          .td-actions > .td-notif { grid-row: 1; grid-column: 2 / 4; margin: 0; width: 100%; min-width: 0; }
+          .td-actions:not(.td-archived) > .td-log { grid-column: span 2; }
+        }
+        @media (max-width: 620px) {
+          /* the section tabs: the same 3-column grid, text centred in equal
+             cells, the active one underlined; VIEW ALL widens so the last row
+             is never ragged */
+          .td-secs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 8px; row-gap: 0; }
+          .td-secs > .td-sec { width: 100%; min-width: 0; height: var(--btn-h) !important; }
+          .td-secs.td-secs-r2 > .td-sec:first-child { grid-column: span 2; }
+          .td-secs.td-secs-r1 > .td-sec:first-child { grid-column: 1 / -1; }
+          .td-sec .td-sec-full { display: none; }
+          .td-sec .td-sec-short { display: inline; }
         }
       `}</style>
-      {/* Back + actions bar */}
       {/* 17.9, Ohad on the two rows here: "designed ugly, un-asthetic and not nice
           for the eye or ocd aligned". Two faults, both now gone:
             (1) the rows did not share a left edge — BACK sat outside the action
@@ -632,37 +656,38 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           So: row 1 is now one uniform boxed strip that starts at the container's
           left edge (BACK included, same 30px cell, cyan label) with the
           NOTIFICATION toggle pushed to the far right; row 2 is text. */}
-      <div style={{display:"flex",alignItems:"center",marginBottom:12,gap:12}}>
-        {/* Action buttons STRETCH to fill the row equally (flex:1 1 0) so this
-            row is a full-width segmented control that matches the section-tab row
-            directly below it exactly (Ohad: "the two rows must be the same"). All
-            30px, all equal width. NOTIFICATION gets a touch more room for its toggle.
-            EDIT first (after BACK), then LOG SESSION / PORTAL / ANALYSIS, the
-            NOTIFICATION toggle, ARCHIVE (destructive) last. */}
-        <div style={{display:"flex",gap:4,flex:1,minWidth:0,flexWrap:"wrap",alignItems:"center"}}>
-          <Btn variant="ghost" onClick={onBack} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`,color:'var(--c-ac)'}}>{t('← BACK')}</Btn>
-          {/* Order (Ohad): EDIT · PORTAL · ANALYSIS · LOG SESSION · ARCHIVE · NOTIFICATION.
-              Border unified to the same cyan hairline (C.cardBd) as the section-tab
-              row below, so the two rows read as ONE consistent segmented system
-              (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('EDIT')}</Btn>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
-          {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('RESTORE')}</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
-          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
-          <button
-            onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
-            title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
-            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '0 0 auto', marginInlineStart: 'auto' }} className="td-notif">
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('NOTIFICATION')}</span>
-            <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
-              <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.tm : C.ac, position: 'absolute', top: 2, left: td.notifOff ? 2 : 18, transition: 'all .15s' }} />
-            </span>
-          </button>
-        </div></div>
+      {/* THE ACTION BAR (29.9 #456, his phone: "button layout is horrible change
+          it completley. ocd order"). Seven controls wrapped into three ragged
+          rows of different widths. Now ONE grid, every control the house 36px:
+            desktop  one row - BACK · EDIT · PORTAL · ANALYSIS · LOG SESSION ·
+                     ARCHIVE, NOTIFICATION on the far end;
+            phone    three rows on one 3-column grid, so every edge lines up
+                     with the card edges and the column lines run straight down:
+                       BACK         | NOTIFICATION ··········· (2)
+                       EDIT         | PORTAL       | ANALYSIS
+                       LOG SESSION ··············· (2) | ARCHIVE
+          The rows read 1+2, 3, 2+1 - nothing left over, nothing ragged. */}
+      <div className={"td-actions" + (td.status === "Archived" ? " td-archived" : "")}>
+        <Btn variant="ghost" onClick={onBack} className="td-act td-back" style={{...TD_ACT, color:'var(--c-ac)'}}>{t('← BACK')}</Btn>
+        <Btn variant="ghost" onClick={openEdit} className="td-act" style={TD_ACT}>{t('EDIT')}</Btn>
+        {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} className="td-act" style={TD_ACT} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
+        <Btn variant="ghost" onClick={()=>lineage.open(trainee)} className="td-act" style={TD_ACT} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
+        {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} className="td-act td-log" style={TD_ACT} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
+        {td.status==="Archived" ? <>
+          <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} className="td-act" style={TD_ACT}>{t('RESTORE')}</Btn>
+          <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} className="td-act" style={TD_ACT_BASE}>{t("DELETE")}</Btn>
+        </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} className="td-act" style={{...TD_ACT, color:'var(--c-tm)'}}>{t('ARCHIVE')}</Btn>}
+        <button
+          onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
+          title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
+          aria-pressed={!td.notifOff}
+          style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }} className="td-notif">
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap' }}>{t('NOTIFICATION')}</span>
+          <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
+            <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.tm : C.ac, position: 'absolute', top: 2, insetInlineStart: td.notifOff ? 2 : 18, transition: 'all .15s' }} />
+          </span>
+        </button>
+      </div>
 
       {lineage.node}
       {/* Section filter — SINGLE-SELECT (Ohad). VIEW ALL (leftmost) shows
@@ -674,11 +699,11 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             (the three-material rule). Labels still size to themselves and wrap, so
             nothing is ever clipped or scrolled. The inactive underline is the same
             2px in transparent, so switching never moves the row by a pixel. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 2, width: '100%', alignItems: 'center' }} role="group" aria-label={t('Filter sections')}>
+        <div className={'td-secs' + (SEC_TABS.length % 3 === 2 ? ' td-secs-r2' : SEC_TABS.length % 3 === 1 ? ' td-secs-r1' : '')} role="group" aria-label={t('Filter sections')}>
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
-              <button key={t.id} onClick={() => toggleSec(t.id)}
+              <button key={t.id} onClick={() => toggleSec(t.id)} className="td-sec"
                 aria-pressed={active}
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
@@ -691,7 +716,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
                   fontFamily: FN, fontSize: 10.5, fontWeight: active ? 800 : 700, letterSpacing: '0.06em',
                   textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'color .12s, border-color .12s',
-                }}>{t.label}</button>
+                }}>{t.short ? <><span className="td-sec-full">{t.label}</span><span className="td-sec-short">{t.short}</span></> : t.label}</button>
             );
           })}
         </div>
