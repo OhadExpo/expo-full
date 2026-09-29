@@ -785,16 +785,17 @@ function Row({ onClick, children, style }) {
 }
 
 function FakeWaButton() {
+  // THE REAL CARD'S BUTTON (29.9 #394 parity): borderless, a 36px tap target,
+  // the 18px glyph in WhatsApp's darker green - the frame had no job there and
+  // has none here.
   return (
     <button onClick={e => { e.stopPropagation(); }} title={T('Send WhatsApp check-in')} style={{
-      background: '#25d36620', border: `1px solid #25d36655`, color: '#25d366',
-      // An icon-only control is still a control: it sits in a row beside
-      // labelled ones and has to match their height. It was 32px against 36.
-      borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 8px', cursor: 'pointer',
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: 'transparent', border: 'none', color: '#128C7E',
+      borderRadius: 0, padding: 0, width: 36, height: 36, minWidth: 0, minHeight: 0, boxSizing: 'border-box', cursor: 'pointer',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366" aria-hidden="true">
-        <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.23 8.23 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23z"/>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#128C7E" aria-hidden="true">
+        <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.23 8.23 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.42-.14-.01-.31-.01-.48-.01a.92.92 0 0 0-.66.31c-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z"/>
       </svg>
     </button>
   );
@@ -803,6 +804,18 @@ function FakeWaButton() {
 // ─── Tab: Trainees ────────────────────────────────────────────────────────
 function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   const rail = useNarrowRail();
+  // + ADD ATHLETE LEADS THE LIST BELOW 1200 (29.9 #393 parity with the real
+  // roster): at the foot of the rail it sat under every filter group, and on a
+  // phone behind the collapsed FILTERS toggle.
+  const [addOnTop, setAddOnTop] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1200);
+  useEffect(() => {
+    const on = () => setAddOnTop(window.innerWidth < 1200);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  const addAthleteBtn = (
+    <button title={T('Demo only')} data-add-athlete="" style={{ ...baseBtn, background: 'transparent', color: 'var(--c-acText, #39BDFF)', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>
+  );
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [formatFilter, setFormatFilter] = useState('All');
@@ -914,10 +927,11 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               }),
             },
           ]}
-          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
+          footer={addOnTop ? null : addAthleteBtn}
         />
         {/* RIGHT: the card grid. */}
         <div style={{ flex: 1, minWidth: 0 }}>
+          {addOnTop && addAthleteBtn}
           {filtered.length === 0 ? (
             <div style={{
               background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
@@ -1293,7 +1307,12 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
   const color = COLORS[status] || C.tm;
   return (
     <span style={{ position: 'relative', display: 'inline-block' }}>
-      <button onClick={() => setOpen(o => !o)} title={T('Change status')} style={{ ...baseBtn, minHeight: CTRL_H, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${color}`, color, padding: '0 12px', fontSize: 11, letterSpacing: '0.12em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T(status).toUpperCase()} <span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none' }}>▾</span></button>
+      {/* THE REAL CARD'S STATUS BUTTON (TraineesView CardStatusMenu, 29.9 #392
+          parity): 26px in the strip, 92 wide, the label centred by its own cap
+          metrics, the app's chevron - not a 36px box with a text triangle. */}
+      <button onClick={() => setOpen(o => !o)} title={T('Change status')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 'var(--btn-h-in, 26px)', minHeight: 0, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
+        <span style={{ marginInlineEnd: '-0.12em', display: 'block', textBox: 'trim-both cap alphabetic' }}>{T(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+      </button>
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, minWidth: 124 }}>
           {['Active', 'On Hold', 'Inactive', 'Trial'].map(s => (
