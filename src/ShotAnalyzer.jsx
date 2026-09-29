@@ -1163,9 +1163,26 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               second - both rows full, every chip in a row the same width. */}
           {/* PHASES: one grid, ceil(n/2) EQUAL columns - the flex version grew
               the shorter second row's cells wider than the first row's. */}
-          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.ceil(shot.phases.length / 2)}, minmax(0, 1fr))`, gap: 6, marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} data-phase-key={p.key} data-idx={p.idx} data-active={p.key === activePhaseKey ? '1' : '0'} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(p.key === activePhaseKey), width: '100%', padding: '0 4px', minWidth: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
-          </div>
+          {/* ONE BUTTON PER FRAME (29.9 #425, Ohad: "dip and set are still
+              highlighted together, bad. audit all those buttons and what they
+              do"). The audit: on a one-motion shot the set point IS the dip
+              frame, so DIP and SET were two buttons for one picture - pressing
+              either showed the same frame and the pair read as one control lit
+              twice. Phases that share a frame are one button now, "DIP · SET",
+              lit when either is the chosen phase. */}
+          {(() => {
+            const groups = [];
+            for (const p of shot.phases) { const g = groups.find((x) => x.idx === p.idx); if (g) g.ps.push(p); else groups.push({ idx: p.idx, ps: [p] }); }
+            return (
+              <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.ceil(groups.length / 2)}, minmax(0, 1fr))`, gap: 6, marginTop: 8 }}>
+                {groups.map((g) => {
+                  const on = g.ps.some((p) => p.key === activePhaseKey);
+                  const label = g.ps.map((p) => p.label).join(' · ');
+                  return <button key={g.ps[0].key} data-phase-key={g.ps.map((p) => p.key).join(',')} data-idx={g.idx} data-active={on ? '1' : '0'} onClick={() => { setPhaseKey(g.ps[0].key); seekTo(g.idx); }} style={{ ...chip(on), width: '100%', padding: '0 4px', minWidth: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={T.phaseJump(label)}>{label}</button>;
+                })}
+              </div>
+            );
+          })()}
           {/* per-frame readout */}
           {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
               first line, then the arm chain elbow → forearm → wrist on the
