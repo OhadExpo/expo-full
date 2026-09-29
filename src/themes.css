@@ -2019,3 +2019,20 @@ select.avail-select:dir(rtl) {
   .subtab-scroll { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible !important; }
   .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; }
 }
+
+/* DASHBOARD ALERT CARDS: side by side they end on ONE bottom edge (#428 rule:
+   two columns end together). On a phone they keep their own heights - there a
+   tall card stretching the short ones left 224-256px of dead air. */
+@media (min-width: 701px) {
+  .alert-rail { align-items: stretch !important; }
+}
+
+/* DASHBOARD ALL ATHLETES on a phone (29.9 #444): nine columns in a 366px card
+   scrolled sideways and cut every value past FORMAT mid-word ("MO", "8 SI").
+   There the table is ATHLETE . STATUS . SESSIONS - the rest is one tap away on
+   the athlete page - and it is a real table again (index.html makes every table
+   a scrolling block under 769px). */
+@media (max-width: 700px) {
+  table.dash-roster { display: table !important; width: 100% !important; white-space: normal !important; }
+  table.dash-roster .dash-opt { display: none !important; }
+}

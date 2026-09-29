@@ -1054,6 +1054,7 @@ export const HE = {
   Media: 'מדיה',
   Show: 'הצג',
   'SHOW ALL': 'הצג הכל',
+  'Show fewer': 'הצג פחות',
   'No coaching cues': 'אין דגשים',
   'No values in library': 'אין ערכים בספרייה',
 

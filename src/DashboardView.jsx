@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton, useEdgeFade, SegWord, StripCaret } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton, useEdgeFade, SegWord, StripCaret, SortArrow } from './ui';
 import { traineeIdsFor, parseTraineeId } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -53,6 +53,20 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   useEdgeFade(rosterScrollRef);
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
+  // Alert lists show 8 rows, then ALL n (29.9 #444: 8 overdue beside 19 dormant
+  // left ~530px of black under the shorter card at 1440, and ~1000px of phone scroll)
+  const [alertAll, setAlertAll] = useState({});
+  const ALERT_CAP = 8;
+  const capAlert = (key, list) => (alertAll[key] ? list : list.slice(0, ALERT_CAP));
+  const alertMore = (key, list) => list.length > ALERT_CAP && (
+    <button type="button" onClick={() => setAlertAll((m) => ({ ...m, [key]: !m[key] }))}
+      style={{ width: '100%', height: 'var(--btn-h)', marginTop: 8, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      {alertAll[key] ? tt('Show fewer') : `${tt('All')} ${list.length}`}<StripCaret open={!!alertAll[key]} color="currentColor" />
+    </button>
+  );
+  // every alert row one height, whatever it holds (a WhatsApp button made 48px
+  // rows beside 27px ones in the same list)
+  const ALERT_ROW = { display: 'flex', alignItems: 'center', minHeight: 36, boxSizing: 'border-box', padding: 0 };
 
   const statusColor = { Active: C.ac, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
 
@@ -95,12 +109,14 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // SH (sortable header) — in refined mode the thead row is the cyan
   // strip, so the cell text becomes white. Otherwise falls back to the
   // legacy cyan-active / gray-inactive scheme.
-  const SH = ({ k, label }) => {
+  const SH = ({ k, label, cls }) => {
     const refined = isRefined5b();
-    const color = refined ? 'var(--c-stripTx)' : (sort === k ? C.ac : C.td);
+    // ONE colour for every column header (29.9 #444: sortable ones were dim, the
+    // plain ones bright - the row read as random); the sorted one is cyan
+    const color = refined ? 'var(--c-stripTx)' : (sort === k ? C.ac : C.tm);
     return (
-      <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-        {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
+      <th className={cls} onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+        {label}{sort === k && <span style={{ marginInlineStart: 5 }}><SortArrow up={dir === 1} /></span>}
       </th>
     );
   };
@@ -766,7 +782,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           a phone. Messages stays its own full-width row below it, never inside
           the alerts grid. */}
           {onlineNow.length > 0 && (
-        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}>
           <RefinedHeaderStrip>
             <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
@@ -810,12 +826,13 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                       <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
-                  {expiring.map(t => (
-                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                  {capAlert('expiring', expiring).map(t => (
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ ...ALERT_ROW, justifyContent: 'space-between', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx }}>{t.name}</span>
                       <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining}{tt('LEFT')}</span>
                     </div>
                   ))}
+                  {alertMore('expiring', expiring)}
                 </div>
               ),
               overdue: isOwner && overduePayment.length > 0 && (
@@ -825,12 +842,13 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                       <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="var(--c-stripTx)"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
-                  {overduePayment.map(t => (
-                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                  {capAlert('overdue', overduePayment).map(t => (
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ ...ALERT_ROW, justifyContent: 'space-between', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
                       <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? tt('Never paid') : (he ? daysOverdueHe(t.daysOverdue) : `${t.daysOverdue}d overdue`)}</span>
                     </div>
                   ))}
+                  {alertMore('overdue', overduePayment)}
                 </div>
               ),
               dormant: dropoutRisk.length > 0 && (
@@ -840,10 +858,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                       <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="var(--c-stripTx)"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
-                  {dropoutRisk.map(t => {
+                  {capAlert('dormant', dropoutRisk).map(t => {
                     const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                     return (
-                      <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
+                      <div key={t.id} style={{ ...ALERT_ROW, justifyContent: 'space-between', fontSize: 13 }}>
                         <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
                         <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
@@ -859,6 +877,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                       </div>
                     );
                   })}
+                  {alertMore('dormant', dropoutRisk)}
                 </div>
               ),
             };
@@ -910,18 +929,13 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
       )}
 
 
-      {/* Search */}
-      <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
-        <input type="text" placeholder={tt('Filter athletes...')} value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ ...baseInput, maxWidth: 300, paddingInlineStart: 12, textAlign: 'start', border: `1px solid ${C.tx}` }} />
-      </div>
 
       {/* Client table */}
       {sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.td }}>{tt('No clients yet. Import your trainee list.')}</div>
       ) : (() => {
         const refined = isRefined5b();
-        const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? 'var(--c-stripTx)' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
+        const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? 'var(--c-stripTx)' : C.tm, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
         return (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           {/* Canonical cyan strip-header + title, matching every other card on
@@ -933,19 +947,25 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             <StripCaret open={allAthletesOpen} color={'var(--c-stripTx)'} />
           </div>
           <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
+          {/* the filter belongs to the table it filters (29.9 #444: it floated
+              alone, centred at 300px, between the alert cards and this card) */}
+          <div style={{ padding: '12px 14px 12px' }}>
+            <input type="text" placeholder={tt('Filter athletes...')} value={filter} onChange={e => setFilter(e.target.value)}
+              style={{ ...baseInput, width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', paddingInlineStart: 12, textAlign: 'start' }} />
+          </div>
           <div ref={rosterScrollRef} style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+          <table className="dash-roster" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
                 <SH k="name" label={tt('Athlete')} />
                 <SH k="status" label={tt('Status')} />
-                <th style={plainHeadStyle}>{tt('Format')}</th>
-                <th style={plainHeadStyle}>{tt('Package')}</th>
+                <th className="dash-opt" style={plainHeadStyle}>{tt('Format')}</th>
+                <th className="dash-opt" style={plainHeadStyle}>{tt('Package')}</th>
                 <SH k="sessions" label={readLang() === 'he' ? 'נותרו' : tt('Sessions')} />
-                {isOwner && <SH k="paid" label={tt('Total Paid')} />}
-                {isOwner && <SH k="lastPay" label={tt('Last Payment')} />}
-                <SH k="workouts" label={tt('Workouts')} />
-                <th style={plainHeadStyle}>{tt("Programs")}</th>
+                {isOwner && <SH k="paid" label={tt('Total Paid')} cls="dash-opt" />}
+                {isOwner && <SH k="lastPay" label={tt('Last Payment')} cls="dash-opt" />}
+                <SH k="workouts" label={tt('Workouts')} cls="dash-opt" />
+                <th className="dash-opt" style={plainHeadStyle}>{tt("Programs")}</th>
               </tr>
             </thead>
             <tbody>
@@ -956,30 +976,30 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td className="dash-opt" style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
+                  <td className="dash-opt" style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  {isOwner && <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {isOwner && <td className="dash-opt" style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {/* Show what the header says + what the sort orders by: TOTAL PAID
                         (sum of this athlete's payments), not the monthly rate — else
                         clicking the TOTAL PAID sort reorders by an invisible metric
                         and reads as "nothing changed" (Ohad). */}
                     {t.totalPaid > 0 ? `₪${Math.round(t.totalPaid).toLocaleString()}` : '—'}
                   </td>}
-                  {isOwner && <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {isOwner && <td className="dash-opt" style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {(() => { const d = t.lastPay?.date || t.lastPayment; return d ? new Date(d).toLocaleDateString('en-GB') : '—'; })()}
                   </td>}
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td className="dash-opt" style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
                   </td>
                   {/* Programs count recedes to muted grey (like the Format/Package
                       cells — "gym single" / "monthly"), not bright primary — it's a
                       reference number, not a headline metric (Ohad 2026-08-12). */}
-                  <td style={{ padding: '12px', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td className="dash-opt" style={{ padding: '12px', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.planCount || '—'}
                   </td>
                 </tr>
