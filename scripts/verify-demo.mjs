@@ -56,6 +56,8 @@ const LANGS = ['en', 'he'];
 const WIDTHS = [[390, 844], [1440, 950]];
 
 // Latin that is NOT a translation failure: the brand, the stack, units.
+// the local parts of the demo fixtures' email addresses (`email: 'yael.cohen@...'`)
+const FIXTURE_EMAIL_LOCALS = new Set();
 const ALLOW = /^(expo(-il)?|bhbc|rpe|prs?|1rm|bw|kg|cm|km|vat|id|ok|pdf|csv|url|api|ai|hr|acwr|rom|emom|amrap|tut|e?mail|whatsapp|zoom|google|apple|ios|android|chrome|supabase|vercel|youtube|instagram|mediapipe|lite|full|min|max|am|pm|[a-z]{1,2})$/i;
 
 // Block comments and whole-line // comments. Deliberately crude: it runs over
@@ -123,6 +125,7 @@ const src = (() => {
   walk('src');
   return parts.join('\n');
 })();
+for (const m of src.matchAll(/email:\s*['"]([\w.+-]+)@/g)) FIXTURE_EMAIL_LOCALS.add(m[1]);
 
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(8)} ${o.id.padEnd(26)} ${o.detail}`); };
@@ -201,9 +204,12 @@ for (const [name, route] of SURFACES) {
             if (hidden) continue;
             nodes.push(t);
           }
+          // the LANGUAGE SWITCH reloads the page by design - clicking it in the
+          // dead-tab loop destroyed the page under the gate and it reported
+          // harness errors instead of measuring (29.9)
           const tabs = [...document.querySelectorAll('button,[role=tab]')]
-            .map((x, i) => ({ i, t: (x.textContent || '').replace(/\s+/g, ' ').trim() }))
-            .filter((x) => x.t && x.t.length < 26);
+            .map((x, i) => ({ i, t: (x.textContent || '').replace(/\s+/g, ' ').trim(), lang: /switch to (english|hebrew)/i.test(x.getAttribute('aria-label') || '') }))
+            .filter((x) => x.t && x.t.length < 26 && !x.lang);
           return { chars: txt.length, nodes, tabs: tabs.slice(0, 14), sig: txt.replace(/\s+/g, ' ').slice(0, 90) };
         });
 
@@ -221,7 +227,7 @@ for (const [name, route] of SURFACES) {
             if (/[֐-׿]/.test(t)) continue;
             if (!/[A-Za-z]/.test(t)) continue;
             if (ALLOW.test(t) || /@|https?:|^\+?\d/.test(t)) continue;
-            if (/^[\w.+-]+$/.test(t) && src.includes(t + '@')) continue; // an email's local part, drawn apart from its @domain (29.9: 'yael.cohen')
+            if (FIXTURE_EMAIL_LOCALS.has(t)) continue; // a fixture's email local part, drawn apart from its @domain (29.9 #440; audit round 2: only the fixtures' own email fields, so a stray 'email' / 'your' label is still caught)
             if (fixtures.includes(t)) continue;       // a NAME from the fixtures
             if (DEMO_NAMES.has(t)) continue;          // a name: / title: value
             if (!src.includes(t)) continue;           // data, not UI

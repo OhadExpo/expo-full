@@ -130,6 +130,14 @@ async function signInOnce(page, base) {
     await wait(3000);
   }
 
+  // A COLD CONTEXT renders the form late: the first fresh browser context of a
+  // run had no inputs at the fixed 3 s, filled nothing and reported "no session"
+  // (29.9: verify-submenu-click read NO SEAT at its first width). Wait for the
+  // fields themselves.
+  for (let k = 0; k < 40; k++) {
+    if (await safeEval(page, () => !!document.querySelector('input[type="password"]'))) break;
+    await wait(500);
+  }
   await safeEval(page, ({ email, pw }) => {
     const ins = [...document.querySelectorAll('input')];
     const e = ins.find((i) => /email/i.test(i.type + i.placeholder + i.name + (i.getAttribute('aria-label') || '')));
@@ -149,7 +157,11 @@ async function signInOnce(page, base) {
       .find((b) => /^\s*(sign\s*in|כניסה)\s*$/i.test(b.textContent || ''));
     if (btn) btn.click();
   });
-  await wait(6000);
+  // the session, not a fixed pause: up to 15 s for an auth token to appear
+  for (let k = 0; k < 30; k++) {
+    await wait(500);
+    if (await safeEval(page, () => Object.keys(localStorage).some((x) => /^sb-.*-auth-token$/.test(x)))) { await wait(500); break; }
+  }
 
   // IT MUST END UP AS THE SEAT IT WAS ASKED FOR, AND IT MUST CHECK.
   //

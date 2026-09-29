@@ -14,11 +14,17 @@ for (const w of [1440, 390]) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   try {
     await setWidth(pg, w, 900);
-    await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+    // the owner is dual-role: without the portal choice pinned, signIn's storage
+    // wipe leaves the page on CHOOSE YOUR PORTAL and there is no menu to click
+    // (29.9: 0 menus at 390, NO SEAT at 1440)
+    await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
     perWidth[w] = 0;
     const who = await signIn(pg, BASE); if (!who || !who.signedIn) { console.log(`FAIL ${w}: NO SEAT — nothing measured at this width`); continue; }
-    await pg.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' }); await setWidth(pg, w, 900); await wait(4000);
-    const n = await pg.evaluate(() => document.querySelectorAll('div[data-submenu-id] > button[aria-expanded]').length);
+    await pg.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' }); await setWidth(pg, w, 900);
+    // a cold context shows LOADING DATA for 5-10 s; counting at a fixed 4 s measured the
+    // loading screen and reported 0 menus (29.9) - wait for the menus themselves
+    let n = 0;
+    for (let k = 0; k < 60 && !n; k++) { await wait(500); n = await pg.evaluate(() => document.querySelectorAll('div[data-submenu-id] > button[aria-expanded]').length); }
     for (let i = 0; i < n; i++) {
       await pg.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' });
       for (let k = 0; k < 30; k++) { await wait(500); if (await pg.evaluate((n) => document.querySelectorAll('div[data-submenu-id] > button[aria-expanded]').length >= n, n)) break; }
