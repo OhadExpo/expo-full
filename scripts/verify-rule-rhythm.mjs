@@ -119,7 +119,22 @@ for (const lang of LANGS) for (const W of WIDTHS) {
             if (!list) continue;
             const kids = [...list.children].filter(vis);
             if (kids.length < 2 || list.getBoundingClientRect().top - sb.bottom > 60) continue;
-            const inks = kids.slice(0, 2).map(inkOf);
+            // FIRSTGAP asks whether the space above the first row is EMPTY
+            // (#418). A bordered control's border is painted ink: a SYNC NOW
+            // box 8px under the strip is not 21px of empty space because its
+            // label sits in the middle of it (29.9, calendar AVAILABILITY - the
+            // row read 21 / 8 while its visible edges were 8 / 9). So here the
+            // row's extent is its text ink plus the border boxes nested in it.
+            const inkBoxes = (el) => {
+              const i0 = inkOf(el); let t = i0 ? i0.t : Infinity, bb = i0 ? i0.b : -Infinity;
+              for (const d of el.querySelectorAll('*')) {
+                if (!vis(d) || !bordered(d) || getComputedStyle(d).position === 'absolute') continue;
+                const r = d.getBoundingClientRect(); if (!r.width || !r.height) continue;
+                t = Math.min(t, r.top); bb = Math.max(bb, r.bottom);
+              }
+              return Number.isFinite(t) ? { t, b: bb } : null;
+            };
+            const inks = kids.slice(0, 2).map(inkBoxes);
             if (inks.some((x) => !x)) continue;
             // the first row is centred between the strip and its own bottom rule
             // (the next row's top rule), like every row below it

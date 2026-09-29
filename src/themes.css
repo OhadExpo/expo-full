@@ -1935,3 +1935,10 @@ select.avail-select:dir(rtl) {
   .wr-foot > .wr-foot-primary { order: -1; flex: 1 1 100% !important; }
   .wr-foot > button { white-space: nowrap; }
 }
+
+/* calendar: FROM YOUR CALENDAR + SYNC NOW on one line, the status under it (#439) */
+@media (max-width: 620px) {
+  .cal-sync-row > .cal-sync-sp { order: 1; }
+  .cal-sync-row > button { order: 2; }
+  .cal-sync-row > .cal-sync-msg { order: 3; flex-basis: 100%; }
+}

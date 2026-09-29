@@ -336,9 +336,12 @@ export default function BookingView({ trainees }) {
         {/* WHAT THE CALENDAR ALREADY OWNS. The rules say when he CAN be booked;
             his calendar says when he already is. Both have to be true before a
             slot is offered to a stranger. */}
-        <div className="app-first-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, color: C.tm }}>
+        {/* On a phone the label and SYNC NOW share the first line and the
+            status takes the second whole (29.9 #439): wrapped as it came, the
+            button fell to a line of its own under the text. */}
+        <div className="app-first-row cal-sync-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 4, padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, color: C.tm }}>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{tt('From your calendar')}</span>
-          <span style={{ color: C.tx }}>
+          <span className="cal-sync-msg" style={{ color: C.tx }}>
             {calBusy.connected === false
               ? tt('Not connected — slots are offered without checking it')
               : calBusy.error
@@ -347,7 +350,7 @@ export default function BookingView({ trainees }) {
                   ? `${calBusy.blocks} ${calBusy.blocks === 1 ? tt('block') : tt('blocks')} ${tt('in the next 21 days')}`
                   : tt('checking…')}
           </span>
-          <span style={{ flex: 1 }} />
+          <span className="cal-sync-sp" style={{ flex: 1 }} />
           <button onClick={() => syncCalendarBusy(false)}
             style={{ ...stripBtnBase, border: `1px solid ${C.cardBd}`, color: C.tm, height: 26 }}>{tb('SYNC NOW')}</button>
         </div>
