@@ -1,5 +1,5 @@
 // Session-level consistency across a set of shots.
-import { spreadOf, sessionSpread, sessionVerdict, worstRep, sessionRead, TIGHT } from '../src/shotSession.js';
+import { spreadOf, sessionSpread, sessionVerdict, worstRep, sessionRead, TIGHT, makeMissContrast, makesByThird, CONTRAST_MIN } from '../src/shotSession.js';
 
 let pass = 0, fail = 0;
 const eq = (name, got, want) => {
@@ -183,6 +183,71 @@ eq('null spread, no culprit', worstRep([{ info: { ballSpeedMs: 4 } }], null, 'sp
 }
 eq('no shots, no read', sessionRead([]).verdict, null);
 
+
+// ── makes vs misses (29.9 #424) ───────────────────────────────────────────
+{
+  // seeded, so the gate is the same every run
+  let seed = 424;
+  const rnd = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const randn = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const shot = (i, f) => ({ index: i, raw: { dip: f(), setElbow: f(), releaseArm: f(), timing: f() }, info: { ballLaunchDeg: f(), ballSpeedMs: f(), ballRiseM: f(), releaseHeightCm: f() } });
+  const session = (nMake, nMiss, missShift = {}) => {
+    const shots = [], made = {};
+    for (let i = 1; i <= nMake + nMiss; i++) {
+      const miss = i > nMake;
+      const s = shot(i, () => 50 + 10 * randn());
+      if (miss) for (const [k, dv] of Object.entries(missShift)) s.raw[k] += dv;
+      shots.push(s); made[i] = !miss;
+    }
+    return { shots, made };
+  };
+  {
+    const { shots, made } = session(9, 5);
+    const c = makeMissContrast(shots, made);
+    eq('9 makes is not enough to compare', [c.ready, c.needMakes, c.needMisses, c.lead], [false, 1, 0, null]);
+  }
+  {
+    const { shots, made } = session(12, 6, { timing: 40 });
+    const c = makeMissContrast(shots, made);
+    eq('a real 4-sd timing difference is named', c.lead && c.lead.key, 'timing');
+    near('its miss mean is the shifted one', c.lead && c.lead.missMean - c.lead.makeMean, 40, 15);
+    eq('all eight readings compared', c.compared, 8);
+  }
+  {
+    // one wild miss among five ordinary ones is ONE rep, not a pattern
+    const shots = [], made = {};
+    const mk = [0, 5, -5, 3, -3, 8, -8, 1, -1, 4, -4, 6, -6, 2, -2];
+    mk.forEach((t, k) => { shots.push({ index: k + 1, raw: { timing: t }, info: {} }); made[k + 1] = true; });
+    [7, -6, 4, -2, 400].forEach((t, k) => { shots.push({ index: 16 + k, raw: { timing: t }, info: {} }); made[16 + k] = false; });
+    const c = makeMissContrast(shots, made);
+    eq('one wild miss names nothing', c.lead, null);
+  }
+  {
+    const { shots, made } = session(12, 6, { timing: 40 });
+    const partial = { ...made }; for (const k of Object.keys(partial)) if (+k % 2) delete partial[k];
+    const c = makeMissContrast(shots, partial);
+    eq('unmarked shots are not counted', [c.makes + c.misses, c.ready], [9, false]);
+  }
+  {
+    // THE CALIBRATION, as a gate: no real difference, eight readings, 15 / 5.
+    let leads = 0; const N = 1500;
+    for (let k = 0; k < N; k++) { const { shots, made } = session(15, 5); if (makeMissContrast(shots, made).lead) leads++; }
+    const rate = leads / N;
+    console.log(`  null sessions (15 makes / 5 misses, no real difference): a lead named in ${(rate * 100).toFixed(1)}%`);
+    eq('chance leads stay rare (<= 6%)', rate <= 0.06, true);
+    let found = 0;
+    for (let k = 0; k < 500; k++) { const { shots, made } = session(15, 5, { dip: 25 }); const c = makeMissContrast(shots, made); if (c.lead && c.lead.key === 'dip') found++; }
+    console.log(`  a real 2.5-sd dip difference found in ${(found / 5).toFixed(0)}%`);
+    eq('a real difference is usually found (>= 60%)', found / 500 >= 0.6, true);
+  }
+  eq('the minimums are what the comment says', [CONTRAST_MIN.makes, CONTRAST_MIN.misses], [10, 5]);
+  {
+    const shots = Array.from({ length: 9 }, (_, i) => ({ index: i + 1 }));
+    eq('five marked: no thirds', makesByThird(shots, { 1: true, 2: true, 3: false, 4: true, 5: true }), null);
+    const made = { 1: true, 2: true, 3: true, 4: true, 5: false, 6: true, 7: false, 8: false, 9: true };
+    eq('nine marked: three thirds, counted in order', makesByThird(shots, made), [{ made: 3, marked: 3 }, { made: 2, marked: 3 }, { made: 1, marked: 3 }]);
+  }
+}
 
 console.log(`\nSHOT SESSION: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

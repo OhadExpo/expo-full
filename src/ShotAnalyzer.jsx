@@ -12,7 +12,7 @@ import { preflightClip } from './clipPreflight';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
-import { sessionRead, sessionConclusions } from './shotSession.js';
+import { sessionRead, sessionConclusions, makeMissContrast, makesByThird, CONTRAST_MIN } from './shotSession.js';
 import { useSupaStore } from './useSupaStore';
 import { crossFade } from './viewTransition';
 import { judgeShots } from './rimJudge';
@@ -729,8 +729,17 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const [auto, setAuto] = useState({});          // shot index -> { outcome, confidence, evidence, overridden }
   const [rimTap, setRimTap] = useState(null);    // null | [] | [pt] while tapping
   const [autoRun, setAutoRun] = useState(null);  // null | 0-100 | 'done' | { error }
-  useEffect(() => { setAuto({}); setRimTap(null); setAutoRun(null); }, [result]);
-  const markShot = (idx, val) => { setMade((m) => ({ ...m, [idx]: val })); setAuto((a) => (a[idx] ? { ...a, [idx]: { ...a[idx], overridden: true } } : a)); };
+  // a run belongs to the result it started on: a new clip (or leaving the page)
+  // stops it, and a late answer never lands on another clip's shots
+  const autoTokenRef = useRef(0);
+  // which marks the rim check filled (a REDO may replace those) - the coach's
+  // own taps are never in here, and never replaced
+  const autoFilledRef = useRef(new Set());
+  const autoStatsRef = useRef(null);             // the last check's seek counts (a gate reads data-auto-seeks)
+  const madeRef = useRef(made); madeRef.current = made;
+  useEffect(() => { autoTokenRef.current++; autoFilledRef.current = new Set(); setAuto({}); setRimTap(null); setAutoRun(null); }, [result]);
+  useEffect(() => () => { autoTokenRef.current++; }, []);
+  const markShot = (idx, val) => { autoFilledRef.current.delete(idx); setMade((m) => ({ ...m, [idx]: val })); setAuto((a) => (a[idx] ? { ...a, [idx]: { ...a[idx], overridden: true } } : a)); };
   const [playing, setPlaying] = useState(false);
   // Which MOMENT of the shot the coach is looking at. Switching shots keeps
   // the same moment (follow-through → follow-through), never jumps back to
@@ -1144,7 +1153,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                     const vals = Object.values(auto);
                     const m = vals.filter((a) => a.outcome === 'made').length, x = vals.filter((a) => a.outcome === 'missed').length, u = vals.filter((a) => a.outcome === 'unsure').length;
                     return (<>
-                      <span data-auto-done style={{ ...lbl, letterSpacing: '0.06em', flex: '1 1 200px' }}>{T.autoDone(m, x, u)}</span>
+                      <span data-auto-done data-auto-seeks={autoStatsRef.current ? JSON.stringify(autoStatsRef.current) : undefined} style={{ ...lbl, letterSpacing: '0.06em', flex: '1 1 200px' }}>{T.autoDone(m, x, u)}</span>
                       <button onClick={() => { setAutoRun(null); setRimTap([]); }} style={{ ...chip(false) }}>{T.rimRedo}</button>
                     </>);
                   })()}
@@ -1177,13 +1186,32 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 const rim = { l: Math.min(pts[0].x, pts[1].x), r: Math.max(pts[0].x, pts[1].x), y: (pts[0].y + pts[1].y) / 2 };
                 const releases = result.shots.map((sh) => series.tMs[sh.cycle.release]);
                 setAutoRun(0);
-                judgeShots(srcUrl, rim, releases, { onProgress: (p) => setAutoRun(p) }).then((res) => {
+                const tok = ++autoTokenRef.current;
+                const live = () => autoTokenRef.current === tok;
+                const seekStats = {};
+                autoStatsRef.current = seekStats;
+                judgeShots(srcUrl, rim, releases, { onProgress: (p) => { if (live()) setAutoRun(p); }, shouldStop: () => !live(), stats: seekStats }).then((res) => {
+                  if (!live()) return;
+                  // A shot the coach marked himself stays his (tagged as
+                  // overridden, whatever the rim said); a shot the LAST check
+                  // filled takes this check's answer - a REDO after a bad rim
+                  // tap must not leave the first run's marks behind (29.9 audit).
+                  const filled = autoFilledRef.current;
+                  const his = (k) => madeRef.current[k] !== undefined && !filled.has(k);
                   const a = {};
-                  res.forEach((rr, i) => { a[result.shots[i].index] = rr; });
+                  res.forEach((rr, i) => { const k = result.shots[i].index; a[k] = his(k) ? { ...rr, overridden: true } : rr; });
                   setAuto(a);
-                  setMade((m) => { const n = { ...m }; res.forEach((rr, i) => { const k = result.shots[i].index; if (n[k] === undefined && (rr.outcome === 'made' || rr.outcome === 'missed')) n[k] = rr.outcome === 'made'; }); return n; });
+                  setMade((m) => {
+                    const n = { ...m };
+                    res.forEach((rr, i) => {
+                      const k = result.shots[i].index;
+                      if (n[k] !== undefined && !filled.has(k)) return;
+                      if (rr.outcome === 'made' || rr.outcome === 'missed') { n[k] = rr.outcome === 'made'; filled.add(k); } else { delete n[k]; filled.delete(k); }
+                    });
+                    return n;
+                  });
                   setAutoRun('done');
-                }).catch((err) => setAutoRun({ error: String((err && err.message) || err) }));
+                }).catch((err) => { if (live() && !(err && err.code === 'aborted')) setAutoRun({ error: T.autoFail }); });
               }} style={{ position: 'absolute', inset: 0, cursor: 'crosshair', background: 'rgba(0,0,0,0.12)' }}>
                 {rimTap.map((pt, i) => <span key={i} style={{ position: 'absolute', left: pt.sx - 5, top: pt.sy - 5, width: 10, height: 10, borderRadius: '50%', background: CYAN, boxShadow: '0 0 0 2px #000' }} />)}
               </div>
@@ -1303,9 +1331,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {[[T.info.dipToRelease, shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + (T.unitMs || ' ms') : '—'],
               // Third slot = an action for the value. Only the height prompt has
               // one; every other tile is a reading, and a reading is not a button.
-              [T.info.jumpRise, shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : T.enterHeight,
+              [T.info.jumpRise, shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + (T.unitCm || ' cm') : T.enterHeight,
                 shot.info.jumpRiseCm == null ? onNeedHeight : null],
-              [T.info.releaseHeight, shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + ' cm' : (shot.info.releaseHeightRatio != null ? shot.info.releaseHeightRatio + T.eyeHeight : '—')],
+              [T.info.releaseHeight, shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + (T.unitCm || ' cm') : (shot.info.releaseHeightRatio != null ? shot.info.releaseHeightRatio + T.eyeHeight : '—')],
               [T.info.armAtRelease, fmt(shot.info.shoulderAtRelease) + '°'],
               // Measured from the BALL. Blank when the ball could not be tracked
               // confidently — an empty tile beats a confident wrong angle.
@@ -1485,7 +1513,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                               column beside it. */}
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap' }}>
                             {s.info.releaseHeightCm != null
-                              ? `${s.info.releaseHeightCm} cm`
+                              ? `${s.info.releaseHeightCm}${T.unitCm || ' cm'}`
                               : (s.info.releaseHeightRatio != null ? `${s.info.releaseHeightRatio.toFixed(2)}×` : '—')}
                           </td>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: made[s.index] === true ? '#37B27C' : made[s.index] === false ? '#F26A2B' : 'rgba(255,255,255,0.35)' }}>
@@ -1516,17 +1544,24 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 // finding is the rep. See src/shotSession.js.
                 const { spread, verdict, culprit, rest } = sessionRead(result.shots);
                 const band = (sp) => (sp && sp.tight ? '#37B27C' : '#E0A73A');
+                // a symbol / Latin unit ("°", " m") rides INSIDE the number's
+                // isolate - outside it would resolve right-to-left and read
+                // "°64"; a Hebrew unit sits outside and reads in the sentence
+                const withUnit = (v, unit) => (/[\u0590-\u05FF]/.test(unit)
+                  ? <><bdi dir="ltr">{v}</bdi>{unit}</>
+                  : <bdi dir="ltr">{v}{unit}</bdi>);
                 const row = (label, sp, unit) => (sp ? (
                   <span style={{ marginInlineEnd: 14 }}>
                     {label}{' '}
-                    {/* Numbers and their Latin units are bidi-isolated: inside an
-                        RTL paragraph "200 ms" otherwise renders as "ms 200", and
-                        a range "(54-67.2)" reverses. */}
-                    <span dir="ltr" style={{ unicodeBidi: 'isolate', display: 'inline-block' }}>
-                      <b style={{ color: '#FFF' }}>{sp.mean}{unit}</b>
-                      {' ± '}<b style={{ color: band(sp) }}>{sp.sd}{unit}</b>
-                      <span style={{ opacity: 0.7 }}> ({sp.lo}–{sp.hi})</span>
-                    </span>
+                    {/* ONLY THE NUMBERS are bidi-isolated (a range "(54-67.2)"
+                        must never reverse), and the reading wraps with its
+                        paragraph. 29.9: the whole reading - Hebrew units
+                        included - sat in one LTR inline-block that wrapped
+                        inside itself, and the Hebrew speed line read
+                        "מ׳/שנ׳ 0.28 ± מ׳/שנ׳" over "5.56 (6—5)". */}
+                    <b style={{ color: '#FFF' }}>{withUnit(sp.mean, unit)}</b>
+                    {' ± '}<b style={{ color: band(sp) }}>{withUnit(sp.sd, unit)}</b>
+                    <span style={{ opacity: 0.7 }}> (<bdi dir="ltr">{sp.lo}–{sp.hi}</bdi>)</span>
                   </span>
                 ) : null);
                 return (
@@ -1539,7 +1574,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                       <div style={{ marginTop: 4 }}>
                         {row(T.launchSpread, spread.angle, '°')}
                         {row(T.spreadSpeed, spread.speed, T.unitMps || ' m/s')}
-                        {row(T.spreadRise, spread.rise, ' m')}
+                        {row(T.spreadRise, spread.rise, T.unitM || ' m')}
                         <div style={{ marginTop: 2, color: verdict === 'repeatable' ? '#37B27C' : '#E0A73A' }}>
                           {verdict === 'outlier' ? T.verdictOutlier(rest.n)
                             : verdict === 'speed' ? T.verdictSpeed
@@ -1553,6 +1588,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                         )}
                       </div>
                     )}
+                    <MakeMissRead shots={result.shots} made={made} T={T} />
                   </div>
                 );
               })()}
@@ -1592,6 +1628,36 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
         </div>
       </div>
       </div>
+    </div>
+  );
+}
+
+// MAKES vs MISSES (29.9 #424): what differs about this shooter's misses, and
+// the makes per third of the clip. The gate and its calibration live in
+// shotSession.js; below the minimum this says how many more it needs.
+function MakeMissRead({ shots, made, T }) {
+  const c = useMemo(() => makeMissContrast(shots, made), [shots, made]);
+  const thirds = useMemo(() => makesByThird(shots, made), [shots, made]);
+  if (!c.makes && !c.misses) return null;
+  const iso = (x) => <span dir="ltr" style={{ unicodeBidi: 'isolate', display: 'inline-block' }}>{x}</span>;
+  const unit = (u) => (u === 'ms' ? (T.unitMs || ' ms') : u === 'm/s' ? (T.unitMps || ' m/s') : u === 'm' ? (T.unitM || ' m') : u === 'cm' ? (T.unitCm || ' cm') : u);
+  const L = c.lead;
+  return (
+    <div data-makemiss style={{ marginTop: 8 }}>
+      <div style={{ ...lbl, color: CYAN, marginBottom: 2 }}>{T.mmTitle}</div>
+      {!c.ready && <div data-makemiss-need>{T.mmNeed(c.makes, c.misses, c.needMakes, c.needMisses, CONTRAST_MIN.makes, CONTRAST_MIN.misses)}</div>}
+      {c.ready && L && (
+        <div data-makemiss-lead={L.key} style={{ color: '#E0A73A' }}>
+          {T.mmMisses(T.mmNames[L.key])} {iso(<b>{L.missMean}{unit(L.unit)}</b>)} · {T.mmMakes} {iso(<b style={{ color: '#FFF' }}>{L.makeMean}{unit(L.unit)}</b>)}
+          {' '}({T.mmCounts(L.nMiss, L.nMake)}). {T.mmLeadNote}
+        </div>
+      )}
+      {c.ready && !L && c.compared > 0 && <div data-makemiss-none>{T.mmNone(c.compared)}</div>}
+      {thirds && (
+        <div data-makemiss-thirds style={{ marginTop: 2 }}>
+          {T.mmThirds}: {thirds.map((p, i) => <React.Fragment key={i}>{i > 0 && ' · '}{iso(p.made + '/' + p.marked)}</React.Fragment>)}
+        </div>
+      )}
     </div>
   );
 }

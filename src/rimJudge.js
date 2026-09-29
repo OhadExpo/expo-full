@@ -72,6 +72,10 @@ export function decideShot(frames, releaseIdx) {
   const near = frames.filter((f) => isBall(f) && Math.abs(f.ball.u) < 1.6 && f.ball.v > -1.6 && f.ball.v < 2.6);
   const quiet = frames.slice(0, releaseIdx).map((f) => f.net).filter((x) => x != null);
   const quietLo = frames.slice(0, releaseIdx).map((f) => f.netLo).filter((x) => x != null);
+  // No quiet moment, no yardstick: with the release under ~0.5 s into the clip
+  // (or its frames unread) the baseline was 0.05 and ANY ball at the rim read
+  // as a 99% make (29.9 audit). Too few quiet frames = not judged.
+  if (quiet.length < 8 || quietLo.length < 8) return { outcome: 'unsure', confidence: 0, evidence: { why: 'no quiet moment before the shot to compare the net against' } };
   const base = percentile(quiet, 30) + 0.05, baseLo = percentile(quietLo, 30) + 0.05;
   // CONTACT = the ball ARRIVING: a ball-sized sighting at the rim within 6
   // frames of one above it (v < -0.3). A speck already sitting at the rim before
@@ -105,7 +109,7 @@ export function decideShot(frames, releaseIdx) {
 
 // Read the frames around every shot and decide each one.
 // releasesMs: each shot's release time in the clip. rim: { l, r, y } in video px.
-export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop } = {}) {
+export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop, stats } = {}) {
   const v = document.createElement('video');
   v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
   v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
@@ -125,10 +129,18 @@ export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop 
     const rcx = (cx - sx0) * k, rcy = (cy - sy0) * k, rw = rimW * k;
     const box = (u0, u1, v0, v1) => [Math.max(0, Math.round(rcx + u0 * rw)), Math.min(S, Math.round(rcx + u1 * rw)), Math.max(0, Math.round(rcy + v0 * rw)), Math.min(S, Math.round(rcy + v1 * rw))];
     const NET = box(-0.45, 0.45, 0.12, 1.0), LO = box(-0.45, 0.45, 0.5, 1.0);
+    // A SEEK THAT DID NOT LAND IS A FRAME NOT READ (29.9). The phone clips
+    // carry a keyframe every ~4 s, so a seek can decode 250 frames first; the
+    // old 700 ms fallback then drew the PREVIOUS frame - zero motion, a lower
+    // baseline - and the same clip judged differently run to run (the miss read
+    // MISSED once and UNSURE the next time). Now a seek gets 5 s, and one that
+    // still has not landed leaves that frame out instead of reading it stale.
+    const SEEK_MS = 5000;
     const seek = (t) => new Promise((res) => {
-      let done = false; const fin = () => { if (!done) { done = true; res(); } };
-      v.onseeked = fin; setTimeout(fin, 700);
-      try { v.currentTime = Math.max(0.001, Math.min(dur - 0.001, t)); } catch { fin(); }
+      const t0 = performance.now();
+      let done = false; const fin = (ok) => { if (!done) { done = true; v.onseeked = null; const ms = performance.now() - t0; if (stats) { stats.seeks = (stats.seeks || 0) + 1; stats.maxMs = Math.max(stats.maxMs || 0, Math.round(ms)); if (ms > 700) stats.slow = (stats.slow || 0) + 1; if (!ok) stats.timeouts = (stats.timeouts || 0) + 1; } res(ok); } };
+      v.onseeked = () => fin(true); setTimeout(() => fin(false), SEEK_MS);
+      try { v.currentTime = Math.max(0.001, Math.min(dur - 0.001, t)); } catch { fin(false); }
     });
     const read = () => {
       ctx.clearRect(0, 0, S, S);
@@ -149,7 +161,7 @@ export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop 
       for (let i = 0; i < times.length; i++) {
         if (typeof shouldStop === 'function' && shouldStop()) { const e = new Error('stopped'); e.code = 'aborted'; throw e; }
         if (times[i] < 0 || times[i] > dur) { frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue; }
-        await seek(times[i]);
+        if (!(await seek(times[i]))) { frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue; }
         const px = read();
         const gray = new Int16Array(S * S); const mask = new Uint8Array(S * S);
         for (let p = 0, q = 0; p < S * S; p++, q += 4) gray[p] = (px[q] * 299 + px[q + 1] * 587 + px[q + 2] * 114) / 1000;

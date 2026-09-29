@@ -108,7 +108,7 @@ export const SHOT_I18N = {
     tabShot: 'THIS SHOT', tabSession: 'SESSION', tabSaved: 'SAVED', sessionOne: 'One shot in this clip - the session view needs two or more.',
     autoBtn: 'AUTO MAKES - TAP THE RIM', rimTapL: 'TAP THE LEFT EDGE OF THE RIM ON THE VIDEO', rimTapR: 'NOW THE RIGHT EDGE', cancel: 'CANCEL',
     autoRunning: (p) => `CHECKING THE RIM · ${p}%`, autoDone: (m, x, u) => `AUTO: ${m} MADE · ${x} MISSED · ${u} TO CHECK`,
-    autoTag: (c) => `AUTO · ${c}%`, autoCheck: 'AUTO · CHECK IT', autoUnsure: 'NOT SURE - MARK IT', rimRedo: 'REDO THE RIM',
+    autoTag: (c) => `AUTO · ${c}%`, autoCheck: 'AUTO · CHECK IT', autoUnsure: 'NOT SURE - MARK IT', rimRedo: 'REDO THE RIM', autoFail: 'COULD NOT READ THE RIM IN THIS VIDEO - MARK THE SHOTS BY HAND',
     // The dot on the option AUTO is using - detected, or the default when the
     // clip could not show it. Never both called a detection.
     autoPicked: 'AUTO: read from the clip',
@@ -136,7 +136,7 @@ export const SHOT_I18N = {
     // three shots and most clips are shorter. Release height is on every rep.
     cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht', 'Make'],
     toolTitle: 'SHOT ANALYZER',
-    unitMs: ' ms', unitS: 's', unitMps: ' m/s', unitM: ' m', sideShort: { R: 'R', L: 'L' },
+    unitMs: ' ms', unitS: 's', unitMps: ' m/s', unitM: ' m', unitCm: ' cm', sideShort: { R: 'R', L: 'L' },
     // Ohad, 2026-09-07: "what does elbow offset and wrist vs eye measure? what's
     // the units? it doesnt say anything". Both are in TORSO lengths (shoulder
     // to hip), so the reading does not depend on how far the camera stood.
@@ -161,6 +161,15 @@ export const SHOT_I18N = {
     launchSpreadOn: (n, total) => `measured on ${n} of ${total}`,
     worstRep: (i, v, unit) => `watch rep ${i} — it released at ${v}${unit}`,
     verdictOutlier: (n) => `${n} of the reps repeat — one does not`,
+    mmTitle: 'MAKES VS MISSES',
+    mmNeed: (mk, ms, nMk, nMs, minMk, minMs) => `${mk} made and ${ms} missed marked. Comparing them needs at least ${minMk} made and ${minMs} missed - ${[nMk ? `${nMk} more made` : '', nMs ? `${nMs} more missed` : ''].filter(Boolean).join(' and ')} to go.`,
+    mmMisses: (name) => `On your misses, ${name}`,
+    mmMakes: 'on your makes',
+    mmCounts: (x, y) => `${x} missed, ${y} made`,
+    mmLeadNote: 'A lead to check on the video, not proof.',
+    mmNone: (n) => `Nothing separates your makes from your misses on this clip (${n} readings compared).`,
+    mmThirds: 'Makes by third of the clip',
+    mmNames: { dip: 'the dip', set: 'the set elbow', releaseArm: 'the release arm', timing: 'the release timing', launch: 'the ball launch', speed: 'the release speed', rise: 'the arc', releaseHt: 'the release height' },
     gainPts: (n) => `+${n} pts if fixed`,
     vsLastHead: (d) => `vs the last analysis you SAVED (${d})`,
     vsScore: (was, now) => `${was} → ${now}`,
@@ -300,7 +309,7 @@ export const SHOT_I18N = {
     tabShot: 'הזריקה הזאת', tabSession: 'האימון', tabSaved: 'נשמרו', sessionOne: 'בקליפ יש זריקה אחת - תצוגת האימון צריכה שתיים לפחות.',
     autoBtn: 'זיהוי אוטומטי - סמן את הטבעת', rimTapL: 'גע בקצה השמאלי של הטבעת בווידאו', rimTapR: 'עכשיו בקצה הימני', cancel: 'ביטול',
     autoRunning: (p) => `בודק את הטבעת · ${p}%`, autoDone: (m, x, u) => `אוטומטי: ${m} קליעות · ${x} החטאות · ${u} לבדיקה`,
-    autoTag: (c) => `אוטומטי · ${c}%`, autoCheck: 'אוטומטי · כדאי לבדוק', autoUnsure: 'לא בטוח - סמן בעצמך', rimRedo: 'סמן טבעת מחדש',
+    autoTag: (c) => `אוטומטי · ${c}%`, autoCheck: 'אוטומטי · כדאי לבדוק', autoUnsure: 'לא בטוח - סמן בעצמך', rimRedo: 'סמן טבעת מחדש', autoFail: 'לא הצלחתי לקרוא את הטבעת בווידאו - סמן את הזריקות ידנית',
     autoPicked: 'אוטומטי: זוהה בקליפ',
     autoFallback: 'אוטומטי: לא רואים את זה בקליפ, אז זו ברירת המחדל',
     warnShort: {
@@ -324,7 +333,7 @@ export const SHOT_I18N = {
     // Ohad, 2026-09-07, on this screen: "i want everything in hebrew here".
     toolTitle: 'ניתוח זריקה',
     // The last Latin on the Hebrew screen was units: MS, S and the (R) legend.
-    unitMs: ' מ"ש', unitS: ' שנ׳', unitMps: ' מ׳/שנ׳', unitM: ' מ׳', sideShort: { R: 'ימ׳', L: 'שמ׳' },
+    unitMs: ' מ"ש', unitS: ' שנ׳', unitMps: ' מ׳/שנ׳', unitM: ' מ׳', unitCm: ' ס"מ', sideShort: { R: 'ימ׳', L: 'שמ׳' },
     unitTorso: ' גו',
     metricsHelp: {
       elbowOffset: 'כמה שורש כף היד זז הצידה מקו ישר מעל המרפק, ביחידות אורך גו (כתף עד ירך). 0 = מיושר; היעד בסט הוא עד 0.25.',
@@ -345,6 +354,18 @@ export const SHOT_I18N = {
     launchSpreadOn: (n, total) => `נמדדה ב-${n} מתוך ${total}`,
     worstRep: (i, v, unit) => `תסתכל על חזרה ${i}: שחררת שם ב-${v}${unit}`,
     verdictOutlier: (n) => `${n} חזרות יצאו אותו דבר. אחת לא`,
+    mmTitle: 'קליעות מול החטאות',
+    mmNeed: (mk, ms, nMk, nMs, minMk, minMs) => {
+      const more = [nMk ? (nMk === 1 ? 'זריקה אחת שנכנסה' : `${nMk} קליעות`) : '', nMs ? (nMs === 1 ? 'החטאה אחת' : `${nMs} החטאות`) : ''].filter(Boolean).join(' ועוד ');
+      return `סימנת ${mk} קליעות ו-${ms} החטאות. כדי להשוות ביניהן צריך לפחות ${minMk} קליעות ו-${minMs} החטאות. נשאר לסמן עוד ${more}.`;
+    },
+    mmMisses: (name) => `בהחטאות, ${name}`,
+    mmMakes: 'בקליעות',
+    mmCounts: (x, y) => `${x} החטאות, ${y} קליעות`,
+    mmLeadNote: 'זה כיוון לבדוק בווידאו, לא הוכחה.',
+    mmNone: (n) => `בקליפ הזה אין מדד שמבדיל בין הקליעות להחטאות שלך (בדקתי ${n} מדדים).`,
+    mmThirds: 'קליעות לפי שליש של הקליפ',
+    mmNames: { dip: 'הדיפ', set: 'המרפק בסט', releaseArm: 'היד בשחרור', timing: 'תזמון השחרור', launch: 'זווית השיגור', speed: 'מהירות השחרור', rise: 'הקשת', releaseHt: 'גובה השחרור' },
     gainPts: (n) => `${n === 1 ? 'עוד נקודה אחת' : `עוד ${n} נקודות`} אם מתקנים`,
     vsLastHead: (d) => `מול הניתוח האחרון ששמרת (${d})`,
     vsScore: (was, now) => `${was} ← ${now}`,
