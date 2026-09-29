@@ -21,7 +21,9 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn } from './ui';
+// the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
+import SubmenuTab from './SubmenuTab';
 
 // The demo is many small function components and a few module-level label
 // tables; one module-level helper (no hook) serves them all. Reads the
@@ -817,7 +819,8 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
     <button title={T('Demo only')} data-add-athlete="" style={{ ...baseBtn, background: 'transparent', color: 'var(--c-acText, #39BDFF)', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>
   );
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
+  // the real roster opens on ACTIVE (TraineesView), not ALL
+  const [statusFilter, setStatusFilter] = useState('Active');
   const [formatFilter, setFormatFilter] = useState('All');
   const [attnFlags, setAttnFlags] = useState({});
   const [sortKey, setSortKey] = useState('name');
@@ -868,10 +871,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   MOCK_TRAINEES.forEach(t => { const a = attnOf(t); Object.keys(flagCounts).forEach(k => { if (a[k]) flagCounts[k]++; }); });
   return (
     <section>
-      {/* Header — Athletes title (mirrors TraineesView top row). */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Athletes')}</h2>
-      </div>
+      {/* No page title: the real roster opens straight on the rail + cards (#448). */}
       {/* Two-column: shared SideRail (identical to the real TraineesView rail) + card grid. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
@@ -880,14 +880,14 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           groups={[
             {
               label: T('Status'),
-              opts: ['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => ({
+              opts: ['Active', 'On Hold', 'Inactive', 'Trial', 'Archived', 'All'].map(s => ({
                 key: s, label: T(s), count: statusCounts[s], active: statusFilter === s,
                 accent: s === 'Archived' ? C.rd : undefined, onClick: () => setStatusFilter(s),
               })),
             },
             {
               label: T('Format'),
-              opts: ['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => ({
+              opts: ['Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya', 'All'].map(f => ({
                 key: f, label: T(f), count: formatCounts[f], active: formatFilter === f, onClick: () => setFormatFilter(f),
               })),
             },
@@ -943,7 +943,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           ) : (
             <div className="cd-cards-grid" style={{
               display: 'grid', gap: 12,
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gridAutoRows: '1fr',
             }}>
               {/* the real card's phone rules (TraineesView CARD_MOBILE_CSS) */}
               <style>{`@media (max-width: 700px){ .cd-cards-grid{ grid-template-columns: minmax(0,1fr) !important; } .cd-contact{ height: auto !important; } .cd-couple{ flex-direction: column !important; align-items: center !important; gap: 12px; } .cd-couple > .cd-couple-div{ width: 100% !important; height: 1px !important; margin: 0 !important; } .cd-card-actions{ margin-top: 18px !important; } .cd-slot{ min-height: 0 !important; } }`}</style>
@@ -988,7 +988,7 @@ function MiniBWSparkline({ weight }) {
   // parent column is too narrow — needed for couple-member columns where
   // a fixed 96px svg would push the delta outside the card.
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+    <div dir="ltr" /* the real CardBWSparkline row: the same order in Hebrew (#448) */ style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
         style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 16, flexShrink: 1 }}
         aria-hidden="true">
@@ -1043,24 +1043,33 @@ function MidDot() {
 }
 
 function TrainingBlock({ t, center = false }) {
-  // Two fixed rows so card structure is uniform regardless of text length:
-  //   row 1 — FORMAT · SESSIONS LEFT
-  //   row 2 — N PROGRAMS
-  //   row 3 (optional) — LAST WORKOUT · ...
-  // Programs always starts on its own row even when there's space on row 1,
-  // so neighbouring cards line up vertically.
+  // THE REAL TrainingBlock (TraineesView), row for row (#448):
+  //   row 1 - FORMAT, alone
+  //   row 2 - N SESSIONS LEFT · N PROGRAMS
+  //   row 3 (optional) - LAST WORKOUT · ...
   const justify = center ? 'center' : 'flex-start';
+  const he = readLang() === 'he';
+  const n = planCount(t);
+  const hasSessions = t.sessionsLeft != null && t.sessionsLeft > 0 && t.format !== 'Bnei Herzliya';
   return (
     <CardSection label={T('Training')} center={center} slot={56}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{T(t.format)}</span>
-          <MidDot />
-          <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{readLang() === 'he' && t.sessionsLeft === 1 ? 'נותר אימון אחד' : readLang() === 'he' ? (t.sessionsLeft === 0 ? 'לא נותרו אימונים' : `נותרו ${t.sessionsLeft} אימונים`) : `${t.sessionsLeft} ${T('SESSIONS LEFT')}`}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: justify }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' && planCount(t) === 1 ? 'תוכנית אחת' : `${planCount(t)} ${T('PROGRAMS')}`}</span>
-        </div>
+        {t.format && (
+          <div style={{ display: 'flex', justifyContent: justify }}>
+            <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{T(t.format)}</span>
+          </div>
+        )}
+        {(hasSessions || n > 0) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
+            {hasSessions && (
+              <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{he ? (t.sessionsLeft === 1 ? 'נותר אימון אחד' : `נותרו ${t.sessionsLeft} אימונים`) : `${t.sessionsLeft} ${T('SESSIONS LEFT')}`}</span>
+            )}
+            {hasSessions && n > 0 && <MidDot />}
+            {n > 0 && (
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{he ? (n === 1 ? 'תוכנית אחת' : `${n} תוכניות`) : `${n} ${n === 1 ? 'PROGRAM' : 'PROGRAMS'}`}</span>
+            )}
+          </div>
+        )}
         {t.lastWorkout && (
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'start' }}>
             {T('LAST WORKOUT')} · {RT(t.lastWorkout).toUpperCase()}
@@ -1083,30 +1092,22 @@ function FinancialsBlock({ t, center = false }) {
   } else if (t.payment === 'PAID') {
     items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {(readLang() === 'he' ? daysAgoHe(t.paidDaysAgo || 0) : TN('{n}D AGO', t.paidDaysAgo || 0))}</span>);
   }
+  // the real card's monthly figure: white, the ₪ number isolated, "/MO" or " לחודש"
+  // (it was dim and the demo added a DORMANT line the real card never shows - #448)
   if (t.monthly > 0) {
-    items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>{TN('₪{n}/MO', t.monthly)}</span>);
+    items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700, letterSpacing: 1 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>₪{t.monthly}</span>{readLang() === 'he' ? ' לחודש' : '/MO'}</span>);
   }
-  let dormant = null;
-  if (t.dormantDays != null) {
-    dormant = (<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{readLang() === 'he' ? 'רדום' : T('DORMANT')} · {TN('{n}D', t.dormantDays)}</span>);
-  }
-  if (items.length === 0 && !dormant) {
+  if (items.length === 0) {
     return (
-      <CardSection label={T('Financials')} center={center} slot={38}>
+      <CardSection label={T('Financials')} center={center} slot={34}>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>{T('NOT BILLABLE')}</span>
       </CardSection>
     );
   }
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
-  // DORMANT is its own second line: joined with a dot it wrapped and left the
-  // dot hanging at the end of the money line, and pushed every label below it
-  // 4px off its neighbours' (27.9 #300 O11). Two lines reserved on every card.
   return (
-    <CardSection label={T('Financials')} center={center} slot={38}>
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: center ? 'center' : 'flex-start', gap: 4 }}>
-        {items.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>{interleaved}</div>}
-        {dormant}
-      </div>
+    <CardSection label={T('Financials')} center={center} slot={34}>
+      <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>{interleaved}</div>
     </CardSection>
   );
 }
@@ -1158,7 +1159,7 @@ function TraineeCard({ t, onClick }) {
           body (the body is the 80px contact slot + stat blocks). */}
       <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: heb ? FH : FN, fontWeight: 700, fontSize: heb ? 15 : 14, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase', color: 'var(--c-stripTx)' }}>
-          <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>{t.online && <OnlineDot />}
+          <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>{t.online && <OnlineDot /> /* the real card lights it while the athlete is signed in (data, not design) */}
         </span>
         <span style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}><DemoStatusMenu initial={t.status} /></span>
       </div>
@@ -1701,8 +1702,8 @@ function DemoOverload({ trainee }) {
         ))}
       </div>
       <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
-        <table style={{ width: '100%', minWidth: 460, borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Exercise', 'Last', 'Δ Recent', 'Sess', 'Last Date'].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? 'left' : 'center', padding: '8px 10px', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
+        <table className="ov-table" style={{ width: '100%', minWidth: 460, borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+          <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Exercise', 'Last', 'Δ Recent', 'Sess', 'Last Date'].map((h, i) => <th key={h} className={i >= 3 ? 'ov-opt' : undefined} style={{ textAlign: i === 0 ? 'start' : 'end', whiteSpace: 'nowrap', padding: '8px 10px', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
           <tbody>
             {rows.map(({ ex, st }) => {
               const open = openEid === ex.eid;
@@ -1711,15 +1712,15 @@ function DemoOverload({ trainee }) {
               return (
                 <React.Fragment key={ex.eid}>
                   <tr onClick={() => setOpenEid(open ? '' : ex.eid)} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
-                    <td style={{ padding: '9px 10px', color: C.tx, fontWeight: 600 }}>{open ? '▾' : '▸'} {ex.name}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: C.tx }}>{st.last}kg</td>
+                    <td className="ov-name" style={{ padding: '9px 10px', color: C.tx, fontWeight: 600, overflowWrap: 'break-word' }}><span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span style={{ color: open ? C.ac : C.td, fontSize: 10, flexShrink: 0 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: open ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span style={{ minWidth: 0 }}>{ex.name}</span></span></td>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>{st.last}kg</td>
                     {/* The sign is class ES: with nothing numeric before it,
                         UAX#9 hands it the paragraph direction and it jumps to
                         the other end — "+10.5%" painted as "10.5%+" on every
                         row of the showpiece table. Isolated. */}
-                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{arrow}</span></td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.tm }}>{st.sessions}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[ex.ago.length - 1])}</span></td>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', whiteSpace: 'nowrap', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{arrow}</span></td>
+                    <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', color: C.tm }}>{st.sessions}</td>
+                    <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', whiteSpace: 'nowrap', color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[ex.ago.length - 1])}</span></td>
                   </tr>
                   {open && (
                     <tr><td colSpan={5} style={{ background: 'var(--c-sf2, var(--c-sf))', padding: '14px 16px 18px 30px' }}>
@@ -2309,7 +2310,10 @@ function DemoPrograms({ resetToken = 0 }) {
   // The real rail's Flags group (PlansView): programs with no athlete, and
   // programs with no exercises or no days.
   const [flags, setFlags] = useState({ unassigned: false, empty: false });
-  const [progView, setProgView] = useState('table'); // 'table' | 'grid' | 'lineage'
+  const [progView, setProgView] = useState('table'); // 'table' | 'grid' (the real toggle)
+  // Training Analysis opens per athlete from the card's ANALYSIS button, as a full
+  // page with a Back bar - the real PlansView (it was a third toggle here, #448)
+  const [lineageFor, setLineageFor] = useState(null);
   // Preview / Duplicate / Share / Delete were `onClick={e => e.stopPropagation()}`
   // — they looked live, had a handler, and did nothing, with only a `title`
   // tooltip to say so. A title is invisible on a phone and to a keyboard. Same
@@ -2454,8 +2458,8 @@ function DemoPrograms({ resetToken = 0 }) {
         {/* Header — Programs title + TABLE/GRID/LINEAGE toggle (mirrors PlansView top row). */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Programs')}</h2>
-          <div style={{ display: 'flex', gap: 6, width: 252 }}>
-            {[['table', 'Table'], ['grid', 'Grid'], ['lineage', 'Analysis']].map(([v, label]) => {
+          <div style={{ display: 'flex', gap: 6, width: 168 }}>
+            {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
               const on = progView === v;
               return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, minHeight: CTRL_H, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
             })}
@@ -2496,7 +2500,7 @@ function DemoPrograms({ resetToken = 0 }) {
               }),
             },
           ]}
-          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-acText, #39BDFF)', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
         />
         {/* RIGHT: the program list. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
@@ -2505,12 +2509,20 @@ function DemoPrograms({ resetToken = 0 }) {
             athlete = ONE row showing their current (highest block#) program.
             An expand chevron reveals earlier blocks inline. The same
             transparent border + sparse styling as the real coach app. */}
-        {progView === 'lineage' && (
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <DemoLineage athleteName={filterTrainee ? traineeName(filterTrainee) : (MOCK_TRAINEES.find(t => t.id === 't1')?.name || 'Athlete')} />
-          </div>
-        )}
-        {progView !== 'lineage' && (() => {
+        {lineageFor && createPortal(
+          <div role="dialog" aria-modal="true" aria-label={T('Training Analysis')}
+            style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--c-bg, #0a0a0b)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <button onClick={() => setLineageFor(null)} title={T('Back (Esc)')}
+                style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T('← BACK')}</button>
+            </div>
+            <div style={{ flex: 1, padding: '18px 16px 60px' }}>
+              <div style={{ width: 'min(1180px, 96vw)', margin: '0 auto' }}>
+                <DemoLineage athleteName={traineeName(lineageFor)} />
+              </div>
+            </div>
+          </div>, document.body)}
+        {(() => {
           // Bucket the filtered programs by athlete id, then derive a row
           // per athlete with current + earlier programs.
           const buckets = new Map();
@@ -2575,7 +2587,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   worse, because the control reports a state change. Grid lays
                   the same programs out in columns, the way the real
                   PlansView does (repeat(auto-fill, minmax(...))). */}
-              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: progView === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))' : undefined, alignItems: 'start' }}>
+              <div style={{ display: 'grid', gap: 15, gridTemplateColumns: progView === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))' : undefined, alignItems: 'start' }}>
                 {rows.map(row => {
                   const expanded = expandedAthletes.has(row.tid);
                   const cur = row.current;
@@ -2600,16 +2612,21 @@ function DemoPrograms({ resetToken = 0 }) {
                           now uses the app's card grammar: cyan STRIP HEADER
                           (athlete + recency dot), calm clickable body (block name +
                           spelled-out meta), and LIGHT text actions. */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 6, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
+                      <div className="prog-striphdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 6, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                           <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
                           <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', overflowWrap: 'break-word' }}>{row.name}</bdi>
                         </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                        {/* ◫ ANALYSIS on every card, as the real header (#448) */}
+                        <button className="prog-analysis" onClick={e => { e.stopPropagation(); setLineageFor(row.tid); }} title={T("Training Analysis — this athlete's movement-pattern volume across every block")}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, padding: '0 8px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)', borderRadius: 0, color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap' }}>◫ {T('ANALYSIS')}</button>
                         {/* Recency: colour on the DOT, muted text, fixed min-width so
                             all read the same size — parity with the real Programs
                             page (Ohad #195). */}
-                        <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minWidth: 104, flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', whiteSpace: 'nowrap' }}>
+                        <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minWidth: 124, flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', whiteSpace: 'nowrap' }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
+                        </span>
                         </span>
                       </div>
                       <div onClick={() => setSelectedProgramId(cur.id)} style={{ cursor: 'pointer', padding: '12px 14px 4px' }}>
@@ -2621,8 +2638,8 @@ function DemoPrograms({ resetToken = 0 }) {
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
                               title={readLang() === 'he' ? (expanded ? 'הסתרת הבלוקים הקודמים' : (row.earlier.length === 1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`)) : (expanded ? `Hide ${row.earlier.length} previous` : `Show ${row.earlier.length} previous block${row.earlier.length === 1 ? '' : 's'}`)}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                              {readLang() === 'he' ? (row.earlier.length === 1 ? 'בלוק קודם אחד' : `${row.earlier.length} קודמים`) : `${row.earlier.length} previous`}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                              {readLang() === 'he' ? `${row.earlier.length} קודמים` : `${row.earlier.length} previous`}
                               <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                             </button>
                           )}
@@ -4018,6 +4035,27 @@ const TABS = [
   { key: 'tasks',     label: 'TASKS',     count: 8 },
   { key: 'billing',   label: 'BILLING',   count: null },
 ];
+// THE REAL COACH NAV (App.jsx `tabs`): order, labels, which tabs are dropdowns.
+// Incoming ▾ / Challenges / Portal have no demo pages; the demo's "SEE ATHLETE
+// VIEW" link stands in for Portal.
+const DEMO_NAV = [
+  { key: 'dashboard', label: 'Dashboard', count: null },
+  { key: 'trainees', label: 'Athletes', count: MOCK_TRAINEES.length, submenu: [
+    { route: 'trainees', label: 'Roster', count: MOCK_TRAINEES.length },
+    { route: 'programs', label: 'Programs', count: null },
+    { route: 'exercises', label: 'Exercises', count: null },
+  ] },
+  { key: 'sessions', label: 'Sessions', count: null, submenu: [
+    { route: 'sessions', label: 'Group', count: null },
+    { route: 'sessionsSolo', label: 'Single', count: null },
+  ] },
+  { key: 'review', label: 'Review', count: null, submenu: [
+    { route: 'review', label: 'Workouts', count: null },
+    { route: 'reviewTools', label: 'Tools', count: null },
+  ] },
+  { key: 'tasks', label: 'Tasks', count: null },
+  { key: 'billing', label: 'Billing', count: null },
+];
 // Athletes ▾ — the real app's grouping.
 const ATHLETE_SUBTABS = [
   ['trainees',  'ROSTER'],
@@ -4353,16 +4391,12 @@ function DemoSingle() {
   );
 }
 
-function DemoSessions() {
-  const [mode, setMode] = useState('group');
-  const pill = (active) => ({ ...baseBtn, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, border: `1px solid ${active ? C.ac : C.bd}`, padding: '0 18px', fontSize: 12, letterSpacing: 1.5 });
+// Group / Single come from the nav's Sessions ▾, as in the real app - the page
+// has no pill pair of its own any more (#448).
+function DemoSessions({ mode = 'group' }) {
   return (
     <section>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-        <button onClick={() => setMode('group')} style={pill(mode === 'group')}>{T('GROUP FLOOR')}</button>
-        <button onClick={() => setMode('single')} style={pill(mode === 'single')}>{T('1-ON-1')}</button>
-      </div>
-      {mode === 'group' ? <DemoGroupFloor /> : <DemoSingle />}
+      {mode === 'single' ? <DemoSingle /> : <DemoGroupFloor />}
     </section>
   );
 }
@@ -4840,11 +4874,24 @@ export default function CoachDemo() {
   // Review sub-view: WORKOUTS (the engine sandbox, always mounted to warm up) vs
   // TOOLS (the camera/pose launcher) — mirrors the real Review ▾ dropdown.
   const [reviewSub, setReviewSub] = useState('workouts');
+  // Sessions ▾ Group / Single, as the real nav (was a pill pair inside the page)
+  const [sessionsMode, setSessionsMode] = useState('group');
 
   // Tab → URL: each tab gets its own path under /demo/coach/<key> so users
   // can deep-link, refresh, and use browser back/forward. Dashboard sits at
   // the bare /demo/coach for shareability.
   const [programsReset, setProgramsReset] = useState(0);
+  // the dropdown items' routes -> the demo's pages (the same route names the
+  // real nav uses: sessionsSolo = Single, reviewTools = Review Tools)
+  const demoNavTo = (route) => {
+    if (route === 'reviewTools') { navigateToTab('review'); setReviewSub('tools'); return; }
+    if (route === 'review') { navigateToTab('review'); setReviewSub('workouts'); return; }
+    if (route === 'sessionsSolo') { navigateToTab('sessions'); setSessionsMode('single'); return; }
+    if (route === 'sessions') { navigateToTab('sessions'); setSessionsMode('group'); return; }
+    navigateToTab(route);
+  };
+  const navTab = tab === 'review' ? (reviewSub === 'tools' ? 'reviewTools' : 'review')
+    : tab === 'sessions' ? (sessionsMode === 'single' ? 'sessionsSolo' : 'sessions') : tab;
   const navigateToTab = (key) => {
     setTab(key);
     setSelectedTrainee(null);
@@ -4954,7 +5001,7 @@ export default function CoachDemo() {
            the zone already uses where a header does not fit. */
         @media (max-width: 1199px) {
           .cd-hdr { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; gap: 8px !important; padding-inline: 0 !important; scroll-snap-type: x mandatory; scroll-padding-inline-start: var(--crest-w, 84px); }
-          .cd-hdr > a:first-child { position: sticky; inset-inline-start: 0; z-index: 3; flex: 0 0 auto !important; align-self: stretch; display: flex !important; align-items: center; background: var(--c-sf); padding-inline: 16px 16px; box-shadow: 8px 0 12px -8px rgba(0,0,0,0.7); }
+          .cd-hdr > a:first-child { position: sticky; inset-inline-start: 0; z-index: 3; flex: 0 0 auto !important; align-self: stretch; display: flex !important; align-items: center; background: var(--c-headerBg, var(--c-sf)); padding-inline: 16px 16px; box-shadow: 8px 0 12px -8px rgba(0,0,0,0.7); }
           [dir="rtl"] .cd-hdr > a:first-child { box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7); }
           .cd-hdr > nav { flex: 0 0 auto !important; display: flex !important; gap: 6px !important; }
           .cd-hdr > nav > * { flex: 0 0 auto; white-space: nowrap; scroll-snap-align: start; }
@@ -4963,6 +5010,17 @@ export default function CoachDemo() {
           .cd-pov > :not(.cd-pov-note) { white-space: nowrap !important; }
           .cd-pov-note { display: none !important; }
           .cd-cta-waitlist { flex: 0 0 auto; }
+        }
+        /* THE REAL HEADER ON A PHONE (App.jsx <=700, #448): a hairline after the
+           logo (not a shadowed plate), the dropdowns' counts hidden, 6px of tab
+           padding - so two whole tabs show at 360, as the real app. */
+        @media (max-width: 700px) {
+          .cd-hdr > a:first-child { box-shadow: none !important; padding-inline: 16px 0 !important; }
+          /* the divider is on the MARK, as the real header's (36px, not the bar's 56) */
+          .cd-hdr > a:first-child > :first-child { padding-inline-end: 10px; border-inline-end: 1px solid var(--c-cardBd); }
+          [dir="rtl"] .cd-hdr > a:first-child { box-shadow: none !important; }
+          .cd-hdr .nav-count { display: none; }
+          .cd-hdr > nav button { padding-inline: 6px !important; }
         }
         /* On a phone the waitlist button was wider than the EXPO logo and the
            brightest thing above the fold — a marketing CTA out-weighing both
@@ -4991,7 +5049,8 @@ export default function CoachDemo() {
 
       {/* Header */}
       <header style={{
-        background: C.sf, borderBottom: `1px solid ${C.bd}`,
+        // the real header's surface, hairline and shadow (App.jsx), not the demo's own (#448)
+        background: C.headerBg, borderBottom: `1px solid ${C.cardBd}`, boxShadow: '0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         {/* ONE ROW, LIKE THE REAL COACH APP. The demo ran two: a 60px bar
@@ -5002,8 +5061,8 @@ export default function CoachDemo() {
             Ohad, three times: "the top menu is horrible". The banner's
             content now lives in the bar's middle — where the void was — and
             the bar is the real app's 56px. */}
-        <div ref={trailPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: C.sf, zIndex: 4 }} />
-        <div ref={leadPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: C.sf, zIndex: 4 }} />
+        <div ref={trailPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: C.headerBg, zIndex: 4 }} />
+        <div ref={leadPlate} aria-hidden="true" data-rail-mask="" data-rail-occluder="" style={{ display: 'none', position: 'absolute', top: 0, bottom: 1, background: C.headerBg, zIndex: 4 }} />
         <div ref={hdrRef} className="cd-hdr" style={{
           maxWidth: 1280, margin: '0 auto', padding: '0 16px',
           display: 'flex', alignItems: 'center', height: 56, gap: 12, overflowX: 'auto',
@@ -5023,62 +5082,35 @@ export default function CoachDemo() {
               product's navigation. The real coach app puts the logo and the
               nav side by side at the start and pushes its actions to the far
               end; this now does the same. */}
-          <nav role="tablist" aria-label={T('Coach demo tabs')} style={{
-            display: 'flex', gap: 6, flex: '1 1 auto', justifyContent: 'flex-start',
+          {/* THE REAL COACH NAV, 1:1 (29.9 #441 #448, Ohad: "too many button in the
+              athletes mobile view or the demo one doesnt match it (top menu
+              buttons)"). The demo drew six flat tabs and, on the Athletes and
+              Review pages, a second row of boxed pills the real app does not
+              have. Now: the real order and labels, Athletes ▾ / Sessions ▾ /
+              Review ▾ as the SAME SubmenuTab component the real header uses,
+              plain tabs with the real button style. */}
+          <nav className="cd-nav" aria-label={T('Coach demo tabs')} style={{
+            display: 'flex', gap: 6, flex: '1 1 auto', justifyContent: 'flex-start', alignItems: 'center',
             minWidth: 'max-content',
           }}>
-            {TABS.map((t, i) => (
-              <button key={t.key} role="tab" aria-selected={tab === t.key}
-                tabIndex={tab === t.key ? 0 : -1}
-                onClick={() => navigateToTab(t.key)}
-                onKeyDown={e => {
-                  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
-                  e.preventDefault();
-                  let nextIdx = i;
-                  if (e.key === 'ArrowRight') nextIdx = (i + 1) % TABS.length;
-                  else if (e.key === 'ArrowLeft') nextIdx = (i - 1 + TABS.length) % TABS.length;
-                  else if (e.key === 'Home') nextIdx = 0;
-                  else if (e.key === 'End') nextIdx = TABS.length - 1;
-                  const nextKey = TABS[nextIdx].key;
-                  navigateToTab(nextKey);
-                  // focus moves to the newly-active tab so screen-readers track
-                  setTimeout(() => {
-                    const el = document.querySelector(`[role="tab"][data-key="${nextKey}"]`);
-                    if (el) el.focus();
-                  }, 0);
-                }}
-                data-key={t.key}
-                style={{
-                  ...baseBtn,
-                  // baseBtn has alignItems:'center', which centers the LINE
-                  // BOXES of label (font-size 11) and count (font-size 10).
-                  // Visually that floats the count above the label's baseline
-                  // because digits in JetBrains Mono align to cap-height, not
-                  // x-height. Switching to baseline pins both glyphs' baselines
-                  // to the same line — the count tucks right next to the label.
-                  // COPIED FROM THE REAL COACH NAV (App.jsx), not styled by eye:
-                  // fontSize 10 / weight 700 / letterSpacing 0.06em / uppercase,
-                  // padding 0 8px, label and count on one centre line, active =
-                  // transparent fill with a 1px cyan border and cyan text,
-                  // inactive = transparent with an invisible border so nothing
-                  // shifts when the state changes. The one deliberate
-                  // difference is height: the real bar runs its buttons at 32
-                  // while every other control in the product is 36, and his
-                  // rule is one height — so this is 36, and the real bar is
-                  // being brought up to it too.
-                  alignItems: 'center', lineHeight: 1,
-                  background: 'transparent',
-                  border: `1px solid ${tab === t.key ? C.ac : 'transparent'}`,
-                  color: tab === t.key ? C.ac : C.tm,
-                  padding: '0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                  whiteSpace: 'nowrap', gap: 4,
-                }}>
-                <span>{T(t.label)}</span>
-                {t.count != null && (
-                  <span style={{ fontSize: 10, color: tab === t.key ? C.ac : C.td, fontFamily: FN }}>{t.count}</span>
-                )}
-              </button>
-            ))}
+            {DEMO_NAV.map((t) => {
+              const isActive = t.submenu ? t.submenu.some((it) => navTab === it.route) : navTab === t.key;
+              const activeStyle = { background: 'transparent', border: `1px solid ${isActive ? C.ac : 'transparent'}`, color: isActive ? C.ac : C.tm };
+              const countColor = isActive ? C.ac : C.td;
+              if (t.submenu) {
+                return (<SubmenuTab key={t.key} id={'demo-' + t.key}
+                  label={T(t.label)} count={t.count} items={t.submenu.map((it) => ({ ...it, label: T(it.label) }))}
+                  tab={navTab} navTo={demoNavTo}
+                  activeStyle={activeStyle} isChosen={false} countColor={countColor} />);
+              }
+              return (
+                <button key={t.key} data-key={t.key} aria-current={isActive ? 'page' : undefined} className={!isActive ? 'nav-item-inactive' : undefined}
+                  onClick={() => demoNavTo(t.key)}
+                  style={{ ...appBaseBtn, height: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, borderRadius: 0, padding: '0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
+                  <span>{T(t.label)}</span>{t.count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{t.count}</span>}
+                </button>
+              );
+            })}
           </nav>
           {/* THE DEMO HAD NO WAY TO CHANGE LANGUAGE.
               Parity check against the signed-in coach app, 23.9: the real nav
@@ -5153,34 +5185,22 @@ export default function CoachDemo() {
       {/* The POV banner that sat here — chip, sentence, athlete-view link —
           moved up into the header bar (see .cd-pov). One row, 56px, no void. */}
 
-      <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+      {/* the real <main>: 1200 max, 12px all round (1176 of content at 1440, a 12px
+          phone gutter, 12px under the nav) - #448 */}
+      <main style={{ flex: 1, padding: '12px 12px 80px', maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {/* THE SUB-NAV GOES ABOVE THE CONTENT IT SWITCHES.
             It was rendered AFTER every tab body, so on ROSTER it sat at the
             bottom of the page under eight athlete cards — and PROGRAMS and
             EXERCISES are in no other nav, so two of the biggest surfaces in
             the product were effectively undiscoverable in the demo. Found
             auditing for his first client meeting, 22.9. */}
-        {/* Athletes ▾ — ROSTER | PROGRAMS | EXERCISES, the real app's grouping. */}
-        {ATHLETE_GROUP.includes(tab) && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {ATHLETE_SUBTABS.map(([k, l]) => (
-              <button key={k} onClick={() => navigateToTab(k)} style={{ ...baseBtn, background: tab === k ? C.acD : 'transparent', color: tab === k ? C.ac : C.tm, border: `1px solid ${tab === k ? C.ac : C.bd}`, padding: '0 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
-            ))}
-          </div>
-        )}
-        {/* Review ▾ — WORKOUTS (engine review) | TOOLS (camera/pose launcher). */}
-        {tab === 'review' && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[['workouts', 'WORKOUTS'], ['tools', 'TOOLS']].map(([k, l]) => (
-              <button key={k} onClick={() => setReviewSub(k)} style={{ ...baseBtn, background: reviewSub === k ? C.acD : 'transparent', color: reviewSub === k ? C.ac : C.tm, border: `1px solid ${reviewSub === k ? C.ac : C.bd}`, padding: '0 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
-            ))}
-          </div>
-        )}
+        {/* No pill row under the header: Athletes ▾ and Review ▾ are dropdowns in
+            the nav, as in the real app (#441). */}
         {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms resetToken={programsReset} />}
         {tab === 'exercises' && <DemoExercises />}
-        {tab === 'sessions'  && <DemoSessions />}
+        {tab === 'sessions'  && <DemoSessions mode={sessionsMode} />}
         {tab === 'tasks'     && <DemoTasks />}
         {tab === 'billing'   && <DemoBilling />}
         {/* Review WORKOUTS is ALWAYS mounted — display:none otherwise — so the

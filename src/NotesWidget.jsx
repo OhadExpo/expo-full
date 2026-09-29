@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord, StripCaret } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -757,7 +757,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
                   minWidth: 72,
                 }}>{adding ? tb('Close') : tb('+ Task')}</button>
-              <span aria-hidden style={{ color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+              <StripCaret open={open} color={refined ? 'var(--c-stripTx)' : 'var(--c-tx)'} />
             </div>
           </div>
         </RefinedHeaderStrip>

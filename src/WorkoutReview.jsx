@@ -1545,139 +1545,128 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           })}
         </div>
       )}
-      {/* Top row: pose+reps (left) / comments (center) / FULL (right).
-          Three flex groups (1fr / auto / 1fr) so the COMMENTS toggle sits
-          at the true geometric centre of the row regardless of how wide
-          the pose/reps group on the left or the FULL group on the right
-          grow. */}
-      <div style={{display:'flex',gap:10,alignItems:'center',justifyContent:'center',flexWrap:'wrap',marginBottom:4}}>
-        <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'flex-start',flexWrap:'wrap',justifyContent:'center'}}>
-          {/* alignItems:flex-start (was center) — REPS' joint-picker dropdown
-              hangs BELOW the REPS button now (see below), so the row's other
-              single-height buttons must align to the TOP, not the vertical
-              centre of that taller column.
-              No fixed minWidth on any of these three anymore (was 78/78/96)
-              — sized to content instead so SKELETON/REPS/METRICS reliably
-              fit on one row even in the narrow side-by-side video column
-              (Ohad: "skeleton reps and metrics should be in one row, not
-              column"). */}
-          {/* Was "POSE" — renamed SKELETON (Ohad), same standalone toggle
-              button as before. ROM & TEMPO auto-enables it (see the effect
-              above keyed on metricsTab==='rom'); this button still works
-              independently to turn it on/off anytime. No active-state
-              highlight (border/fill) anymore — Ohad: "no highlight since
-              it's not related" — always plain, only the label text still
-              says ON/OFF. */}
-          <button onClick={togglePose} disabled={poseLoading}
-            style={{padding:'3px 8px',borderRadius:0,border:'2px solid transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
-              background:'transparent',color:C.tm,
-              fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-            {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
-          </button>
-          {/* REPS + its joint-picker live in their own small column, not
-              inline siblings of SKELETON/LIFT METRICS — the dropdown only
-              appears when REPS is on, and having it inline pushed LIFT
-              METRICS onto a wrapped second line (Ohad: "keep lift metrics in
-              this spot... add the joint button right beneath the reps
-              button"). Stacking it under REPS instead means the dropdown's
-              extra height only grows this one column, never disturbing where
-              SKELETON/LIFT METRICS/COMMENT sit in the row. */}
-          <div style={{display:'flex',flexDirection:'column',gap:2}}>
-            <button onClick={toggleReps} disabled={poseLoading}
-              title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-              style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
-                background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
-                fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-              {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
-            </button>
-            {repsOn && (
-              <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-                title={trackOverride === 'auto' ? `${autoPick.why || 'no signal'} (confidence ${(autoPick.confidence * 100).toFixed(0)}%)` : 'Which joint pair to count peaks on'}
-                style={{height:22,boxSizing:'border-box',padding:'0 6px',borderRadius:0,border:`1px solid ${C.bd}`,
-                  background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-                {/* Show WHERE the pick came from, so a wrong auto-detect is
-                    diagnosable rather than mysterious. '?' = the title matched
-                    nothing and no motion read yet — previously this silently
-                    became KNEE (24% of the library). */}
-                <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
-                  {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
-                </option>
-                <option value="hip">{tt('HIP')}</option>
-                <option value="knee">{tt("KNEE")}</option>
-                <option value="elbow">{tt("ELBOW")}</option>
-                <option value="sho">{tt('SHOULDER')}</option>
-                <option value="none">{tt('SKIP')}</option>
-              </select>
-            )}
-            {/* Motion disagrees with the title. Never switched silently — a
-                mid-clip change would move the rep count under the coach's
-                eyes — so it is offered as one click. */}
-            {repsOn && motionSuggestion && (
-              <button onClick={() => setTrackOverride(motionSuggestion.kind)}
-                title={motionSuggestion.why}
-                style={{height:20,padding:'0 6px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',
-                  color:C.ac,fontFamily:FN,fontSize:9,letterSpacing:'0.06em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt('MOTION SEES')}{motionSuggestion.kind.toUpperCase()} →
+      {/* THE FORM-VIDEO TOOLBAR (29.9 #358, Ohad: "buttons designs, location,
+          can be way better looking make it 10x better. ocd order and perfect
+          design"). One control system: every control is the same 36px chip
+          (--btn-h), one border weight, one type size. Two rows with the SAME
+          three-column structure - a group on the video's left edge, one in
+          the true centre, one on its right edge:
+            analysis:  SKELETON · REPS · METRICS  |  COMMENT  |  FULL
+            playback:  0.125x … 2x (one segmented group)  |  ◀ ▶  |  LOOP
+          Kept from his earlier rules: SKELETON is never highlighted ("no
+          highlight since it's not related") - only its label says ON; the
+          joint picker hangs under REPS so it never pushes METRICS off the
+          row; the speed order is 0.125x .. 2x, then frame-step, then LOOP. */}
+      {(() => {
+        const chip = (on, tone, toneD) => ({
+          height: 'var(--btn-h)', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,
+          border: `1px solid ${on ? tone : C.bd}`, background: on ? toneD : 'transparent', color: on ? tone : C.tm,
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer',
+        });
+        // a segmented group: one outer border, hairline dividers, no gaps
+        const seg = { display: 'inline-flex', border: `1px solid ${C.bd}`, boxSizing: 'border-box', height: 'var(--btn-h)' };
+        const segBtn = (on, first) => ({
+          height: '100%', minHeight: 0, boxSizing: 'border-box', padding: '0 8px', borderRadius: 0, border: 'none',
+          borderInlineStart: first ? 'none' : `1px solid ${C.bd}`,
+          background: on ? C.acD : 'transparent', color: on ? C.ac : C.tm,
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', cursor: 'pointer',
+          fontVariantNumeric: 'tabular-nums',
+        });
+        const row = { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'start', gap: 8 };
+        // the bar is as wide as the VIDEO (29.9: at 1440 a 380px portrait clip had
+        // its controls 370px out on the card's edges) and lays itself out by its
+        // OWN width - a container query, so a narrow bar reads the same on a
+        // phone and beside a portrait clip on a desktop
+        return (<div className="fv-bar" style={{ containerType: 'inline-size', ...(vidAspect?.portrait ? { maxWidth: 380, marginInline: 'auto' } : null) }}>
+          <div className="fv-toolbar" data-fv-row="analysis" style={{ ...row, marginBottom: 8 }}>
+            <div className="fv-left" style={{ justifySelf: 'start', display: 'flex', gap: 6, alignItems: 'flex-start', flexWrap: 'wrap', minWidth: 0 }}>
+              <button onClick={togglePose} disabled={poseLoading} data-fv="skeleton"
+                style={{ ...chip(false), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+                {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
               </button>
-            )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button onClick={toggleReps} disabled={poseLoading} data-fv="reps"
+                  title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
+                  style={{ ...chip(repsOn, C.gn, C.gnD), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+                  {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
+                </button>
+                {repsOn && (
+                  <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
+                    title={trackOverride === 'auto' ? `${autoPick.why || 'no signal'} (confidence ${(autoPick.confidence * 100).toFixed(0)}%)` : 'Which joint pair to count peaks on'}
+                    style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 8px', borderRadius: 0, border: `1px solid ${C.bd}`,
+                      background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer' }}>
+                    {/* Show WHERE the pick came from, so a wrong auto-detect is
+                        diagnosable rather than mysterious. '?' = the title matched
+                        nothing and no motion read yet — previously this silently
+                        became KNEE (24% of the library). */}
+                    <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
+                      {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
+                    </option>
+                    <option value="hip">{tt('HIP')}</option>
+                    <option value="knee">{tt("KNEE")}</option>
+                    <option value="elbow">{tt("ELBOW")}</option>
+                    <option value="sho">{tt('SHOULDER')}</option>
+                    <option value="none">{tt('SKIP')}</option>
+                  </select>
+                )}
+                {/* Motion disagrees with the title. Never switched silently — a
+                    mid-clip change would move the rep count under the coach's
+                    eyes — so it is offered as one click. */}
+                {repsOn && motionSuggestion && (
+                  <button onClick={() => setTrackOverride(motionSuggestion.kind)} title={motionSuggestion.why}
+                    style={chip(true, C.ac, 'transparent')}>{tt('MOTION SEES')}{motionSuggestion.kind.toUpperCase()} →</button>
+                )}
+              </div>
+              {/* LIFT METRICS (coach only) — analyses THIS clip in place and
+                  shows VBT / ROM / tempo inline under the video. */}
+              {role === 'trainer' && !compare && (
+                <button onClick={runMetrics} disabled={metricsState === 'busy'} data-fv="metrics"
+                  title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
+                  style={{ ...chip(metricsState === 'done', C.pu || C.ac, C.puD || C.acD), cursor: metricsState === 'busy' ? 'wait' : 'pointer', opacity: metricsState === 'busy' ? 0.6 : 1 }}>
+                  {metricsState === 'busy' ? `${metricsPct}%` : metricsState === 'done' ? `${tt('METRICS')} ✓` : tt('METRICS')}
+                </button>
+              )}
+              {poseError && <span style={{ alignSelf: 'center', fontSize: 9, color: C.rd }}>{poseError}</span>}
+            </div>
+            <div className="fv-mid" style={{ justifySelf: 'center', display: 'flex', gap: 6 }}>
+              {/* Auto-pause-at-comment toggle. Trainee-only: the trainer always
+                  wants comments visible (drawing is part of commenting). */}
+              {notes.length > 0 && role !== 'trainer' && (
+                <button onClick={toggleComments} data-fv="comments"
+                  title={tr(readLang(), commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
+                  style={chip(commentsEnabled, C.ac, C.acD)}>
+                  {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
+                </button>
+              )}
+              {onReviewNotesChange && role === 'trainer' && (
+                <button onClick={addComment} data-fv="comment" title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
+                  style={chip(true, C.ac, C.acD)}>{tt("COMMENT")}</button>
+              )}
+            </div>
+            <div className="fv-right" style={{ justifySelf: 'end', display: 'flex', gap: 6 }}>
+              <button onClick={fullscreen} data-fv="full" style={chip(false)}>⛶ {tt('FULL')}</button>
+            </div>
           </div>
-          {/* LIFT METRICS (coach only) — analyses THIS clip in place and shows
-              VBT / ROM / tempo inline under the video. SKELETON (above) is the
-              on-video skeleton. No 3D box, no fullscreen. */}
-          {role === 'trainer' && (
-            <button onClick={runMetrics} disabled={metricsState==='busy'}
-              title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
-              style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,display:compare?'none':'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
-                background:metricsState==='done'?(C.puD||C.acD):'transparent',color:metricsState==='done'?(C.pu||C.ac):C.tm,
-                fontFamily:FN,fontSize:10,cursor:metricsState==='busy'?'wait':'pointer',opacity:metricsState==='busy'?0.6:1}}>
-              {metricsState==='busy' ? `${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'METRICS'}
-            </button>
-          )}
-          {poseError && <span style={{fontSize:9,color:C.rd,marginInlineStart:4}}>{poseError}</span>}
-        </div>
-        <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
-          {/* Auto-pause-at-comment toggle. Trainee-only: the trainer always
-              wants comments visible (drawing is part of commenting on the
-              coach side), so hiding the toggle removes a useless control. */}
-          {notes.length > 0 && role !== 'trainer' && (
-            <button onClick={toggleComments}
-              title={tr(readLang(), commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
-              style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${commentsEnabled?C.ac:'transparent'}`,minWidth:116,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-                background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
-            </button>
-          )}
-          {onReviewNotesChange && role === 'trainer' && (
-            <button onClick={addComment} title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
-              style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
-                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>{tt("COMMENT")}</button>
-          )}
-        </div>
-        <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'center'}}>
-          <button onClick={fullscreen}
-            style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ {tt('FULL')}</button>
-        </div>
-      </div>
-      {/* Bottom row: speeds → frame-step → LOOP, all centered as one
-          horizontal group (justifyContent:'center'). Order per Ohad:
-          0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
-      <div style={{display:compare?'none':'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
-        {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)} title={tt('Playback speed {n}x').replace('{n}', s)}
-            style={{padding:'3px 6px',borderRadius:0,border:`2px solid ${speed===s?C.ac:'transparent'}`,boxSizing:'border-box',
-              background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
-              fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
-        ))}
-        <button onClick={() => stepFrame(-1)} title={tt('Previous frame')}
-          style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>◀</button>
-        <button onClick={() => stepFrame(1)} title={tt('Next frame')}
-          style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>▶</button>
-        <button onClick={() => setLoop(v => !v)} title={tt('Loop the video')}
-          style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
-            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ {tr(readLang(), 'LOOP')}</button>
-      </div>
+          {/* playback: the same three columns, so the two rows line up */}
+          <div className="fv-toolbar" data-fv-row="playback" style={{ ...row, display: compare ? 'none' : 'grid' }}>
+            <div className="fv-left fv-speeds" role="group" aria-label={tt('Playback speed')} style={{ ...seg, justifySelf: 'start', minWidth: 0 }}>
+              {speeds.map((sp, i) => (
+                <button key={sp} onClick={() => setSpeed(sp)} data-fv="speed" aria-pressed={speed === sp}
+                  title={tt('Playback speed {n}x').replace('{n}', sp)} style={segBtn(speed === sp, i === 0)}>{sp}x</button>
+              ))}
+            </div>
+            <div className="fv-mid" role="group" aria-label={tt('Frame step')} dir="ltr" /* a timeline runs left to right in both languages: back on the left */ style={{ ...seg, justifySelf: 'center' }}>
+              <button onClick={() => stepFrame(-1)} data-fv="prev" title={tt('Previous frame')} style={{ ...segBtn(false, true), width: 36, padding: 0 }}>◀</button>
+              <button onClick={() => stepFrame(1)} data-fv="next" title={tt('Next frame')} style={{ ...segBtn(false, false), width: 36, padding: 0 }}>▶</button>
+            </div>
+            <div className="fv-right" style={{ justifySelf: 'end', display: 'flex' }}>
+              <button onClick={() => setLoop(v => !v)} data-fv="loop" title={tt('Loop the video')} style={chip(loop, C.ac, C.acD)}>↻ {tr(readLang(), 'LOOP')}</button>
+            </div>
+          </div>
+        </div>);
+      })()}
       </div>
       {/* Metrics panel sits BESIDE the video (this column) only for portrait
           clips — see sideBySide above. */}
@@ -1886,7 +1875,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
         </div>
         {!demo && (
           <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
-            <div style={bar} role="toolbar" aria-label={tt('Both videos')}>
+            <div style={bar} role="toolbar" aria-label={tt('Both videos')} dir="ltr" /* transport: back on the left in both languages */>
               <button onClick={() => stepBoth(-1)} title={tt('Both back one frame (←)')} style={btn(false)}>◀</button>
               <button onClick={toggle} title={tr(readLang(), playing ? 'Pause both (Space)' : 'Play both (Space)')} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
               <button onClick={() => stepBoth(1)} title={tt('Both forward one frame (→)')} style={btn(false)}>▶</button>

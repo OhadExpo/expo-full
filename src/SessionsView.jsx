@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, laz
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
-import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
+import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
 import { tr, readLang, useT as useAppT, useTB } from './i18n';
@@ -657,22 +657,30 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
   // private client's chip in the header after his card was gone.
   const list = athletes || session.athletes;
   const tt = useAppT();
+  // the title is never squeezed (#452): when ADD / FINISH leave it no room for
+  // one line, they step down to a row of their own under the strip
+  const rowRef = React.useRef(null), titleRef = React.useRef(null), btnsRef = React.useRef(null);
+  const stacked = useStripFit(true, rowRef, titleRef, btnsRef, 0, [checkedIn, list.length]);
+  const buttons = (
+    <div ref={stacked ? undefined : btnsRef} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0, width: stacked ? '100%' : undefined /* under the strip: one full-width toolbar */ }}>
+      <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
+      <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
+    </div>
+  );
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
         {/* One row (26.9): at 390 the buttons wrapped under the title and the
             title sat 22px above the strip's centre. The title wraps in its own
             column instead; the two buttons keep their place. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
+        <div ref={rowRef} data-strip-stacked={stacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
             {tt('ON THE FLOOR')} · {checkedIn}/{list.length}<span className="strip-meta">&nbsp;{tt('CHECKED IN')}</span>
           </span>
-          <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
-            <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
-            <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
-          </div>
+          {!stacked && buttons}
         </div>
       </RefinedHeaderStrip>
+      {stacked && <div data-strip-actions="" style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}
       {/* 14, the strip's own inset: at 12 every chip started 2px outside the
           title's edge (26.9). */}
       {list.length > 0 && (

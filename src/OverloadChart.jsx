@@ -260,8 +260,8 @@ export default function OverloadChart({ workouts, exercises }) {
     );
   };
 
-  const th = (key, label, align = 'left') => (
-    <th onClick={() => setSortKey(key)} style={{
+  const th = (key, label, align = 'start', cls) => (
+    <th className={cls} onClick={() => setSortKey(key)} style={{
       textAlign: align, padding: '8px 10px', cursor: 'pointer', userSelect: 'none',
       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
       color: sort.key === key ? C.ac : C.td, whiteSpace: 'nowrap',
@@ -279,15 +279,19 @@ export default function OverloadChart({ workouts, exercises }) {
         </div>
       </div>
 
+      {/* On a phone (29.9 #444) the table was 480px wide in a 330px card: it
+          scrolled sideways and read as cut ("Δ RECE", "· N"). There, SESS and
+          LAST DATE step out (the opened row shows both: SESSIONS + the dated
+          SESSION HISTORY) and the table fits - see .ov-table in themes.css. */}
       <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
+        <table className="ov-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
           <thead>
             <tr>
               {th('name', tt('EXERCISE'))}
-              {th('load', tt('LAST'), 'right')}
-              {th('delta', tt('Δ RECENT'), 'right')}
-              {th('sess', tt('SESS'), 'right')}
-              {th('recent', tt('LAST DATE'), 'right')}
+              {th('load', tt('LAST'), 'end')}
+              {th('delta', tt('Δ RECENT'), 'end')}
+              {th('sess', tt('SESS'), 'end', 'ov-opt')}
+              {th('recent', tt('LAST DATE'), 'end', 'ov-opt')}
             </tr>
           </thead>
           <tbody>
@@ -298,15 +302,15 @@ export default function OverloadChart({ workouts, exercises }) {
                 <React.Fragment key={row.exId}>
                   <tr onClick={() => setExpanded(open ? null : row.exId)}
                     style={{ cursor: 'pointer', borderBottom: `1px solid ${C.cardBd}`, background: open ? 'var(--c-rowHover, transparent)' : 'transparent' }}>
-                    <td style={{ padding: '9px 10px', fontSize: 13, color: C.tx, fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span style={{ color: open ? C.ac : C.td, marginInlineEnd: 6, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{row.title}
+                    <td className="ov-name" style={{ padding: '9px 10px', fontSize: 13, color: C.tx, fontWeight: 600, maxWidth: 220, overflowWrap: 'break-word' }}>
+                      <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span style={{ color: open ? C.ac : C.td, fontSize: 10, flexShrink: 0 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span><span style={{ minWidth: 0 }}>{row.title}</span></span>
                     </td>
-                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{row.lastLoad}kg</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>{row.lastLoad}kg</td>
                     <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 12, fontWeight: 700, color: tc, whiteSpace: 'nowrap' }}>
                       {TREND_ARROW[row.trend]} {row.trend === 'new' ? tt('new') : `${row.deltaPct > 0 ? '+' : ''}${row.deltaPct}%`}
                     </td>
-                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 12, color: C.tm }}>{row.sessionCount}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 11, color: C.tm, whiteSpace: 'nowrap' }}>{fmtDate(row.lastDate)}</td>
+                    <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 12, color: C.tm }}>{row.sessionCount}</td>
+                    <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 11, color: C.tm, whiteSpace: 'nowrap' }}>{fmtDate(row.lastDate)}</td>
                   </tr>
                   {open && (
                     <tr>

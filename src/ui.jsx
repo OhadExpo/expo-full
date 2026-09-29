@@ -12,6 +12,81 @@ import { useT, tr, readLang } from './i18n';
 // + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
 // size EVERYWHERE in the platform (Ohad). 26 = midpoint of the old 20/30 spread.
 // Use `stripBtnBase` for the shared box metrics; callers add border/color/text.
+// THE ONE COLLAPSE CARET (29.9 #444: a dashboard carried a chevron on two cards
+// and a text triangle on three - and a Nord triangle below 12px renders as a
+// dash). An SVG chevron, open = pointing down, closed = pointing to the start.
+export function StripCaret({ open, color = 'var(--c-stripTx)', size = 11 }) {
+  return (
+    <svg aria-hidden width={size} height={Math.round(size * 7 / 11)} viewBox="0 0 9 6" fill="none" style={{
+      color, display: 'inline-block', flexShrink: 0,
+      transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
+    }}>
+      <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// TITLE FIRST, CONTROLS SECOND (29.9 #452, his phone: "ASSIGNED PROGRAMS (1)"
+// came out ONE LETTER PER LINE - DATE / HIDE ALL / + NEW PROGRAM kept their
+// width and the title column was left ~20px; "Fix this everywhere"). A strip's
+// title is never squeezed and never wraps: when it cannot sit whole on one line
+// beside its controls, the controls move to a row of their own at the top of the
+// body and the strip keeps ONE row. Measured on the real elements:
+//   - the title's one-line width: white-space nowrap for a moment, then the
+//     extent of its text (works for any title JSX, not only a string);
+//   - the controls' width, taken while they are in the strip and remembered;
+//   - a title already wrapping (more than one line box) is stacked outright.
+// Re-checked on every resize, with 8px of hysteresis so it cannot flicker.
+// The strip can mount AFTER the component does (a page that shows LOADING
+// first - billing's PAYMENT REQUESTS still wrapped at 360 because the one
+// mount-time check found no strip and never looked again), so the observer is
+// (re)attached whenever the strip element itself changes, checked after every
+// render - a ref compare, nothing measured unless something changed.
+export function useStripFit(active, stripRef, titleRef, rightRef, extra = 0, deps = []) {
+  const [stacked, setStacked] = React.useState(false);
+  const rightW = React.useRef(0);
+  const att = React.useRef({ el: null, title: null, key: null, ro: null });
+  React.useEffect(() => () => { if (att.current.ro) att.current.ro.disconnect(); }, []);
+  React.useLayoutEffect(() => {
+    const strip = active && typeof window !== 'undefined' ? stripRef.current : null;
+    const key = (active ? '1|' : '0|') + deps.map((d) => (d == null || typeof d === 'object' ? '' : String(d))).join('|');
+    const a = att.current;
+    if (strip === a.el && titleRef.current === a.title && key === a.key) return;
+    if (a.ro) a.ro.disconnect();
+    att.current = { el: strip, title: titleRef.current, key, ro: null };
+    if (!active) { setStacked(false); return; }
+    if (!strip) return;
+    const lineCount = (el) => {
+      const rg = document.createRange(); rg.selectNodeContents(el);
+      const tops = [];
+      for (const r of rg.getClientRects()) { if (r.width < 0.5 || r.height < 0.5) continue; if (!tops.some((t) => Math.abs(t - r.top) <= 3)) tops.push(r.top); }
+      return tops.length;
+    };
+    const oneLineWidth = (el) => {
+      const prev = el.style.whiteSpace; el.style.whiteSpace = 'nowrap';
+      const rg = document.createRange(); rg.selectNodeContents(el);
+      const w = rg.getBoundingClientRect().width;
+      el.style.whiteSpace = prev;
+      return w;
+    };
+    const check = () => {
+      const title = titleRef.current; if (!title) return;
+      if (rightRef.current) rightW.current = rightRef.current.getBoundingClientRect().width;
+      const cs = getComputedStyle(strip);
+      const inner = strip.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      const need = oneLineWidth(title) + 12 + rightW.current + extra;
+      setStacked((was) => (was ? need > inner - 8 : (need > inner || lineCount(title) > 1)));
+    };
+    check();
+    // the strip (its width) AND the title (its text changing resizes it) - so no
+    // render-time dependency is needed and nothing re-measures on every render
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    if (ro) { ro.observe(strip); if (titleRef.current) ro.observe(titleRef.current); }
+    att.current.ro = ro;
+  });
+  return stacked;
+}
+
 export const STRIP_BTN_H = 26;
 export const stripBtnBase = {
   height: STRIP_BTN_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,
@@ -512,6 +587,9 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
     try { if (storeId) localStorage.setItem(storeId, n ? '1' : '0'); } catch { /* private mode */ }
     return n;
   });
+  // the title never squeezed: see useStripFit (29.9 #452)
+  const stripRef = React.useRef(null), titleRef = React.useRef(null), clusterRef = React.useRef(null);
+  const stacked = useStripFit(!!right, stripRef, titleRef, clusterRef, 22, [title, count, titleShort]);
   const baseBorder = `1px solid ${C.cardBd}`;
   // Same header treatment as RefinedHeaderStrip so EVERY header matches app-wide:
   // one shade of cyan above the box (the highlight test) AND one uniform 8px
@@ -542,7 +620,7 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
         : { marginBottom: 12, ...style });
   return (
     <div id={domId} style={outerStyle}>
-      <div className="title-strip"
+      <div ref={stripRef} data-strip-stacked={stacked ? '1' : undefined} className="title-strip"
         // A CONTROL IN THE STRIP IS NOT THE STRIP (29.9 #402, "when i click copy
         // it shouldnt collapse"): a click on a button / link / field inside the
         // strip's right cluster does its own job and never toggles the card.
@@ -562,8 +640,8 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
           gap: 12, cursor: 'pointer', userSelect: 'none', flexWrap: 'nowrap',
         }}
       >
-        {titleNode ? <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
-          <span style={{
+        {titleNode ? <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
+          <span ref={titleRef} style={{
             flex: '1 1 auto',
             color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -590,18 +668,13 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
             the START, under the title, and leaves the one-line case
             untouched. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'nowrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '100%' }}>
-          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
+          {right && !stacked && <span ref={clusterRef} onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           {/* WHITE on purpose — this chevron sits on the COLOURED strip header
               whose title span three lines up is also #FFFFFF. Switching it to
               --c-tx made it near-black on BHBC's deep-navy strip (1.33:1,
               invisible). The plain-surface collapse controls in TasksV8View DO
               use --c-tx; these two cases are genuinely different backgrounds. */}
-          <svg aria-hidden width="11" height="7" viewBox="0 0 9 6" fill="none" style={{
-            color: 'var(--c-stripTx)', display: 'inline-block', flexShrink: 0,
-            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
-          }}>
-            <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <StripCaret open={open} />
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
@@ -615,7 +688,12 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
               Ohad: "only next to the white part of the card". */}
           <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px`,
             // was: a 3px rail on the inline-start edge only (see leftStripe above)
-            ...(leftStripe && !bare ? { border: `1px solid ${leftStripe}` } : null) }}>{children}</div>
+            ...(leftStripe && !bare ? { border: `1px solid ${leftStripe}` } : null) }}>
+            {right && stacked && (
+              <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: 12 }}>{right}</div>
+            )}
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -760,6 +838,9 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
   // --c-stripBg token override below.
   const hasStrip = !!header;
   const padNum = typeof padding === 'number' ? padding : 20;
+  // the title never squeezed by the header controls (29.9 #452) - see useStripFit
+  const cardStripRef = React.useRef(null), cardTitleRef = React.useRef(null), cardRightRef = React.useRef(null);
+  const cardStacked = useStripFit(!!(hasStrip && headerRight), cardStripRef, cardTitleRef, cardRightRef, 0, []);
   return (
     <div className={className} onClick={onClick}
       // Clickable cards get a keyboard path (Enter/Space) + button semantics so
@@ -829,11 +910,12 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           ariaExpanded={onHeaderClick ? headerAriaExpanded : undefined}
           onKeyDown={onHeaderClick ? ((e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
           {headerRight ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
+            <div ref={cardStripRef} data-strip-stacked={cardStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>
+              <div ref={cardTitleRef} style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
+              {/* the controls leave the strip when the title would not fit beside them (#452) */}
+              {!cardStacked && <div ref={cardRightRef} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>}
             </div>
           ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
         </RefinedHeaderStrip>
@@ -856,6 +938,9 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           carries its colour as the dot at the head of the strip; a strip-less
           card carries it on its own four-sided border. This wrapper stays so
           the padding maths below is untouched. */}
+      {cardStacked && headerRight && (
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: 12 }}>{headerRight}</div>
+      )}
       {leftStripe ? (
         <div style={{
           marginInlineStart: -padNum,

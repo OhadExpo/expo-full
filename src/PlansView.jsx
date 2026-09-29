@@ -4845,12 +4845,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
-                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'color-mix(in srgb, var(--c-stripTx) 12%, transparent)',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'transparent',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
                     {/* Recency: the DOT carries the colour signal, the text is muted
                         (Ohad #195 "colored but less colorful") and the pill has a
                         fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
                         size regardless of length. */}
-                    <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:104,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                    <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:124,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                       <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                     </span>
                   </span>
@@ -5027,7 +5027,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
-                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'color-mix(in srgb, var(--c-stripTx) 12%, transparent)',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'transparent',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
                   <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText))} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>

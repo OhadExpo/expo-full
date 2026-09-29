@@ -86,6 +86,13 @@ function Tag({ e, tt }) {
 
 // dd/mm, the year only when it is not this year
 const shortDate = (iso) => { if (!iso) return '—'; const [y, m, d] = iso.slice(0, 10).split('-'); return y === String(new Date().getFullYear()) ? `${d}/${m}` : `${d}/${m}/${y.slice(2)}`; };
+// A summary is a few FACTS joined by " · ". On a phone the line is wider than
+// the row (29.9: "4 PERSONAL · 6 COUPLE · SINCE 30" - the date cut in half), so
+// it may wrap, but only BETWEEN facts: the spaces inside a fact, and the one
+// before each dot, are non-breaking - a fact and a date are never split.
+const NB = '\u00a0';
+const glue = (t) => String(t).replace(/ /g, NB);
+const facts = (parts) => parts.map(glue).join(`${NB}· `);
 function summaryLine(e, tt) {
   const s = e.sheet;
   if (s && s.section === 'in_person' && s.sessions_by) {
@@ -94,9 +101,9 @@ function summaryLine(e, tt) {
     if (b.couple) parts.push(`${b.couple} ${tt('couple')}`);
     // the sheet's own word for the kind ("אתלטיקה") in Hebrew; "other" in English
     if (b.other) parts.push(`${b.other} ${readLang() === 'he' && b.otherKind ? b.otherKind : tt('other')}`);
-    return `${parts.join(' · ')} · ${tt('since')} ${shortDate(s.last_payment)}`;
+    return facts([...parts, `${tt('since')} ${shortDate(s.last_payment)}`]);
   }
-  if (s && s.onlineDue) return `${tt('Monthly')} ${s.prices.month} · ${tt('last paid')} ${shortDate(s.last_payment)}`;
+  if (s && s.onlineDue) return facts([`${tt('Monthly')} ${s.prices.month}`, `${tt('last paid')} ${shortDate(s.last_payment)}`]);
   if (e.requests.length) return `${e.requests.length} ${tt('Pending requests')}`;
   if (e.overdue) return e.overdue.never ? tt('No payment recorded') : `${tt('last paid')} ${e.overdue.days} ${tt('days')}`;
   return '';
@@ -159,10 +166,10 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
             <div role="list" className="app-list" style={{ display: 'flex', flexDirection: 'column' }}>
               {(expanded ? list : list.slice(0, 8)).map((e) => (
                 <button key={e.key} type="button" role="listitem" data-owed-row onClick={() => setOpen(e)}
-                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px 20px', columnGap: 12, rowGap: 4, alignItems: 'center', height: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
+                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
                   <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}><bdi>{e.name}</bdi></span>
                   <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal', color: e.amount > 0 ? C.or : 'var(--c-tm)' }}>{e.amount > 0 ? ils(e.amount) : '—'}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', lineHeight: 'normal' }}>{summaryLine(e, tt)}</span>
+                  <span data-owed-summary style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', minWidth: 0, lineHeight: 1.6 }}>{summaryLine(e, tt)}</span>
                   <span style={{ justifySelf: 'end' }}><Tag e={e} tt={tt} /></span>
                 </button>
               ))}

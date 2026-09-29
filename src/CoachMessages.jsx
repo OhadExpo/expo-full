@@ -12,7 +12,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
+import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState, StripCaret } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
 import { useT as useAppT, tr, readLang, dirOfText } from './i18n';
@@ -451,7 +451,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
             {tt('MESSAGES')} ({rows.length})
           </span>
-          <span aria-hidden style={{ color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+          <StripCaret open={open} color={refined ? 'var(--c-stripTx)' : 'var(--c-tx)'} />
         </div>
       </RefinedHeaderStrip>
 

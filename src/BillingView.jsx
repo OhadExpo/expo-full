@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase, useStripFit } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
 import { tr, readLang, useT, useTB } from './i18n';
@@ -39,6 +39,15 @@ export default function BillingView({ trainees, onSelectTrainee }) {
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
   const refined = isRefined5b();
+  // PAYMENT REQUESTS keeps its title on one line (#452): + NEW REQUEST steps
+  // under the strip when the two do not fit side by side
+  const reqRowRef = React.useRef(null), reqTitleRef = React.useRef(null), reqBtnRef = React.useRef(null);
+  const reqPending = requests.filter(r => r.status === 'pending').length;
+  const reqStacked = useStripFit(true, reqRowRef, reqTitleRef, reqBtnRef, 0, [reqPending]);
+  const newReqBtn = (
+    <button ref={reqStacked ? undefined : reqBtnRef} onClick={() => setShowRequest(true)}
+      style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+  );
   const PAD = 14;
 
   const traineesById = useMemo(() => Object.fromEntries((trainees || []).map(t => [t.id, t])), [trainees]);
@@ -183,15 +192,15 @@ export default function BillingView({ trainees, onSelectTrainee }) {
           {/* ONE ROW. flexWrap put + NEW REQUEST on a second line at 390, so the
               title sat 22px above the strip's centre (26.9). The title may wrap
               inside its own column; the button never moves under it. */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+          <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {/* one line on a phone: the count stays, its word steps aside */}
               {tt('PAYMENT REQUESTS')} · {requests.filter(r => r.status === 'pending').length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
             </span>
-            <button onClick={() => setShowRequest(true)}
-              style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+            {!reqStacked && newReqBtn}
           </div>
         </RefinedHeaderStrip>
+        {reqStacked && <div data-strip-actions="" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>{newReqBtn}</div>}
         {loadError ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>{tt('Couldn’t load billing data:')}{loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
           </div>

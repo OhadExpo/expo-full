@@ -1662,7 +1662,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 /* ...but a finger needs 32 (the tap-target floor the pages gate holds): on a
    touch screen the nested height is 32 - still well inside a 41px strip. */
 @media (pointer: coarse) { :root { --btn-h-in: 32px; } }
-.title-strip button:not([data-strip-toggle]), .bhbc-chip button {
+/* the program card's strip header (.prog-striphdr) is a title strip too - its
+   ANALYSIS button stood at 36 and made the strip 53px, not 41 (29.9 #444) */
+.title-strip button:not([data-strip-toggle]), .bhbc-chip button, .prog-striphdr button {
   min-height: var(--btn-h-in) !important; height: var(--btn-h-in) !important;
   padding-block: 0 !important; box-sizing: border-box;
 }
@@ -1941,4 +1943,36 @@ select.avail-select:dir(rtl) {
   .cal-sync-row > .cal-sync-sp { order: 1; }
   .cal-sync-row > button { order: 2; }
   .cal-sync-row > .cal-sync-msg { order: 3; flex-basis: 100%; }
+}
+
+/* FORM-VIDEO TOOLBAR when it is narrow (#358): the left group takes the first
+   line whole (the speeds as equal segments), the middle and right groups drop
+   to the next line in their own columns - the middle stays centred, the right
+   stays on the edge. By the BAR's width (.fv-bar is the container): a phone and
+   a desktop portrait clip (the bar capped to the video's 380) read the same. */
+@container (max-width: 500px) {
+  .fv-toolbar > .fv-left { grid-column: 1 / -1; }
+  .fv-toolbar > .fv-mid { grid-column: 2; }
+  .fv-toolbar > .fv-right { grid-column: 3; }
+  .fv-toolbar > .fv-speeds { width: 100%; }
+  .fv-toolbar > .fv-speeds > button { flex: 1 1 0; padding: 0 !important; }
+}
+
+/* the athlete page's club log (#453): date | type | minutes | note on a wide screen;
+   on a phone the note takes the whole second line, words never split */
+.club-log-row { display: grid; grid-template-columns: 84px 132px 64px minmax(0, 1fr); column-gap: 12px; row-gap: 2px; align-items: center; min-height: 36px; padding: 6px 0; }
+@media (max-width: 620px) {
+  .club-log-row { grid-template-columns: 80px minmax(0, 1fr) 64px; }
+  .club-log-row > .club-log-note { grid-column: 1 / -1; }
+  .club-log-row > .club-log-note:empty { display: none; }
+}
+
+/* PROGRESSIVE OVERLOAD on a phone (29.9 #444): the table fits its card - no
+   sideways scroll. index.html makes every table display:block under 769px, so
+   this one is put back to a real table; SESS + LAST DATE step out (the opened
+   row carries both), and the name wraps by whole words. */
+@media (max-width: 620px) {
+  table.ov-table { display: table !important; min-width: 0 !important; table-layout: auto; white-space: normal !important; }
+  table.ov-table .ov-opt { display: none !important; }
+  table.ov-table .ov-name { max-width: none !important; }
 }

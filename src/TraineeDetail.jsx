@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate, todayLocalISO } from './dates';
+import { fmtPrettyDate, fmtNumericDate, todayLocalISO } from './dates';
 import { SheetBillingHistory } from './RevenueSheetCard';
 import BWChart from './BwChart';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
@@ -902,7 +902,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare domId="td-sec-workouts" title={tr(readLang(), 'Recent Workouts')} count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>{t('No completed workouts.')}</div>:
-          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>{t('Week')} {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
+          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div data-recent-head style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",columnGap:12,alignItems:"baseline"}}>{/* 29.9 #444: at 360 the day name was cut to "DAY 2 ..." and "WEEK 1" ran straight into "29TH OF SEPTEMBER 2026" ("WEEK 129TH"). The name is whole (it may wrap), the week is its own fact, the date its own column. */}<span style={{minWidth:0,display:"flex",flexWrap:"wrap",alignItems:"baseline",columnGap:8,rowGap:2}}><span style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:"nowrap"}}>{t('Week')} {w.week}</span>}</span><span data-recent-date style={{fontSize:12,color:C.tm,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{fmtNumericDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
                 a severity-coloured value), so PAIN/SLEEP/ENERGY line up in a neat
                 aligned row rather than differently-sized chips (Ohad: align +
@@ -1013,12 +1013,18 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>{t('Nothing logged in the club zone yet.')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* ONE ROW PER SESSION, BUILT FOR A PHONE (29.9 #453, his phone: "Bad
+                    design for this" - "23RD OF SEPTEMBER 2026" over three lines and
+                    the notes broken mid-word, DYNAM / IC, in a 54px column). The
+                    date day/month/year (his rule), type and minutes on one line in
+                    fixed columns; the note, when there is one, takes the whole next
+                    line on a phone and breaks only between words. */}
                 {shown.map(({ date, r, kind }, i) => (
-                  <div key={date + i} style={{ display: 'grid', gridTemplateColumns: '92px 120px 70px minmax(0, 1fr)', gap: 10, alignItems: 'center', minHeight: 36, padding: '6px 0', borderTop: i ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
-                    <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{fmtPrettyDate(date)}</span>
-                    <span style={{ color: kind === 'lift' ? C.ac : kind === 'sc' ? C.or : C.tx, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10 }}>{KIND[kind] || KIND.other}</span>
-                    <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{Number(r.min) > 0 ? `${r.min} ${t('min')}` : '—'}</span>
-                    <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{r.note || ''}</span>
+                  <div key={date + i} className="club-log-row" style={{ borderTop: i ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
+                    <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} dir="ltr">{fmtNumericDate(date)}</span>
+                    <span style={{ color: kind === 'lift' ? C.ac : kind === 'sc' ? C.or : C.tx, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10, whiteSpace: 'nowrap' }}>{KIND[kind] || KIND.other}</span>
+                    <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textAlign: 'end' }}>{Number(r.min) > 0 ? `${r.min} ${t('MIN')}` : '—'}</span>
+                    {r.note ? <span className="club-log-note" dir="auto" style={{ color: C.tm, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'normal', wordBreak: 'normal', hyphens: 'none' }}>{r.note}</span> : <span className="club-log-note" />}
                   </div>
                 ))}
                 {entries.length > shown.length && <div style={{ fontFamily: FN, fontSize: 10, color: C.td, paddingTop: 8, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{shown.length} / {entries.length}</div>}

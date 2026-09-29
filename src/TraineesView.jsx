@@ -370,7 +370,7 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' ? (programs === 1 ? 'תוכנית אחת' : `${programs} תוכניות`) : `${programs} ${tt('Programs')}`}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' ? (programs === 1 ? 'תוכנית אחת' : `${programs} תוכניות`) : `${programs} ${programs === 1 ? 'Program' : tt('Programs')}`}</span>
             )}
           </div>
         )}
@@ -880,7 +880,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
             {
               label: tt('Needs Attention'),
               opts: [
-                { key: 'pay', label: 'Payment due' },
+                // counts OVERDUE *or* NEVER PAID - "payment due" (he: awaiting payment)
+                // described only half of it (29.9 #448: the demo already said this)
+                { key: 'pay', label: 'Payment issue' },
                 { key: 'dormant', label: 'Dormant' },
                 { key: 'lowSessions', label: 'Low sessions' },
                 { key: 'noProgram', label: 'No program' },
