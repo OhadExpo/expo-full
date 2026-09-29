@@ -72,7 +72,7 @@ const CLUB_NAMES = (() => {
 })();
 
 // Plan and block titles are data too: "Block #19", "Block Beta", "Day B".
-const DATA_SHAPE = /^(block|day [a-z]$|md-\d|week \d)/i;
+const DATA_SHAPE = /^(block\b|day [a-z]$|md-\d|week \d)/i;
 
 const srcBlob = (() => {
   const parts = [];

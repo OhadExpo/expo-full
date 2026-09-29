@@ -15,18 +15,27 @@ import path from 'node:path';
 
 const NL = String.fromCharCode(10);
 const files = [];
-(function walk(d) {
-  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+// src, and since 29.9 the gates, the API and the marketing site too: the same
+// accident (a \b written as a BACKSPACE byte) was sitting in two gates'
+// regexes - audit-dead-controls (rec\b) and report-hebrew-coverage (block\b) -
+// quietly measuring the wrong thing.
+const walk = (d) => {
+  let entries; try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+  for (const e of entries) {
     const f = path.join(d, e.name);
-    if (e.isDirectory()) { if (!/node_modules|dist|[.]git/.test(f)) walk(f); }
-    else if (/[.](js|jsx|mjs|cjs|css|html)$/.test(e.name)) files.push(f);
+    if (e.isDirectory()) { if (!/node_modules|dist|[.]git|testclips/.test(f)) walk(f); }
+    else if (/[.](js|jsx|mjs|cjs|css|html)$/.test(e.name) && !/[.]tmp[.]/.test(e.name)) files.push(f);
   }
-})('src');
+};
+for (const d of ['src', 'scripts', 'api', 'expo-il/src']) walk(d);
 files.push('shot-harness.html');
 
 // Tab (9), newline (10), carriage return (13) are legitimate. Everything else
 // below 32 is not, and neither is 0x7f.
 const allowed = new Set([9, 10, 13]);
+// Files whose control bytes are on purpose: a 0x01 key separator and the
+// terminal colour codes of a test runner.
+const INTENDED = { [path.join('scripts', 'import-revenue-timeline.mjs')]: [1], [path.join('scripts', 'test-offline-queue.mjs')]: [27] };
 let bad = 0;
 console.log('SOURCE SANITY' + NL);
 for (const file of files) {
@@ -35,7 +44,7 @@ for (const file of files) {
   const hits = [];
   for (let i = 0; i < src.length; i++) {
     const c = src.charCodeAt(i);
-    if ((c < 32 && !allowed.has(c)) || c === 127) {
+    if (((c < 32 && !allowed.has(c)) || c === 127) && !(INTENDED[file] || []).includes(c)) {
       const line = src.slice(0, i).split(NL).length;
       hits.push(`${file}:${line} contains 0x${c.toString(16).padStart(2, '0')}`);
     }

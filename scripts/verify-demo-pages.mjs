@@ -138,7 +138,7 @@ for (const [name, route] of SURFACES) {
             // in front of a buyer. Cheap to check, so there is no excuse for
             // having found this one by eye.
             {
-              //  cannot precede a '[', so (...|\[object Object\]) silently
+              // \b cannot precede a '[', so \b(...|\[object Object\])\b silently
               // never matched it — caught by the break test, 4 of 5 shapes.
               const junkRe = /\b(NaN|undefined|null|Infinity)\b|\[object [A-Z]\w*\]/;
               const wj = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

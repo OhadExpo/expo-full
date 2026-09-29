@@ -43,7 +43,7 @@ const NEVER = 'delete|remove|discard|clear all|log ?out|sign ?out|exit|reset|rev
 // filesystem, where a DOM diff is the wrong instrument.
 // Controls that legitimately show nothing: they act on the clipboard, the
 // filesystem, or a native picker, where a DOM diff is the wrong instrument.
-const CLIPBOARD = /copy|export|download|print|share|pick file|choose file|upload|browse|rec|record|film|camera/i;
+const CLIPBOARD = /copy|export|download|print|share|pick file|choose file|upload|browse|rec\b|record|film|camera/i;
 
 const SIG = () => {
   // Text is the obvious signal, but a toggle can change only its own active

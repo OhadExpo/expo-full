@@ -206,7 +206,7 @@ if (require.main !== module) { /* imported for parseWorkbook only */ } else (asy
       if (rows === 0) continue;
       // Neither is a history/log tab — it records what was done, and is not
       // something the app is supposed to hold as a program.
-      if (/^(history|log|archive|records?|maxes|testing)/i.test(sb.tab.trim())) continue;
+      if (/^(history|log|archive|records?|maxes|testing)\b/i.test(sb.tab.trim())) continue;
       gaps.missingBlock.push(`${sb.tab} (${rows} rows) — no app plan`);
       continue;
     }
