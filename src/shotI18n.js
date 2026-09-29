@@ -105,6 +105,7 @@ export const SHOT_I18N = {
     shotOf: (i, n) => `VIEWING SHOT ${i} OF ${n} DETECTED`,
     // The one-row rep picker: SHOT 10 / 11 between two arrows.
     shotWord: 'SHOT', prevShot: 'Previous shot', nextShot: 'Next shot',
+    tabShot: 'THIS SHOT', tabSession: 'SESSION', tabSaved: 'SAVED', sessionOne: 'One shot in this clip - the session view needs two or more.',
     // The dot on the option AUTO is using - detected, or the default when the
     // clip could not show it. Never both called a detection.
     autoPicked: 'AUTO: read from the clip',
@@ -293,6 +294,7 @@ export const SHOT_I18N = {
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
     shotWord: 'זריקה', prevShot: 'הזריקה הקודמת', nextShot: 'הזריקה הבאה',
+    tabShot: 'הזריקה הזאת', tabSession: 'האימון', tabSaved: 'נשמרו', sessionOne: 'בקליפ יש זריקה אחת - תצוגת האימון צריכה שתיים לפחות.',
     autoPicked: 'אוטומטי: זוהה בקליפ',
     autoFallback: 'אוטומטי: לא רואים את זה בקליפ, אז זו ברירת המחדל',
     warnShort: {

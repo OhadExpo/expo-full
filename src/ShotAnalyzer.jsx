@@ -496,7 +496,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         @media (max-width: 979px) {
           .shot-stage[data-phase="results"] { display: block !important; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
           .shot-stage[data-phase="results"] .shot-wrap { overflow: visible !important; flex: none !important; }
-          .shot-stage[data-phase="results"] .shot-sticky { position: static !important; }
+
         }
       `}</style>
       {/* top bar */}
@@ -748,6 +748,17 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [shotIdx]);
 
+  // A TABLE CELL IS A JUMP (29.9 #432, Ohad: "if i click on release 85 on rep 9
+  // it should move me in the clip to release sec frame on rep 9 ... and the
+  // buttons should be updated"): select the rep AND the phase; the shot-change
+  // effect above seeks to that phase's frame, and the phase chips follow
+  // phaseKey. Same rep = seek straight there.
+  const jumpTo = (i, key) => {
+    const sh = result.shots[i]; if (!sh) return;
+    setPhaseKey(key);
+    if (i === shotIdx) { const p = sh.phases.find((x) => x.key === key); seekTo(p ? p.idx : sh.cycle.release); }
+    else setShotIdx(i);
+  };
   const nearestIdx = (tMs) => { const t = series.tMs; let lo = 0, hi = t.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (t[m] < tMs) lo = m + 1; else hi = m; } if (lo > 0 && Math.abs(t[lo - 1] - tMs) < Math.abs(t[lo] - tMs)) lo--; return lo; };
   const seekTo = (i) => { const v = videoRef.current; const ii = Math.max(0, Math.min(n - 1, i)); setCur(ii); if (v) { try { v.pause(); v.currentTime = series.tMs[ii] / 1000; } catch { /* noop */ } } };
   // Which rep does a frame belong to? The nearest release: phases butt up
@@ -824,6 +835,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     const eye = lm[hand === 'L' ? 2 : 5]; if (eye) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox, Y(eye)); ctx.lineTo(ox + cw, Y(eye)); ctx.stroke(); ctx.setLineDash([]); }
   }, [cur, frames, hand, srcUrl, boxTick]);
 
+  const [reportTab, setReportTab] = useState('shot');
   const rd = frameReadout(series, cur);
   // ONE LIT PHASE, the one he picked (27.9, "release and apex buttons are
   // tagged and always turn off/on together"). Each chip used to light on
@@ -860,20 +872,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const byGain = (a, b) => gainOf(b) - gainOf(a);
   const fixes = shot.checks.filter((c) => c.status === 'fix').sort(byGain);
   const watches = shot.checks.filter((c) => c.status === 'watch').sort(byGain);
-
-  // SAVE has been writing analyses to localStorage since it shipped, and
-  // nothing has ever read them back — a coach could store fifty sessions and
-  // never see whether an athlete was improving. This reads the most recent
-  // previous one so the result can answer the question he actually asks.
-  //
-  // Same shooting hand only: a left-handed rep is not a comparison for a
-  // right-handed one. Read once per analysis, not per render.
-  const prevSaved = useMemo(() => {
-    try {
-      const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
-      return all.find((a) => a && a.hand === hand && typeof a.score === 'number') || null;
-    } catch { return null; }
-  }, [hand, result]);
+  // (the vs-last-saved comparison was removed 29.9 #433)
 
   // SAVE wrote to localStorage and NOTHING ever read it back, so from the
   // coach's seat the button did nothing at all (Ohad 08-30: "the save button
@@ -990,7 +989,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           /* A checkpoint and its explanation belong on the same page. */
           .shot-check-row { break-inside: avoid; page-break-inside: avoid; }
           /* The sticky header must not repeat down the page. */
-          .shot-sticky { position: static !important; border-bottom: 1px solid #999 !important; }
+          .shot-head { border-bottom: 1px solid #999 !important; }
           svg polyline { stroke: #000 !important; }
           @page { margin: 12mm; }
         }
@@ -1028,7 +1027,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
         }
         @media (min-width: 980px) {
           .shot-wrap { overflow: hidden !important; }
-          .shot-results { flex-wrap: nowrap !important; height: 100%; min-height: 0; align-items: stretch !important; }
+          /* THE HEADER ABOVE, TWO COLUMNS BELOW THAT END ON ONE LINE (29.9 #428,
+             "the right and left parts of the page needs to end in the same
+             vertical spot"): the body fills the stage, the columns stretch to
+             the same height and each scrolls inside it. */
+          .shot-body { height: 100%; min-height: 0; }
+          .shot-head { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.8fr) !important; align-items: center; column-gap: calc(var(--g) * 1.5) !important; }
+          .shot-results { flex: 1 1 auto; flex-wrap: nowrap !important; min-height: 0; align-items: stretch !important; }
+          .shot-tabs { position: sticky; top: 0; z-index: 3; background: #000; padding-bottom: 2px; }
           /* The video column is a FIXED control column and the report takes the
              rest — with the video box now shrinking to a portrait clip's own
              aspect, a flexible left column left a wide empty gutter. */
@@ -1044,7 +1050,76 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           .shot-readout, .shot-info { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
         }
       `}</style>
-      <div className="shot-print shot-results" style={{ display: 'flex', gap: 'var(--g)', alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1440, margin: '0 auto', padding: 'var(--g)' }}>
+      <div className="shot-print shot-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--g)', maxWidth: 1440, margin: '0 auto', padding: 'var(--g)', boxSizing: 'border-box' }}>
+          <div className="shot-head" data-shot-head style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, paddingBottom: 'var(--g)', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '76px minmax(0, 1fr)', columnGap: 14, alignItems: 'center' }}>
+              <div data-shot-ring style={{ width: 76, height: 76, boxSizing: 'border-box', borderRadius: '50%', border: `4px solid ${sc.color}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontFamily: FN, fontSize: 24, fontWeight: 700, lineHeight: 1 }}>{shot.score ?? '—'}</div>
+                <div style={{ ...lbl, fontSize: 8 }}>/ 100</div>
+              </div>
+              <div data-shot-verdict style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1.3 }}>
+                  {shot.score == null ? T.verdictNa : shot.score >= 80 ? T.verdictOk : shot.score >= 60 ? T.verdictMid : T.verdictLow}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
+                  {T.summary(fixes.length, watches.length, shot.checks.length - fixes.length - watches.length, T.quality[result.quality] || result.quality, Math.round((result.coverage || 0) * 100), result.fps)}
+                </div>
+              </div>
+            </div>
+            {result.shots.length > 1 && (() => {
+              // WHICH SHOT AM I LOOKING AT - the scorecard below is ALWAYS the
+              // selected one, the session panel is all of them.
+              // ONE ROW (27.9, "the left and right arrow and buttons are very
+              // needlessly big and on different rows"): back, "SHOT 10 / 11",
+              // forward. The arrows mirror in Hebrew - back is on the right.
+              const N = result.shots.length;
+              const flip = T.dir === 'rtl' ? 'scaleX(-1)' : 'none';
+              const arrow = (disabled) => ({ ...chip(false), width: CTL_H, minWidth: 0, padding: 0, opacity: disabled ? 0.35 : 1, cursor: disabled ? 'default' : 'pointer' });
+              const chev = <svg aria-hidden viewBox="0 0 6 10" fill="none" width="6" height="10" style={{ transform: flip }}><path d="M5 1L1 5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+              // BALANCED rows (27.9, "the 1-11 numbers should not leave one box
+              // on its own in a new row"): at most eight to a row, and the
+              // shots spread evenly over the rows that needs - 11 is 6 + 5,
+              // 17 is 6 + 6 + 5 - so no row is ever a lone cell.
+              const rows = Math.ceil(N / 8);
+              const cols = Math.ceil(N / rows);
+              return (
+                <div className="shot-noprint" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div data-shot-nav style={{ display: 'grid', gridTemplateColumns: `${CTL_H}px minmax(0, 1fr) ${CTL_H}px`, alignItems: 'center', columnGap: 8 }}>
+                    <button type="button" onClick={() => setShotIdx((i) => Math.max(0, i - 1))} disabled={shotIdx === 0} title={T.prevShot} aria-label={T.prevShot} style={arrow(shotIdx === 0)}>{chev}</button>
+                    <div title={T.scopeHint(N)} style={{ textAlign: 'center', whiteSpace: 'nowrap', lineHeight: 'normal' }}>
+                      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.shotWord} <bdi dir="ltr">{shot.index} / {N}</bdi></span>
+                      <span style={{ ...lbl, letterSpacing: '0.06em', marginInlineStart: 8 }}>{T.atSec(fmt(series.tMs[shot.cycle.release] / 1000, 1))}</span>
+                    </div>
+                    <button type="button" onClick={() => setShotIdx((i) => Math.min(N - 1, i + 1))} disabled={shotIdx === N - 1} title={T.nextShot} aria-label={T.nextShot} style={arrow(shotIdx === N - 1)}><span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}>{chev}</span></button>
+                  </div>
+                  <div data-shot-grid style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 6 }}>
+                    {result.shots.map((s, i) => {
+                      const st = ST[stKey(s.score)];
+                      return <button key={i} onClick={() => setShotIdx(i)} title={T.shotTip(s.index, fmt(series.tMs[s.cycle.release] / 1000, 1), s.score ?? '-')}
+                        style={{ ...chip(i === shotIdx), padding: 0, minWidth: 0, letterSpacing: 0, fontVariantNumeric: 'tabular-nums', borderColor: i === shotIdx ? CYAN : st.color, color: i === shotIdx ? CYAN : st.color }}>{s.index}</button>;
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+            {/* MADE / MISSED for the shot selected above - two equal cells, the
+                tally under them. Marked by the coach: the analyser has no rim to
+                look at, so it never guesses a make. */}
+            <div data-shot-mark className="shot-noprint" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: true }))} title={T.markShot}
+                  style={{ ...chip(made[shot.index] === true), ...(made[shot.index] === true ? { borderColor: '#37B27C', color: '#37B27C', background: 'rgba(55,178,124,0.10)' } : null) }}>✓ {T.made}</button>
+                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: false }))} title={T.markShot}
+                  style={{ ...chip(made[shot.index] === false), ...(made[shot.index] === false ? { borderColor: '#F26A2B', color: '#F26A2B', background: 'rgba(242,106,43,0.10)' } : null) }}>✗ {T.missed}</button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.makes(madeCount, result.shots.length)}</span>
+                {unmarkedCount > 0 && <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.unmarked(unmarkedCount)}</span>}
+              </div>
+            </div>
+          </div>
+
+      <div className="shot-results" style={{ display: 'flex', gap: 'var(--g)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* LEFT — player */}
         <div className="shot-left" style={{ flex: '1 1 420px', minWidth: 300, maxWidth: 640 }}>
           <div ref={wrapRef} className="shot-video" style={{ '--shot-ar': result.aspect || 1.7778, position: 'relative', width: '100%', aspectRatio: result.aspect ? `${result.aspect}` : '16/9', background: '#000', border: '1px solid rgba(255,255,255,0.15)' }}>
@@ -1128,86 +1203,19 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} hand={hand} />
         </div>
 
-        {/* RIGHT — score, scorecard, guide */}
+        {/* RIGHT — the report, in THREE VIEWS (29.9 #429, Ohad: "very uncomfortable
+            to navigate and read"): THIS SHOT (its read-outs and checkpoints),
+            SESSION (every shot, the averages, what holds and what wanders) and
+            SAVED. One long scroll mixed the three; now each answers one question. */}
         <div className="shot-right" style={{ flex: '1 1 420px', minWidth: 300 }}>
-          {/* The score, the verdict and the rep picker STICK to the top of the
-              right column on a desktop, where it scrolls on its own (Ohad
-              08-30). On a phone nothing sticks - see the one-scroller rule.
-              FULL WIDTH (27.9, "why arent you using all the horizontal space
-              of the page?"): the ring and the verdict share the first row;
-              the rep picker and the MADE / MISSED marks each get the whole
-              width under it. They used to live inside the verdict's column,
-              so on a 360px phone every row was squeezed into ~230px beside a
-              ring that owned the rest. */}
-          <div className="shot-sticky" style={{ position: 'sticky', top: 0, zIndex: 3, background: '#000', paddingTop: 4, paddingBottom: 12,
-            borderBottom: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '76px minmax(0, 1fr)', columnGap: 14, alignItems: 'center' }}>
-              <div data-shot-ring style={{ width: 76, height: 76, boxSizing: 'border-box', borderRadius: '50%', border: `4px solid ${sc.color}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontFamily: FN, fontSize: 24, fontWeight: 700, lineHeight: 1 }}>{shot.score ?? '—'}</div>
-                <div style={{ ...lbl, fontSize: 8 }}>/ 100</div>
-              </div>
-              <div data-shot-verdict style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1.3 }}>
-                  {shot.score == null ? T.verdictNa : shot.score >= 80 ? T.verdictOk : shot.score >= 60 ? T.verdictMid : T.verdictLow}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
-                  {T.summary(fixes.length, watches.length, shot.checks.length - fixes.length - watches.length, T.quality[result.quality] || result.quality, Math.round((result.coverage || 0) * 100), result.fps)}
-                </div>
-              </div>
-            </div>
-            {result.shots.length > 1 && (() => {
-              // WHICH SHOT AM I LOOKING AT - the scorecard below is ALWAYS the
-              // selected one, the session panel is all of them.
-              // ONE ROW (27.9, "the left and right arrow and buttons are very
-              // needlessly big and on different rows"): back, "SHOT 10 / 11",
-              // forward. The arrows mirror in Hebrew - back is on the right.
-              const N = result.shots.length;
-              const flip = T.dir === 'rtl' ? 'scaleX(-1)' : 'none';
-              const arrow = (disabled) => ({ ...chip(false), width: CTL_H, minWidth: 0, padding: 0, opacity: disabled ? 0.35 : 1, cursor: disabled ? 'default' : 'pointer' });
-              const chev = <svg aria-hidden viewBox="0 0 6 10" fill="none" width="6" height="10" style={{ transform: flip }}><path d="M5 1L1 5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-              // BALANCED rows (27.9, "the 1-11 numbers should not leave one box
-              // on its own in a new row"): at most eight to a row, and the
-              // shots spread evenly over the rows that needs - 11 is 6 + 5,
-              // 17 is 6 + 6 + 5 - so no row is ever a lone cell.
-              const rows = Math.ceil(N / 8);
-              const cols = Math.ceil(N / rows);
-              return (
-                <div className="shot-noprint" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div data-shot-nav style={{ display: 'grid', gridTemplateColumns: `${CTL_H}px minmax(0, 1fr) ${CTL_H}px`, alignItems: 'center', columnGap: 8 }}>
-                    <button type="button" onClick={() => setShotIdx((i) => Math.max(0, i - 1))} disabled={shotIdx === 0} title={T.prevShot} aria-label={T.prevShot} style={arrow(shotIdx === 0)}>{chev}</button>
-                    <div title={T.scopeHint(N)} style={{ textAlign: 'center', whiteSpace: 'nowrap', lineHeight: 'normal' }}>
-                      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.shotWord} <bdi dir="ltr">{shot.index} / {N}</bdi></span>
-                      <span style={{ ...lbl, letterSpacing: '0.06em', marginInlineStart: 8 }}>{T.atSec(fmt(series.tMs[shot.cycle.release] / 1000, 1))}</span>
-                    </div>
-                    <button type="button" onClick={() => setShotIdx((i) => Math.min(N - 1, i + 1))} disabled={shotIdx === N - 1} title={T.nextShot} aria-label={T.nextShot} style={arrow(shotIdx === N - 1)}><span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}>{chev}</span></button>
-                  </div>
-                  <div data-shot-grid style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 6 }}>
-                    {result.shots.map((s, i) => {
-                      const st = ST[stKey(s.score)];
-                      return <button key={i} onClick={() => setShotIdx(i)} title={T.shotTip(s.index, fmt(series.tMs[s.cycle.release] / 1000, 1), s.score ?? '-')}
-                        style={{ ...chip(i === shotIdx), padding: 0, minWidth: 0, letterSpacing: 0, fontVariantNumeric: 'tabular-nums', borderColor: i === shotIdx ? CYAN : st.color, color: i === shotIdx ? CYAN : st.color }}>{s.index}</button>;
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-            {/* MADE / MISSED for the shot selected above - two equal cells, the
-                tally under them. Marked by the coach: the analyser has no rim to
-                look at, so it never guesses a make. */}
-            <div data-shot-mark className="shot-noprint" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: true }))} title={T.markShot}
-                  style={{ ...chip(made[shot.index] === true), ...(made[shot.index] === true ? { borderColor: '#37B27C', color: '#37B27C', background: 'rgba(55,178,124,0.10)' } : null) }}>✓ {T.made}</button>
-                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: false }))} title={T.markShot}
-                  style={{ ...chip(made[shot.index] === false), ...(made[shot.index] === false ? { borderColor: '#F26A2B', color: '#F26A2B', background: 'rgba(242,106,43,0.10)' } : null) }}>✗ {T.missed}</button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.makes(madeCount, result.shots.length)}</span>
-                {unmarkedCount > 0 && <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.unmarked(unmarkedCount)}</span>}
-              </div>
-            </div>
+          <div className="shot-tabs shot-noprint" role="tablist" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, marginBottom: 'var(--g)' }}>
+            {[['shot', T.tabShot || 'THIS SHOT'], ['session', T.tabSession || 'SESSION'], ['saved', T.tabSaved || 'SAVED']].map(([k, l]) => (
+              <button key={k} type="button" role="tab" aria-selected={reportTab === k} data-report-tab={k} onClick={() => setReportTab(k)} style={{ ...chip(reportTab === k), width: '100%', minWidth: 0 }}>
+                {l}{k === 'session' && result.shots.length > 1 ? ` · ${result.shots.length}` : ''}{k === 'saved' && saved.length ? ` · ${saved.length}` : ''}
+              </button>
+            ))}
           </div>
-
+          {reportTab === 'shot' && (<>
           {/* info strip */}
           {/* Six single-width read-outs fill two clean rows of three; the two
               long ones (chain order, session consistency) get a row each
@@ -1249,58 +1257,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.consistencyLbl(result.consistency.n)}</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{T.consistencyVal(fmt(result.consistency.rhythmCv), fmt(result.consistency.releaseArmSd, 1), fmt(result.consistency.setElbowSd, 1), fmt(result.consistency.timingSd))}</div></div>}
           </div>
 
-          {/* VS THE LAST SAVED ANALYSIS.
-              NOT "vs his last session" — this tool has no athlete. It films
-              whoever is in front of the camera, and the reviewed-clip picker is
-              deliberately not wired to it (Ohad 08-23: no previously-uploaded
-              EXPO videos). Saves are therefore global, so a coach who analysed
-              two athletes in a row would otherwise be shown one compared
-              against the other. The heading says what it actually is.
-              The one question a coach actually asks — "is he better than last
-              time?" — and until now the analyzer could not answer it, even
-              though SAVE had been storing every session for months.
-              Compares against the most recent save for the SAME hand, and
-              reports the checkpoints whose STATUS changed, because "elbow at
-              set went from fix to ok" is coachable and "63.4 vs 64.1 degrees"
-              is noise. */}
-          {prevSaved && (() => {
-            const was = new Map((prevSaved.checks || []).map((c) => [c.key, c.status]));
-            const rank = { fix: 0, watch: 1, ok: 2, na: 3 };
-            const moved = shot.checks
-              .filter((c) => was.has(c.key) && was.get(c.key) !== c.status)
-              .map((c) => ({ label: c.label, from: was.get(c.key), to: c.status,
-                better: (rank[c.status] ?? 3) > (rank[was.get(c.key)] ?? 3) }));
-            const better = moved.filter((m) => m.better);
-            const worse = moved.filter((m) => !m.better);
-            const d = new Date(prevSaved.date);
-            const when = Number.isNaN(d.getTime()) ? '' : fmtNumericDate(d, '');
-            const delta = typeof shot.score === 'number' ? shot.score - prevSaved.score : null;
-            return (
-              <div style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.6 }}>
-                <div style={{ ...lbl, color: CYAN, marginBottom: 4 }}>{T.vsLastHead(when)}</div>
-                <div>
-                  <span dir="ltr" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontWeight: 700,
-                    color: delta == null ? '#FFF' : delta > 0 ? '#37B27C' : delta < 0 ? '#E0574A' : '#FFF' }}>
-                    {T.vsScore(prevSaved.score, shot.score ?? '—')}
-                  </span>
-                  {delta != null && delta !== 0 && (
-                    <span dir="ltr" style={{ unicodeBidi: 'isolate', marginInlineStart: 8, color: delta > 0 ? '#37B27C' : '#E0574A' }}>
-                      {(delta > 0 ? '+' : '') + delta}
-                    </span>
-                  )}
-                </div>
-                {better.length > 0 && (
-                  <div style={{ color: '#37B27C', marginTop: 3 }}>{T.vsBetter}: {better.map((m) => m.label).join(' · ')}</div>
-                )}
-                {worse.length > 0 && (
-                  <div style={{ color: '#E0574A', marginTop: 3 }}>{T.vsWorse}: {worse.map((m) => m.label).join(' · ')}</div>
-                )}
-                {moved.length === 0 && (
-                  <div style={{ color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{T.vsSame}</div>
-                )}
-              </div>
-            );
-          })()}
+          {/* (The "vs the last analysis you saved" block is gone - 29.9 #433, Ohad:
+              "remove it completely - only compare it to this clip". The session
+              view compares the shots of this clip.) */}
           {/* A starved capture reports FEWER SHOTS with full confidence.
               Measured on one identical clip across runs: 9, 10, 11 and 12
               shots, depending only on what else was driving the browser.
@@ -1348,6 +1307,64 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               </div>
             );
           })()}
+          <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.checksTitle(shot.index, result.shots.length)}</div>
+          <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+            {shot.checks.map((c, i) => {
+              const st = ST[c.status];
+              const open = openGuide.has(c.key);
+              const PHASE_OF = { dip: 'dip', setHeight: 'set', setElbow: 'set', elbowAlign: 'set', releaseExt: 'release', releaseArm: 'release', timing: 'release', follow: 'follow', trunk: 'release' };
+              const phaseKey = PHASE_OF[c.key];
+              const ph = shot.phases.find((p) => p.key === phaseKey);
+              // One jump per FRAME, not per row. Three set-point checks and four
+              // release checks each carried a ▸ to the same frame (Ohad,
+              // 2026-09-07: "too many play buttons next to the checkpoints that
+              // lead to the same frame"). The first row of a phase keeps it.
+              const showJump = !!ph && (i === 0 || PHASE_OF[shot.checks[i - 1].key] !== phaseKey);
+              return (
+                <div key={c.key} className="shot-check-row" style={{ borderTop: i ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+                  {/* GRID, not flex: fixed trailing columns so every value, gain,
+                      status chip and jump arrow shares an x with the row above.
+                      Flex sized each by its own text, which is why 135 and
+                      -0.24 TORSO ended in different places. */}
+                  <div className="shot-check-grid" onClick={() => setOpenGuide((s) => { const nx = new Set(s); nx.has(c.key) ? nx.delete(c.key) : nx.add(c.key); return nx; })}>
+                    <span style={{ gridArea: 'd', width: 8, height: 8, borderRadius: '50%', background: st.color }} />
+                    <div className="shot-check-name" style={{ gridArea: 'n', minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', lineHeight: '16px' }}>{c.label}</div>
+                    <div className="shot-check-target" style={{ gridArea: 't', minWidth: 0, fontSize: 11, lineHeight: '15px', color: 'rgba(255,255,255,0.55)' }}>{c.target}</div>
+                    <span className="shot-check-meta" style={{ gridArea: 'm', minWidth: 0, display: 'inline-flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap', lineHeight: '16px' }}>
+                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: st.color }}>{st.label}</span>
+                      {c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 && <span dir="ltr" title={T.gainPts(gainOf(c))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate' }}>{`+${gainOf(c)}`}</span>}
+                    </span>
+                    <div className="shot-check-val" dir="ltr" style={{ gridArea: 'v', justifySelf: 'end', fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate', lineHeight: '16px' }}>{c.display}</div>
+                    {showJump
+                      ? <button className="shot-noprint shot-check-jump" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), gridArea: 'j', width: CTL_H, minWidth: 0, padding: 0 }} title={T.jumpFrame}>▸</button>
+                      : <span className="shot-check-jump" style={{ gridArea: 'j', width: CTL_H }} />}
+                    <span className="shot-check-chev" style={{ gridArea: 'c', color: 'rgba(255,255,255,0.5)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transform: open ? 'rotate(180deg)' : 'none' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="10" height="7" style={{ display: 'block' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+                  </div>
+                  {open && (
+                    <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                      <div style={{ marginBottom: 9 }}>
+                        <div style={{ ...lbl, color: st.color, marginBottom: 3 }}>{T.what}</div>
+                        <div>{c.status === 'ok' ? T.measuredOk(c.display) : T.measuredBad(c.display, c.target)}</div>
+                      </div>
+                      <div style={{ marginBottom: 9 }}>
+                        <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.why}</div>
+                        <div>{c.why}</div>
+                      </div>
+                      <DrillList label={T.drills || T.how} items={c.how} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div data-shot-end style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, marginTop: 10 }}>
+            {T.footnote}
+          </div>
+
+          </>)}
+          {reportTab === 'session' && (<>
+            {result.shots.length < 2 && <div style={{ fontFamily: FB, fontSize: 13, color: 'rgba(255,255,255,0.6)', padding: '8px 0' }}>{T.sessionOne || 'One shot in this clip - the session view needs two or more.'}</div>}
           {/* SESSION — every detected shot, scored, so a multi-shot clip is
               never ambiguous: this table IS the whole clip. */}
           {result.shots.length > 1 && (
@@ -1365,14 +1382,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                       // coach to fix whichever happens to be listed first can
                       // point him at the cheapest thing on the board.
                        return (
-                        <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                        <tr key={i} onClick={() => jumpTo(i, phaseKey)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}{T.unitS || 's'}</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump('release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}{T.unitS || 's'}</td>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: st.color }}>{s.score ?? '—'}</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + (T.unitMs || 'ms').trim()}</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'dip'); }} title={T.phaseJump ? T.phaseJump('dip') : undefined} data-jump="dip" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'set'); }} title={T.phaseJump ? T.phaseJump('set') : undefined} data-jump="set" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump('release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump('release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + (T.unitMs || 'ms').trim()}</td>
                           {/* RELEASE HEIGHT, not "fix first". Ohad: "fix first is
                               useless you may remove it and fill it with something more
                               importnant". He was right, and the git history already
@@ -1474,6 +1491,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               (Ohad 08-30: "i need more conclusions from analyzing all the reps,
               positive, negative, focuses"). */}
           <SessionPanel result={result} T={T} />
+          </>)}
+          {reportTab === 'saved' && (<>
+            {saved.length === 0 && <div style={{ fontFamily: FB, fontSize: 13, color: 'rgba(255,255,255,0.6)', padding: '8px 0' }}>{T.savedNone || 'Nothing saved yet.'}</div>}
           {saved.length > 0 && (
             <div style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px', marginBottom: 12 }}>
               <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.savedTitle || 'SAVED SESSIONS'}</div>
@@ -1489,62 +1509,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               ))}
             </div>
           )}
-          <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.checksTitle(shot.index, result.shots.length)}</div>
-          <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
-            {shot.checks.map((c, i) => {
-              const st = ST[c.status];
-              const open = openGuide.has(c.key);
-              const PHASE_OF = { dip: 'dip', setHeight: 'set', setElbow: 'set', elbowAlign: 'set', releaseExt: 'release', releaseArm: 'release', timing: 'release', follow: 'follow', trunk: 'release' };
-              const phaseKey = PHASE_OF[c.key];
-              const ph = shot.phases.find((p) => p.key === phaseKey);
-              // One jump per FRAME, not per row. Three set-point checks and four
-              // release checks each carried a ▸ to the same frame (Ohad,
-              // 2026-09-07: "too many play buttons next to the checkpoints that
-              // lead to the same frame"). The first row of a phase keeps it.
-              const showJump = !!ph && (i === 0 || PHASE_OF[shot.checks[i - 1].key] !== phaseKey);
-              return (
-                <div key={c.key} className="shot-check-row" style={{ borderTop: i ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                  {/* GRID, not flex: fixed trailing columns so every value, gain,
-                      status chip and jump arrow shares an x with the row above.
-                      Flex sized each by its own text, which is why 135 and
-                      -0.24 TORSO ended in different places. */}
-                  <div className="shot-check-grid" onClick={() => setOpenGuide((s) => { const nx = new Set(s); nx.has(c.key) ? nx.delete(c.key) : nx.add(c.key); return nx; })}>
-                    <span style={{ gridArea: 'd', width: 8, height: 8, borderRadius: '50%', background: st.color }} />
-                    <div className="shot-check-name" style={{ gridArea: 'n', minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', lineHeight: '16px' }}>{c.label}</div>
-                    <div className="shot-check-target" style={{ gridArea: 't', minWidth: 0, fontSize: 11, lineHeight: '15px', color: 'rgba(255,255,255,0.55)' }}>{c.target}</div>
-                    <span className="shot-check-meta" style={{ gridArea: 'm', minWidth: 0, display: 'inline-flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap', lineHeight: '16px' }}>
-                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: st.color }}>{st.label}</span>
-                      {c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 && <span dir="ltr" title={T.gainPts(gainOf(c))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate' }}>{`+${gainOf(c)}`}</span>}
-                    </span>
-                    <div className="shot-check-val" dir="ltr" style={{ gridArea: 'v', justifySelf: 'end', fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate', lineHeight: '16px' }}>{c.display}</div>
-                    {showJump
-                      ? <button className="shot-noprint shot-check-jump" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), gridArea: 'j', width: CTL_H, minWidth: 0, padding: 0 }} title={T.jumpFrame}>▸</button>
-                      : <span className="shot-check-jump" style={{ gridArea: 'j', width: CTL_H }} />}
-                    <span className="shot-check-chev" style={{ gridArea: 'c', color: 'rgba(255,255,255,0.5)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transform: open ? 'rotate(180deg)' : 'none' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="10" height="7" style={{ display: 'block' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
-                  </div>
-                  {open && (
-                    <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)', minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-                      <div style={{ marginBottom: 9 }}>
-                        <div style={{ ...lbl, color: st.color, marginBottom: 3 }}>{T.what}</div>
-                        <div>{c.status === 'ok' ? T.measuredOk(c.display) : T.measuredBad(c.display, c.target)}</div>
-                      </div>
-                      <div style={{ marginBottom: 9 }}>
-                        <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.why}</div>
-                        <div>{c.why}</div>
-                      </div>
-                      <DrillList label={T.drills || T.how} items={c.how} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div data-shot-end style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, marginTop: 10 }}>
-            {T.footnote}
-          </div>
-
+          </>)}
         </div>
+      </div>
       </div>
     </div>
   );
