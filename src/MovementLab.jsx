@@ -185,7 +185,7 @@ async function measureVideoFps(v) {
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
-export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600 } = {}) {
+export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null } = {}) {
   let lm, v;
   try {
     lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
@@ -243,6 +243,12 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
     let prevCentroid = null;
     let prevSig = null; // signature of the last KEPT frame — drops exact re-reads
     for (let i = 0; i < total; i++) {
+      // A BACKGROUND pass stops the moment the coach touches the page (29.9
+      // #422): the warmer only yielded BETWEEN clips, so a click that landed
+      // mid-clip waited behind up to 600 full-model pose passes - measured
+      // 67 long tasks, 11.8 s of main thread, a 208 ms first click after an
+      // idle pause. Checked every frame; the caller retries the clip later.
+      if (typeof shouldStop === 'function' && shouldStop()) { const e = new Error('capture stopped'); e.code = 'aborted'; throw e; }
       // +0.001 so the first sample (i=0) never seeks to the already-current
       // position 0 — that assignment fires no 'seeked' event in Chromium and
       // would hang the await forever ("READING THE MOVEMENT…" stuck).

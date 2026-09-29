@@ -115,7 +115,9 @@ const _inflight = new Set();
 // poorly-tracked clip. Robust per-clip: one bad/blocked video is skipped, never
 // fatal. Returns a summary { total, analyzed, skipped, failed }.
 export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts = {}) {
-  const { onProgress, shouldStop, onIdle, maxPerRun } = opts;
+  // stopClip: checked on every FRAME of a clip (the background warmer passes
+  // 'the coach is active again'); an interrupted clip is not a failed one.
+  const { onProgress, shouldStop, onIdle, maxPerRun, stopClip } = opts;
   // Lock on the couple BASE so a member's report-open (traineeId `tr_x__0`) and
   // the background warmer (base `tr_x`) collide instead of running two batches
   // over the same clips — two interleaved read-modify-write passes on the pose
@@ -148,7 +150,7 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
       if (typeof onIdle === 'function') { await onIdle(); if (typeof shouldStop === 'function' && shouldStop()) break; }
       i++;
       try {
-        const frames = await captureClipFrames(v.url, { crossOrigin: true });
+        const frames = await captureClipFrames(v.url, { crossOrigin: true, shouldStop: stopClip || null });
         if (frames && frames.length >= 4) {
           const analysis = analyzeClip(frames, v.title);
           if (analysis && analysis.ok) {
@@ -173,7 +175,10 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
           if (bumpAttempt(v.url) >= MAX_ATTEMPTS) markDone(v.url);
           failed++;
         }
-      } catch {
+      } catch (e) {
+        // interrupted by the coach using the app: not an attempt, not a failure -
+        // stop this batch and let the caller wait for the next quiet moment
+        if (e && e.code === 'aborted') break;
         // network / CORS / decode blip — TRANSIENT. Do NOT mark done (that would
         // silently lose an injury-watch clip forever); retry on a later open and
         // give up only after MAX_ATTEMPTS so one broken URL can't loop forever.

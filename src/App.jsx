@@ -1097,7 +1097,7 @@ function AuthedApp() {
         // back and jank the coach's UI (review H1).
         try {
           const { autoAnalyzeAthleteVideos } = await import('./autoAnalyzeVideos');
-          await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle });
+          await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle, stopClip: () => cancelled || !quiet() });
         } catch { /* one athlete's clip blip never stops the sweep */ }
       }
     })();
