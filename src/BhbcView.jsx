@@ -4572,7 +4572,10 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
         <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
           <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-            {headCols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} />)}
+            {/* THE HEADER STANDS OVER ITS COLUMN (27.9 #373, Ohad: "not ocd
+                order"): '#' is centred over the jersey badges, like the numbers
+                in them - measured 5px left of them. */}
+            {headCols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} center={k === 'jersey'} style={k === 'jersey' ? { textAlign: 'center', width: 26, marginInlineStart: -2 } : k === 'name' ? { marginInlineStart: -2 } : undefined} />)}
             {hasLoad ? <SortHeader k="trend" sort={sort} label={tr('14-day')} style={{ textAlign: 'end' }} /> : <div />}
           </div>
           {/* the phone's header: the columns a restacked row still shows */}
@@ -6493,9 +6496,13 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 and the header would no longer line up with anything. */}
             {/* The arrow's reserved slot takes the place of the 8px end margin
                 these labels carried, so no header grew. */}
-            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
-              {injCols.map(([k, h]) => (
-                <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
+            {/* THE HEADER STANDS OVER ITS COLUMN (#373): no padding the rows do
+                not have (it put every label 2px off its column), and ATHLETE
+                starts where the NAMES start - past the 22px jersey slot and its
+                9px gap - not over the numbers. */}
+            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: 0, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
+              {injCols.map(([k, h], i) => (
+                <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, ...(i === 0 ? { paddingInlineStart: 31 } : null) }} />
               ))}
               <div />
             </div>
