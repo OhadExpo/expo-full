@@ -5769,6 +5769,47 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   );
 }
 
+// ONE GAME ROW FOR EVERY GAMES LIST (29.9 #411, Ohad: "can be way better
+// designed"; #403 "the home tag ... vertically center aligned in between top and
+// bottom borders, same for the left rows of the text"). The old rows were
+// orange-boxed tables that repeated BNEI HERZLIYA on every line, with score and
+// W/L chips. Now one grid everywhere: the date, a two-line block (the matchup,
+// then competition · round · venue · time) and ONE end column - the result as
+// coloured text, HOME/AWAY, or the minutes still to add. Rows sit between plain
+// rules and everything in them is centred between the two.
+function GameRow({ date, title, detail, end, onClick, dataKey }) {
+  const clickable = !!onClick;
+  return (
+    <div onClick={onClick || undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} data-game-row={dataKey || ''}
+      onKeyDown={clickable ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }) : undefined}
+      className={clickable ? 'bhbc-row bhbc-game-row' : 'bhbc-game-row'}
+      style={{ display: 'grid', gridTemplateColumns: '52px minmax(0, 1fr) auto', columnGap: 14, alignItems: 'center', minHeight: 54, padding: '9px 0', boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, cursor: clickable ? 'pointer' : 'default' }}>
+      <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{date}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+        <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx, overflowWrap: 'break-word', lineHeight: 1.2 }}>{title}</span>
+        {/* segments, not one text run: a Hebrew competition beside an English
+            venue let the bidi algorithm pull two separators together
+            ("ליגת האלופות · · BADALONA") - each segment is its own box */}
+        {detail ? <Segmented text={detail} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: C.tm, lineHeight: 1.25 }} /> : null}
+      </span>
+      <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center' }}>{end}</span>
+    </div>
+  );
+}
+// A section inside the Games card: a quiet label with its count, then a list
+// whose last row draws no rule (#419).
+function GameSection({ label, count, children, first = false }) {
+  return (
+    <div style={{ marginTop: first ? 0 : 18 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tx }}>
+        {label}{count != null ? <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }}>· {count}</span> : null}
+      </div>
+      <div className="bhbc-list">{children}</div>
+    </div>
+  );
+}
+const HA_TEXT = (bhHome, tr) => <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: bhHome ? 'var(--bhbc-ha-home)' : 'var(--bhbc-ha-away)', minWidth: 44, textAlign: 'end' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>;
+
 function ResultsList({ games, bhbcOnly, fixtures = [], onPick = null }) {
   const tr = useT();
   const played = games.filter((g) => g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
@@ -5784,83 +5825,56 @@ function ResultsList({ games, bhbcOnly, fixtures = [], onPick = null }) {
   // a cup tie added by hand landed at the bottom of the list it should head.
   const upcoming = games.filter((g) => !g.played && (!g.date || g.date >= todayStr) && (!bhbcOnly || isBH(g.home) || isBH(g.away)))
     .sort((a, b) => `${a.date || '9999'}${a.time || ''}`.localeCompare(`${b.date || '9999'}${b.time || ''}`));
-  const byRound = {};
-  // A playoff game has no "מחזור N" heading, so it used to fall into the
-  // round-less bucket and render with no heading at all. It has a NAME now —
-  // the sync reads every competition board and tags each game with its stage —
-  // so it groups under "Quarter Final" instead of under nothing.
-  const keyOf = (g) => (g.stage ? 'stage:' + g.stage : g.round);
-  [...played].reverse().forEach((g) => { const k = keyOf(g); (byRound[k] = byRound[k] || []).push(g); });
-  // A result row that precedes the first "מחזור N" heading in the scrape has
-  // round = null, which becomes the key "null" -> Number("null") = NaN. That
-  // rendered a literal "Round NaN" header over real results, and made the
-  // comparator non-total (every NaN pair returns NaN), so the group order was
-  // engine-defined. Keep those games — they are real — but group them under no
-  // round rather than a fabricated one, and sort them last.
-  // Stages first (they are the newest games of a season), then rounds newest
-  // to oldest, then the genuinely round-less last.
-  const rounds = Object.keys(byRound)
-    .map((k) => (k.startsWith('stage:') ? k : (k === 'null' || k === 'undefined' || Number.isNaN(Number(k)) ? null : Number(k))))
-    .sort((a, b) => {
-      const aS = typeof a === 'string', bS = typeof b === 'string';
-      if (aS && bS) return 0;
-      if (aS) return -1;
-      if (bS) return 1;
-      return a == null ? 1 : b == null ? -1 : b - a;
-    });
-  const Row = ({ g }) => {
-    // Every visible row involves BHBC (bhbcOnly). Read it from BHBC's side so the
-    // FIRST name is always "Bnei Herzliya" — every row's name column lines up, and
-    // vs/@ tells home vs away. One line per game (Ohad: never stacked/tight rows).
+  // RESULTS GROUPED BY COMPETITION (#411), newest game first inside each and the
+  // competition with the newest game first. The round (or a playoff's stage -
+  // a playoff game has no "מחזור N") moves into the row's detail line, and a
+  // round the feed never gave is simply not claimed (the old "Round NaN").
+  const compOf = (g) => (g.comp ? tr(g.comp) : g.stage ? tr(g.stage) : tr('League'));
+  const groups = [];
+  [...played].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).forEach((g) => {
+    const k = compOf(g);
+    let grp = groups.find((x) => x.k === k);
+    if (!grp) { grp = { k, games: [] }; groups.push(grp); }
+    grp.games.push(g);
+  });
+  const roundOf = (g) => (g.stage && g.comp ? tr(g.stage) : (g.round != null && Number.isFinite(Number(g.round)) ? `${tr('Round')} ${g.round}` : null));
+  const side = (g) => {
+    // Every visible row involves BHBC (bhbcOnly); read it from BHBC's side.
     const bhHome = isBH(g.home);
-    const opp = g.oppName || (bhHome ? g.away : g.home);
-    const bhScore = bhHome ? g.hs : g.as, oppScore = bhHome ? g.as : g.hs;
-    const won = g.played && bhScore > oppScore;
-    const detail = [tr(g.comp), g.venue && tr(g.venue)].filter(Boolean).join(' · ');
-    const nameCell = { fontFamily: FN, fontSize: 13, fontWeight: 800, color: C.tx, whiteSpace: 'nowrap' };
-    const fx = fxOf(g);
-    return (
-      <div onClick={fx ? () => onPick(fx) : undefined} role={fx ? 'button' : undefined} tabIndex={fx ? 0 : undefined}
-        onKeyDown={fx ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(fx); } }) : undefined}
-        className={fx ? 'bhbc-row' : undefined}
-        style={{ borderBottom: `1px solid ${C.cardBd}`, border: `1px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)`, cursor: fx ? 'pointer' : undefined }}>
-        <div className="bhbc-game-row" style={{ display: 'grid', gridTemplateColumns: '54px minmax(0,auto) 1fr 62px', gap: 14, alignItems: 'center', padding: '12px 12px' }}>
-          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? ddmm(g.date) : ''}</div>
-          {/* Bnei Herzliya (constant) · vs/@/score · opponent — constant first token
-              means vs/@ and the opponent line up on every row. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <span className="bhbc-game-home" style={{ ...nameCell }}>{tr('Bnei Herzliya')}</span>
-            {g.played
-              ? <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span></span>
-              : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? tr('vs') : '@'}</span>}
-            <span style={{ ...nameCell, fontWeight: 500, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{opp}</span>
-          </div>
-          {/* one row (27.9 title gate: "CHAMPIONS LEAGUE · BADALONA, SPAIN" broke at
-              768): the competition alone where the venue would not fit */}
-          <div className="bhbc-game-detail" style={{ display: 'flex', justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', whiteSpace: 'nowrap', minWidth: 0, textTransform: 'uppercase' }}><SegWord full={detail} short={tr(g.comp) || detail} /></div>
-          {g.played
-            ? <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, boxSizing: 'border-box', padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', color: won ? '#37B27C' : '#DE4E3B', background: `color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 13%, transparent)`, border: 'none' }}>{won ? 'W' : 'L'}</span>
-            : g.homeKnown === false ? null
-            : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? C.tm : ORANGE, border: 'none', padding: '2px 0' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>}
-        </div>
-      </div>
-    );
+    return { bhHome, opp: g.oppName || (bhHome ? g.away : g.home) };
   };
   if (!played.length && !upcoming.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '16px 0', textAlign: 'center' }}>{tr('No games yet.')}</div>;
   return (
     <div>
       {upcoming.length > 0 && (
-        <div style={{ marginBottom: rounds.length ? 14 : 0 }}>
-          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: ORANGE_DEEP, padding: '4px 10px 8px' }}>{tr('Upcoming')}</div>
-          {upcoming.slice(0, 8).map((g, i) => <Row key={i} g={g} />)}
-        </div>
+        <GameSection label={tr('Upcoming')} count={upcoming.length} first>
+          {upcoming.slice(0, 8).map((g, i) => {
+            const { bhHome, opp } = side(g);
+            const time = g.timeTBD ? tr('TBD') : g.time;
+            return <GameRow key={i} dataKey={g.date} date={g.date ? ddmm(g.date) : ''} title={`${bhHome ? tr('vs') : '@'} ${opp}`}
+              detail={[tr(g.comp), g.venue && tr(g.venue), time].filter(Boolean).join(' · ')}
+              end={g.homeKnown === false ? null : HA_TEXT(bhHome, tr)} />;
+          })}
+        </GameSection>
       )}
-      {rounds.map((r) => (
-        <div key={r == null ? 'no-round' : String(r)} style={{ marginBottom: 10 }}>
-          {/* Only claim a round number when the feed actually gave one. */}
-          {r != null && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: typeof r === 'string' ? ORANGE_DEEP : C.tm, padding: '4px 10px 6px' }}>{typeof r === 'string' ? tr(r.slice(6)) : `${tr('Round')} ${r}`}</div>}
-          {(byRound[r == null ? 'null' : r] || []).map((g, i) => <Row key={i} g={g} />)}
-        </div>
+      {groups.map((grp, gi) => (
+        <GameSection key={grp.k} label={grp.k} count={grp.games.length} first={!upcoming.length && gi === 0}>
+          {grp.games.map((g, i) => {
+            const { bhHome, opp } = side(g);
+            const us = bhHome ? g.hs : g.as, them = bhHome ? g.as : g.hs;
+            const won = us > them;
+            const fx = fxOf(g);
+            return <GameRow key={i} dataKey={g.date} date={g.date ? ddmm(g.date) : ''} title={`${bhHome ? tr('vs') : '@'} ${opp}`}
+              detail={[roundOf(g), g.venue && tr(g.venue), bhHome ? tr('HOME') : tr('AWAY')].filter(Boolean).join(' · ')}
+              onClick={fx ? () => onPick(fx) : null}
+              end={(
+                <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: won ? '#2E9E6B' : '#C9462F', minWidth: 12, textAlign: 'center' }}>{won ? tr('W') : tr('L')}</span>
+                  <span dir="ltr" style={{ fontSize: 14, fontWeight: 800, color: C.tx, unicodeBidi: 'isolate', minWidth: 62, textAlign: 'end' }}>{us}<span style={{ color: C.tm, margin: '0 3px' }}>–</span>{them}</span>
+                </span>
+              )} />;
+          })}
+        </GameSection>
       ))}
     </div>
   );
@@ -6215,58 +6229,32 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 8), [fixtures, today, nowHHMM]);
   if (!games.length) return null;
+  // THE SAME ROW AS EVERY OTHER GAME (#411): date, the matchup over its kind,
+  // and one end column - "9 LOGGED" once done, ADD MINUTES (the one thing still
+  // to do, in the zone's action orange) until then. Words wrap whole, never cut
+  // (19.9), and every row has the same two lines (27.9).
+  const todo = games.filter((g) => !Object.values(gameMinutesOf(bhbcLoads || {}, g.date)).some((m) => Number(m) > 0)).length;
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase', marginBottom: 6 }}>
-        {tr('Minutes played')}
-      </div>
-      {games.map((g) => {
-        const mins = gameMinutesOf(bhbcLoads || {}, g.date);
-        const n = Object.values(mins).filter((m) => Number(m) > 0).length;
-        return (
-          <button key={`${g.date}|${g.opponent || ''}`} onClick={() => onPick(g)}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 10,
-              width: '100%', textAlign: 'start', background: 'transparent', border: 'none', borderTop: '1px solid ' + C.ln,
-              padding: '8px 0', cursor: 'pointer', color: C.tx }}>
-            {/* AN ELLIPSIS IS THE UI DECIDING HE DOES NOT NEED THE OPPONENT.
-                Measured 19.9 at 360px: "2026-09-03 vs Maccabi Tel Aviv
-                SCRIMMAGE" was cut by 48px and "2026-09-14 vs Hapoel HaEmek
-                SCRIMMAGE" by 42px, so the games list showed a date and half a
-                club. nowrap+ellipsis was the cause; the row is a grid with a
-                minmax(0,1fr) first column, so letting it wrap costs nothing but
-                a second line on a phone and keeps every word. */}
-            {/* ONE TYPE SYSTEM ON THE LINE (27.9, Ohad: "the font is bad. also
-                scrimmage is written in a way too small font"): the date, the
-                opponent and the kind were Nord 11 / the body font / Nord 9. Now
-                all Nord, the opponent the loudest, the kind a legible 10.5 tag,
-                and words wrap whole. */}
-            {/* THE SAME TWO LINES ON EVERY ROW (27.9 LOOK at 390: one row put its
-                date on its own line and the next four ran it inline, because a
-                long opponent wrapped and a short one did not). Line 1: the date
-                and the kind; line 2: the opponent. */}
-            <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtNumericDate(g.date)}</span>
-                {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{tr('Scrimmage')}</span>}
-              </span>
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx }}>{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}</span>
-            </span>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-              // THE THING STILL TO DO MUST NOT LOOK FAINTER THAN THE THING DONE.
-              // Measured 19.9 at 360: '9 LOGGED' carried a green border and ADD
-              // MINUTES carried C.ln, a hairline that vanishes on white - so the
-              // completed row read as a button and the row still needing him read
-              // as plain text. Backwards. The action takes the orange it uses
-              // everywhere else in this zone. The done state is plain (27.9:
-              // colour only the exceptions) - only the row still to do is orange.
-              color: n ? C.tm : ORANGE, border: '1px solid ' + (n ? C.cardBd : ORANGE),
-              height: 'var(--btn-h-in)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 8px', lineHeight: 1, flexShrink: 0 }}>
-              {n ? `${n} ${tr('logged')}` : tr('ADD MINUTES')}
-            </span>
-          </button>
-        );
-      })}
+    <div style={{ marginBottom: 18 }}>
+      <GameSection label={tr('Minutes played')} count={todo ? `${todo} ${tr('to add')}` : null} first>
+        {games.map((g) => {
+          const mins = gameMinutesOf(bhbcLoads || {}, g.date);
+          const n = Object.values(mins).filter((m) => Number(m) > 0).length;
+          return (
+            <GameRow key={`${g.date}|${g.opponent || ''}`} dataKey={g.date} onClick={() => onPick(g)} date={ddmm(g.date)}
+              title={g.opponent ? `${g.home === false ? '@' : tr('vs')} ${g.opponent}` : tr(FX_LABEL[g.type] || 'Game')}
+              detail={[tr(FX_LABEL[g.type] || (g.type === 'scrimmage' ? 'Scrimmage' : 'Game')), g.comp && tr(g.comp)].filter(Boolean).join(' · ')}
+              end={(
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: n ? C.tm : ORANGE, border: n ? 'none' : '1px solid ' + ORANGE,
+                  height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  padding: n ? 0 : '0 12px', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                  {n ? `${n} ${tr('logged')}` : tr('ADD MINUTES')}
+                </span>
+              )} />
+          );
+        })}
+      </GameSection>
     </div>
   );
 }

@@ -855,6 +855,7 @@ Object.assign(HE, {
   // K: lifts
   '4+ days': '4 ימים ומעלה',
   '6+ days': '6 ימים ומעלה',
+  'to add': 'להוספה',
   // L: schedule
   'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
   // N: the zone's confirmations (toasts), in the zone's language
