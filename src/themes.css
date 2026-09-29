@@ -1872,3 +1872,9 @@ select.avail-select {
   padding-right: 16px !important;
   padding-left: 18px !important;
 }
+
+/* Roster health on a phone (29.9 #416): name + status on the first line, the
+   two actions share the second line in equal halves - one width, one x. */
+@media (max-width: 620px) {
+  .bhbc-zone .bhbc-rh-row > button, .bhbc-zone .bhbc-rh-row > span:last-child:not([data-status]) { flex: 1 1 calc(50% - 7px) !important; min-width: 0 !important; }
+}

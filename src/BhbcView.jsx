@@ -6533,15 +6533,20 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             const status = act.length ? act.slice().sort((a, b) => (SEV[a.status] ?? 4) - (SEV[b.status] ?? 4))[0].status : 'available';
             const hist = ((medical[t.id] || {}).injuries || []).length;
             return (
-              <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 6, gap: 14, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
+              <div key={t.id} className="bhbc-row bhbc-rh-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 14, rowGap: 8, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 140, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
                   {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} {tr(hist > 1 ? 'records' : 'record')}</span>}
                 </div>
-                {/* colour = signal: a coloured status DOT, calm muted label — not a filled pill. */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 96, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: status === 'available' ? 'transparent' : (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} /* the slot stays, the colour is for an exception (#305 E1) */ />
+                {/* ONE STATUS COLUMN (29.9 #416, Ohad: "the colors and the status
+                    looks misaligned"): a FIXED width, so the buttons after it
+                    stand on one x in every row whatever the word; every status
+                    has its dot in the zone's colours (green Available too, as on
+                    the load board), and the words start on one x. An exception
+                    reads in full ink, Available stays calm. */}
+                <span data-status={status} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, width: 124, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: status === 'available' ? C.tm : C.tx, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
                   {tr((MED_STATUS[status] || MED_STATUS.available).label)}
                 </span>
                     {/* This one carried .bhbc-ghost-btn and nothing else, and that
