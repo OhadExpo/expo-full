@@ -163,3 +163,5 @@ audit-out/bhbc-state/
 scripts/sheet-map.local.json
 # Club roster sheets (named athletes, daily availability = health status): never in the public repo (29.9)
 audit-out/bhbc-sheet/
+# Generated audit reports embed production screenshots (named athletes, the physio seat): never in the public repo (29.9 audit round 2)
+audit-out/*.html
