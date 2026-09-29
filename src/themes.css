@@ -2063,3 +2063,11 @@ select.avail-select:dir(rtl) {
   .bhbc-cancel-btn .cx-icon { display: inline-flex; width: 26px; height: 22px; box-sizing: border-box; align-items: center; justify-content: center; border: 1px solid var(--c-cardBd); background: var(--c-sf); font-size: 12px; line-height: 1; }
   .bhbc-chip .bhbc-cancel-btn:hover .cx-icon { border-color: currentColor; }
 }
+
+/* KPI NUMBERS SIZED AGAINST THEIR CARD (App.jsx carries the same rule inline;
+   here so the demo's tiles get it too - "₪10,500" at 30px overflowed a phone's
+   half-width demo tile, 29.9 #448). */
+.kpi-card { container-type: inline-size; }
+.kpi-value { display: flex; align-items: center; min-height: 48px; white-space: nowrap; overflow: hidden; text-overflow: clip;
+  font-size: clamp(20px, 17cqw, var(--c-kpiNumberSize, 30px)) !important; }
+@media (max-width: 700px) { .kpi-value { min-height: 40px; } }

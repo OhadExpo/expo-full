@@ -288,9 +288,9 @@ function Badge({ color = C.tm, children }) {
 // Mirrors DashboardView's KPI tile: cyan strip header (RefinedHeaderStrip
 // grammar) + 6px status dot + white 13/0.08em/700 label; big value in NEUTRAL
 // C.tx (the `accent` only colors the dot, never the number).
-function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
+function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac, total }) {
   return (
-    <div style={{
+    <div className="alert-card kpi-card" style={{
       background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
       padding: '16px 20px', boxShadow: C.cardShadow,
     }}>
@@ -301,7 +301,8 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           the number below them. The dot now sits at the strip's other end, the
           same margin from that edge. */}
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, minHeight: 30, width: '100%' }}>
-          <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{label}</span>
+          {/* the real tile's title: ONE line - a phone's half-width tile gets the short label (themes.css .kpi-title) */}
+          <span className="kpi-title" style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: 'var(--c-stripTx)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{short ? <><span className="kpi-full">{label}</span><span className="kpi-short">{short}</span></> : label}</span>
           <span title={T('status')} style={{ width: 6, height: 6, borderRadius: '50%', background: accent, flexShrink: 0, boxShadow: `0 0 5px ${accent}66` }} />
         </span>
       </div>
@@ -311,14 +312,14 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           every card's label sat right and its big number sat left. The
           isolation belongs on the numeral, not on the box: the box now
           inherits the page direction and aligns with its own label. */}
-      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
+      <div className="kpi-value" style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
         <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: 'nowrap' }}>
           {value}
           {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
         </span>
       </div>
       {sub && (
-        <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{sub}</div>
+        <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{subShort ? <SegWord full={sub} short={subShort} /> : sub}</div>
       )}
     </div>
   );
@@ -337,6 +338,7 @@ function DemoDashboard({ onJumpToTrainee }) {
   // board of tasks people wrote; AUTO-ALERTS = what the rules engine raised;
   // ALL = the board with the alerts under it.
   const [taskScope, setTaskScope] = useState('mine');
+  const [revOpen, setRevOpen] = useState(true);   // the real revenue card collapses
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
@@ -363,29 +365,26 @@ function DemoDashboard({ onJumpToTrainee }) {
   const nowM = new Date().getMonth();
   // More than double the original 2,900..3,400 (Ohad, 24.9), keeping the
   // same shape: a June dip, a July high, a strong current month.
-  const prior = [6700, 7400, 6200, 8300, 7800];
+  // a real month-to-month shape, so bars drawn from ZERO still show it (the
+  // real card's chart is bars; 6.2k-8.7k drew six near-equal slabs)
+  const prior = [4300, 7100, 7900, 6200, 5400];
   const months6 = prior.map((v, k) => [T(MON3[(nowM - 5 + k + 12) % 12]), v])
     .concat([[T(MON3[nowM]), collected30]]);
   const barMax = Math.max(...months6.map(m => m[1]));
   const collected90 = months6.slice(-3).reduce((s, m) => s + m[1], 0);
-  const prevMonth = months6[months6.length - 2]?.[1] || 0;
-  const momPct = prevMonth ? Math.round(((collected30 - prevMonth) / prevMonth) * 100) : 0;
-  const momPctText = `${momPct >= 0 ? '+' : ''}${momPct}%`;
-  const momLabel = <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{momPctText}</span>;
   return (
     <section>
 
       {/* Summary card grid — same shape as the real DashboardView's
           repeat(auto-fit, minmax(170px, 1fr)) at 10px gap. */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
-        gap: 10, marginBottom: 20,
-      }}>
+      <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
         {/* every tile carries a caption, as the real dashboard's do (27.9 #300 O9) */}
-        <StatCard label={T('Active Athletes')} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
-        <StatCard label={T('Low Sessions')} value={String(lowSessions.length)} sub={T('≤ 2 LEFT')} accent={C.or} />
-        <StatCard label={T('Estimated Monthly')} value={nis(mrr)} sub={T('Recurring committed')} accent={C.ac} />
-        <StatCard label={T('Collected MTD')} value={nis(collected30)} sub={<>{momLabel}{' '}{T('vs last month')}</>} subColor={momPct >= 0 ? C.gn : C.rd} accent={C.gn} />
+        {/* the real tiles' words (DashboardView): short titles where a phone's
+            half-width tile would wrap, the real captions in the real grey */}
+        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
+        <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
+        <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
+        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={T('From the sheets')} accent={C.gn} />
       </div>
 
       {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
@@ -404,105 +403,46 @@ function DemoDashboard({ onJumpToTrainee }) {
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
-          <span>{T('REVENUE')}</span><span style={{ opacity: 0.85, fontSize: 10 }}>{T('6 MO TREND')}</span>
+        <div className="title-strip" onClick={() => setRevOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+          <span>{T('REVENUE')}</span><span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span className="strip-meta" style={{ opacity: 0.85, fontSize: 10 }}>{T('INCL. VAT · 6 MO TREND')}</span><StripCaret open={revOpen} /></span>
         </div>
-        <div style={{ padding: 14 }}>
+        {revOpen && <div style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
             {[
               [T('MRR (ACTIVE)'), num(mrr), T('recurring committed'), C.ac],
-              [T('30D COLLECTED'), num(collected30), <>{momLabel}{' '}{T('vs prev month')}</>, C.gn],
-              [T('90D COLLECTED'), num(collected90), T('trailing 3 months'), C.gn],
+              [T('THIS MONTH'), num(collected30), T('From the sheets'), C.gn],
+              [T('LAST 3 MONTHS'), num(collected90), T('From the sheets'), C.gn],
               [T('OUTSTANDING'), num(outstandingAmt), `${overdue.length} ${overdue.length === 1 ? T('overdue client') : T('overdue clients')}`, outstandingAmt > 0 ? C.or : C.ac],
               [T('AVG LTV'), num(avgLtv), TN('over {n} months, est.', TENURE_MONTHS), C.ac],
               [T('AVG TICKET'), num(avgTicket), T('per paying client, per month'), C.ac],
             ].map(([lab, val, sub, col], i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
-                <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}><span style={{ color: col }}>₪</span>{val}</span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
               </div>
             ))}
           </div>
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')}</div>
-            {/* A CHART A COACH CAN READ.
-                Before: six solid cyan blocks the full width of their column,
-                scaled to the MAXIMUM so the shortest was still 75% of the
-                tallest, with no axis and no numbers — 2,900 to 3,850 is a 25%
-                spread drawn as near-identical slabs. Ohad, an hour before the
-                demo: "the demo top screen... is horrible."
-                Now: the bars are scaled from a floor a little under the
-                smallest month so the differences are visible, each carries its
-                value, the current month is solid and the rest are ghosted so
-                the eye lands on it, and the bars are slim with real gaps. */}
-            {/* WHY A LINE AND NOT BARS.
-                It was bars scaled to the MAXIMUM: 2,900 to 3,850 is a 33%
-                spread drawn as six near-identical slabs. Ohad, an hour before
-                the demo: "the demo top screen... is horrible." So I re-scaled
-                the bars from a floor under the smallest month — which fixed the
-                look and introduced a worse fault. A bar's LENGTH is its value,
-                so a floor that is not zero lies about it: the tallest bar drew
-                3.3x the shortest on data that differs by 1.43x. Tufte's lie
-                factor for that is 2.34, against an integrity band of 0.95-1.05.
-                This is the screen the run sheet tells him to lead with, where
-                the pitch is "every figure reconciles" — a chart a buyer can
-                catch exaggerating is worse than a dull one.
-                A line is read as a TREND, not as a length, so a floor above
-                zero is sanctioned for it (Datawrapper; FT's rule is specific to
-                bar and column). The floor is printed on the axis rather than
-                left implied, every month still carries its own value, and the
-                current month keeps the solid dot. Grid children get
-                minmax(0, 1fr): a bare 1fr floors at the label's own width, so
-                six 42px labels plus five 14px gaps painted 23px past the card
-                edge at 360. */}
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')} · {T('Sheet')}</div>
+            {/* THE REAL CARD'S CHART: a bar per month, drawn from ZERO (a bar's
+                length is its value), the month under it. The months carry a real
+                shape now, so honest bars still read (see `prior`). */}
             {(() => {
-              const vals = months6.map((x) => x[1]);
-              const step = 500;
-              const floor = Math.floor(Math.min(...vals) / step) * step;
-              const ceil = Math.ceil(Math.max(...vals) / step) * step;
-              const y = (v) => 100 - ((v - floor) / Math.max(1, ceil - floor)) * 100;
-              const pts = months6.map(([, v], i) => `${((i + 0.5) / months6.length) * 100},${y(v)}`).join(' ');
-              // The month labels sit in a CSS grid, which mirrors itself in
-              // Hebrew — Sep ends up leftmost. The plot is positioned, and
-              // `left` is physical, so it did NOT mirror: the leftmost label
-              // read the highest month while the leftmost point was the lowest.
-              // The chart contradicted its own axis in Hebrew. Dots now use the
-              // logical inset and the polyline is flipped to match.
-              const rtl = readLang() === 'he';
+              const top = Math.max(1, ...months6.map((x) => x[1]));
               return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 4 }}>
-                    <span dir="ltr">{nis(ceil)}</span>
-                    <span>{T('SCALE FROM')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{nis(floor)}</span></span>
-                  </div>
-                  <div style={{ position: 'relative', height: 96, borderBottom: `1px solid ${C.cardBd}`, borderTop: `1px dashed color-mix(in srgb, var(--c-bd) 60%, transparent)` }}>
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', transform: rtl ? 'scaleX(-1)' : undefined }} aria-hidden="true">
-                      <polyline points={pts} fill="none" stroke="var(--c-ac)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-                    </svg>
-                    {months6.map(([m, v], i) => {
-                      const current = i === months6.length - 1;
-                      return (
-                        <div key={i} title={`${m} · ${nis(v)}`} style={{ position: 'absolute', insetInlineStart: `${((i + 0.5) / months6.length) * 100}%`, top: `${y(v)}%`, transform: 'translate(-50%, -50%)', width: current ? 9 : 7, height: current ? 9 : 7, borderRadius: '50%', background: current ? C.ac : C.sf, border: `2px solid ${C.ac}`, boxSizing: 'border-box' }} />
-                      );
-                    })}
-                  </div>
-                  <div className="cd-revline" style={{ display: 'grid', gridTemplateColumns: `repeat(${months6.length}, minmax(0, 1fr))`, gap: 4, marginTop: 6 }}>
-                    {months6.map(([m, v], i) => {
-                      const current = i === months6.length - 1;
-                      return (
-                        <div key={i} style={{ textAlign: 'center', minWidth: 0 }}>
-                          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: current ? C.ac : C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} dir="ltr">{nis(v)}</div>
-                          <div style={{ fontFamily: FN, fontSize: 9, color: current ? C.tx : C.td, letterSpacing: '0.06em', fontWeight: 700, whiteSpace: 'nowrap', marginTop: 2 }}>{m}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${months6.length}, minmax(0, 1fr))`, gap: 8 }}>
+                  {months6.map(([m, v], i) => (
+                    <div key={i} title={`${m} · ${nis(v)}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', minWidth: 0 }}>
+                      <div style={{ height: 76, display: 'flex', alignItems: 'flex-end' }}><div style={{ width: '100%', height: `${Math.max(2, (v / top) * 100)}%`, background: C.ac }} /></div>
+                      <div style={{ textAlign: 'center', marginTop: 6, fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.08em', fontWeight: 700, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{m}</div>
+                    </div>
+                  ))}
+                </div>
               );
             })()}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget: the
