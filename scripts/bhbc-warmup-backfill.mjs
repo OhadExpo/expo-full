@@ -55,7 +55,12 @@ function medicalAvailOn(medical, id, date) {
       const endedOn = (notes.length ? notes[notes.length - 1].date : '') || localDayOf(inj.updatedAt);
       if (endedOn && date > endedOn) continue;
     }
-    const headlineOn = localDayOf(inj.updatedAt || inj.createdAt) || inj.onsetDate || '';
+    // the APP's rule (BhbcView medicalAvailOn, 29.9 fix): a RESOLVED record's
+    // headline is its clearance, dated at the END - never at the onset, or the
+    // whole injury window read Full and an Out player got warm-up rows (AUDIT-470)
+    const headlineOn = inj.resolved
+      ? (localDayOf(inj.updatedAt) || (notes.length ? notes[notes.length - 1].date : ''))
+      : (localDayOf(inj.updatedAt || inj.createdAt) || inj.onsetDate || '');
     const dated = notes.filter((p) => p.status).map((p) => ({ d: p.date, s: p.status }));
     if (inj.status && headlineOn) dated.push({ d: headlineOn, s: inj.resolved ? 'available' : inj.status, headline: true });
     dated.sort((a, b) => String(a.d).localeCompare(String(b.d)) || (a.headline ? 1 : 0) - (b.headline ? 1 : 0));

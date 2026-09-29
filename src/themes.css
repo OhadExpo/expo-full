@@ -1965,7 +1965,7 @@ select.avail-select:dir(rtl) {
    under the top row: still centred, still at the top, covering nothing. */
 @media (max-width: 430px) {
   .pv-toprow:has(> .pv-crest) { flex-wrap: wrap; }
-  .pv-toprow > .pv-crest { position: static !important; transform: none !important; order: 3; flex-basis: 100%; height: 32px !important; margin-top: 6px; object-fit: contain; }
+  .pv-toprow:has(> .pv-crest) > .pv-crest { position: static !important; transform: none !important; order: 3; flex-basis: 100%; height: 32px !important; margin-top: 6px; object-fit: contain; }
 }
 
 /* The demo's tables end on the card's edge, as the real ones: the last row
@@ -2125,7 +2125,7 @@ select.avail-select:dir(rtl) {
 .bhbc-chip .bhbc-cancel-btn:hover .cx-full { border-color: currentColor; }
 @media (max-width: 480px) {
   .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none; }
-  .bhbc-cancel-btn { width: 28px !important; min-width: 28px !important; padding: 0 !important; font-size: 13px !important; letter-spacing: 0 !important; }
+  .bhbc-cancel-btn { width: 32px !important; min-width: 32px !important; padding: 0 !important; /* a finger's 32px tap area around the 26px face (AUDIT-470) */ font-size: 13px !important; letter-spacing: 0 !important; }
   .bhbc-cancel-btn .cx-full { display: none; }
   .bhbc-cancel-btn .cx-icon { display: inline-flex; width: 26px; height: 22px; box-sizing: border-box; align-items: center; justify-content: center; border: 1px solid var(--c-cardBd); background: var(--c-sf); font-size: 12px; line-height: 1; }
   .bhbc-chip .bhbc-cancel-btn:hover .cx-icon { border-color: currentColor; }

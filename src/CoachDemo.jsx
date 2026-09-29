@@ -1076,7 +1076,7 @@ function FinancialsBlock({ t, center = false }) {
     // overdue panel invented a fourth number for the same people.
     items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>{T('OVERDUE')} · {TN('{n}D', t.overdueDays || 0)}</span>);
   } else if (t.payment === 'PAID') {
-    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {(readLang() === 'he' ? daysAgoHe(t.paidDaysAgo || 0) : TN('{n}D AGO', t.paidDaysAgo || 0))}</span>);
+    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>{T('PAID')} · {(readLang() === 'he' ? daysAgoHe(t.paidDaysAgo || 0) : (t.paidDaysAgo ? TN('{n}D AGO', t.paidDaysAgo) : T('Today').toUpperCase()))}</span>);
   }
   // the real card's monthly figure: white, the ₪ number isolated, "/MO" or " לחודש"
   // (it was dim and the demo added a DORMANT line the real card never shows - #448)

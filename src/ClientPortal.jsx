@@ -2360,7 +2360,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // renders INSIDE the coach app, and the rule on <body> re-ordered the coach's
   // own mixed lines while he previewed an athlete (29.9 audit).
   const coachPreview = demoMode && !localWrites;
-  useEffect(() => {
+  // BEFORE the first paint (layout effect): set after it, a Hebrew athlete's first
+  // frame painted without the portal's Hebrew text rule and the lines jumped (AUDIT-470)
+  React.useLayoutEffect(() => {
     if (coachPreview) return undefined;
     document.body.dataset.athleteLang = (lang || readLang()) === 'he' ? 'he' : 'en';
     return () => { delete document.body.dataset.athleteLang; };

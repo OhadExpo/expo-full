@@ -1150,14 +1150,18 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                   </>)}
                   {typeof autoRun === 'number' && <span data-auto-progress style={{ ...lbl, color: CYAN, letterSpacing: '0.06em' }}>{T.autoRunning(autoRun)}</span>}
                   {autoRun === 'done' && (() => {
-                    const vals = Object.values(auto);
+                    const vals = Object.values(auto).filter((a) => !a.overridden);   // the coach's own flips leave the rim's summary (it read 9 MADE beside a 7 tally; AUDIT-470)
                     const m = vals.filter((a) => a.outcome === 'made').length, x = vals.filter((a) => a.outcome === 'missed').length, u = vals.filter((a) => a.outcome === 'unsure').length;
                     return (<>
                       <span data-auto-done data-auto-seeks={autoStatsRef.current ? JSON.stringify(autoStatsRef.current) : undefined} style={{ ...lbl, letterSpacing: '0.06em', flex: '1 1 200px' }}>{T.autoDone(m, x, u)}</span>
                       <button onClick={() => { setAutoRun(null); setRimTap([]); }} style={{ ...chip(false) }}>{T.rimRedo}</button>
                     </>);
                   })()}
-                  {autoRun && typeof autoRun === 'object' && <span style={{ ...lbl, color: '#F26A2B' }}>{autoRun.error}</span>}
+                  {/* a failed check was a dead end - neither AUTO nor REDO showed (AUDIT-470) */}
+                  {autoRun && typeof autoRun === 'object' && (<>
+                    <span style={{ ...lbl, color: '#F26A2B', flex: '1 1 200px' }}>{autoRun.error}</span>
+                    <button onClick={() => { setAutoRun(null); setRimTap([]); }} style={{ ...chip(false) }}>{T.rimRedo}</button>
+                  </>)}
                 </div>
               )}
             </div>

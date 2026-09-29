@@ -73,7 +73,8 @@ export default function SubmenuTab({ id, label, count, items, tab, navTo, active
       const rtl = getComputedStyle(document.documentElement).direction === 'rtl' || document.body.dataset.lang === 'he';
       const wanted = rtl ? r.right - w : r.left;
       const left = Math.max(8, Math.min(wanted, window.innerWidth - w - 8));
-      setCoords({ top: r.bottom + 4, left });
+      // same place = no new state: every scroll frame re-rendered the menu (AUDIT-470)
+      setCoords((c) => (c && c.top === r.bottom + 4 && c.left === left ? c : { top: r.bottom + 4, left }));
     };
     recalc();
     // again once the panel has a measured width

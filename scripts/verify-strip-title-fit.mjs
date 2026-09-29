@@ -15,7 +15,7 @@
 // Exit 1 on any finding, or if it measured no strips.
 import fs from 'node:fs';
 import P from 'puppeteer-core';
-import { signIn, assertAuthed } from './lib/authed-page.mjs';
+import { signIn, assertAuthed, looksLikeLogin } from './lib/authed-page.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5234';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
@@ -94,7 +94,7 @@ try {
         try {
           await pg.goto(BASE + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
           await wait(1500);
-          if (s.url.startsWith('/coach') && /\/login/.test(pg.url())) throw new Error('landed on /login - signed out, NOT measured');
+          if (s.url.startsWith('/coach') && (/\/login/.test(pg.url()) || looksLikeLogin(await pg.evaluate(() => document.body.innerText.slice(0, 600))))) throw new Error('landed on the sign-in page - signed out, NOT measured');
           for (let k = 0; k < 30; k++) { await wait(500); if (await pg.evaluate(() => !/LOADING DATA/.test(document.body.innerText.slice(0, 200)))) break; }
           // wait for the page to SETTLE: the strip count the same on two looks a
           // second apart (a roster renders its 26 cards after the data lands; a
