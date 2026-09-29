@@ -30,7 +30,15 @@ const R = entries(real), D = entries(demo);
 console.log(`CAMERA TOOL PARITY\n\nreal launcher: ${R.size} tools, demo: ${D.size} tools`);
 ok('the checker found tools at all', R.size >= 4 && D.size >= 4, `real ${R.size}, demo ${D.size}`);
 
+// Tools the demo leaves out ON PURPOSE, with the owner's words. A missing tool
+// is a failure unless it is named here - so a new omission still fails.
+const DEMO_EXCLUDED = {
+  // CoachDemo.jsx, 24.9: "take the shot analysis off the sales site (it's for
+  // me only right now); it shouldn't be in the demo either."
+  shot: 'owner-only tool, removed from the demo and the sales site on 24.9',
+};
 for (const [key, r] of R) {
+  if (DEMO_EXCLUDED[key]) { ok(`"${key}" is left out of the demo on purpose (${DEMO_EXCLUDED[key]})`, !D.has(key), `the demo shows ${key} although it was taken off on purpose`); continue; }
   const d = D.get(key);
   ok(`the demo offers "${key}"`, !!d, d ? '' : `the real launcher has ${key} and the demo does not`);
   if (!d) continue;

@@ -315,7 +315,9 @@ export async function pushBookingToCalendar(bk, settings) {
 }
 
 // Remove the event for a cancelled booking. A 404/410 means it is already gone,
-// which is success as far as the caller is concerned.
+// which is success as far as the caller is concerned. (29.9: the \b word
+// boundaries had been written as literal BACKSPACE bytes on 21.9, so this never
+// matched and an already-deleted event came back as a failure.)
 export async function removeBookingFromCalendar(eventId) {
   if (!eventId) return true;
   if (!getCachedAccessToken()) throw new GoogleCalendarAuthError('No Google access token cached');
@@ -323,7 +325,7 @@ export async function removeBookingFromCalendar(eventId) {
     await gcalFetch(`/calendars/primary/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
     return true;
   } catch (e) {
-    if (/(404|410)/.test(String(e && e.message))) return true;
+    if (/\b(404|410)\b/.test(String(e && e.message))) return true;
     throw e;
   }
 }
