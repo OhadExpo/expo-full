@@ -29,7 +29,10 @@ cd "$(dirname "$0")/.."
 
 NAME="${1:-deploy-$(date +%m%d)}"
 SRC=bhbc-hebrew
-HELD_VIEWS=(src/ClientPortal.jsx src/MealLogger.jsx src/TrySandbox.jsx)
+# HOLD="a b" names the held views for THIS cut (29.9: D6 ships the audited
+# athlete portal and holds only TrySandbox, as D5 did); default = all three.
+# shellcheck disable=SC2206
+HELD_VIEWS=(${HOLD:-src/ClientPortal.jsx src/MealLogger.jsx src/TrySandbox.jsx})
 
 git fetch origin --quiet
 PROD=$(git rev-parse origin/master)
