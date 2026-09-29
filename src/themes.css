@@ -1888,3 +1888,16 @@ select.avail-select {
    strikes its three facts one by one instead. */
 .fx-cancelled:not(.bhbc-chip) { opacity: 0.55; text-decoration: line-through; text-decoration-thickness: 1px; }
 .bhbc-chip.fx-cancelled > .bhbc-chip-meta { opacity: 0.55; text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* The athlete portal in Hebrew (29.9 #391 pass 7): its layout stays
+   left-to-right, but each line of text takes the direction of its own first
+   letter, so Hebrew punctuation and number order read right. Set on <body>
+   by ClientPortal only while it is mounted; covers its body-level popups.
+   LEAF TEXT ONLY: on a container, plaintext also reorders its inline boxes
+   (a row of tabs flipped). match-parent keeps each line on the side its LTR
+   parent puts it; :where() leaves every existing rule in charge; buttons keep
+   the browser's own centring. */
+:where(body[data-athlete-lang="he"]) :where(p, div, span, h1, h2, h3, h4, h5, h6, li, label, td, small, strong, em, b):not(:has(*)) {
+  unicode-bidi: plaintext;
+  text-align: match-parent;
+}

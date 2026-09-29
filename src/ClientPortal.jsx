@@ -1796,7 +1796,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
-        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
+        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24,unicodeBidi:'plaintext'}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
         <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
         <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
         <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
@@ -1854,8 +1854,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   if (step === 'end') return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
       <EXPOMark theme="dark" height={36} style={{marginBottom:16}} />
-      <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
-      <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
+      {/* THE LAST SCREEN OF EVERY WORKOUT SPEAKS HIS LANGUAGE (29.9 #391 pass 7:
+          on the Hebrew seat it read "NICE WORK! / SESSION COMPLETE. ANY NOTES? /
+          COMPLETE WORKOUT / Back" - the only strings here that never went
+          through tt()). */}
+      <h2 dir="auto" style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>{tt('Nice work!')} 🎉</h2>
+      <div dir="auto" style={{color:C.tm,fontSize:13,marginBottom:20}}>{tt('Session complete. Any notes?')}</div>
 
       {/* New PRs from this session */}
       {newPRs.length > 0 && (
@@ -1867,9 +1871,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 2, fontWeight: 700,
             marginBottom: 8, textAlign: 'center',
           }}>
-            {newPRs.some(p => !p.debut) ? `🏆 ${newPRs.filter(p => !p.debut).length} NEW PR${newPRs.filter(p => !p.debut).length === 1 ? '' : 's'}` : `✨ FIRST LOGS`}
-            {newPRs.some(p => p.debut) && newPRs.some(p => !p.debut)
-              ? ` · ${newPRs.filter(p => p.debut).length} debut${newPRs.filter(p => p.debut).length === 1 ? '' : 's'}` : ''}
+            {(() => {
+              const nPr = newPRs.filter(p => !p.debut).length, nDeb = newPRs.filter(p => p.debut).length;
+              const heEnd = readLang() === 'he';
+              const head = nPr ? (heEnd ? `🏆 ${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `🏆 ${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? '✨ רישום ראשון' : '✨ FIRST LOGS');
+              const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל ראשון' : `${nDeb} תרגילים ראשונים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
+              return head + tail;
+            })()}
           </div>
           {newPRs.map((p, i) => (
             <div key={i} style={{
@@ -1886,9 +1894,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>
       )}
 
-      <textarea dir="auto" value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
+      {/* an EMPTY dir="auto" field resolves to LTR, which scrambled the Hebrew
+          placeholder's question marks - empty follows the language, typed text
+          follows itself */}
+      <textarea dir={notes ? 'auto' : (readLang() === 'he' ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
       {fv.some(f => f.uploading) ? (
-        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
+        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ {tt('Video uploading...')}</button>
       ) : (
         <>
           {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && countFilledUnticked(allSets) === 0 && !hasAttachedVideo() && (
@@ -1907,10 +1918,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               {tt('Not saved. Your sets are still here. Tap complete again.')}
             </div>
           )}
-          <button data-complete-workout onClick={() => finish()} disabled={finishState === 'saving'} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:finishState === 'saving' ? 'wait' : 'pointer',opacity:finishState === 'saving' ? 0.6 : 1}}>{finishState === 'saving' ? tt('Saving...') : '✓ Complete Workout'}</button>
+          <button data-complete-workout onClick={() => finish()} disabled={finishState === 'saving'} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:finishState === 'saving' ? 'wait' : 'pointer',opacity:finishState === 'saving' ? 0.6 : 1}}>{finishState === 'saving' ? tt('Saving...') : `✓ ${tt('Complete Workout')}`}</button>
         </>
       )}
-      {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>}
+      {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← {tt('Back')}</button>}
     </div></div>;
 
   // ===== EXERCISE STEP (single exercise OR grouped superset) =====
@@ -1921,7 +1932,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   if (!group) return (
     <div style={{ padding: '40px 20px', textAlign: 'center', minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 18 }}>
       <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: '0.08em', lineHeight: 1.6 }}>{tt('This day has no exercises yet.')}<br />{tt('Check back once your coach adds them.')}</div>
-      <button onClick={onBack} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', padding: '10px 22px', borderRadius: 0 }}>← EXIT</button>
+      <button onClick={onBack} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', padding: '10px 22px', borderRadius: 0 }}>← {tt('EXIT')}</button>
     </div>
   );
   const isSuperset = group.exIdxs.length > 1 && !!group.superset;
@@ -2325,6 +2336,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null }) {
   const tt = useAppT();
   const tb = useTB();
+  // EVERY HEBREW LINE IN ITS OWN DIRECTION (29.9 #391 pass 7). The portal keeps
+  // its left-to-right LAYOUT (as production), and so every Hebrew sentence in
+  // it was laid out left-to-right too: the full stop and the question mark
+  // landed on the wrong side and two-sentence lines reordered ("?האימון הושלם.
+  // יש מה לרשום"). While the portal is mounted <body> carries its language;
+  // themes.css gives each Hebrew line unicode-bidi: plaintext - the direction of
+  // its own first letter - without moving a single box.
+  useEffect(() => {
+    document.body.dataset.athleteLang = (lang || readLang()) === 'he' ? 'he' : 'en';
+    return () => { delete document.body.dataset.athleteLang; };
+  }, [lang]);
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.

@@ -70,7 +70,8 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
             fontFamily: FN, fontSize: 10, color: 'var(--c-tm)',
             letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4,
           }}>{tt('NOTIFICATIONS')}</div>
-          <div style={{ fontSize: 12, color: 'var(--c-tx)', fontFamily: FB, lineHeight: 1.4 }}>
+          {/* each line in its own direction, on its parent's side (29.9 #391 pass 7) */}
+          <div style={{ fontSize: 12, color: 'var(--c-tx)', fontFamily: FB, lineHeight: 1.4, unicodeBidi: 'plaintext', textAlign: 'match-parent' }}>
             {(() => {
               // Copy switches on role so the same component reads naturally
               // on the athlete portal AND on the coach dashboard. Pushed for
