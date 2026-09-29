@@ -1240,7 +1240,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '8px 10px', height: 56, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}><div style={{ ...lbl, whiteSpace: 'nowrap', overflow: 'hidden' }}>{k}</div>
                 {act
                   ? <button type="button" onClick={act} dir="ltr" style={{ alignSelf: 'flex-start', minHeight: 0, height: 'auto', lineHeight: 'normal', fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start', background: 'transparent', border: 'none', padding: 0, color: '#39BDFF', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{v}</button>
-                  : <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start' }}>{v}</div>}
+                  : <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start', whiteSpace: 'nowrap', overflow: 'hidden' }}>{v}</div>}
               </div>
             ))}
             {/* An untracked ball used to be three em dashes and no explanation.
