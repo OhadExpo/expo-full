@@ -1970,6 +1970,9 @@ function AuthedApp() {
               back on the programs list. tab + trainee already reset a stuck
               recovery card on navigation. */}
           <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}`} inline>
+          {/* a page switch fades in (opacity only: a transform here would trap every
+              fixed overlay inside the view; 30.9 #461) */}
+          <div key={`mv:${tab}:${selectedTrainee||''}`} className="motion-view">
           {tab==="dashboard"&&<DashboardView dataIncomplete={dataIncomplete} isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTraineeMessages={id=>navTo("trainees",id,"messages")} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
@@ -2011,6 +2014,7 @@ function AuthedApp() {
               gate is belt-and-suspenders so it can never render for anyone but
               Ohad. Athletes never reach the coach app at all. */}
           {(tab==="sessions"||tab==="sessionsSolo")&&isOwner&&<SessionsView mode={tab==="sessionsSolo"?"single":"group"} trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
+          </div>
           </ErrorBoundary>
         </Suspense>
       </main>

@@ -3300,6 +3300,12 @@ export default function App() {
           and hide the sticky CTA on tablet+ where the user can already see
           the nav + buy buttons without scrolling. */}
       <style>{`
+        /* REDUCED MOTION, SITE-WIDE (#461): the marketing site never loaded the app's
+           themes.css, so only a few components honoured it - now every transition
+           and animation here is off for a visitor who asked for less motion. */
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+        }
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
         #programs, #quiz, #inside, #about, #why, #trust, #how, #faq, #contact { scroll-margin-top: 64px; }
         /* Modal entrance animations — opacity + subtle pop. */

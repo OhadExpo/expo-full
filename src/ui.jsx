@@ -1383,7 +1383,14 @@ export function ToastHost() {
   React.useEffect(() => {
     const fn = (ev) => {
       if (ev.type === 'add') setItems(prev => [...prev, ev.item]);
-      else if (ev.type === 'remove') setItems(prev => prev.filter(x => x.id !== ev.id));
+      // a toast LEAVES (the 190ms exit class) before it is removed; a confirm
+      // closes at once, as before (#461: toasts vanished in one frame)
+      else if (ev.type === 'remove') setItems(prev => {
+        const it = prev.find(x => x.id === ev.id);
+        if (!it || it.kind === 'confirm' || it.leaving) return prev.filter(x => x.id !== ev.id || (it && it.leaving && x.leaving));
+        setTimeout(() => setItems(p2 => p2.filter(x => x.id !== ev.id)), 200);
+        return prev.map(x => x.id === ev.id ? { ...x, leaving: true } : x);
+      });
       else if (ev.type === 'patch') setItems(prev => prev.map(x => x.id === ev.id ? { ...x, ...ev.patch } : x));
     };
     _listeners.add(fn);
@@ -1434,8 +1441,8 @@ export function ToastHost() {
         {toasts.map(it => {
           const tp = palette[it.kind] || palette.info;
           return (
-            <div key={it.id} className="motion-rise"
-              style={{ pointerEvents: 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
+            <div key={it.id} className={it.leaving ? 'motion-fade-out' : 'motion-rise'}
+              style={{ pointerEvents: it.leaving ? 'none' : 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
               <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{toastText(it.message)}</div>
               {it.actions && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>

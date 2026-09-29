@@ -1296,7 +1296,7 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
         <span style={{ marginInlineEnd: '-0.12em', display: 'block', textBox: 'trim-both cap alphabetic' }}>{T(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, minWidth: 124 }}>
+        <div className="motion-menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, minWidth: 124 }}>
           {['Active', 'On Hold', 'Inactive', 'Trial'].map(s => (
             <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'start', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', background: s === status ? C.acD : 'transparent', border: `1px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{T(s)}</button>
           ))}
@@ -5345,6 +5345,10 @@ export default function CoachDemo() {
             auditing for his first client meeting, 22.9. */}
         {/* No pill row under the header: Athletes ▾ and Review ▾ are dropdowns in
             the nav, as in the real app (#441). */}
+        {/* the real app's page switch: each view fades in (opacity only; #461).
+            Review WORKOUTS stays mounted (its engine warms in the background), so
+            it fades by its class, not a remount. */}
+        <div key={`mv:${tab}:${tab === 'trainees' ? (selectedTrainee || '') : ''}`} className="motion-view">
         {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} onNav={demoNavTo} />}
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms resetToken={programsReset} />}
@@ -5355,10 +5359,11 @@ export default function CoachDemo() {
         {/* Review WORKOUTS is ALWAYS mounted — display:none otherwise — so the
             /demo iframe loads its wasm + pose model in the background while the
             visitor explores. By the time they click Review, the engine is warm. */}
-        <div style={{ display: tab === 'review' && reviewSub === 'workouts' ? 'block' : 'none' }}>
+        </div>
+        <div className={tab === 'review' && reviewSub === 'workouts' ? 'motion-view' : undefined} style={{ display: tab === 'review' && reviewSub === 'workouts' ? 'block' : 'none' }}>
           <DemoReview />
         </div>
-        {tab === 'review' && reviewSub === 'tools' && <DemoReviewTools />}
+        {tab === 'review' && reviewSub === 'tools' && <div className="motion-view"><DemoReviewTools /></div>}
 
         {/* End CTA — every tab funnels back to the waitlist */}
         <div style={{

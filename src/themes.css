@@ -850,11 +850,38 @@ html {
   }
 }
 
+/* ONE MOTION VOCABULARY (30.9 #461, his words: "add transitions and effects
+   anywhere on our platforms where it fits"). Durations + curves as tokens so
+   every new transition reads the same; the brand curve is the ease-out below. */
+:root {
+  --m-fast: 150ms; --m-base: 200ms; --m-slow: 260ms;
+  --m-ease: cubic-bezier(.22,.61,.36,1);
+  --m-exit: cubic-bezier(.4,0,.7,.4);
+}
+
 /* Gentle entrance for content that mounts/expands — opt in with class. */
 @media (prefers-reduced-motion: no-preference) {
   .motion-fade-in { animation: expoFadeIn .22s ease both; }
   .motion-rise { animation: expoRise .26s cubic-bezier(.22,.61,.36,1) both; }
+  /* a page / tab switch: OPACITY ONLY - a transform on a view would make it the
+     containing block of every position:fixed overlay inside it (the known trap) */
+  .motion-view { animation: expoFadeIn var(--m-base) var(--m-ease) both; }
+  /* an overlay opening: its scrim fades, its panel settles in from 98.5% */
+  .motion-scrim { animation: expoFadeIn var(--m-base) ease both; }
+  .motion-pop { animation: expoPop var(--m-base) var(--m-ease) both; }
+  /* a menu dropping open */
+  .motion-menu { animation: expoMenu var(--m-fast) var(--m-ease) both; }
 }
+/* EVERY OVERLAY opens with a fade (#461): overlays portal to <body>, so any
+   body-level div but the app root fades in. Zero specificity (:where) so a
+   component's own motion class (the Modal's exits) still wins, and BACKWARDS
+   fill so nothing is held after it - an overlay's own inline opacity keeps
+   working. Capture / drag surfaces opt out with data-no-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  :where(body > div:not(#root):not([data-no-motion])) { animation: expoFadeIn var(--m-base) ease backwards; }
+}
+@keyframes expoPop { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes expoMenu { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 @keyframes expoFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes expoRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 

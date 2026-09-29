@@ -1646,6 +1646,7 @@ function setRowDragImage(e, handleEl, cellCount) {
     const grid = handleEl.parentElement;
     const gcs = getComputedStyle(grid);
     const ghost = document.createElement('div');
+    ghost.setAttribute('data-no-motion', '');   // a capture/drag surface: the overlay fade must never touch it (#461)
     ghost.style.cssText = 'position:absolute;top:-10000px;left:0;pointer-events:none;display:grid;align-items:center;box-sizing:border-box;opacity:0.95;padding:6px 8px;';
     ghost.style.gridTemplateColumns = gcs.gridTemplateColumns;
     ghost.style.gap = gcs.gap;
@@ -1690,6 +1691,7 @@ function setDayDragImage(e, cardEl) {
     src.forEach((s, j) => { if (dst[j]) dst[j].value = s.value; });
     ghost.style.margin = '0';
     const wrap = document.createElement('div');
+    wrap.setAttribute('data-no-motion', '');   // a capture surface: never faded (#461)
     wrap.style.cssText = `position:absolute;top:-10000px;left:0;pointer-events:none;box-sizing:border-box;opacity:0.95;padding:10px 12px;border:1px solid ${C.ac};background:var(--c-sf);`;
     wrap.style.width = cardEl.getBoundingClientRect().width + 'px';
     wrap.appendChild(ghost);
