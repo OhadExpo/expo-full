@@ -15,6 +15,7 @@ import { SHOT_I18N, localiseCheck } from './shotI18n';
 import { sessionRead, sessionConclusions } from './shotSession.js';
 import { useSupaStore } from './useSupaStore';
 import { crossFade } from './viewTransition';
+import { judgeShots } from './rimJudge';
 import { flushSync } from 'react-dom';
 
 const STATUS = {
@@ -722,6 +723,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const madeCount = Object.values(made).filter((v) => v === true).length;
   const unmarkedCount = result.shots.filter((x) => made[x.index] === undefined).length;
   useEffect(() => { setMade({}); }, [result]);
+  // AUTO MAKES (29.9 #430): the coach taps the rim's two edges once; rimJudge
+  // reads the rim around every shot and pre-fills MADE (and MISSED on a clear
+  // rebound). His tap always wins; an overridden call loses its AUTO tag.
+  const [auto, setAuto] = useState({});          // shot index -> { outcome, confidence, evidence, overridden }
+  const [rimTap, setRimTap] = useState(null);    // null | [] | [pt] while tapping
+  const [autoRun, setAutoRun] = useState(null);  // null | 0-100 | 'done' | { error }
+  useEffect(() => { setAuto({}); setRimTap(null); setAutoRun(null); }, [result]);
+  const markShot = (idx, val) => { setMade((m) => ({ ...m, [idx]: val })); setAuto((a) => (a[idx] ? { ...a, [idx]: { ...a[idx], overridden: true } } : a)); };
   const [playing, setPlaying] = useState(false);
   // Which MOMENT of the shot the coach is looking at. Switching shots keeps
   // the same moment (follow-through → follow-through), never jumps back to
@@ -1107,15 +1116,41 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 look at, so it never guesses a make. */}
             <div data-shot-mark className="shot-noprint" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: true }))} title={T.markShot}
+                <button onClick={() => markShot(shot.index, true)} title={T.markShot}
                   style={{ ...chip(made[shot.index] === true), ...(made[shot.index] === true ? { borderColor: '#37B27C', color: '#37B27C', background: 'rgba(55,178,124,0.10)' } : null) }}>✓ {T.made}</button>
-                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: false }))} title={T.markShot}
+                <button onClick={() => markShot(shot.index, false)} title={T.markShot}
                   style={{ ...chip(made[shot.index] === false), ...(made[shot.index] === false ? { borderColor: '#F26A2B', color: '#F26A2B', background: 'rgba(242,106,43,0.10)' } : null) }}>✗ {T.missed}</button>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.makes(madeCount, result.shots.length)}</span>
                 {unmarkedCount > 0 && <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.unmarked(unmarkedCount)}</span>}
+                {auto[shot.index] && !auto[shot.index].overridden && (
+                  <span data-auto-tag={auto[shot.index].outcome} style={{ ...lbl, letterSpacing: '0.06em', color: auto[shot.index].outcome === 'unsure' ? '#F2B33D' : 'rgba(255,255,255,0.7)' }}>
+                    {auto[shot.index].outcome === 'unsure' ? T.autoUnsure : auto[shot.index].outcome === 'missed' ? T.autoCheck : T.autoTag(Math.round(auto[shot.index].confidence * 100))}
+                  </span>
+                )}
               </div>
+              {srcUrl && (
+                <div data-auto-row style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {autoRun === null && rimTap === null && (
+                    <button data-auto-start onClick={() => setRimTap([])} style={{ ...chip(false), width: '100%' }}>{T.autoBtn}</button>
+                  )}
+                  {rimTap !== null && (<>
+                    <span style={{ ...lbl, color: CYAN, letterSpacing: '0.06em', flex: '1 1 200px' }}>{rimTap.length === 0 ? T.rimTapL : T.rimTapR}</span>
+                    <button onClick={() => setRimTap(null)} style={{ ...chip(false) }}>{T.cancel}</button>
+                  </>)}
+                  {typeof autoRun === 'number' && <span data-auto-progress style={{ ...lbl, color: CYAN, letterSpacing: '0.06em' }}>{T.autoRunning(autoRun)}</span>}
+                  {autoRun === 'done' && (() => {
+                    const vals = Object.values(auto);
+                    const m = vals.filter((a) => a.outcome === 'made').length, x = vals.filter((a) => a.outcome === 'missed').length, u = vals.filter((a) => a.outcome === 'unsure').length;
+                    return (<>
+                      <span data-auto-done style={{ ...lbl, letterSpacing: '0.06em', flex: '1 1 200px' }}>{T.autoDone(m, x, u)}</span>
+                      <button onClick={() => { setAutoRun(null); setRimTap([]); }} style={{ ...chip(false) }}>{T.rimRedo}</button>
+                    </>);
+                  })()}
+                  {autoRun && typeof autoRun === 'object' && <span style={{ ...lbl, color: '#F26A2B' }}>{autoRun.error}</span>}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1126,6 +1161,33 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {srcUrl ? <video ref={videoRef} src={srcUrl} muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} onLoadedMetadata={() => seekTo(cur)} />
               : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em' }}>{T === SHOT_I18N.he ? 'מסלול תנוחה' : 'POSE TRACK'}</div>}
             <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+            {rimTap !== null && (
+              // TAP THE RIM: two taps, its left edge then its right, in the
+              // video's own pixels (the frame is letterboxed by objectFit contain)
+              <div data-rim-tap onClick={(e) => {
+                const v = videoRef.current; if (!v || !v.videoWidth) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                const sc = Math.min(r.width / v.videoWidth, r.height / v.videoHeight);
+                const ox = (r.width - v.videoWidth * sc) / 2, oy = (r.height - v.videoHeight * sc) / 2;
+                const pt = { x: (e.clientX - r.left - ox) / sc, y: (e.clientY - r.top - oy) / sc, sx: e.clientX - r.left, sy: e.clientY - r.top };
+                if (pt.x < 0 || pt.y < 0 || pt.x > v.videoWidth || pt.y > v.videoHeight) return;
+                const pts = [...rimTap, pt];
+                if (pts.length < 2) { setRimTap(pts); return; }
+                setRimTap(null);
+                const rim = { l: Math.min(pts[0].x, pts[1].x), r: Math.max(pts[0].x, pts[1].x), y: (pts[0].y + pts[1].y) / 2 };
+                const releases = result.shots.map((sh) => series.tMs[sh.cycle.release]);
+                setAutoRun(0);
+                judgeShots(srcUrl, rim, releases, { onProgress: (p) => setAutoRun(p) }).then((res) => {
+                  const a = {};
+                  res.forEach((rr, i) => { a[result.shots[i].index] = rr; });
+                  setAuto(a);
+                  setMade((m) => { const n = { ...m }; res.forEach((rr, i) => { const k = result.shots[i].index; if (n[k] === undefined && (rr.outcome === 'made' || rr.outcome === 'missed')) n[k] = rr.outcome === 'made'; }); return n; });
+                  setAutoRun('done');
+                }).catch((err) => setAutoRun({ error: String((err && err.message) || err) }));
+              }} style={{ position: 'absolute', inset: 0, cursor: 'crosshair', background: 'rgba(0,0,0,0.12)' }}>
+                {rimTap.map((pt, i) => <span key={i} style={{ position: 'absolute', left: pt.sx - 5, top: pt.sy - 5, width: 10, height: 10, borderRadius: '50%', background: CYAN, boxShadow: '0 0 0 2px #000' }} />)}
+              </div>
+            )}
             {phaseAt && <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', border: `1px solid ${CYAN}`, color: CYAN, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', padding: '3px 8px' }}>{phaseAt.label}</div>}
             <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', padding: '3px 8px', color: 'rgba(255,255,255,0.8)' }}>{T.frameOf ? T.frameOf(cur + 1, n, fmt(tMs / 1000, 2)) : `F${cur + 1}/${n} · ${fmt(tMs / 1000, 2)}s`}</div>
           </div>
