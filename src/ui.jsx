@@ -710,7 +710,7 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
           the body - OUTSIDE the collapsing part, so a collapsed section still offers
           them, as the strip did (29.9 audit round 3) */}
       {right && stacked && (
-        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', padding: bare ? '8px 0 0' : `12px ${padX}px 0` }}>{right}</div>
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', padding: bare ? '8px 0 4px' : `12px ${padX}px ${leftStripe ? 12 : 0}px` /* off a stripe frame's border; 12 to a bare body as before (audit round 4) */ }}>{right}</div>
       )}
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
         {/* inert when collapsed: the 0fr trick keeps children mounted, so
@@ -934,7 +934,7 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // children are in the tree yet - so the margin has already arrived when
         // the body unmounts (29.9 #423: that switch was a 14px jump). Unset =
         // exactly the old rule.
-        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={(bodyShown === undefined ? !!children : bodyShown) ? 12 : -padNum}
+        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={((bodyShown === undefined ? !!children : bodyShown) || (cardStacked && headerRight)) ? 12 : -padNum /* stacked: the row below needs the strip's normal gap, collapsed or not (audit round 4) */}
           marginTransition={bodyShown === undefined ? null : `margin-bottom ${bodyMs}ms ease`}
           // a control in the strip (COPY...) never toggles the card (29.9 #402)
           onClick={onHeaderClick ? (e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; onHeaderClick(e); } : undefined}
@@ -949,7 +949,7 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
               <div ref={cardTitleRef} style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
               {/* the controls leave the strip when the title would not fit beside them (#452) */}
               {!cardStacked && headerRight && <div ref={cardRightRef} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>}
-              {headerFixed && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', color: 'var(--c-stripTx)' }}>{headerFixed}</div>}
+              {headerFixed && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', color: 'var(--c-stripTx)', marginInlineStart: headerRight && !cardStacked ? -4 : 0 /* 8px from the controls, as inside their cluster before */ }}>{headerFixed}</div>}
             </div>
           ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
         </RefinedHeaderStrip>
@@ -972,11 +972,12 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           carries its colour as the dot at the head of the strip; a strip-less
           card carries it on its own four-sided border. This wrapper stays so
           the padding maths below is untouched. */}
-      {/* only while the body shows: under a collapsed card's strip (which pulls the
-          padding back with a negative margin) the row slid up over the title
-          (29.9 audit round 3) */}
-      {cardStacked && headerRight && (bodyShown === undefined ? !!children : bodyShown) && (
-        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: 12 }}>{headerRight}</div>
+      {/* the stepped-out controls stay, collapsed or not (a collapsed card still
+          offers them, as its strip did): the strip keeps its 12px margin while
+          stacked, so the row never sits under a collapsed strip's negative margin,
+          and nothing mounts or unmounts as the body eases (audit rounds 3-4) */}
+      {cardStacked && headerRight && (
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: (bodyShown === undefined ? !!children : bodyShown) ? 12 : 0 }}>{headerRight}</div>
       )}
       {leftStripe ? (
         <div style={{

@@ -2279,10 +2279,11 @@ function DemoPrograms({ resetToken = 0 }) {
   const lineageBackRef = React.useRef(null);
   useEffect(() => {
     if (!lineageFor) return undefined;
+    const opener = typeof document !== 'undefined' ? document.activeElement : null;   // focus goes back here on close
     const k = (e) => { if (e.key === 'Escape') setLineageFor(null); };
     window.addEventListener('keydown', k);
     const id = setTimeout(() => { try { lineageBackRef.current && lineageBackRef.current.focus(); } catch { /* gone */ } }, 0);
-    return () => { window.removeEventListener('keydown', k); clearTimeout(id); };
+    return () => { window.removeEventListener('keydown', k); clearTimeout(id); try { if (opener && opener.focus && document.contains(opener)) opener.focus(); } catch { /* gone */ } };
   }, [lineageFor]);
   // Preview / Duplicate / Share / Delete were `onClick={e => e.stopPropagation()}`
   // — they looked live, had a handler, and did nothing, with only a `title`
@@ -3282,7 +3283,10 @@ function DemoExercises() {
   // the real page's phone behaviour (29.9 #443): FILTERS (n) folds the rail, the row opens the exercise
   const narrowUI = useIsMobile(700);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [exNote, setExNote] = useState(null);
+  const [exNoteState, setExNoteState] = useState(null);
+  // {k, n}: a second tap on the same action is a new note and restarts its timer (audit round 4)
+  const setExNote = (k) => setExNoteState(k ? { k, n: Date.now() } : null);
+  const exNote = exNoteState && exNoteState.k;
   // each demo action says what IT would do, in a toast at the foot of the screen
   // where it is seen wherever the tap was (29.9 audit: one sentence for every
   // action, drawn above the header - off-screen after tapping a row)
@@ -3291,7 +3295,7 @@ function DemoExercises() {
     edit: 'Demo only — in the full app this opens the exercise to edit, or delete.',
     tools: 'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.',
   };
-  useEffect(() => { if (!exNote) return undefined; const id = setTimeout(() => setExNote(null), 3600); return () => clearTimeout(id); }, [exNote]);
+  useEffect(() => { if (!exNoteState) return undefined; const id = setTimeout(() => setExNoteState(null), 3600); return () => clearTimeout(id); }, [exNoteState]);
 
   // Close the open filter menu on Escape (a click-catcher backdrop handles outside
   // clicks) — same affordance as the real ExercisesView.
