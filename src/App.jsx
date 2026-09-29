@@ -1095,10 +1095,18 @@ function AuthedApp() {
         // onIdle yields to idle BETWEEN CLIPS too (not just between athletes), so
         // an athlete with many clips can't grind N full-model pose passes back-to-
         // back and jank the coach's UI (review H1).
-        try {
-          const { autoAnalyzeAthleteVideos } = await import('./autoAnalyzeVideos');
-          await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle, stopClip: () => cancelled || !quiet() });
-        } catch { /* one athlete's clip blip never stops the sweep */ }
+        // An interrupted batch resumes THE SAME athlete at the next quiet
+        // moment - it used to move on and leave his other clips for the next
+        // app load (29.9 audit). Bounded: 20 interruptions and it moves on.
+        for (let round = 0; round < 20 && !cancelled; round++) {
+          let r = null;
+          try {
+            const { autoAnalyzeAthleteVideos } = await import('./autoAnalyzeVideos');
+            r = await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle, stopClip: () => cancelled || !quiet() });
+          } catch { /* one athlete's clip blip never stops the sweep */ }
+          if (!r || !r.aborted) break;
+          await idle();
+        }
       }
     })();
     // Reset the guard on cleanup so a later owner re-login (App stays mounted in

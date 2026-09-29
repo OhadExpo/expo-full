@@ -549,7 +549,8 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
         onClick={(e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; toggle(); }}
         role="button" tabIndex={0}
         aria-expanded={open}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+        // a key pressed on a control inside the strip is that control's (29.9 audit)
+        onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
         style={{
           ...stripStyle,
           // ONE ROW, ALWAYS (Ohad 26.9: "never put two rows in a title box ...
@@ -826,7 +827,7 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           role={onHeaderClick ? 'button' : undefined}
           tabIndex={onHeaderClick ? 0 : undefined}
           ariaExpanded={onHeaderClick ? headerAriaExpanded : undefined}
-          onKeyDown={onHeaderClick ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
+          onKeyDown={onHeaderClick ? ((e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
               {/* Pure white in BOTH themes so the dark strip's title reads

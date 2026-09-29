@@ -754,7 +754,7 @@ export function whatsappMessageForTask(note, trainee) {
   //
   // Ohad, 19.9: "when the athlete name is in hebrew: automatically say היי and
   // not hey and the opposite (names in any other language > hey)". These drafts
-  // were hard-coded to היי, so every BHBC import - Zack, Nathan, DJ - got a
+  // were hard-coded to היי, so every BHBC import - [athlete], [athlete], [athlete] - got a
   // Hebrew greeting in front of their Latin name.
   //
   // Same first-strong-letter test the app uses for text direction: it is the

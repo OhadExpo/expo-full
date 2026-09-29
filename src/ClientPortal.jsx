@@ -1593,7 +1593,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // resave: this Complete re-saves an existing row (no second session
     // decrement / "finished a workout" push / BW re-file). Decided HERE, from
     // the same lookup that chose the id, not re-derived by the caller.
-    }, { resave: !!existingLog })).catch((e) => {
+    // A retry after a throw past the write finds its own row already in the
+    // list (same id, workoutIdRef): that is a re-save too, never a second
+    // session decrement (29.9 audit).
+    }, { resave: !!existingLog || (priorWorkouts || []).some((x) => x && x.id === workoutId) })).catch((e) => {
       // Something past the write threw (the decrement, the BW file...). The row
       // may well be saved; either way the athlete gets his button back, and a
       // second tap re-saves the SAME id (workoutIdRef).
@@ -2347,10 +2350,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // יש מה לרשום"). While the portal is mounted <body> carries its language;
   // themes.css gives each Hebrew line unicode-bidi: plaintext - the direction of
   // its own first letter - without moving a single box.
+  // Not in the coach-side preview (demoMode without localWrites): that portal
+  // renders INSIDE the coach app, and the rule on <body> re-ordered the coach's
+  // own mixed lines while he previewed an athlete (29.9 audit).
+  const coachPreview = demoMode && !localWrites;
   useEffect(() => {
+    if (coachPreview) return undefined;
     document.body.dataset.athleteLang = (lang || readLang()) === 'he' ? 'he' : 'en';
     return () => { delete document.body.dataset.athleteLang; };
-  }, [lang]);
+  }, [lang, coachPreview]);
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.

@@ -749,7 +749,7 @@ html {
   /* The MED button was sizing the third TRACK, not sitting in it: `auto` takes
      the widest item in the column, the button stretched to fill, and at a 470px
      window that made column three 170px while the NAME got 149.8 - so
-     "Daeshon Francis" broke mid-word as DAESHO/N. The name is the row's
+     a two-word name broke mid-word ([ATHLET/E]). The name is the row's
      identity; it gets the room, and the button is the size of its own label. */
   /* A FIXED last track. It was max-content, and every row is its own grid, so
      the track was as wide as that row's own text and the MED button underneath
@@ -1797,7 +1797,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 
 /* DASHBOARD ALERT RAIL on a tablet (29.9 #380): three 280px cards in a
    sideways-scrolling row cut the third card off and squeezed names to
-   "DAESHON F…". Two equal columns that wrap instead; phones stack (above),
+   "[ATHLETE] F…". Two equal columns that wrap instead; phones stack (above),
    desktop keeps the one row. */
 @media (min-width: 621px) and (max-width: 1199px) {
   .alert-rail { flex-wrap: wrap !important; overflow-x: visible !important; }
@@ -1873,7 +1873,13 @@ select.avail-select {
   background-image: none !important;
   padding-right: 18px !important;
 }
-[dir="rtl"] select.avail-select, select.avail-select:dir(rtl) {
+/* two rules, not one list: a browser without :dir() drops a whole selector
+   list it cannot parse (29.9 audit) */
+[dir="rtl"] select.avail-select {
+  padding-right: 16px !important;
+  padding-left: 18px !important;
+}
+select.avail-select:dir(rtl) {
   padding-right: 16px !important;
   padding-left: 18px !important;
 }

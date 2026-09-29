@@ -2384,11 +2384,20 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           {(() => {
             const cut7 = daysAgoISO(6);
             let m7 = 0, n7 = 0, lastLift = null, lastGame = null;
+            // The court sessions of the last 7 days that have already happened
+            // (practice / scrimmage / shootaround, not cancelled).
+            const todayIso = daysAgoISO(0);
+            const nowHM = new Date().toTimeString().slice(0, 5);
+            const fx7 = (fixtures || []).filter((f) => f && f.date && !isCancelled(f) && ['practice', 'scrimmage', 'shootaround'].includes(f.type)
+              && f.date >= cut7 && f.date <= todayIso && !(f.date === todayIso && (f.start || '99:99') > nowHM));
+            const fxDays = new Set(fx7.map((f) => f.date));
             for (const [d, list] of Object.entries((rec && rec.sessions) || {})) {
               for (const r of (list || [])) {
                 if (!r || r.attended === false) continue;
                 const mm = Number(r.min) || 0;
-                if (d >= cut7) { n7++; m7 += mm; }
+                // team S&C is logged WITH its practice (24.9 model): on a court
+                // day it is that practice's record, counted once below
+                if (d >= cut7 && !(rowKind(r) === 'sc' && fxDays.has(d))) { n7++; m7 += mm; }
                 if (rowKind(r) === 'lift' && (!lastLift || d > lastLift)) lastLift = d;
                 if (rowKind(r) === 'game' && (!lastGame || d > lastGame.date)) lastGame = gameLineOf(d, r);
               }
@@ -2399,20 +2408,21 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             // calendar + that day's availability - so the tile only ever saw
             // lifts, games and S&C. Same rule as the grid: a practice /
             // scrimmage / shootaround that has happened, he was available
-            // (not OUT) and the coach did not mark him out. A day that already
-            // holds a practice row is not counted twice.
+            // (not OUT) and the coach did not mark him out. Counted ONCE: a day
+            // that already holds its own practice or game row (a scrimmage is
+            // logged as a game) is counted by that row (29.9 audit - it was
+            // counted twice); a team S&C row on the day proves he was there,
+            // as it does on the attendance grid.
             {
               const id = row && row.t && row.t.id;
               const att = (rec && rec.attendance) || {};
               const ses = (rec && rec.sessions) || {};
-              const todayIso = daysAgoISO(0);
-              const nowHM = new Date().toTimeString().slice(0, 5);
-              for (const f of (fixtures || [])) {
-                if (!f || !f.date || isCancelled(f) || !['practice', 'scrimmage', 'shootaround'].includes(f.type)) continue;
-                if (f.date < cut7 || f.date > todayIso || (f.date === todayIso && (f.start || '99:99') > nowHM)) continue;
-                if ((ses[f.date] || []).some((r) => r && rowKind(r) === 'practice')) continue;
-                if (att[`${f.date}|${f.start || ''}`] === 'out') continue;
-                if (id && availOn(rec || {}, medicalAll || {}, id, f.date) >= 4) continue;
+              for (const f of fx7) {
+                const day = (ses[f.date] || []).filter((r) => r && r.attended !== false);
+                if (day.some((r) => rowKind(r) === 'practice' || rowKind(r) === 'game')) continue;
+                const hadSc = day.some((r) => rowKind(r) === 'sc');
+                if (!hadSc && att[`${f.date}|${f.start || ''}`] === 'out') continue;
+                if (!hadSc && id && availOn(rec || {}, medicalAll || {}, id, f.date) >= 4) continue;
                 n7++; m7 += Number(f.minutes) || 0;
               }
             }
@@ -2922,7 +2932,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
   const canSave = Number(minutes) > 0 && !future;
   const inCount = Object.values(entries).filter((e) => e && e.attended !== false && e.avail < 4).length;
   // THE NAME COLUMN NEEDS A FLOOR, NOT A FRACTION. Measured 19.9 at 390: every
-  // name broke in half ("ZACK / BRYANT") at ~86px. minmax gives it 152px before
+  // name broke in half ("[GIVEN] / [SURNAME]") at ~86px. minmax gives it 152px before
   // it may shrink; the grid lives in an overflowX:auto scroller, so growing
   // costs a scroll, not a clip.
   const cols = '24px minmax(152px, 1.4fr) 116px 84px 66px 1.5fr';
@@ -3284,13 +3294,13 @@ const BRIEF_GO = {
 };
 function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo }) {
   const tr = useT();
-  // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
-  // NATHAN" while the medical list right above it said DAESHON FRANCIS and
-  // NATHAN KNIGHT. A squad is called by last names. Last token works for the
+  // SURNAME, not given name (Ohad 09-01): the report read "OUT: [GIVEN],
+  // [GIVEN]" while the medical list right above it said [GIVEN SURNAME] and
+  // [GIVEN SURNAME]. A squad is called by last names. Last token works for the
   // Hebrew names too (ישראל ישראלי -> ישראלי), and a one-word name is left alone.
   const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
   // FSI/PDI: a Hebrew first name inside an English sentence dragged the
-  // closing bracket to the wrong side - "(Daeshon, Dusty, עמית, DJ +1)"
+  // closing bracket to the wrong side - "([athlete], [athlete], [athlete], [athlete] +1)"
   // rendered with the paren orphaned. Isolating the run fixes it in both
   // languages without touching the surrounding direction.
   // The "+3" belongs OUTSIDE the bidi isolate. Inside it, a list ending in a
@@ -3644,9 +3654,9 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
 function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpen, onMedical, onReportNew, onCopy, copied }) {
   const he = useHe();
   const tr = useT();
-  // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
-  // NATHAN" while the medical list right above it said DAESHON FRANCIS and
-  // NATHAN KNIGHT. A squad is called by last names. Last token works for the
+  // SURNAME, not given name (Ohad 09-01): the report read "OUT: [GIVEN],
+  // [GIVEN]" while the medical list right above it said [GIVEN SURNAME] and
+  // [GIVEN SURNAME]. A squad is called by last names. Last token works for the
   // Hebrew names too (ישראל ישראלי -> ישראלי), and a one-word name is left alone.
   const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
   // Each NAME is its own bidi run (U+2068 FSI .. U+2069 PDI). Without it a
@@ -4803,7 +4813,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             // card's content is the same height, and it is not: when the
             // position line wraps to two lines (GUARD-FORWARD - KNEE R -
             // AVAILABLE) everything below it shifted 16px down, so Broughton's
-            // and Burns's footers crossed the bottom border and their hairlines
+            // and one athlete's footers crossed the bottom border and their hairlines
             // sat 23px below their row-mates'. Ohad: "text overflows, text and
             // borders don't align from card to card".
             // The footer is now PINNED to the bottom of the card, so the
@@ -4869,7 +4879,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
                     Measured at 900: every roster card footer is 30px except DJ
-                    Burns and Noah Carter at 38, and the whole 8px is this span
+                    [athlete] and [athlete] at 38, and the whole 8px is this span
                     breaking "9.7 PPG" over two lines when the footer runs out
                     of room. The card height is fixed and the footer is pinned
                     to the bottom with margin-top:auto, so a taller footer

@@ -83,6 +83,9 @@ export const setSnapshotsAllowed = (v) => { snapshotsAllowed = !!v; };
 
 /** Write a snapshot only if it leaves the reserve intact. Returns success. */
 export const lsSnapshot = (key, val) => {
+  // a direct write is the newest value: an older one still waiting for the
+  // idle flush must not land on top of it later (29.9 audit)
+  pendingSnaps.delete(key);
   if (!snapshotsAllowed) return false;
   try {
     const text = JSON.stringify(val);

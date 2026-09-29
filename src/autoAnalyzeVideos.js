@@ -131,7 +131,7 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
   const total = vids.length;
   if (!total) return { total: 0, analyzed: 0, failed: 0, skipped: 0 };
   _inflight.add(lockKey);
-  let analyzed = 0, failed = 0, i = 0;
+  let analyzed = 0, failed = 0, i = 0, aborted = false;
   try {
     const { captureClipFrames } = await import('./MovementLab');
     for (const v of vids) {
@@ -178,7 +178,7 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
       } catch (e) {
         // interrupted by the coach using the app: not an attempt, not a failure -
         // stop this batch and let the caller wait for the next quiet moment
-        if (e && e.code === 'aborted') break;
+        if (e && e.code === 'aborted') { aborted = true; break; }
         // network / CORS / decode blip — TRANSIENT. Do NOT mark done (that would
         // silently lose an injury-watch clip forever); retry on a later open and
         // give up only after MAX_ATTEMPTS so one broken URL can't loop forever.
@@ -190,5 +190,5 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
   } finally {
     _inflight.delete(lockKey);
   }
-  return { total, analyzed, failed, skipped: total - analyzed - failed };
+  return { total, analyzed, failed, skipped: total - analyzed - failed, aborted };
 }
