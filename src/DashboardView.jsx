@@ -943,9 +943,12 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           {/* Canonical cyan strip-header + title, matching every other card on
               this page (RefinedHeaderStrip pattern). */}
-          <div onClick={() => setAllAthletesOpen(o => !o)} role="button" tabIndex={0}
+          {/* the house strip box: 41px, the strip tint (was 10px padding = 36px on a
+              desktop, 40 on touch, untinted - the one strip on the page that was
+              not; found by the demo box-height gate, 29.9 #460) */}
+          <div className="title-strip" onClick={() => setAllAthletesOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAllAthletesOpen(o => !o); } }}
-            style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: allAthletesOpen ? '1px solid var(--c-cardBd)' : 'none', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
+            style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: allAthletesOpen ? '1px solid var(--c-cardBd)' : 'none', padding: '0 14px', minHeight: 41, boxSizing: 'border-box', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
             <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
             <StripCaret open={allAthletesOpen} color={'var(--c-stripTx)'} />
           </div>

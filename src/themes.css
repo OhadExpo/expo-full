@@ -1923,7 +1923,29 @@ select.avail-select:dir(rtl) {
 /* Programs, an athlete with no program (29.9 #404): one line on desktop sits
    centred at 12/12; on a phone the row wraps under its name and 11/13 centres
    it - measured both ways. */
-@media (max-width: 620px) { .prog-orphan-row { padding-top: 11px !important; padding-bottom: 13px !important; } }
+/* The demo's tables end on the card's edge, as the real ones: the last row
+   draws no rule of its own (the LASTRULE gate, first run over the demo, #460) */
+.cd-lr:last-child { border-bottom: none !important; }
+
+/* Waitlist filter + LIST / BOARD (#462): one row on desktop; a phone gives the
+   filter the whole row (its placeholder was cut to "FILTER BY EMAIL") and the
+   two views a row of two equal cells under it */
+@media (max-width: 620px) {
+  .wl-bar { flex-wrap: wrap; }
+  .wl-bar > input { flex-basis: 100% !important; }
+  .wl-bar > .wl-views { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 620px) {
+  /* D6g: two FIXED lines on a phone - name + club badge, then NO PROGRAM with the
+     CTA at the end - so every orphan row has one shape (the badge used to land
+     beside the name, beside NO PROGRAM or alone: 67 / 76 / 97px rows) */
+  .prog-orphan-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; row-gap: 8px; column-gap: 12px; padding: 12px 14px !important; }
+  .prog-orphan-row .prog-orphan-main { display: contents !important; }
+  .prog-orphan-row .prog-orphan-name { grid-column: 1 / -1; grid-row: 1; }
+  .prog-orphan-row .prog-orphan-np { grid-column: 1; grid-row: 2; }
+  .prog-orphan-row .prog-orphan-cta { grid-column: 2; grid-row: 2; }
+}
 
 /* THE REVIEW FOOTER ON A PHONE (29.9 #376): three buttons in ~328px wrapped
    "MARK REVIEWED - BACK" onto three lines in a 73px box. The primary action

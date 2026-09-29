@@ -108,6 +108,16 @@ export function SortArrow({ up }) {
 // the text around it and drawn in its colour. It replaces the ▾ / ▸ text
 // triangles - below 12px a Nord triangle renders as a dash, and two caret
 // shapes on one page read as two systems. `rot` turns it (0 = down, -90 = end).
+// THE CHECK GLYPH (29.9 #460): Nord has no ✓ - the fallback font's taller box
+// lifted a "✓ IN" label 2px off its button's centre. Drawn, sized to the text.
+export function CheckGlyph() {
+  return (
+    <svg aria-hidden viewBox="0 0 11 8" width="0.9em" height="0.66em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
+      <path d="M1 4.2l3 2.8L10 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function CaretGlyph({ rot = 0 }) {
   return (
     <svg aria-hidden viewBox="0 0 9 6" width="0.8em" height="0.54em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, transform: rot ? `rotate(${rot}deg)` : undefined, transition: 'transform 180ms ease' }}>

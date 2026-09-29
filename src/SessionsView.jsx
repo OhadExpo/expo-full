@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, laz
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
-import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit, CaretGlyph } from './ui';
+import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit, CaretGlyph, CheckGlyph } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
 import { tr, readLang, useT as useAppT, useTB } from './i18n';
@@ -723,7 +723,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · ${tt('W')}${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={onToggleIn} style={{ ...miniBtn, height: 'var(--btn-h)', minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tb('✓ IN') : tb('CHECK IN')}</button>
+          <button onClick={onToggleIn} style={{ ...miniBtn, height: 'var(--btn-h)', minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckGlyph />{tb('IN')}</span> : tb('CHECK IN')}</button>
           <button onClick={async () => {
             // Warn if the coach logged sets on this card — finishSession only
             // writes athletes still on the roster, so removing them discards that

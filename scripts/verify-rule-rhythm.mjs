@@ -32,6 +32,11 @@ fs.mkdirSync(OUT, { recursive: true });
 const ROUTES = [
   ...['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'].map((t) => [`bhbc-${t}`, `/coach/bhbc/${t}`]),
   ...['dashboard', 'athletes', 'programs', 'exercises', 'sessions', 'review', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist'].map((t) => [`app-${t}`, `/coach/${t}`]),
+  // THE ATHLETE PORTAL AND THE DEMO WERE NEVER WALKED (29.9 #465, his phone:
+  // "again this should have been fixed everywhere"). /demo/athlete renders the
+  // REAL ClientPortal, so it is the portal's surface here.
+  ['portal', '/demo/athlete'],
+  ...['', '/trainees', '/trainees/t1', '/programs', '/exercises', '/sessions', '/review', '/tasks', '/billing'].map((t) => [`demo-coach${t.replace(/\//g, '-') || '-dashboard'}`, `/demo/coach${t}`]),
 ].filter(([n]) => !ONLY || ONLY.split(',').some((o) => n.includes(o)));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
@@ -54,6 +59,7 @@ for (const lang of LANGS) for (const W of WIDTHS) {
         await pg.evaluate((yy) => window.scrollTo(0, yy), y); await wait(250);
         const r = await pg.evaluate(() => {
           const out = [];
+          const INK_BOXES = true;   // boxed children count as ink (D6g)
           const vis = (el) => { const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0; };
           const bw = (cs, side) => (cs[`border${side}Style`] !== 'none' && parseFloat(cs[`border${side}Width`]) >= 0.5 && !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(cs[`border${side}Color`]));
           const bordered = (el) => { const cs = getComputedStyle(el); return bw(cs, 'Top') && bw(cs, 'Bottom'); };
@@ -69,6 +75,18 @@ for (const lang of LANGS) for (const W of WIDTHS) {
               const rg = document.createRange(); rg.selectNodeContents(node);
               for (const x of rg.getClientRects()) if (x.width > 0 && x.height > 0) { t = Math.min(t, x.top); bb = Math.max(bb, x.bottom); n++; }
             }
+            // a visible BOXED child (a button, a tag) is ink too - its border is
+            // what the eye sees. Counting only text read a row whose last line is
+            // a button as "16.5 below", when the button fills that space (D6g).
+            // Outermost boxed children only; absolute ones float free.
+            if (INK_BOXES) for (const d of el.querySelectorAll('*')) {
+              if (!vis(d) || !bordered(d) || getComputedStyle(d).position === 'absolute') continue;
+              let inner = false;
+              for (let p = d.parentElement; p && p !== el; p = p.parentElement) { if (!vis(p) || bordered(p) || getComputedStyle(p).position === 'absolute') { inner = true; break; } }
+              if (inner) continue;
+              const q = d.getBoundingClientRect();
+              if (q.width > 0 && q.height > 0) { t = Math.min(t, q.top); bb = Math.max(bb, q.bottom); n++; }
+            }
             return n ? { t, b: bb } : null;
           };
           const lab = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''} ${(el.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30)}`;
@@ -78,11 +96,21 @@ for (const lang of LANGS) for (const W of WIDTHS) {
             const rb = el.getBoundingClientRect();
             if (rb.height < 20 || rb.height > 140 || rb.width < 60 || rb.bottom < 0 || rb.top > vh) continue;
             if (el.querySelector('.title-strip') || el.classList.contains('title-strip')) continue; // a card, not a row
+            if (el.closest('[data-rhythm="tray"]')) continue; // a header + a tray of chips (the tasks columns, real + demo), not one row
             const cs = getComputedStyle(el);
             // the rules above / below this box
             let top = null, bot = null;
             if (bw(cs, 'Top')) top = rb.top + parseFloat(cs.borderTopWidth);
             if (bw(cs, 'Bottom')) bot = rb.bottom - parseFloat(cs.borderBottomWidth);
+            // a header's TOP rule is often its CARD's border: the first child of a
+            // top-bordered box, with only the box's padding between (the portal's
+            // card header sat 14 under the card border and 5 over its own rule;
+            // no element owned both rules, so nothing measured it - #463 / #465)
+            if (top == null && bot != null && el.parentElement) {
+              const p = el.parentElement, pcs = getComputedStyle(p);
+              const first = [...p.children].find((x) => vis(x) && x.getBoundingClientRect().height > 0);
+              if (first === el && bw(pcs, 'Top')) { const pt = p.getBoundingClientRect().top + parseFloat(pcs.borderTopWidth); if (rb.top - pt >= 0 && rb.top - pt <= 40) top = pt; }
+            }
             const nx = el.nextElementSibling;
             if (top != null && bot == null && nx && vis(nx) && bw(getComputedStyle(nx), 'Top')) { const nb = nx.getBoundingClientRect(); if (Math.abs(nb.top - rb.bottom) <= 1.5) bot = rb.bottom; }
             if (top != null && bot != null && bot - top >= 18 && rb.height <= 90) {

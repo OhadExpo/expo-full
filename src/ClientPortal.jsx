@@ -3652,7 +3652,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.tx,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
-                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
+                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '8px 0 7px' /* the title's 1.35 line adds its leading UNDER the last line: 8 / 7 centres the two lines between the rules (was 7 / 8 = 7 above, 9.2 below; 29.9 #465) */,borderTop:divider}}>
                   <div style={{display:'flex',gap:10,alignItems:'center'}}>
                     {numEl}
                     <div style={{flex:1,minWidth:0}}>
@@ -3703,13 +3703,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     title-caps ink-center ≈ 0.333·size above baseline, the 10px
                     count ≈ 3.28 above — so lift = 3.28−0.333·size (−1.05px at
                     size 13). Same value for "(N)" and "N EX". */}
-                {/* The title is nowrap, so a long block name ("Warm-Up · Block
-                    #4 — Hypertrophy") ran 18px past the card's edge and was cut
-                    mid-word - measured on /try at 390. It truncates now, and the
-                    count never gets pushed out with it. */}
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
-                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),minWidth:0,whiteSpace:'normal',overflowWrap:'anywhere'}}>{title}</span>
-                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,flexShrink:0,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                {/* A long block name ("Warm-Up · Block #4 — Hypertrophy") wraps
+                    inside the card. The count rides the TEXT FLOW, right after the
+                    last word: as a flex sibling it was thrown to the card's far edge
+                    whenever the title wrapped (#459 d, 29.9). Inline-block on the
+                    shared baseline, so the lift above still lands it on the caps. */}
+                <span style={{display:'inline',whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
+                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1.2,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflowWrap:'anywhere'}}>{title}</span>
+                  <span style={{display:'inline-block',marginInlineStart:7,whiteSpace:'nowrap',fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
               </div>
@@ -3746,8 +3747,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
             if (ident === 'RAIL') return (
-              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'10px 16px 0'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:4,paddingBottom:5,borderBottom:`1px solid ${hair}`}}>
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'0 16px'}}>
+                {/* the header sits CENTRED between the card's top border and its own
+                    rule: 10 / 10 inside the header, nothing added above by the card
+                    (was 10 + 4 above, 5 below - the title rode 9px low of centre;
+                    29.9 #463 / #465, his phone) */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:10,paddingBottom:10,borderBottom:`1px solid ${hair}`}}>
                   {titleGroup(13,'0.04em')}
                   {actionEl}
                 </div>

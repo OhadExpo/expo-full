@@ -202,6 +202,11 @@ for (const [name, route] of SURFACES) {
               if (cs.visibility === 'hidden' || cs.opacity === '0' || el.getAttribute('aria-hidden') === 'true') { hidden = true; break; }
             }
             if (hidden) continue;
+            // DATA marked as data: the anatomy chips print the library's own value,
+            // English on purpose in both apps (what an Israeli S&C coach says) -
+            // the real chipCell prints it raw. Only a [data-l10n-data] element is
+            // excused, so a UI label beside it is still caught (#460 / D6g)
+            if (n.parentElement && n.parentElement.closest('[data-l10n-data]')) continue;
             nodes.push(t);
           }
           // the LANGUAGE SWITCH reloads the page by design - clicking it in the

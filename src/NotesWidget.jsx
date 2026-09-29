@@ -950,7 +950,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 // expand to fill (Ohad: make it comfortable, not a sparse grid).
                 if (rows.length === 0) return null;
                 return (
-                  <div key={col.id} style={{ flex: stackBoard ? '1 1 auto' : '1 1 200px', minWidth: stackBoard ? 0 : 160, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
+                  <div key={col.id} data-rhythm="tray" style={{ flex: stackBoard ? '1 1 auto' : '1 1 200px', minWidth: stackBoard ? 0 : 160, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
                     {/* Column header matches the tasks-page BOARD column header
                         EXACTLY (TasksV8View: saturated fill + white text, label
                         left · count right, padding 10/12, 11px/0.12em label).

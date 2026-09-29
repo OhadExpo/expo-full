@@ -2722,7 +2722,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       stages). The athlete's ONE current stage now shows once
                       in the group header; the per-clip week is quiet inline. */}
                   <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:15,color:C.tx,letterSpacing:'0.01em'}}>{wo.dayName}</span>
+                    <span style={{fontWeight:700,fontSize:15,lineHeight:1.2 /* Nord's own 18px: a glyph Nord lacks (·, Hebrew) falls back to Heebo's taller line and grew the card 4px (#460) */,color:C.tx,letterSpacing:'0.01em'}}>{wo.dayName}</span>
                   </div>
                   {/* BLOCK · week · date · sets */}
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>

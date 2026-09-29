@@ -4681,6 +4681,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
              "Hebrew +3px INSIDE the box" — the box is fixed, the glyphs sit in
              it. */
           .prog-striphdr > :first-child, .prog-striphdr > :first-child bdi{ line-height: 1.5; }
+          /* the name's 1.5 line puts its letters 2px under the line top, so the
+             strip read 10 above / 8 below (the ANALYSIS box on line two ends
+             8px off the rule); 6px on top centres the two lines (29.9, the
+             rhythm gate counting boxed children as ink) */
+          .prog-striphdr{ padding-top: 6px !important; }
         }
         /* Ohad, 2026-08-30: two or more buttons in the same row are the same
            vertical height, everywhere. This row pairs the PORTAL toggle -
@@ -4816,16 +4821,25 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             if (row.orphan) {
               return (
                 <div key={row.tid} className="prog-orphan-row" style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-                    <div style={{fontWeight:700,fontSize:15,lineHeight:'20px',color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
-                    <BhbcBadge tid={row.tid} trainees={trainees} />
-                    <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,lineHeight:'20px',color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
+                  {/* name + club badge travel TOGETHER (the badge wrapped beside the
+                      name on one row, beside NO PROGRAM on the next and alone on a
+                      third - 67 / 76 / 97px rows in one list, D6g). A phone lays it
+                      out as two fixed lines: name + badge, then NO PROGRAM | CTA
+                      (themes.css .prog-orphan-*). */}
+                  <div className="prog-orphan-main" style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                    <span className="prog-orphan-name" style={{display:'inline-flex',alignItems:'center',gap:10,minWidth:0}}>
+                      <span style={{fontWeight:700,fontSize:15,lineHeight:'20px',color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></span>
+                      <BhbcBadge tid={row.tid} trainees={trainees} />
+                    </span>
+                    <div className="prog-orphan-np" style={{display:'flex',whiteSpace:'nowrap',fontSize:11,lineHeight:'20px',color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   </div>
+                  <span className="prog-orphan-cta" style={{display:'inline-flex',alignItems:'center',gap:6,flexShrink:0}}>
                   {row.coupleMembers
                     ? row.coupleMembers.map(m => (
-                      <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',marginInlineEnd:6}}>+ {String(m.name).toUpperCase()}</button>
+                      <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ {String(m.name).toUpperCase()}</button>
                     ))
                     : <button onClick={()=>handleNewPlan(row.tid)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tb('+ ASSIGN PROGRAM')}</button>}
+                  </span>
                 </div>
               );
             }

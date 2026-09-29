@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -455,10 +455,10 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
               [T('AVG LTV'), num(avgLtv), TN('over {n} months, est.', TENURE_MONTHS), C.ac],
               [T('AVG TICKET'), num(avgTicket), T('per paying client, per month'), C.ac],
             ].map(([lab, val, sub, col], i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' /* the real metricStyle: centred in the row's height (#404, ported #460) */, gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2 }}>{sub}</span>
               </div>
             ))}
           </div>
@@ -534,7 +534,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                 ? <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', padding: '6px 0' }}>{T('No coaching alerts — all clear.')}</div>
                 : <div className="cd-task-cols" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))`, gap: 10, alignItems: 'start' }}>
                     {cols.map(({ col, rows }) => (
-                      <div key={col.id} style={{ border: `1px solid ${C.cardBd}` }}>
+                      <div key={col.id} data-rhythm="tray" style={{ border: `1px solid ${C.cardBd}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 34, boxSizing: 'border-box', padding: '0 10px', background: 'var(--c-sf2)', borderInlineStart: `3px solid ${col.color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tx }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color }} />{T(col.label)}</span>
                           <span style={{ color: C.tm }}>{rows.length}</span>
@@ -684,7 +684,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                       const lastPay = t.payment === 'NEVER PAID' ? '—' : dAgo(t.payment === 'PAID' ? (t.paidDaysAgo || 0) : (t.overdueDays || 0) + 30);
                       const workouts = t.dormantDays != null ? 4 : 12;
                       return (
-                        <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+                        <tr key={t.id} className="cd-lr" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
                           onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
@@ -1137,7 +1137,7 @@ function TraineeCard({ t, onClick }) {
       {/* Header strip — name (+ online dot) LEFT, status pill RIGHT; mirrors the
           real TraineesView Card header/headerRight. Name is NOT repeated in the
           body (the body is the 80px contact slot + stat blocks). */}
-      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '0 18px 1px', minHeight: 41, boxSizing: 'border-box' /* RefinedHeaderStrip's box: 41px, no vertical padding (was 8px around the status control = 43 / 49 on a phone; #460) */, borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: heb ? FH : FN, fontWeight: 700, fontSize: heb ? 15 : 14, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase', color: 'var(--c-stripTx)' }}>
           <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>{t.online && <OnlineDot /> /* the real card lights it while the athlete is signed in (data, not design) */}
         </span>
@@ -1225,7 +1225,7 @@ function CoupleCard({ t, onClick }) {
       {/* Header strip — full couple name LEFT (white) + status pill RIGHT, the
           IDENTICAL grammar to the single TraineeCard so couple and single cards
           align across the grid (Ohad: name colour + status pill were missing). */}
-      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '0 18px 1px', minHeight: 41, boxSizing: 'border-box' /* the couple card's strip = the single card's: 41px (#460) */, borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: isHeb(t.name) ? FH : FN, fontWeight: 700, fontSize: isHeb(t.name) ? 15 : 14, letterSpacing: isHeb(t.name) ? 0 : '0.04em', textTransform: isHeb(t.name) ? 'none' : 'uppercase', color: 'var(--c-stripTx)' }}>
           <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>
         </span>
@@ -1321,17 +1321,18 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
           // The real strip's box (RefinedHeaderStrip): one 41px height, the
           // title centred in it. 8px padding made these 36px and their titles
           // rode 1-2px low (26.9, #215).
-          padding: `0 ${pad}px`, minHeight: 41, boxSizing: 'border-box',
+          // + 1px under the text above the drawn rule, as RefinedHeaderStrip (#460)
+          padding: `0 ${pad}px 1px`, minHeight: 41, boxSizing: 'border-box',
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
           borderBottom: '1px solid var(--c-cardBd)',
           color: '#FFFFFF',
         }}>
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
+              <div style={{ minWidth: 0, flex: '1 1 auto', display: 'flex', alignItems: 'center', color: '#FFFFFF' }}>{header}</div>
               <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
-          ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
+          ) : <div style={{ display: 'flex', alignItems: 'center' /* no 16px strut line under a 13px title: it sat 1-2px low (#460 rhythm) */, color: '#FFFFFF' }}>{header}</div>}
         </div>
       )}
       {children}
@@ -1407,6 +1408,8 @@ const DEMO_MESSAGES = [
   { role: 'athlete', time: msgTime(4, '18:02'), text: 'Thanks! Felt strong — no niggles this week.' },
   { role: 'coach',   time: msgTime(3, '08:40'), text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
 ];
+// CoachMessages' recBtnStyle: the composer's buttons are 30px, not the house 36
+const DEMO_REC_BTN = (color) => ({ height: 30, padding: '0 12px', borderRadius: 0, background: 'transparent', color, border: `1px solid ${color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' });
 function DemoMessages() {
   return (
     <div>
@@ -1428,10 +1431,16 @@ function DemoMessages() {
           );
         })}
       </div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input title={T('Demo only')} placeholder={T('Type a note to your athlete…')} style={{ ...baseInput, flex: 1, minWidth: 0, fontSize: 13 }} />
-        <button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.rd, border: '1px solid rgba(255,71,87,0.4)', fontSize: 11 }}>● {T('REC')}</button>
-        <button title={T('Demo only')} style={{ ...baseBtn, background: C.ac, color: '#00121c', fontSize: 11 }}>{T('SEND →')}</button>
+      {/* the real composer (CoachMessages): a two-row note, then REC · SEND on
+          their own 30px row under it (#460: the demo drew one 36px input line) */}
+      <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
+        <textarea title={T('Demo only')} placeholder={T('Type a note to your athlete…')} rows={2}
+          style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical', display: 'block' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <button title={T('Demo only')} style={DEMO_REC_BTN(C.rd)}>● {T('REC')}</button>
+          <span style={{ flex: 1 }} />
+          <button title={T('Demo only')} style={{ ...DEMO_REC_BTN(C.ac), opacity: 0.5 }}>{T('SEND →')}</button>
+        </div>
       </div>
     </div>
   );
@@ -1724,7 +1733,7 @@ function DemoOverload({ trainee }) {
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr auto', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', fontSize: 12 }}>
                             <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[i])}</span></span>
                             <span><span style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]}kg</span> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
-                            {isPr ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 6px', letterSpacing: '0.1em' }}>{T('PR')}</span> : <span />}
+                            {isPr ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', letterSpacing: '0.1em' }}>{T('PR')}</span> : <span />}
                           </div>
                         );
                       })}
@@ -2003,7 +2012,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
                 <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
-                <tbody>{payments.map((p, i) => (<tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+                <tbody>{payments.map((p, i) => (<tr key={i} className="cd-lr" style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                   <td style={{ padding: '8px 10px', color: C.tm, textAlign: 'center' }}>{fmtPrettyDate(p.date)}</td>
                   <td style={{ padding: '8px 10px', color: C.gn, fontWeight: 600, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>₪{p.amount.toLocaleString()}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{T(p.status).toUpperCase()}</Badge></td>
@@ -2017,7 +2026,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
-          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM trainee={trainee} /></DemoDetailCard>}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...stripBtnBase, height: 'var(--btn-h-in)', minHeight: 0, border: '1px solid var(--c-stripTx)', color: 'var(--c-stripTx)', flexShrink: 0 /* TraineeCRM's + LOG: the strip's nested height (26 / 32 on touch), not the 36 every <button> gets (#460) */ }}>{T('+ LOG')}</button>}><DemoCRM trainee={trainee} /></DemoDetailCard>}
 
           {/* BODYWEIGHT */}
           {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
@@ -3559,9 +3568,9 @@ function DemoExercises() {
                     narrow; here the words hold the columns wide enough that the demo's long
                     taxonomy values never break one word per line (overflow gate, 29.9) */}
                 {[['Exercise'], ['Resistance'], ['Position'], ['Movement'], ['Joints'], ['Joint Movements'], ['Primary Muscles'], ['Secondary Muscles']].map(([h, hs]) => (
-                  <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: h === 'Exercise' ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{hs ? <SegWord full={T(h)} short={T(hs)} /> : T(h)}{h === 'Exercise' && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>
+                  <th key={h} className={h === 'Exercise' ? undefined : 'cd-ex-taxo'} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: h === 'Exercise' ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', lineHeight: 1.25 /* the real header's line: 30px row, not 28.5 (#460) */, borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{hs ? <SegWord full={T(h)} short={T(hs)} /> : T(h)}{h === 'Exercise' && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>
                 ))}
-                <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T('Media')}</th>
+                <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{T('Media')}</th>
                 {!narrowUI && <th style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }} />}
               </tr>
             </thead>
@@ -3578,7 +3587,7 @@ function DemoExercises() {
                     <td className="cd-ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max }}>
                       {vals.length === 0 ? <span style={{ color: C.td }}>·</span> : (
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
-                          {vals.slice(0, 3).map((x, n) => <span key={n} style={{ display: 'inline-block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.15, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', padding: '2px 6px' }}>{taxoHe(x, readLang())}</span>)}
+                          {vals.slice(0, 3).map((x, n) => <span key={n} data-l10n-data="" style={{ display: 'inline-block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.15, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', padding: '2px 6px' }}>{taxoHe(x, readLang())}</span>)}
                           {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap' }}>+{vals.length - 3}</span>}
                         </div>
                       )}
@@ -3587,12 +3596,14 @@ function DemoExercises() {
                 };
                 const cell = (v, max = 210) => <td className="cd-ex-taxo" style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: max }}>{taxoHe(v, readLang()) || '·'}</td>;
                 return (
-                  <tr key={i} onClick={narrowUI ? () => setExNote('edit') : undefined} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H, cursor: narrowUI ? 'pointer' : undefined }}>
+                  <tr key={i} className="cd-lr" onClick={narrowUI ? () => setExNote('edit') : undefined}
+                    {...(narrowUI ? { role: 'button', tabIndex: 0, onKeyDown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setExNote('edit'); } } } : {}) /* the real row is a button on a phone (and a finger's 40px) */}
+                    style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent', height: CTRL_H, cursor: narrowUI ? 'pointer' : undefined }}>
                     <td style={{ padding: '9px 12px 9px 14px', maxWidth: 260 }}>
                       {/* The real row's status dot: cyan = video, orange = cues only. */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: demoHasVideo(e) ? C.ac : demoHasNotes(e) ? C.or : 'transparent', border: (demoHasVideo(e) || demoHasNotes(e)) ? 'none' : `1px solid ${C.td}` }} />
-                        <bdi dir="auto" style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textAlign: readLang() === 'he' ? 'right' : 'left' }}>{e.name}</bdi>
+                        <bdi dir="auto" style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px' /* the real name's line (#460: 36 vs 40 rows) */, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textAlign: readLang() === 'he' ? 'right' : 'left' }}>{e.name}</bdi>
                       </div>
                     </td>
                     {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{chips(e.primaryJoints, 160)}{chips(e.jointMovements, 200)}{chips(e.primaryMuscles, 200)}{chips(e.secondaryMuscles, 190)}
@@ -3968,7 +3979,7 @@ function DemoReview() {
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.cardBd}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, fontSize: 15, color: C.tx, letterSpacing: '0.01em' }}>{wo.dayName}</span>
+                    <span style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 /* as the real card (#460) */, color: C.tx, letterSpacing: '0.01em' }}>{wo.dayName}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                     {/* the block, as the real card names it ("Block #19"); the week header above says the rest */}
@@ -4359,7 +4370,7 @@ function DemoGroupFloor() {
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A')} · {readLang() === 'he' ? `${tr('he', 'W')}${1 + (idSeed(t.id) % 4)}` : <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`W${1 + (idSeed(t.id) % 4)}`}</span>}</div>
                 </div>
                 <span style={{ display: 'inline-flex', gap: 8, flexShrink: 0 }}>
-                  <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, height: 'var(--btn-h)', minHeight: 0, minWidth: 72, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.cardBd}`, padding: '0 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
+                  <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, height: 'var(--btn-h)', minHeight: 0, minWidth: 72, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.cardBd}`, padding: '0 10px', fontSize: 10 }}>{inFloor ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckGlyph />{T('IN')}</span> : T('CHECK IN')}</button>
                   {/* the real card's remove - a 36px square */}
                   <button title={T('Demo only')} style={{ ...baseBtn, width: 'var(--btn-h)', height: 'var(--btn-h)', minHeight: 0, minWidth: 0, padding: 0, background: 'transparent', color: C.rd, border: `1px solid ${C.cardBd}`, fontSize: 12 }}>✕</button>
                 </span>
@@ -4659,11 +4670,12 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
         </div>
       ))}
       {done.length > 0 && (
-        <button type="button" onClick={() => setDoneOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, minHeight: 36, padding: '0 14px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'start' }}>
-          <StripCaret open={doneOpen} color="var(--c-tm)" size={9} />
-          <span>{T('Done')} · {done.length}</span>
-          {!doneOpen && <span style={{ marginInlineStart: 'auto', opacity: 0.6 }}>{T('Click to expand')}</span>}
-        </button>
+        /* the real DONE toggle's box (TasksV8View): 10px 14px around the text, the
+           caret inline, the hint at 9px - not a 36px min-height row (#460) */
+        <div role="button" tabIndex={0} aria-expanded={doneOpen} onClick={() => setDoneOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDoneOpen((o) => !o); } }} style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.cardBd}`, borderRadius: 0, color: 'var(--c-td)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'start' }}>
+          <span><CaretGlyph rot={doneOpen ? 0 : -90} /> {T('Done')} · {done.length}</span>
+          {!doneOpen && <span style={{ opacity: 0.6, fontSize: 9 }}>{T('Click to expand')}</span>}
+        </div>
       )}
       {doneOpen && done.map((t) => (
         <div key={t.id} className="dtl-row" style={{ opacity: 0.6 }}>
@@ -5261,7 +5273,7 @@ export default function CoachDemo() {
               chip is a bordered control and stands at the one control height;
               the note is the banner sentence cut to what a buyer must know. */}
           <div className="cd-pov" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginInlineStart: 'auto', flex: '0 1 auto', minWidth: 0 }}>
-            <div style={{
+            <div data-demo-chrome="" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto',
               fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
               background: C.acD, border: `1px solid ${C.cardBd}`,
@@ -5387,7 +5399,7 @@ export default function CoachDemo() {
           <span>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 6px' }}>{T('← BACK')}</a>
+          <a href="/demo" data-demo-chrome="" style={{ color: C.td, textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', padding: '0 6px' }}>{T('← BACK')}</a>
         </span>
       </footer>
     </div>

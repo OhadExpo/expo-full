@@ -1575,6 +1575,7 @@ export const HE = {
   "No triaged reports.": 'אין דיווחים שטופלו.',
   "No fixed reports.": 'אין דיווחים שתוקנו.',
   "✓ IN": '✓ נכנס',
+  "IN": 'נכנס',
   "CHECK IN": 'כניסה',
   DONE: 'בוצע',
   "Drop a file here": 'תגרור קובץ לכאן',
