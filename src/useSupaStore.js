@@ -98,6 +98,30 @@ export const lsSnapshot = (key, val) => {
   } catch { return false; }
 };
 
+// SNAPSHOTS OFF THE CLICK (29.9 #422). A save used to stringify the whole value
+// and rescan every localStorage key (up to ~4 MB) synchronously, inside the
+// tap that made it. The snapshot is only a cache - the server write and the
+// offline queue carry the data - so it is written in the next idle moment
+// (within a second), latest value per key wins, and the signed-out latch is
+// still checked at write time.
+const pendingSnaps = new Map();
+let snapScheduled = false;
+const flushSnaps = () => {
+  snapScheduled = false;
+  const batch = [...pendingSnaps.entries()];
+  pendingSnaps.clear();
+  for (const [k, v] of batch) { try { lsSnapshot(k, v); } catch { /* cache only */ } }
+};
+export const lsSnapshotSoon = (key, val) => {
+  pendingSnaps.set(key, val);
+  if (snapScheduled) return;
+  snapScheduled = true;
+  try {
+    if (typeof window !== 'undefined' && window.requestIdleCallback) window.requestIdleCallback(flushSnaps, { timeout: 1000 });
+    else setTimeout(flushSnaps, 200);
+  } catch { setTimeout(flushSnaps, 200); }
+};
+
 const storeSize = (v) => (Array.isArray(v) ? v.length
   : (v !== null && typeof v === 'object' && !(v instanceof Date)) ? Object.keys(v).length
   : null);
@@ -442,7 +466,7 @@ export function useSupaStore(key, initial) {
             // empty [] is never written, and the old exclusion of legacy
             // full-roster blobs on athlete devices still holds.
             if (key !== 'expo-trainees' || (Array.isArray(val) && val.length > 0)) {
-              try { lsSnapshot(key, val); } catch {}
+              try { lsSnapshotSoon(key, val); } catch {}
             }
           }
         }
@@ -610,7 +634,7 @@ export function useSupaStore(key, initial) {
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
-      try { lsSnapshot(key, val); } catch {}
+      try { lsSnapshotSoon(key, val); } catch {}
     }
     writeToSupa(val);
   }, [key, writeToSupa]);
@@ -630,7 +654,7 @@ export function useSupaStore(key, initial) {
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
-      try { lsSnapshot(key, val); } catch {}
+      try { lsSnapshotSoon(key, val); } catch {}
     }
   }, [key]);
 

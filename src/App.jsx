@@ -1628,7 +1628,12 @@ function AuthedApp() {
             if (next[id] == null && typeof ts === 'number') next[id] = ts;
           }
         }
-        setPresence(next);
+        // SAME TIMESTAMPS = SAME OBJECT (29.9 #422): a new object every 30 s
+        // re-rendered the whole coach app even when nobody's presence moved.
+        setPresence((prev) => {
+          const pk = Object.keys(prev || {}), nk = Object.keys(next);
+          return pk.length === nk.length && nk.every((k) => prev[k] === next[k]) ? prev : next;
+        });
       } catch {}
     };
     poll();
@@ -1642,6 +1647,12 @@ function AuthedApp() {
   // skipped so it never clobbers a local edit made just before entering.
   // (A true realtime-broadcast layer like portal-sync is the next step.)
   const bhbcSeenRef = useRef({});
+  // What the app ALREADY holds, per key (29.9 #422): after every save of our own
+  // the realtime echo refetched the key and swapped in a new, identical copy -
+  // a second full re-render of the zone for nothing. Now an incoming value equal
+  // to the local one is dropped.
+  const bhbcLocalRef = useRef({});
+  bhbcLocalRef.current = { 'expo-bhbc-loads': bhbcLoads, 'expo-bhbc-fixtures': bhbcFixtures, 'expo-bhbc-league': bhbcLeague, 'expo-bhbc-medical': bhbcMedical, 'expo-trainees': trainees };
   const bhbcChanRef = useRef(null);
   // Called by the zone after any local write so other open clients refetch at once.
   const notifyBhbcChange = useCallback(() => {
@@ -1664,6 +1675,7 @@ function AuthedApp() {
           const first = bhbcSeenRef.current[r.key] === undefined;
           bhbcSeenRef.current[r.key] = j;
           if (first) continue;
+          try { if (JSON.stringify(bhbcLocalRef.current[r.key]) === j) continue; } catch { /* compare failed - apply */ }
           if (r.key === 'expo-bhbc-loads') setBhbcLoadsLocal(r.value);
           else if (r.key === 'expo-bhbc-fixtures') setBhbcFixturesLocal(r.value);
           else if (r.key === 'expo-bhbc-league') setBhbcLeagueLocal(r.value);

@@ -1409,9 +1409,11 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     measure();
     window.addEventListener('resize', later);
     const t2 = setTimeout(measure, 700);   // fonts land after first paint
-    // a light poll for what no event reports (a programmatic scroll in an
-    // unfocused tab, a remounted rail); phones only
-    const iv = setInterval(() => { if (window.innerWidth <= maxWidth) measure(); }, 250);
+    // a light poll for what no event reports (a remounted rail); narrow widths
+    // only. Once a second, visible tab only (29.9 #422): every 250 ms it forced a
+    // layout of every rail item forever - scroll and resize events already catch
+    // what the user does.
+    const iv = setInterval(() => { if (window.innerWidth <= maxWidth && document.visibilityState === 'visible') measure(); }, 1000);
     return () => {
       alive = false; clearTimeout(t); clearTimeout(t2); clearInterval(iv);
       window.removeEventListener('resize', later);
