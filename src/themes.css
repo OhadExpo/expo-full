@@ -1922,3 +1922,16 @@ select.avail-select:dir(rtl) {
    centred at 12/12; on a phone the row wraps under its name and 11/13 centres
    it - measured both ways. */
 @media (max-width: 620px) { .prog-orphan-row { padding-top: 11px !important; padding-bottom: 13px !important; } }
+
+/* THE REVIEW FOOTER ON A PHONE (29.9 #376): three buttons in ~328px wrapped
+   "MARK REVIEWED - BACK" onto three lines in a 73px box. The primary action
+   takes the first row whole; DELETE / UNMARK / BACK share the second. Real
+   page and demo both carry .wr-foot. */
+/* one box for every footer button, every width: DELETE (12px type) sat at 41
+   beside BACK and the primary at 43 */
+.wr-foot > button { min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 480px) {
+  .wr-foot { flex-wrap: wrap; }
+  .wr-foot > .wr-foot-primary { order: -1; flex: 1 1 100% !important; }
+  .wr-foot > button { white-space: nowrap; }
+}

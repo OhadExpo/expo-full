@@ -2538,7 +2538,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.18em',fontWeight:700,textAlign:'center',marginTop:14,marginBottom:-6}}>
           M · {tt('MARK REVIEWED')} · &nbsp; J · {tt('SKIP')} · &nbsp; C · {tt('COMMENT AT PLAYHEAD')}
         </div>
-        <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
+        <div className="wr-foot" style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
             <button onClick={() => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
               title={tt('Delete this workout')}
@@ -2569,7 +2569,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           </button>}
           {wo.reviewedAt ? (
             findNextUnreviewed() ? (
-              <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
+              <button className="wr-foot-primary" onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
                 title={tt('Jump to next pending workout')}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                   background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
@@ -2577,7 +2577,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 → {tr(readLang(), 'NEXT PENDING')} ({remainingAfter})
               </button>
             ) : (
-              <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
+              <button className="wr-foot-primary" onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.gn}`,
                   background:C.gn,color:"#FFFFFF",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
@@ -2585,7 +2585,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               </button>
             )
           ) : (
-            <button onClick={saveAndNext}
+            <button className="wr-foot-primary" onClick={saveAndNext}
               title={tt('Mark reviewed and return to the list (⌘/Ctrl + Enter)')}
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,

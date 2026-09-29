@@ -3823,27 +3823,42 @@ function DemoReview() {
           </div>
         ))}
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 20, marginBottom: 8 }}>
+        <div className="wr-foot" style={{ display: 'flex', gap: 8, marginTop: 20, marginBottom: 8 }}>
           <button onClick={e => e.stopPropagation()} style={{
             padding: '12px 16px', borderRadius: 0, border: `1px solid ${C.rd || '#c94444'}`,
             background: 'transparent', color: C.rd || '#ff6b6b',
             fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>{T('DELETE')}</button>
-          <button onClick={e => e.stopPropagation()} style={{
-            padding: '12px 16px', borderRadius: 0, border: `1px solid ${C.bd}`,
-            background: 'transparent', color: C.tm,
-            fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}>{T('UNMARK')}</button>
-          <button onClick={() => setSelectedId(null)} title={T('Return to the review queue')} style={{
-            flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.bd2}`,
-            background: 'transparent', color: C.tx,
-            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-          }}>← {tr(readLang(), 'BACK')}</button>
-          <button onClick={() => setSelectedId(null)} title={T('Mark reviewed and return to the queue (demo only)')} style={{
-            flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.ac}`,
-            background: C.ac, color: '#0a0a0b',
-            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-          }}>✓ {tr(readLang(), 'MARK REVIEWED — BACK')}</button>
+          {/* THE REAL FOOTER'S BUTTONS (#376 parity): UNMARK only on a
+              workout already reviewed; a pending one is DELETE · BACK · MARK
+              REVIEWED - BACK. Four buttons at 390 left BACK squeezed alone. */}
+          {selected.reviewed && (
+            <button onClick={e => e.stopPropagation()} style={{
+              padding: '12px 16px', borderRadius: 0, border: `1px solid ${C.bd}`,
+              background: 'transparent', color: C.tm,
+              fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>{T('UNMARK')}</button>
+          )}
+          {!selected.reviewed && (
+            <button onClick={() => setSelectedId(null)} title={T('Return to the review queue')} style={{
+              flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.bd2}`,
+              background: 'transparent', color: C.tx,
+              fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+            }}>← {tr(readLang(), 'BACK')}</button>
+          )}
+          {selected.reviewed ? (
+            <button className="wr-foot-primary" onClick={() => setSelectedId(null)} style={{
+              flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.gn}`,
+              background: C.gn, color: '#FFFFFF',
+              fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+            }}>✓ {tr(readLang(), 'REVIEWED — BACK')}</button>
+          ) : (
+            <button className="wr-foot-primary" onClick={() => setSelectedId(null)} title={T('Mark reviewed and return to the queue (demo only)')} style={{
+              flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.ac}`,
+              background: C.ac, color: '#0a0a0b',
+              fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+            }}>✓ {tr(readLang(), 'MARK REVIEWED — BACK')}</button>
+          )}
         </div>
       </section>
     );
@@ -3851,6 +3866,7 @@ function DemoReview() {
 
   return (
     <section>
+      <style>{`@media (max-width: 760px){ .cd-rv-strip .cd-rv-repeat{ display: none !important; } }`}</style>
       {weeklyFocus}
 
       {(() => {
@@ -3861,13 +3877,15 @@ function DemoReview() {
               Mirrors WorkoutReview's CollapsibleSection group header. */}
           {/* The real bare section strip's box: 0 14px, one 41px height, the
               row centred (was 8px padding around a 36px button = 54px, and the
-              name rode 1.3px high; 26.9, #215). It still wraps on a phone,
-              where the plan name and weeks need their own line. */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', rowGap: 4, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 8 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
+              name rode 1.3px high; 26.9, #215). ONE ROW at every width, as the
+              real strip (#376): at 760 and under the plan name + week boxes -
+              said again in the cards below - step aside, exactly as
+              WorkoutReview's .wr-strip-repeat does. */}
+          <div className="cd-rv-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 8 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'nowrap', gap: 8, minWidth: 0, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
               <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}>{isHeb(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, color: 'var(--c-ac)', fontWeight: 700, letterSpacing: '0.04em' }}>· {data.workouts[0].planName}</span>
+              <span className="cd-rv-repeat" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, color: 'var(--c-ac)', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>· {data.workouts[0].planName}</span>
                 <span style={{ display: 'inline-flex', gap: 3, verticalAlign: 'middle' }}>
                   {Array.from({ length: 4 }, (_, i) => <span key={i} style={{ width: 13, height: 5, background: i < Math.min(data.workouts[0].week, 4) ? 'var(--c-ac)' : 'var(--c-tm)', opacity: i < Math.min(data.workouts[0].week, 4) ? 1 : 0.35 }} />)}
                 </span>
@@ -3875,10 +3893,20 @@ function DemoReview() {
             </span>
             <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>{T('Athlete page →')}</button>
           </div>
-          {data.workouts.map(wo => {
+          {data.workouts.map((wo, wi) => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
+            // the real page's quiet BLOCK · WEEK divider over each week's day
+            // cards (#376 parity) - once per block + week
+            const showWk = wi === 0 || data.workouts[wi - 1].planName !== wo.planName || data.workouts[wi - 1].week !== wo.week;
             return (
-              <div key={wo.id} onClick={() => setSelectedId(wo.id)} style={{
+              <React.Fragment key={wo.id}>
+              {showWk && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: wi === 0 ? '2px 0 8px' : '16px 0 8px', fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>
+                  <span>{wo.planName} · {T('Week')} {wo.week}/4</span>
+                  <span style={{ flex: 1, height: 1, background: C.cardBd }} />
+                </div>
+              )}
+              <div onClick={() => setSelectedId(wo.id)} style={{
                 background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '12px 14px', marginBottom: 6, cursor: 'pointer', // 14 = the group strip's inset (26.9)
                 transition: 'border-color .15s', display: 'flex',
@@ -3911,6 +3939,7 @@ function DemoReview() {
                   <button onClick={e => e.stopPropagation()} title={T('Delete this workout (demo only)')} style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
                 </div>
               </div>
+              </React.Fragment>
             );
           })}
         </div>
