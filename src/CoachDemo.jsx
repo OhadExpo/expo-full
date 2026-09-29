@@ -4798,7 +4798,7 @@ export default function CoachDemo() {
   const [tab, setTab] = useState(() => typeof window === 'undefined' ? 'dashboard' : tabFromPath(window.location.pathname));
   // the phone top menu's no-slice plates + snap padding (27.9 #343)
   const hdrRef = React.useRef(null), trailPlate = React.useRef(null), leadPlate = React.useRef(null);
-  useRailTrailMask(hdrRef, { items: '.cd-hdr > nav > *, .cd-pov > *, .cd-hdr > button, .cd-cta-waitlist', lead: '.cd-hdr > a:first-child', maxWidth: 860, trailRef: trailPlate, leadRef: leadPlate, active: '.cd-hdr > nav > [aria-selected="true"]' });
+  useRailTrailMask(hdrRef, { items: '.cd-hdr > nav > *, .cd-pov > *, .cd-hdr > button, .cd-cta-waitlist', lead: '.cd-hdr > a:first-child', maxWidth: 1199, trailRef: trailPlate, leadRef: leadPlate, active: '.cd-hdr > nav > [aria-selected="true"]' });
   React.useLayoutEffect(() => {
     const el = hdrRef.current; const id = el && el.querySelector(':scope > a:first-child');
     if (el && id) el.style.setProperty('--crest-w', `${Math.round(id.getBoundingClientRect().width) + 8}px`);
@@ -4918,7 +4918,12 @@ export default function CoachDemo() {
            plate; each tab a snap point that rests right after the mark; the
            far edge and the edge beside the mark covered by plates exactly over
            any half-shown item (the same no-slice system as BHBC). */
-        @media (max-width: 860px) {
+        /* 1199, not 860 (29.9 #380 tablet sweep): between 861 and 1199 the
+           one-line header did not fit - nav + COACH VIEW + SEE ATHLETE VIEW +
+           language + waitlist - and the link painted 146px over its
+           neighbours at 1024 on every screen. The sliding row is the answer
+           the zone already uses where a header does not fit. */
+        @media (max-width: 1199px) {
           .cd-hdr { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; gap: 8px !important; padding-inline: 0 !important; scroll-snap-type: x mandatory; scroll-padding-inline-start: var(--crest-w, 84px); }
           .cd-hdr > a:first-child { position: sticky; inset-inline-start: 0; z-index: 3; flex: 0 0 auto !important; align-self: stretch; display: flex !important; align-items: center; background: var(--c-sf); padding-inline: 16px 16px; box-shadow: 8px 0 12px -8px rgba(0,0,0,0.7); }
           [dir="rtl"] .cd-hdr > a:first-child { box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7); }
