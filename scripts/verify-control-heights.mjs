@@ -271,7 +271,8 @@ for (const [name, route] of SURFACES) {
               // title wrapped to two rows (skipped as multi-line). Strip height
               // is the strips gate's job.
               if (el.classList.contains('title-strip')) continue;
-              const key = el.closest('.title-strip, .bhbc-chip') ? 'nested' : 'control';
+              // the program card's strip header joined the nested rule 29.9 (#444, themes.css)
+              const key = el.closest('.title-strip, .bhbc-chip, .prog-striphdr') ? 'nested' : 'control';
               (buckets[key] = buckets[key] || []).push({
                 h: Math.round(bb.height),
                 t: role + ':' + (el.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || tag).trim().slice(0, 26),
