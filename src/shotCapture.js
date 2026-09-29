@@ -859,13 +859,26 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     // be an endless wait on 50%. Past 30 s of active time the windows are read
     // with the fast model already in memory, and the stats say so.
     let fineLm;
-    try {
-      lmFine = await loadModel({ runningMode: 'IMAGE', quality: 'full', numPoses: 1 }, 30000);
-      fineLm = lmFine;
-    } catch (e) {
-      if (e && e.code === 'aborted') throw e;
-      fineLm = lmCoarse; run.stats.fineModel = 'lite';
+    // FULL, NOT HEAVY - MEASURED (29.9 #431). Heavy is the more accurate model
+    // on still images, but this pass reads frames off REAL-TIME playback: a
+    // model twice as slow gets half the frames per shot window and shots drop
+    // out. Same clip, same headless seat, back to back: heavy 1 shot vs full 4
+    // (and 0 vs 5 in an earlier pair). Heavy stays reachable for experiments
+    // with localStorage 'expo-shot-fine' = 'heavy'; it falls back to full, and
+    // full to the fast model.
+    const fineWanted = (() => {
+      try { if (localStorage.getItem('expo-shot-fine') === 'heavy') return 'heavy'; } catch { /* private mode */ }
+      return 'full';
+    })();
+    for (const q of fineWanted === 'heavy' ? ['heavy', 'full'] : ['full']) {
+      try {
+        lmFine = await loadModel({ runningMode: 'IMAGE', quality: q, numPoses: 1 }, 30000);
+        fineLm = lmFine; run.stats.fineModel = q; break;
+      } catch (e) {
+        if (e && e.code === 'aborted') throw e;
+      }
     }
+    if (!fineLm) { fineLm = lmCoarse; run.stats.fineModel = 'lite'; }
     const fineHealth = { consec: 0 };
     const detectFine = (input) => {
       try { const r = fineLm.detect(input); fineHealth.consec = 0; return r; }
