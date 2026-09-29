@@ -4815,7 +4815,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // picker is right there for assignment after the editor opens).
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'11px 14px 13px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                <div key={row.tid} className="prog-orphan-row" style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,lineHeight:'20px',color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <BhbcBadge tid={row.tid} trainees={trainees} />
@@ -4963,7 +4963,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               // grid auto-stretch still equalises an orphan sharing a row with
               // a full card.
               return (
-                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
+                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px 14px 12px' /* the button's slack sat under the last line: 20 above / 22 below, measured (29.9 #404) */,display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
                   <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div><BhbcBadge tid={row.tid} trainees={trainees} /></div>
                   <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,lineHeight:'20px',color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   <div style={{flex:1}} />

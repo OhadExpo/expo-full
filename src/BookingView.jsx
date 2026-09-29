@@ -355,10 +355,11 @@ export default function BookingView({ trainees }) {
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             {tt('No availability rules. Add one to allow bookings.')}
           </div>
-        ) : rules.map(r => (
+        ) : rules.map((r, ri) => (
+          // the last rule draws no rule of its own - the box edge ends the list (#419)
           <div key={r.id} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-            borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap',
+            borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none', flexWrap: 'wrap',
           }}>
             <select value={r.day_of_week} onChange={e => updateRule(r.id, { day_of_week: parseInt(e.target.value) })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }}>

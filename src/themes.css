@@ -1845,6 +1845,13 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    flush under its strip and its last row draws no rule of its own */
 :has(> :is(.bhbc-list, .app-list, .bhbc-load-scroll):first-child),
 :has(> :first-child > .app-list:first-child) { padding-top: 0 !important; }
+/* ...and the same through the eased card body (29.9 #423): BHBC cards now wrap
+   their content in [data-card-body] > div, two levels the rules above would
+   not see through - the first-row gap would come back. */
+.bhbc-zone .title-strip + div:has(> [data-card-body]:first-child > div > div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
+.bhbc-zone .title-strip + div:has(> [data-card-body]:first-child > div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
+:has(> [data-card-body]:first-child > div > :is(.bhbc-list, .app-list, .bhbc-load-scroll):first-child),
+:has(> [data-card-body]:first-child > div > :first-child > .app-list:first-child) { padding-top: 0 !important; }
 :is(.bhbc-list, .app-list) > :last-child { border-bottom-color: transparent !important; }
 /* NEXT GAME on a phone (29.9 #404, measured 9 under the strip / 12 over the
    travel rule): 2px on top centres the stacked block between them. */
@@ -1901,3 +1908,8 @@ select.avail-select {
   unicode-bidi: plaintext;
   text-align: match-parent;
 }
+
+/* Programs, an athlete with no program (29.9 #404): one line on desktop sits
+   centred at 12/12; on a phone the row wraps under its name and 11/13 centres
+   it - measured both ways. */
+@media (max-width: 620px) { .prog-orphan-row { padding-top: 11px !important; padding-bottom: 13px !important; } }
