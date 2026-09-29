@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import ErrorBoundary from './ErrorBoundary';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { safeUrl, YouTubeLite } from './VideoEmbed';
@@ -3472,9 +3473,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
       {ci ? (
+        // a failure in the meal logger stays in its box: the header and the
+        // tabs above it keep working (29.9 #436)
+        <ErrorBoundary inline>
         <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>{tt('LOADING…')}</div>}>
           <MealLogger clientId={ci} page demoMode={demoMode} />
         </React.Suspense>
+        </ErrorBoundary>
       ) : null}
     </div>
   </div>;
@@ -3485,7 +3490,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
       {ci ? (
-        <>
+        <ErrorBoundary inline>
           {!demoMode && <PushToggle role="athlete" />}
           <CoachMessagesAthlete
             traineeId={ci}
@@ -3493,7 +3498,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             demoMode={demoMode}
             recipientEmail="ohadyproductions@gmail.com"
             senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
-        </>
+        </ErrorBoundary>
       ) : null}
     </div>
   </div>;
