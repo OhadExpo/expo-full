@@ -46,7 +46,7 @@ const sweep = (v) => {
   if (v && typeof v === 'object') { for (const k of Object.keys(v)) sweep(v[k]); }
 };
 data.forEach((row) => sweep(row.data));
-await sb.auth.signOut().catch(() => {});
+await sb.auth.signOut({ scope: 'local' }).catch(() => {});
 
 console.error(`exported ${out.size} distinct Hebrew lines from ${data.length} plans`);
 process.stdout.write(JSON.stringify([...out], null, 1));

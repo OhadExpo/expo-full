@@ -74,7 +74,7 @@ const markerId = `rls-probe-${uid.slice(0, 8)}-${Date.now()}`;
   check('library write is refused by RLS (42501)', !!error && String(error.code) === '42501', error ? `${error.code} ${error.message.slice(0, 80)}` : 'THE WRITE WENT THROUGH — the fence is down');
 }
 
-await sb.auth.signOut().catch(() => {});
+await sb.auth.signOut({ scope: 'local' }).catch(() => {});
 const failed = results.filter((r) => !r.ok).length;
 console.log(`${results.length} clauses checked from the athlete seat, ${failed} broken`);
 process.exit(failed ? 1 : 0);

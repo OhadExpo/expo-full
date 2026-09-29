@@ -64,5 +64,5 @@ const MATCHES = {
   if (upErr) { console.error('UPDATE FAIL', upErr.message); process.exit(1); }
 
   console.log(`updated ${PLAN_ID}: matched=${matched}, unmatched=${unmatched}`);
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })().catch(e => { console.error(e); process.exit(1); });

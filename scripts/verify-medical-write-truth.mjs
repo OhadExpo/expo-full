@@ -30,7 +30,7 @@ async function probe(email, expectWrite) {
   console.log(`  ${ok ? '✓' : '✗'} ${email.padEnd(26)} read=${canRead ? 'yes' : 'NO '} write=${canWrite ? 'YES' : 'no '}`
     + ` (rows changed: ${rows}${wErr ? `, error: ${wErr.code || wErr.message}` : ', no error'})`
     + `  expected ${expectWrite ? 'yes' : 'no'} — ${ok ? 'as expected' : '*** WRONG ***'}`);
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
   return ok;
 }
 

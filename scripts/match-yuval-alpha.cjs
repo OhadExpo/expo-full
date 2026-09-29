@@ -75,5 +75,5 @@ function score(qToks, cToks) {
     }
   }
 
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })().catch(e => { console.error(e); process.exit(1); });

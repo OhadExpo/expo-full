@@ -67,7 +67,7 @@ for (const [email, key, mayWrite, why] of MATRIX) {
   console.log(`  ${ok ? '✓' : '✗'} ${email.split('@')[0].padEnd(18)} ${key.padEnd(20)} write=${String(can).padEnd(5)} expected=${String(mayWrite).padEnd(5)} ${ok ? '' : '<-- ' + why}`);
 }
 
-for (const sb of sessions.values()) { try { await sb.auth.signOut(); } catch { /* noop */ } }
+for (const sb of sessions.values()) { try { await sb.auth.signOut({ scope: 'local' }); } catch { /* noop */ } }
 console.log(`\nBHBC WRITE SCOPE: ${pass} passed, ${fail} failed`);
 if (fail) console.log('Apply the BHBC migrations in scripts/migrations/ (write-scope ceiling + coach write policy).');
 process.exit(fail ? 1 : 0);

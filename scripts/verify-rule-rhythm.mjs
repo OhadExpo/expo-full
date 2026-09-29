@@ -36,6 +36,7 @@ const ROUTES = [
   // "again this should have been fixed everywhere"). /demo/athlete renders the
   // REAL ClientPortal, so it is the portal's surface here.
   ['portal', '/demo/athlete'],
+  ['try', '/try'],
   ...['', '/trainees', '/trainees/t1', '/programs', '/exercises', '/sessions', '/review', '/tasks', '/billing'].map((t) => [`demo-coach${t.replace(/\//g, '-') || '-dashboard'}`, `/demo/coach${t}`]),
 ].filter(([n]) => !ONLY || ONLY.split(',').some((o) => n.includes(o)));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));

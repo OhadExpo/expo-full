@@ -115,5 +115,5 @@ function parseBlockSheet(ws) {
     }
   }
 
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })();

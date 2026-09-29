@@ -46,7 +46,7 @@ async function verify(email) {
   if (error) return { ok: false, reason: error.message };
   const { data: rows, error: rerr } = await sb.from('store').select('key').in('key', STORE_KEYS);
   const keys = rerr ? [] : (rows || []).map((r) => r.key.replace('expo-bhbc-', '')).sort();
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
   return { ok: true, uid: data?.user?.id, confirmed: !!data?.user?.email_confirmed_at, keys, readError: rerr?.message || null };
 }
 

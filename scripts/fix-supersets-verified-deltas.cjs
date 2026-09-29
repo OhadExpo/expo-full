@@ -104,5 +104,5 @@ const ssKeyOf = (ex) => (ex && Object.prototype.hasOwnProperty.call(ex, 'superse
     else console.log(`   ✓ applied`);
   }
 
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })();

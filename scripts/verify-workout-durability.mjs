@@ -127,7 +127,7 @@ async function cleanup(marker) {
     const own = createClient(URL_, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
     const s = await own.auth.signInWithPassword({ email: OWNER, password: PW });
     if (!s.error) ({ error } = await own.from('client_workouts').delete().in('id', left.map((r) => r.id)).like('notes', marker + '%'));
-    await own.auth.signOut().catch(() => {});
+    await own.auth.signOut({ scope: 'local' }).catch(() => {});
   }
   return rows.length;
 }
@@ -492,7 +492,7 @@ try {
         const u = await own.from('client_workouts').update({ reviewed_at: reviewedAt, form_videos: fvs }).eq('id', first[0].id).like('notes', M + '%');
         ownErr = u.error ? u.error.message : null;
       }
-      await own.auth.signOut().catch(() => {});
+      await own.auth.signOut({ scope: 'local' }).catch(() => {});
       // the athlete re-opens the day (within 2 h → the same row) and completes it again
       await portal(page);
       await clickAction(page, DAY); await wait(1500);
@@ -515,7 +515,7 @@ try {
   check('-', 'cleanup: no rows of this run left', left === 0, `left=${left}`);
   check('-', 'hygiene: no push reached the owner, no store write besides presence', hygiene.storeWrites.length === 0, `pushes stubbed=${hygiene.pushes} storeWrites=${hygiene.storeWrites.length}${hygiene.storeWrites.length ? ' ' + hygiene.storeWrites.join(' | ') : ''}`);
   await browser.close().catch(() => {});
-  await sb.auth.signOut().catch(() => {});
+  await sb.auth.signOut({ scope: 'local' }).catch(() => {});
 }
 
 const measured = Object.entries(clauses).filter(([, v]) => v).map(([k]) => k);

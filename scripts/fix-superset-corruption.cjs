@@ -150,7 +150,7 @@ function remapDayExercises(exs) {
 
   if (!APPLY) {
     console.log('Dry-run only. No DB writes. Re-run with --apply to commit.');
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' });
     return;
   }
 
@@ -163,5 +163,5 @@ function remapDayExercises(exs) {
   }
   console.log(`\nDone. ${ok} updated, ${fail} failed.`);
 
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })();
