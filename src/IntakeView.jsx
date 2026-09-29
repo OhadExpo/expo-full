@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog, CaretGlyph } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
@@ -324,7 +324,7 @@ export default function IntakeView({ trainees }) {
                     <option value="assessment">{tt('Physical assessment')}</option>
                     <option value="progress">{tt('Progress check-in')}</option>
                   </select>
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                 </div>
               </div>
               <div>
@@ -338,7 +338,7 @@ export default function IntakeView({ trainees }) {
                         unsubmittable link. */}
                     <option value="en" disabled={!getForm(genForm.formType, 'en')}>{'English (EN)'}{getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
                   </select>
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                 </div>
               </div>
             </div>
@@ -353,7 +353,7 @@ export default function IntakeView({ trainees }) {
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                 </div>
               </div>
             )}

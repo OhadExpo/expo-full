@@ -8,6 +8,7 @@
 // changes his program — it analyses and advises, the coach builds.
 //
 // Analysis engine: src/lineageAnalysis.js (pure). This file is presentation.
+import { CaretGlyph } from './ui';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
@@ -703,7 +704,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               <div style={{ marginTop: 8 }}>
                 <button type="button" onClick={() => setShowThin((v) => !v)}
                   style={{ fontFamily: FN, fontSize: 11, letterSpacing: '0.04em', color: C.tm, background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: C.ac }}>{showThin ? '▾' : (he ? '◂' : '▸')}</span>{he
+                  <span style={{ color: C.ac }}><CaretGlyph rot={showThin ? 0 : (he ? 90 : -90)} /></span>{he
                     ? `${thin.length === 1 ? 'עוד תרגיל אחד שנרשם' : `עוד ${thin.length} תרגילים שנרשמו`} 1–2 פעמים · מעט מדי למגמה${showThin ? '' : ' (הצגה)'}`
                     : `${thin.length} more lift${thin.length === 1 ? '' : 's'} logged 1–2× · too few to trend ${showThin ? '' : '(show)'}`}
                 </button>

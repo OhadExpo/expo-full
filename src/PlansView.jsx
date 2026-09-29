@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -1145,7 +1145,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: open ? 8 : 0 }}>
         <button onClick={() => setOpen(o => !o)} title={tr(readLang(), open ? 'Collapse warm-up' : 'Expand warm-up')}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:open?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none' }}>▾</span>
+          <span style={{ color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:open?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none' }}><CaretGlyph /></span>
           <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>{tt('WARM-UP')} ({warmup.length})</span>
         </button>
         {/* EXPAND ALL — identical control + rules as the day cards: toggles
@@ -1167,7 +1167,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
           }}
             title={tr(readLang(), anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully')}
             style={{ marginInlineStart:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.09em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-            <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
+            <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}><CaretGlyph /></span>
             {/* marginInlineEnd cancels the trailing letter-space (letterSpacing
                 adds 0.14em AFTER the last glyph too), so the arrow+text group
                 optically centres in the box instead of sitting ~1.4px left. */}
@@ -1230,7 +1230,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                   role="button" tabIndex={0} aria-expanded={wuOpen}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
                   style={{ color: C.tx, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}>▾</span>
+                  <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}><CaretGlyph /></span>
                   <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
                 </div>
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
@@ -1437,7 +1437,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:12, marginBottom:16}}>
                   <button onClick={() => setWarmOpen(o => !o)}
                     style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10}}>
-                    <span style={{color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:warmOpen?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none'}}>▾</span>
+                    <span style={{color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:warmOpen?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none'}}><CaretGlyph /></span>
                     <span style={{fontSize:12, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>{tt('WARM-UP')} ({cmpPlan.warmup.length})</span>
                   </button>
                   {warmOpen && <div style={{marginTop:8}}>
@@ -1452,7 +1452,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `1px solid rgba(57,189,255,0.102)`, cursor:'pointer'}}>
                             <div style={{fontFamily:FN, fontSize:11, color:C.tx, fontWeight:700, textAlign:'center'}}>{i + 1}</div>
                             <div style={{fontSize:13, color:C.tx, fontFamily:FB, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:6}}>
-                              <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:wuOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                              <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:wuOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
                               <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.t || '—'}</span>
                             </div>
                             <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{wuRx(w) || '—'}</div>
@@ -1503,7 +1503,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                   <div key={d.id || di} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
                     <div onClick={e => { if (e.target === e.currentTarget) toggleCmpDay(cmpDayKey); }}
                       style={{display:'flex',alignItems:'center',marginBottom:cmpCollapsed?0:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:cmpCollapsed?0:8,borderBottom:cmpCollapsed?'none':`1px solid ${C.cardBd}`}}>
-                      <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={tr(readLang(), cmpCollapsed?'Expand day':'Collapse day')} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
+                      <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={tr(readLang(), cmpCollapsed?'Expand day':'Collapse day')} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}><CaretGlyph rot={cmpCollapsed ? -90 : 0} /></span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
                       <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
@@ -1570,7 +1570,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 role="button" tabIndex={0} aria-expanded={exOpen}
                                 onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpEx(exKey); } }}
                                 style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderInlineStart:`3px solid ${pe.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
-                                <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                                <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
                                 <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
                               </div>
                               <input value={pe.superset || ''} readOnly tabIndex={-1}
@@ -2451,7 +2451,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'center'}}>
                   {sameAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
                 </select>
-                <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
+                <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}><CaretGlyph /></span>
               </div>
             );
           })()}
@@ -2716,7 +2716,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
                   title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')}
-                  style={{cursor:'pointer',color:'var(--c-tx)',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}>▾</span>
+                  style={{cursor:'pointer',color:'var(--c-tx)',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}><CaretGlyph /></span>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
                 <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
@@ -2740,7 +2740,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:24,padding:0,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5}}>
                     {/* One glyph rotated for both states — ▴ and ▾ render at
                         different sizes in this font, so the arrows mismatched. */}
-                    <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}>▾</span>
+                    <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}><CaretGlyph /></span>
                     {/* Same trailing letter-space cancellation as the warm-up
                         EXPAND ALL — see that comment. */}
                     <span style={{marginInlineEnd:'-0.14em'}}>{anyOpen?tt('COLLAPSE ALL'):tt('EXPAND ALL')}</span>
@@ -2858,7 +2858,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         role="button" tabIndex={0} aria-expanded={exOpen}
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleOvExpand(ex.id); } }}
                         style={{color:C.tx, minWidth:0, borderInlineStart:`3px solid ${ex.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
-                        <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                        <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
                         <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
@@ -5219,7 +5219,7 @@ function AthleteCombo({ value, options, onPick, title }) {
         style={{background:'var(--c-sf)',border:`1px solid ${open?C.ac:C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 36px 0 18px',borderRadius:0,outline:'none',flex:1,minWidth:0,boxSizing:'border-box',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
         <bdi>{current?.label || 'Unassigned'}</bdi>
       </button>
-      <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
+      <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}><CaretGlyph /></span>
       {open && <>
         <div onClick={()=>setOpen(false)} style={{position:'fixed',inset:0,zIndex:9998}} />
         <div style={{position:'absolute',top:44,left:0,right:0,zIndex:9999,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,boxShadow:C.cardShadow,display:'flex',flexDirection:'column',maxHeight:'min(420px, 60vh)'}}>

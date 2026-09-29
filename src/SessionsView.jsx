@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, laz
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
-import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit } from './ui';
+import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit, CaretGlyph } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
 import { tr, readLang, useT as useAppT, useTB } from './i18n';
@@ -756,7 +756,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                 <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
                   <span style={{ display: 'inline-block', width: 18, flexShrink: 0, fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: allDone ? C.gn : C.tm }}>{allDone ? '✓' : (ei + 1)}</span>{ex.title}
                 </span>
-                <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><CaretGlyph /></span>
               </div>
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}

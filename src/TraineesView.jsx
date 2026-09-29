@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, todayLocalISO } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast, CaretGlyph } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -603,7 +603,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
   }, []);
   const addAthleteControl = (
 <div ref={addMenuRef} data-add-athlete style={{position:'relative', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0}}>
-              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')} ▾</Btn>
+              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')}<span style={{ marginInlineStart: 6, display: 'inline-flex' }}><CaretGlyph /></span></Btn>
               {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
                 {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
                   <button key={format} onClick={()=>{

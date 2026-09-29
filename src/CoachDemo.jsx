@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -796,7 +796,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
     return () => window.removeEventListener('resize', on);
   }, []);
   const addAthleteBtn = (
-    <button title={T('Demo only')} data-add-athlete="" style={{ ...baseBtn, background: 'transparent', color: 'var(--c-acText, #39BDFF)', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>
+    <button title={T('Demo only')} data-add-athlete="" style={{ ...baseBtn, background: 'transparent', color: 'var(--c-acText, #39BDFF)', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')}<span style={{ marginInlineStart: 6, display: 'inline-flex' }}><CaretGlyph /></span></button>
   );
   const [search, setSearch] = useState('');
   // the real roster opens on ACTIVE (TraineesView), not ALL
@@ -1592,7 +1592,7 @@ function DemoEvalIntake({ trainee }) {
         <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }} dir="ltr">{dAgoLabel(74)}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>{T('AGE')} </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>{T('HT')} </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>{T('WT')} </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>{T('FIELDS')} </span>{DEMO_EVAL.fields}</span>
-          <span style={{ color: C.tm, fontSize: 12 }}>{open ? '▾' : '▸'}</span>
+          <span style={{ color: C.tm, fontSize: 12 }}><CaretGlyph rot={open ? 0 : -90} /></span>
         </div>
         {open && (
           <div style={{ padding: '0 14px 14px' }}>
@@ -2737,7 +2737,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, minHeight: CTRL_H, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {athletePrograms.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
               </select>
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 12, lineHeight: 1 }}>▾</span>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 12, lineHeight: 1 }}><CaretGlyph /></span>
             </div>
           )}
         </div>
@@ -3077,7 +3077,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     <select value={compareAthleteId} onChange={e => setCompareAthleteId(e.target.value)} style={pickerStyle(false)}>
                       {cmpAthleteOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
-                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
@@ -3088,7 +3088,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         ? <option value="">{T('No other programs for this athlete')}</option>
                         : cmpCandidates.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: noCandidates ? C.td : C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: noCandidates ? C.td : C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                   </div>
                 </div>
               </div>
@@ -4232,7 +4232,7 @@ function DemoSessionExercise({ ex, open, onToggle, doneUpTo, index }) {
             {index != null && <span style={{ fontFamily: FN, color: C.td, fontWeight: 700, flexShrink: 0 }}>{index}</span>}
             <span>{allDone && <span style={{ color: C.gn, marginInlineEnd: 4 }}>✓</span>}{ex.title}</span>
           </span>
-          <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+          <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><CaretGlyph /></span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, unicodeBidi: 'isolate' }}>{String(ex.prescribed).replace(/\s*×\s*/g, '×')}</span>
@@ -4407,7 +4407,7 @@ function DemoSingle() {
                   {/* every row said BLOCK #4; each athlete has their own */}
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }} dir="ltr">{((t.plans && t.plans[0]) || '').split(' — ')[0] || 'BLOCK #1'}</span>
                 </span>
-                <span style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                <span style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><CaretGlyph /></span>
               </button>
               {isOpen && (
                 <div style={{ padding: '0 14px 14px' }}>

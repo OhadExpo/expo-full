@@ -98,6 +98,18 @@ export function SortArrow({ up }) {
     </svg>
   );
 }
+// THE CARET GLYPH (29.9 #457): the house chevron (StripCaret's path) sized to
+// the text around it and drawn in its colour. It replaces the ▾ / ▸ text
+// triangles - below 12px a Nord triangle renders as a dash, and two caret
+// shapes on one page read as two systems. `rot` turns it (0 = down, -90 = end).
+export function CaretGlyph({ rot = 0 }) {
+  return (
+    <svg aria-hidden viewBox="0 0 9 6" width="0.8em" height="0.54em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, transform: rot ? `rotate(${rot}deg)` : undefined, transition: 'transform 180ms ease' }}>
+      <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export const STRIP_BTN_H = 26;
 export const stripBtnBase = {
   height: STRIP_BTN_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,
