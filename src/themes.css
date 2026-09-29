@@ -1833,7 +1833,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    injuries, Roster health, the load board). Rows keep their rule between them. */
 .bhbc-zone .bhbc-row:last-child { border-bottom-color: transparent !important; }
 
-/* THE FIRST ROW UNDER A TITLE STRIP (29.9 #418, Ohad: "zack bryant has a very
+/* THE FIRST ROW UNDER A TITLE STRIP (29.9 #418, Ohad: "[athlete] has a very
    empty space above his row ... the first name after each title everywhere"):
    the card body's 12px top padding stacked on the row's own, so the first row
    sat 22px under the strip and 10px over its rule while every other row is

@@ -4400,7 +4400,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             {action}
           </span>
         )}>
-        {/* DUE, DESIGNED (29.9 #414, Ohad: "amit gershon and due 4 days is a very
+        {/* DUE, DESIGNED (29.9 #414, Ohad: "[athlete] and due 4 days is a very
             bad design"): one tinted band with ONE chip stretched across the whole
             card. Now a calm list - no orange (orange is games and injuries) - of
             equal tiles at the house height, each one opening that athlete; the
