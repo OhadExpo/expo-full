@@ -6,7 +6,7 @@
 // the two spans had NO separator at all, so it rendered:
 //
 //     PLANNOTHING WAS WRITTEN FOR THIS SLOT
-//     TRAINEDZACK BRYANT, DAESHON FRANCIS, ...
+//     TRAINED[ATHLETE], [ATHLETE], ...
 //
 // A 9px letter-spaced uppercase label followed immediately by a sibling span,
 // and nothing between them. There are 53 uses of that label style across 17

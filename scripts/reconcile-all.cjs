@@ -17,26 +17,12 @@ const SKIP_DL = process.argv.includes('--skip-download');
 
 // trainee id → Drive file id. Built from the Drive titles; the English sheets
 // are "<Name> - Training Program", the older Hebrew ones "מעקב <name>".
-const SHEETS = [
-  ['tr_omer',            'omer-sadeh',        '1Ruy8TndzYj6G174E__-_jdecSJbyWF8JFQU3ilI57uA'],
-  ['tr_diego',           'diego-day',         '1ro0rTvqF3XC5lSqD6VJCVtOX047b0xX2SvoYgxM4PII'],
-  ['tr_jordon',          'jordon-varnado',    '1DdSFbVocnN4OVfnlh-Iv6Ykdvz6UM_43RcTbySYyl-E'],
-  ['tr_nadav',           'nadav-blachar',     '1SWDaXPnnjP0BlBSVoXAd-KEG0JiTQK0d6DD85H1LmfY'],
-  ['tr_shalev',          'shalev-lugashi',    '1WkUE4MpyNTev87PcRXm2tBcOrXIhP_bdtP1kgngAx0c'],
-  ['tr_frederic',        'frederic-bourdillon','1djo-bxdvOTg8C6BmCAQ5AGM6acz1UbiEGX0Q3Hngl0Y'],
-  ['tr_daeshon',         'daeshon-francis',   '1XpqVIKrlJkHQyUfAqLkQXZemOzN5wbci4pIe6G_gz-s'],
-  ['tr_yoav',            'yoav-shamri',       '1d76cUEKNRx1Ymq_MUVfSL6d3_i_jv0Z6YnT-HBkgPKk'],
-  ['tr_bh_qub3j221ly2',  'zack-bryant',       '1HqFto_HcpOdL6zuV5lwM3Y0hdbcnHCSD1TI8O_zeTlo'],
-  ['tr_bh_2noztwj1ly3',  'dj-burns',          '1GTlKqcohsC8HK1oN1qHqnK2dgPQ084CeR2OfznqsvxI'],
-  ['tr_bh_72laxfv1ly3',  'noah-carter',       '1brLTg6FAXf08MPEuZ_eIvTlxgfUgshAYuWFZbiT7XfQ'],
-  ['tr_yuval',           'yuval-barko',       '1lDxT6dJUdds1Q55rs9AcLot3chO6uff5p3-LVj5J8d4'],
-  ['tr_ron',             'ron-yunker',        '1LoQaBIWjK4IXPvL0V6IpotlUgHGuSZKtfW3VlCXN0GQ'],
-  ['tr_roei',            'roei-hatzvi',       '1fVGi1NF9hdPr-yfk2tdgEu2WSY-7s4eqjsQ15idRr9o'],
-  ['tr_ayelet',          'ayelet-kazatzev',   '1gMrqMC3WgF70bPWEepMXCsyq08M-I9H75dGiQaWL85w'],
-  ['tr_yuval_gotlib',    'yuval-gotliv',      '18y2uNxeQjEtjnGZ-5o8vtRd126ejhVPnG8_AA1uCi0o'],
-  ['tr_amit',            'amit-yehudai',      '1wd18MB4_hCqzRfDsPDGdzea1J5KA98pmXxW7ZnLiMy4'],
-  ['tr_ylc4i7edmnxqyj3j','ohad',              '1piyukreppOWWq0bGqGQoBB86EBzZjV7zbu9M9irI_go'],
-];
+// The table (trainee id, slug, Drive file id) is CLIENT DATA and lives in the
+// gitignored scripts/sheet-map.local.json - the repo is public (29.9 audit).
+const SHEETS = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'sheet-map.local.json'), 'utf8')).sheets; }
+  catch { console.error('scripts/sheet-map.local.json is missing (it is local only: restore it from expo-private-backups).'); process.exit(1); }
+})();
 
 fs.mkdirSync(OUT, { recursive: true });
 const results = [];

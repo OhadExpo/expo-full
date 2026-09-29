@@ -23,7 +23,8 @@ const N = Number(process.argv[3] || 40);
 const ytId = (u) => { const m = String(u).match(/(?:youtu\.be\/|\/shorts\/|[?&]v=|\/embed\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; };
 
 // trainee ids keyed by the slug the batch runner used
-const MAP = JSON.parse(fs.readFileSync(path.join(__dirname, 'sheet-trainee-map.json'), 'utf8'));
+// client data: the gitignored local file, never the public repo (29.9 audit)
+const MAP = JSON.parse(fs.readFileSync(path.join(__dirname, 'sheet-map.local.json'), 'utf8')).traineeBySlug;
 
 (async () => {
   await s.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });

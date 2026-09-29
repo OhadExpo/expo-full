@@ -1,7 +1,7 @@
 // LOG THE PRACTICES THAT HAPPENED, AND TODAY'S TWO LIFTS.
 //
-// Ohad: "log in the previous practices and today francis worked out", "nate
-// worked out today", and for the backlog: the full squad minus the limited
+// Ohad: "log in the previous practices and today [athlete] worked out",
+// "[athlete] worked out today", and for the backlog: the full squad minus the limited
 // players, "but follow the history of medicals so it's updated".
 //
 // What it writes, and nothing else:
@@ -9,15 +9,14 @@
 //             session logged for it yet, with the minutes and start time the
 //             FIXTURE already holds. No RPE and load 0: attendance and duration
 //             are facts, intensity was never recorded and is not invented.
-//   TODAY   - Daeshon Francis 30 min and Nathan Knight 60 min, type Lift,
+//   TODAY   - two athletes (by jersey) 30 and 60 min, type Lift,
 //             weight room. Their own durations, so their own entries.
 //
 // Who is IN: everyone whose medical record does not have them limited or out on
 // that date. The record carries a status, an onset and an RTP target, so an
 // athlete counts as unavailable from onset until RTP - and if the status is
 // still `limited` with no resolution, until now. Measured on this data that is
-// Francis (knee, from 25 Aug) and עמית מנחם (ankle, from 24 Aug), both still
-// limited today, which is exactly the "minus the limited two" he asked for.
+// two athletes on the medical list, both still limited today, which is exactly the "minus the limited two" he asked for.
 //
 // Idempotent: a date+start+type that already exists for an athlete is skipped,
 // so running it twice cannot double-log. DRY=1 prints and writes nothing.
@@ -90,12 +89,12 @@ for (const f of practices) {
 
 // 2. today's weight room, one entry each because the durations differ
 const TODAY_LIFTS = [
-  { match: /daeshon francis/i, min: 30 },
-  { match: /nathan knight/i, min: 60 },
+  { jersey: 5, min: 30 },
+  { jersey: 13, min: 60 },
 ];
 for (const t of TODAY_LIFTS) {
-  const p = roster.find((x) => t.match.test(x.name || ''));
-  if (!p) { console.log(`!! no roster match for ${t.match}`); continue; }
+  const p = roster.find((x) => Number(x.jersey) === t.jersey);
+  if (!p) { console.log(`!! no roster match for #${t.jersey}`); continue; }
   if (already(p.id, TODAY, '', 'Lift')) { console.log(`   ${nameOf(p.id)} already has a Lift on ${TODAY} - skipped`); continue; }
   planned.push({ id: p.id, date: TODAY, entry: { by: BY, min: t.min, rpe: null, load: 0, type: 'Lift', attended: true } });
 }

@@ -158,3 +158,8 @@ scripts/*backup*.json
 scripts/_plan-backup-*.json
 scripts/sheet-trainee-map.json
 audit-out/bhbc-state/
+
+# Client data for the sheet-reconcile scripts (names, Drive ids): local only, the repo is public (29.9)
+scripts/sheet-map.local.json
+# Club roster sheets (named athletes, daily availability = health status): never in the public repo (29.9)
+audit-out/bhbc-sheet/

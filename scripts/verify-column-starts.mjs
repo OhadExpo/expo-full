@@ -39,7 +39,7 @@ for (const W of RUN) {
       const val = row.lastElementChild;
       if (!val) continue;
       // Direction comes from the CONTAINER, not the leaf. A Latin name inside a
-      // Hebrew line ('Bryant') computes direction:ltr on the leaf, and taking
+      // Hebrew line (a Latin surname) computes direction:ltr on the leaf, and taking
       // ITS left edge put one row 12px right of the column while every other
       // row was measured from the right. The column is a property of the block.
       const rtl = getComputedStyle(val).direction === 'rtl';
@@ -67,7 +67,7 @@ for (const W of RUN) {
       // at 1500 purely because some values are longer than others. Three
       // 'misalignment' failures on 19.9 were all this; the card was aligned.
       // Direction comes from the CONTAINER, not the leaf. A Latin name inside a
-      // Hebrew line ('Bryant') computes direction:ltr on the leaf, and taking
+      // Hebrew line (a Latin surname) computes direction:ltr on the leaf, and taking
       // ITS left edge put one row 12px right of the column while every other
       // row was measured from the right. The column is a property of the block.
       }).map((e) => {
