@@ -231,7 +231,7 @@ check('S26', 'sign-out purges the device BEFORE the network call', () => {
   const i = t.indexOf('const signOut');
   const seg = t.slice(i, i + 2400);
   const purge = seg.indexOf('purgeLocalCaches()');
-  const net = seg.indexOf('supabase.auth.signOut({ scope: 'local' })');
+  const net = seg.indexOf('supabase.auth.signOut()');
   return { ok: purge > -1 && net > -1 && purge < net, why: (purge > -1 && purge < net) ? 'purge precedes the round trip' : 'the network call runs first' };
 });
 check('S27', 'personal snapshots are latched off while signed out', () => {
