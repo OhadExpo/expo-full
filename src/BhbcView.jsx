@@ -13,6 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
+import ErrorBoundary from './ErrorBoundary';
 import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
@@ -950,7 +951,8 @@ function attendance28(rec, days) {
       const rec = prev[id] ? { ...prev[id] } : emptyRec();
       const cur = Math.max(Number((rec.availability || {})[today]) || 1, floor);
       // a chosen status (the picker, 27.9 #345) - never below the medical floor
-      const next = to != null ? Math.max(Number(to) || 1, floor) : (cur >= 5 ? floor : cur + 1);
+      // a chosen code is clamped to the scale (1-5) as well as the medical floor (#436)
+      const next = to != null ? Math.min(5, Math.max(Math.round(Number(to)) || 1, floor)) : (cur >= 5 ? floor : cur + 1);
       rec.availability = { ...(rec.availability || {}), [today]: next };
       return { ...prev, [id]: rec };
     });
@@ -1789,7 +1791,12 @@ function attendance28(rec, days) {
             </div>
           </Card>
         ) : (
-          <div key={view} className="motion-rise" style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
+          // ONE VIEW CANNOT TAKE THE ZONE DOWN (29.9 #436): the only boundary
+          // was App's, around the whole zone, so a throw in any card blanked
+          // the tabs too. Keyed by view, a broken view shows its error in
+          // place, the header and tabs stay, and another tab recovers.
+          <ErrorBoundary key={view} inline>
+          <div className="motion-rise" style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
 
             {view === 'overview' && (
               <>
@@ -1887,6 +1894,7 @@ function attendance28(rec, days) {
             )}
 
           </div>
+          </ErrorBoundary>
         )}
       </main>
 
