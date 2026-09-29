@@ -710,7 +710,7 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
           the body - OUTSIDE the collapsing part, so a collapsed section still offers
           them, as the strip did (29.9 audit round 3) */}
       {right && stacked && (
-        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', padding: bare ? '8px 0 4px' : `12px ${padX}px ${leftStripe ? 12 : 0}px` /* off a stripe frame's border; 12 to a bare body as before (audit round 4) */ }}>{right}</div>
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', padding: bare ? '8px 0 4px' : `12px ${padX}px ${leftStripe && open ? 12 : 0}px` /* off a stripe frame's border while it shows; 12 to a bare body as before (audit rounds 4-5) */, transition: 'padding-bottom 260ms ease' }}>{right}</div>
       )}
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
         {/* inert when collapsed: the 0fr trick keeps children mounted, so
@@ -977,7 +977,7 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           stacked, so the row never sits under a collapsed strip's negative margin,
           and nothing mounts or unmounts as the body eases (audit rounds 3-4) */}
       {cardStacked && headerRight && (
-        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: (bodyShown === undefined ? !!children : bodyShown) ? 12 : 0 }}>{headerRight}</div>
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: (bodyShown === undefined ? !!children : bodyShown) ? 12 : 0, transition: bodyShown === undefined ? undefined : `margin-bottom ${bodyMs}ms ease` /* eases with the body, no 12px snap (audit round 5) */ }}>{headerRight}</div>
       )}
       {leftStripe ? (
         <div style={{
