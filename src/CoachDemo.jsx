@@ -331,7 +331,7 @@ function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac,
 // clickable and does nothing is the thing he objected to — but the panel
 // itself should never have been on a screen shown to a buyer.
 
-function DemoDashboard({ onJumpToTrainee }) {
+function DemoDashboard({ onJumpToTrainee, onNav }) {
   // Messages: MARK ALL READ clears the unread dots, as on the real card.
   const [msgsRead, setMsgsRead] = useState(false);
   // Tasks: the real NotesWidget's scope toggle. GENERAL (default) = the status
@@ -339,6 +339,13 @@ function DemoDashboard({ onJumpToTrainee }) {
   // ALL = the board with the alerts under it.
   const [taskScope, setTaskScope] = useState('mine');
   const [revOpen, setRevOpen] = useState(true);   // the real revenue card collapses
+  // the real cards' collapse carets + expanders (29.9 #448)
+  const [owedOpen, setOwedOpen] = useState(true);
+  const [tasksOpen, setTasksOpen] = useState(true);
+  const [msgsOpen, setMsgsOpen] = useState(true);
+  const [answeredOpen, setAnsweredOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(true);
+  const [rosterFilter, setRosterFilter] = useState('');
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const lowSessions = MOCK_TRAINEES.filter(t => t.sessionsLeft <= 2);
@@ -445,138 +452,177 @@ function DemoDashboard({ onJumpToTrainee }) {
         </div>}
       </div>
 
-      {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget: the
-          strip with + TASK, the ALL / GENERAL / AUTO-ALERTS scope toggle, the
-          status board of written tasks and the auto-alerts list. */}
+      {/* OWED - the real dashboard's card under Revenue (OwedCard): who owes, how
+          much, since when, from the roster sheet. The demo's overdue clients. */}
+      {(() => {
+        const owed = MOCK_TRAINEES.filter((t) => t.payment === 'OVERDUE');
+        const total = owed.reduce((a, t) => a + (t.monthly || 0), 0);
+        const NB = '\u00a0';
+        const facts = (parts) => parts.map((x) => String(x).replace(/ /g, NB)).join(`${NB}· `);
+        return (
+          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14, background: C.sf }}>
+            <div className="title-strip" onClick={() => setOwedOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+              <span>{T('Owed')} ({owed.length})</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span dir="ltr" style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.75 }}>{nis(total)}</span><StripCaret open={owedOpen} /></span>
+            </div>
+            {owedOpen && <div style={{ padding: '0 14px 14px' }}>
+              {owed.map((t, n) => (
+                <button key={t.id} type="button" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: n < owed.length - 1 ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
+                  <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}><bdi>{t.name}</bdi></span>
+                  <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.or }}>{nis(t.monthly || 0)}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tm)', minWidth: 0, lineHeight: 1.6, textTransform: 'uppercase' }}>{facts([`${t.isCouple ? 12 : 8} ${T(t.isCouple ? 'couple' : 'personal')}`, `${T('since')} ${fmtNumericDate(dAgo((t.overdueDays || 0) + 30)).slice(0, 5)}`])}</span>
+                  <span />
+                </button>
+              ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase' }}>{T('From the roster sheet')} · {T('synced')} 12{T('m ago')}</span>
+                <button type="button" onClick={() => onNav && onNav('billing')} style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('Billing')} {readLang() === 'he' ? '←' : '→'}</button>
+              </div>
+            </div>}
+          </div>
+        );
+      })()}
+
+      {/* STORAGE - the real dashboard's slim meter under OWED */}
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 14px', minHeight: 36, boxSizing: 'border-box', padding: '8px 14px', border: `1px solid ${C.cardBd}`, background: C.sf, marginBottom: 14 }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase' }}>{T('Storage')}</span>
+        <span style={{ flex: '1 1 160px', height: 4, background: C.cardBd, position: 'relative' }}><span style={{ position: 'absolute', insetInlineStart: 0, top: 0, bottom: 0, width: '2%', background: C.gn }} /></span>
+        <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, letterSpacing: '0.06em' }}>1.2 GB / 100 GB · 1%</span>
+        <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.1em', textTransform: 'uppercase' }}>48 {T('form videos')}</span>
+      </div>
+
+      {/* TASKS - the real card (NotesWidget compact): the scope toggle, only the
+          columns that hold tasks, centred plain tiles, the history of done ones
+          and OPEN FULL TASKS. */}
       {(() => {
         const openTasks = DEMO_TASKS.filter(t => t.status !== 'done');
         const general = openTasks.filter(t => t.src !== 'auto');
         const alerts = openTasks.filter(t => t.src === 'auto');
+        const done = DEMO_TASKS.filter(t => t.status === 'done');
         const SEGS = [['all', 'All', openTasks.length], ['mine', 'General', general.length], ['alerts', 'Auto-alerts', alerts.length]];
-        const board = (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
-            {STATUS_COLS.slice(0, 4).map(col => {
-              const rows = DEMO_TASKS.filter(t => t.status === col.id && t.src !== 'auto');
-              return (
-                <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
-                  </div>
-                  <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
-                    {rows.map(t => {
-                      const meta = TASK_SRC[t.src];
-                      // A bordered tile 26px tall among 36px controls. It has a
-                      // border, so it stands at the one control height; a title
-                      // that wraps makes it taller, which the rule allows.
-                      return (
-                        <div key={t.id} style={{ border: `1px solid ${meta.color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
-                      );
-                    })}
-                    {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-        const alertList = alerts.length === 0
-          ? <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', padding: '4px 0' }}>{T('No coaching alerts — all clear.')}</div>
-          : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {alerts.map(t => (
-                <div key={t.id} style={{ border: `1px solid ${TASK_SRC[t.src].color}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '4px 9px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{taskTitle(t)}</div>
-              ))}
-            </div>
-          );
+        const tile = (t) => <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, minHeight: CTRL_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '6px 10px', fontFamily: FB, fontSize: 12, lineHeight: 1.35, color: C.tx }}><bdi>{taskTitle(t)}</bdi></div>;
+        const pool = taskScope === 'alerts' ? alerts : taskScope === 'mine' ? general : openTasks;
+        const cols = STATUS_COLS.slice(0, 4).map((col) => ({ col, rows: pool.filter((t) => t.status === col.id) })).filter((c) => c.rows.length);
         return (
-          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between', gap: 10 }}>
-              <span>{T('TASKS')} ({openTasks.length})</span>
-              <button title={T('Demo only')} style={{ minHeight: CTRL_H, minWidth: 58, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'default', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)' }}>{T('+ Task')}</button>
+          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14, background: C.sf }}>
+            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+              <span onClick={() => setTasksOpen((o) => !o)} style={{ cursor: 'pointer', flex: 1 }}>{T('TASKS')} ({openTasks.length})</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                <button type="button" onClick={() => onNav && onNav('tasks')} style={{ height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>+ {T('Task')}</button>
+                <span onClick={() => setTasksOpen((o) => !o)} style={{ cursor: 'pointer', display: 'inline-flex' }}><StripCaret open={tasksOpen} /></span>
+              </span>
             </div>
-            {/* 14 = the strip's inset: at 10 the toggle and the board's columns
-                started 4px outside the TASKS title (26.9, #215). */}
-            <div style={{ padding: 14 }}>
-              {/* the same equal-cell phone control as the app's (27.9 #304) */}
-              <style>{`@media (max-width: 480px){ .tasks-seg{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));width:100%} .tasks-seg > button{justify-content:center;min-width:0;padding:0 6px!important} }`}</style>
-              <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
+            {tasksOpen && <div style={{ padding: 14 }}>
+              <style>{`@media (max-width: 480px){ .tasks-seg{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));width:100%} .tasks-seg > button{justify-content:center;min-width:0;padding:0 4px!important} }`}</style>
+              <div className="rail-scroll" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
                 <div className="tasks-seg" style={{ display: 'inline-flex', flexShrink: 0, border: `1px solid ${C.cardBd}` }}>
                   {SEGS.map(([id, label, n], i) => {
                     const on = taskScope === id;
                     return (
                       <button key={id} onClick={() => setTaskScope(id)}
-                        style={{ minHeight: CTRL_H - 2, boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', padding: '0 12px', cursor: 'pointer', border: 'none', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', background: on ? 'rgba(57,189,255,0.094)' : 'transparent', color: on ? 'var(--c-ac)' : 'var(--c-tm)', display: 'inline-flex', alignItems: 'center', gap: 5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                        <SegWord full={T(label)} short={id === 'alerts' ? T('Alerts') : null} />{n > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, lineHeight: 1, opacity: on ? 0.9 : 0.5 }}>({n})</span>}
+                        style={{ height: 'calc(var(--btn-h) - 2px)', boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', padding: '0 12px', cursor: 'pointer', border: 'none', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', background: on ? C.acD : 'transparent', color: on ? C.ac : C.tm, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <SegWord full={T(label)} short={id === 'alerts' ? T('Alerts') : null} /><span style={{ opacity: 0.7 }}>({n})</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-              {taskScope === 'alerts' ? alertList : taskScope === 'all' ? (
-                <>
-                  {board}
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{T('AUTO-ALERTS')} ({alerts.length})</span>
-                      <span style={{ flex: 1, height: 1, background: C.cardBd }} />
+              {cols.length === 0
+                ? <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', padding: '6px 0' }}>{T('No coaching alerts — all clear.')}</div>
+                : <div className="cd-task-cols" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))`, gap: 10, alignItems: 'start' }}>
+                    {cols.map(({ col, rows }) => (
+                      <div key={col.id} style={{ border: `1px solid ${C.cardBd}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 34, boxSizing: 'border-box', padding: '0 10px', background: 'var(--c-sf2)', borderInlineStart: `3px solid ${col.color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tx }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color }} />{T(col.label)}</span>
+                          <span style={{ color: C.tm }}>{rows.length}</span>
+                        </div>
+                        <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>{rows.map(tile)}</div>
+                      </div>
+                    ))}
+                  </div>}
+              <style>{`@media (max-width: 700px){ .cd-task-cols{ grid-template-columns: minmax(0,1fr) !important; } }`}</style>
+              {done.length > 0 && (
+                <div style={{ marginTop: 14, borderTop: `1px dashed ${C.cardBd}`, paddingTop: 10 }}>
+                  <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', marginBottom: 4 }}>✓ {T('History')} ({done.length})</div>
+                  {done.map((t) => (
+                    <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0, 1fr) auto', alignItems: 'center', gap: 10, minHeight: 36, borderBottom: `1px solid ${C.cardBd}` }}>
+                      <span aria-hidden style={{ width: 14, height: 14, background: C.gn, color: '#0a0a0b', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                      <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, textDecoration: 'line-through', minWidth: 0 }}><bdi>{taskTitle(t)}</bdi></span>
+                      <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{T('Done')} {fmtNumericDate(dAgo(3))}</span>
                     </div>
-                    {alertList}
-                  </div>
-                </>
-              ) : board}
-            </div>
+                  ))}
+                </div>
+              )}
+              <button type="button" onClick={() => onNav && onNav('tasks')} style={{ width: '100%', height: 'var(--btn-h)', marginTop: 12, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>{T('Open full tasks')} ({openTasks.length}) {readLang() === 'he' ? '←' : '→'}</button>
+            </div>}
           </div>
         );
       })()}
 
-      {/* Messages inbox — athlete↔coach messaging surfaced on the dashboard
-          (the real DashboardView renders <MessagesCard> between Tasks and the
-          alert rail). Mock threads for the demo. */}
-      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
-          {/* The real MessagesCard header: MESSAGES (unread), and MARK ALL READ
-              while anything is unread. */}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{T('Messages')}<span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', opacity: 0.85 }}>({msgsRead ? 0 : 2})</span></span>
-          {!msgsRead && <button onClick={() => setMsgsRead(true)} style={{ minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' }}>{T('MARK ALL READ')}</button>}
-        </div>
-        <div>
-          {[
-            { name: MOCK_TRAINEES[0]?.name || 'נועה לוי', msg: T('Felt strong on bench today — hit all 4 sets'), when: T('2m'), unread: true },
-            { name: MOCK_TRAINEES[3]?.name || 'דניאל אבני', msg: T('Can we move tomorrow to 18:00?'), when: T('1h'), unread: true },
-            { name: MOCK_TRAINEES[1]?.name || 'גל מזרחי', msg: T('Sent the deadlift clip for review'), when: T('Yesterday'), unread: false },
-          ].map((m) => ({ ...m, unread: m.unread && !msgsRead })).map((m, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
-              <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{m.msg}</span>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{RT(m.when)}</span>
-            </div>
+      {/* ONLINE NOW - the real dashboard lifts it out of the alert rail: its own
+          full-width card above Messages */}
+      {onlineNow.length > 0 && (
+        <div className="alert-card" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
+          <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 8px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>
+          </div>
+          {onlineNow.map(t => (
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.gn, boxShadow: `0 0 4px ${C.gn}`, flexShrink: 0 }} />
+              <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
+            </Row>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Alert rail — horizontal flex (overflowX auto, cursor grab), mirroring
-          the real DashboardView. Order: Online Now → Expiring Packages →
-          Overdue Payment → Dormant → New Leads. */}
-      {/* flex-start, not stretch: on a phone one tile whose Hebrew names wrap to
-      three lines grew to 270px and STRETCHED every short tile to match,
-      leaving 224-256px of measured dead air under two-row tiles. Desktop
-      never showed it because the heights are close there. Ohad: get rid of
-      those empty spaces on cards, full-wide-all-platforms. */}
-      {/* .alert-rail is the real dashboard's class for this strip: 280px cards, and
-          stacked under 620px (themes.css). Same class, same behaviour. */}
-      <div className="alert-rail" style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
-        {onlineNow.length > 0 && (
-          <Panel title={`${T('Online Now')} (${onlineNow.length})`} tint={C.gn} icon="dot">
-            {onlineNow.map(t => (
-              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.gn, boxShadow: `0 0 4px ${C.gn}`, flexShrink: 0 }} />
-                <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              </Row>
-            ))}
-          </Panel>
-        )}
+      {/* MESSAGES - the real card: an avatar, the name with INBOUND, the kind of
+          message under it, the time in cyan; answered threads fold into
+          "+ n ANSWERED"; the strip collapses. */}
+      {(() => {
+        const threads = [
+          { id: 'm1', t: MOCK_TRAINEES[0], kind: 'text', msg: T('Felt strong on bench today — hit all 4 sets'), when: T('2m'), answered: false },
+          { id: 'm2', t: MOCK_TRAINEES[3], kind: 'voice', when: T('1h'), answered: false },
+          { id: 'm3', t: MOCK_TRAINEES[1], kind: 'text', msg: T('Sent the deadlift clip for review'), when: T('Yesterday'), answered: true },
+        ].filter((m) => m.t);
+        const open = threads.filter((m) => !m.answered);
+        const answered = threads.filter((m) => m.answered);
+        const unread = msgsRead ? 0 : open.length;
+        const row = (m) => (
+          <div key={m.id} onClick={() => onJumpToTrainee(m.t.id, 'dashboard')} style={{ display: 'grid', gridTemplateColumns: '32px minmax(0, 1fr) auto', alignItems: 'center', gap: 12, minHeight: 52, padding: '8px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
+            <span aria-hidden style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${C.ac}`, color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FB, fontSize: 13, fontWeight: 700 }}>{String(m.t.name || '?').trim().charAt(0)}</span>
+            <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <bdi style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.t.name}</bdi>
+                {!m.answered && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, textTransform: 'uppercase' }}>{T('Inbound')}</span>}
+                {!m.answered && !msgsRead && <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: C.ac }} />}
+              </span>
+              <span style={{ fontFamily: m.kind === 'voice' ? FN : FB, fontSize: m.kind === 'voice' ? 10 : 12, letterSpacing: m.kind === 'voice' ? '0.08em' : 0, color: C.tm, textTransform: m.kind === 'voice' ? 'uppercase' : 'none', minWidth: 0, overflowWrap: 'break-word' }}>{m.kind === 'voice' ? <>🎤 {T('Voice note')}</> : m.msg}</span>
+            </span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap' }}>{RT(m.when)}</span>
+          </div>
+        );
+        return (
+          <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20, background: C.sf }}>
+            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+              <span onClick={() => setMsgsOpen((o) => !o)} style={{ cursor: 'pointer', flex: 1, display: 'inline-flex', alignItems: 'center', gap: 8 }}>{T('Messages')}<span style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.85 }}>({unread})</span></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                {unread > 0 && <button type="button" onClick={() => setMsgsRead(true)} style={{ height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', background: 'transparent', border: '1px solid var(--c-stripTx)', color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', textTransform: 'uppercase' }}>{T('Mark all read')}</button>}
+                <span onClick={() => setMsgsOpen((o) => !o)} style={{ cursor: 'pointer', display: 'inline-flex' }}><StripCaret open={msgsOpen} /></span>
+              </span>
+            </div>
+            {msgsOpen && <div style={{ padding: '0 14px 14px' }}>
+              {open.map(row)}
+              {answeredOpen && answered.map(row)}
+              {answered.length > 0 && <button type="button" onClick={() => setAnsweredOpen((o) => !o)} style={{ width: '100%', height: 'var(--btn-h)', marginTop: 10, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>{answeredOpen ? T('Hide answered') : `+ ${answered.length} ${T('Answered')}`}</button>}
+            </div>}
+          </div>
+        );
+      })()}
 
+      {/* THE ALERT RAIL - the real cards (a full border in their colour, rows one
+          36px height, the rail's shared widths); ONLINE NOW sits above. */}
+      <div className="alert-rail" style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 4 }}>
         {expiring.length > 0 && (
           <Panel title={`${T('Expiring Packages')} (${expiring.length})`} tint={C.or} icon="alert">
             {expiring.map(t => (
@@ -587,19 +633,14 @@ function DemoDashboard({ onJumpToTrainee }) {
             ))}
           </Panel>
         )}
-
         <Panel title={`${T('Overdue Payment')} (${overdue.length})`} tint={C.rd} icon="dollar">
           {overdue.map((t) => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              {/* Was: the first row said "Never paid" and the rest counted
-                  (i+1)*32 days — 64, 96 — by POSITION. גל is a paying client
-                  who lapsed, and his own card said 21 days on the next tab. */}
               <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.payment === 'NEVER PAID' ? T('Never paid') : TN('{n}d overdue', t.overdueDays || 0)}</span>
             </Row>
           ))}
         </Panel>
-
         <Panel title={`${T('Dormant')} (${dormant.length})`} tint={C.or} icon="moon">
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
@@ -609,70 +650,61 @@ function DemoDashboard({ onJumpToTrainee }) {
             </Row>
           ))}
         </Panel>
-
-        {/* NEW LEADS IS DELIBERATELY NOT HERE, for the same reason
-            INCOMING · 30D is not: it is EXPO's funnel, not the buyer's. Its
-            rows carried source "expo-il" and contexts like "pricing CTA" and
-            "exit-intent" — leads from the marketing site a coach who signs up
-            does not own, so the panel sold a feature that does not transfer.
-            The audit also found its ✓ and ✕ buttons painted on top of the
-            email, rendering as A[✕][✓]EXAMPLE.CO.IL, and the run sheet already
-            told him to steer around the panel. Nothing to steer around now. */}
       </div>
 
-      {/* Client roster table — same shape as the real DashboardView's
-          sortable client list. Border is 0.25px ac-dimmed, headers are
-          10px FN with 0.05em tracking, body rows hover-tinted. */}
-      <div style={{
-        background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-        overflowX: 'auto', marginBottom: 8,
-      }}>
-          {/* Strip header — mirrors the real DashboardView "All Athletes — N". */}
-          <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase', ...DEMO_STRIP_H }}>{T('All Athletes')} · {MOCK_TRAINEES.length}</div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
-                {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
-                  <th key={h} style={{
-                    textAlign: 'center', padding: '10px 12px', whiteSpace: 'nowrap',
-                    fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
-                  }}>{h === 'Athlete' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{T(h)} <span style={{ fontSize: 8 }}>↑</span></span> : (h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h))}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_TRAINEES.map((t, i) => {
-                const totalPaid = (t.monthly || 0) * (t.payment === 'OVERDUE' ? 2 : 3);
-                // Off the trainee, and relative: two fixed spring dates meant
-                // every PAID athlete claimed the same last payment, and in
-                // September that date was five months old.
-                const lastPay = t.payment === 'NEVER PAID' ? '—' : dAgo(t.payment === 'PAID' ? (t.paidDaysAgo || 0) : (t.overdueDays || 0) + 30);
-                const workouts = t.dormantDays != null ? 4 : 12;
-                return (
-                  <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
-                    onMouseEnter={e => e.currentTarget.style.background = C.sf2}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    // Ohad, 24.9: "no way the rows borders in the table are smaller
-                    // vertically than the universal button vertical size. either the
-                    // same for minimum or bigger" — and the text centred in them. A
-                    // <tr> height is a floor, not a fixed size, so wrapped text still
-                    // grows the row; it just never goes under the control height.
-                    style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
-                    <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
-                    <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
-                    <td style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
-                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
-                    <td style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
-                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
-                    <td style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{planCount(t)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-      </div>
+      {/* ALL ATHLETES - the real card: "ALL ATHLETES — n" with its caret, the
+          filter inside it, one header colour (the sorted one cyan), and on a
+          phone ATHLETE . STATUS . SESSIONS (themes.css .dash-roster). */}
+      {(() => {
+        const q = rosterFilter.trim().toLowerCase();
+        const rows = MOCK_TRAINEES.filter((t) => !q || String(t.name).toLowerCase().includes(q)).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const th = (h, opt, sorted) => <th key={h} className={opt ? 'dash-opt' : undefined} style={{ textAlign: 'center', padding: '10px 12px', whiteSpace: 'nowrap', fontSize: 9, fontFamily: FN, color: sorted ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h)}{sorted && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>;
+        return (
+          <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 8 }}>
+            <div className="title-strip" onClick={() => setRosterOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
+              <span>{T('All Athletes')} — {MOCK_TRAINEES.length}</span>
+              <StripCaret open={rosterOpen} />
+            </div>
+            {rosterOpen && <>
+              <div style={{ padding: '12px 14px' }}>
+                <input type="text" placeholder={T('Filter athletes...')} value={rosterFilter} onChange={(e) => setRosterFilter(e.target.value)} style={{ ...appBaseInput, width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', paddingInlineStart: 12, textAlign: 'start' }} />
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="dash-roster" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+                      {th('Athlete', false, true)}{th('Status', false)}{th('Format', true)}{th('Package', true)}{th('Sessions', false)}{th('Total Paid', true)}{th('Last Payment', true)}{th('Workouts', true)}{th('Programs', true)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((t) => {
+                      const totalPaid = (t.monthly || 0) * (t.payment === 'OVERDUE' ? 2 : 3);
+                      const lastPay = t.payment === 'NEVER PAID' ? '—' : dAgo(t.payment === 'PAID' ? (t.paidDaysAgo || 0) : (t.overdueDays || 0) + 30);
+                      const workouts = t.dormantDays != null ? 4 : 12;
+                      return (
+                        <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+                          onMouseEnter={e => e.currentTarget.style.background = C.sf2}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
+                          <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
+                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
+                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
+                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
+                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
+                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
+                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tm, fontSize: 12 }}>{planCount(t)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>}
+          </div>
+        );
+      })()}
     </section>
   );
 }
@@ -701,11 +733,12 @@ function Panel({ title, tint, icon, children, cyanBorder }) {
   return (
     <div style={{
       background: C.sf,
-      border: cyanBorder ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`,
-      borderInlineStart: cyanBorder ? `1px solid ${C.ac}` : `3px solid ${tint}`,
+      // the real alert card: a full 1px border in its colour (was a 3px side bar)
+      // and the rail's own widths (.alert-rail > *) - a fixed 300 overrode them
+      border: `1px solid ${cyanBorder ? C.ac : tint}`,
       borderRadius: 0, padding: '14px 18px',
       boxShadow: cyanBorder ? undefined : C.cardShadow,
-      flex: '0 0 auto', width: 300, boxSizing: 'border-box',
+      boxSizing: 'border-box',
     }}>
       <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
@@ -723,7 +756,7 @@ function Panel({ title, tint, icon, children, cyanBorder }) {
 function Row({ onClick, children, style }) {
   return (
     <div onClick={onClick} style={{
-      padding: '6px 0', display: 'flex', alignItems: 'center', gap: 8,
+      padding: 0, minHeight: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 8,
       cursor: onClick ? 'pointer' : 'default', fontSize: 13,
       transition: 'opacity 160ms ease',
       ...style,
@@ -5146,7 +5179,7 @@ export default function CoachDemo() {
             auditing for his first client meeting, 22.9. */}
         {/* No pill row under the header: Athletes ▾ and Review ▾ are dropdowns in
             the nav, as in the real app (#441). */}
-        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
+        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} onNav={demoNavTo} />}
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms resetToken={programsReset} />}
         {tab === 'exercises' && <DemoExercises />}
