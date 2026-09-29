@@ -77,7 +77,7 @@ const WIDTHS = [[390, 844], [1440, 950]];
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.padEnd(26)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, nodes = 0, risky = 0;
 
 for (const [name, route] of SURFACES) {

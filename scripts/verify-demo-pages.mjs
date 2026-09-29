@@ -67,7 +67,7 @@ const WIDTHS = [[360, 800], [390, 844], [768, 1024], [1440, 950]];
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.padEnd(28)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0;
 let steps = 0;
 

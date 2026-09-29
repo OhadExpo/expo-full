@@ -4,6 +4,9 @@
 #   PORT=5240 DIST=dist-d6b LOG=audit-out/REGRESS-D6b-0929.log bash audit-out/regress-cut.sh
 cd "$(dirname "$0")/.."
 : "${PORT:?PORT}" "${DIST:?DIST}" "${LOG:?LOG}"
+# HEADLESS, never his Chrome (29.9 #466: he watched the battery's tabs sign in
+# and out of EXPO in the debug Chrome he uses). Override with CDP=... if needed.
+export CDP="${CDP:-http://[::1]:9444}"
 export BASE=http://127.0.0.1:$PORT MSYS_NO_PATHCONV=1 DIST
 : > "$LOG"
 run() {
@@ -31,4 +34,6 @@ run node audit-out/_oauthret.mjs
 run node scripts/verify-strip-title-fit.mjs
 run node scripts/verify-box-centring.mjs
 run node scripts/verify-submenu-click.mjs
+run node scripts/verify-demo-box-heights.mjs
+run node scripts/verify-inline-centre.mjs
 echo "=== DONE ===" >> "$LOG"

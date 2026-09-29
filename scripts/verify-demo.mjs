@@ -130,7 +130,7 @@ for (const m of src.matchAll(/email:\s*['"]([\w.+-]+)@/g)) FIXTURE_EMAIL_LOCALS.
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(8)} ${o.id.padEnd(26)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0;
 
 for (const [name, route] of SURFACES) {

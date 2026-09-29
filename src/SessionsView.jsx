@@ -692,8 +692,11 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
             // roster" - and at 360px it was clipped by 27px, so the coach read
             // "Athlete not on this ro". A chip must never be wider than the row
             // that holds it, and the name inside it has to be allowed to wrap.
-            <div key={a.rowId} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: a.checkedIn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}` }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: a.checkedIn ? C.gn : C.td }} />
+            // BASELINE: a Hebrew name (Heebo) beside a Nord label shares a letter
+            // centre on the baseline, not by box centre (1.75-2.56px apart; the
+            // same-line ink gate, 29.9 #467). The dot stays centred on the chip.
+            <div key={a.rowId} style={{ display: 'flex', alignItems: 'baseline', gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: a.checkedIn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}` }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, alignSelf: 'center', background: a.checkedIn ? C.gn : C.td }} />
               <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{traineeName(traineeById, a.traineeId, tt('Athlete not on this roster'))}</span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.checkedIn ? (cur ? `→ ${cur.title}` : '—') : tt('not in')}</span>
             </div>

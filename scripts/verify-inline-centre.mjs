@@ -76,6 +76,7 @@ function measure(tol, brk) {
   while ((n = walk.nextNode())) {
     const raw = (n.nodeValue || '').trim();
     if (!raw || raw.length > 60) continue;
+    if (/^[\p{P}\p{S}\s]+$/u.test(raw)) continue;   // only punctuation / symbols ( ) · / ✈: no letter body to centre
     const el = n.parentElement;
     if (!el || el.closest('svg, script, style, [aria-hidden="true"]') || !vis(el)) continue;
     const rg = document.createRange(); rg.selectNodeContents(n);

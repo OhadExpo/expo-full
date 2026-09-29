@@ -595,8 +595,9 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
             <span aria-hidden style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${C.ac}`, color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FB, fontSize: 13, fontWeight: 700 }}>{String(m.t.name || '?').trim().charAt(0)}</span>
             <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <bdi style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.t.name}</bdi>
-                {!m.answered && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, textTransform: 'uppercase' }}>{T('Inbound')}</span>}
+                {/* the real MessagesCard name row: Nord 12, the label a 1.0-line box (#467) */}
+                <bdi style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.t.name}</bdi>
+                {!m.answered && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.ac, textTransform: 'uppercase', padding: '2px 0', flexShrink: 0 }}>{T('Inbound')}</span>}
                 {!m.answered && !msgsRead && <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: C.ac }} />}
               </span>
               <span style={{ fontFamily: m.kind === 'voice' ? FN : FB, fontSize: m.kind === 'voice' ? 10 : 12, letterSpacing: m.kind === 'voice' ? '0.08em' : 0, color: C.tm, textTransform: m.kind === 'voice' ? 'uppercase' : 'none', minWidth: 0, overflowWrap: 'break-word' }}>{m.kind === 'voice' ? <>🎤 {T('Voice note')}</> : m.msg}</span>
@@ -1187,9 +1188,9 @@ function BWSparkline({ weight }) {
   return (
     <div style={{ padding: 14 }}>
       <div style={{
-        display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6,
+        display: 'flex', alignItems: 'center' /* the delta centred on the figure, not riding its baseline 3.6px low (#467) */, gap: 8, marginBottom: 6,
       }}>
-        <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, letterSpacing: -0.3 }}>
+        <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, lineHeight: 1, color: C.tx, letterSpacing: -0.3 }}>
           {last.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginInlineStart: 2 }}>kg</span>
         </span>
         <span style={{
@@ -4330,8 +4331,8 @@ function DemoFloorBar({ roster, checkedIn }) {
         {roster.map((t, ai) => {
           const inn = !!checkedIn[ai];
           return (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: inn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${inn ? C.ac : C.cardBd}` }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: inn ? C.gn : C.td }} />
+            <div key={t.id} style={{ display: 'flex', alignItems: 'baseline' /* as the real chip (#467) */, gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: inn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${inn ? C.ac : C.cardBd}` }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, alignSelf: 'center', background: inn ? C.gn : C.td }} />
               <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, minWidth: 0 }}><bdi>{t.name}</bdi></span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{inn ? `→ ${T(DEMO_SESSION_DAY[0].title)}` : T('not in')}</span>
             </div>
@@ -5386,7 +5387,7 @@ export default function CoachDemo() {
         </div>
       </main>
 
-      <footer style={{
+      <footer data-demo-chrome="" style={{
         borderTop: `1px solid ${C.bd}`, padding: '18px 16px',
         maxWidth: 1280, margin: '0 auto', width: '100%',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',

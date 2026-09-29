@@ -66,6 +66,7 @@ function collect() {
     if (tag === 'IMG') { if (e.getAttribute('alt')) out.push({ kind: 'logo', k: e.getAttribute('alt').toUpperCase(), h: Math.round(r.height * 2) / 2 }); continue; }
     if (e.classList.contains('title-strip')) kind = 'strip';
     else if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') { if (e.type === 'checkbox' || e.type === 'radio' || e.type === 'hidden') continue; kind = 'input'; }
+    else if ((tag === 'A' || tag === 'BUTTON') && e.querySelector(':scope > img') && !(e.innerText || '').trim()) continue; // judged by its mark (kind logo)
     else if (tag === 'BUTTON' || e.getAttribute('role') === 'button' || e.getAttribute('role') === 'tab' || (tag === 'A' && e.getAttribute('href'))) {
       if (e.querySelector('.title-strip') || e.closest('.title-strip') && e.getAttribute('role') === 'button' && !e.matches('button')) continue;
       kind = 'btn';
@@ -109,6 +110,9 @@ try {
           }
           if (which === 'demo' && process.env.BREAK) await pg.evaluate(() => { for (const x of document.querySelectorAll('button')) x.style.minHeight = `${x.getBoundingClientRect().height + 6}px`; });
           side[which] = await pg.evaluate(collect);
+          // a real page caught mid-load (billing read 16 boxes, not 88) is not a
+          // measurement: wait and read again before judging anything on it
+          for (let k = 0; k < 3 && which === 'real' && side.real.length < 40; k++) { await wait(4000); side.real = await pg.evaluate(collect); }
         }
         const id = `${name} ${lang} ${w}`;
         if (!side.real.length || !side.demo.length) { bad++; console.log(`${id}: EMPTY real=${side.real.length} demo=${side.demo.length}`); continue; }

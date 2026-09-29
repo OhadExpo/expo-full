@@ -7,7 +7,7 @@ import { setWidth } from './lib/viewport.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const press = (sel, idx, label) => ({ sel, idx, label });
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 120000 });
 let tried = 0, bad = 0;
 const perWidth = {};   // a width that measured nothing is a FAIL, not a skip
 for (const w of [1440, 390]) {

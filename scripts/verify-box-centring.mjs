@@ -51,8 +51,13 @@ const coachRoutes = (() => {
 })();
 const SURFACES = [
   ...coachRoutes.map((r) => ({ id: 'app' + r.replace(/\//g, '-'), url: r, auth: true })),
-  ...['/demo', '/demo/coach', '/demo/coach/athletes', '/demo/coach/programs', '/demo/coach/exercises', '/demo/coach/review', '/demo/coach/billing', '/demo/coach/calendar', '/demo/athlete', '/try']
+  // #467 (29.9, his words: "add a vertical measure and fix for every button and
+  // tag we have anywhere on all platforms"): EVERY demo page (the athlete page,
+  // sessions and tasks were never walked), the sign-in page, and the marketing
+  // site (MARKETING_BASE, a separate build: expo-il)
+  ...['/demo', '/demo/he', '/demo/coach', '/demo/coach/trainees', '/demo/coach/trainees/t1', '/demo/coach/programs', '/demo/coach/exercises', '/demo/coach/sessions', '/demo/coach/review', '/demo/coach/tasks', '/demo/coach/billing', '/demo/athlete', '/try', '/login']
     .map((r) => ({ id: 'pub' + r.replace(/\//g, '-'), url: r, auth: false })),
+  ...(process.env.MARKETING_BASE ? ['/', '/#/online', '/#/gym', '/#/terms'].map((r) => ({ id: 'mkt' + (r.replace(/[\/#]+/g, '-').replace(/-$/, '') || '-chooser'), url: r, auth: false, base: process.env.MARKETING_BASE })) : []),
 ].filter((s) => !ONLY || ONLY.split(',').some((o) => s.id.includes(o)));
 
 const MEASURE = (tol) => {
@@ -163,7 +168,7 @@ try {
       for (const s of SURFACES) {
         const id = `${s.id}/${lang}/${w}`;
         try {
-          await pg.goto(BASE + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          await pg.goto((s.base || BASE) + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
           // settle: the page's box count the same on two looks a second apart
           for (let k = 0; k < 30; k++) { await wait(500); if (await pg.evaluate(() => !/LOADING DATA/.test(document.body.innerText.slice(0, 200)))) break; }
           { let last = -1; for (let k = 0; k < 20; k++) { await wait(1000); const n = await pg.evaluate(() => document.querySelectorAll('button, .title-strip, [data-strip]').length); if (n > 0 && n === last) break; last = n; } }

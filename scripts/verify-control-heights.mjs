@@ -95,7 +95,7 @@ const THEMES = ['dark', 'light'];
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(8)} ${o.id.padEnd(34)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, controls = 0, rowsSeen = 0;
 const seats = new Map();   // --site coach: one signed-in page per lang x width x theme
 const tolRow = 1;
