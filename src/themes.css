@@ -2100,3 +2100,12 @@ select.avail-select:dir(rtl) {
   .wr-day-card .wr-meta .wr-dot{ display: none !important; }
   .wr-strip-repeat{ display: none !important; }
 }
+
+/* DASHBOARD STORAGE on a phone: two rows of one height (29.9) */
+@media (max-width: 620px) {
+  .dash-storage { display: grid !important; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 20px 20px; grid-template-areas: "label fig" "bar files"; column-gap: 14px !important; row-gap: 6px !important; align-items: center; }
+  .dash-storage .ds-label { grid-area: label; line-height: 20px; }
+  .dash-storage .ds-fig { grid-area: fig; justify-self: end; line-height: 20px; }
+  .dash-storage .ds-bar { grid-area: bar; min-width: 0 !important; }
+  .dash-storage .ds-files { grid-area: files; justify-self: end; line-height: 20px; font-size: 12px !important; }   /* letters the height of the row above's, or the ink sits low */
+}
