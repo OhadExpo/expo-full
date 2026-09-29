@@ -2355,6 +2355,7 @@ export const HE = {
   'RELATIVE': 'יחסי',
   'Enter bodyweight to estimate peak power.': 'תכניס משקל גוף כדי להעריך הספק שיא.',
   'Jump the video to this rep': 'דילוג בסרטון לחזרה הזאת',
+  'Jump the video to this moment': 'דילוג בסרטון לרגע הזה',
   'peak {n}': 'שיא {n}',
   // 17.9 MovementLab 3D viewer
   'SIDE': 'מהצד',

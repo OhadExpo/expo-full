@@ -680,7 +680,12 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballO
     { key: 'release', label: 'RELEASE', idx: c.release },
     { key: 'apex', label: 'APEX', idx: c.apex },
     { key: 'follow', label: 'FOLLOW', idx: c.followEnd },
-    { key: 'landing', label: 'LAND', idx: c.landing },
+    // A LANDING BEFORE THE RELEASE IS NOT A LANDING (#425 audit): on a shot
+    // whose hips barely leave their stance height the "apex" is noise and the
+    // hip is back at base one frame later - LAND pointed at a frame before the
+    // ball left. A player lands after he releases, always; otherwise there is
+    // no landing to show.
+    { key: 'landing', label: 'LAND', idx: c.landing >= 0 && c.landing > c.release ? c.landing : -1 },
   ].filter((p) => p.idx >= 0).map((p) => ({ ...p, tMs: tMs[p.idx] }));
   return { checks, score, info, phases, raw: v };
 }

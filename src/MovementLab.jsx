@@ -1803,7 +1803,10 @@ function RomTable({ r, jointRom, kind, frames = null, playheadT = null, onScrub 
           <TempoBars perRep={r.perRep} />
           <Row head cells={[tt('REP'), 'ROM', 'ECC s', tt('pause').toUpperCase(), 'CON s']} />
           {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined}
-            onClick={onScrub && x.startT != null ? () => onScrub(x.startT) : undefined} />)}
+            onClick={onScrub && x.startT != null ? () => onScrub(x.startT) : undefined}
+            // ROM = the bottom (end of the eccentric), ECC = the rep's start,
+            // PAUSE = after the eccentric, CON = after the pause
+            cellClicks={onScrub && x.startT != null ? [null, () => onScrub(x.startT + x.ecc * 1000), () => onScrub(x.startT), () => onScrub(x.startT + x.ecc * 1000), () => onScrub(x.startT + (x.ecc + x.pause) * 1000)] : null} />)}
         </>
       ) : (
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 10 }}>
@@ -2337,13 +2340,15 @@ const MiniKpi = ({ label, value, tone }) => (
 // onClick (optional) — e.g. the Review player wires this to seek the video to
 // this rep's start, so clicking a rep row jumps the clip there (preserving
 // play/pause — it's a plain currentTime set, not a pause/play call).
-const Row = ({ cells, head, tone, onClick }) => { const tt = useT(); return (
+// cellClicks[i]: that CELL jumps to its own moment (29.9 #432, the Shot Analyzer's
+// table rule: a number is a jump to the frame it measures); the row jumps to the rep.
+const Row = ({ cells, head, tone, onClick, cellClicks = null }) => { const tt = useT(); return (
   <div onClick={onClick} title={onClick ? tt('Jump the video to this rep') : undefined}
     style={{ display: 'grid', gridTemplateColumns: `repeat(${cells.length}, 1fr)`, gap: 4, padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: onClick ? 'pointer' : 'default' }}
     onMouseEnter={onClick ? (e) => { e.currentTarget.style.background = 'rgba(57,189,255,0.08)'; } : undefined}
     onMouseLeave={onClick ? (e) => { e.currentTarget.style.background = 'transparent'; } : undefined}>
     {cells.map((c, i) => (
-      <span key={i} style={{ fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'start' : 'end' }}>{c}</span>
+      <span key={i} onClick={cellClicks && cellClicks[i] ? (e) => { e.stopPropagation(); cellClicks[i](); } : undefined} title={cellClicks && cellClicks[i] ? tt('Jump the video to this moment') : undefined} style={{ cursor: cellClicks && cellClicks[i] ? 'pointer' : undefined, fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'start' : 'end' }}>{c}</span>
     ))}
   </div>
 );

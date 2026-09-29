@@ -37,7 +37,7 @@ export const SHOT_I18N = {
     shotTypes: { ft: 'Free throw', mid: 'Mid-range', three: 'Three' },
     // the court's own short forms, shown only where the full word would not fit
     shotTypesShort: { ft: 'FT', mid: 'Mid', three: '3PT' },
-    height: 'Height', cmPlaceholder: 'cm',
+    height: 'Height', cmPlaceholder: 'cm', saveBtn: 'SAVE',
     savedCm: '✓ SAVED', rescored: '✓ RESCORED', cmUnit: 'CM', forCm: 'FOR CM',
 
     idleTitle: 'Analyse a jump shot, frame by frame.',
@@ -92,7 +92,7 @@ export const SHOT_I18N = {
     phases: { stance: 'STANCE', dip: 'DIP', set: 'SET', release: 'RELEASE', apex: 'APEX', follow: 'FOLLOW', landing: 'LAND' },
     back10: 'Back 10 frames', prev1: 'Previous frame', next1: 'Next frame', fwd10: 'Forward 10 frames',
     phaseJump: (l) => `Jump to ${String(l).toLowerCase()} — stays on this moment when you switch shots`,
-    metrics: { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', armElev: 'Arm elev.', forearm: 'Forearm ∠', trunk: 'Trunk lean', wristEye: 'Wrist vs eye', elbowOffset: 'Elbow offset' },
+    metrics: { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', armElev: 'Arm lift', forearm: 'Forearm', trunk: 'Trunk lean', wristEye: 'Wrist-eye', elbowOffset: 'Wrist-elbow' },
 
     save: 'SAVE SESSION', copy: 'COPY SUMMARY', print: 'PRINT REPORT', newClip: '↺ NEW CLIP',
     savedTitle: 'SAVED SESSIONS', savedNone: 'Nothing saved yet.', savedDrop: 'Remove',
@@ -103,12 +103,26 @@ export const SHOT_I18N = {
     quality: { good: 'good', fair: 'fair', poor: 'poor' },
     summary: (f, w, o, q, p, fps) => `${f} to fix · ${w} to watch · ${o} OK · tracking ${q} (${p}% of shot frames) · ${fps} fps`,
     shotOf: (i, n) => `VIEWING SHOT ${i} OF ${n} DETECTED`,
+    // The one-row rep picker: SHOT 10 / 11 between two arrows.
+    shotWord: 'SHOT', prevShot: 'Previous shot', nextShot: 'Next shot',
+    tabShot: 'THIS SHOT', tabSession: 'SESSION', tabSaved: 'SAVED', sessionOne: 'One shot in this clip - the session view needs two or more.',
+    // The dot on the option AUTO is using - detected, or the default when the
+    // clip could not show it. Never both called a detection.
+    autoPicked: 'AUTO: read from the clip',
+    autoFallback: 'AUTO: the clip does not show it, so this is the default',
+    // The clip-warning line, collapsed: the finding's title and this phrase.
+    warnShort: {
+      'no-body': 'film him in frame', 'rarely-seen': 'keep him in frame',
+      'no-headroom': 'the ball leaves the frame', 'head-cut': 'tilt the phone up',
+      'too-far': 'move closer', 'low-res': 'film at normal quality', 'too-dark': 'more light',
+    },
+    warnOpen: 'Show what the clip is missing', warnDismiss: 'Hide for this clip',
     atSec: (t) => `at ${t}s`,
     scopeHint: (n) => `scorecard = this shot · session = all ${n}`,
     shotTip: (i, t, s) => `Shot ${i} at ${t}s, score ${s}`,
 
-    info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', ballSpeed: 'Release speed', ballRise: 'Arc above release', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
-    enterHeight: 'enter height', eyeHeight: '× eye height', ofFrames: (p) => `${p}% of frames`,
+    info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', ballSpeed: 'Release speed', ballRise: 'Arc height', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
+    enterHeight: 'enter height', eyeHeight: '× eye', ofFrames: (p) => `${p}% of frames`,
     chainVal: (k, s, e) => `knee ${k} · arm ${s} · elbow ${e} ms`,
     consistencyLbl: (n) => `Consistency (${n} shots)`,
     consistencyVal: (r, a, se, t) => `rhythm ±${r}% · release arm ±${a}° · set elbow ±${se}° · timing ±${t} ms`,
@@ -195,7 +209,7 @@ export const SHOT_I18N = {
     measuredBad: (d, t) => `Measured ${d}; target ${t}.`,
     jumpFrame: 'Jump to this frame',
     footnote: 'Targets are coach-readable bands, not laws — read them with the athlete in front of you. Release arm angle is the ARM; when the ball itself could be tracked, its true launch angle is shown beside it. Side-on filming is assumed for the trunk, elbow-offset and ball-launch reads.',
-    legend: { knee: 'Knee', elbow: 'Elbow', armElev: 'Arm elev.', hipHeight: 'Hip height' },
+    legend: { knee: 'Knee', elbow: 'Elbow', armElev: 'Arm lift', hipHeight: 'Hip height' },
     copyHead: (s, h) => `EXPO Shot Analyzer — score ${s}/100 (${h} hand)`,
     copyFixFirst: 'FIX FIRST:',
     handWordR: 'right', handWordL: 'left',
@@ -216,7 +230,7 @@ export const SHOT_I18N = {
     shotHint: 'טווח זווית השחרור — תבחר את מרחק הזריקה',
     shotTypes: { ft: 'עונשין', mid: 'טווח בינוני', three: 'שלשה' },
     shotTypesShort: { ft: 'עונשין', mid: 'בינוני', three: 'שלשה' },
-    height: 'גובה', cmPlaceholder: 'ס״מ',
+    height: 'גובה', cmPlaceholder: 'ס״מ', saveBtn: 'שמור',
     savedCm: '✓ נשמר', rescored: '✓ החישוב עודכן', cmUnit: 'ס״מ', forCm: 'לחישוב ס״מ',
 
     idleTitle: 'ניתוח זריקה, פריים אחר פריים.',
@@ -268,7 +282,7 @@ export const SHOT_I18N = {
     phases: { stance: 'עמידה', dip: 'דיפ', set: 'סט', release: 'שחרור', apex: 'שיא', follow: 'ליווי', landing: 'נחיתה' },
     back10: 'אחורה 10 פריימים', prev1: 'פריים קודם', next1: 'פריים הבא', fwd10: 'קדימה 10 פריימים',
     phaseJump: (l) => `קפיצה ל${l} — נשאר על אותו רגע גם כשמחליפים זריקה`,
-    metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית הזרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'שורש כף יד מול עין', elbowOffset: 'סטיית מרפק' },
+    metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית זרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'יד מול עין', elbowOffset: 'סטיית מרפק' },
 
     save: 'שמור את האימון', copy: 'העתקת סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
     savedTitle: 'אימונים שנשמרו', savedNone: 'עדיין לא שמרת כלום.', savedDrop: 'מחק',
@@ -279,12 +293,22 @@ export const SHOT_I18N = {
     quality: { good: 'טוב', fair: 'בינוני', poor: 'חלש' },
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
+    shotWord: 'זריקה', prevShot: 'הזריקה הקודמת', nextShot: 'הזריקה הבאה',
+    tabShot: 'הזריקה הזאת', tabSession: 'האימון', tabSaved: 'נשמרו', sessionOne: 'בקליפ יש זריקה אחת - תצוגת האימון צריכה שתיים לפחות.',
+    autoPicked: 'אוטומטי: זוהה בקליפ',
+    autoFallback: 'אוטומטי: לא רואים את זה בקליפ, אז זו ברירת המחדל',
+    warnShort: {
+      'no-body': 'צלם אותו בתוך הפריים', 'rarely-seen': 'תשאיר אותו בפריים',
+      'no-headroom': 'הכדור יוצא מהפריים', 'head-cut': 'תרים את הטלפון',
+      'too-far': 'תתקרב', 'low-res': 'צלם באיכות רגילה', 'too-dark': 'צריך יותר אור',
+    },
+    warnOpen: 'מה חסר בצילום', warnDismiss: 'הסתר בקליפ הזה',
     atSec: (t) => `בשנייה ${t}`,
     scopeHint: (n) => `כרטיס הניקוד = הזריקה הזאת · האימון = כל ${n}`,
     shotTip: (i, t, s) => `זריקה ${i} בשנייה ${t}, ניקוד ${s}`,
 
-    info: { dipToRelease: 'דיפ ← שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת מעל השחרור', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
-    enterHeight: 'תכניס גובה', eyeHeight: '× גובה עיניים', ofFrames: (p) => `${p}% מהפריימים`,
+    info: { dipToRelease: 'דיפ ← שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
+    enterHeight: 'תכניס גובה', eyeHeight: '× עיניים', ofFrames: (p) => `${p}% מהפריימים`,
     chainVal: (k, s, e) => `ברך ${k} · זרוע ${s} · מרפק ${e} מ״ש`,
     consistencyLbl: (n) => `עקביות (${n} זריקות)`,
     consistencyVal: (r, a, se, t) => `סטייה בין הזריקות — קצב ${r}% · יד בשחרור ${a} מעלות · מרפק בסט ${se} מעלות · תזמון ${t} מ״ש`,
@@ -361,7 +385,7 @@ export const SHOT_I18N = {
     measuredBad: (d, t) => `נמדד ${d}; היעד ${t}.`,
     jumpFrame: 'קפיצה לפריים הזה',
     footnote: 'היעדים הם טווחים שמאמן קורא, לא חוקים — קרא אותם מול השחקן שעומד מולך. זווית היד בשחרור היא של היד. כשאפשר לעקוב אחרי הכדור עצמו, זווית השיגור האמיתית שלו מוצגת לצידה. הקריאות של הגו, סטיית המרפק וזווית שיגור הכדור נכונות רק בצילום מהצד.',
-    legend: { knee: 'ברך', elbow: 'מרפק', armElev: 'זווית הזרוע', hipHeight: 'גובה ירך' },
+    legend: { knee: 'ברך', elbow: 'מרפק', armElev: 'זווית זרוע', hipHeight: 'גובה ירך' },
     copyHead: (s, h) => `EXPO מנתח זריקה — ניקוד ${s}/100 (יד ${h})`,
     copyFixFirst: 'לתקן קודם:',
     handWordR: 'ימין', handWordL: 'שמאל',
