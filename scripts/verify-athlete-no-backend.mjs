@@ -96,7 +96,7 @@ try {
     const who = await pg.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 90));
     console.log(`FAILED (SETUP, not a security finding): the portal did not load online (${on.len} chars) - nothing to compare against.`);
     console.log(`  on screen: "${who}"`);
-    console.log('  If this appears only inside security-audit --gates, it is the shared browser still holding a previous gate's seat. Re-run this gate on its own to confirm.');
+    console.log("  If this appears only inside security-audit --gates, it is the shared browser still holding a previous gate's seat. Re-run this gate on its own to confirm.");
     process.exit(1);
   }
   console.log(`online     : ${on.len} chars of session`);

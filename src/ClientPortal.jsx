@@ -32,7 +32,7 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
-import { useT as useAppT, useTB, tr, readLang } from './i18n';
+import { useT as useAppT, tr, readLang } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
@@ -52,7 +52,11 @@ const readPlansSnapshot = (ci) => {
   try {
     const raw = localStorage.getItem(plansSnapKey(ci));
     const v = raw ? JSON.parse(raw) : null;
-    return null;
+    // (29.9: this line read `return null` from 21.9 on - a break-test left in
+    // c7543ed9 - so the basement fallback never returned the copy it had kept.
+    // Caught by G02 once its own syntax error was fixed; the gate now runs in
+    // security-audit --gates.)
+    return Array.isArray(v) ? v : null;
   } catch { return null; }   // an unreadable copy is the same as none
 };
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
@@ -2335,7 +2339,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 // Main client portal
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null }) {
   const tt = useAppT();
-  const tb = useTB();
   // EVERY HEBREW LINE IN ITS OWN DIRECTION (29.9 #391 pass 7). The portal keeps
   // its left-to-right LAYOUT (as production), and so every Hebrew sentence in
   // it was laid out left-to-right too: the full stop and the question mark
