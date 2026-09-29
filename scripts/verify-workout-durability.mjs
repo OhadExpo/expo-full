@@ -70,9 +70,11 @@ if (!URL_ || !KEY) { console.log('FAIL: could not read the project URL / key fro
 if (/127\.0\.0\.1|localhost/.test(BASE)) {
   const entry = (html) => ((html || '').match(/src="(\/assets\/index-[^"]+\.js)"/) || [])[1] || null;
   let local = null, served = null;
-  try { local = entry(fs.readFileSync('dist/index.html', 'utf8')); } catch (e) { /* no dist */ }
+  // DIST=<dir> names the build to compare against (a break-test build lives
+  // in its own directory, 29.9 #391 pass 3); the guard itself never relaxes.
+  try { local = entry(fs.readFileSync(`${process.env.DIST || 'dist'}/index.html`, 'utf8')); } catch (e) { /* no dist */ }
   try { served = entry(await (await fetch(BASE + '/')).text()); } catch (e) { /* not up */ }
-  if (!local || local !== served) { console.log(`FAIL: ${BASE} is not serving this checkout's build (served ${served}, dist/ has ${local}) — nothing measured`); process.exit(1); }
+  if (!local || local !== served) { console.log(`FAIL: ${BASE} is not serving this checkout's build (served ${served}, ${process.env.DIST || 'dist'}/ has ${local}) — nothing measured`); process.exit(1); }
   console.log(`build: ${served} (matches dist/)`);
 }
 
@@ -423,6 +425,41 @@ try {
       clauses.f = true;
     } else check('f', 'could open the day', false);
     await ctx.close(); await cleanup(RUN + '-f');
+  }
+
+  // ── (f2) the same, with the TAB LEFT OPEN - the case the reuse window exists for
+  //
+  // (f) reloads the portal before the repeat, and a reload moves the day to the
+  // next week - so the old log is in another week and can never be reused, with
+  // or without the 2-hour window. Break-tested 29.9 (#391 pass 3): deleting the
+  // window check left (f) green. The window only decides the in-tab case: the
+  // athlete finishes, leaves the phone open, and trains the day again hours
+  // later in the SAME week. Here the page clock moves 3 h forward (no reload),
+  // the same day is reopened and completed: that must be a second row.
+  {
+    const M = RUN + '-f2';
+    const { ctx, page } = await openSeat('en');
+    await portal(page);
+    if (await openDay(page)) {
+      const w1 = await walk(page, 2); await setNotes(page, M);
+      await clickComplete(page); await waitClosed(page, 10000);
+      const first = await pollRows(M, 1, 30000);
+      await page.evaluate(() => {
+        const RD = Date, off = 3 * 3600 * 1000;
+        class FD extends RD { constructor(...a) { if (a.length === 0) super(RD.now() + off); else super(...a); } static now() { return RD.now() + off; } }
+        window.Date = FD;
+      });
+      const label = await actionLabel(page, DAY);
+      await clickAction(page, DAY); await wait(1500);
+      const notesAtOpen = await page.evaluate(() => (document.querySelector('textarea') || {}).value || '');
+      const w2 = await walk(page, 1); await setNotes(page, M + '-2');
+      await clickComplete(page); await waitClosed(page, 10000);
+      await pollRows(M, 2, 30000); await wait(2000);
+      const rows = await markerRows(M);
+      const orig = rows.find((r) => first[0] && r.id === first[0].id);
+      check('f', `(tab left open) ${label} + Complete 3 h later → TWO rows, the first untouched`, rows.length === 2 && !!orig && doneOf(orig) === w1.ticked && rows.some((r) => r.id !== orig.id && doneOf(r) === w2.ticked), `rows=${rows.length} first=${orig ? doneOf(orig) : '-'}/${w1.ticked} second=${w2.ticked} openedBlank=${notesAtOpen === ''}`);
+    } else check('f', 'could open the day (f2)', false);
+    await ctx.close(); await cleanup(RUN + '-f2');
   }
 
   // ── (g) the coach's review mark and note survive an athlete re-save ─────
