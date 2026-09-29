@@ -306,7 +306,7 @@ export const SHOT_I18N = {
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
     shotWord: 'זריקה', prevShot: 'הזריקה הקודמת', nextShot: 'הזריקה הבאה',
-    tabShot: 'הזריקה הזאת', tabSession: 'האימון', tabSaved: 'נשמרו', sessionOne: 'בקליפ יש זריקה אחת - תצוגת האימון צריכה שתיים לפחות.',
+    tabShot: 'הזריקה הזאת', tabSession: 'האימון', tabSaved: 'שמורים', sessionOne: 'בקליפ יש זריקה אחת - תצוגת האימון צריכה שתיים לפחות.',
     autoBtn: 'זיהוי אוטומטי - סמן את הטבעת', rimTapL: 'גע בקצה השמאלי של הטבעת בווידאו', rimTapR: 'עכשיו בקצה הימני', cancel: 'ביטול',
     autoRunning: (p) => `בודק את הטבעת · ${p}%`, autoDone: (m, x, u) => `אוטומטי: ${m} קליעות · ${x} החטאות · ${u} לבדיקה`,
     autoTag: (c) => `אוטומטי · ${c}%`, autoCheck: 'אוטומטי · כדאי לבדוק', autoUnsure: 'לא בטוח - סמן בעצמך', rimRedo: 'סמן טבעת מחדש', autoFail: 'לא הצלחתי לקרוא את הטבעת בווידאו - סמן את הזריקות ידנית',
@@ -314,7 +314,7 @@ export const SHOT_I18N = {
     autoFallback: 'אוטומטי: לא רואים את זה בקליפ, אז זו ברירת המחדל',
     warnShort: {
       'no-body': 'צלם אותו בתוך הפריים', 'rarely-seen': 'תשאיר אותו בפריים',
-      'no-headroom': 'הכדור יוצא מהפריים', 'head-cut': 'תרים את הטלפון',
+      'no-headroom': 'הכדור יוצא מהפריים', 'head-cut': 'תטה את הטלפון למעלה',
       'too-far': 'תתקרב', 'low-res': 'צלם באיכות רגילה', 'too-dark': 'צריך יותר אור',
     },
     warnOpen: 'מה חסר בצילום', warnDismiss: 'הסתר בקליפ הזה',
@@ -323,7 +323,7 @@ export const SHOT_I18N = {
     shotTip: (i, t, s) => `זריקה ${i} בשנייה ${t}, ניקוד ${s}`,
 
     info: { dipToRelease: 'דיפ ← שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
-    enterHeight: 'תכניס גובה', eyeHeight: '× עיניים', ofFrames: (p) => `${p}% מהפריימים`,
+    enterHeight: 'תכניס גובה', eyeHeight: '× גובה עין', ofFrames: (p) => `${p}% מהפריימים`,
     chainVal: (k, s, e) => `ברך ${k} · זרוע ${s} · מרפק ${e} מ״ש`,
     consistencyLbl: (n) => `עקביות (${n} זריקות)`,
     consistencyVal: (r, a, se, t) => `סטייה בין הזריקות — קצב ${r}% · יד בשחרור ${a} מעלות · מרפק בסט ${se} מעלות · תזמון ${t} מ״ש`,

@@ -1889,7 +1889,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               const nPr = newPRs.filter(p => !p.debut).length, nDeb = newPRs.filter(p => p.debut).length;
               const heEnd = readLang() === 'he';
               const head = nPr ? (heEnd ? `🏆 ${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `🏆 ${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? '✨ רישום ראשון' : '✨ FIRST LOGS');
-              const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל ראשון' : `${nDeb} תרגילים ראשונים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
+              const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל חדש' : `${nDeb} תרגילים חדשים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
               return head + tail;
             })()}
           </div>
