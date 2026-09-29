@@ -292,7 +292,7 @@ export function SeverityDot({ color, title }) {
 }
 
 export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12, bleed = true,
-  onClick, onKeyDown, role, tabIndex, ariaExpanded }) {
+  onClick, onKeyDown, role, tabIndex, ariaExpanded, marginTransition = null }) {
   // --c-stripBg is full BSG cyan in light, black in dark. Strip bleeds
   // to the card's outer edge via negative margins, so the card's own
   // cyan border becomes the strip's top + left + right border. The
@@ -326,6 +326,8 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // was still subtracting a padding that was not there. bleed={false} for
       // those callers; every existing caller keeps today's behaviour.
       margin: bleed ? `-${padY}px -${padX}px ${marginBottom}px` : `0 0 ${marginBottom}px`,
+      // an eased card body moves the strip's bottom margin with it (29.9 #423)
+      ...(marginTransition ? { transition: marginTransition } : null),
       // ONE uniform header height app-wide (Ohad #261: active-athletes / revenue /
       // tasks / messages / expiring bars must all be the SAME vertical height).
       // A label-only strip was ~34px while a strip with a 30px action button was
@@ -746,7 +748,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // `onHeaderClick` is OPT-IN, and turns the strip into a handle: the BHBC zone
 // uses it so every box in the club can be collapsed. Undefined everywhere else,
 // so no other card in the product changes behaviour.
-export const Card = ({ children, style, className, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive, onHeaderClick, headerAriaExpanded }) => {
+export const Card = ({ children, style, className, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive, onHeaderClick, headerAriaExpanded, bodyShown, bodyMs = 240 }) => {
   // Refined light variant: in refined mode every card flips to a white body.
   // When `header` is also passed, the cyan strip is rendered above the body.
   // In dark / non-refined modes the card stays single-zone cyan.
@@ -812,7 +814,13 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // from the edge, and a strip that must not bleed past a box that has no
         // padding to cancel: pad 14, no bleed. Ohad 13.9: "the hebrew titles are
         // not aligned right" - the title sat flush on the card edge.
-        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={children ? 12 : -padNum}
+        // bodyShown (optional): a card whose body EASES open and closed says so,
+        // and the strip's bottom margin follows that instead of whether the
+        // children are in the tree yet - so the margin has already arrived when
+        // the body unmounts (29.9 #423: that switch was a 14px jump). Unset =
+        // exactly the old rule.
+        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={(bodyShown === undefined ? !!children : bodyShown) ? 12 : -padNum}
+          marginTransition={bodyShown === undefined ? null : `margin-bottom ${bodyMs}ms ease`}
           // a control in the strip (COPY...) never toggles the card (29.9 #402)
           onClick={onHeaderClick ? (e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; onHeaderClick(e); } : undefined}
           role={onHeaderClick ? 'button' : undefined}

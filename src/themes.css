@@ -1848,10 +1848,13 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 /* ...and the same through the eased card body (29.9 #423): BHBC cards now wrap
    their content in [data-card-body] > div, two levels the rules above would
    not see through - the first-row gap would come back. */
-.bhbc-zone .title-strip + div:has(> [data-card-body]:first-child > div > div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
-.bhbc-zone .title-strip + div:has(> [data-card-body]:first-child > div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
-:has(> [data-card-body]:first-child > div > :is(.bhbc-list, .app-list, .bhbc-load-scroll):first-child),
-:has(> [data-card-body]:first-child > div > :first-child > .app-list:first-child) { padding-top: 0 !important; }
+.bhbc-zone .title-strip + div:has(> [data-card-body][data-shown="1"]:first-child > div > div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
+.bhbc-zone .title-strip + div:has(> [data-card-body][data-shown="1"]:first-child > div > :is(.bhbc-row, .bhbc-inj-head, .bhbc-load-head):first-child),
+:has(> [data-card-body][data-shown="1"]:first-child > div > :is(.bhbc-list, .app-list, .bhbc-load-scroll):first-child),
+:has(> [data-card-body][data-shown="1"]:first-child > div > :first-child > .app-list:first-child) { padding-top: 0 !important; }
+/* only while the body is SHOWN, and eased: closing, the padding travels back to
+   the closed card's 12px with the rows, so the body unmounts onto the same pixel */
+.bhbc-zone .title-strip + div:has(> [data-card-body]) { transition: padding-top 240ms ease; }
 :is(.bhbc-list, .app-list) > :last-child { border-bottom-color: transparent !important; }
 /* NEXT GAME on a phone (29.9 #404, measured 9 under the strip / 12 over the
    travel rule): 2px on top centres the stacked block between them. */

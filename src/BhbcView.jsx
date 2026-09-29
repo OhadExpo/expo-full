@@ -180,8 +180,8 @@ function StripBtn({ onClick, children, title }) {
 // null} - while CollapsibleSection everywhere else eased its rows. Now the body
 // eases its rows 0fr <-> 1fr and stays mounted only while it moves, so a closed
 // card still renders nothing (#422). BaseCard draws a closed card differently
-// (the strip bleeds to the bottom edge), which sits padding + 12px higher than
-// an open card with an empty body; the wrapper's bottom margin eases to exactly
+// (the strip bleeds to the bottom edge), which sits 2 x padding + 12px higher
+// than an open card with an empty body (measured on a 0 and a 14 card); the wrapper's bottom margin eases to exactly
 // that, so the moment the body unmounts lands on the same pixel - no jump.
 const CARD_MS = 240;
 function useEasedPresence(open) {
@@ -197,7 +197,8 @@ function useEasedPresence(open) {
       return () => { cancelAnimationFrame(r1); cancelAnimationFrame(r2); clearTimeout(t); };
     }
     setSettled(false); setShown(false);
-    const t = setTimeout(() => setPresent(false), CARD_MS);
+    // +60: the transition's last frame lands after its nominal end on a big card
+    const t = setTimeout(() => setPresent(false), CARD_MS + 60);
     return () => clearTimeout(t);
   }, [open]);
   return { present, shown, settled };
@@ -207,12 +208,13 @@ function Card({ header, headerRight, children, ...rest }) {
   const [open, setOpen] = usePersistentState('bhbc-open-' + (key || 'card'), true);
   const { present, shown, settled } = useEasedPresence(open);
   if (!header || !key) return <BaseCard header={header} headerRight={headerRight} {...rest}>{children}</BaseCard>;
-  const padNum = typeof rest.padding === 'number' ? rest.padding : rest.padding == null ? 24 : 20;
   return (
     <BaseCard
       header={header}
       onHeaderClick={() => setOpen((v) => !v)}
       headerAriaExpanded={open}
+      bodyShown={shown}
+      bodyMs={CARD_MS}
       headerRight={(
         <>
           {headerRight}
@@ -228,7 +230,7 @@ function Card({ header, headerRight, children, ...rest }) {
       )}
       {...rest}
     >{present ? (
-      <div data-card-body="" style={{ display: 'grid', gridTemplateRows: shown ? '1fr' : '0fr', marginBottom: shown ? 0 : -(padNum + 12), transition: `grid-template-rows ${CARD_MS}ms ease, margin-bottom ${CARD_MS}ms ease` }}>
+      <div data-card-body="" data-shown={shown ? '1' : '0'} style={{ display: 'grid', gridTemplateRows: shown ? '1fr' : '0fr', transition: `grid-template-rows ${CARD_MS}ms ease` }}>
         {/* clipped only while it moves, so a menu inside an open card is never cut */}
         <div style={{ minHeight: 0, overflow: settled ? 'visible' : 'hidden' }} inert={shown ? undefined : ''}>{children}</div>
       </div>
