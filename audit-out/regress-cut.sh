@@ -27,4 +27,8 @@ run node scripts/verify-athlete-no-backend.mjs
 run node scripts/verify-pt-no-backend.mjs
 run node scripts/_portal-lang.tmp.mjs
 run node audit-out/_oauthret.mjs
+# 29.9 evening gates: strip titles one line (#452), every box centred (#447)
+run node scripts/verify-strip-title-fit.mjs
+run node scripts/verify-box-centring.mjs
+run node scripts/verify-submenu-click.mjs
 echo "=== DONE ===" >> "$LOG"
