@@ -110,6 +110,29 @@ export const DEMO_PLANS = [
       },
     ],
   },
+  // A SECOND PLAN, as real athletes carry (a block + a morning routine): the
+  // portal draws a centred divider over each plan, and with one plan a
+  // prospect never saw it (29.9 #448 audit).
+  {
+    id: 'plan_demo_morning',
+    name: 'Morning Routine',
+    traineeId: 'tr_demo',
+    phase: '',
+    notes: '',
+    active: true,
+    createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+    weeks: 4,
+    days: [
+      {
+        name: 'Activation',
+        exercises: [
+          ex('e63', 2, '10 E'),
+          ex('e61', 2, '8 E'),
+          ex('ex_d4vfns0625pmo7afevm', 2, '12'),
+        ],
+      },
+    ],
+  },
 ];
 
 // These rows are already in the CONSUMED (post-normalization) shape that
