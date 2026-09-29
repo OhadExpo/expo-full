@@ -1878,3 +1878,10 @@ select.avail-select {
 @media (max-width: 620px) {
   .bhbc-zone .bhbc-rh-row > button, .bhbc-zone .bhbc-rh-row > span:last-child:not([data-status]) { flex: 1 1 calc(50% - 7px) !important; min-width: 0 !important; }
 }
+
+/* Lifts grid on a phone (29.9 #400): only the NAME stays pinned - pinning the
+   last-lift column too filled the whole 368px scroller and left no day visible.
+   The pinned end cells are the grid's only inset-inline-end styles. */
+@media (max-width: 620px) {
+  .bhbc-lifts-scroll [style*="inset-inline-end"] { position: static !important; }
+}

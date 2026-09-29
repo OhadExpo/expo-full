@@ -280,6 +280,16 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 // nowhere else: Conditioning/Recovery were his S&C blocks; a Lift WITH
 // team:true was a team session mis-logged as a lift (29 rows, 23.8–1.9); a
 // row with no type at all was gym attendance, i.e. a personal lift.
+// THE LIFTS GRID (29.9 #400 #414): due = MORE than five days without a lift;
+// the name and last-lift columns, pinned at the two edges of a grid that
+// scrolls (only the days move). The row paints its own background under a
+// pinned cell, so it covers the days sliding beneath it.
+const LIFT_DUE_DAYS = 6;
+const LIFTS_NAME_W = 186;
+const LIFTS_LAST_W = 150;
+const pinStart = (bg) => ({ position: 'sticky', insetInlineStart: 0, zIndex: 1, background: bg, marginInlineStart: -14, paddingInlineStart: 14 });
+const pinEnd = (bg) => ({ position: 'sticky', insetInlineEnd: 0, zIndex: 1, background: bg, marginInlineEnd: -14, paddingInlineEnd: 14 });
+
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
 // 'Out · Pers' rather than 'Out · Personal': the long label made ONE button in
 // the column 168px against 135px for every other state, and Ohad wants a single
@@ -4344,13 +4354,14 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
   });
   // DUE MEANS HE COULD HAVE LIFTED (#305 K1): an athlete out today is the
   // physio's to load, not the weight room's to chase, and one who has not
-  // landed yet cannot be behind. Four days is the line (K2, said on the label).
-  const due = [...per].filter((x) => (x.since == null || x.since >= 4) && x.todayCode < 4 && !(x.t.arrival && x.t.arrival > today))
+  // landed yet cannot be behind. SIX days is the line (29.9 #414, Ohad: "i need
+  // everyone who havent lifted for more than 5 days"; it was four), said on the label.
+  const due = [...per].filter((x) => (x.since == null || x.since >= LIFT_DUE_DAYS) && x.todayCode < 4 && !(x.t.arrival && x.t.arrival > today))
     .sort((a, b) => (b.since == null ? 1e9 : b.since) - (a.since == null ? 1e9 : a.since));
   const liftedToday = per.filter((x) => x.since === 0).length;
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
-  const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6)
+  const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= LIFT_DUE_DAYS ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6); amber = due (6), red = a week
   // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
   // into the next column at 22.
   const CELL = 24;
@@ -4372,19 +4383,26 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             {action}
           </span>
         )}>
+        {/* DUE, DESIGNED (29.9 #414, Ohad: "amit gershon and due 4 days is a very
+            bad design"): one tinted band with ONE chip stretched across the whole
+            card. Now a calm list - no orange (orange is games and injuries) - of
+            equal tiles at the house height, each one opening that athlete; the
+            number is the part in colour. auto-fill keeps a lone tile its own
+            width instead of the card's. */}
         {!!due.length && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(242,106,43,0.06)' }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')} · {tr('4+ days')}</span>
-            {/* A GRID, NOT A WRAP, SO THE TAGS LINE UP: two equal columns put
-                every chip on the same two edges (Ohad, 19.9). */}
-            <span style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, minWidth: 0, flex: '1 1 100%' }}>
+          <div className="bhbc-due" style={{ display: 'grid', gap: 8, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tx }}>{tr('due')} · {tr('6+ days')} <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }}>· {due.length}</span></span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6 }}>
               {due.map(({ t, since }) => (
-                <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
-                  {/* THE NAME IS THE PART THAT GIVES WAY; the age is the number
-                      being read (OCD sweep, 22.9). */}
-                  <span style={{ unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word' /* never cut (26.9) */ }}>{t.name}</span><span style={{ flexShrink: 0, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} י׳` : `${since}d`)}</span></span>
+                <button key={t.id} type="button" data-due={t.id} onClick={onOpen ? () => onOpen(t.id) : undefined} className="bhbc-ghost-btn"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 10px', border: `1px solid ${C.cardBd}`, borderRadius: 0, background: 'var(--c-sf)', color: C.tx, cursor: onOpen ? 'pointer' : 'default', minWidth: 0, textAlign: 'start' }}>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 18, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{t.jersey != null ? t.jersey : ''}</span>
+                  {/* the name gives way, never cut (26.9); the age is what is read */}
+                  <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', unicodeBidi: 'isolate', flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', lineHeight: 1.15 }}>{t.name}</span>
+                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 11, color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} י׳` : `${since}d`)}</span>
+                </button>
               ))}
-            </span>
+            </div>
           </div>
         )}
         {/* THE LEGEND SENTENCE GETS ITS OWN LINE, NOT THE GAP BESIDE THE PAGER
@@ -4397,26 +4415,38 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
               style={navArrow(monthOff >= 0)}>{he ? '‹' : '›'}</button>
           </div>
+          {/* THE S&C TOGGLE LIVES WITH THE OTHER CONTROL (29.9 #415, Ohad: "sc
+              button is located in a bad spot" - it sat alone under the grid):
+              the pager at the start, the toggle at the end, one row, one
+              height - as on Practice Attendance. */}
+          <button type="button" aria-pressed={showSc} onClick={() => setShowSc(!showSc)} className="bhbc-ghost-btn" data-sc-toggle=""
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', minHeight: 0, padding: '0 12px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: showSc ? C.tx : C.tm, background: showSc ? `color-mix(in srgb, ${SC_COLOR} 14%, transparent)` : 'transparent', border: `1px solid ${showSc ? SC_COLOR : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+            <span style={{ width: 8, height: 8, background: showSc ? SC_COLOR : 'transparent', border: `1px solid ${SC_COLOR}` }} />{tr('S&C')}
+          </button>
           <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('A box is a lift he logged. S&C shows when its toggle is on.')}</span>
         </div>
 
-        {/* The grid scrolls sideways on a phone by design - a month of days
-            cannot fit 390px, and squeezing it makes it unreadable on both. */}
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 298 + 28 + days.list.length * CELL }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
-              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
+        {/* THE MONTH FITS THE CARD (29.9 #400, Ohad: "table doesnt fit"): at
+            1440 LAST LIFT ran past the edge - "28 SEP  YESTERDAY" is 133px in
+            a 118px column. Name 186 + a 150 last-lift column + 31 days at 24
+            is 1108 inside a 1162 card. Narrower than that the grid still
+            scrolls (a month cannot fit 390px), but the NAME and the LAST LIFT
+            stay pinned at the two edges and only the days move. */}
+        <div className="bhbc-lifts-scroll" style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: LIFTS_NAME_W + LIFTS_LAST_W + 28 + days.list.length * CELL }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `${LIFTS_NAME_W}px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) ${LIFTS_LAST_W}px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
+              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
                 <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
               ))}
-              <SortHeader k="last" sort={sort} label={tr('last lift')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+              <SortHeader k="last" sort={sort} label={tr('last lift')} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
-              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: `${LIFTS_NAME_W}px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) ${LIFTS_LAST_W}px`, alignItems: 'center', padding: '0 14px 6px' }}>
+              <span style={{ ...pinStart('var(--c-sf)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
               {liftedPerDay.map((n, i) => (
                 <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n == null ? '—' : n}</span>
               ))}
-              <span />
+              <span style={{ ...pinEnd('var(--c-sf)'), alignSelf: 'stretch' }} />
             </div>
             <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {sort.rows.map(({ t, cells, since, last, todayCode }) => (
@@ -4424,8 +4454,8 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                  style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36 }}>
+                  style={{ display: 'grid', gridTemplateColumns: `${LIFTS_NAME_W}px repeat(${cells.length}, minmax(${CELL}px, 1fr)) ${LIFTS_LAST_W}px`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
+                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch' }}>
                     <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
@@ -4444,7 +4474,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   })}
                   {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 36, paddingInlineStart: 10, flexShrink: 0, marginInlineStart: 'auto' }}>
+                  <span style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
                     <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
@@ -4462,10 +4492,6 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
               <CellMarks bands={bands} />{lbl}
             </span>
           ))}
-          <button type="button" aria-pressed={showSc} onClick={() => setShowSc(!showSc)} className="bhbc-ghost-btn"
-            style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, minHeight: 26, padding: '0 10px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: showSc ? C.tx : C.tm, background: showSc ? `color-mix(in srgb, ${SC_COLOR} 14%, transparent)` : 'transparent', border: `1px solid ${showSc ? SC_COLOR : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
-            <span style={{ width: 8, height: 8, background: showSc ? SC_COLOR : 'transparent', border: `1px solid ${SC_COLOR}` }} />{tr('S&C')}
-          </button>
         </div>
       </Card>
     </>
