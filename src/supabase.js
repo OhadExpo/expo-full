@@ -2,6 +2,7 @@
 // point for SUPA_URL + SUPA_PUBLISHABLE_KEY so other modules (CoachChat,
 // CoachLanding, ClientPortal) don't have to redeclare them inline.
 import { createClient } from '@supabase/supabase-js';
+import { PARTNER_EMAILS } from './authRoles';
 
 export const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 export const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -188,6 +189,42 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: authStorage,
   },
 });
+
+// THE PARTNER SEAT IS A SANDBOX (#476, 30.9). Ohad: "fake money but everything
+// ... the ability to actually touch or change it (sandbox) - his own version".
+// Every table has an sbx_ copy (money faked) that only the partner and the
+// owner can read or write; the partner has NO access to the real tables at
+// all. So this is the one place that decides which copy a query hits: signed
+// in as the partner, every table below is his sbx_ copy. A path that slipped
+// past it would fail closed (read nothing, write nothing) - never touch the
+// real data. scripts/verify-partner-sandbox.mjs proves the database side.
+const SBX_TABLES = new Set([
+  'athlete_app_opens', 'athlete_meals', 'availability_rules', 'bit_payment_requests', 'bookings',
+  'bug_reports', 'challenge_participants', 'challenges', 'chat_logs', 'client_workouts',
+  'coach_booking_settings', 'coach_messages', 'coach_note_comments', 'coach_note_events', 'coach_notes',
+  'coach_payment_settings', 'coach_tasks', 'coaching_contracts', 'intake_submissions', 'intake_tokens',
+  'invoices', 'leads', 'plans', 'program_shares', 'revenue_cell_history', 'revenue_month_total',
+  'revenue_owed', 'revenue_sheet_event', 'store', 'subscriptions', 'trainee_activity',
+  'trainee_evaluations', 'trainee_next_actions', 'weekly_focus', 'bw_logs', 'plan_index',
+]);
+const SBX_RPC = { purge_trainee_data: 'sbx_purge_trainee_data' };
+let sandboxSeat = false;
+export const isSandboxSeat = () => sandboxSeat;
+const setSandboxFor = (email) => {
+  sandboxSeat = !!email && PARTNER_EMAILS.includes(String(email).toLowerCase());
+  try { if (typeof window !== 'undefined') window.__expoSandbox = sandboxSeat; } catch { /* noop */ }
+};
+// decided BEFORE the first query: from the stored session now, and again on
+// every sign-in / sign-out (this listener is registered first, so it runs
+// before anything the app hangs off the same event)
+try { const raw = authStorage && authStorage.getItem(AUTH_TOKEN_KEY); if (raw) setSandboxFor(JSON.parse(raw)?.user?.email); } catch { /* signed out */ }
+supabase.auth.onAuthStateChange((_event, session) => setSandboxFor(session?.user?.email));
+{
+  const realFrom = supabase.from.bind(supabase);
+  supabase.from = (table) => realFrom(sandboxSeat && SBX_TABLES.has(table) ? 'sbx_' + table : table);
+  const realRpc = supabase.rpc.bind(supabase);
+  supabase.rpc = (fn, args, opts) => realRpc(sandboxSeat && SBX_RPC[fn] ? SBX_RPC[fn] : fn, args, opts);
+}
 
 // REVIVE A SESSION FROM THE REFRESH-TOKEN COOKIE.
 //

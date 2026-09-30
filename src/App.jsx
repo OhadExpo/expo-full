@@ -12,6 +12,9 @@ import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost, toast, useEdgeFade, useRailTrailMask } from './ui';
+import { installSandboxGuard } from './sandboxGuard';
+// the partner's sandbox seat can press anything, but never reach a real athlete (#476)
+installSandboxGuard();
 import SubmenuTab from './SubmenuTab';
 import BugReportButton from './BugReportButton';
 // LAZY: SensorLab renders only behind `isOwner`, but a static import puts it
@@ -870,8 +873,9 @@ function AuthedApp() {
   // "staff" (e.g. Yuval) — coach portal, but a reduced surface. STAFF_TABS
   // is the whitelist of tab keys a staff coach may reach (UI + URL guard).
   // Partner (Elad) is treated as owner for the UI so he sees every tab + all data.
-  // His writes are blocked at the DB (SELECT-only RLS), and the Partner-Preview
-  // banner (below) makes the read-only intent explicit (#232).
+  // His seat is a SANDBOX (#476, 30.9): supabase.js points every query at his
+  // sbx_ copy (money faked), the database gives him nothing on the real tables,
+  // and sandboxGuard.js stops anything that would reach a real athlete.
   const isPartner = isPartnerEmail(email);
   const isOwner = OWNER_EMAILS.includes(email) || isPartner;
   // isBhbcCoach is defined at the top of AuthedApp (needed by the store hooks).
@@ -1698,12 +1702,15 @@ function AuthedApp() {
   // zone (any tab resolves here). Owner enters it from the Athletes ▾ submenu.
   // For coaches, EXPO-only affordances are withheld (no ‹EXPO exit, no Open-in-
   // EXPO, no roster management) and they get a Sign-out instead.
+  // the partner's SANDBOX banner, on every shell he can reach - the BHBC zone
+  // renders its own, so it gets this one too (#476)
+  const sandboxBanner = isPartner ? <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{t('SANDBOX · your own copy of EXPO: real athletes, fake money. Change anything - nothing touches the real app')}</div> : null;
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
-    <Suspense fallback={<ViewFallback />}>
+    <>{sandboxBanner}<Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
         <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
-    </Suspense>
+    </Suspense></>
   );
 
   // `app-root` is a styling hook, not decoration: the exercise-picker drawer
@@ -1718,7 +1725,7 @@ function AuthedApp() {
     <LangCtx.Provider value={lang}>
     <BodyLang lang={lang} />
     <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
-      {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{t("PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved")}</div>}
+      {sandboxBanner}
       {/* Past the deadline with reads still outstanding. The app is usable, but
           a count drawn from a store that never loaded is not a fact - saying so
           is the difference between "you have no athletes" and "we could not
