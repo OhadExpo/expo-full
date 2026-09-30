@@ -722,7 +722,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const [made, setMade] = useState({});
   const madeCount = Object.values(made).filter((v) => v === true).length;
   const unmarkedCount = result.shots.filter((x) => made[x.index] === undefined).length;
-  useEffect(() => { setMade({}); }, [result]);
+  // RESET ON A NEW SHOT LIST, NOT A RE-SCORE (AUDIT-470): saving his height,
+  // switching hand or shot type makes a new `result` for the SAME shots - and
+  // wiped every mark, his own taps and a multi-minute rim check with them. The
+  // shots' identity is their index + release frame; only a change there resets.
+  const shotSig = (result.shots || []).map((x) => `${x.index}@${x.cycle ? x.cycle.release : ''}`).join(',') + `|${result.aspect || ''}`;
+  useEffect(() => { setMade({}); }, [shotSig]);
   // AUTO MAKES (29.9 #430): the coach taps the rim's two edges once; rimJudge
   // reads the rim around every shot and pre-fills MADE (and MISSED on a clear
   // rebound). His tap always wins; an overridden call loses its AUTO tag.
@@ -737,7 +742,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const autoFilledRef = useRef(new Set());
   const autoStatsRef = useRef(null);             // the last check's seek counts (a gate reads data-auto-seeks)
   const madeRef = useRef(made); madeRef.current = made;
-  useEffect(() => { autoTokenRef.current++; autoFilledRef.current = new Set(); setAuto({}); setRimTap(null); setAutoRun(null); }, [result]);
+  useEffect(() => { autoTokenRef.current++; autoFilledRef.current = new Set(); setAuto({}); setRimTap(null); setAutoRun(null); }, [shotSig]);   // a re-score keeps a running check and its marks
   useEffect(() => () => { autoTokenRef.current++; }, []);
   const markShot = (idx, val) => { autoFilledRef.current.delete(idx); setMade((m) => ({ ...m, [idx]: val })); setAuto((a) => (a[idx] ? { ...a, [idx]: { ...a[idx], overridden: true } } : a)); };
   const [playing, setPlaying] = useState(false);
@@ -1148,7 +1153,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                     <span style={{ ...lbl, color: CYAN, letterSpacing: '0.06em', flex: '1 1 200px' }}>{rimTap.length === 0 ? T.rimTapL : T.rimTapR}</span>
                     <button onClick={() => setRimTap(null)} style={{ ...chip(false) }}>{T.cancel}</button>
                   </>)}
-                  {typeof autoRun === 'number' && <span data-auto-progress style={{ ...lbl, color: CYAN, letterSpacing: '0.06em' }}>{T.autoRunning(autoRun)}</span>}
+                  {typeof autoRun === 'number' && (<>
+                    <span data-auto-progress style={{ ...lbl, color: CYAN, letterSpacing: '0.06em', flex: '1 1 200px' }}>{T.autoRunning(autoRun)}</span>
+                    {/* a check that runs long can be stopped (AUDIT-470: no way out but leaving the page) */}
+                    <button onClick={() => { autoTokenRef.current++; setAutoRun(null); }} style={{ ...chip(false) }}>{T.cancel}</button>
+                  </>)}
                   {autoRun === 'done' && (() => {
                     const vals = Object.values(auto).filter((a) => !a.overridden);   // the coach's own flips leave the rim's summary (it read 9 MADE beside a 7 tally; AUDIT-470)
                     const m = vals.filter((a) => a.outcome === 'made').length, x = vals.filter((a) => a.outcome === 'missed').length, u = vals.filter((a) => a.outcome === 'unsure').length;

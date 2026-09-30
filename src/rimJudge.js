@@ -152,6 +152,10 @@ export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop,
     // (a stalled decoder, an unindexed recording). Stop and say so rather than
     // wait 5 s a frame for an hour (29.9 audit round 2).
     let missedInARow = 0;
+    // ...and a decoder that loses EVERY OTHER seek never trips the in-a-row rule:
+    // 5 s per lost frame, minutes per shot. Over the whole run, more than 30% of
+    // 20+ seeks lost is unreadable too (AUDIT-470)
+    let seeksTried = 0, seeksLost = 0;
     for (let si = 0; si < releasesMs.length; si++) {
       // quiet level: 1.0 -> 0.4 s before the release; the shot: release ->
       // +2.4 s (the ball reaches the rim 0.6-1.4 s after release). Both at the
@@ -165,8 +169,10 @@ export async function judgeShots(src, rim, releasesMs, { onProgress, shouldStop,
       for (let i = 0; i < times.length; i++) {
         if (typeof shouldStop === 'function' && shouldStop()) { const e = new Error('stopped'); e.code = 'aborted'; throw e; }
         if (times[i] < 0 || times[i] > dur) { frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue; }
+        seeksTried++;
         if (!(await seek(times[i]))) {
-          if (++missedInARow >= 3) { const e = new Error('Could not read the rim in this video.'); e.code = 'unreadable'; throw e; }
+          seeksLost++;
+          if (++missedInARow >= 3 || (seeksTried >= 20 && seeksLost / seeksTried > 0.3)) { const e = new Error('Could not read the rim in this video.'); e.code = 'unreadable'; throw e; }
           frames.push({ i, t: times[i], ball: null, net: null, netLo: null }); prevGray = null; continue;
         }
         missedInARow = 0;
