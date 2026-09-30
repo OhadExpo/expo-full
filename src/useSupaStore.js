@@ -1071,15 +1071,21 @@ export function useSupaBwLog(initial = []) {
         date: b.date,
       };
       const dedupeKey = `${b.clientId}|${b.blockName}|${b.week}`;
+      // QUEUE FIRST, then send (#471, AUDIT-470): the weigh-in went to the network
+      // first and was queued only after an ERROR - a request that hung on a
+      // "connected" phone with no data, then an app close, lost it without a word.
+      // Now it is durable before the network is touched, exactly as the workout
+      // row; the direct send only removes that entry once the server confirms.
+      // The upsert is keyed (client, block, week), so a replay racing the direct
+      // send cannot duplicate it.
+      const { id: qid } = enqueueEntry({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
       try {
         const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });
-        if (error) {
-          if (isTransient(error)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
-          else emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) });
-        }
+        if (!error) removeEntry(qid);
+        else if (!isTransient(error)) { removeEntry(qid); emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) }); }
+        // transient: it stays queued and drains with the next connection
       } catch (e) {
-        if (isTransient(e)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
-        else emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' });
+        if (!isTransient(e)) { removeEntry(qid); emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' }); }
       }
     }
     // Delete entries that were in prev but are gone from val

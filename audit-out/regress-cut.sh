@@ -36,4 +36,7 @@ run node scripts/verify-box-centring.mjs
 run node scripts/verify-submenu-click.mjs
 run node scripts/verify-demo-box-heights.mjs
 run node scripts/verify-inline-centre.mjs
+# #471 / #472: a weigh-in is queued before the network answers; EXIT mid-upload asks (fixture seat, writes held, nothing sent)
+run node scripts/verify-bw-durable.mjs
+run node scripts/verify-exit-midupload.mjs
 echo "=== DONE ===" >> "$LOG"

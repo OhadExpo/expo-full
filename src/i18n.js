@@ -730,6 +730,9 @@ export const HE = {
   'Hide reviewed': 'הסתר פניות שנבדקו',
   // the review screen's toggle - the fallback above says "inquiries" (AUDIT-470)
   'HIDE REVIEWED': 'הסתר שנבדקו',
+  'A video is still uploading - leave now and it will not be saved.': 'סרטון עדיין עולה - אם תצא עכשיו הוא לא יישמר.',
+  'Leave': 'לצאת',
+  'Stay': 'להישאר',
   'Copy URL': 'העתק קישור',
   'No date': 'בלי תאריך',
   'By status': 'לפי סטטוס',

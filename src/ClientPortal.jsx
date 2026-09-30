@@ -1701,7 +1701,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
-        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
+        {/* #472 (AUDIT-470): EXIT during a form-video upload orphaned the clip - the
+            upload finished into an unmounted logger (no link) or failed into a queue
+            entry with no workout. Leaving mid-upload now asks first. */}
+        <button onClick={async () => { if (fv.some((f) => f && f.uploading) && !(await confirmToast(tt('A video is still uploading - leave now and it will not be saved.'), { okLabel: tt('Leave'), cancelLabel: tt('Stay') }))) return; onBack(); }} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
       </div></div>
     {sessionAutosave.status === 'error' && (
       <div role="status" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,margin:'0 0 8px',padding:'6px 10px',background:'rgba(224,87,74,0.12)',border:'1px solid rgba(224,87,74,0.55)',color:'#E0574A',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em'}}>
