@@ -59,8 +59,12 @@ const MEASURE = () => {
     }
     if (!titleEl) continue;
     measured++;
-    const rg = document.createRange(); rg.selectNodeContents(titleEl);
-    const rects = [...rg.getClientRects()].filter((r) => r.width > 0.5 && r.height > 0.5);
+    // TEXT lines only: a range over the whole element also returns the boxes of
+    // its non-text children - an 8px online dot (display:block) beside a name read
+    // as "2 lines" whenever that athlete was signed in (30.9, D6p battery)
+    const rects = [];
+    { const tw = document.createTreeWalker(titleEl, NodeFilter.SHOW_TEXT); let tn;
+      while ((tn = tw.nextNode())) { if (!tn.nodeValue.trim()) continue; const rgt = document.createRange(); rgt.selectNodeContents(tn); for (const r of rgt.getClientRects()) if (r.width > 0.5 && r.height > 0.5) rects.push(r); } }
     const tops = []; for (const r of rects) if (!tops.some((t) => Math.abs(t - r.top) <= 3)) tops.push(r.top);
     const txt = (titleEl.innerText || titleEl.textContent || '').replace(/\s+/g, ' ').trim();
     const tr = titleEl.getBoundingClientRect();
