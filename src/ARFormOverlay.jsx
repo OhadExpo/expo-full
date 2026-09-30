@@ -364,5 +364,6 @@ const Spinner = () => (
 const hdrBtn = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' };
 const ctrl = { padding: '12px 14px', background: 'transparent', color: '#FFF', border: '1px solid rgba(255,255,255,0.3)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
 const Big = ({ color, onClick, disabled, children }) => (
-  <button onClick={onClick} disabled={disabled} style={{ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.16em', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1 }}>{children}</button>
+  // one row at 360 (#287: "START →" dropped its arrow to a second line): 12px, one 48px height
+  <button onClick={onClick} disabled={disabled} style={{ flex: 1, minWidth: 0, minHeight: 48, padding: '0 10px', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', background: color, border: `1px solid ${color}`, color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1 }}>{children}</button>
 );

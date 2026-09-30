@@ -73,7 +73,9 @@ function HeightSave({ saved, empty, onSave, T }) {
 // the black background (Ohad 08-24). CYAN is the fixed on-dark accent.
 const CYAN = '#39BDFF';
 const chip = (active) => ({ ...ghost, padding: '0 10px', fontSize: 10, letterSpacing: '0.12em', borderColor: active ? CYAN : 'rgba(255,255,255,0.25)', color: active ? CYAN : '#FFF', background: active ? 'rgba(57,189,255,0.10)' : 'transparent', ...boxed(CTL_SM) });
-const big = (color) => ({ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#06131b', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', borderRadius: 0 });
+// ONE ROW at a phone's width (#287: "FROM GALLERY" broke onto two lines at 360): 12px,
+// one 48px height, nowrap, content centred
+const big = (color) => ({ flex: 1, minWidth: 0, minHeight: 48, padding: '0 10px', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', background: color, border: `1px solid ${color}`, color: '#06131b', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 });
 const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' };
 
 // DRILLS, collapsed until asked for.
