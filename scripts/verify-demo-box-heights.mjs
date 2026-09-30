@@ -71,7 +71,13 @@ function collect() {
       if (e.querySelector('.title-strip') || e.closest('.title-strip') && e.getAttribute('role') === 'button' && !e.matches('button')) continue;
       kind = 'btn';
     }
-    else if (tag === 'TR') kind = 'row';
+    else if (tag === 'TR') {
+      // a row's GEOMETRY is compared on single-line rows only: a mock name that
+      // wraps ("Barbell Bench Press" at 390) is data, not design (AUDIT-470)
+      const lines = Math.max(1, ...[...e.cells].map((td) => { const rg = document.createRange(); rg.selectNodeContents(td); return new Set([...rg.getClientRects()].filter((q) => q.width > 0 && q.height > 0).map((q) => Math.round(q.top))).size; }));
+      if (lines > 1) continue;
+      kind = 'row';
+    }
     else {
       const sides = ['Top', 'Bottom', 'Left', 'Right'].filter((s) => parseFloat(cs[`border${s}Width`]) >= 0.5 && !T.test(cs[`border${s}Color`])).length;
       if (sides === 4 && r.height <= 40 && (e.innerText || '').trim()) kind = 'tag';
