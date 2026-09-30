@@ -33,7 +33,7 @@ function DormantWhatsAppButton({ trainee, days }) {
     return trainee.phone ? { name: trainee.name, phone: trainee.phone, gender: trainee.gender } : null;
   })();
   if (!target) return null;
-  return <WhatsAppCheckInButton name={target.name} phone={target.phone} gender={target.gender} days={days} />;
+  return <WhatsAppCheckInButton name={target.name} phone={target.phone} gender={target.gender} days={days} edge />;
 }
 
 export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout, onOpenBilling }) {
@@ -865,7 +865,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                     return (
                       <div key={t.id} style={{ ...ALERT_ROW, justifyContent: 'space-between', fontSize: 13 }}>
-                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
+                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minHeight: 36, lineHeight: '36px' /* the row's one 36px (#474): as a button on a phone it took the 40px touch floor, so DORMANT alone ran 40 beside OVERDUE's 36 - the whole row height is still the target */ }}>{t.name}</span>
                         <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one).
