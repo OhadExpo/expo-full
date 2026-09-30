@@ -514,7 +514,7 @@ async function shoot(job, label) {
       }
       await wait(2500);
       await pg.evaluate(() => {
-        // #35 Noah Carter - a MULTI-DAY block, so the day picker is in shot.
+        // #35 [athlete] - a MULTI-DAY block, so the day picker is in shot.
         const cards = [...document.querySelectorAll('.bhbc-card')].filter((e) => /#\d+/.test(e.textContent || ''));
         const c = cards.find((e) => /#35/.test(e.textContent || '')) || cards[0];
         if (c) c.click();

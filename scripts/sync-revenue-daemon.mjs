@@ -12,6 +12,7 @@
 // State: audit-out/sheets/daemon.json  Log: audit-out/sheets/daemon.log
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +22,16 @@ const SLOTS = [9, 21]; // local hours
 const CATCH_UP_MS = 12 * 3600 * 1000;
 fs.mkdirSync(path.dirname(STATE), { recursive: true });
 const say = (m) => { const s = `${new Date().toISOString()}  ${m}\n`; process.stdout.write(s); fs.appendFileSync(LOG, s); };
+// ONE WRITER (pc-migrate 2026-09-27 §2.2): this daemon writes prod, so it runs
+// only on the machine named in the User env var EXPO_DAEMON_HOST. A stray start
+// anywhere else - or on a machine without the variable - is a logged no-op.
+// Case-insensitive: os.hostname() is the mixed-case DNS name (laptop: "OhadTop"),
+// while %COMPUTERNAME% and the brief's value are upper-case.
+const WANT_HOST = (process.env.EXPO_DAEMON_HOST || '').trim().toUpperCase();
+if (!WANT_HOST || os.hostname().toUpperCase() !== WANT_HOST) {
+  say(`daemon NOT started: host ${os.hostname()} is not EXPO_DAEMON_HOST (${process.env.EXPO_DAEMON_HOST || 'unset'}) - exiting`);
+  process.exit(0);
+}
 const load = () => { try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch { return { lastOk: 0, lastSlot: '' }; } };
 const save = (st) => fs.writeFileSync(STATE, JSON.stringify(st));
 let running = false;
@@ -77,8 +88,27 @@ function runGames() {
     if (/read-back OK/.test(out)) runLeague('a game was logged');
   });
 }
-say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games every 20 min`);
+// OWED, from the roster sheet, every 20 minutes (#386). It fails soft and says
+// so in one line; a cycle with nothing new stays quiet.
+let owedRunning = false, owedLast = '';
+function runOwed() {
+  if (owedRunning) return;
+  owedRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/sync-owed-cycle.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', () => {
+    owedRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 400);
+    if (line && line !== owedLast) say(line);
+    owedLast = line;
+  });
+}
+say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + owed every 20 min`);
 tick();
 setInterval(tick, 60 * 1000);
 runGames();
 setInterval(runGames, 20 * 60 * 1000);
+runOwed();
+setInterval(runOwed, 20 * 60 * 1000);

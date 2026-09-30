@@ -18,11 +18,15 @@
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 const DESKTOP = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-export async function setWidth(pg, W, H = 1000) {
+// A TABLET is a touch device with a tablet user agent, not a narrow desktop
+// (28.9 #380, "audit all overflowing text on tablet view"): pass { tablet: true }.
+const ANDROID_TABLET = 'Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+export async function setWidth(pg, W, H = 1000, opts = {}) {
   const phone = W <= 620;
+  const tablet = !phone && !!opts.tablet;
   await pg.emulate({
-    viewport: { width: W, height: H, isMobile: true, hasTouch: phone, deviceScaleFactor: phone ? 2 : 1 },
-    userAgent: phone ? IPHONE : DESKTOP,
+    viewport: { width: W, height: H, isMobile: true, hasTouch: phone || tablet, deviceScaleFactor: phone || tablet ? 2 : 1 },
+    userAgent: phone ? IPHONE : tablet ? ANDROID_TABLET : DESKTOP,
   });
   // about:blank has no <meta name="viewport">, so under isMobile the layout
   // viewport falls back to 980px no matter what was asked for. Checking there

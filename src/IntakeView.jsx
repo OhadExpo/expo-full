@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog, CaretGlyph } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
@@ -267,7 +267,9 @@ export default function IntakeView({ trainees }) {
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{tt('Generate a link from the button above and send it to a prospect or trainee.')}</div>
         </div>
       ) : visible.map(s => (
-        <Card key={s.id} style={{ marginBottom: 8, opacity: s.reviewed_at ? 0.55 : 1 }}>
+        // paddingBottom 22: Card takes 4px off its bottom for descender slack, which
+        // this 12px meta line does not have - the row read 24.5 above / 22 below (29.9 #404)
+        <Card key={s.id} style={{ marginBottom: 8, paddingBottom: 22, opacity: s.reviewed_at ? 0.55 : 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div className="iv-sub-main" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -284,11 +286,11 @@ export default function IntakeView({ trainees }) {
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {s.reviewed_at ? (
-                <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ {tr(readLang(), 'UNDO')}</button>
+                <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '0 10px', height: 'var(--btn-h-in, 26px)', display: 'inline-flex', alignItems: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ {tr(readLang(), 'UNDO')}</button>
               ) : (
-                <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>{tt('✓ DONE')}</button>
+                <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '0 10px', height: 'var(--btn-h-in, 26px)', display: 'inline-flex', alignItems: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>{tt('✓ DONE')}</button>
               )}
-              <button onClick={() => setPendingDelete({ kind: 'submission', key: s.id })} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
+              <button onClick={() => setPendingDelete({ kind: 'submission', key: s.id })} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '0 10px', height: 'var(--btn-h-in, 26px)', display: 'inline-flex', alignItems: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
             </div>
           </div>
         </Card>
@@ -322,7 +324,7 @@ export default function IntakeView({ trainees }) {
                     <option value="assessment">{tt('Physical assessment')}</option>
                     <option value="progress">{tt('Progress check-in')}</option>
                   </select>
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                 </div>
               </div>
               <div>
@@ -336,7 +338,7 @@ export default function IntakeView({ trainees }) {
                         unsubmittable link. */}
                     <option value="en" disabled={!getForm(genForm.formType, 'en')}>{'English (EN)'}{getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
                   </select>
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                 </div>
               </div>
             </div>
@@ -351,7 +353,7 @@ export default function IntakeView({ trainees }) {
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}><CaretGlyph /></span>
                 </div>
               </div>
             )}

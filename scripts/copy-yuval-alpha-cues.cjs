@@ -44,5 +44,5 @@ const PLAN_ID = 'plan_yuvb_alpha_2605';
   if (upErr) { console.error('UPDATE FAIL', upErr.message); process.exit(1); }
 
   console.log(`\nUpdated ${PLAN_ID}: ${total} matched exercises | cues=${copiedCues} | videos=${copiedVideos}`);
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })().catch(e => { console.error(e); process.exit(1); });

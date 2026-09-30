@@ -20,24 +20,34 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase, useStripFit } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
 import { tr, readLang, useT, useTB } from './i18n';
 import RevenueSheetCard from './RevenueSheetCard';
+import OwedCard from './OwedCard';
 
 const fmtCurrency = (amount, currency = 'ils') => {
   const sym = currency === 'usd' ? '$' : '₪';
   return `${sym}${Number(amount).toLocaleString()}`;
 };
 
-export default function BillingView({ trainees }) {
+export default function BillingView({ trainees, onSelectTrainee }) {
   const tt = useT();
   const tb = useTB();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
   const refined = isRefined5b();
+  // PAYMENT REQUESTS keeps its title on one line (#452): + NEW REQUEST steps
+  // under the strip when the two do not fit side by side
+  const reqRowRef = React.useRef(null), reqTitleRef = React.useRef(null), reqBtnRef = React.useRef(null);
+  const reqPending = requests.filter(r => r.status === 'pending').length;
+  const reqStacked = useStripFit(true, reqRowRef, reqTitleRef, reqBtnRef, 0, [reqPending]);
+  const newReqBtn = (
+    <button ref={reqStacked ? undefined : reqBtnRef} onClick={() => setShowRequest(true)}
+      style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+  );
   const PAD = 14;
 
   const traineesById = useMemo(() => Object.fromEntries((trainees || []).map(t => [t.id, t])), [trainees]);
@@ -132,6 +142,8 @@ export default function BillingView({ trainees }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* the page's title, as Tasks has one (29.9 #448 audit: Billing had none) */}
+      <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{tt('Billing')}</h2>
       {/* AT-A-GLANCE — outstanding · overdue · collected this month. */}
       {/* Three tiles in two columns always strands one — photographed at 390:
           OUTSTANDING and OVERDUE on a row, COLLECTED MTD alone beside dead
@@ -173,22 +185,23 @@ export default function BillingView({ trainees }) {
       </div>
       {/* WHAT THE SHEETS RECORD. Owner-only data, so this renders nothing
           for staff or athletes. The manual ledger below is unaffected. */}
-      <RevenueSheetCard />
+      {/* OWED, expanded: every client, every detail (#386). */}
+      <OwedCard trainees={trainees} onSelectTrainee={onSelectTrainee} expanded />
       {/* REQUESTS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           {/* ONE ROW. flexWrap put + NEW REQUEST on a second line at 390, so the
               title sat 22px above the strip's centre (26.9). The title may wrap
               inside its own column; the button never moves under it. */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+          <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {/* one line on a phone: the count stays, its word steps aside */}
               {tt('PAYMENT REQUESTS')} · {requests.filter(r => r.status === 'pending').length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
             </span>
-            <button onClick={() => setShowRequest(true)}
-              style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+            {!reqStacked && newReqBtn}
           </div>
         </RefinedHeaderStrip>
+        {reqStacked && <div data-strip-actions="" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>{newReqBtn}</div>}
         {loadError ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>{tt('Couldn’t load billing data:')}{loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
           </div>
@@ -248,25 +261,28 @@ export default function BillingView({ trainees }) {
             not belong on a roster-payment list. Ohad, 21.9: "remove the payments
             and billing from all their names". Listing them with NO REQUEST
             beside their name reads as a debt that does not exist. */}
-        {(trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t)).map(t => {
+        {(trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t)).map((t, i, arr) => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
           const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
           return (
             // No side padding: 6px put every row's text 6px inside the ROSTER
             // STATUS title above it (26.9, "doesnt start at the same horizontal spot").
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: 'none', padding: '2px 0', minWidth: 90, textAlign: 'start' }}>
-                {labelTxt}
-              </span>
-              <span style={{ flex: 1, fontSize: 13, color: C.tx }}>{t.name}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>
-                {r ? `${fmtCurrency(r.amount, r.currency)} · ${fmtPrettyDate(r.created_at)}` : '—'}
-              </span>
+            // THE NAME FIRST, the status at the end (29.9 #448 audit: a dim NO REQUEST
+            // led all 13 rows and a "—" closed each one - three columns, one fact).
+            // With a request the amount and date sit beside its status.
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 36, boxSizing: 'border-box', padding: '6px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tx }}><bdi>{t.name}</bdi></span>
+              {r && <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCurrency(r.amount, r.currency)} · {fmtPrettyDate(r.created_at)}</span>}
+              <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>{labelTxt}</span>
             </div>
           );
         })}
       </div>
+
+      {/* FROM THE SHEETS LAST (29.9 #448 audit): ~1,900px of history sat between
+          OWED and the two sections a coach acts on, pushing them to y 3300 */}
+      <RevenueSheetCard />
 
       {showRequest && (
         <RequestModal

@@ -6,7 +6,7 @@ import { C, FN, FB, FH, uid } from './theme';
 // x-height, missing ascenders/descenders). Same pattern that's already
 // applied to NotesWidget, PlansView, WorkoutReview.
 import { isHebrew } from './script';
-import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
+import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection, CaretGlyph } from './ui';
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
 import { useT, tr, readLang, dirOfText } from './i18n';
@@ -694,7 +694,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                         <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
                         <span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
                       </span>
-                      <span style={{fontFamily:FN,fontSize:12,color:'var(--c-tx)',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}>▾</span>
+                      <span style={{fontFamily:FN,fontSize:12,color:'var(--c-tx)',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}><CaretGlyph /></span>
                     </button>
                     {open && (
                       <div style={{padding:'0 14px 14px'}}>

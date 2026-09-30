@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, laz
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
-import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
+import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit, CaretGlyph, CheckGlyph, CrossGlyph } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
 import { tr, readLang, useT as useAppT, useTB } from './i18n';
@@ -657,22 +657,30 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
   // private client's chip in the header after his card was gone.
   const list = athletes || session.athletes;
   const tt = useAppT();
+  // the title is never squeezed (#452): when ADD / FINISH leave it no room for
+  // one line, they step down to a row of their own under the strip
+  const rowRef = React.useRef(null), titleRef = React.useRef(null), btnsRef = React.useRef(null);
+  const stacked = useStripFit(true, rowRef, titleRef, btnsRef, 0, [checkedIn, list.length]);
+  const buttons = (
+    <div ref={stacked ? undefined : btnsRef} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0, width: stacked ? '100%' : undefined /* under the strip: one full-width toolbar */ }}>
+      <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
+      <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
+    </div>
+  );
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
         {/* One row (26.9): at 390 the buttons wrapped under the title and the
             title sat 22px above the strip's centre. The title wraps in its own
             column instead; the two buttons keep their place. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
+        <div ref={rowRef} data-strip-stacked={stacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: -0.5 /* measured: the ink sat 1px low at +0.5 (AUDIT-470) */ }}>
             {tt('ON THE FLOOR')} · {checkedIn}/{list.length}<span className="strip-meta">&nbsp;{tt('CHECKED IN')}</span>
           </span>
-          <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
-            <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
-            <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
-          </div>
+          {!stacked && buttons}
         </div>
       </RefinedHeaderStrip>
+      {stacked && <div data-strip-actions="" style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}
       {/* 14, the strip's own inset: at 12 every chip started 2px outside the
           title's edge (26.9). */}
       {list.length > 0 && (
@@ -684,8 +692,11 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
             // roster" - and at 360px it was clipped by 27px, so the coach read
             // "Athlete not on this ro". A chip must never be wider than the row
             // that holds it, and the name inside it has to be allowed to wrap.
-            <div key={a.rowId} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: a.checkedIn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}` }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: a.checkedIn ? C.gn : C.td }} />
+            // BASELINE: a Hebrew name (Heebo) beside a Nord label shares a letter
+            // centre on the baseline, not by box centre (1.75-2.56px apart; the
+            // same-line ink gate, 29.9 #467). The dot stays centred on the chip.
+            <div key={a.rowId} style={{ display: 'flex', alignItems: 'baseline', gap: 7, padding: '5px 10px', maxWidth: '100%', minWidth: 0, background: a.checkedIn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}` }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, alignSelf: 'center', background: a.checkedIn ? C.gn : C.td }} />
               <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{traineeName(traineeById, a.traineeId, tt('Athlete not on this roster'))}</span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.checkedIn ? (cur ? `→ ${cur.title}` : '—') : tt('not in')}</span>
             </div>
@@ -715,7 +726,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · ${tt('W')}${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tb('✓ IN') : tb('CHECK IN')}</button>
+          <button onClick={onToggleIn} style={{ ...miniBtn, height: 'var(--btn-h)', minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckGlyph />{tb('IN')}</span> : tb('CHECK IN')}</button>
           <button onClick={async () => {
             // Warn if the coach logged sets on this card — finishSession only
             // writes athletes still on the roster, so removing them discards that
@@ -725,7 +736,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               ? `Remove ${name || 'this athlete'} from the floor? The sets you logged for them here are NOT saved yet and will be discarded.`
               : `Remove ${name || 'this athlete'} from the floor?`;
             if (await confirmToast(msg, { okLabel: 'Remove', cancelLabel: 'Keep' })) onRemove();
-          }} title={tt('Remove from session')} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
+          }} title={tt('Remove from session')} style={{ ...miniBtn, width: 'var(--btn-h)', height: 'var(--btn-h)', padding: 0, flexShrink: 0, color: C.rd, border: `1px solid ${C.cardBd}` }} /* a 36px square beside the 36px CHECK IN (29.9 #448: 27x36 on a desktop, 40x36 on a phone) */><CrossGlyph /></button>
         </div>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -746,13 +757,13 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-                  <span style={{ display: 'inline-block', width: 18, flexShrink: 0, fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: allDone ? C.gn : C.tm }}>{allDone ? '✓' : (ei + 1)}</span>{ex.title}
+                  <span style={{ display: 'inline-block', width: 18, flexShrink: 0, fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: allDone ? C.gn : C.tm }}>{allDone ? <CheckGlyph /> : (ei + 1)}</span>{ex.title}
                 </span>
-                <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><CaretGlyph /></span>
               </div>
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center' /* one centre for 2x12 and its 10px count (a shared baseline put the caps 1px apart; #467) */, gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{ex.sets.length}</span> {tt('DONE')}</span>
               </div>

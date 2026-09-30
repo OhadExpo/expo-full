@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate, todayLocalISO } from './dates';
+import { fmtPrettyDate, fmtNumericDate, todayLocalISO } from './dates';
 import { SheetBillingHistory } from './RevenueSheetCard';
 import BWChart from './BwChart';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
@@ -65,7 +65,7 @@ function StatusMenu({ status, onChange }) {
         <span style={{ marginInlineEnd: '-0.12em' }}>{status}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: 'var(--c-bg)', minWidth: 130 }}>
+        <div className="motion-menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: 'var(--c-bg)', minWidth: 130 }}>
           {STATUS_CHOICES.map(s => (
             <button key={s} onClick={() => { onChange(s); setOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? 'var(--c-sf)' : 'transparent', border: `1px solid ${s === status ? (STATUS_COLOR[s] || C.ac) : 'transparent'}`, color: STATUS_COLOR[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
@@ -573,6 +573,10 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       }
     }
   };
+  // one control height and one border for every action (#456; they were 30px
+  // beside the house 36)
+  const TD_ACT_BASE = { fontSize: 11, padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', whiteSpace: 'nowrap' };
+  const TD_ACT = { ...TD_ACT_BASE, border: `1px solid ${C.cardBd}` };
   const SEC_TABS = [
     { id: 'all', label: t('View All') },
     { id: 'vitals', label: t('Vitals') },
@@ -580,7 +584,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
     // under it but an empty ledger with their name on it (Ohad, 21.9).
     ...(isClubAthleteRow(td) ? [] : [{ id: 'billing', label: t('Billing') }]),
     { id: 'messages', label: t('Messages') },
-    { id: 'crm', label: t('Coach History') },
+    { id: 'crm', label: t('Coach History'), short: t('History') },
     { id: 'bw', label: t('Bodyweight') },
     { id: 'readiness', label: t('Readiness') },
     { id: 'workouts', label: t('Workouts') },
@@ -615,12 +619,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           .td-hdr-identity { flex-wrap: wrap !important; min-width: 0; max-width: 100%; row-gap: 2px; }
           .td-hdr-contact { flex-basis: 100%; white-space: normal !important; word-break: break-word; }
           .td-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
-          /* On a phone the action strip wraps, and holding NOTIFICATION at the
-             far end left a hole in the middle of the second line. Let it pack. */
-          .td-notif { margin-inline-start: 0 !important; }
         }
       `}</style>
-      {/* Back + actions bar */}
       {/* 17.9, Ohad on the two rows here: "designed ugly, un-asthetic and not nice
           for the eye or ocd aligned". Two faults, both now gone:
             (1) the rows did not share a left edge — BACK sat outside the action
@@ -632,37 +632,38 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           So: row 1 is now one uniform boxed strip that starts at the container's
           left edge (BACK included, same 30px cell, cyan label) with the
           NOTIFICATION toggle pushed to the far right; row 2 is text. */}
-      <div style={{display:"flex",alignItems:"center",marginBottom:12,gap:12}}>
-        {/* Action buttons STRETCH to fill the row equally (flex:1 1 0) so this
-            row is a full-width segmented control that matches the section-tab row
-            directly below it exactly (Ohad: "the two rows must be the same"). All
-            30px, all equal width. NOTIFICATION gets a touch more room for its toggle.
-            EDIT first (after BACK), then LOG SESSION / PORTAL / ANALYSIS, the
-            NOTIFICATION toggle, ARCHIVE (destructive) last. */}
-        <div style={{display:"flex",gap:4,flex:1,minWidth:0,flexWrap:"wrap",alignItems:"center"}}>
-          <Btn variant="ghost" onClick={onBack} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`,color:'var(--c-ac)'}}>{t('← BACK')}</Btn>
-          {/* Order (Ohad): EDIT · PORTAL · ANALYSIS · LOG SESSION · ARCHIVE · NOTIFICATION.
-              Border unified to the same cyan hairline (C.cardBd) as the section-tab
-              row below, so the two rows read as ONE consistent segmented system
-              (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('EDIT')}</Btn>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
-          {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('RESTORE')}</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
-          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
-          <button
-            onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
-            title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
-            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '0 0 auto', marginInlineStart: 'auto' }} className="td-notif">
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('NOTIFICATION')}</span>
-            <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
-              <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.tm : C.ac, position: 'absolute', top: 2, left: td.notifOff ? 2 : 18, transition: 'all .15s' }} />
-            </span>
-          </button>
-        </div></div>
+      {/* THE ACTION BAR (29.9 #456, his phone: "button layout is horrible change
+          it completley. ocd order"). Seven controls wrapped into three ragged
+          rows of different widths. Now ONE grid, every control the house 36px:
+            desktop  one row - BACK · EDIT · PORTAL · ANALYSIS · LOG SESSION ·
+                     ARCHIVE, NOTIFICATION on the far end;
+            phone    three rows on one 3-column grid, so every edge lines up
+                     with the card edges and the column lines run straight down:
+                       BACK         | NOTIFICATION ··········· (2)
+                       EDIT         | PORTAL       | ANALYSIS
+                       LOG SESSION ··············· (2) | ARCHIVE
+          The rows read 1+2, 3, 2+1 - nothing left over, nothing ragged. */}
+      <div className={"td-actions" + (td.status === "Archived" ? " td-archived" : "")}>
+        <Btn variant="ghost" onClick={onBack} className="td-act td-back" style={{...TD_ACT, color:'var(--c-ac)'}}>{t('← BACK')}</Btn>
+        <Btn variant="ghost" onClick={openEdit} className="td-act" style={TD_ACT}>{t('EDIT')}</Btn>
+        {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} className="td-act" style={TD_ACT} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
+        <Btn variant="ghost" onClick={()=>lineage.open(trainee)} className="td-act" style={TD_ACT} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
+        {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} className="td-act td-log" style={TD_ACT} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
+        {td.status==="Archived" ? <>
+          <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} className="td-act" style={TD_ACT}>{t('RESTORE')}</Btn>
+          <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} className="td-act" style={TD_ACT_BASE}>{t("DELETE")}</Btn>
+        </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} className="td-act" style={{...TD_ACT, color:'var(--c-tm)'}}>{t('ARCHIVE')}</Btn>}
+        <button
+          onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
+          title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
+          aria-pressed={!td.notifOff}
+          style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }} className="td-notif">
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap' }}>{t('NOTIFICATION')}</span>
+          <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
+            <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.tm : C.ac, position: 'absolute', top: 2, insetInlineStart: td.notifOff ? 2 : 18, transition: 'all .15s' }} />
+          </span>
+        </button>
+      </div>
 
       {lineage.node}
       {/* Section filter — SINGLE-SELECT (Ohad). VIEW ALL (leftmost) shows
@@ -674,11 +675,11 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             (the three-material rule). Labels still size to themselves and wrap, so
             nothing is ever clipped or scrolled. The inactive underline is the same
             2px in transparent, so switching never moves the row by a pixel. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 2, width: '100%', alignItems: 'center' }} role="group" aria-label={t('Filter sections')}>
+        <div className={'td-secs' + (SEC_TABS.length % 3 === 2 ? ' td-secs-r2' : SEC_TABS.length % 3 === 1 ? ' td-secs-r1' : '')} role="group" aria-label={t('Filter sections')}>
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
-              <button key={t.id} onClick={() => toggleSec(t.id)}
+              <button key={t.id} onClick={() => toggleSec(t.id)} className="td-sec"
                 aria-pressed={active}
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
@@ -691,7 +692,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
                   fontFamily: FN, fontSize: 10.5, fontWeight: active ? 800 : 700, letterSpacing: '0.06em',
                   textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'color .12s, border-color .12s',
-                }}>{t.label}</button>
+                }}>{t.short ? <><span className="td-sec-full">{t.label}</span><span className="td-sec-short">{t.short}</span></> : t.label}</button>
             );
           })}
         </div>
@@ -902,7 +903,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare domId="td-sec-workouts" title={tr(readLang(), 'Recent Workouts')} count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>{t('No completed workouts.')}</div>:
-          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>{t('Week')} {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
+          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div data-recent-head style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",columnGap:12,alignItems:"baseline"}}>{/* 29.9 #444: at 360 the day name was cut to "DAY 2 ..." and "WEEK 1" ran straight into "29TH OF SEPTEMBER 2026" ("WEEK 129TH"). The name is whole (it may wrap), the week is its own fact, the date its own column. */}<span style={{minWidth:0,display:"flex",flexWrap:"wrap",alignItems:"baseline",columnGap:8,rowGap:2}}><span style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:"nowrap"}}>{t('Week')} {w.week}</span>}</span><span data-recent-date style={{fontSize:12,color:C.tm,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{fmtNumericDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
                 a severity-coloured value), so PAIN/SLEEP/ENERGY line up in a neat
                 aligned row rather than differently-sized chips (Ohad: align +
@@ -1013,12 +1014,18 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>{t('Nothing logged in the club zone yet.')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* ONE ROW PER SESSION, BUILT FOR A PHONE (29.9 #453, his phone: "Bad
+                    design for this" - "23RD OF SEPTEMBER 2026" over three lines and
+                    the notes broken mid-word, DYNAM / IC, in a 54px column). The
+                    date day/month/year (his rule), type and minutes on one line in
+                    fixed columns; the note, when there is one, takes the whole next
+                    line on a phone and breaks only between words. */}
                 {shown.map(({ date, r, kind }, i) => (
-                  <div key={date + i} style={{ display: 'grid', gridTemplateColumns: '92px 120px 70px minmax(0, 1fr)', gap: 10, alignItems: 'center', minHeight: 36, padding: '6px 0', borderTop: i ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
-                    <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{fmtPrettyDate(date)}</span>
-                    <span style={{ color: kind === 'lift' ? C.ac : kind === 'sc' ? C.or : C.tx, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10 }}>{KIND[kind] || KIND.other}</span>
-                    <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{Number(r.min) > 0 ? `${r.min} ${t('min')}` : '—'}</span>
-                    <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{r.note || ''}</span>
+                  <div key={date + i} className="club-log-row" style={{ borderTop: i ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
+                    <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }} dir="ltr">{fmtNumericDate(date)}</span>
+                    <span style={{ color: kind === 'lift' ? C.ac : kind === 'sc' ? C.or : C.tx, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: 10, whiteSpace: 'nowrap' }}>{KIND[kind] || KIND.other}</span>
+                    <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textAlign: 'end' }}>{Number(r.min) > 0 ? `${r.min} ${t('MIN')}` : '—'}</span>
+                    {r.note ? <span className="club-log-note" dir="auto" style={{ color: C.tm, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'normal', wordBreak: 'normal', hyphens: 'none' }}>{r.note}</span> : <span className="club-log-note" />}
                   </div>
                 ))}
                 {entries.length > shown.length && <div style={{ fontFamily: FN, fontSize: 10, color: C.td, paddingTop: 8, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{shown.length} / {entries.length}</div>}

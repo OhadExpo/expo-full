@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import ErrorBoundary from './ErrorBoundary';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { safeUrl, YouTubeLite } from './VideoEmbed';
@@ -24,6 +25,7 @@ import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from '
 // just below.
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import { emitSaveError, lsSnapshot } from './useSupaStore';
+import { subscribe as subscribeQueue, getEntries as getQueueEntries, drain as drainQueue } from './offlineQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
@@ -31,7 +33,7 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
-import { useT as useAppT, useTB, tr, readLang } from './i18n';
+import { useT as useAppT, tr, readLang } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
@@ -51,7 +53,11 @@ const readPlansSnapshot = (ci) => {
   try {
     const raw = localStorage.getItem(plansSnapKey(ci));
     const v = raw ? JSON.parse(raw) : null;
-    return null;
+    // (29.9: this line read `return null` from 21.9 on - a break-test left in
+    // c7543ed9 - so the basement fallback never returned the copy it had kept.
+    // Caught by G02 once its own syntax error was fixed; the gate now runs in
+    // security-audit --gates.)
+    return Array.isArray(v) ? v : null;
   } catch { return null; }   // an unreadable copy is the same as none
 };
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
@@ -374,6 +380,48 @@ function GooglePhotosEmbed({ url }) {
 
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
+// Completed (ticked) sets across a workout's exercises. The unit of "is this a
+// real workout": a row with 0 is refused by the logger (27.9).
+function countDoneSets(exercises) {
+  let n = 0;
+  for (const ex of (exercises || [])) for (const st of ((ex && ex.sets) || [])) if (st && st.done) n++;
+  return n;
+}
+
+// "WORKOUT NOT SAVED YET" (27.9). A finished workout the server has not taken
+// yet — offline, a lapsed session, or an error the owner has to fix — sits in
+// the offline queue and is shown HERE, on every portal page, until it lands.
+// Before, a permanent error was one toast and then the row vanished on the next
+// launch. Only this athlete's rows that already failed at least once are
+// listed (a save still in its first attempt is not "not saved" yet).
+function UnsavedWorkoutsBanner({ clientId }) {
+  const tt = useAppT();
+  const [rows, setRows] = useState([]);
+  const [retrying, setRetrying] = useState(false);
+  useEffect(() => subscribeQueue(() => {
+    try {
+      setRows(getQueueEntries().filter(e => e && e.type === 'client_workouts.upsert'
+        && (!clientId || e.payload?.row?.client_id === clientId)
+        && (e.lastError || e.parked)));
+    } catch { setRows([]); }
+  }), [clientId]);
+  if (!rows.length) return null;
+  const authWait = rows.some(e => e.authWait);
+  const retry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try { await drainQueue(); } catch { /* stays parked; the banner stays */ }
+    setRetrying(false);
+  };
+  return (
+    <div role="status" data-unsaved-workouts={rows.length} style={{background:'var(--c-sf)',borderBottom:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.rd}`,padding:'10px 20px',display:'flex',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
+      <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.rd,lineHeight:1.5}}>{tt('WORKOUT NOT SAVED YET')}{rows.length > 1 ? ` · ${rows.length}` : ''}</div>
+      <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140,lineHeight:1.5}}>{authWait ? tt('It is kept on this phone. Sign in again and it will be sent.') : tt('It is kept on this phone. Retrying until it goes through.')}</div>
+      <button data-unsaved-retry onClick={retry} disabled={retrying} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:retrying?'wait':'pointer',opacity:retrying?0.6:1}}>{tt('RETRY')}</button>
+    </div>
+  );
+}
+
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
   // A workout in progress: SwUpdateBanner neither shows nor reloads while this
@@ -415,10 +463,63 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     catch { return null; }
   }, [sessionKey, _legacySessionKey]);
 
+  // NO DUPLICATE / EMPTY ROWS, WITHOUT OVERWRITING A REAL SESSION (27.9).
+  // "AGAIN" on a finished day used to open a blank logger and Complete minted a
+  // brand-new row — an athlete's 0/20 row landed 53 s after his real 17/20 one.
+  // The log for this plan + day + week is RE-SAVED (same id) only when that is
+  // safely the same session:
+  //   - it was completed less than REUSE_WINDOW_MS ago (a correction, a double
+  //     finish), or it has 0 completed sets (an empty row to be filled in);
+  //   - the day's name is unique in the plan (two "Day B"s in one plan can not
+  //     be told apart by name, and rows carry no day index);
+  //   - the plan's name is unique in the portal (the live table has no plan_id
+  //     column yet, so a couple's identically-named plans match by name only).
+  // Anything else — a real repeat of the day hours later, a rebuilt block that
+  // kept its name — is a NEW row. Daily routines are always new rows.
+  const REUSE_WINDOW_MS = 2 * 60 * 60 * 1000;
+  // AUDIT 29.9 (#391 pass 1): only a RECENT row is ever reused - an old EMPTY
+  // row used to be reused at any age, so Thursday's real session was filed
+  // under Monday's date. A row dated in the future (device clock ahead) is not
+  // "recent". `emptyOnly` is the finish-time lookup: a row the logger did NOT
+  // open with may be reused only when it holds no ticked set, so a blank logger
+  // on a fresh device can never overwrite a real 17/20 row.
+  const findExistingLog = (list, { emptyOnly = false } = {}) => {
+    if (day?.kind === 'daily' || plan?.kind === 'daily') return null;
+    if (nameAmbiguous) return null;
+    if (Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name).length > 1) return null;
+    let best = null, bestAt = -Infinity;
+    const now = Date.now();
+    for (const w of (list || [])) {
+      if (!w || w.dayName !== day.name || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, null)) continue;
+      const at = Date.parse(w.date || '') || 0;
+      const recent = at > 0 && at <= now && now - at < REUSE_WINDOW_MS;
+      if (!recent) continue;
+      if (emptyOnly && countDoneSets(w.exercises) > 0) continue;
+      if (at > bestAt) { best = w; bestAt = at; }
+    }
+    return best;
+  };
+  const [editOf] = useState(() => findExistingLog(priorWorkouts));
+  const workoutIdRef = useRef(null);
+  // true once a Complete in THIS logger got past the write (handleComplete
+  // says so before the decrement): only then is a retry a re-save
+  const wroteRef = useRef(false);
+
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
   // prescribed plan is never mutated — substitution lives only in this state.
-  const [substitutions, setSubstitutions] = useState(_restoredSession?.substitutions || {});
+  const [substitutions, setSubstitutions] = useState(() => {
+    if (_restoredSession?.substitutions) return _restoredSession.substitutions;
+    // Re-opening an existing log: carry its swaps, or a re-save would silently
+    // put the prescribed exercise back over what the athlete actually did.
+    const out = {};
+    for (const px of (editOf?.exercises || [])) {
+      const sb = px && px.substitution;
+      if (!sb || !px.eid) continue;
+      out[px.eid] = (trainerExercises || []).find(e => e && e.id === sb.toLibId) || { id: sb.toLibId || null, title: sb.to || '' };
+    }
+    return out;
+  });
   const [swapOpenForEid, setSwapOpenForEid] = useState(null);
   // F-31 — open the LiveRepCounter for a specific exercise. eid is the
   // unique exercise instance in the day. The counter is lazy-imported
@@ -456,10 +557,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return wuCount > 0 ? 'wu0' : 'checkin';
   });
-  const [notes, setNotes] = useState(_restoredSession?.notes || '');
+  const [notes, setNotes] = useState(_restoredSession?.notes || editOf?.notes || '');
   // Readiness check-in (autoregulation) — collected between warm-ups and the
   // first exercise, saved onto the workout. (Ohad: "couldn't see the check-in")
-  const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || { pain: '', sleep: '', energy: '' });
+  const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || (editOf?.autoregulation && Object.keys(editOf.autoregulation).length ? editOf.autoregulation : null) || { pain: '', sleep: '', energy: '' });
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
   const setCountFor = (ex) => {
@@ -511,7 +612,26 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const prevOrder = _restoredSession.exOrder;
       const identityOk = !Array.isArray(prevOrder) ||
         (prevOrder.length === curOrder.length && prevOrder.every((e, i) => e === curOrder[i]));
-      if (sizesOk && identityOk) return _restoredSession.allSets;
+      // AUDIT 29.9: a stale draft from another day on this device must not
+      // replace a saved log that holds MORE ticked sets (device B's old partial
+      // draft over device A's finished 17/20).
+      const draftDone = _restoredSession.allSets.reduce((a, rows) => a + (rows || []).filter((x) => x && x.done).length, 0);
+      const savedDone = editOf ? countDoneSets(editOf.exercises) : 0;
+      if (sizesOk && identityOk && draftDone >= savedDone) return _restoredSession.allSets;
+    }
+    // Re-opening an existing log (AGAIN): start from what he already logged,
+    // matched by eid (position as the fallback), never from a blank sheet —
+    // a blank sheet completed by mistake is exactly the 0-set row incident.
+    if (editOf && Array.isArray(editOf.exercises)) {
+      return day.ex.map((ex, i) => {
+        const px = editOf.exercises.find(e => e && e.eid === ex.eid) || editOf.exercises[i];
+        const src = (px && Array.isArray(px.sets)) ? px.sets : [];
+        const count = Math.max(setCountFor(ex), src.length);
+        return Array.from({ length: count }, (_, si) => {
+          const st = src[si];
+          return st ? { reps: st.reps ?? '', load: st.load ?? '', rpe: st.rpe ?? '', done: !!st.done } : { reps: '', load: '', rpe: '', done: false };
+        });
+      });
     }
     return day.ex.map(ex => {
       const count = setCountFor(ex);
@@ -554,6 +674,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           delete out.phase; out.compressProgress = 0; out.uploadProgress = 0;
         }
         return out;
+      });
+    }
+    // Re-opening an existing log: keep its video slots (and the coach's
+    // reviewNotes on them) so a re-save can not blank a form video.
+    if (editOf && Array.isArray(editOf.formVideos) && editOf.formVideos.length) {
+      return day.ex.map((_, i) => {
+        const f = editOf.formVideos[i];
+        if (!f) return { note: '', has: false };
+        return { ...f, note: f.note || '', has: !!(f.has && (f.cloudUrl || f.pendingBlobId)), uploading: false };
       });
     }
     return day.ex.map(() => ({note:'',has:false}));
@@ -1355,17 +1484,49 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
   };
 
-  const finish = () => {
+  // Complete-screen state: 'saving' while the save is in flight, 'zero' when
+  // Complete was refused for a truly empty log, 'unticked' when sets carry
+  // numbers but no ✓ (offer to tick them), 'failed' when the workout could not
+  // be made safe anywhere (server AND this device's queue both refused).
+  const [finishState, setFinishState] = useState(null);
+  const isFilledUnticked = (st) => !!st && !st.done && !st.prefill && (String(st.reps ?? '').trim() !== '' || String(st.load ?? '').trim() !== '');
+  const countFilledUnticked = (sets2d) => { let n = 0; for (const rows of (sets2d || [])) for (const st of (rows || [])) if (isFilledUnticked(st)) n++; return n; };
+  const hasAttachedVideo = () => fv.some(f => f && (f.has || f.cloudUrl || f.pendingBlobId));
+  const finish = async (opts = {}) => {
     // In-flight guard: two taps in the same tick both ran finish() to completion
     // (setLg(null) only unmounts on the next render), minting two workoutIds → two
-    // client_workouts rows + two pushes + a double session decrement. Once armed we
-    // unmount via onComplete, so no reset is needed.
+    // client_workouts rows + two pushes + a double session decrement.
     if (submittingRef.current) return;
+    // NO EMPTY ROWS (27.9). Only a TRULY empty log is refused: no ticked set,
+    // no numbers typed, no video. Numbers without ✓ are real work (6 of the 31
+    // live 0-done rows have them) — offer to tick them, and a second Complete
+    // saves as is. A video alone is a real log too, and must never be orphaned.
+    const setsNow = opts.tickFilled
+      ? allSets.map(rows => (rows || []).map(st => isFilledUnticked(st) ? { ...st, done: true, prefill: false } : st))
+      : allSets;
+    if (opts.tickFilled) setAllSets(setsNow);
+    const doneNow = countDoneSets(setsNow.map(sets => ({ sets })));
+    const filledNow = countFilledUnticked(setsNow);
+    const videoNow = hasAttachedVideo();
+    if (doneNow === 0 && filledNow === 0 && !videoNow) { setFinishState('zero'); return; }
+    if (doneNow === 0 && filledNow > 0 && !videoNow && finishState !== 'unticked') { setFinishState('unticked'); return; }
     submittingRef.current = true;
-    const workoutId = uid();
+    setFinishState('saving');
+    // Same plan + day + week already logged → re-save THAT row (same id, an
+    // upsert), never a second one. Looked up again NOW, not only at mount: the
+    // history may have arrived after the logger opened (fresh device).
+    // The log this logger OPENED WITH (editOf, its sets were seeded in), else a
+    // recent EMPTY row to fill; never a real row the logger never loaded. And
+    // ONE id per logger session: a Complete retried after a failure (or after a
+    // throw past the save) re-saves the same row instead of minting a second.
+    const existingLog = editOf || findExistingLog(priorWorkouts, { emptyOnly: true });
+    const workoutId = workoutIdRef.current || existingLog?.id || uid();
+    workoutIdRef.current = workoutId;
     // Carry pendingBlobId on each form_video entry so the blob queue can find
-    // and patch this workout once the upload eventually succeeds.
-    const formVideos = fv.map(f => ({
+    // and patch this workout once the upload eventually succeeds. Only the
+    // athlete's own fields: the coach's (reviewNotes…) are merged from the
+    // SERVER copy at write time (upsertWorkoutRow), never from this device's.
+    const formVideos = fv.map((f) => ({
       has: f.has,
       note: f.note,
       fileName: f.fileName || null,
@@ -1387,12 +1548,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // for downstream signals (which equipment is bottlenecking which
     // programs, etc.).
     const finishedAt = new Date().toISOString();
-    onComplete({
+    const result = await Promise.resolve().then(() => onComplete({
       // planId identifies WHICH plan this is, where the name cannot: two couple
       // members can hold plans with the same name and the same day names
       // (audit 08-22 #31).
       id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
-      week: weekNum + 1, date: finishedAt, notes, autoregulation: checkin,
+      // A re-saved log keeps the day it was trained and the coach's review mark.
+      // (reviewedAt is deliberately absent: the coach's mark is never re-sent.)
+      week: weekNum + 1, date: existingLog?.date || finishedAt, notes, autoregulation: checkin,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -1420,7 +1583,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // be shorter than the newly-targeted day's exercise list. Unguarded,
           // this threw at the exact moment of committing — white screen, and the
           // athlete's whole session lost on the last tap.
-          sets: (allSets[i] || []).map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
+          sets: (setsNow[i] || []).map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
           substitution: sub ? {
             from: prescribedTitle,
             fromEid: ex.eid,
@@ -1430,12 +1593,37 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           } : null,
         };
       }),
+    // resave: this Complete re-saves an existing row (no second session
+    // decrement / "finished a workout" push / BW re-file). Decided HERE, from
+    // the same lookup that chose the id, not re-derived by the caller.
+    // A retry after a throw PAST THE WRITE is a re-save too - never a second
+    // session decrement. Decided by whether the write actually landed
+    // (onWritten), not by the row being in the list: the list gains the row
+    // optimistically, so a write that FAILED would have turned the retry into
+    // a "re-save" and the decrement / push / week advance would never run
+    // (29.9 audit round 2).
+    }, { resave: !!existingLog || wroteRef.current, onWritten: () => { wroteRef.current = true; } })).catch((e) => {
+      // Something past the write threw (the decrement, the BW file...). The row
+      // may well be saved; either way the athlete gets his button back, and a
+      // second tap re-saves the SAME id (workoutIdRef).
+      try { console.error('[logger] complete threw', e); } catch { /* no console */ }
+      return { ok: false, error: e };
     });
-    // Workout committed — drop the in-progress draft. The trainee can start a
-    // fresh log next time without seeing stale set values from this session.
+    // The draft is dropped ONLY once the workout is safe — confirmed by the
+    // server or durably parked in the offline queue. Before 27.9 it was deleted
+    // the instant Complete was tapped, before the server answered, so any lost
+    // request took the athlete's only copy with it. If neither the server nor
+    // this device could keep it, stay here: the draft and every set survive,
+    // and Complete can be tapped again.
+    if (result && result.ok === false) {
+      submittingRef.current = false;
+      setFinishState('failed');
+      return;
+    }
     // Exit (← Exit / browser nav) intentionally KEEPS the draft so a trainee
     // can resume the same day mid-workout.
     clearSessionDraft();
+    onBack();
   };
 
   // Navigation helpers
@@ -1513,7 +1701,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
-        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
+        {/* #472 (AUDIT-470): EXIT during a form-video upload orphaned the clip - the
+            upload finished into an unmounted logger (no link) or failed into a queue
+            entry with no workout. Leaving mid-upload now asks first. */}
+        <button onClick={async () => { if (fv.some((f) => f && f.uploading) && !(await confirmToast(tt('A video is still uploading - leave now and it will not be saved.'), { okLabel: tt('Leave'), cancelLabel: tt('Stay') }))) return; onBack(); }} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
       </div></div>
     {sessionAutosave.status === 'error' && (
       <div role="status" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,margin:'0 0 8px',padding:'6px 10px',background:'rgba(224,87,74,0.12)',border:'1px solid rgba(224,87,74,0.55)',color:'#E0574A',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em'}}>
@@ -1593,7 +1784,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
+          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
             {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
       </div></div>;
   }
@@ -1622,13 +1813,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
-        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
+        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24,unicodeBidi:'plaintext'}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
         <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
         <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
         <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
+          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
         </div>
       </div></div>;
   }
@@ -1680,8 +1871,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   if (step === 'end') return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
       <EXPOMark theme="dark" height={36} style={{marginBottom:16}} />
-      <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
-      <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
+      {/* THE LAST SCREEN OF EVERY WORKOUT SPEAKS HIS LANGUAGE (29.9 #391 pass 7:
+          on the Hebrew seat it read "NICE WORK! / SESSION COMPLETE. ANY NOTES? /
+          COMPLETE WORKOUT / Back" - the only strings here that never went
+          through tt()). */}
+      <h2 dir="auto" style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>{tt('Nice work!')} 🎉</h2>
+      <div dir="auto" style={{color:C.tm,fontSize:13,marginBottom:20}}>{tt('Session complete. Any notes?')}</div>
 
       {/* New PRs from this session */}
       {newPRs.length > 0 && (
@@ -1693,9 +1888,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 2, fontWeight: 700,
             marginBottom: 8, textAlign: 'center',
           }}>
-            {newPRs.some(p => !p.debut) ? `🏆 ${newPRs.filter(p => !p.debut).length} NEW PR${newPRs.filter(p => !p.debut).length === 1 ? '' : 's'}` : `✨ FIRST LOGS`}
-            {newPRs.some(p => p.debut) && newPRs.some(p => !p.debut)
-              ? ` · ${newPRs.filter(p => p.debut).length} debut${newPRs.filter(p => p.debut).length === 1 ? '' : 's'}` : ''}
+            {(() => {
+              const nPr = newPRs.filter(p => !p.debut).length, nDeb = newPRs.filter(p => p.debut).length;
+              const heEnd = readLang() === 'he';
+              const head = nPr ? (heEnd ? `🏆 ${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `🏆 ${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? '✨ רישום ראשון' : '✨ FIRST LOGS');
+              const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל חדש' : `${nDeb} תרגילים חדשים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
+              return head + tail;
+            })()}
           </div>
           {newPRs.map((p, i) => (
             <div key={i} style={{
@@ -1712,13 +1911,34 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>
       )}
 
-      <textarea dir="auto" value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
+      {/* an EMPTY dir="auto" field resolves to LTR, which scrambled the Hebrew
+          placeholder's question marks - empty follows the language, typed text
+          follows itself */}
+      <textarea dir={notes ? 'auto' : (readLang() === 'he' ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
       {fv.some(f => f.uploading) ? (
-        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
+        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ {tt('Video uploading...')}</button>
       ) : (
-        <button onClick={finish} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>✓ Complete Workout</button>
+        <>
+          {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && countFilledUnticked(allSets) === 0 && !hasAttachedVideo() && (
+            <div role="alert" dir="auto" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+              {tt('No sets ticked yet. Tick ✓ on the sets you did, then complete.')}
+            </div>
+          )}
+          {finishState === 'unticked' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && (
+            <div role="alert" dir="auto" data-finish-refused="unticked" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.or}`,color:C.or,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+              <div style={{marginBottom:10}}>{tt('Some sets have numbers but no ✓. Tick them, or complete as is.')}</div>
+              <button data-tick-filled onClick={() => finish({ tickFilled: true })} style={{width:'100%',padding:12,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',cursor:'pointer'}}>{tt('TICK THEM + COMPLETE')}</button>
+            </div>
+          )}
+          {finishState === 'failed' && (
+            <div role="alert" dir="auto" data-finish-refused="failed" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
+              {tt('Not saved. Your sets are still here. Tap complete again.')}
+            </div>
+          )}
+          <button data-complete-workout onClick={() => finish()} disabled={finishState === 'saving'} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:finishState === 'saving' ? 'wait' : 'pointer',opacity:finishState === 'saving' ? 0.6 : 1}}>{finishState === 'saving' ? tt('Saving...') : `✓ ${tt('Complete Workout')}`}</button>
+        </>
       )}
-      {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>}
+      {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← {tt('Back')}</button>}
     </div></div>;
 
   // ===== EXERCISE STEP (single exercise OR grouped superset) =====
@@ -1729,7 +1949,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   if (!group) return (
     <div style={{ padding: '40px 20px', textAlign: 'center', minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 18 }}>
       <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: '0.08em', lineHeight: 1.6 }}>{tt('This day has no exercises yet.')}<br />{tt('Check back once your coach adds them.')}</div>
-      <button onClick={onBack} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', padding: '10px 22px', borderRadius: 0 }}>← EXIT</button>
+      <button onClick={onBack} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', padding: '10px 22px', borderRadius: 0 }}>← {tt('EXIT')}</button>
     </div>
   );
   const isSuperset = group.exIdxs.length > 1 && !!group.superset;
@@ -2117,7 +2337,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <div style={{display:'flex',gap:8,marginTop:20}}>
         {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
+        <button data-step-next onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
           {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
     </div></div>;
 }
@@ -2130,9 +2350,26 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null }) {
   const tt = useAppT();
-  const tb = useTB();
+  // EVERY HEBREW LINE IN ITS OWN DIRECTION (29.9 #391 pass 7). The portal keeps
+  // its left-to-right LAYOUT (as production), and so every Hebrew sentence in
+  // it was laid out left-to-right too: the full stop and the question mark
+  // landed on the wrong side and two-sentence lines reordered ("?האימון הושלם.
+  // יש מה לרשום"). While the portal is mounted <body> carries its language;
+  // themes.css gives each Hebrew line unicode-bidi: plaintext - the direction of
+  // its own first letter - without moving a single box.
+  // Not in the coach-side preview (demoMode without localWrites): that portal
+  // renders INSIDE the coach app, and the rule on <body> re-ordered the coach's
+  // own mixed lines while he previewed an athlete (29.9 audit).
+  const coachPreview = demoMode && !localWrites;
+  // BEFORE the first paint (layout effect): set after it, a Hebrew athlete's first
+  // frame painted without the portal's Hebrew text rule and the lines jumped (AUDIT-470)
+  React.useLayoutEffect(() => {
+    if (coachPreview) return undefined;
+    document.body.dataset.athleteLang = (lang || readLang()) === 'he' ? 'he' : 'en';
+    return () => { delete document.body.dataset.athleteLang; };
+  }, [lang, coachPreview]);
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -2424,6 +2661,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // was shown W1, and tapping LOG filed the session under week 1, colliding
   // with their real W1 in every week-scoped view (done ✓, ghosts, PRs).
   const derivedFromEmptyRef = React.useRef(false);
+  // The open logger's week, frozen while it is open (see the Step Logger below).
+  const openLogRef = React.useRef(null);
   React.useEffect(() => {
     const name = activePlan?.name;
     if (!name) return;
@@ -2446,15 +2685,46 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // growth (the athlete completing a workout) can never yank the week away
     // from wherever they navigated manually.
   }, [activePlan?.name, cw.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const handleComplete = w => {
+  // Returns the save result to the logger ({ ok, confirmed, ... }); the logger
+  // closes itself (onBack) only once ok, and keeps its draft otherwise.
+  const handleComplete = async (w, meta = {}) => {
     // demoMode = coach-side preview. Writes must never touch the real
     // trainee's record. Bail before any setter so a future refactor that
     // wires real (non-noop) setters into preview can't leak through.
     // demoMode alone is not enough to decide this: the coach-side preview is
     // ALSO demoMode, and there the setters are the real ones. localWrites is
     // set only by DemoTraineePortal, whose setters are its own useState.
-    if (demoMode && !localWrites) { setLg(null); return; }
-    setClientWorkouts(prev => [...prev, w]);
+    if (demoMode && !localWrites) return { ok: true, confirmed: true };
+    // A re-save of the log he already has for this plan/day/week: no second
+    // session decrement, no second "finished a workout" push, no BW re-file.
+    // The logger decides (meta.resave, from the lookup that chose the id); the
+    // local-list check is only the fallback for a caller that does not say.
+    const isResave = typeof meta.resave === 'boolean' ? meta.resave : (clientWorkouts || []).some(x => x && x.id === w.id);
+    // Reload guard: the SW update banner never reloads while this is raised.
+    // It stays up until the network attempt is OVER (not just until the logger
+    // closes) — the row is in the offline queue either way, but a reload
+    // mid-request is the exact moment sessions used to vanish.
+    window.__expoWorkoutActive = (window.__expoWorkoutActive | 0) + 1;
+    let released = false;
+    const release = () => { if (released) return; released = true; window.__expoWorkoutActive = Math.max(0, (window.__expoWorkoutActive | 0) - 1); };
+    let res;
+    try {
+      const p = setClientWorkouts(prev => {
+        const at = prev.findIndex(x => x && x.id === w.id);
+        if (at < 0) return [...prev, w];
+        const next = [...prev]; next[at] = { ...prev[at], ...w }; return next;
+      }, { upsertIds: [w.id] });
+      res = (p && typeof p.then === 'function') ? await p : { ok: true, confirmed: true };
+    } catch (e) {
+      res = { ok: false, error: e };
+    }
+    if (res && res.settled && typeof res.settled.then === 'function') res.settled.then(release, release);
+    else release();
+    if (!res || res.ok === false) return res || { ok: false };
+    // the write landed (server or durable queue): from here a retry of this
+    // same logger is a re-save, whatever throws below
+    try { if (typeof meta.onWritten === 'function') meta.onWritten(); } catch { /* the caller's flag only */ }
+    if (isResave) return res;
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.
     if (bw && Number.isFinite(parseFloat(bw))) {
@@ -2506,10 +2776,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       const next = deriveWeekIdx(activePlan, [...(cw || []), w], dupPlanNames);
       if (next > wk) setWk(next);
     }
-    setLg(null);
+    return res;
   };
 
   // Step Logger — find plan by index across visible plans
+  if (lg === null) openLogRef.current = null;
   if (lg !== null && trainee) {
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
@@ -2523,7 +2794,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // belongs to a DIFFERENT visible plan must file under THAT plan's own
     // current week, not the active block's — else a multi-plan athlete's
     // workout lands under the wrong week (done/AGAIN badge + ghosts too).
-    const logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw, dupPlanNames);
+    let logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw, dupPlanNames);
+    // Freeze the week for as long as THIS logger is open. Complete appends the
+    // row optimistically and advances the week before the logger closes; a new
+    // week here would change the key below and remount a fresh logger mid-save.
+    const openKey = `${lg}|${targetPlan.id || targetPlan.name}`;
+    if (openLogRef.current && openLogRef.current.key === openKey) logWeek = openLogRef.current.week;
+    else openLogRef.current = { key: openKey, week: logWeek };
     // key by the day's IDENTITY (plan + day index + week), not the flat `lg`
     // index: if portalVis updates over realtime mid-session and the same `lg`
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
@@ -2575,10 +2852,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           "pages glitch from left to right"). */}
       <style>{`html{scrollbar-gutter:stable}`}</style>
       <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:(ident==='CONSOLE'||ident==='RAIL')?'none':`1px solid ${C.bd2}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
+        <div className="pv-toprow" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
           {/* Bnei Herzliya crest — top row, horizontally centered, sized to the
               EXPO mark's height (Ohad: "all the way up, same size as the EXPO logo"). */}
-          {isBnei && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
+          {isBnei && <img className="pv-crest" src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
@@ -2601,7 +2878,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* (Bnei Herzliya co-brand lives as the big crest above the greeting
                 below — the tiny header logo was removed per Ohad.) */}
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:14}}>
+          {/* ONE RHYTHM (29.9 #390, measured): 36px boxes that hug their ink
+              with 10px each side, 8px between boxes, so the ink gaps are equal
+              in English and Hebrew; the last control's ink sits on the
+              divider's end edge (-10px end margin). */}
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
             {!demoMode && (() => {
               // trainee.email is either a string or an array (up to 3 per
               // memory project_auth_state). Flatten to the first non-empty
@@ -2612,13 +2893,32 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               const reporter = arr.find(e => typeof e === 'string' && e.trim()) || '';
               return <BugReportButton role="athlete" reporterEmail={reporter} variant="athlete" />;
             })()}
-            <button onClick={()=>setShowPwModal(true)} title={tr(readLang(), 'Change password')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
+            {/* EN / עב for the athlete (Ohad 29.9 #390). The coach's control's
+                type: it shows the language it switches TO. NEVER DURING A WORKOUT: the logger replaces this whole
+                screen while it is open, and a finished workout that is still
+                being saved (__expoWorkoutActive) refuses the switch too - a
+                re-render there is not worth any risk to his sets. Not on the
+                sign-in screens (#270) - those render before this portal exists. */}
+            {onSetLang && !embedded && (() => {
+              const cur = lang === 'he' ? 'he' : 'en';
+              const flip = () => { if ((window.__expoWorkoutActive | 0) > 0) return; onSetLang(cur === 'he' ? 'en' : 'he'); };
+              return (
+                <button type="button" data-portal-lang onClick={flip} title={cur === 'he' ? 'Switch to English' : 'עברית'} aria-label={cur === 'he' ? 'Switch to English' : 'עברית'}
+                  style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:'0 10px',minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',lineHeight:1}}>
+                  {/* no width reservation: a tap re-renders the whole portal in the
+                      other language, so the row is re-laid out anyway, and a
+                      reserved width left the English ink gaps 30 / 28 */}
+                  <span>{cur === 'he' ? 'EN' : 'עב'}</span>
+                </button>
+              );
+            })()}
+            <button onClick={()=>setShowPwModal(true)} title={tr(lang || readLang(), 'Change password')} aria-label={tr(lang || readLang(), 'Change password')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:'0 10px',minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tb('LOG OUT')} {readLang() === 'he' ? '←' : '→'}</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'0 10px',marginInlineEnd:-10,minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',lineHeight:1}}>{tt('LOG OUT')} {(lang || readLang()) === 'he' ? '←' : '→'}</button>
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,
@@ -2751,7 +3051,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // padding 10/10, groups share one baseline.
           if (hv === '4') return (
             <div className="pv5-hdr-row" style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',alignItems:'center',columnGap:10,rowGap:6}}><style>{`/* Three columns leave the block name 101px at 360, and "BLOCK #4 — Hypertrophy" then breaks over three lines. The comment above already says the row should wrap at this width; a three-column grid cannot. One column below 420. */
-              @media (max-width: 420px) { .pv5-hdr-row { grid-template-columns: 1fr !important; } }`}</style>
+              @media (max-width: 420px) { .pv5-hdr-row { grid-template-columns: auto auto !important; justify-content: space-between; row-gap: 8px; } .pv5-hdr-row > .pv5-hdr-name { grid-column: 1 / -1; } }`}</style>
               {/* The block name WRAPS; it used to truncate. Truncating did stop the
                   week + left groups being shoved off a phone, but it cost the athlete
                   the name of the block he is training: measured on /demo/athlete at
@@ -2759,7 +3059,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   HYPE...". Letting the row wrap gives the name a full line and moves
                   the week group under it instead, which is the same answer the header
                   nav needed at this width. Nothing wraps at desktop. */}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
+              {/* a phone: the name on line one, THIS WEEK and LEFT sharing line two
+                  (three stacked lines took ~140px for one line of facts; #459 c) */}
+              <span className="pv5-hdr-name" style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
@@ -2814,6 +3116,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         })()}
       </div>
       {offlineNote}
+      {!demoMode && <UnsavedWorkoutsBanner clientId={ci} />}
       {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
           knows it's clickable"). Same 3+3 grouping as the 05-16 spec, but as
           a SEGMENTED 3×2 GRID: one hairline box, hairlines between every
@@ -2829,7 +3132,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // miss as the portal rendering outside the language provider.
         const NAV = [
           ['prog', tt('PROGRAM')], ['bwt', tt('BW')], ['meal', tt('MEAL LOG')],
-          ['hist', `${tt('HISTORY')} (${cw.length})`], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
+          ['hist', cw.length ? `${tt('HISTORY')} (${cw.length})` : tt('HISTORY') /* never "(0)" (#459 g) */], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
         ];
         const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
 
@@ -2875,7 +3178,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',
                     cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                     transition:'background .12s, color .12s'}}>
-                  {vw===k ? '▸ ' : ''}{l}{unreadDot(k)}
+                  {/* no caret on the active tab alone - it pushed that one label off
+                      the centre of its cell (#459 f); the fill says which is open */}
+                  {l}{unreadDot(k)}
                 </button>
               )}
             </div>
@@ -2948,7 +3253,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const range = maxBw - minBw;
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
-      <div style={{padding:'14px 20px 20px'}}>
+      <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt("ENTRIES")}</div>
@@ -3105,7 +3410,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const checkinCount = cw.filter(w => hasReadiness(w.autoregulation)).length;
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
-      <div style={{padding:'14px 20px 20px'}}>
+      <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount}{tt('CHECK-IN')}{checkinCount===1?'':'S'}</div>
@@ -3118,7 +3423,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // History
   if (vw === 'hist' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
-    <div style={{padding:'14px 20px 20px'}}>
+    <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:14}}>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt('HISTORY')} · {cw.length} {tt(cw.length === 1 ? 'SESSION' : 'SESSIONS')}</div>
         {/* Graph button — same shape as the coach dashboard buttons; opens the
@@ -3192,11 +3497,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // MEAL LOG page — full-screen, lazy-loaded.
   if (vw === 'meal' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
-    <div style={{padding:'14px 20px 28px'}}>
+    <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 28px'}}>
       {ci ? (
+        // a failure in the meal logger stays in its box: the header and the
+        // tabs above it keep working (29.9 #436)
+        <ErrorBoundary inline>
         <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>{tt('LOADING…')}</div>}>
           <MealLogger clientId={ci} page demoMode={demoMode} />
         </React.Suspense>
+        </ErrorBoundary>
       ) : null}
     </div>
   </div>;
@@ -3205,9 +3514,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Program view before 2026-05-16.
   if (vw === 'msg' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
-    <div style={{padding:'14px 20px 28px'}}>
+    <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 28px'}}>
       {ci ? (
-        <>
+        <ErrorBoundary inline>
           {!demoMode && <PushToggle role="athlete" />}
           <CoachMessagesAthlete
             traineeId={ci}
@@ -3215,7 +3524,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             demoMode={demoMode}
             recipientEmail="ohadyproductions@gmail.com"
             senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
-        </>
+        </ErrorBoundary>
       ) : null}
     </div>
   </div>;
@@ -3224,7 +3533,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice().sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-1)[0]?.bw;   // chronologically latest, not last-appended (re-saving an older week reorders the array)
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
-      <div style={{padding:'14px 20px 20px'}}>
+      <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         {/* flex-end so the WEEK strip and KG box bottom-align exactly — their
             labels differ by a sub-pixel, and centring offset the boxes ~0.8px
             (Ohad: "kg and wk4 not aligned"). */}
@@ -3235,7 +3544,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               hairline box, active cell filled) so it speaks the same boxed
               language as the header stats strip; label style matches the
               strip cell labels. */}
-          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>{tt("WEEK")}</div>
+          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700,textAlign:'center' /* over the week buttons, as BW sits over KG - it floated over W4 in Hebrew (#459 a/b) */}}>{tt("WEEK")}</div>
             {/* Weeks per identity. All fixed 32px so the KG input stays
                 level in every version. */}
             {(() => {
@@ -3280,12 +3589,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             })()}</div>}
           <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}> · <span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb} {tt("KG")}</span></span>:''}</div>
             <div style={{display:'flex',gap:4}}>
-            {/* KG matches the week cells: 32px border-box in every identity;
-                underline material where the identity is underline/bare. */}
+            {/* KG matches the week cells: the ONE control height (--btn-h, 36)
+                in every identity - it was a fixed 32 after the buttons beside it
+                went to 36 (29.9, control-heights RAGGED on /demo/athlete, live
+                in production too). Underline material where the identity is
+                underline/bare. */}
             <input value={bw} onChange={e => setBw(e.target.value)} placeholder={tt("KG")} type="number" disabled={!activePlan}
               style={(ident === 'EDITORIAL' || ident === 'AIR')
-                ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
-                : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+                ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:'var(--btn-h)',padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
+                : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:'var(--btn-h)',padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt("SAVE")}</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>{tt("REST")}</span>{activePlan.rest}</div>}
@@ -3349,7 +3661,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.tx,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
-                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
+                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '8px 0 7px' /* the title's 1.35 line adds its leading UNDER the last line: 8 / 7 centres the two lines between the rules (was 7 / 8 = 7 above, 9.2 below; 29.9 #465) */,borderTop:divider}}>
                   <div style={{display:'flex',gap:10,alignItems:'center'}}>
                     {numEl}
                     <div style={{flex:1,minWidth:0}}>
@@ -3390,8 +3702,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // LOG action per identity: bordered chip (BASE/TABLE/CONSOLE/
             // RAIL) or a text link (EDITORIAL/AIR).
             const actionEl = action && ((ident === 'EDITORIAL' || ident === 'AIR')
-              ? <button onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
-              : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
+              ? <button data-day-action={String(title || "")} onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
+              : <button data-day-action={String(title || "")} onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
             const titleGroup = (size, tracking) => (
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
                 {/* Count is BASELINE-aligned to the title, then lifted so its INK
@@ -3400,13 +3712,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     title-caps ink-center ≈ 0.333·size above baseline, the 10px
                     count ≈ 3.28 above — so lift = 3.28−0.333·size (−1.05px at
                     size 13). Same value for "(N)" and "N EX". */}
-                {/* The title is nowrap, so a long block name ("Warm-Up · Block
-                    #4 — Hypertrophy") ran 18px past the card's edge and was cut
-                    mid-word - measured on /try at 390. It truncates now, and the
-                    count never gets pushed out with it. */}
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
-                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),minWidth:0,whiteSpace:'normal',overflowWrap:'anywhere'}}>{title}</span>
-                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,flexShrink:0,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                {/* A long block name ("Warm-Up · Block #4 — Hypertrophy") wraps
+                    inside the card. The count rides the TEXT FLOW, right after the
+                    last word: as a flex sibling it was thrown to the card's far edge
+                    whenever the title wrapped (#459 d, 29.9). Inline-block on the
+                    shared baseline, so the lift above still lands it on the caps. */}
+                <span style={{display:'inline',whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
+                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1.2,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflowWrap:'anywhere'}}>{title}</span>
+                  <span style={{display:'inline-block',marginInlineStart:7,whiteSpace:'nowrap',fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
               </div>
@@ -3443,8 +3756,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
             if (ident === 'RAIL') return (
-              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'10px 16px 0'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:4,paddingBottom:5,borderBottom:`1px solid ${hair}`}}>
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'0 16px'}}>
+                {/* the header sits CENTRED between the card's top border and its own
+                    rule: 10 / 10 inside the header, nothing added above by the card
+                    (was 10 + 4 above, 5 below - the title rode 9px low of centre;
+                    29.9 #463 / #465, his phone) */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:10,paddingBottom:10,borderBottom:`1px solid ${hair}`}}>
                   {titleGroup(13,'0.04em')}
                   {actionEl}
                 </div>
@@ -3492,7 +3809,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             accent: C.or,
             borderColor: C.cardBd,
             title: `${tt('Warm-Up')} · ${vp.name}`,
-            count: `(${vp.warmup.length})`,
+            count: `${vp.warmup.length} ${tt('EX')}`,   // one count format with the day cards (#459 e)
             countColor: C.or,
             // warm-up owns ORANGE (number + title + rail); its tempo goes muted
             // so the warm-up's colour is clearly different from the tempo, which
@@ -3565,8 +3882,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: day.name,
             count: `${day.ex.length} ${tt('EX')}`,
             extras: <>
-              {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:28,boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
-              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
+              {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',minWidth:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
+              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
             </>,
             action: { label: tt(done ? 'AGAIN' : 'START'), onClick: () => setLg(dayIdx) },
             rows: day.ex.map((ex,i) => {

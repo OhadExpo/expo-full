@@ -4,6 +4,7 @@
 // container panel, search box at the top, "Filters" underline header, then
 // RailGroup sections of RailOpt text-rows. Page-specific data comes in via the
 // `groups` prop; a page-specific action (e.g. + New Program) via `footer`.
+import { CaretGlyph } from './ui';
 import React, { useState } from 'react';
 import { FN } from './theme';
 import { useT } from './i18n';
@@ -100,7 +101,7 @@ export function SideRail({
       <div onClick={narrow ? () => setRailOpen?.(o => !o) : undefined}
         style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '5px 16px', /* 18.9: was 0 above / 10 below, so the label sat 5.5px high in its own band (row-ink band axis) */ borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <span>{tt('Filters')}</span>
-        {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
+        {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}><CaretGlyph /></span>}
       </div>
 
       {(!narrow || railOpen) && (<>

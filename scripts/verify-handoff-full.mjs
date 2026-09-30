@@ -18,13 +18,18 @@
 //
 //   MODE=facts node scripts/verify-handoff-full.mjs
 import fs from 'node:fs';
+import os from 'node:os';
 import http from 'node:http';
 import { execSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
 const DOC = process.env.DOC || 'docs/HANDOFF-2026-09-06.md';
 const MODE = process.env.MODE || 'facts';
-const MEM = 'C:/Users/Administrator/.claude/projects/C--Users-Administrator-Desktop-expo-full/memory';
+// Forward-slash home (C:/Users/<you>). The Claude project key is the repo path
+// with every ':', '\' and '/' turned into '-' (C--Users-<you>-Desktop-expo-full).
+const HOME_FWD = os.homedir().replace(/\\/g, '/');
+const MEM_KEY = `${HOME_FWD}/Desktop/expo-full`.replace(/[:\\/]/g, '-');
+const MEM = `${HOME_FWD}/.claude/projects/${MEM_KEY}/memory`;
 const doc = fs.readFileSync(DOC, 'utf8');
 const lines = doc.split('\n');
 // maxBuffer: the full commit bodies on this branch are over a megabyte, and
@@ -270,7 +275,7 @@ const RULES = [
   {
     what: 'the debug-profile directory',
     find: (l) => (l.includes('chrome-debug-budget') ? ['profile'] : []),
-    ok: () => fs.existsSync('C:/Users/Administrator/chrome-debug-budget'),
+    ok: () => fs.existsSync(`${HOME_FWD}/chrome-debug-budget`),
   },
   {
     what: 'the owner-only revenue tables',

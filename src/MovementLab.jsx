@@ -185,7 +185,7 @@ async function measureVideoFps(v) {
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
-export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600 } = {}) {
+export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null } = {}) {
   let lm, v;
   try {
     lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
@@ -243,6 +243,12 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
     let prevCentroid = null;
     let prevSig = null; // signature of the last KEPT frame — drops exact re-reads
     for (let i = 0; i < total; i++) {
+      // A BACKGROUND pass stops the moment the coach touches the page (29.9
+      // #422): the warmer only yielded BETWEEN clips, so a click that landed
+      // mid-clip waited behind up to 600 full-model pose passes - measured
+      // 67 long tasks, 11.8 s of main thread, a 208 ms first click after an
+      // idle pause. Checked every frame; the caller retries the clip later.
+      if (typeof shouldStop === 'function' && shouldStop()) { const e = new Error('capture stopped'); e.code = 'aborted'; throw e; }
       // +0.001 so the first sample (i=0) never seeks to the already-current
       // position 0 — that assignment fires no 'seeked' event in Chromium and
       // would hang the await forever ("READING THE MOVEMENT…" stuck).
@@ -1803,7 +1809,10 @@ function RomTable({ r, jointRom, kind, frames = null, playheadT = null, onScrub 
           <TempoBars perRep={r.perRep} />
           <Row head cells={[tt('REP'), 'ROM', 'ECC s', tt('pause').toUpperCase(), 'CON s']} />
           {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined}
-            onClick={onScrub && x.startT != null ? () => onScrub(x.startT) : undefined} />)}
+            onClick={onScrub && x.startT != null ? () => onScrub(x.startT) : undefined}
+            // ROM = the bottom (end of the eccentric), ECC = the rep's start,
+            // PAUSE = after the eccentric, CON = after the pause
+            cellClicks={onScrub && x.startT != null ? [null, () => onScrub(x.startT + x.ecc * 1000), () => onScrub(x.startT), () => onScrub(x.startT + x.ecc * 1000), () => onScrub(x.startT + (x.ecc + x.pause) * 1000)] : null} />)}
         </>
       ) : (
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 10 }}>
@@ -2337,13 +2346,15 @@ const MiniKpi = ({ label, value, tone }) => (
 // onClick (optional) — e.g. the Review player wires this to seek the video to
 // this rep's start, so clicking a rep row jumps the clip there (preserving
 // play/pause — it's a plain currentTime set, not a pause/play call).
-const Row = ({ cells, head, tone, onClick }) => { const tt = useT(); return (
+// cellClicks[i]: that CELL jumps to its own moment (29.9 #432, the Shot Analyzer's
+// table rule: a number is a jump to the frame it measures); the row jumps to the rep.
+const Row = ({ cells, head, tone, onClick, cellClicks = null }) => { const tt = useT(); return (
   <div onClick={onClick} title={onClick ? tt('Jump the video to this rep') : undefined}
     style={{ display: 'grid', gridTemplateColumns: `repeat(${cells.length}, 1fr)`, gap: 4, padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: onClick ? 'pointer' : 'default' }}
     onMouseEnter={onClick ? (e) => { e.currentTarget.style.background = 'rgba(57,189,255,0.08)'; } : undefined}
     onMouseLeave={onClick ? (e) => { e.currentTarget.style.background = 'transparent'; } : undefined}>
     {cells.map((c, i) => (
-      <span key={i} style={{ fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'start' : 'end' }}>{c}</span>
+      <span key={i} onClick={cellClicks && cellClicks[i] ? (e) => { e.stopPropagation(); cellClicks[i](); } : undefined} title={cellClicks && cellClicks[i] ? tt('Jump the video to this moment') : undefined} style={{ cursor: cellClicks && cellClicks[i] ? 'pointer' : undefined, fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'start' : 'end' }}>{c}</span>
     ))}
   </div>
 );

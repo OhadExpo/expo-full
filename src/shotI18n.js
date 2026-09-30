@@ -37,7 +37,7 @@ export const SHOT_I18N = {
     shotTypes: { ft: 'Free throw', mid: 'Mid-range', three: 'Three' },
     // the court's own short forms, shown only where the full word would not fit
     shotTypesShort: { ft: 'FT', mid: 'Mid', three: '3PT' },
-    height: 'Height', cmPlaceholder: 'cm',
+    height: 'Height', cmPlaceholder: 'cm', saveBtn: 'SAVE',
     savedCm: '✓ SAVED', rescored: '✓ RESCORED', cmUnit: 'CM', forCm: 'FOR CM',
 
     idleTitle: 'Analyse a jump shot, frame by frame.',
@@ -92,7 +92,7 @@ export const SHOT_I18N = {
     phases: { stance: 'STANCE', dip: 'DIP', set: 'SET', release: 'RELEASE', apex: 'APEX', follow: 'FOLLOW', landing: 'LAND' },
     back10: 'Back 10 frames', prev1: 'Previous frame', next1: 'Next frame', fwd10: 'Forward 10 frames',
     phaseJump: (l) => `Jump to ${String(l).toLowerCase()} — stays on this moment when you switch shots`,
-    metrics: { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', armElev: 'Arm elev.', forearm: 'Forearm ∠', trunk: 'Trunk lean', wristEye: 'Wrist vs eye', elbowOffset: 'Elbow offset' },
+    metrics: { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', armElev: 'Arm lift', forearm: 'Forearm', trunk: 'Trunk lean', wristEye: 'Wrist-eye', elbowOffset: 'Wrist-elbow' },
 
     save: 'SAVE SESSION', copy: 'COPY SUMMARY', print: 'PRINT REPORT', newClip: '↺ NEW CLIP',
     savedTitle: 'SAVED SESSIONS', savedNone: 'Nothing saved yet.', savedDrop: 'Remove',
@@ -103,12 +103,29 @@ export const SHOT_I18N = {
     quality: { good: 'good', fair: 'fair', poor: 'poor' },
     summary: (f, w, o, q, p, fps) => `${f} to fix · ${w} to watch · ${o} OK · tracking ${q} (${p}% of shot frames) · ${fps} fps`,
     shotOf: (i, n) => `VIEWING SHOT ${i} OF ${n} DETECTED`,
+    // The one-row rep picker: SHOT 10 / 11 between two arrows.
+    shotWord: 'SHOT', prevShot: 'Previous shot', nextShot: 'Next shot',
+    tabShot: 'THIS SHOT', tabSession: 'SESSION', tabSaved: 'SAVED', sessionOne: 'One shot in this clip - the session view needs two or more.',
+    autoBtn: 'AUTO MAKES - TAP THE RIM', rimTapL: 'TAP THE LEFT EDGE OF THE RIM ON THE VIDEO', rimTapR: 'NOW THE RIGHT EDGE', cancel: 'CANCEL',
+    autoRunning: (p) => `CHECKING THE RIM · ${p}%`, autoDone: (m, x, u) => `AUTO: ${m} MADE · ${x} MISSED · ${u} TO CHECK`,
+    autoTag: (c) => `AUTO · ${c}%`, autoCheck: 'AUTO · CHECK IT', autoUnsure: 'NOT SURE - MARK IT', rimRedo: 'REDO THE RIM', autoFail: 'COULD NOT READ THE RIM IN THIS VIDEO - MARK THE SHOTS BY HAND',
+    // The dot on the option AUTO is using - detected, or the default when the
+    // clip could not show it. Never both called a detection.
+    autoPicked: 'AUTO: read from the clip',
+    autoFallback: 'AUTO: the clip does not show it, so this is the default',
+    // The clip-warning line, collapsed: the finding's title and this phrase.
+    warnShort: {
+      'no-body': 'film him in frame', 'rarely-seen': 'keep him in frame',
+      'no-headroom': 'the ball leaves the frame', 'head-cut': 'tilt the phone up',
+      'too-far': 'move closer', 'low-res': 'film at normal quality', 'too-dark': 'more light',
+    },
+    warnOpen: 'Show what the clip is missing', warnDismiss: 'Hide for this clip',
     atSec: (t) => `at ${t}s`,
     scopeHint: (n) => `scorecard = this shot · session = all ${n}`,
     shotTip: (i, t, s) => `Shot ${i} at ${t}s, score ${s}`,
 
-    info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', ballSpeed: 'Release speed', ballRise: 'Arc above release', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
-    enterHeight: 'enter height', eyeHeight: '× eye height', ofFrames: (p) => `${p}% of frames`,
+    info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', ballSpeed: 'Release speed', ballRise: 'Arc height', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
+    enterHeight: 'enter height', eyeHeight: '× eye', ofFrames: (p) => `${p}% of frames`,
     chainVal: (k, s, e) => `knee ${k} · arm ${s} · elbow ${e} ms`,
     consistencyLbl: (n) => `Consistency (${n} shots)`,
     consistencyVal: (r, a, se, t) => `rhythm ±${r}% · release arm ±${a}° · set elbow ±${se}° · timing ±${t} ms`,
@@ -119,7 +136,7 @@ export const SHOT_I18N = {
     // three shots and most clips are shorter. Release height is on every rep.
     cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht', 'Make'],
     toolTitle: 'SHOT ANALYZER',
-    unitMs: ' ms', unitS: 's', unitMps: ' m/s', unitM: ' m', sideShort: { R: 'R', L: 'L' },
+    unitMs: ' ms', unitS: 's', unitMps: ' m/s', unitM: ' m', unitCm: ' cm', sideShort: { R: 'R', L: 'L' },
     // Ohad, 2026-09-07: "what does elbow offset and wrist vs eye measure? what's
     // the units? it doesnt say anything". Both are in TORSO lengths (shoulder
     // to hip), so the reading does not depend on how far the camera stood.
@@ -144,6 +161,15 @@ export const SHOT_I18N = {
     launchSpreadOn: (n, total) => `measured on ${n} of ${total}`,
     worstRep: (i, v, unit) => `watch rep ${i} — it released at ${v}${unit}`,
     verdictOutlier: (n) => `${n} of the reps repeat — one does not`,
+    mmTitle: 'MAKES VS MISSES',
+    mmNeed: (mk, ms, nMk, nMs, minMk, minMs) => `${mk} made and ${ms} missed marked. Comparing them needs at least ${minMk} made and ${minMs} missed - ${[nMk ? `${nMk} more made` : '', nMs ? `${nMs} more missed` : ''].filter(Boolean).join(' and ')} to go.`,
+    mmMisses: (name) => `On your misses, ${name}`,
+    mmMakes: 'on your makes',
+    mmCounts: (x, y) => `${x} missed, ${y} made`,
+    mmLeadNote: 'A lead to check on the video, not proof.',
+    mmNone: (n) => `Nothing separates your makes from your misses on this clip (${n} readings compared).`,
+    mmThirds: 'Makes by third of the clip',
+    mmNames: { dip: 'the dip', set: 'the set elbow', releaseArm: 'the release arm', timing: 'the release timing', launch: 'the ball launch', speed: 'the release speed', rise: 'the arc', releaseHt: 'the release height' },
     gainPts: (n) => `+${n} pts if fixed`,
     vsLastHead: (d) => `vs the last analysis you SAVED (${d})`,
     vsScore: (was, now) => `${was} → ${now}`,
@@ -178,6 +204,11 @@ export const SHOT_I18N = {
     sessionWander: 'INCONSISTENT — REPEAT IT, DO NOT CHANGE IT',
     sessionWanderLine: (label, pct) => `${label} — right ${pct} of the time`,
     sessionFocus: 'FOCUS NEXT SESSION',
+    // #424: ONE fault + ONE drill per session (the coaching research: one cue at a time)
+    focusChange: (n, reps) => `Off on ${n} of ${reps} reps - a technical change, not more reps.`,
+    focusRepeat: 'Right on some reps, off on others - repetition, not a change.',
+    oneDrill: 'ONE DRILL',
+    focusThen: 'After that:',
     trendFlat: 'Held the same level from the first reps to the last.',
     trendMoved: (dir, first, last, delta) => `Score ${dir} across the clip: ${first} to ${last}, ${delta} points.`,
     oblique: 'This shot was filmed at an angle — the ball moved AWAY from the camera, not across it. The rep-to-rep comparison and the angle spread still hold; the launch angle itself reads too steep, and the metres and m/s read low. Film square to the shot for those.',
@@ -195,7 +226,7 @@ export const SHOT_I18N = {
     measuredBad: (d, t) => `Measured ${d}; target ${t}.`,
     jumpFrame: 'Jump to this frame',
     footnote: 'Targets are coach-readable bands, not laws — read them with the athlete in front of you. Release arm angle is the ARM; when the ball itself could be tracked, its true launch angle is shown beside it. Side-on filming is assumed for the trunk, elbow-offset and ball-launch reads.',
-    legend: { knee: 'Knee', elbow: 'Elbow', armElev: 'Arm elev.', hipHeight: 'Hip height' },
+    legend: { knee: 'Knee', elbow: 'Elbow', armElev: 'Arm lift', hipHeight: 'Hip height' },
     copyHead: (s, h) => `EXPO Shot Analyzer — score ${s}/100 (${h} hand)`,
     copyFixFirst: 'FIX FIRST:',
     handWordR: 'right', handWordL: 'left',
@@ -216,7 +247,7 @@ export const SHOT_I18N = {
     shotHint: 'טווח זווית השחרור — תבחר את מרחק הזריקה',
     shotTypes: { ft: 'עונשין', mid: 'טווח בינוני', three: 'שלשה' },
     shotTypesShort: { ft: 'עונשין', mid: 'בינוני', three: 'שלשה' },
-    height: 'גובה', cmPlaceholder: 'ס״מ',
+    height: 'גובה', cmPlaceholder: 'ס״מ', saveBtn: 'שמור',
     savedCm: '✓ נשמר', rescored: '✓ החישוב עודכן', cmUnit: 'ס״מ', forCm: 'לחישוב ס״מ',
 
     idleTitle: 'ניתוח זריקה, פריים אחר פריים.',
@@ -268,23 +299,36 @@ export const SHOT_I18N = {
     phases: { stance: 'עמידה', dip: 'דיפ', set: 'סט', release: 'שחרור', apex: 'שיא', follow: 'ליווי', landing: 'נחיתה' },
     back10: 'אחורה 10 פריימים', prev1: 'פריים קודם', next1: 'פריים הבא', fwd10: 'קדימה 10 פריימים',
     phaseJump: (l) => `קפיצה ל${l} — נשאר על אותו רגע גם כשמחליפים זריקה`,
-    metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית הזרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'שורש כף יד מול עין', elbowOffset: 'סטיית מרפק' },
+    metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית זרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'יד מול עין', elbowOffset: 'סטיית מרפק' },
 
     save: 'שמור את האימון', copy: 'העתקת סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
     savedTitle: 'אימונים שנשמרו', savedNone: 'עדיין לא שמרת כלום.', savedDrop: 'מחק',
     savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps === 1 ? 'זריקה אחת' : `${reps} זריקות`}`,
     savedToast: 'ניתוח הזריקה נשמר', saveFail: 'השמירה נכשלה', copiedToast: 'הסיכום הועתק', copyFail: 'ההעתקה נכשלה',
 
-    verdictNa: 'סיימנו לקרוא את הזריקה', verdictOk: 'מכניקה נקייה', verdictMid: 'בסיס טוב — יש כמה דברים להדק', verdictLow: 'בונים את השרשרת מחדש מהרגליים למעלה',
+    verdictNa: 'הזריקה נותחה', verdictOk: 'מכניקה נקייה', verdictMid: 'בסיס טוב — יש כמה דברים להדק', verdictLow: 'בונים את השרשרת מחדש מהרגליים למעלה',
     quality: { good: 'טוב', fair: 'בינוני', poor: 'חלש' },
     summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o === 1 ? 'אחת תקינה' : `${o} תקינות`} · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
+    shotWord: 'זריקה', prevShot: 'הזריקה הקודמת', nextShot: 'הזריקה הבאה',
+    tabShot: 'הזריקה הזאת', tabSession: 'האימון', tabSaved: 'שמורים', sessionOne: 'בקליפ יש זריקה אחת - תצוגת האימון צריכה שתיים לפחות.',
+    autoBtn: 'זיהוי אוטומטי - סמן את הטבעת', rimTapL: 'גע בקצה השמאלי של הטבעת בווידאו', rimTapR: 'עכשיו בקצה הימני', cancel: 'ביטול',
+    autoRunning: (p) => `בודק את הטבעת · ${p}%`, autoDone: (m, x, u) => `אוטומטי: ${m} קליעות · ${x} החטאות · ${u} לבדיקה`,
+    autoTag: (c) => `אוטומטי · ${c}%`, autoCheck: 'אוטומטי · כדאי לבדוק', autoUnsure: 'לא בטוח - סמן בעצמך', rimRedo: 'סמן טבעת מחדש', autoFail: 'לא הצלחתי לקרוא את הטבעת בווידאו - סמן את הזריקות ידנית',
+    autoPicked: 'אוטומטי: זוהה בקליפ',
+    autoFallback: 'אוטומטי: לא רואים את זה בקליפ, אז זו ברירת המחדל',
+    warnShort: {
+      'no-body': 'צלם אותו בתוך הפריים', 'rarely-seen': 'תשאיר אותו בפריים',
+      'no-headroom': 'הכדור יוצא מהפריים', 'head-cut': 'תטה את הטלפון למעלה',
+      'too-far': 'תתקרב', 'low-res': 'צלם באיכות רגילה', 'too-dark': 'צריך יותר אור',
+    },
+    warnOpen: 'מה חסר בצילום', warnDismiss: 'הסתר בקליפ הזה',
     atSec: (t) => `בשנייה ${t}`,
     scopeHint: (n) => `כרטיס הניקוד = הזריקה הזאת · האימון = כל ${n}`,
     shotTip: (i, t, s) => `זריקה ${i} בשנייה ${t}, ניקוד ${s}`,
 
-    info: { dipToRelease: 'דיפ ← שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת מעל השחרור', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
-    enterHeight: 'תכניס גובה', eyeHeight: '× גובה עיניים', ofFrames: (p) => `${p}% מהפריימים`,
+    info: { dipToRelease: 'דיפ ← שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
+    enterHeight: 'תכניס גובה', eyeHeight: '× גובה עין', ofFrames: (p) => `${p}% מהפריימים`,
     chainVal: (k, s, e) => `ברך ${k} · זרוע ${s} · מרפק ${e} מ״ש`,
     consistencyLbl: (n) => `עקביות (${n} זריקות)`,
     consistencyVal: (r, a, se, t) => `סטייה בין הזריקות — קצב ${r}% · יד בשחרור ${a} מעלות · מרפק בסט ${se} מעלות · תזמון ${t} מ״ש`,
@@ -294,7 +338,7 @@ export const SHOT_I18N = {
     // Ohad, 2026-09-07, on this screen: "i want everything in hebrew here".
     toolTitle: 'ניתוח זריקה',
     // The last Latin on the Hebrew screen was units: MS, S and the (R) legend.
-    unitMs: ' מ"ש', unitS: ' שנ׳', unitMps: ' מ׳/שנ׳', unitM: ' מ׳', sideShort: { R: 'ימ׳', L: 'שמ׳' },
+    unitMs: ' מ"ש', unitS: ' שנ׳', unitMps: ' מ׳/שנ׳', unitM: ' מ׳', unitCm: ' ס"מ', sideShort: { R: 'ימ׳', L: 'שמ׳' },
     unitTorso: ' גו',
     metricsHelp: {
       elbowOffset: 'כמה שורש כף היד זז הצידה מקו ישר מעל המרפק, ביחידות אורך גו (כתף עד ירך). 0 = מיושר; היעד בסט הוא עד 0.25.',
@@ -315,6 +359,18 @@ export const SHOT_I18N = {
     launchSpreadOn: (n, total) => `נמדדה ב-${n} מתוך ${total}`,
     worstRep: (i, v, unit) => `תסתכל על חזרה ${i}: שחררת שם ב-${v}${unit}`,
     verdictOutlier: (n) => `${n} חזרות יצאו אותו דבר. אחת לא`,
+    mmTitle: 'קליעות מול החטאות',
+    mmNeed: (mk, ms, nMk, nMs, minMk, minMs) => {
+      const more = [nMk ? (nMk === 1 ? 'זריקה אחת שנכנסה' : `${nMk} קליעות`) : '', nMs ? (nMs === 1 ? 'החטאה אחת' : `${nMs} החטאות`) : ''].filter(Boolean).join(' ועוד ');
+      return `סימנת ${mk} קליעות ו-${ms} החטאות. כדי להשוות ביניהן צריך לפחות ${minMk} קליעות ו-${minMs} החטאות. נשאר לסמן עוד ${more}.`;
+    },
+    mmMisses: (name) => `בהחטאות, ${name}`,
+    mmMakes: 'בקליעות',
+    mmCounts: (x, y) => `${x} החטאות, ${y} קליעות`,
+    mmLeadNote: 'זה כיוון לבדוק בווידאו, לא הוכחה.',
+    mmNone: (n) => `בקליפ הזה אין מדד שמבדיל בין הקליעות להחטאות שלך (בדקתי ${n} מדדים).`,
+    mmThirds: 'קליעות לפי שליש של הקליפ',
+    mmNames: { dip: 'הדיפ', set: 'המרפק בסט', releaseArm: 'היד בשחרור', timing: 'תזמון השחרור', launch: 'זווית השיגור', speed: 'מהירות השחרור', rise: 'הקשת', releaseHt: 'גובה השחרור' },
     gainPts: (n) => `${n === 1 ? 'עוד נקודה אחת' : `עוד ${n} נקודות`} אם מתקנים`,
     vsLastHead: (d) => `מול הניתוח האחרון ששמרת (${d})`,
     vsScore: (was, now) => `${was} ← ${now}`,
@@ -342,6 +398,10 @@ export const SHOT_I18N = {
     sessionWander: 'לא עקבי — חזור על זה, אל תשנה',
     sessionWanderLine: (label, pct) => `${label} — תקין ב-${pct} מהזריקות`,
     sessionFocus: 'פוקוס לאימון הבא',
+    focusChange: (n, reps) => `לא תקין ב-${n} מתוך ${reps} חזרות - צריך שינוי טכני, לא עוד חזרות.`,
+    focusRepeat: 'תקין בחלק מהחזרות ולא בחלק - צריך חזרות, לא שינוי.',
+    oneDrill: 'תרגיל אחד',
+    focusThen: 'אחר כך:',
     trendFlat: 'שמר על אותה רמה מהזריקות הראשונות עד האחרונות.',
     trendMoved: (dir, first, last, delta) => (dir === 'declined'
       ? `הציון ירד לאורך הקליפ: מ-${first} ל-${last}, ${delta} נקודות.`
@@ -361,7 +421,7 @@ export const SHOT_I18N = {
     measuredBad: (d, t) => `נמדד ${d}; היעד ${t}.`,
     jumpFrame: 'קפיצה לפריים הזה',
     footnote: 'היעדים הם טווחים שמאמן קורא, לא חוקים — קרא אותם מול השחקן שעומד מולך. זווית היד בשחרור היא של היד. כשאפשר לעקוב אחרי הכדור עצמו, זווית השיגור האמיתית שלו מוצגת לצידה. הקריאות של הגו, סטיית המרפק וזווית שיגור הכדור נכונות רק בצילום מהצד.',
-    legend: { knee: 'ברך', elbow: 'מרפק', armElev: 'זווית הזרוע', hipHeight: 'גובה ירך' },
+    legend: { knee: 'ברך', elbow: 'מרפק', armElev: 'זווית זרוע', hipHeight: 'גובה ירך' },
     copyHead: (s, h) => `EXPO מנתח זריקה — ניקוד ${s}/100 (יד ${h})`,
     copyFixFirst: 'לתקן קודם:',
     handWordR: 'ימין', handWordL: 'שמאל',

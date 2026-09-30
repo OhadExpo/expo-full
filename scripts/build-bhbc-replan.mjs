@@ -149,10 +149,10 @@ ${shot('audit-out/overview-now.png', 'The Overview as it stands tonight — seve
 <div class="wire">
   <div class="strip">Today · Sun 6 Sep · MD-3</div>
   <div class="row"><b>Game</b> vs Hapoel Eilat · in 3 days · away · Begin Arena</div>
-  <div class="row"><b>Squad</b> 8 available · 2 limited · 0 out — Francis, מנחם</div>
+  <div class="row"><b>Squad</b> 8 available · 2 limited · 0 out — [athlete], [athlete]</div>
   <div class="row"><b>Practice</b> 84 min · 13 contact · <b>15.5%</b> low intensity</div>
   <div class="row"><b>Weight room</b> BW strength + dynamic stretching · 12 min · 2 lifted</div>
-  <div class="row"><b>Medical</b> Francis knee R · RTP 26 Aug · <span style="color:#8A6410">11d overdue</span></div>
+  <div class="row"><b>Medical</b> [athlete] · [injury] · RTP [date] · <span style="color:#8A6410">11d overdue</span></div>
   <div class="row">START SESSION · PLAN · LOG PRACTICE</div>
 </div>
 <p class="meta">Head Coach Report + S&amp;C Brief + Today + Next Game, collapsed into one. Every fact once. Density is the sheet metric, computed the moment the two numbers exist.</p>

@@ -1,7 +1,7 @@
 // src/useSupaStore.js — Supabase-backed storage hook (replaces useStore)
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
-import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
+import { enqueue, enqueueEntry, removeEntry, patchEntry, getEntries, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
 import { TRAINER_EMAILS } from './authRoles';
@@ -83,6 +83,9 @@ export const setSnapshotsAllowed = (v) => { snapshotsAllowed = !!v; };
 
 /** Write a snapshot only if it leaves the reserve intact. Returns success. */
 export const lsSnapshot = (key, val) => {
+  // a direct write is the newest value: an older one still waiting for the
+  // idle flush must not land on top of it later (29.9 audit)
+  pendingSnaps.delete(key);
   if (!snapshotsAllowed) return false;
   try {
     const text = JSON.stringify(val);
@@ -96,6 +99,30 @@ export const lsSnapshot = (key, val) => {
     localStorage.setItem(key, text);
     return true;
   } catch { return false; }
+};
+
+// SNAPSHOTS OFF THE CLICK (29.9 #422). A save used to stringify the whole value
+// and rescan every localStorage key (up to ~4 MB) synchronously, inside the
+// tap that made it. The snapshot is only a cache - the server write and the
+// offline queue carry the data - so it is written in the next idle moment
+// (within a second), latest value per key wins, and the signed-out latch is
+// still checked at write time.
+const pendingSnaps = new Map();
+let snapScheduled = false;
+const flushSnaps = () => {
+  snapScheduled = false;
+  const batch = [...pendingSnaps.entries()];
+  pendingSnaps.clear();
+  for (const [k, v] of batch) { try { lsSnapshot(k, v); } catch { /* cache only */ } }
+};
+export const lsSnapshotSoon = (key, val) => {
+  pendingSnaps.set(key, val);
+  if (snapScheduled) return;
+  snapScheduled = true;
+  try {
+    if (typeof window !== 'undefined' && window.requestIdleCallback) window.requestIdleCallback(flushSnaps, { timeout: 1000 });
+    else setTimeout(flushSnaps, 200);
+  } catch { setTimeout(flushSnaps, 200); }
 };
 
 const storeSize = (v) => (Array.isArray(v) ? v.length
@@ -180,30 +207,108 @@ registerHandler('store.upsert', async ({ key, value }) => {
   const { error } = await supabase.from('store').upsert({ key, value, updated_at: new Date().toISOString() });
   if (error) throw error;
 });
-registerHandler('client_workouts.upsert', async ({ row }) => {
-  // form_videos is MERGED, never blindly overwritten. A parked (retry-exhausted)
-  // upsert rotates to the queue tail and can drain AFTER the blob queue already
-  // patched a cloudUrl onto the row — replaying the finish-time snapshot would
-  // reset that slot to {pendingBlobId, cloudUrl:null}, orphaning uploaded bytes
-  // and showing the coach a forever-pending upload (audit 08-22).
+// ONE write path for a workout row, used by the direct save AND the queue
+// replay, so the two can never drift apart again. (Before 27.9 the replay had
+// no plan_id fallback: a workout queued offline carried plan_id, the column does
+// not exist yet, and every replay failed with 42703 until it parked, forever.)
+
+// The live table has no plan_id column (27.9). Once a write has proven that,
+// stop sending it: one request per save instead of a failed one plus a retry.
+let planIdColumnMissing = false;
+const isPlanIdColumnError = (error) => !!error && (/plan_id/i.test(error.message || '') || error.code === '42703' || error.code === 'PGRST204');
+
+// A hung request must not hold the row's write chain (and the athlete) forever.
+// An abort reads as 'aborted' → transient → the row stays queued and retries.
+const WORKOUT_WRITE_TIMEOUT_MS = 15000;
+async function withTimeout(build) {
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), WORKOUT_WRITE_TIMEOUT_MS) : null;
+  try { return await (ctl ? build().abortSignal(ctl.signal) : build()); }
+  finally { if (t) clearTimeout(t); }
+}
+
+// Fields the ATHLETE owns on a form-video slot. Everything else on a slot
+// (reviewNotes, coach comments, replies, review marks) belongs to the coach,
+// and the server's copy of it always wins over a re-save's (possibly stale) one.
+const ATHLETE_FV_FIELDS = ['has', 'note', 'fileName', 'cloudUrl', 'pendingBlobId'];
+const isEmptyVal = (v) => v === undefined || v === null || v === '' || v === false;
+function mergeFormVideoSlot(sv, mine) {
+  if (!sv || typeof sv !== 'object') return mine;
+  if (!mine || typeof mine !== 'object') return sv;
+  // start from the SERVER slot (coach fields, and anything newer than this
+  // device knew about), then take each athlete field from this save only where
+  // it carries a value — an empty local field never blanks a server one, so an
+  // uploaded video (cloudUrl) or a note can not be wiped by a re-save.
+  const out = { ...sv };
+  for (const k of ATHLETE_FV_FIELDS) if (!isEmptyVal(mine[k])) out[k] = mine[k];
+  if (out.cloudUrl || out.pendingBlobId) out.has = true;
+  return out;
+}
+
+export async function upsertWorkoutRow(row) {
+  // form_videos is MERGED, never blindly overwritten (see mergeFormVideoSlot).
+  // A parked upsert can drain AFTER the blob queue patched a cloudUrl onto the
+  // row, and a re-save of an existing log carries this device's copy of slots
+  // the coach has since commented on (audit 08-22, review 27.9).
   if (row && row.id && row.form_videos) {
+    // AUDIT 29.9 (#391 pass 1): a FAILED read (error or timeout) used to fall
+    // through to a plain upsert of this device's slots - on a re-save that
+    // deleted the coach's reviewNotes, on a replay a cloudUrl the blob queue had
+    // patched in. Now it throws a code-less error, which the queue treats as
+    // transient: the row stays queued and is retried, never written blind.
+    let existing = null;
+    {
+      let res;
+      try { res = await withTimeout(() => supabase.from('client_workouts').select('form_videos').eq('id', row.id).maybeSingle()); }
+      catch (e) { throw new Error('form_videos read failed - retrying: ' + (e?.message || e)); }
+      if (res && res.error) throw new Error('form_videos read failed - retrying: ' + (res.error.message || res.error));
+      existing = res ? res.data : null;
+    }
     try {
-      const { data: existing } = await supabase.from('client_workouts').select('form_videos').eq('id', row.id).maybeSingle();
       const srv = existing && existing.form_videos;
       if (srv && typeof srv === 'object') {
         const merged = Array.isArray(srv) ? [...(row.form_videos || [])] : { ...(row.form_videos || {}) };
         const entries = Array.isArray(srv) ? srv.map((v, i) => [i, v]) : Object.entries(srv);
-        for (const [k, sv] of entries) {
-          const mine = merged[k];
-          // keep the server's slot when it already carries a real uploaded URL
-          if (sv && sv.cloudUrl && !(mine && mine.cloudUrl)) merged[k] = sv;
-        }
+        for (const [k, sv] of entries) merged[k] = mergeFormVideoSlot(sv, merged[k]);
         row = { ...row, form_videos: merged };
       }
-    } catch { /* read failed — fall through to the plain upsert */ }
+    } catch { /* a malformed server slot - keep this device's */ }
   }
-  const { error } = await supabase.from('client_workouts').upsert(row);
+  if (planIdColumnMissing && row && 'plan_id' in row) { row = { ...row }; delete row.plan_id; }
+  let { error } = await withTimeout(() => supabase.from('client_workouts').upsert(row));
+  // plan_id is what lets the portal tell two couple members' identically-named
+  // plans apart (audit #31). The column may not exist yet — retry without it.
+  if (error && row && 'plan_id' in row && isPlanIdColumnError(error)) {
+    planIdColumnMissing = true;
+    const rest = { ...row };
+    delete rest.plan_id;
+    ({ error } = await withTimeout(() => supabase.from('client_workouts').upsert(rest)));
+  }
   if (error) throw error;
+}
+
+// ONE WRITE AT A TIME PER ROW (review 27.9). The direct save and the queue
+// replay both write through this chain, keyed by row id, so two versions of
+// one workout can never be in flight together and an older one can never land
+// last. Each write first checks its queue entry is still there: an entry that
+// was replaced by a newer version of the same row (dedupeKey) is skipped, and
+// one already removed (the other path landed it) is not written twice.
+const rowChains = new Map();
+export function runRowSerialized(id, fn) {
+  const prev = rowChains.get(id) || Promise.resolve();
+  const next = prev.catch(() => {}).then(fn);
+  const tail = next.catch(() => {});
+  rowChains.set(id, tail);
+  tail.then(() => { if (rowChains.get(id) === tail) rowChains.delete(id); });
+  return next;
+}
+const entryStillQueued = (entryId) => { try { return getEntries().some(e => e.id === entryId); } catch { return true; } };
+
+registerHandler('client_workouts.upsert', async ({ row }, entry) => {
+  await runRowSerialized(row && row.id, async () => {
+    if (entry && entry.id && !entryStillQueued(entry.id)) return; // superseded or already landed
+    await upsertWorkoutRow(row);
+  });
 });
 registerHandler('client_workouts.update', async ({ id, patch }) => {
   // Update + ensure the row exists. The blob queue can race ahead of the
@@ -364,7 +469,7 @@ export function useSupaStore(key, initial) {
             // empty [] is never written, and the old exclusion of legacy
             // full-roster blobs on athlete devices still holds.
             if (key !== 'expo-trainees' || (Array.isArray(val) && val.length > 0)) {
-              try { lsSnapshot(key, val); } catch {}
+              try { lsSnapshotSoon(key, val); } catch {}
             }
           }
         }
@@ -532,7 +637,7 @@ export function useSupaStore(key, initial) {
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
-      try { lsSnapshot(key, val); } catch {}
+      try { lsSnapshotSoon(key, val); } catch {}
     }
     writeToSupa(val);
   }, [key, writeToSupa]);
@@ -552,12 +657,16 @@ export function useSupaStore(key, initial) {
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
-      try { lsSnapshot(key, val); } catch {}
+      try { lsSnapshotSoon(key, val); } catch {}
     }
   }, [key]);
 
   return [data, save, loaded, loadError, saveLocal];
 }
+
+// Longest the athlete waits in the logger for the server after Complete. The
+// row is already durable in the offline queue before the request starts.
+const SAVE_WAIT_MS = 4000;
 
 // Client workouts hook — uses dedicated table
 export function useSupaClientWorkouts(initial = []) {
@@ -614,9 +723,18 @@ export function useSupaClientWorkouts(initial = []) {
             for (const item of queued) {
               if (item?.type !== 'client_workouts.upsert') continue;
               const r = item.payload?.row;
-              if (!r || !r.id || haveIds.has(r.id)) continue;
+              if (!r || !r.id) continue;
+              // A queued row is always NEWER than the server's copy (it is the
+              // athlete's re-save of an existing log that has not landed yet):
+              // it replaces the server version instead of being skipped, or
+              // History would show the old sets until the queue drained.
+              if (haveIds.has(r.id)) {
+                const at = mapped.findIndex(w => w.id === r.id);
+                if (at >= 0) mapped[at] = { ...mapped[at], planName: r.plan_name, dayName: r.day_name, week: r.week, date: r.date, autoregulation: r.autoregulation || {}, notes: r.notes || '', exercises: r.exercises || [] };
+                continue;
+              }
               mapped.push({
-                id: r.id, clientId: r.client_id, planName: r.plan_name,
+                id: r.id, clientId: r.client_id, planId: r.plan_id || null, planName: r.plan_name,
                 dayName: r.day_name, week: r.week, date: r.date,
                 autoregulation: r.autoregulation || {}, notes: r.notes || '',
                 exercises: r.exercises || [], formVideos: r.form_videos || [],
@@ -672,48 +790,114 @@ export function useSupaClientWorkouts(initial = []) {
     return () => window.removeEventListener('expo-cw-patched', onPatch);
   }, []);
 
-  const save = useCallback(async (next) => {
+  // save(next, { upsertIds }) returns a Promise of
+  //   { ok, confirmed, queued, permanent, authWait, settled }
+  //   ok        — the workout is SAFE: on the server, or durably in the queue
+  //   confirmed — the server acknowledged it
+  //   settled   — resolves when the network attempt itself is over (the SW
+  //               reload guard in ClientPortal holds until then)
+  // It resolves at the latest after SAVE_WAIT_MS even if the network hangs: by
+  // then the row is already durable in the queue, so a slow connection does not
+  // hold the athlete in the logger.
+  //
+  // Which rows are written: every NEW id, plus existing ids the caller names in
+  // opts.upsertIds (the athlete re-saving the log he already has for that
+  // plan/day/week). Named explicitly — never inferred from object identity — so
+  // a caller that rebuilds the array can not bulk-overwrite rows by accident.
+  // (Before 27.9 an existing id was never written at all.)
+  const save = useCallback((next, opts = {}) => {
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
     mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
     try { lsSnapshotRecent('expo-cw', val); } catch {}
-    // Find new workouts not yet in Supabase
-    const newItems = val.filter(w => !prev.find(p => p.id === w.id));
-    for (const w of newItems) {
-      const baseRow = {
+    const upsertIds = new Set(Array.isArray(opts.upsertIds) ? opts.upsertIds : []);
+    const prevIds = new Set(prev.map(p => p.id));
+    const toWrite = val.filter(w => w && w.id && (!prevIds.has(w.id) || upsertIds.has(w.id)));
+    if (toWrite.length === 0) return Promise.resolve({ ok: true, confirmed: true, queued: false, settled: Promise.resolve() });
+
+    let allDurable = true;
+    const jobs = toWrite.map(w => {
+      const isExisting = prevIds.has(w.id);
+      const row = {
         id: w.id, client_id: w.clientId, plan_name: w.planName,
         day_name: w.dayName, week: w.week, date: w.date,
         autoregulation: w.autoregulation, notes: w.notes,
         exercises: w.exercises, form_videos: w.formVideos,
-        reviewed_at: w.reviewedAt || null
       };
-      // plan_id is what lets the portal tell two couple members' identically-named
-      // plans apart (audit #31). The column may not exist yet — same pre-migration
-      // fallback usePlansStore uses for is_template_purchase, so this is a no-op
-      // until `scripts/migrations/2026-08-25-client-workouts-plan-id.sql` runs and
-      // starts working by itself the moment it does.
-      let row = w.planId ? { ...baseRow, plan_id: w.planId } : baseRow;
-      try {
-        let { error } = await supabase.from('client_workouts').upsert(row);
-        if (error && /column .*plan_id/i.test(error.message || '')) {
-          row = baseRow;
-          ({ error } = await supabase.from('client_workouts').upsert(row));
+      // reviewed_at is the COACH's mark. A re-save of an existing row never
+      // sends it (the upsert then leaves the server's value alone); a new row
+      // sends it only when the caller set one. Before, every save wrote this
+      // device's copy — null on a re-save — and wiped the coach's review.
+      if (!isExisting && w.reviewedAt) row.reviewed_at = w.reviewedAt;
+      if (w.planId) row.plan_id = w.planId;
+      // DURABLE BEFORE NETWORK. The row goes into the critical queue FIRST,
+      // synchronously, before any await: a tab closed 50 ms after Complete, a
+      // silent SW reload, a dead phone — the queue replays it on the next
+      // launch. Before 27.9 the row was queued only AFTER a transient failure,
+      // and the logger deleted its draft before the server answered, so a
+      // permanent error or an interrupted request left the sets nowhere.
+      const entry = enqueueEntry({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
+      if (!entry.durable) allDurable = false;
+      return (async () => {
+        let failure = null;
+        // The write itself runs on the row's serial chain (shared with the
+        // queue replay) — see runRowSerialized.
+        try {
+          await runRowSerialized(w.id, async () => {
+            if (!entryStillQueued(entry.id)) return; // a newer save replaced it, or the replay landed it
+            await upsertWorkoutRow(row);
+            removeEntry(entry.id); // confirmed — only now does the queue let go
+          });
+          return { confirmed: true, durable: entry.durable };
+        } catch (e) { failure = e; }
+        const msg = failure?.message || String(failure);
+        if (isTransient(failure)) {
+          patchEntry(entry.id, { lastError: msg, attempts: 1 });
+          return { confirmed: false, durable: entry.durable };
         }
-        if (error) {
-          if (isTransient(error)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
-          else emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });
-        }
-      } catch (e) {
-        if (isTransient(e)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
-        else emitSaveError({ key: 'client_workouts', op: 'save', msg: e?.message || 'save failed' });
-      }
-    }
+        // Permanent-looking error. It stays PARKED in the queue (never the old
+        // toast-and-vanish) and the portal shows "not saved yet"; the save-error
+        // toast fires once too, so a COACH-side save that fails is never silent.
+        // 42501 with no live session is an AUTH problem (the JWT lapsed while he
+        // trained), not a forbidden row: flag it; it drains when he signs in.
+        // The probe runs off the row's chain and gives up after 1.5 s.
+        let authWait = false;
+        try {
+          const probe = supabase.auth.getSession().then(({ data }) => {
+            const session = data && data.session;
+            return !session || !!(session.expires_at && session.expires_at * 1000 < Date.now());
+          });
+          authWait = await Promise.race([probe, new Promise(res => setTimeout(() => res(false), 1500))]);
+        } catch { authWait = true; }
+        patchEntry(entry.id, { lastError: msg, attempts: 1, parked: true, stuck: true, authWait });
+        emitSaveError({ key: 'client_workouts', op: 'save', msg: authWait ? 'Signed out — the workout is kept on this device and is sent when you sign in again.' : 'Workout not saved yet — kept on this device and retrying.' });
+        return { confirmed: false, durable: entry.durable, permanent: true, authWait };
+      })();
+    });
+    const settledResult = Promise.all(jobs).then(rs => {
+      const confirmed = rs.every(r => r.confirmed);
+      return {
+        ok: rs.every(r => r.confirmed || r.durable),
+        confirmed,
+        queued: !confirmed,
+        permanent: rs.some(r => r.permanent),
+        authWait: rs.some(r => r.authWait),
+      };
+    });
+    // Nudge the drainer once the direct attempt is over, so a queued row is
+    // retried promptly when the connection comes back.
+    settledResult.then(r => { if (!r.confirmed) setTimeout(() => { drain(); }, 2000); }).catch(() => {});
+    const timeout = new Promise(res => setTimeout(() => res({
+      ok: allDurable, confirmed: false, queued: true, pending: true,
+    }), SAVE_WAIT_MS));
+    const settled = settledResult.then(() => undefined, () => undefined);
+    return Promise.race([settledResult, timeout]).then(r => ({ ...r, settled }));
   }, []);
 
   // Toggle or set reviewed state on an existing workout. Patches the single
-  // row directly — save() only handles inserts, so this bypasses it.
+  // row directly (save() writes whole rows), so this bypasses it.
   const markReviewed = useCallback(async (id, reviewed = true) => {
     const ts = reviewed ? new Date().toISOString() : null;
     const next = dataRef.current.map(w => w.id === id ? { ...w, reviewedAt: ts } : w);
@@ -887,15 +1071,21 @@ export function useSupaBwLog(initial = []) {
         date: b.date,
       };
       const dedupeKey = `${b.clientId}|${b.blockName}|${b.week}`;
+      // QUEUE FIRST, then send (#471, AUDIT-470): the weigh-in went to the network
+      // first and was queued only after an ERROR - a request that hung on a
+      // "connected" phone with no data, then an app close, lost it without a word.
+      // Now it is durable before the network is touched, exactly as the workout
+      // row; the direct send only removes that entry once the server confirms.
+      // The upsert is keyed (client, block, week), so a replay racing the direct
+      // send cannot duplicate it.
+      const { id: qid } = enqueueEntry({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
       try {
         const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });
-        if (error) {
-          if (isTransient(error)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
-          else emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) });
-        }
+        if (!error) removeEntry(qid);
+        else if (!isTransient(error)) { removeEntry(qid); emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) }); }
+        // transient: it stays queued and drains with the next connection
       } catch (e) {
-        if (isTransient(e)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
-        else emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' });
+        if (!isTransient(e)) { removeEntry(qid); emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' }); }
       }
     }
     // Delete entries that were in prev but are gone from val

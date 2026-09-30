@@ -13,7 +13,7 @@ const TELLS = [
   [/קיו:/, 'transliterated "cue" as a label'],   // plain /קיו/ also matches נקיות
   [/פוקוס/, 'transliterated "focus"'],
   [/טיימינג/, 'transliterated "timing"'],
-  // Hebrew has no , so bound the word by "not a Hebrew letter either side".
+  // Hebrew has no \b, so bound the word by "not a Hebrew letter either side".
   // Without this, /הזו/ matches inside הזווית and /קיו/ inside נקיות — both
   // fired on strings that were perfectly fine.
   [/(?<![֐-׿])הזו(?![֐-׿])/, 'bookish "הזו" — spoken Israeli is "הזאת"'],

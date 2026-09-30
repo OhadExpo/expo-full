@@ -31,19 +31,27 @@
 //   C. The pill appears only for someone who stays on ONE page while a deploy
 //      lands; idle / hidden still apply it on their own (rule 3).
 //   Rule 4 (never mid-workout, filming or uploading) still overrides A-C.
+//
+// 29.9 (#464), Ohad: "on the popup for updates - no later option just update -
+// if im not touching or irresponsive (unless im writing something or in the
+// athelete portal - refresh and update on your own)". So:
+//   - the pill has ONE button, UPDATE (LATER and its 24h snooze are gone);
+//   - idle (IDLE_MS without input) or a hidden tab applies the update itself,
+//     EXCEPT while something is being written (a focused field, or any visible
+//     field holding typed text) and EXCEPT on the athlete portal, where the
+//     pill waits for the tap. Rules A/B (fresh load, navigation) are unchanged.
 
 import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { C, FN, FB } from './theme';
 import { tr, readLang } from './i18n';
+import { hasPendingWorkouts } from './offlineQueue';
 
 const IDLE_MS = 60000;
 const GRACE_MS = 12000;               // rule 1
 const FRESH_MS = 20000;               // rule A
-const SNOOZE_MS = 24 * 3600 * 1000;   // rule 2
 const NAG_AFTER_MS = 3 * 24 * 3600 * 1000; // rule 6
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
-const K_SNOOZE = 'expo-update-snooze-until';
 const K_FIRST = 'expo-update-first-seen';   // "<bundle>|<ms>"
 
 // The bundle this page runs: the same pending update stays pending until it is
@@ -111,14 +119,30 @@ export default function SwUpdateBanner() {
     const cameraActive = () => { try { return [...document.querySelectorAll('video')].some(v => v.srcObject instanceof MediaStream && !v.paused); } catch { return false; } };
     const uploadActive = () => { try { return (window.__expoUploadInFlight | 0) > 0; } catch { return false; } };
     const workoutActive = () => { try { return (window.__expoWorkoutActive | 0) > 0; } catch { return false; } };
+    // A finished workout still waiting in the offline queue (not yet confirmed
+    // by the server) exists only on this device: never reload over it. The
+    // queue survives a reload, but a reload right after Complete is exactly the
+    // moment the old code lost sessions, so the update simply waits. (27.9)
+    const workoutUnsaved = () => { try { return hasPendingWorkouts(); } catch { return false; } };
     // A Google sign-in coming back (the token in the URL, or its boot copy not
     // spent yet) is never a moment to reload: a reload there is one way the
     // return gets lost (27.9 #346).
     const signingIn = () => { try { return /access_token=|[?&]code=/.test(window.location.href) || !!window.sessionStorage.getItem('expo-oauth-hash'); } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive() || signingIn();
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn();
+    // #464: the two places a reload is never taken on its own - something is
+    // being written (a focused field, or typed text sitting in any visible
+    // field), or the athlete portal (the pill waits for the athlete's tap).
+    const writing = () => { try {
+      const a = document.activeElement;
+      if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return true;
+      return [...document.querySelectorAll('textarea, input:not([type]), input[type=text], input[type=search], input[type=email], input[type=number], input[type=tel], [contenteditable="true"]')]
+        .some((x) => (x.isContentEditable ? (x.textContent || '').trim() : (x.value || '').trim()) && x.getClientRects().length > 0);
+    } catch { return true; } };
+    const onAthletePortal = () => { try { return /^\/(athlete|demo\/athlete)(\/|$)/.test(window.location.pathname) || !!document.body.getAttribute('data-athlete-lang'); } catch { return true; } };
+    const autoOk = () => !busy() && !writing() && !onAthletePortal();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
-    const onVis = () => { if (document.visibilityState === 'hidden' && !busy()) tryUpdate(); };
+    const onVis = () => { if (document.visibilityState === 'hidden' && autoOk()) tryUpdate(); };
     document.addEventListener('visibilitychange', onVis);
     // Rule A: a fresh load with an update already waiting takes it at once.
     const loadedAtMs = (typeof performance !== 'undefined' && performance.timeOrigin) || Date.now();
@@ -139,8 +163,10 @@ export default function SwUpdateBanner() {
     const pathAtFind = window.location.pathname;
     const idle = setInterval(() => {
       setTick((n) => n + 1);
-      if (!forced && window.location.pathname !== pathAtFind && !busy()) { silentApply(); return; }
-      if (Date.now() - lastActivity >= IDLE_MS && !busy()) tryUpdate();
+      // a navigation lands on the new build - but never over typed text (AUDIT-470:
+      // an upload ending after the coach moved page and started a note reloaded it)
+      if (!forced && window.location.pathname !== pathAtFind && !busy() && !writing()) { silentApply(); return; }
+      if (Date.now() - lastActivity >= IDLE_MS && autoOk()) tryUpdate();
     }, 1000);
 
     return () => {
@@ -157,7 +183,6 @@ export default function SwUpdateBanner() {
   const now = Date.now();
   const loadedAt = (typeof performance !== 'undefined' && performance.timeOrigin) || now;
   const busyNow = (() => { try { return (window.__expoWorkoutActive | 0) > 0 || (window.__expoUploadInFlight | 0) > 0; } catch { return false; } })();
-  const snoozedUntil = Number(lsGet(K_SNOOZE) || 0);
   const first = lsGet(K_FIRST);
   const firstSeen = first && first.split('|')[0] === bundleId() ? Number(first.split('|')[1]) : now;
   const nag = now - firstSeen > NAG_AFTER_MS;                       // rule 6
@@ -165,11 +190,9 @@ export default function SwUpdateBanner() {
   if (!updating) {
     if (!forced && now - loadedAt < GRACE_MS) return null;         // rule 1
     if (busyNow) return null;                                        // rule 4
-    if (!forced && !nag && snoozedUntil > now) return null;          // rules 2 + 5
   }
 
   const onUpdate = () => { setUpdating(true); setTimeout(() => { try { updateServiceWorker(true); } catch { /* noop */ } setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500); }, 200); };
-  const onLater = () => { lsSet(K_SNOOZE, String(now + SNOOZE_MS)); setTick((n) => n + 1); };
 
   if (nag || updating) {
     // The old blocking modal, kept for the case that earns it.
@@ -224,8 +247,8 @@ export default function SwUpdateBanner() {
         <span style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.14em', fontWeight: 700, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
           <span className="sw-lbl-full">{t('NEW VERSION AVAILABLE')}</span><span className="sw-lbl-short">{t('NEW VERSION')}</span>
         </span>
+        {/* ONE action (#464: "no later option just update") */}
         <button onClick={onUpdate} style={{ ...btn, background: C.ac, color: 'var(--c-bg)', border: `1px solid ${C.ac}` }}>{t('UPDATE')}</button>
-        <button onClick={onLater} style={{ ...btn, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}` }}>{t('LATER')}</button>
       </div>
     </div>
   );

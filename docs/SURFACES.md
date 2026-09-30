@@ -64,11 +64,14 @@ Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found al
 | `/coach/billing` | billing | `BillingView` | ✅ pass1 |
 | `/coach/bhbc` | bhbc | `BhbcView` (Bnei Herzliya S&C zone) | 🆕 2026-08-15 (Athletes▾→BHBC; staff-gated separate zone, no EXPO nav) |
 
-The zone has its own tab strip inside that one route: **Overview · Roster ·
-Schedule · Weight Room · Medical · Sessions · Games**. Weight Room is new
-(2026-09-06): the month grid of athletes × days, the restriction tint and the
-logged lift in one cell, who is due, and what the room did each day. A sweep of
-this route must click every tab - they are not routes.
+The zone has its own tab strip, and since 27.9 every tab is a route
+(`/coach/bhbc/<tab>` for the owner, `/bhbc/<tab>` for a club coach): **overview ·
+roster · schedule · practices · lifts · medical · games · activity**.
+PRACTICES split from SCHEDULE on 29.9 (#401): practices = week planner (LOG S&C
+in its strip), practice attendance, past practices; schedule = next game, the
+month/week/list calendar, microcycle. The zone's actions live in their own
+card's strip (#396): MANAGE ROSTER on Roster, LOG LIFT on Lifts, LOG S&C on
+Practices. A sweep of the zone loads every tab route.
 
 Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/RLS.
 

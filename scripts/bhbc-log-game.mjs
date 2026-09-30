@@ -20,6 +20,7 @@
 //        nothing is pending - the daemon runs this every 20 minutes.
 //   node scripts/bhbc-log-game.mjs --find           print the BH GameIds by date (discovery check)
 import fs from 'node:fs';
+import os from 'node:os';
 import puppeteer from 'puppeteer-core';
 import { ownerClient, readStore, writeStore } from './lib/store-client.mjs';
 
@@ -34,7 +35,7 @@ const REPLACE = args.includes('--replace');
 const FIND = args.includes('--find');
 const ids = args.filter((a) => /^\d{4,}$/.test(a));
 if (!ids.length && !AUTO && !FIND) { console.log('usage: node scripts/bhbc-log-game.mjs <GameId> [--dry] | --auto [--dry] | --find'); process.exit(2); }
-const BACKUP_DIR = 'C:/Users/Administrator/expo-private-backups';
+const BACKUP_DIR = `${os.homedir().replace(/\\/g, '/')}/expo-private-backups`;
 const CDP = process.env.CDP || 'http://localhost:9222';
 const isBH = (s) => /הרצליה/.test(s || '');
 const num = (s) => { const m = String(s || '').match(/-?\d+/); return m ? Number(m[0]) : null; };

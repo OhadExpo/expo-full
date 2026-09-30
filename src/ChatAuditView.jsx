@@ -212,7 +212,7 @@ export default function ChatAuditView() {
                     <div style={{
                       alignSelf: 'flex-start', maxWidth: '85%',
                       background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-                      borderRadius: 0, padding: '7px 11px',
+                      borderRadius: 0, padding: '7.5px 11px 6.5px',   // the Hebrew line rode 0.92px high at 7/7 (box-centring, AUDIT-470)
                       fontSize: 13, lineHeight: 1.45, color: C.tx,
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     }}>

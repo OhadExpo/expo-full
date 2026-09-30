@@ -3,7 +3,7 @@
 // Keys: eid strings matching ClientPortal CLIENTS references
 
 export const EX = {
-  // === Diego Day (t1) — Block #9 ===
+  // === (t1) — Block #9 ===
   e1:{t:"Prone Laying Around the World",vid:"https://www.youtube.com/watch?v=cwLZOh5SInQ"},
   e2:{t:"90/90 POS Rear-Leg Heel-Clicks",vid:"https://www.youtube.com/shorts/cduSxyjDql8"},
   e3:{t:"Dead-Bug POS Elbow Floor-Slide",vid:"https://www.youtube.com/watch?v=ZtcpBztji78"},
@@ -19,7 +19,7 @@ export const EX = {
   e13:{t:"Machine Leg Curl"},
   e14:{t:"Standing Arnold DB OHP"},
 
-  // === Ron Yonker (t2) — Block #13 ===
+  // === (t2) — Block #13 ===
   e29:{t:"Push-Up Tantrum",vid:"https://www.youtube.com/shorts/vdioRdJEZtk"},
   e30:{t:"Banded Power Pallof Press",vid:"https://www.youtube.com/shorts/uYpjXMkAUOY"},
   e31:{t:"HOZ Board Jump SL Landing",vid:"https://www.youtube.com/watch?v=Owe3pjT1oiw"},
@@ -37,7 +37,7 @@ export const EX = {
   e43:{t:"SA Cable Pulldown"},
   e44:{t:"Elbow-Supported DB Knee Raise",vid:"https://www.youtube.com/watch?v=cYZgZrZtaGE"},
 
-  // === Omer Sadeh (t3) — Block #7 ===
+  // === (t3) — Block #7 ===
   e50:{t:"DB Squat Jump",vid:"https://www.youtube.com/shorts/LE2WYrSEyZI",q:"רד למצב שאתה ברבע סקוואט, ותעצור שם. לא המשכי! משקולת בכל יד"},
   e51:{t:"BB Pendlay Row",vid:"https://www.youtube.com/shorts/IhiF9i9s8NI",q:"סט אפ של דדליפט. לדחוף את האגן עוד קצת אחורה. משקל כבד!"},
   e52:{t:"Hand-Release Power Push-Up",vid:"https://www.youtube.com/shorts/Q0O7BWiQ1FE",q:"תרים את הידיים. בטן מכווצת. פיצוץ עם הידיים כנגד הרצפה"},
@@ -62,7 +62,7 @@ export const EX = {
   e71:{t:"Dead-Bug POS DB Pullover",vid:"https://www.youtube.com/watch?v=Wg2Z2hYxB0c",q:"ברכיים באוויר מעל הפופיק. גב תחתון צמוד. שלח אחורה רחוק"},
   e72:{t:"ISO Pronated Dead-Hang Leg Raise",vid:"https://www.youtube.com/watch?v=Ri9unVtgUK8",q:"מתח בנים. אגודלים למעלה. ברכיים לא נעולות. פלקס בכפות רגליים"},
 
-  // === Yuval Barko (t4) — Comeback Block ===
+  // === (t4) — Comeback Block ===
   e100:{t:"BB Elevated-Heel Back Squat",vid:"https://www.youtube.com/watch?v=fv1LX_brEmM",q:"תעמוד על הגבהה קטנה לעקבים! בית חזה לרצפה ושמירה על זווית כל הסט. מרפקים מתקרבים אחד לשני (גב מכווץ) ללא הפסקה! משקל על כל כף הרגל"},
   e101:{t:"BB Close-Grip Bench Press",vid:"https://www.youtube.com/watch?v=XEFDMwmrLAM",q:"מרפקים צמודים לגוף. רגליים מתחת לישבן, וארבע ראשי שעובד ללא הפסקה (עקב לרצפה). תשאיר את המרפק מתחת לשורש כף היד"},
   e102:{t:"ISO Chin-Up",vid:"https://www.youtube.com/watch?v=i27qYZjRCLg",q:"כמה שיותר גבוה, כמה שיותר קדימה. כתפיים נוגעות במוט. ראש עובר את המוט קדימה"},
@@ -85,7 +85,7 @@ export const EX = {
   e119:{t:"Multi-Directional POGO Jump (Soft Landing)",vid:"https://www.youtube.com/shorts/2DYc5n4oCko",q:"זמן מגע קצר מאוד עם הרצפה. מכת הצלפה עם כף הרגל ברצפה. בלי הרבה תנועה בברכיים. תזוז מהאגן, רגליים רפויות באוויר ומתכווצות לקראת המגע עם הרצפה"},
   e120:{t:"Push-Up POS Knee to Opposite Elbow",vid:"https://www.youtube.com/watch?v=eGZPjAqV9OM",q:"ישבן קצת יותר גבוה משאר הגוף. ראש למטה. ברגל שנשארת על הרצפה, הברך נעולה. כף רגל שעובדת, בפלקס"},
 
-  // === Shalev Lugashi (t5) — Block #7 ===
+  // === (t5) — Block #7 ===
   // Day A
   e200:{t:"BW High Step-Up",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk",q:"קופסא הכי גבוהה שאתה יכול. עקב חזק על הקופסא. בית חזה מול הרצפה (משקל על הרגל הקדמית). סיים סט ואז תחליף רגל"},
   e201:{t:"MID-POS Chin-Up",vid:"https://www.youtube.com/shorts/LMDKMvNuB6s",q:"חמש שניות תלייה במצב רפוי. חמש שניות החזקה למעלה, כשהכתפיים נוגעות במוט. טווח תנועה מלא. ראש בין הידיים בשיא ההרפייה, ומרפקים ליד האוזניים"},

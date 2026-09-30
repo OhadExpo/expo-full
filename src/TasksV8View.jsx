@@ -29,7 +29,7 @@ import { localiseAutoBody } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
@@ -591,9 +591,8 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
               title={active ? tt(m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : (readLang() === 'he' ? SORT_TIP_HE[m.id] : `${tt('Sort by')} ${tt(m.label)}`)}
               style={{ ...seg(active), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
-                  {a && <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1, flexShrink:0 }}>{a}</span>}
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{t}</span>
+                <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {a && <SortArrow up={a === '↑'} />}{t}
                 </span>
               ); })() : tt(m.label)}
             </button>
@@ -707,11 +706,12 @@ function RailOpt({ label, count, active, onClick, title }) {
 // Active-sort label with direction arrow (mirrors SortBar.activeDirParts).
 function sortRailLabel(mode, sortDir, tt = (x) => x) {
   const d = sortDir === 'desc';
+  const lab = (up, t) => <><SortArrow up={up} />{t}</>;
   switch (mode) {
-    case 'date':     return d ? '↑ ' + tt('Latest') : '↓ ' + tt('Soonest');
-    case 'newest':   return d ? '↓ ' + tt('Newest') : '↑ ' + tt('Oldest');
-    case 'priority': return d ? '↑ ' + tt('Low')    : '↓ ' + tt('High');
-    case 'status':   return d ? '↑ ' + tt('Done') : '↓ ' + tt('To Do');
+    case 'date':     return d ? lab(true, tt('Latest')) : lab(false, tt('Soonest'));
+    case 'newest':   return d ? lab(false, tt('Newest')) : lab(true, tt('Oldest'));
+    case 'priority': return d ? lab(true, tt('Low'))    : lab(false, tt('High'));
+    case 'status':   return d ? lab(true, tt('Done')) : lab(false, tt('To Do'));
     case 'name':     return d ? 'Z → A'    : 'A → Z';
     default:         return tt('Manual');
   }
@@ -974,7 +974,7 @@ function CalendarEmbedCard() {
           color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
           transition: 'transform 120ms ease',
           transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-        }}>▾</span>
+        }}><CaretGlyph /></span>
       </button>
       {open && (
         <div style={{
@@ -1035,7 +1035,7 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
         color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
         transition: 'transform 120ms ease',
         transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-      }}>▾</span>
+      }}><CaretGlyph /></span>
     </div>
   );
 }
@@ -1772,7 +1772,12 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           ...(phone ? { order: -1, flex: '1 1 0%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div dir="auto" style={{
             maxWidth: '100%', alignSelf: 'stretch',
-            fontFamily: heb ? FH : FB,
+            // ONE TYPE SYSTEM (29.9 #448 audit): a title with any Hebrew in it was set
+            // in Heebo whole, so its English words lost Nord's capitals - "Call נדבר
+            // skipped W3 of Block #4" beside "CALL [ATHLETE] SKIPPED W2". FB is Nord
+            // with Heebo behind it: Hebrew letters still come from Heebo, English
+            // from Nord, in every title.
+            fontFamily: FB,
             fontSize: compact ? (heb ? 13 : 12) : (heb ? 14 : 13),
             fontWeight: 500,
             // Shared line box so a MIXED Hebrew (Heebo) + English (Nord) title
@@ -2684,7 +2689,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
             style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '5px 16px' /* 18.9: 0 above / 10 below sat the label 5.5px high in its band */, borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span>{tt('Filters')}</span>
-            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
+            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}><CaretGlyph /></span>}
           </div>
 
           {(!narrow || railOpen) && (<>
@@ -2817,7 +2822,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   fontFamily: FN, fontSize: 10, fontWeight: 600,
                   color: 'var(--c-tm)', letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                }}>{autoOpen ? '▾' : '▸'} {autoSection.rows.length} {tt('auto-alerts')}</span>
+                }}><CaretGlyph rot={autoOpen ? 0 : -90} /> {autoSection.rows.length} {tt('auto-alerts')}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
               {autoSection.rows.map(row => (
@@ -2957,7 +2962,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               borderBottom: doneOpen ? `1px solid var(--c-cardBd)` : 'none',
             }}>
-            <span>{doneOpen ? '▾' : '▸'} {tt('Done')} · {done.length}</span>
+            <span><CaretGlyph rot={doneOpen ? 0 : -90} /> {tt('Done')} · {done.length}</span>
             <span style={{ opacity: 0.6, fontSize: 9 }}>
               {doneOpen ? (readLang() === 'he' ? `מציג את ${Math.min(done.length, 5)} האחרונות` : `${tt('Showing latest')} ${Math.min(done.length, 5)}`) : tt('Click to expand')}
             </span>

@@ -12,6 +12,136 @@ import { useT, tr, readLang } from './i18n';
 // + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
 // size EVERYWHERE in the platform (Ohad). 26 = midpoint of the old 20/30 spread.
 // Use `stripBtnBase` for the shared box metrics; callers add border/color/text.
+// THE ONE COLLAPSE CARET (29.9 #444: a dashboard carried a chevron on two cards
+// and a text triangle on three - and a Nord triangle below 12px renders as a
+// dash). An SVG chevron, open = pointing down, closed = pointing to the start.
+export function StripCaret({ open, color = 'var(--c-stripTx)', size = 11 }) {
+  return (
+    <svg aria-hidden width={size} height={Math.round(size * 7 / 11)} viewBox="0 0 9 6" fill="none" style={{
+      color, display: 'inline-block', flexShrink: 0,
+      transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
+    }}>
+      <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// TITLE FIRST, CONTROLS SECOND (29.9 #452, his phone: "ASSIGNED PROGRAMS (1)"
+// came out ONE LETTER PER LINE - DATE / HIDE ALL / + NEW PROGRAM kept their
+// width and the title column was left ~20px; "Fix this everywhere"). A strip's
+// title is never squeezed and never wraps: when it cannot sit whole on one line
+// beside its controls, the controls move to a row of their own at the top of the
+// body and the strip keeps ONE row. Measured on the real elements:
+//   - the title's one-line width: white-space nowrap for a moment, then the
+//     extent of its text (works for any title JSX, not only a string);
+//   - the controls' width, taken while they are in the strip and remembered;
+//   - a title already wrapping (more than one line box) is stacked outright.
+// Re-checked on every resize, with 8px of hysteresis so it cannot flicker.
+// The strip can mount AFTER the component does (a page that shows LOADING
+// first - billing's PAYMENT REQUESTS still wrapped at 360 because the one
+// mount-time check found no strip and never looked again), so the observer is
+// (re)attached whenever the strip element itself changes, checked after every
+// render - a ref compare, nothing measured unless something changed.
+export function useStripFit(active, stripRef, titleRef, rightRef, extra = 0, deps = []) {
+  const [stacked, setStacked] = React.useState(false);
+  const rightW = React.useRef(0);
+  const att = React.useRef({ el: null, title: null, key: null, ro: null });
+  React.useEffect(() => () => { if (att.current.ro) att.current.ro.disconnect(); }, []);
+  React.useLayoutEffect(() => {
+    const strip = active && typeof window !== 'undefined' ? stripRef.current : null;
+    const key = (active ? '1|' : '0|') + deps.map((d) => (d == null || typeof d === 'object' ? '' : String(d))).join('|');
+    const a = att.current;
+    if (strip === a.el && titleRef.current === a.title && key === a.key) return;
+    if (a.ro) a.ro.disconnect();
+    att.current = { el: strip, title: titleRef.current, key, ro: null };
+    if (!active) { setStacked(false); return; }
+    if (!strip) return;
+    const lineCount = (el) => {
+      const rg = document.createRange(); rg.selectNodeContents(el);
+      const tops = [];
+      for (const r of rg.getClientRects()) { if (r.width < 0.5 || r.height < 0.5) continue; if (!tops.some((t) => Math.abs(t - r.top) <= 3)) tops.push(r.top); }
+      return tops.length;
+    };
+    const oneLineWidth = (el) => {
+      const prev = el.style.whiteSpace; el.style.whiteSpace = 'nowrap';
+      const rg = document.createRange(); rg.selectNodeContents(el);
+      const w = rg.getBoundingClientRect().width;
+      el.style.whiteSpace = prev;
+      return w;
+    };
+    const check = () => {
+      const title = titleRef.current; if (!title) return;
+      if (rightRef.current) rightW.current = rightRef.current.getBoundingClientRect().width;
+      const cs = getComputedStyle(strip);
+      const inner = strip.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+      const w1 = oneLineWidth(title);
+      const need = w1 + 12 + rightW.current + extra;
+      // a title "on two lines" counts only when it is SQUEEZED (its one-line width
+      // is wider than its box): a two-row titleNode or mixed line boxes would
+      // otherwise stack, widen the title, unstack, and flip on every resize
+      // (29.9 audit round 3)
+      const squeezed = lineCount(title) > 1 && w1 > title.clientWidth + 1;
+      setStacked((was) => (was ? need > inner - 8 : (need > inner || squeezed)));
+    };
+    check();
+    // the strip (its width) AND the title (its text changing resizes it) - so no
+    // render-time dependency is needed and nothing re-measures on every render
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    if (ro) { ro.observe(strip); if (titleRef.current) ro.observe(titleRef.current); }
+    att.current.ro = ro;
+  });
+  return stacked;
+}
+
+// THE SORT ARROW, drawn (29.9 #447): the ↑/↓ glyph is taller than the capitals
+// and hangs below the baseline, so "↓ SOONEST" read 1.5px low beside centred
+// letters. An SVG exactly the capitals' height, sitting on the baseline, spans
+// the same band the letters do.
+export function SortArrow({ up }) {
+  return (
+    <svg aria-hidden width="0.5em" height="0.7em" viewBox="0 0 6 9" fill="none" style={{ display: 'inline-block', verticalAlign: 'baseline', flexShrink: 0, marginInlineEnd: '0.4em' }}>
+      <path d={up ? 'M3 8.3V0.9M0.8 3.1L3 0.9 5.2 3.1' : 'M3 0.7V8.1M0.8 5.9L3 8.1 5.2 5.9'} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+// THE CARET GLYPH (29.9 #457): the house chevron (StripCaret's path) sized to
+// the text around it and drawn in its colour. It replaces the ▾ / ▸ text
+// triangles - below 12px a Nord triangle renders as a dash, and two caret
+// shapes on one page read as two systems. `rot` turns it (0 = down, -90 = end).
+// DRAWN SYMBOLS (29.9 #467): Nord has no ▶ ☰ ✕ - each came from a fallback font
+// whose box sat the glyph 1px off the centre of its cell / button. Drawn, sized
+// to the text, centred by geometry.
+export function PlayGlyph() {
+  return <svg aria-hidden viewBox="0 0 8 9" width="0.75em" height="0.85em" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M0.5 0.6v7.8L7.6 4.5z" fill="currentColor" /></svg>;
+}
+export function NotesGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 8" width="0.85em" height="0.7em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M0.5 1h9M0.5 4h9M0.5 7h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>;
+}
+export function PencilGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 10" width="0.9em" height="0.9em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 8.5l.6-2.3L6.9 1.4l1.7 1.7-4.8 4.8zM6 2.3l1.7 1.7" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>;
+}
+export function CrossGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>;
+}
+
+// THE CHECK GLYPH (29.9 #460): Nord has no ✓ - the fallback font's taller box
+// lifted a "✓ IN" label 2px off its button's centre. Drawn, sized to the text.
+export function CheckGlyph() {
+  return (
+    <svg aria-hidden viewBox="0 0 11 8" width="0.9em" height="0.66em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
+      <path d="M1 4.2l3 2.8L10 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CaretGlyph({ rot = 0 }) {
+  return (
+    <svg aria-hidden viewBox="0 0 9 6" width="0.8em" height="0.54em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, transform: rot ? `rotate(${rot}deg)` : undefined, transition: 'transform 180ms ease' }}>
+      <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export const STRIP_BTN_H = 26;
 export const stripBtnBase = {
   height: STRIP_BTN_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,
@@ -292,7 +422,7 @@ export function SeverityDot({ color, title }) {
 }
 
 export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12, bleed = true,
-  onClick, onKeyDown, role, tabIndex, ariaExpanded }) {
+  onClick, onKeyDown, role, tabIndex, ariaExpanded, marginTransition = null }) {
   // --c-stripBg is full BSG cyan in light, black in dark. Strip bleeds
   // to the card's outer edge via negative margins, so the card's own
   // cyan border becomes the strip's top + left + right border. The
@@ -326,6 +456,8 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // was still subtracting a padding that was not there. bleed={false} for
       // those callers; every existing caller keeps today's behaviour.
       margin: bleed ? `-${padY}px -${padX}px ${marginBottom}px` : `0 0 ${marginBottom}px`,
+      // an eased card body moves the strip's bottom margin with it (29.9 #423)
+      ...(marginTransition ? { transition: marginTransition } : null),
       // ONE uniform header height app-wide (Ohad #261: active-athletes / revenue /
       // tasks / messages / expiring bars must all be the SAME vertical height).
       // A label-only strip was ~34px while a strip with a 30px action button was
@@ -510,6 +642,9 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
     try { if (storeId) localStorage.setItem(storeId, n ? '1' : '0'); } catch { /* private mode */ }
     return n;
   });
+  // the title never squeezed: see useStripFit (29.9 #452)
+  const stripRef = React.useRef(null), titleRef = React.useRef(null), clusterRef = React.useRef(null);
+  const stacked = useStripFit(!!right, stripRef, titleRef, clusterRef, 22, [title, count, titleShort]);
   const baseBorder = `1px solid ${C.cardBd}`;
   // Same header treatment as RefinedHeaderStrip so EVERY header matches app-wide:
   // one shade of cyan above the box (the highlight test) AND one uniform 8px
@@ -540,11 +675,15 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
         : { marginBottom: 12, ...style });
   return (
     <div id={domId} style={outerStyle}>
-      <div className="title-strip"
-        onClick={toggle}
+      <div ref={stripRef} data-strip-stacked={stacked ? '1' : undefined} className="title-strip"
+        // A CONTROL IN THE STRIP IS NOT THE STRIP (29.9 #402, "when i click copy
+        // it shouldnt collapse"): a click on a button / link / field inside the
+        // strip's right cluster does its own job and never toggles the card.
+        onClick={(e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; toggle(); }}
         role="button" tabIndex={0}
         aria-expanded={open}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+        // a key pressed on a control inside the strip is that control's (29.9 audit)
+        onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
         style={{
           ...stripStyle,
           // ONE ROW, ALWAYS (Ohad 26.9: "never put two rows in a title box ...
@@ -556,8 +695,8 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
           gap: 12, cursor: 'pointer', userSelect: 'none', flexWrap: 'nowrap',
         }}
       >
-        {titleNode ? <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
-          <span style={{
+        {titleNode ? <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
+          <span ref={titleRef} style={{
             flex: '1 1 auto',
             color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -584,20 +723,21 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
             the START, under the title, and leaves the one-line case
             untouched. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'nowrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '100%' }}>
-          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
+          {right && !stacked && <span ref={clusterRef} onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           {/* WHITE on purpose — this chevron sits on the COLOURED strip header
               whose title span three lines up is also #FFFFFF. Switching it to
               --c-tx made it near-black on BHBC's deep-navy strip (1.33:1,
               invisible). The plain-surface collapse controls in TasksV8View DO
               use --c-tx; these two cases are genuinely different backgrounds. */}
-          <svg aria-hidden width="11" height="7" viewBox="0 0 9 6" fill="none" style={{
-            color: 'var(--c-stripTx)', display: 'inline-block', flexShrink: 0,
-            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
-          }}>
-            <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <StripCaret open={open} />
         </div>
       </div>
+      {/* the controls that stepped out of the strip (#452) sit between the strip and
+          the body - OUTSIDE the collapsing part, so a collapsed section still offers
+          them, as the strip did (29.9 audit round 3) */}
+      {right && stacked && (
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', padding: bare ? '8px 0 4px' : `12px ${padX}px ${leftStripe && open ? 12 : 0}px` /* off a stripe frame's border while it shows; 12 to a bare body as before (audit rounds 4-5) */, transition: 'padding-bottom 260ms ease' }}>{right}</div>
+      )}
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
         {/* inert when collapsed: the 0fr trick keeps children mounted, so
             without it hidden buttons (e.g. DELETE rows) stay tab-focusable
@@ -609,7 +749,9 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
               Ohad: "only next to the white part of the card". */}
           <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px`,
             // was: a 3px rail on the inline-start edge only (see leftStripe above)
-            ...(leftStripe && !bare ? { border: `1px solid ${leftStripe}` } : null) }}>{children}</div>
+            ...(leftStripe && !bare ? { border: `1px solid ${leftStripe}` } : null) }}>
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -743,7 +885,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // `onHeaderClick` is OPT-IN, and turns the strip into a handle: the BHBC zone
 // uses it so every box in the club can be collapsed. Undefined everywhere else,
 // so no other card in the product changes behaviour.
-export const Card = ({ children, style, className, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive, onHeaderClick, headerAriaExpanded }) => {
+export const Card = ({ children, style, className, onClick, onMouseEnter, onMouseLeave, header, headerRight, headerFixed, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive, onHeaderClick, headerAriaExpanded, bodyShown, bodyMs = 240 }) => {
   // Refined light variant: in refined mode every card flips to a white body.
   // When `header` is also passed, the cyan strip is rendered above the body.
   // In dark / non-refined modes the card stays single-zone cyan.
@@ -754,6 +896,10 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
   // --c-stripBg token override below.
   const hasStrip = !!header;
   const padNum = typeof padding === 'number' ? padding : 20;
+  // the title never squeezed by the header controls (29.9 #452) - see useStripFit
+  const cardStripRef = React.useRef(null), cardTitleRef = React.useRef(null), cardRightRef = React.useRef(null);
+  // headerFixed (a collapse chevron) never leaves the strip: its width is reserved
+  const cardStacked = useStripFit(!!(hasStrip && headerRight), cardStripRef, cardTitleRef, cardRightRef, headerFixed ? 24 : 0, []);
   return (
     <div className={className} onClick={onClick}
       // Clickable cards get a keyboard path (Enter/Space) + button semantics so
@@ -809,18 +955,27 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // from the edge, and a strip that must not bleed past a box that has no
         // padding to cancel: pad 14, no bleed. Ohad 13.9: "the hebrew titles are
         // not aligned right" - the title sat flush on the card edge.
-        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={children ? 12 : -padNum}
-          onClick={onHeaderClick}
+        // bodyShown (optional): a card whose body EASES open and closed says so,
+        // and the strip's bottom margin follows that instead of whether the
+        // children are in the tree yet - so the margin has already arrived when
+        // the body unmounts (29.9 #423: that switch was a 14px jump). Unset =
+        // exactly the old rule.
+        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={((bodyShown === undefined ? !!children : bodyShown) || (cardStacked && headerRight)) ? 12 : -padNum /* stacked: the row below needs the strip's normal gap, collapsed or not (audit round 4) */}
+          marginTransition={bodyShown === undefined ? null : `margin-bottom ${bodyMs}ms ease`}
+          // a control in the strip (COPY...) never toggles the card (29.9 #402)
+          onClick={onHeaderClick ? (e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; onHeaderClick(e); } : undefined}
           role={onHeaderClick ? 'button' : undefined}
           tabIndex={onHeaderClick ? 0 : undefined}
           ariaExpanded={onHeaderClick ? headerAriaExpanded : undefined}
-          onKeyDown={onHeaderClick ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
-          {headerRight ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
+          onKeyDown={onHeaderClick ? ((e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
+          {(headerRight || headerFixed) ? (
+            <div ref={cardStripRef} data-strip-stacked={cardStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>
+              <div ref={cardTitleRef} style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
+              {/* the controls leave the strip when the title would not fit beside them (#452) */}
+              {!cardStacked && headerRight && <div ref={cardRightRef} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>}
+              {headerFixed && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', color: 'var(--c-stripTx)', marginInlineStart: headerRight && !cardStacked ? -4 : 0 /* 8px from the controls, as inside their cluster before */ }}>{headerFixed}</div>}
             </div>
           ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
         </RefinedHeaderStrip>
@@ -843,6 +998,13 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           carries its colour as the dot at the head of the strip; a strip-less
           card carries it on its own four-sided border. This wrapper stays so
           the padding maths below is untouched. */}
+      {/* the stepped-out controls stay, collapsed or not (a collapsed card still
+          offers them, as its strip did): the strip keeps its 12px margin while
+          stacked, so the row never sits under a collapsed strip's negative margin,
+          and nothing mounts or unmounts as the body eases (audit rounds 3-4) */}
+      {cardStacked && headerRight && (
+        <div data-strip-actions="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: (bodyShown === undefined ? !!children : bodyShown) ? 12 : 0, transition: bodyShown === undefined ? undefined : `margin-bottom ${bodyMs}ms ease` /* eases with the body, no 12px snap (audit round 5) */ }}>{headerRight}</div>
+      )}
       {leftStripe ? (
         <div style={{
           marginInlineStart: -padNum,
@@ -967,10 +1129,17 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, gu
     const t = setTimeout(() => {
       const node = cardRef.current;
       if (!node) return;
-      const focusable = node.querySelector(
-        'input, textarea, select, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
-      );
-      (focusable || node).focus?.();
+      // A FIELD takes focus (the form is what you came to type in); otherwise
+      // the card itself does - never the first tappable ROW, which then opened
+      // wearing a focus frame as if selected (29.9 #408: "blue border around
+      // the last game ... looks bad"). Tab still reaches every control.
+      // (A status control in the card's header is a choice, not the form -
+      // it opts out with data-no-autofocus, 29.9 #409.)
+      const field = node.querySelector('input:not([type="hidden"]):not([data-no-autofocus]), textarea:not([data-no-autofocus]), select:not([data-no-autofocus])');
+      if (field) { field.focus?.(); return; }
+      if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '-1');
+      node.style.outline = 'none';
+      node.focus?.({ preventScroll: true });
     }, 0);
     return () => {
       window.removeEventListener('keydown', onKey);
@@ -1217,7 +1386,14 @@ export function ToastHost() {
   React.useEffect(() => {
     const fn = (ev) => {
       if (ev.type === 'add') setItems(prev => [...prev, ev.item]);
-      else if (ev.type === 'remove') setItems(prev => prev.filter(x => x.id !== ev.id));
+      // a toast LEAVES (the 190ms exit class) before it is removed; a confirm
+      // closes at once, as before (#461: toasts vanished in one frame)
+      else if (ev.type === 'remove') setItems(prev => {
+        const it = prev.find(x => x.id === ev.id);
+        if (!it || it.kind === 'confirm' || it.leaving) return prev.filter(x => x.id !== ev.id || (it && it.leaving && x.leaving));
+        setTimeout(() => setItems(p2 => p2.filter(x => x.id !== ev.id)), 200);
+        return prev.map(x => x.id === ev.id ? { ...x, leaving: true } : x);
+      });
       else if (ev.type === 'patch') setItems(prev => prev.map(x => x.id === ev.id ? { ...x, ...ev.patch } : x));
     };
     _listeners.add(fn);
@@ -1268,8 +1444,8 @@ export function ToastHost() {
         {toasts.map(it => {
           const tp = palette[it.kind] || palette.info;
           return (
-            <div key={it.id} className="motion-rise"
-              style={{ pointerEvents: 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
+            <div key={it.id} className={it.leaving ? 'motion-fade-out' : 'motion-rise'}
+              style={{ pointerEvents: it.leaving ? 'none' : 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
               <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{toastText(it.message)}</div>
               {it.actions && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
@@ -1390,9 +1566,11 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     measure();
     window.addEventListener('resize', later);
     const t2 = setTimeout(measure, 700);   // fonts land after first paint
-    // a light poll for what no event reports (a programmatic scroll in an
-    // unfocused tab, a remounted rail); phones only
-    const iv = setInterval(() => { if (window.innerWidth <= maxWidth) measure(); }, 250);
+    // a light poll for what no event reports (a remounted rail); narrow widths
+    // only. Once a second, visible tab only (29.9 #422): every 250 ms it forced a
+    // layout of every rail item forever - scroll and resize events already catch
+    // what the user does.
+    const iv = setInterval(() => { if (window.innerWidth <= maxWidth && document.visibilityState === 'visible') measure(); }, 1000);
     return () => {
       alive = false; clearTimeout(t); clearTimeout(t2); clearInterval(iv);
       window.removeEventListener('resize', later);

@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
+import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection, Card } from './ui';
 import { supabase } from './supabase';
 import { useT as useAppT, tr, readLang, agoLabel } from './i18n';
 
@@ -67,9 +67,9 @@ function fmtTtc(ms) {
 
 // Stat tile used in the funnel strip. `sub` is a small caption shown below
 // the main value (e.g. percentage of total). `color` tints the value text.
-function StatTile({ label, value, sub, color }) {
+function StatTile({ label, value, sub, color, center }) {
   return (
-    <div style={{ minWidth: 0 }}>
+    <div style={{ minWidth: 0, textAlign: center ? 'center' : undefined }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
       <div style={{ fontFamily: FN, fontSize: 18, color: color || C.tx, fontWeight: 700, marginTop: 2 }}>{value}</div>
       {sub && <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 1 }}>{sub}</div>}
@@ -286,27 +286,24 @@ export default function WaitlistView({ trainees }) {
 
   return (
     <div>
-      {/* Header + gate progress */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt("COACH WAITLIST")}</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
-            {total} {tt('total')} · {active} {tt('uncontacted')} · {tt('gate at')} {COACH_GATE}+ {tt('serious signups')}
-          </div>
+      {/* Header + gate progress (29.9 #462, his phone: "first part of the page text
+          is messy"): the house card - a strip title, then THREE equal fact cells
+          on one row at every width, the gate bar under them and one sentence.
+          Was a sentence of four facts wrapping ragged beside a second boxed card. */}
+      <Card header={tt('COACH WAITLIST')} style={{ marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <StatTile center label={tt('Total')} value={total} />
+          <StatTile center label={tt('Uncontacted')} value={active} color={active ? C.or : undefined} />
+          <StatTile center label={tt('Gate')} value={<span dir="ltr">{gateProgress}/{COACH_GATE}</span>} color={gateColor} />
         </div>
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('MULTI-TENANT GATE')}</span>
-            <span style={{ fontFamily: FN, fontSize: 14, color: gateColor, fontWeight: 700 }}>{gateProgress}/{COACH_GATE}</span>
-          </div>
-          <div style={{ height: 6, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
-          </div>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 6 }}>
-            {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.' : tt('Migration applies once threshold hits.')}
-          </div>
+        <div style={{ height: 6, marginTop: 14, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
         </div>
-      </div>
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 8, textAlign: 'center' }}>
+          {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.'
+            : (readLang() === 'he' ? `המעבר לכמה מאמנים נפתח ב-${COACH_GATE} הרשמות רציניות ומעלה` : `Multi-tenant opens at ${COACH_GATE}+ serious signups`)}
+        </div>
+      </Card>
 
       {/* Funnel conversion strip — six tiles covering volume, contact rate,
           time-to-contact, source split, signup conversion, and avg intent.
@@ -325,14 +322,18 @@ export default function WaitlistView({ trainees }) {
       )}
 
       {/* Filter + F-28 view toggle */}
-      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      {/* filter + LIST / BOARD: one row, 36px, the two view buttons one width;
+          a phone puts the toggle on its own full-width row of two equal cells
+          (themes.css .wl-bar; #462) */}
+      <div className="wl-bar" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
         <input type="text" placeholder={tt("Filter by email, source, or notes…")} value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ textAlign: 'start', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', minHeight: 'var(--btn-h)', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: '1 1 280px' }} />
-        <div style={{ display: 'flex', gap: 4 }}>
+          style={{ textAlign: 'start', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 0, flex: '1 1 auto' }} />
+        <div className="wl-views" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 88px)', gap: 8, flexShrink: 0 }}>
           {['list', 'board'].map(mode => (
             <button key={mode} aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}
               style={{
-                padding: '6px 12px', borderRadius: 0,
+                height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', borderRadius: 0,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 border: `1px solid ${viewMode === mode ? C.ac : C.cardBd}`,
                 background: viewMode === mode ? 'rgba(57,189,255,0.094)' : 'transparent',
                 color: viewMode === mode ? C.ac : C.tm,

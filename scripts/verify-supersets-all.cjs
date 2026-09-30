@@ -197,5 +197,5 @@ function blockNumOfPlanName(name) {
   fs.writeFileSync('scripts/verify-supersets-all.json',
     JSON.stringify({ generatedAt: new Date().toISOString(), deltas, skipped }, null, 2));
   console.log('\nwrote scripts/verify-supersets-all.json');
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })();

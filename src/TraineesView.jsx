@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, todayLocalISO } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast, CaretGlyph } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -25,10 +25,14 @@ function CardStatusMenu({ status, onChange }) {
     return () => { document.removeEventListener('pointerdown', onDown, true); document.removeEventListener('keydown', onKey); };
   }, [open]);
   const color = SM_COLOR[status] || C.tm;
+  // inline-FLEX, not inline-block (29.9 #392, "active button is still not
+  // vertically center aligned in the title box"): an inline-block wrapper
+  // carries a text line box, and its baseline space pushed the button off the
+  // strip's centre. A flex wrapper is exactly the button's box.
   return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
+    <span ref={ref} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
       <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }} title={tt('Change status')}
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 28, boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 'var(--btn-h-in, 26px)', boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
         {/* center the label+caret as a unit; cancel the trailing letter-space
             after the last glyph so the group is optically centred, not shifted
             left by ~1px (space-between used to pin the label left / caret right,
@@ -366,7 +370,7 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' ? (programs === 1 ? 'תוכנית אחת' : `${programs} תוכניות`) : `${programs} ${tt('Programs')}`}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' ? (programs === 1 ? 'תוכנית אחת' : `${programs} תוכניות`) : `${programs} ${programs === 1 ? 'Program' : tt('Programs')}`}</span>
             )}
           </div>
         )}
@@ -586,12 +590,38 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
   // "FILTERS" toggle on narrow (cards first), mirroring the programs page; on
   // desktop the rail stays a 210px sticky side column, fully open. (Ohad 2026-08 mobile pass)
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 760);
+  // + ADD ATHLETE IS THE FIRST THING (29.9 #393, "make it easier to find add
+  // athlete on mobile and tablet"): below 1200 it leads the athlete list
+  // instead of hiding under every filter group at the foot of the rail (or
+  // behind the collapsed FILTERS toggle on a phone). Desktop keeps the rail foot.
+  const [addOnTop, setAddOnTop] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1200);
   const [railOpen, setRailOpen] = useState(false);
   useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth <= 760);
+    const onResize = () => { setNarrow(window.innerWidth <= 760); setAddOnTop(window.innerWidth < 1200); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+  const addAthleteControl = (
+<div ref={addMenuRef} data-add-athlete style={{position:'relative', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0}}>
+              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')}<span style={{ marginInlineStart: 6, display: 'inline-flex' }}><CaretGlyph /></span></Btn>
+              {addMenuOpen && <div className="motion-menu" style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
+                {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
+                  <button key={format} onClick={()=>{
+                    const f = {...defaultTrainee(), format};
+                    // A Bnei Herzliya athlete IS a BHBC squad member: stamp the
+                    // team marker the /bhbc zone and the club-coach roster sync
+                    // key on, or the player never reaches either (audit #46).
+                    if (format === 'Bnei Herzliya') f.team = 'BHBC';
+                    if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
+                    setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
+                  }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign: 'start'}}
+                    onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    {tt(label)}
+                  </button>
+                ))}
+              </div>}
+            </div>
+  );
   useEffect(()=>{
     if(!addMenuOpen) return;
     const close = (e)=>{ if(addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
@@ -850,7 +880,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
             {
               label: tt('Needs Attention'),
               opts: [
-                { key: 'pay', label: 'Payment due' },
+                // counts OVERDUE *or* NEVER PAID - "payment due" (he: awaiting payment)
+                // described only half of it (29.9 #448: the demo already said this)
+                { key: 'pay', label: 'Payment issue' },
                 { key: 'dormant', label: 'Dormant' },
                 { key: 'lowSessions', label: 'Low sessions' },
                 { key: 'noProgram', label: 'No program' },
@@ -879,31 +911,12 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               }),
             },
           ]}
-          footer={
-            <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
-              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')} ▾</Btn>
-              {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
-                {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
-                  <button key={format} onClick={()=>{
-                    const f = {...defaultTrainee(), format};
-                    // A Bnei Herzliya athlete IS a BHBC squad member: stamp the
-                    // team marker the /bhbc zone and the club-coach roster sync
-                    // key on, or the player never reaches either (audit #46).
-                    if (format === 'Bnei Herzliya') f.team = 'BHBC';
-                    if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
-                    setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
-                  }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign: 'start'}}
-                    onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                    {tt(label)}
-                  </button>
-                ))}
-              </div>}
-            </div>
-          }
+          footer={addOnTop ? null : addAthleteControl}
         />
 
         {/* RIGHT: cards column. */}
         <div style={{ flex: 1, minWidth: 0 }}>
+        {addOnTop && addAthleteControl}
 
       {/* Count moved into the rail (under Search) so the first card top-aligns
           with the search box (Ohad OCD). */}
@@ -977,7 +990,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                           {m.phone && (
                             <div style={{
                               fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:0.5,textAlign:'center',width:'100%',
-                              whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                              // 16px line: overflow:hidden on the default line box sliced 3px off the
+                              // bottom of the digits (tablet overflow audit 29.9 #380)
+                              lineHeight:'16px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             }} dir="ltr">{m.phone}</div>
                           )}
                           <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, textAlign:'center', width:'100%' }} />

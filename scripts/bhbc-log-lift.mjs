@@ -13,8 +13,8 @@
 // Idempotent: an athlete who already has a Lift on that date is skipped.
 // Snapshots expo-bhbc-loads to audit-out/bhbc-state/ before it writes anything.
 //
-//   DRY=1 LIFTS="nathan knight:30" node scripts/bhbc-log-lift.mjs
-//         LIFTS="nathan knight:30,dj burns:30" DATE=2026-09-06 node scripts/bhbc-log-lift.mjs
+//   DRY=1 LIFTS="first last:30" node scripts/bhbc-log-lift.mjs
+//         LIFTS="first last:30,first last:30" DATE=2026-09-06 node scripts/bhbc-log-lift.mjs
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 

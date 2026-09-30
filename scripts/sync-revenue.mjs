@@ -17,11 +17,13 @@
 // writing a partial or empty picture.
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import P from 'puppeteer-core';
 
 const ROSTER = '18TdfofxAOd1d_EkOjbhYOBjWflqlfkAzY8sI52xJnOc';
 const FINANCE = '1MUrTOPMZ3XscIylR_6qdZzYH3IcWK1-f3zgUK8Sqmhw';
-const CHROME_PROFILE = 'C:\\Users\\Administrator\\chrome-debug-budget';
+const CHROME_PROFILE = path.join(os.homedir(), 'chrome-debug-budget');
 const LOG = 'audit-out/sheets/sync.log';
 
 fs.mkdirSync('audit-out/sheets', { recursive: true });
@@ -67,6 +69,16 @@ async function chromeUp() {
 }
 
 say('--- revenue sync ---');
+// ONE WRITER (pc-migrate 2026-09-27 §2.2): scheduled tasks start this script
+// directly, not only through the daemon, so it carries the same host guard.
+// A deliberate foreground verification run elsewhere sets EXPO_ALLOW_ANY_HOST=1.
+{
+  const want = (process.env.EXPO_DAEMON_HOST || '').trim().toUpperCase();
+  if (process.env.EXPO_ALLOW_ANY_HOST !== '1' && (!want || os.hostname().toUpperCase() !== want)) {
+    say(`NOT syncing: host ${os.hostname()} is not EXPO_DAEMON_HOST (${process.env.EXPO_DAEMON_HOST || 'unset'})`);
+    finish(0);
+  }
+}
 if (!(await chromeUp())) {
   // Start the SAME persistent profile the rest of the tooling uses; it is the
   // one that stays signed in. Never kill a Chrome that is already running -
@@ -86,7 +98,7 @@ if (!(await chromeUp())) {
     // A normal Chrome already owns that profile: the launch above only handed
     // its arguments to the running instance, which has no debug port. The
     // CLONE of the same signed-in profile is free, so use it.
-    const clone = 'C:\\Users\\Administrator\\chrome-debug-harvest';
+    const clone = path.join(os.homedir(), 'chrome-debug-harvest');
     if (fs.existsSync(clone)) {
       say('profile busy (a Chrome without a debug port owns it) - starting the signed-in clone');
       for (const lock of ['SingletonLock', 'lockfile', 'DevToolsActivePort']) { try { fs.rmSync(`${clone}\\${lock}`, { force: true }); } catch { /* noop */ } }
@@ -98,6 +110,24 @@ if (!(await chromeUp())) {
   if (!(await chromeUp())) { say('FAILED: Chrome did not open a debug port'); finish(1); }
 }
 say('debug Chrome is up');
+// SIGNED-IN GUARD (pc-migrate 2026-09-27 §2.2): refuse a browser on the port
+// that is not signed into Google, instead of reading the sheets through
+// whatever answers. Reads the cookie jar only - no navigation, no request
+// beyond the local CDP socket - and runs BEFORE anything is read or written.
+{
+  const GOOGLE_SESSION = new Set(['SID', '__Secure-1PSID', '__Secure-3PSID']);
+  let signedIn = false;
+  try {
+    const b = await Promise.race([
+      P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('CDP connect timeout after 15s')), 15000)),
+    ]);
+    try { signedIn = (await b.cookies()).some((c) => GOOGLE_SESSION.has(c.name) && c.domain === '.google.com'); }
+    finally { await b.disconnect(); }
+  } catch (e) { say(`FAILED: could not read the debug Chrome's cookies (${e.message})`); finish(1); }
+  if (!signedIn) { say('FAILED: the Chrome on 9222 is not signed into Google (no SID/__Secure-1PSID/__Secure-3PSID on .google.com) - refusing to sync'); finish(1); }
+  say('debug Chrome is signed into Google');
+}
 
 run('node', ['scripts/fetch-sheet-xlsx.mjs', ROSTER, 'audit-out/sheets/roster.xlsx'], 'fetch roster', {}, { soft: true });
 run('node', ['scripts/fetch-sheet-xlsx.mjs', FINANCE, 'audit-out/sheets/finance.xlsx'], 'fetch finance', {}, { soft: true });

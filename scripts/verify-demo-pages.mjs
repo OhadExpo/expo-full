@@ -67,7 +67,7 @@ const WIDTHS = [[360, 800], [390, 844], [768, 1024], [1440, 950]];
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.padEnd(28)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0;
 let steps = 0;
 
@@ -138,7 +138,7 @@ for (const [name, route] of SURFACES) {
             // in front of a buyer. Cheap to check, so there is no excuse for
             // having found this one by eye.
             {
-              //  cannot precede a '[', so (...|\[object Object\]) silently
+              // \b cannot precede a '[', so \b(...|\[object Object\])\b silently
               // never matched it — caught by the break test, 4 of 5 shapes.
               const junkRe = /\b(NaN|undefined|null|Infinity)\b|\[object [A-Z]\w*\]/;
               const wj = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

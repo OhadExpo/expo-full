@@ -13,7 +13,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stripBtnBase, StripCaret } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
@@ -238,7 +238,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
               <button onClick={(e) => { e.stopPropagation(); markRead(); }}
                 style={{ ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' }}>{tb("MARK ALL READ")}</button>
             )}
-            <span aria-hidden style={{ color: 'var(--c-stripTx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+            <StripCaret open={open} color={'var(--c-stripTx)'} />
           </div>
         </div>
       </RefinedHeaderStrip>

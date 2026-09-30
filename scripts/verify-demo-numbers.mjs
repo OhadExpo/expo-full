@@ -31,7 +31,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const findings = [];
 const add = (kind, detail) => { findings.push({ kind, detail }); console.log(`${kind.padEnd(9)} ${detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 
 // Read one page and return every number we can anchor to a label.
 async function read(route, lang) {

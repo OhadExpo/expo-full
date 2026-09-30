@@ -215,3 +215,75 @@ export function sessionConclusions(shots) {
     trend: fatigueTrend(shots),
   };
 }
+
+// MAKES vs MISSES (29.9 #424). With make / miss marked (by the coach, or by the
+// rim check), the session can ask the question a shooting coach asks first:
+// what is DIFFERENT about this shooter's misses? The reading is his own - makes
+// against misses in one clip, one camera - so the unknown camera offset cancels
+// the same way it does for the spreads above.
+//
+// Small samples lie, and eight readings compared at once lie more often:
+// simulated with NO real difference, a plain "effect size >= 1" rule named a
+// culprit in 40-80% of typical sessions. The gate below - at least 10 makes and
+// 5 misses, effect size >= 1.5 AND two thirds of the misses outside the makes'
+// own 10th-90th percentile band - named one in ~3% (15 makes / 5 misses) and
+// under 1% at 30 / 6, while still finding a real 2-sd difference 64-78% of the
+// time. Below the minimum it names nothing and says how many more it needs.
+export const CONTRAST_MIN = { makes: 10, misses: 5, d: 1.5, beyond: 0.67 };
+export const CONTRAST_READINGS = [
+  { key: 'dip', get: (s) => s.raw && s.raw.dip, unit: '°', round: 0 },
+  { key: 'set', get: (s) => s.raw && s.raw.setElbow, unit: '°', round: 0 },
+  { key: 'releaseArm', get: (s) => s.raw && s.raw.releaseArm, unit: '°', round: 0 },
+  { key: 'timing', get: (s) => s.raw && s.raw.timing, unit: 'ms', round: 0 },
+  { key: 'launch', get: (s) => s.info && s.info.ballLaunchDeg, unit: '°', round: 1 },
+  { key: 'speed', get: (s) => s.info && s.info.ballSpeedMs, unit: 'm/s', round: 2 },
+  { key: 'rise', get: (s) => s.info && s.info.ballRiseM, unit: 'm', round: 2 },
+  { key: 'releaseHt', get: (s) => s.info && (s.info.releaseHeightCm != null ? s.info.releaseHeightCm : null), unit: 'cm', round: 0 },
+];
+
+const num = (x) => typeof x === 'number' && Number.isFinite(x);
+
+/**
+ * made: { [shot.index]: true | false } (unmarked = undefined).
+ * Returns { makes, misses, ready, needMakes, needMisses, compared, lead }.
+ * lead = { key, unit, makeMean, missMean, d, nMake, nMiss } or null.
+ */
+export function makeMissContrast(shots, made, min = CONTRAST_MIN) {
+  const list = shots || [];
+  const mk = list.filter((s) => made && made[s.index] === true);
+  const ms = list.filter((s) => made && made[s.index] === false);
+  const out = { makes: mk.length, misses: ms.length, needMakes: Math.max(0, min.makes - mk.length), needMisses: Math.max(0, min.misses - ms.length), compared: 0, lead: null };
+  out.ready = out.needMakes === 0 && out.needMisses === 0;
+  if (!out.ready) return out;
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  const vari = (a) => { const m = mean(a); return a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1); };
+  let best = null;
+  for (const r of CONTRAST_READINGS) {
+    const A = mk.map(r.get).filter(num), B = ms.map(r.get).filter(num);
+    if (A.length < min.makes || B.length < min.misses) continue;
+    out.compared++;
+    const pooled = Math.sqrt(((A.length - 1) * vari(A) + (B.length - 1) * vari(B)) / (A.length + B.length - 2));
+    if (!(pooled > 0)) continue;
+    const d = (mean(B) - mean(A)) / pooled;
+    const sA = [...A].sort((x, y) => x - y);
+    const lo = sA[Math.floor(sA.length * 0.1)], hi = sA[Math.ceil(sA.length * 0.9) - 1];
+    const beyond = B.filter((b) => (d > 0 ? b > hi : b < lo)).length / B.length;
+    if (Math.abs(d) >= min.d && beyond >= min.beyond && (!best || Math.abs(d) > Math.abs(best.d))) {
+      const k = 10 ** r.round;
+      best = { key: r.key, unit: r.unit, makeMean: Math.round(mean(A) * k) / k, missMean: Math.round(mean(B) * k) / k, d: Math.round(d * 10) / 10, nMake: A.length, nMiss: B.length };
+    }
+  }
+  out.lead = best;
+  return out;
+}
+
+/**
+ * Makes per third of the clip, in shot order - counts only, no verdict (a make
+ * rate over five shots is not a trend). Null under six marked shots.
+ */
+export function makesByThird(shots, made) {
+  const marked = (shots || []).filter((s) => made && (made[s.index] === true || made[s.index] === false));
+  if (marked.length < 6) return null;
+  const n = marked.length, cut = [0, Math.round(n / 3), Math.round((2 * n) / 3), n];
+  return [0, 1, 2].map((t) => { const part = marked.slice(cut[t], cut[t + 1]); return { made: part.filter((s) => made[s.index] === true).length, marked: part.length }; });
+}

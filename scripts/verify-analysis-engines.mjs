@@ -66,6 +66,7 @@ const suites = [
   'verify-offline-queue.mjs',        // the offline write queue — where a bug silently destroys an athlete's logged workout
   'verify-storage-url.mjs',          // parseStoredUrl — the resolver that lets the media buckets go private without breaking playback
   'verify-plan-log-match.mjs',       // isLogOfPlan — a couple's identically-named plans must not cross-contaminate, WITHOUT regressing a recreated block (audit #31)
+  'verify-medical-out.mjs',          // medicalAvailOn - who is Out on a given DAY; was dead (not in the build) until 29.9 and then caught a real edge
 ];
 
 let anyFail = false;

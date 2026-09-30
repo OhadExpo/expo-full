@@ -10,7 +10,7 @@
 // subscribe. isPwaInstalled() detects this so the UI can show an
 // "Add to Home Screen first" hint instead of a confusing failure.
 
-import { supabase } from './supabase';
+import { supabase, isSandboxSeat } from './supabase';
 
 // Public key is fine to embed — it's meant to identify our app to push
 // services and ships to every client anyway. Env var takes precedence
@@ -141,6 +141,8 @@ export async function isCoachMutedForAthlete(traineeId) {
 // workout completion). Caller passes the recipient email + payload.
 export async function sendPush({ toEmail, title, body, url, tag }) {
   if (!toEmail) return;
+  // the sandbox seat never reaches a real athlete's phone (#476)
+  if (isSandboxSeat()) return;
   try {
     const { data: session } = await supabase.auth.getSession();
     const token = session?.session?.access_token;

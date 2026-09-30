@@ -8,10 +8,12 @@
 //
 //   node scripts/break-test-audit.mjs
 import fs from 'node:fs';
+import os from 'node:os';
 import { execSync } from 'node:child_process';
 
 const DOC = 'docs/HANDOFF-2026-09-06.md';
-const MEM = 'C:/Users/Administrator/.claude/projects/C--Users-Administrator-Desktop-expo-full/memory/MEMORY.md';
+// ~/.claude/projects/<home-derived project key>/memory/MEMORY.md -- same string as before on the laptop, portable elsewhere
+const MEM = `${os.homedir().replace(/\\/g, '/')}/.claude/projects/${os.homedir().replace(/[^A-Za-z0-9]/g, '-')}-Desktop-expo-full/memory/MEMORY.md`;
 const LENS = 'docs/handoff/05-data.md';
 
 const backup = new Map();

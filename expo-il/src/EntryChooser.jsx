@@ -305,7 +305,7 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
         <div style={{ marginBottom: 32 }}>
           {benefits.map((b, i) => (
             <div key={i} style={{
-              fontFamily: FN, fontSize: 11, color: C.tx,
+              fontFamily: FN, fontSize: 11, color: C.tx, lineHeight: 1.6,   // the row's own height, centred (a normal line put Hebrew 1px low; #467)
               letterSpacing: '0.04em', padding: '8px 0',
               borderTop: i === 0 ? `1px solid ${C.ac}26` : 'none',
               borderBottom: `1px solid ${C.ac}26`,

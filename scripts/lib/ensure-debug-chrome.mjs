@@ -11,10 +11,12 @@
 // just as signed in, so when the main one is busy or absent the clone is
 // started off-screen instead.
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { spawn } from 'node:child_process';
 
-const PROFILE = process.env.CHROME_PROFILE || 'C:\\Users\\Administrator\\chrome-debug-budget';
-const CLONE = process.env.CHROME_PROFILE_CLONE || 'C:\\Users\\Administrator\\chrome-debug-harvest';
+const PROFILE = process.env.CHROME_PROFILE || path.join(os.homedir(), 'chrome-debug-budget');
+const CLONE = process.env.CHROME_PROFILE_CLONE || path.join(os.homedir(), 'chrome-debug-harvest');
 const EXES = ['C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
               'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'];
 

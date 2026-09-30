@@ -56,5 +56,5 @@ const FILLS = {
 
   await sb.from('plans').update({ data, updated_at: new Date().toISOString() }).eq('id', PLAN_ID);
   console.log(`\nFilled ${filled} close-variant exercises in ${PLAN_ID}`);
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })().catch(e => { console.error(e); process.exit(1); });

@@ -128,5 +128,5 @@ const sb = createClient(SUPA_URL, SUPA_PUBLISHABLE_KEY);
   fs.writeFileSync('scripts/audit-superset-corruption.json', JSON.stringify(out, null, 2));
   console.log('\nwrote scripts/audit-superset-corruption.json');
 
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
 })();

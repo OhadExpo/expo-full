@@ -26,7 +26,10 @@ const RUN = WIDTHS.length ? WIDTHS : [1500, 1280, 900];
 
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
-await A.signIn(pg, BASE);
+// signed in FOR REAL, or /coach/bhbc measures the login page (AUDIT-470 hole)
+let authed = false;
+for (let k = 0; k < 3 && !authed; k++) { await A.signIn(pg, BASE); authed = await A.assertAuthed(pg, BASE); }
+if (!authed) { console.log('FAIL: not signed in - NOT measured'); await pg.close(); b.disconnect(); process.exit(1); }
 let bad = 0;
 for (const W of RUN) {
   await setWidth(pg, W, 1000);
@@ -39,7 +42,7 @@ for (const W of RUN) {
       const val = row.lastElementChild;
       if (!val) continue;
       // Direction comes from the CONTAINER, not the leaf. A Latin name inside a
-      // Hebrew line ('Bryant') computes direction:ltr on the leaf, and taking
+      // Hebrew line (a Latin surname) computes direction:ltr on the leaf, and taking
       // ITS left edge put one row 12px right of the column while every other
       // row was measured from the right. The column is a property of the block.
       const rtl = getComputedStyle(val).direction === 'rtl';
@@ -67,7 +70,7 @@ for (const W of RUN) {
       // at 1500 purely because some values are longer than others. Three
       // 'misalignment' failures on 19.9 were all this; the card was aligned.
       // Direction comes from the CONTAINER, not the leaf. A Latin name inside a
-      // Hebrew line ('Bryant') computes direction:ltr on the leaf, and taking
+      // Hebrew line (a Latin surname) computes direction:ltr on the leaf, and taking
       // ITS left edge put one row 12px right of the column while every other
       // row was measured from the right. The column is a property of the block.
       }).map((e) => {

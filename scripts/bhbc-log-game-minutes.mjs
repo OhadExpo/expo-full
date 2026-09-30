@@ -12,7 +12,7 @@ import fs from 'node:fs';
 
 const DRY = process.argv.includes('--dry');
 const [date, json, rpeArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-if (!date || !json) { console.log('usage: bhbc-log-game-minutes.mjs <YYYY-MM-DD> \'{"Bryant":32,…}\' [rpe]'); process.exit(2); }
+if (!date || !json) { console.log('usage: bhbc-log-game-minutes.mjs <YYYY-MM-DD> \'{"Surname":32,…}\' [rpe]'); process.exit(2); }
 const want = JSON.parse(json);
 const rpe = Number(rpeArg) || 0;
 

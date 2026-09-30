@@ -18,7 +18,7 @@
 // Event IDs are persisted as tags on each coach_notes row:
 //   `gevent:<eventId>` and optionally `getag:<etag>`. No schema migration.
 
-import { supabase } from './supabase';
+import { supabase, isSandboxSeat } from './supabase';
 
 // OAuth client ID for "EXPO Tasks Calendar" — Web application type,
 // authorized origins: https://expo-app.co.il + http://localhost:5173.
@@ -315,7 +315,9 @@ export async function pushBookingToCalendar(bk, settings) {
 }
 
 // Remove the event for a cancelled booking. A 404/410 means it is already gone,
-// which is success as far as the caller is concerned.
+// which is success as far as the caller is concerned. (29.9: the \b word
+// boundaries had been written as literal BACKSPACE bytes on 21.9, so this never
+// matched and an already-deleted event came back as a failure.)
 export async function removeBookingFromCalendar(eventId) {
   if (!eventId) return true;
   if (!getCachedAccessToken()) throw new GoogleCalendarAuthError('No Google access token cached');
@@ -323,7 +325,7 @@ export async function removeBookingFromCalendar(eventId) {
     await gcalFetch(`/calendars/primary/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
     return true;
   } catch (e) {
-    if (/(404|410)/.test(String(e && e.message))) return true;
+    if (/\b(404|410)\b/.test(String(e && e.message))) return true;
     throw e;
   }
 }
@@ -331,6 +333,12 @@ export async function removeBookingFromCalendar(eventId) {
 // ── Calendar API fetch with auto-refresh on 401 ─────────────────────
 
 async function gcalFetch(path, init = {}, allowRetry = true) {
+  // THE SANDBOX SEAT NEVER CHANGES A CALENDAR (#476): a booking synced from it
+  // would put an invite in front of a real athlete. Reads still work (freeBusy
+  // is a POST that only reads).
+  if (isSandboxSeat() && String(init.method || 'GET').toUpperCase() !== 'GET' && !path.startsWith('/freeBusy')) {
+    return String(init.method).toUpperCase() === 'DELETE' ? null : { id: 'sandbox-' + Date.now(), sandbox: true };
+  }
   let token = getCachedAccessToken();
   if (!token) throw new GoogleCalendarAuthError('No Google access token cached');
   let res = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {

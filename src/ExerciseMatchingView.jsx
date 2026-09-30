@@ -13,6 +13,10 @@ import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMa
 import { supabase } from './supabase';
 import { useT, readLang, tr } from './i18n';
 
+// VIEW: a tag of its own height, its word on its centre (29.9 #447: as a bare
+// span it stretched with a wrapped row and the word sat 11px high in a 40px box)
+const VIEW_TAG = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 8px', height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', lineHeight: 1, flexShrink: 0, cursor: 'pointer' };
+
 // Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
 // "similar"). These are small UPPERCASE labels printed directly on the card, so
 // unlike a filled chip the colour has to carry itself against the background.
@@ -126,7 +130,7 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
               {(ex.cues || ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm }}>✎</span>}
               {onPeek && <span role="button" tabIndex={0} title={tt('Preview this exercise')} onClick={(e) => { e.stopPropagation(); onPeek(ex); }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPeek(ex); } }}
-                style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>}
+                style={VIEW_TAG}>{tt('VIEW')}</span>}
             </button>
           ))}
           {!results.length && <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: 16, textAlign: 'center' }}>No library exercise matches “{q}”.</div>}
@@ -242,8 +246,8 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
         const skipped = dec && dec.action === 'skip';
         return (
           <Card key={g.key} leftStripe={chosen ? '#2E9E6B' : skipped ? C.bd : C.or} style={{ opacity: skipped ? 0.6 : 1 }}>
-            <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+            <div className="em-card" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.or, background: `color-mix(in srgb, ${C.or} 14%, transparent)`, padding: '2px 7px' }}>{g.count}×</span>
@@ -253,7 +257,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                 </div>
                 {chosen && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: '#2E9E6B', marginTop: 8 }}>→ {chosen.title || chosen.t}</div>}
               </div>
-              <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+              <div className="em-sugg" style={{ flex: '1 1 320px', minWidth: 0 }}>
                 {top ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {g.suggestions.slice(0, 3).map((s) => {
@@ -268,14 +272,14 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{tr(readLang(), s.why)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>
+                            style={VIEW_TAG}>{tt('VIEW')}</span>
                         </button>
                       );
                     })}
                   </div>
                 ) : <div style={{ fontFamily: FB, fontSize: 12, color: C.td, padding: '8px 0' }}>{tt('No close library match — Change to search, or leave to create later.')}</div>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+              <div className="em-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                 <Btn variant="ghost" onClick={() => setPickerFor({ key: g.key, title: g.title })}>{tt('Change…')}</Btn>
                 {setExercises && <Btn variant="ghost" onClick={() => createInLibrary(g)}>{tt('+ New')}</Btn>}
                 <Btn variant="ghost" onClick={() => setDecision(g.key, 'skip')}>{tt('Skip')}</Btn>

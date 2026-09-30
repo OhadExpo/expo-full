@@ -743,7 +743,13 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     if (!health.ok && health.err) throw codeErr('model', 'The body-tracking model failed on this phone: ' + (health.lastErr?.message || health.lastErr));
     let recovered = 0, recoveryCapped = false;
     if (coarse.length > 1) {
-      const gapMs = frameDur * 1000 * 2.5;
+      // A HOLE IS WHAT THE DETECTOR CANNOT SEE THROUGH, NOT EVERY MISSING FRAME
+      // (30.9 #475, Ohad: "a video of 11 throws and it analyzed just 10"). The
+      // coarse pass only needs 15 reads a second (coarseStep, above) - hands
+      // above the head last a few hundred ms. Counting every 2.5 missing SOURCE
+      // frames as a hole planned ~630 re-reads on his 60 fps clip, and the 25 s
+      // budget reached ~115 of them on EVERY run (4 of 4 capped, measured).
+      const gapMs = Math.max(frameDur * 1000 * 2.5, coarseStep * 1000 * 1.5);
       // A span read by SEEKING at coarseStep (playback failed there) is spaced
       // by that step on purpose - it is not a hole to re-read frame by frame.
       const stepped = (a, b) => run.stepRegions.some((g) => a >= g.from * 1000 - 1 && b <= (g.to + g.step) * 1000 + 1 && b - a <= g.step * 1000 * 1.6);
@@ -752,6 +758,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
         const dt = coarse[i].t - coarse[i - 1].t;
         if (dt > gapMs && !stepped(coarse[i - 1].t, coarse[i].t)) holes.push({ from: coarse[i - 1].t, to: coarse[i].t });
       }
+      drops.holes = holes.length;
       // A cap, because a pathologically bad pass could otherwise seek for
       // minutes - and it is REPORTED rather than silently truncating.
       const MAX_RECOVER = 700;
@@ -765,19 +772,36 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       // budget while the phone was asleep, and came back to a capped pass.
       const RECOVER_BUDGET_MS = 25000;
       const recoverStart = clock();
-      let planned = 0;
-      for (const h of holes) planned += Math.max(0, Math.floor((h.to - h.from - frameDur * 1500) / (frameDur * 1000)) + 1);
-      planned = Math.max(1, Math.min(planned, MAX_RECOVER));
+      // THE WHOLE CLIP FIRST, THEN THE DETAIL (#475). The holes used to be
+      // filled in time order, frame by frame, so when the budget ran out the
+      // LATE part of the clip was never re-read at all - a shot whose frames the
+      // browser dropped there was simply gone. Now each hole is read at
+      // coarseStep, middle first, and the holes take turns: every hole gets its
+      // middle read before any hole gets a second.
+      const stepMs = coarseStep * 1000, frameMs = frameDur * 1000;
+      const midFirst = (arr) => {
+        const out = []; const q = [[0, arr.length - 1]];
+        while (q.length) { const [a, b] = q.shift(); if (a > b) continue; const m = (a + b) >> 1; out.push(arr[m]); q.push([a, m - 1], [m + 1, b]); }
+        return out;
+      };
+      const perHole = holes.map((h) => {
+        const ts = [];
+        for (let t = h.from + stepMs; t < h.to - stepMs * 0.5; t += stepMs) ts.push(t);
+        if (!ts.length) ts.push(h.from + Math.max(1, Math.round((h.to - h.from) / 2 / frameMs)) * frameMs);
+        return midFirst(ts);
+      });
+      const order = [];
+      for (let k = 0, more = true; more; k++) { more = false; for (const ts of perHole) if (k < ts.length) { order.push(ts[k]); more = true; } }
+      const planned = Math.max(1, Math.min(order.length, MAX_RECOVER));
       let tried = 0;
       if (holes.length) {
         report(40, 'filling the dropped frames');
-        outer:
-        for (const h of holes) {
-          for (let tMsHole = h.from + frameDur * 1000; tMsHole < h.to - frameDur * 500; tMsHole += frameDur * 1000) {
+        for (const tMsHole of order) {
+          {
             checkAbort();
             await vis.whenVisible(signal);
             checkAbort();
-            if (recovered >= MAX_RECOVER || clock() - recoverStart > RECOVER_BUDGET_MS) { recoveryCapped = true; break outer; }
+            if (recovered >= MAX_RECOVER || clock() - recoverStart > RECOVER_BUDGET_MS) { recoveryCapped = true; break; }
             tried++;
             if (tried % 5 === 0) report(40 + Math.min(1, Math.max(tried / planned, (clock() - recoverStart) / RECOVER_BUDGET_MS)) * 10, 'filling the dropped frames');
             // A seek that did not land would be read as the previous frame
@@ -795,6 +819,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
             }
           }
         }
+        drops.recoverMs = Math.round(clock() - recoverStart); drops.planned = planned; drops.tried = tried;
         // Everything downstream assumes chronological order.
         coarse.sort((a, b) => a.t - b.t);
         track.sort((a, b) => a.t - b.t);
@@ -859,13 +884,26 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     // be an endless wait on 50%. Past 30 s of active time the windows are read
     // with the fast model already in memory, and the stats say so.
     let fineLm;
-    try {
-      lmFine = await loadModel({ runningMode: 'IMAGE', quality: 'full', numPoses: 1 }, 30000);
-      fineLm = lmFine;
-    } catch (e) {
-      if (e && e.code === 'aborted') throw e;
-      fineLm = lmCoarse; run.stats.fineModel = 'lite';
+    // FULL, NOT HEAVY - MEASURED (29.9 #431). Heavy is the more accurate model
+    // on still images, but this pass reads frames off REAL-TIME playback: a
+    // model twice as slow gets half the frames per shot window and shots drop
+    // out. Same clip, same headless seat, back to back: heavy 1 shot vs full 4
+    // (and 0 vs 5 in an earlier pair). Heavy stays reachable for experiments
+    // with localStorage 'expo-shot-fine' = 'heavy'; it falls back to full, and
+    // full to the fast model.
+    const fineWanted = (() => {
+      try { if (localStorage.getItem('expo-shot-fine') === 'heavy') return 'heavy'; } catch { /* private mode */ }
+      return 'full';
+    })();
+    for (const q of fineWanted === 'heavy' ? ['heavy', 'full'] : ['full']) {
+      try {
+        lmFine = await loadModel({ runningMode: 'IMAGE', quality: q, numPoses: 1 }, 30000);
+        fineLm = lmFine; run.stats.fineModel = q; break;
+      } catch (e) {
+        if (e && e.code === 'aborted') throw e;
+      }
     }
+    if (!fineLm) { fineLm = lmCoarse; run.stats.fineModel = 'lite'; }
     const fineHealth = { consec: 0 };
     const detectFine = (input) => {
       try { const r = fineLm.detect(input); fineHealth.consec = 0; return r; }
@@ -999,7 +1037,9 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
                   // shots, and any detections that threw.
                   stalls: run.stats.stalls, tails: run.stats.tails || 0, blocked: run.stats.blocked, stepOnly: run.mode.stepOnly,
                   steppedFrames: run.stats.steppedFrames || 0, fineModel: run.stats.fineModel,
-                  detectErrors: health.err, rebuilt: health.rebuilt };
+                  detectErrors: health.err, rebuilt: health.rebuilt,
+                  // the dropped-frame re-read: how many it found, and whether its budget ran out (#475)
+                  recovered: drops.recovered || 0, recoveryCapped: !!drops.recoveryCapped, recoverMs: drops.recoverMs || 0, holes: drops.holes || 0, planned: drops.planned || 0, tried: drops.tried || 0 };
     report(100, 'done');
     try { console.log('[shot-capture]', JSON.stringify(out.stats), 'out', out.length); } catch { /* noop */ }
     return out;

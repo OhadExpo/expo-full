@@ -83,7 +83,7 @@ export const HE = {
   "engine.compare.body": "תעלה קליפ שני — הסט מהשבוע שעבר, סט כבד יותר או החימום. שניהם רצים עם זיהוי תנועה וספירת חזרות בנפרד, ככה שאפשר להשוות טווח תנועה, טמפו ואיכות חזרה במבט אחד.",
   "CLIP 1 · YOUR FIRST UPLOAD": "קליפ 1 · ההעלאה הראשונה",
   "CLIP 2 · ANOTHER ATTEMPT": "קליפ 2 · ניסיון נוסף",
-  "Pose detection on your set": "זיהוי תנועה ·",
+  "Pose detection on your set": "זיהוי תנוחה ·",
   "Reviewing your client's set": "בדיקה ·",
   "The athlete's own clip plays here": "הקליפ של המתאמן מתנגן כאן",
   "TRY IT WITH YOUR OWN CLIP": "נסה עם קליפ שלך",
@@ -112,9 +112,9 @@ export const HE = {
   "Category": "קטגוריה",
   "Laterality": "צדדיות",
   "Exercise": "תרגיל",
-  "Monthly coaching": "אימון חודשי",
-  "Monthly coaching + plan": "אימון חודשי + תוכנית",
-  "Monthly coaching (couple)": "אימון חודשי (זוג)",
+  "Monthly coaching": "ליווי חודשי",
+  "Monthly coaching + plan": "ליווי חודשי + תוכנית",
+  "Monthly coaching (couple)": "ליווי חודשי (זוג)",
   "1 · EXERCISE": "1 · תרגיל",
   "2 · UPLOAD": "2 · העלאה",
   "3 · ANALYZE": "3 · ניתוח",
@@ -135,7 +135,7 @@ export const HE = {
   "STEP 1 ·": "שלב 1 ·",
   "RECENT WORKOUTS": "אימונים אחרונים",
   "Today's weight (kg)": "המשקל היום (ק\"ג)",
-  "FILM SET": "לצלם סט",
+  "FILM SET": "צלם סט",
   "EXERCISES LOGGED ·": "תרגילים שנרשמו ·",
   "YOUR PORTAL · MOCK DATA": "הפורטל שלך · נתוני דמו",
   "The review tool": "כלי הבדיקה",
@@ -155,7 +155,7 @@ export const HE = {
   "Hey": "היי",
   "Log Out →": "יציאה ←",
   "Change password (demo)": "שינוי סיסמה (בדמו)",
-  "Film a set": "לצלם סט",
+  "Film a set": "צלם סט",
   "PRE-WORKOUT CHECK": "בדיקה לפני אימון",
   "Loading your program…": "טוען את התוכנית שלך…",
   "LOGGED": "נרשם",
@@ -183,7 +183,7 @@ export const HE = {
   "Coach": "מאמן",
   "Tasks, athletes & plans": "משימות, מתאמנים ותוכניות",
   "Workout": "אימון",
-  "Train": "להתאמן",
+  "Train": "מתאמן",
   "Your own program & workouts": "התוכנית והאימונים שלך",
   "Signed in": "מחובר",
   "there": "שלום",
@@ -318,6 +318,8 @@ export const HE = {
   "Loop the video": "לולאה על הסרטון",
   "Next frame": "הפריים הבא",
   "Previous frame": "הפריים הקודם",
+  "Playback speed": "מהירות ניגון",
+  "Frame step": "פריים אחר פריים",
   "Comment & draw at this timestamp — color swatches appear once a comment is open": "הערה וציור בנקודה הזאת — הצבעים מופיעים ברגע שההערה נפתחת",
   "Bar velocity (VBT), ROM, tempo & collapse flags from this clip": "מהירות המוט (VBT), טווח תנועה, טמפו וסימוני קריסה — מהקליפ הזה",
   "Long-press (mobile) or click and drag (desktop) to move": "לחיצה ארוכה (נייד) או גרירה (מחשב) מזיזה",
@@ -350,6 +352,9 @@ export const HE = {
   "Oct": "אוקטובר",
   "Nov": "נובמבר",
   "Dec": "דצמבר",
+  "SANDBOX · your own copy of EXPO: real athletes, fake money. Change anything - nothing touches the real app": "סביבת ניסוי · העותק שלך של EXPO: מתאמנים אמיתיים, כסף פיקטיבי. אפשר לשנות הכל – שום דבר לא נוגע באפליקציה האמיתית",
+  "SANDBOX · YOUR OWN COPY · FAKE MONEY": "סביבת ניסוי · העותק שלך · כסף פיקטיבי",
+  "SANDBOX · this would contact a real athlete, so it stays here": "סביבת ניסוי · זה היה פונה למתאמן אמיתי, אז זה נשאר כאן",
   "PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved": "תצוגת שותף · אתה רואה את EXPO האמיתי עם נתונים חיים — שום שינוי שתעשה לא נשמר",
   "No bodyweight logged yet — appears once the trainee logs weight from their portal.": "עוד לא נרשם משקל — יופיע ברגע שהמתאמן ירשום שקילה בפורטל שלו.",
   "Run your roster on this stack. Locked-in pricing for the first wave.": "תנהל את כל המתאמנים שלך במערכת הזאת. מחיר קבוע למצטרפים הראשונים.",
@@ -466,7 +471,7 @@ export const HE = {
   "EST · BASED ON 90s REST": "הערכה · לפי 90 שניות מנוחה",
   "Save Program": "שמירת התוכנית",
   "No programs match your search.": "אין תוכניות שמתאימות לחיפוש.",
-  "Total Collected · All Time": "סה\"כ שנגבה · מההתחלה",
+  "Total Collected · All Time": "נכנס · מההתחלה",
   "No clients yet. Import your trainee list.": "עוד אין לקוחות. תייבא את רשימת המתאמנים.",
   "VISITS in Vercel Analytics": "כניסות ב-Vercel Analytics",
   "Generate": "יצירה",
@@ -521,7 +526,7 @@ export const HE = {
   "TO LIBRARY": "לספרייה",
   "NEXT PENDING": "הבא בתור",
   // O12 (16.9): labels the coach demo keeps in arrays.
-  "Group by": "קיבוץ",
+  "Group by": "חלוקה",
   "ATHLETE FLAGS": "התראות מתאמנים",
   "CANCELED": "בוטל",
   "1-ON-1": "אישי",
@@ -605,7 +610,7 @@ export const HE = {
   "Pattern": "דפוס תנועה",
   "Periodization wave": "גל פריודיזציה",
   "Current phase": "השלב הנוכחי",
-  "Training Analysis ·": "ניתוח אימון ·",
+  "Training Analysis ·": "ניתוח אימונים ·",
   "No block content to trace yet for this athlete.": "עוד אין תוכן בלוק למתאמן הזה.",
   "Block name": "שם הבלוק",
   "No logged workouts for this block yet.": "עוד לא נרשמו אימונים בבלוק הזה.",
@@ -639,7 +644,7 @@ export const HE = {
   // Israeli visitor and all ten of these were bare English literals.
   "Recent Workouts": "אימונים אחרונים",
   "Bodyweight · 8W": "משקל גוף · 8 שבועות",
-  "Evaluation · Intake": "אבחון · שאלון פתיחה",
+  "Evaluation · Intake": "הערכה · שאלון פתיחה",
   "Messages": "הודעות",
   // Lead source/context on the demo's Incoming panel. EXPO-IL is the site's
   // own name and stays Latin; the other two had no key at all.
@@ -726,6 +731,11 @@ export const HE = {
   total: 'סה״כ',
   '+ Generate Link': '+ קישור חדש',
   'Hide reviewed': 'הסתר פניות שנבדקו',
+  // the review screen's toggle - the fallback above says "inquiries" (AUDIT-470)
+  'HIDE REVIEWED': 'הסתר שנבדקו',
+  'A video is still uploading - leave now and it will not be saved.': 'סרטון עדיין עולה - אם תצא עכשיו הוא לא יישמר.',
+  'Leave': 'לצאת',
+  'Stay': 'להישאר',
   'Copy URL': 'העתק קישור',
   'No date': 'בלי תאריך',
   'By status': 'לפי סטטוס',
@@ -786,9 +796,9 @@ export const HE = {
   'Permanently Delete': 'מחיקה סופית',
   'Sessions left': 'אימונים שנותרו',
   'Last workout': 'אימון אחרון',
-  'Gym, Single': 'חדר כושר · יחיד',
+  'Gym, Single': 'חדר כושר · אישי',
   'Gym, Couple': 'חדר כושר · זוג',
-  'Gym · Single': 'חדר כושר · יחיד',
+  'Gym · Single': 'חדר כושר · אישי',
   'Gym · Couple': 'חדר כושר · זוג',
   'Online client': 'מתאמן אונליין',
 
@@ -801,6 +811,41 @@ export const HE = {
   'Per paying client': 'ללקוח משלם',
   'Per payment row': 'לכל תשלום',
   'Pending requests': 'בקשות פתוחות',
+  // OWED card (#386)
+  'Owed': 'חובות',
+  'OWED': 'חוב',
+  'SESSIONS UNPAID': 'אימונים שלא שולמו',
+  'MONTH DUE': 'חודש לתשלום',
+  'REQUEST PENDING': 'בקשה פתוחה',
+  'NEVER PAID': 'לא שילם אף פעם',
+  'OVERDUE': 'באיחור',
+  'd': ' י׳',
+  'since': 'מאז',
+  'last paid': 'שילם לאחרונה',
+  'No payment recorded': 'לא נרשם תשלום',
+  'SOURCE': 'מקור',
+  'Roster sheet · online': 'רשימת מתאמנים · אונליין',
+  'Roster sheet · in person': 'רשימת מתאמנים · פרונטלי',
+  'LAST PAYMENT': 'תשלום אחרון',
+  'SESSIONS SINCE': 'אימונים מאז',
+  'PRICE': 'מחיר',
+  'PRICE RULE': 'מחיר לפי סוג',
+  'personal': 'אישי',
+  'couple': 'זוגי',
+  'other': 'אחר',
+  'CALCULATION': 'חישוב',
+  'SHEET': 'גיליון',
+  'ATHLETE PAGE': 'לעמוד המתאמן',
+  'BILLING': 'תשלומים',
+  'not synced yet': 'עוד לא סונכרן',
+  'synced just now': 'סונכרן עכשיו',
+  'synced': 'סונכרן לפני',
+  'm ago': ' דק׳',
+  'h ago': ' שע׳',
+  'Could not read the owed list': 'לא הצלחתי לקרוא את רשימת החובות',
+  'Loading…': 'טוען…',
+  'Nobody owes anything': 'אף אחד לא חייב כלום',
+  'From the roster sheet': 'מרשימת המתאמנים',
   'Open debt': 'חוב פתוח',
   General: 'כללי',
   'Auto-alerts': 'התראות אוטומטיות',
@@ -827,7 +872,7 @@ export const HE = {
   Tasks: 'משימות',
   Billing: 'תשלומים',
   Incoming: 'פניות',
-  Intake: 'קליטה',
+  Intake: 'שאלונים',
   Waitlist: 'רשימת המתנה',
   Challenges: 'אתגרים',
   Portal: 'פורטל',
@@ -869,6 +914,14 @@ export const HE = {
     'דמו בלבד — באפליקציה המלאה זה פותח את כרטיס המתאמן לעריכה.',
   'Demo only — in the full app this archives the athlete and stops their billing.':
     'דמו בלבד — באפליקציה המלאה זה מעביר את המתאמן לארכיון ועוצר את החיוב.',
+  'Demo only — in the full app this opens the new-exercise form.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את הטופס לתרגיל חדש.',
+  'Demo only — in the full app this opens the exercise to edit, or delete.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את התרגיל לעריכה או למחיקה.',
+  'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את כלי הספרייה: התאמת כותרות שלא זוהו, סיווג מרוכז וניקוי כפילויות.',
+  'Demo only — in the full app this opens the training analysis: progression across blocks and what to program next.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את ניתוח האימונים: ההתקדמות לאורך הבלוקים ומה לתכנת הלאה.',
   'Demo only — in the full app this sends a WhatsApp reminder with a payment link.':
     'דמו בלבד — באפליקציה המלאה זה שולח תזכורת בוואטסאפ עם קישור לתשלום.',
   'Demo only — in the full app this marks the request paid and updates the ledger.':
@@ -1001,6 +1054,7 @@ export const HE = {
   'DELETE WORKOUT': 'מחיקת האימון',
   DRAW: 'ציור',
   'LIFT METRICS': 'נתוני הרמה',
+  'METRICS': 'מדדים',
   'FORM VIDEO SUBMITTED': 'סרטון טכניקה נשלח',
   'No completed workouts yet': 'עוד אין אימונים שהושלמו',
   'No form video submitted': 'לא נשלח סרטון טכניקה',
@@ -1012,6 +1066,7 @@ export const HE = {
   Media: 'מדיה',
   Show: 'הצג',
   'SHOW ALL': 'הצג הכל',
+  'Show fewer': 'הצג פחות',
   'No coaching cues': 'אין דגשים',
   'No values in library': 'אין ערכים בספרייה',
 
@@ -1203,7 +1258,7 @@ export const HE = {
   Sat: 'ש׳',
   "CLEAR ALL": 'נקה הכל',
   "PATTERN COVERAGE:": 'כיסוי דפוסי תנועה:',
-  EDITOR: 'עורך',
+  EDITOR: 'עריכה',
   OVERVIEW: 'סקירה',
   "← BACK": '→ חזרה',
   "DAILY ✓": 'יומי ✓',
@@ -1295,7 +1350,7 @@ export const HE = {
   "AI MAPPING": 'מיפוי AI',
   "TARGET": 'יעד',
   "SOURCE COLUMN": 'עמודת מקור',
-  "CONF": 'ביטחון',
+  "CONF": 'ודאות',
   "Add comment…": 'תוסיף תגובה…',
   "OR ASSIGN EXISTING": 'או הקצה תוכנית קיימת',
   "FROM LIBRARY (UNASSIGNED)": 'מהספרייה (לא משויכת)',
@@ -1461,6 +1516,7 @@ export const HE = {
   "No video": 'בלי וידאו',
   "— resolution/movement/position blank": '— התנגדות / תנועה / מנח ריקים',
   "Classify at scale →": 'סיווג מרוכז ←',
+  "Classify →": 'סיווג ←',
   "of": 'מתוך',
   "— refine the search, or": '— תצמצם את החיפוש, או',
   "uncontacted": 'לא היה קשר',
@@ -1476,7 +1532,7 @@ export const HE = {
   "LOADING…": 'טוען…',
   "FULL": 'מסך מלא',
   "COMPARE": 'השוואה',
-  "FORM VS DEMO": 'ביצוע מול דמו',
+  "FORM VS DEMO": 'ביצוע מול הדגמה',
   "PLAY BOTH": 'נגן שניהם',
   "PAUSE": 'עצור',
   "LOOP": 'לולאה',
@@ -1484,7 +1540,7 @@ export const HE = {
   "other video from this client:": 'סרטון נוסף של המתאמן:',
   "other videos from this client:": 'סרטונים נוספים של המתאמן:',
   "SETS DONE": 'סטים שבוצעו',
-  "READINESS CHECK-IN": 'צ׳ק-אין מוכנות',
+  "READINESS CHECK-IN": 'דיווח מוכנות',
   "Workouts logged in the Athlete Portal will appear here": 'אימונים שנרשמו בפורטל המתאמן יופיעו כאן',
   "No workouts waiting on your review.": 'אין אימונים שמחכים לבדיקה שלך.',
   "Loading chat logs…": 'טוען יומני צ׳אט…',
@@ -1515,6 +1571,10 @@ export const HE = {
   CUE: 'דגש',
   Completed: 'הושלם',
   "Complete Workout": 'סיים אימון',
+  "Nice work!": 'כל הכבוד!',
+  "Session complete. Any notes?": 'האימון הושלם. יש מה לרשום?',
+  "Video uploading...": 'הסרטון עולה...',
+  Back: 'חזרה',
   "Create a plan first.": 'קודם תבנה תוכנית.',
   "No athletes match.": 'אין מתאמנים תואמים.',
   "LOG INTO": 'רישום לשבוע',
@@ -1523,6 +1583,7 @@ export const HE = {
   "No triaged reports.": 'אין דיווחים שטופלו.',
   "No fixed reports.": 'אין דיווחים שתוקנו.',
   "✓ IN": '✓ נכנס',
+  "IN": 'הגיע',
   "CHECK IN": 'כניסה',
   DONE: 'בוצע',
   "Drop a file here": 'תגרור קובץ לכאן',
@@ -1634,7 +1695,7 @@ export const HE = {
   Gym: 'חדר כושר',
   Client: 'לקוח',
   "Total Paid": 'סה״כ שולם',
-  "NO LOGS": 'עוד לא התאמן',
+  "NO LOGS": 'אין שקילות',   // the bodyweight line's empty state - weigh-ins, not training (29.9 #444)
   "SHOW REVIEWED": 'הצג שנבדקו',
   showing: 'מוצגים',
   linked: 'מקושר',
@@ -1667,7 +1728,7 @@ export const HE = {
   'Detected from the clip. Change it only if the auto-detect is off.': 'זוהה מהקליפ. תשנה רק אם הזיהוי האוטומטי טעה.',
   '…or type any lift': '…או תכתוב תרגיל אחר',
   LIVE: 'לייב', CLIP: 'קליפ', 'NEEDS CAMERA': 'צריך מצלמה', 'OPEN →': 'פתח ←',
-  'MOVEMENT LAB': 'מעבדת תנועה', 'JUMP TEST': 'מבחן קפיצה', 'LIVE COACH': 'מאמן בזמן אמת', 'SHOT ANALYZER': 'ניתוח זריקה',
+  'MOVEMENT LAB': 'מעבדת תנועה', 'JUMP TEST': 'מבדק קפיצה', 'LIVE COACH': 'מאמן בזמן אמת', 'SHOT ANALYZER': 'ניתוח זריקה',
   'Rotatable 3D skeleton rebuilt from the lift': 'שלד תלת-ממדי מסתובב שנבנה מההרמה',
   'Bar speed (VBT) + per-goal stop-set cutoff · ROM/tempo/collapse · L/R symmetry': 'מהירות מוט (VBT) + נקודת עצירה לפי מטרה · טווח/טמפו/קריסה · סימטריה ימין/שמאל',
   'Jump height from flight time · estimated peak power': 'גובה קפיצה מזמן מעוף · הספק שיא מוערך',
@@ -1767,7 +1828,7 @@ export const HE = {
   ENTRIES: 'רשומות',
   Gallery: 'גלריה',
   Record: 'הקלטה',
-  'Readiness Check-In': 'בדיקת מוכנות',
+  'Readiness Check-In': 'דיווח מוכנות',
   'Check-In': 'בדיקה',
 
   // ---- readiness scale --------------------------------------------------
@@ -1793,6 +1854,17 @@ export const HE = {
   // not contain. It never shows the internal id.
   'Athlete not on this roster': 'המתאמן לא ברשימה הזאת',
   OFFLINE: 'אופליין',
+  // Workout durability (27.9): a finished workout the server has not taken yet,
+  // and Complete refused for a workout with no ticked sets.
+  'WORKOUT NOT SAVED YET': 'האימון עוד לא נשלח',
+  'Workout not saved yet — kept on this device and retrying.': 'האימון עוד לא נשלח. הוא שמור אצלך במכשיר וממשיכים לנסות.',
+  'Signed out — the workout is kept on this device and is sent when you sign in again.': 'התנתקת. האימון שמור במכשיר ויישלח כשתתחבר שוב.',
+  'It is kept on this phone. Retrying until it goes through.': 'הוא שמור אצלך בטלפון. ממשיכים לנסות עד שיעבור.',
+  'It is kept on this phone. Sign in again and it will be sent.': 'הוא שמור אצלך בטלפון. תתחבר שוב והוא יישלח.',
+  'No sets ticked yet. Tick ✓ on the sets you did, then complete.': 'עוד לא סימנת אף סט. סמן ✓ על הסטים שעשית וסיים.',
+  'Some sets have numbers but no ✓. Tick them, or complete as is.': 'יש סטים עם מספרים בלי ✓. סמן אותם, או סיים ככה.',
+  'TICK THEM + COMPLETE': 'סמן וסיים',
+  'Not saved. Your sets are still here. Tap complete again.': 'לא נשמר. הסטים שלך עדיין כאן. נסה שוב.',
   "Showing your last saved program. New logs are kept on this phone and sent when you're back online.":
     'מוצגת התוכנית האחרונה שנשמרה. מה שתרשום נשמר בטלפון ויישלח כשתחזור לרשת.',
   "We can't reach the server right now. Your program will be here when you're back online.":
@@ -1873,7 +1945,7 @@ export const HE = {
   'TAP!': 'עכשיו!',
   'wait…': 'חכה…',
   'Trial {n}/{total}': 'ניסיון {n}/{total}',
-  'Start test': 'התחלת מבחן',
+  'Start test': 'התחלת מבדק',
   'Mean reaction': 'תגובה ממוצעת',
   'Fastest 10%': '10% הכי מהירים',
   'Lapses': 'נפילות קשב',
@@ -2177,7 +2249,7 @@ export const HE = {
   'OF {n}': 'מתוך {n}',
   'LOADING 3D…': 'טוען 3D…',
   'everything in this tab is a rough read off an imperfect clip, not a verdict. Refilm cleaner (whole body, straight-on or clean side, steady) to trust it.': 'כל מה שבלשונית הזאת הוא קריאה גסה מקליפ לא מושלם, לא פסק דין. צלם שוב נקי יותר (כל הגוף, מקדימה או מהצד, יציב) כדי לסמוך עליו.',
-  'SET BREAKDOWN': 'פירוק הסט',
+  'SET BREAKDOWN': 'ניתוח הסט',
   'where it held, where it broke': 'איפה החזיק, איפה נשבר',
   'This clip looks like': 'הקליפ הזה נראה כמו',
   'more than one set': 'יותר מסט אחד',
@@ -2265,7 +2337,7 @@ export const HE = {
   'L {joint}': '{joint} שמאל',
   'R {joint}': '{joint} ימין',
   'LARGEST {joint} ROM': 'ה-ROM הכי גדול ב{joint}',
-  'ROM-COLLAPSED REPS': 'חזרות שה-ROM קרס בהן',
+  'ROM-COLLAPSED REPS': 'חזרות בטווח קצר',
   'Per-rep tempo (ecc / pause / con) needs a detected set — film a full rep cycle to add it.': 'טמפו לכל חזרה (ecc / עצירה / con) צריך סט שזוהה — צלם מחזור חזרה מלא כדי להוסיף אותו.',
   '◄ LEFT': '◄ שמאל',
   'RIGHT ►': 'ימין ►',
@@ -2309,6 +2381,7 @@ export const HE = {
   'RELATIVE': 'יחסי',
   'Enter bodyweight to estimate peak power.': 'תכניס משקל גוף כדי להעריך הספק שיא.',
   'Jump the video to this rep': 'דילוג בסרטון לחזרה הזאת',
+  'Jump the video to this moment': 'דילוג בסרטון לרגע הזה',
   'peak {n}': 'שיא {n}',
   // 17.9 MovementLab 3D viewer
   'SIDE': 'מהצד',
@@ -2665,7 +2738,7 @@ export const HE = {
   '— program —': '— תוכנית —',
   'cols': 'עמודות',
   'rows': 'שורות',
-  'confident': 'ביטחון',
+  'confident': 'ודאות',
   '— no athlete —': '— בלי מתאמן —',
   'pick name, days, exercises.': 'תבחר שם, ימים ותרגילים.',
   'Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.': 'המתאמן יעבור לארכיון. התוכניות, האימונים והתשלומים נשמרים, ואפשר להחזיר אותו מתי שתרצה.',
@@ -2759,7 +2832,7 @@ export function readLang() {
     const saved = localStorage.getItem(LANG_KEY);
     if (saved === 'he' || saved === 'en') return saved;
   } catch { /* private mode */ }
-  // NOBODY HAS CHOSEN YET -> ASK THE BROWSER.
+  // NOBODY HAS CHOSEN YET -> ENGLISH (it used to ask the browser; history below).
   //
   // Ohad, 22.9: "make the hebrew go from 10% to over 90% on all of our
   // platforms". A big part of that 10% was not a missing translation at all:
@@ -2770,10 +2843,10 @@ export function readLang() {
   // Only the FIRST visit is affected — an explicit choice is stored above and
   // always wins, in both directions. `iw` is the legacy ISO code for Hebrew and
   // some Android builds still send it.
-  try {
-    const tags = [navigator.language, ...(navigator.languages || [])].filter(Boolean);
-    if (tags.some((t) => /^(he|iw)\b/i.test(t))) return 'he';
-  } catch { /* no navigator */ }
+  // SUPERSEDED 29.9 (#390, Ohad: "make sure the automatically first screen
+  // unless changed is english"): the first screen is ENGLISH for everyone until
+  // they switch - the same rule the sign-in screens already follow (#270). The
+  // stored choice above still wins, in both directions.
   return 'en';
 }
 
