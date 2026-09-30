@@ -43,4 +43,9 @@ run node scripts/verify-exit-midupload.mjs
 run node scripts/verify-popups.mjs
 # #330: one start x per column
 run node scripts/verify-column-starts.mjs
+# #476: Elad's seat is a sandbox - DB as him, every coach route as him (0 raw hits) and as the owner (0 sandbox hits), his actions stay in his copy
+run node scripts/verify-partner-sandbox.mjs
+EXPO_EMAIL=eladeluz24@gmail.com run node scripts/verify-partner-seat-walk.mjs
+EXPO_EMAIL=ohadyproductions@gmail.com run node scripts/verify-partner-seat-walk.mjs
+run node scripts/verify-partner-sandbox-actions.mjs
 echo "=== DONE ===" >> "$LOG"
