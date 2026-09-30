@@ -259,7 +259,17 @@ try { const raw = authStorage && authStorage.getItem(AUTH_TOKEN_KEY); if (raw) s
   // program preview still hear each other
   const SBX_CHANNELS = new Set(['plans-live', 'bhbc-live']);
   const realChannel = supabase.channel.bind(supabase);
-  supabase.channel = (name, opts) => realChannel(sandboxNow() && SBX_CHANNELS.has(name) ? 'sbx:' + name : name, opts);
+  supabase.channel = (name, opts) => {
+    const sbx = sandboxNow();
+    const ch = realChannel(sbx && SBX_CHANNELS.has(name) ? 'sbx:' + name : name, opts);
+    if (!sbx) return ch;
+    // live table changes follow the queries: his seat listens to HIS copy
+    // (the sbx_ tables are in the realtime publication; RLS limits who hears)
+    const realOn = ch.on.bind(ch);
+    ch.on = (type, filter, cb) => realOn(type, type === 'postgres_changes' && filter && SBX_TABLES.has(filter.table)
+      ? { ...filter, table: 'sbx_' + filter.table } : filter, cb);
+    return ch;
+  };
 }
 
 // REVIVE A SESSION FROM THE REFRESH-TOKEN COOKIE.

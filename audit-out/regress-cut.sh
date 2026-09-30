@@ -58,6 +58,7 @@ run node scripts/verify-athlete-journey.mjs
 run node scripts/verify-partner-money-leaks.mjs
 run node scripts/verify-partner-links.mjs
 run node scripts/verify-partner-cross-tab.mjs
+run node scripts/verify-partner-realtime.mjs
 # #479: an athlete writes only his own presence row
 run node scripts/verify-presence-own-row.mjs
 echo "=== DONE ===" >> "$LOG"
