@@ -11,7 +11,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
+import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY, isSandboxSeat } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState, StripCaret } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
@@ -185,7 +185,9 @@ function useVoiceRecorder() {
 async function uploadVoiceNote(blob, traineeId) {
   // Public bucket `coach-voice`, path = trainee/timestamp.<ext>.
   const ext = (blob.type || '').includes('mp4') ? 'm4a' : 'webm';
-  const path = `${traineeId}/${Date.now()}.${ext}`;
+  // the partner's sandbox records into its OWN folder (insert-only policy
+  // partner_insert_own_voice) - never beside a real athlete's recordings (1.10)
+  const path = `${isSandboxSeat() ? 'sbx-elad/' : ''}${traineeId}/${Date.now()}.${ext}`;
   const url = `${SUPA_URL}/storage/v1/object/coach-voice/${path}`;
   // Use authed user's bearer (write policy requires auth). supabase-js
   // attaches it for us when we use the client's storage API. Fall back
