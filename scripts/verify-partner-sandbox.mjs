@@ -84,6 +84,10 @@ try {
     ok(!spe && sp && Object.keys(sp).length >= 15 && Object.values(sp).every((n) => n === 0), 'his delete-athlete runs on his copy (' + (spe ? spe.message : Object.keys(sp || {}).length + ' tables, 0 rows') + ')');
     const { error: re } = await p.rpc('sbx_reset');
     ok(!!re, 'he cannot re-copy/wipe the sandbox himself' + (re ? '' : ' - IT RAN'));
+    // the multiplier is the only thing between a fake price and the real one
+    const { error: fe } = await p.rpc('sbx_fake', { n: 100, seed: 'tr_diego' });
+    const { error: fe2 } = await p.rpc('sbx_factor', { seed: 'tr_diego' });
+    ok(!!fe && !!fe2, 'he cannot call the faking functions (the multiplier stays secret)' + (fe && fe2 ? '' : ' - ONE ANSWERED'));
   }
   console.log('4. the money is fake');
   {
@@ -133,6 +137,20 @@ try {
       for (const t of (ms && ms[0] && ms[0].value) || []) { const r0 = real.get(t.id); if (!r0) continue;
         for (const c of ['monthly', 'monthlyPrice', 'packagePrice', 'perSession', 'sessionPrice']) { const v = r0[c]; if (v == null || !/[1-9]/.test(String(v))) continue; compared++; if (String(t[c]) === String(v)) leaked++; } }
       ok(compared > 0 && leaked === 0, `athlete prices: ${compared} compared, ${leaked} real ones in his copy`);
+    }
+    // ONE multiplier per athlete across all their money (1050-next-to-810 in one
+    // row, and a "33" that became "34", came from faking each value on its own)
+    {
+      const ratios = new Map();   // athlete -> Set of fake/real ratios
+      const add = (who, real, fake) => { if (!who || real == null || fake == null || Number(real) === 0) return; const k = Math.round((Number(fake) / Number(real)) * 100) / 100; if (!ratios.has(who)) ratios.set(who, new Set()); ratios.get(who).add(k); };
+      const [{ data: ms }, { data: rs }] = await Promise.all([p.from('sbx_revenue_sheet_event').select('id,trainee_id,client_name,rate_amount,amount_est'), o.from('revenue_sheet_event').select('id,trainee_id,client_name,rate_amount,amount_est')]);
+      const rmap = new Map((rs || []).map((x) => [x.id, x]));
+      for (const x of ms || []) { const y = rmap.get(x.id); if (!y) continue; const who = y.trainee_id || y.client_name; if (Number(y.rate_amount) >= 20) add(who, y.rate_amount, x.rate_amount); if (Number(y.amount_est) >= 20) add(who, y.amount_est, x.amount_est); }
+      const [{ data: mo }, { data: ro }] = await Promise.all([p.from('sbx_revenue_owed').select('id,trainee_id,client_name,amount'), o.from('revenue_owed').select('id,trainee_id,client_name,amount')]);
+      const omap = new Map((ro || []).map((x) => [x.id, x]));
+      for (const x of mo || []) { const y = omap.get(x.id); if (y && Number(y.amount) >= 20) add(y.trainee_id || y.client_name, y.amount, x.amount); }
+      const split = [...ratios].filter(([, s]) => s.size > 1);
+      ok(ratios.size > 0 && split.length === 0, `one multiplier per athlete: ${ratios.size} athletes checked, ${split.length} with money scaled inconsistently${split.length ? ' e.g. ' + split[0][0] + ' ' + [...split[0][1]].join('/') : ''}`);
     }
   }
 } finally {
