@@ -39,4 +39,8 @@ run node scripts/verify-inline-centre.mjs
 # #471 / #472: a weigh-in is queued before the network answers; EXIT mid-upload asks (fixture seat, writes held, nothing sent)
 run node scripts/verify-bw-durable.mjs
 run node scripts/verify-exit-midupload.mjs
+# #473: every BHBC popup opened and measured inside (panel, spill, clip, title wrap, control centring)
+run node scripts/verify-popups.mjs
+# #330: one start x per column
+run node scripts/verify-column-starts.mjs
 echo "=== DONE ===" >> "$LOG"

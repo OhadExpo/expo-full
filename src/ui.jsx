@@ -117,6 +117,9 @@ export function PlayGlyph() {
 export function NotesGlyph() {
   return <svg aria-hidden viewBox="0 0 10 8" width="0.85em" height="0.7em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M0.5 1h9M0.5 4h9M0.5 7h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>;
 }
+export function PencilGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 10" width="0.9em" height="0.9em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 8.5l.6-2.3L6.9 1.4l1.7 1.7-4.8 4.8zM6 2.3l1.7 1.7" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>;
+}
 export function CrossGlyph() {
   return <svg aria-hidden viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>;
 }
