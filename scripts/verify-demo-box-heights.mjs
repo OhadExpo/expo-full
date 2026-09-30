@@ -77,7 +77,12 @@ function collect() {
       if (sides === 4 && r.height <= 40 && (e.innerText || '').trim()) kind = 'tag';
     }
     if (!kind) continue;
-    out.push({ kind, k: key(e), h: Math.round(r.height * 2) / 2 });
+    // a ROW is paired by its TABLE (class + head/body), not its label: fixture
+    // names never equal real names, and by label a demo row met an unrelated real
+    // table's heights (AUDIT-470: 44 vs a 30.5 row of another table)
+    // an owed row pairs with the real owed rows (names never match) - AUDIT-470
+    const k = e.hasAttribute('data-owed-row') ? '[data-owed-row]' : kind === 'row' ? `table.${((e.closest('table') || {}).className || '?').trim().split(/\s+/).join('.')}:${e.parentElement ? e.parentElement.tagName.toLowerCase() : ''}` : key(e);
+    out.push({ kind, k, h: Math.round(r.height * 2) / 2 });
   }
   return out;
 }
@@ -132,7 +137,7 @@ try {
             for (const h of hs) if (!near(h, R.get(k))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...R.get(k)] });
           } else if (label && RL.has(label)) {
             for (const h of hs) if (!near(h, RL.get(label))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...RL.get(label)] });
-          } else {   // labelled rows too: fixture names never equal real names, so a row was never judged (AUDIT-470)
+          } else if (kind !== 'row') {   // a row with no twin table on the real page is not judged against unrelated tables
             // no box of that kind on the real page at all = nothing to compare (the
             // demo's opened PR row; a real page with no open row) - not a finding
             if (!kindH[kind] || !kindH[kind].size) continue;

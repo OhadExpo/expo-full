@@ -302,7 +302,7 @@ export default function OverloadChart({ workouts, exercises }) {
                 <React.Fragment key={row.exId}>
                   <tr onClick={() => setExpanded(open ? null : row.exId)}
                     style={{ cursor: 'pointer', borderBottom: `1px solid ${C.cardBd}`, background: open ? 'var(--c-rowHover, transparent)' : 'transparent' }}>
-                    <td className="ov-name" style={{ padding: '9px 10px', fontSize: 13, color: C.tx, fontWeight: 600, maxWidth: 220, overflowWrap: 'break-word' }}>
+                    <td className="ov-name" style={{ padding: '9px 10px', fontSize: 13, lineHeight: '18px' /* one line height whatever the script: a Hebrew name's fallback line grew its row 3px (AUDIT-470) */, color: C.tx, fontWeight: 600, maxWidth: 220, overflowWrap: 'break-word' }}>
                       <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span style={{ color: open ? C.ac : C.td, fontSize: 10, flexShrink: 0 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span><span style={{ minWidth: 0 }}>{row.title}</span></span>
                     </td>
                     <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>{row.lastLoad}kg</td>

@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -352,7 +352,7 @@ function DemoOwedCard({ onJumpToTrainee, onNav, expanded = false }) {
       </div>
       {owedOpen && <div style={{ padding: '0 14px 14px' }}>
         {owed.map((t, n) => (
-          <button key={t.id} type="button" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+          <button key={t.id} type="button" data-owed-row="" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: n < owed.length - 1 ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
             <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}><bdi>{t.name}</bdi></span>
             <span dir="ltr" style={{ justifySelf: 'end', fontFamily: FN, fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.or }}>{nis(t.monthly || 0)}</span>
@@ -691,11 +691,12 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                       const workouts = t.dormantDays != null ? 4 : 12;
                       return (
                         <tr key={t.id} className="cd-lr" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+                          role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpToTrainee(t.id, 'dashboard'); } }}
                           onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s', height: CTRL_H }}>
+                          style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' /* the real row: a button (a finger's 40px on a phone), height from its 12px cells + the real badge - was 44 / 36 against 43 / 40 (AUDIT-470) */ }}>
                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</Badge></td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}><AppBadge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</AppBadge></td>
                           <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
                           <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
                           <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
@@ -1707,7 +1708,7 @@ function DemoOverload({ trainee }) {
               return (
                 <React.Fragment key={ex.eid}>
                   <tr onClick={() => setOpenEid(open ? '' : ex.eid)} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
-                    <td className="ov-name" style={{ padding: '9px 10px', color: C.tx, fontWeight: 600, overflowWrap: 'break-word' }}><span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span style={{ color: open ? C.ac : C.td, fontSize: 10, flexShrink: 0 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: open ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span style={{ minWidth: 0 }}>{ex.name}</span></span></td>
+                    <td className="ov-name" style={{ padding: '9px 10px', lineHeight: '18px' /* as the real row (AUDIT-470) */, color: C.tx, fontWeight: 600, overflowWrap: 'break-word' }}><span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span style={{ color: open ? C.ac : C.td, fontSize: 10, flexShrink: 0 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: open ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span><span style={{ minWidth: 0 }}>{ex.name}</span></span></td>
                     <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>{st.last}kg</td>
                     {/* The sign is class ES: with nothing numeric before it,
                         UAX#9 hands it the paragraph direction and it jumps to

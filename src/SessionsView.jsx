@@ -674,7 +674,7 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
             title sat 22px above the strip's centre. The title wraps in its own
             column instead; the two buttons keep their place. */}
         <div ref={rowRef} data-strip-stacked={stacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
+          <span ref={titleRef} style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: -0.5 /* measured: the ink sat 1px low at +0.5 (AUDIT-470) */ }}>
             {tt('ON THE FLOOR')} · {checkedIn}/{list.length}<span className="strip-meta">&nbsp;{tt('CHECKED IN')}</span>
           </span>
           {!stacked && buttons}
