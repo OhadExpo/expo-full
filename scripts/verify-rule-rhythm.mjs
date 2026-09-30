@@ -20,7 +20,7 @@
 import fs from 'node:fs';
 import P from 'puppeteer-core';
 import { setWidth } from './lib/viewport.mjs';
-import { signIn, assertAuthed, looksLikeLogin } from './lib/authed-page.mjs';
+import { signIn, assertAuthed } from './lib/authed-page.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5234';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
@@ -60,7 +60,7 @@ for (const lang of LANGS) for (const W of WIDTHS) {
     try {
       await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
       let prev = -1; for (let i = 0; i < 25; i++) { await wait(600); const len = await pg.evaluate(() => document.body.innerText.length); if (len === prev && len > 200) break; prev = len; }
-      if (route.startsWith('/coach') && (/\/login/.test(pg.url()) || looksLikeLogin(await pg.evaluate(() => document.body.innerText.slice(0, 600))))) throw new Error('landed on the sign-in page - NOT measured');
+      if (route.startsWith('/coach') && (/\/login/.test(pg.url()) || await pg.evaluate(() => !!document.querySelector('input[type="password"]')))   /* a password field, not a word: Hebrew CHECK IN is כניסה, the sign-in marker (AUDIT-470 false alarm) */) throw new Error('landed on the sign-in page - NOT measured');
       const pageH = await pg.evaluate(() => document.documentElement.scrollHeight);
       const seen = new Set();
       for (let y = 0; y < pageH; y += Math.round(H * 0.85)) {

@@ -90,6 +90,10 @@ const sb = createClient(URL_, KEY, { auth: { persistSession: false, autoRefreshT
 const { data: meRaw } = await sb.rpc('my_trainee');
 const CLIENT = meRaw && (Array.isArray(meRaw) ? meRaw[0]?.id : meRaw.id);
 if (!CLIENT) { console.log('FAIL: my_trainee did not resolve the fixture to a client id'); process.exit(1); }
+// PRE exists BEFORE the sweep: markerRows() reads it, and a run killed mid-way
+// (30.9: the memory reaper) made the sweep run - it crashed on PRE's temporal
+// dead zone and the gate went red on itself (AUDIT-470)
+let PRE = new Set();
 // A RUN THAT DIED BEFORE ITS CLEANUP LEFT ITS ROWS BEHIND (29.9 #391 pass 7:
 // a 27.9 run's clause-g row sat in the fixture's HISTORY for two days). Every
 // run first sweeps any earlier run's marker rows - 'wd-gate-' notes only,
@@ -100,7 +104,7 @@ if (!CLIENT) { console.log('FAIL: my_trainee did not resolve the fixture to a cl
 }
 const before = await sb.from('client_workouts').select('id').eq('client_id', CLIENT);
 if (before.error) { console.log('FAIL: could not read the fixture history: ' + before.error.message); process.exit(1); }
-const PRE = new Set((before.data || []).map((r) => r.id));
+PRE = new Set((before.data || []).map((r) => r.id));
 console.log(`seat: fixture athlete · ${PRE.size} pre-existing rows left untouched · run marker ${RUN}`);
 
 const doneOf = (row) => { let n = 0; for (const e of row.exercises || []) for (const s of e.sets || []) if (s && s.done) n++; return n; };
