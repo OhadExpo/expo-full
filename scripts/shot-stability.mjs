@@ -24,6 +24,8 @@ const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.
 const page = await b.newPage();
 await page.goto('http://127.0.0.1:5199/shot-harness.html', { waitUntil: 'domcontentloaded' });
 await page.waitForFunction('window.__ready === true', { timeout: 30000 });
+// THROTTLE=3 slows the page's CPU 3x - a slower laptop than this PC (#475)
+if (Number(process.env.THROTTLE) > 1) { const cdp = await page.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.THROTTLE) }); console.log(`  CPU throttled ${process.env.THROTTLE}x`); }
 
 const table = [];
 for (const rate of RATES) {
@@ -36,7 +38,7 @@ for (const rate of RATES) {
     const angles = r && r.analyzed ? r.analyzed.filter((s) => s.ballDeg != null).length : 0;
     const times = r && r.analyzed ? r.analyzed.map((s) => s.t) : [];
     runs.push({ shots, angles, frames: r && r.ballFramesSeen != null ? r.ballFramesSeen : null, secs, times });
-    console.log(`  rate ${rate}  run ${i + 1}/${RUNS}: ${shots} shots, ${angles} with an angle, ${secs}s`);
+    console.log(`  rate ${rate}  run ${i + 1}/${RUNS}: ${shots} shots, ${angles} with an angle, ${secs}s  t=${JSON.stringify(times.map((x) => x == null ? null : +Number(x).toFixed(2)))}  stats=${JSON.stringify(r && r.stats ? { coarse: r.stats.coarse, recovered: r.stats.recovered, capped: r.stats.recoveryCapped, recoverMs: r.stats.recoverMs, holes: r.stats.holes, planned: r.stats.planned, tried: r.stats.tried, msCoarse: r.stats.msCoarse } : null)}`);
   }
   const shots = runs.map((r) => r.shots);
   const spread = Math.max(...shots) - Math.min(...shots);
