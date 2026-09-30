@@ -48,4 +48,10 @@ run node scripts/verify-partner-sandbox.mjs
 EXPO_EMAIL=eladeluz24@gmail.com run node scripts/verify-partner-seat-walk.mjs
 EXPO_EMAIL=ohadyproductions@gmail.com run node scripts/verify-partner-seat-walk.mjs
 run node scripts/verify-partner-sandbox-actions.mjs
+# #478: the whole athlete lifecycle and a program edit through the screens as him; every media file he is shown loads
+run node scripts/verify-partner-athlete-lifecycle.mjs
+run node scripts/verify-partner-program-edit.mjs
+run node scripts/verify-partner-media.mjs
+# the sandbox changed supabase.js: the athlete journey must still run clean (lock trap)
+run node scripts/verify-athlete-journey.mjs
 echo "=== DONE ===" >> "$LOG"

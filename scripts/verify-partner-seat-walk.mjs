@@ -17,7 +17,7 @@ import { signIn, assertAuthed } from './lib/authed-page.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5268';
 const EMAIL = (process.env.EXPO_EMAIL || '').toLowerCase();
 const PARTNER = EMAIL === 'eladeluz24@gmail.com';
-const OUT = process.env.OUT || `audit-out/partner-walk-${PARTNER ? 'partner' : 'owner'}${process.env.ATHLETES ? '-athletes' : ''}${process.env.EXPAND ? '-expanded' : ''}${process.env.SET ? '-' + process.env.SET : ''}-${process.env.W || 1366}-${process.env.LANG_UI || 'en'}.json`;
+const OUT = process.env.OUT || `audit-out/partner-walk-${PARTNER ? 'partner' : 'owner'}${process.env.ATHLETES ? '-athletes' : ''}${process.env.EXPAND ? '-expanded' : ''}${process.env.SET ? '-' + process.env.SET : ''}${process.env.THEME ? '-' + process.env.THEME : ''}-${process.env.W || 1366}-${process.env.LANG_UI || 'en'}.json`;
 const SBX = new Set(['athlete_app_opens', 'athlete_meals', 'availability_rules', 'bit_payment_requests', 'bookings',
   'bug_reports', 'challenge_participants', 'challenges', 'chat_logs', 'client_workouts', 'coach_booking_settings',
   'coach_messages', 'coach_note_comments', 'coach_note_events', 'coach_notes', 'coach_payment_settings', 'coach_tasks',
@@ -73,7 +73,7 @@ pg.on('response', (rs) => { if (/supabase\.co\/(rest|storage)\//.test(rs.url()) 
 pg.on('pageerror', (e) => note('errs', 'pageerror ' + String(e.message || e).slice(0, 90)));
 let fails = 0;
 try {
-  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, LANG);
+  await pg.evaluateOnNewDocument((l, th) => { try { localStorage.setItem('expo-lang', l); if (th) localStorage.setItem('expo-theme', th); } catch (e) {} }, LANG, process.env.THEME || '');
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
   let ok = false; for (let k = 0; k < 3 && !ok; k++) { await signIn(pg, BASE); ok = await assertAuthed(pg, BASE); }
   if (!ok) throw new Error('could not sign in as ' + EMAIL);
@@ -84,6 +84,9 @@ try {
     cur = r;
     await pg.goto(BASE + r, { waitUntil: 'domcontentloaded', timeout: 60000 });
     for (let k = 0; k < 20; k++) { await wait(700); if (await pg.evaluate(() => !/LOADING DATA/.test(document.body.innerText.slice(0, 300)))) break; }
+    // past the loading splash too, not only LOADING DATA: under load a lazy view can sit on its
+    // 12-character fallback for seconds (a measurement of the splash is not a measurement)
+    for (let k = 0; k < 30; k++) { if (await pg.evaluate(() => document.body.innerText.trim().length > 60)) break; await wait(500); }
     await wait(3500);
     // EXPAND=1: open every closed section (nested ones appear as their parent opens)
     if (process.env.EXPAND) {
@@ -95,7 +98,7 @@ try {
       res[r].closedLeft = await pg.evaluate(() => document.querySelectorAll('.title-strip[aria-expanded="false"]').length);
     }
     if (process.env.SHOTS) await pg.screenshot({ path: `${process.env.SHOTS}/${r.replace(/\//g, '_')}-${Date.now()}.png` });
-    const v = await pg.evaluate(() => ({ over: document.documentElement.scrollWidth - document.documentElement.clientWidth, onPage: location.pathname, len: document.body.innerText.length, saveFail: /SAVE FAILED|השמירה נכשלה|NOT SAVED YET|עוד לא נשמר/i.test(document.body.innerText) /* the app's own error strings - 'nothing is saved to the athlete' is copy, not an error */, banner: /SANDBOX|סביבת ניסוי/.test(document.body.innerText.slice(0, 400)), athletes: document.querySelectorAll('.tv-cards-grid > *').length }));
+    const v = await pg.evaluate(() => ({ theme: document.documentElement.getAttribute('data-theme'), over: document.documentElement.scrollWidth - document.documentElement.clientWidth, onPage: location.pathname, len: document.body.innerText.length, saveFail: /SAVE FAILED|השמירה נכשלה|NOT SAVED YET|עוד לא נשמר/i.test(document.body.innerText) /* the app's own error strings - 'nothing is saved to the athlete' is copy, not an error */, banner: /SANDBOX|סביבת ניסוי/.test(document.body.innerText.slice(0, 400)), athletes: document.querySelectorAll('.tv-cards-grid > *').length }));
     const e = res[r] || { rest: new Set(), errs: [] };
     const raw = [...e.rest].filter((t) => SBX.has(t));
     const problems = [];
@@ -106,6 +109,7 @@ try {
     if (v.saveFail) problems.push('save-failed text on screen');
     if (PARTNER && !v.banner) problems.push('no SANDBOX banner');
     if (v.len < 100) problems.push(`near-empty page (${v.len} chars)`);
+    if (process.env.THEME && v.theme !== process.env.THEME) problems.push(`theme is ${v.theme}, not ${process.env.THEME}`);
     if (v.over > 1) problems.push(`page scrolls sideways ${v.over}px`);
     if ((process.env.ATHLETES || process.env.SET) && v.onPage !== r) problems.push(`bounced to ${v.onPage}`);
     res[r] = { rest: [...e.rest], errs: e.errs, ...v, problems };
