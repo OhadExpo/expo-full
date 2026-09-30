@@ -353,6 +353,7 @@ export const HE = {
   "Nov": "נובמבר",
   "Dec": "דצמבר",
   "SANDBOX · your own copy of EXPO: real athletes, fake money. Change anything - nothing touches the real app": "סביבת ניסוי · העותק שלך של EXPO: מתאמנים אמיתיים, כסף פיקטיבי. אפשר לשנות הכל – שום דבר לא נוגע באפליקציה האמיתית",
+  "SANDBOX · YOUR OWN COPY · FAKE MONEY": "סביבת ניסוי · העותק שלך · כסף פיקטיבי",
   "SANDBOX · this would contact a real athlete, so it stays here": "סביבת ניסוי · זה היה פונה למתאמן אמיתי, אז זה נשאר כאן",
   "PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved": "תצוגת שותף · אתה רואה את EXPO האמיתי עם נתונים חיים — שום שינוי שתעשה לא נשמר",
   "No bodyweight logged yet — appears once the trainee logs weight from their portal.": "עוד לא נרשם משקל — יופיע ברגע שהמתאמן ירשום שקילה בפורטל שלו.",

@@ -78,6 +78,12 @@ try {
     ok(Array.isArray(pi) && pi.length === 1, 'sbx_plan_index answers him');
     const { error: pe } = await p.rpc('purge_trainee_data', { p_trainee_id: 'nobody_probe' });
     ok(!!pe, 'the REAL purge refuses him' + (pe ? ' (' + (pe.message || '').slice(0, 30) + ')' : ' - IT RAN'));
+    // his DELETE-ATHLETE runs the sandbox purge (supabase.js maps it); on a
+    // nobody id it deletes nothing and reports every sandbox table it looked in
+    const { data: sp, error: spe } = await p.rpc('sbx_purge_trainee_data', { p_trainee_id: 'nobody_probe' });
+    ok(!spe && sp && Object.keys(sp).length >= 15 && Object.values(sp).every((n) => n === 0), 'his delete-athlete runs on his copy (' + (spe ? spe.message : Object.keys(sp || {}).length + ' tables, 0 rows') + ')');
+    const { error: re } = await p.rpc('sbx_reset');
+    ok(!!re, 'he cannot re-copy/wipe the sandbox himself' + (re ? '' : ' - IT RAN'));
   }
   console.log('4. the money is fake');
   {
@@ -86,6 +92,48 @@ try {
     const r = new Map((real || []).map((x) => [x.id, Number(x.amount)]));
     const nz = (mine || []).filter((x) => r.get(x.id));
     ok(nz.length > 0 && nz.every((x) => Number(x.amount) !== r.get(x.id)), `revenue totals: ${nz.length} compared, 0 real amounts in his copy`);
+    // every other money field he can see, compared row by row with the real one
+    // MONEY numbers only, by the database's own rule: an integer >= 20 that is
+    // not a block number (#28) and not part of a date (26.12) - or a value that
+    // is only a number. Everything else (dates, blocks, counts) must stay REAL.
+    const moneyIn = (v) => {
+      const s = String(v == null ? '' : v);
+      if (/^\s*[0-9][0-9,]*(\.[0-9]+)?\s*$/.test(s)) return [Number(s.replace(/,/g, ''))].filter((n) => n !== 0);
+      const out = [];
+      for (const m of s.matchAll(/[0-9][0-9,]*[0-9]|[0-9]/g)) {
+        const prev = s[m.index - 1] || '', nxt = s[m.index + m[0].length] || '', nxt2 = s[m.index + m[0].length + 1] || '';
+        const n = Number(m[0].replace(/,/g, ''));
+        if (prev !== '#' && prev !== '.' && !(nxt === '.' && /[0-9]/.test(nxt2)) && n >= 20) out.push(n);
+      }
+      return out;
+    };
+    const nonMoney = (v) => /^\s*[0-9][0-9,]*(\.[0-9]+)?\s*$/.test(String(v == null ? '' : v)) ? 'N' : String(v == null ? '' : v).replace(/[0-9][0-9,]*[0-9]|[0-9]/g, (d, i, s) => (moneyIn(s).length && moneyIn(d).length && Number(d.replace(/,/g, '')) >= 20 && s[i - 1] !== '#' && s[i - 1] !== '.' && !(s[i + d.length] === '.' && /[0-9]/.test(s[i + d.length + 1] || ''))) ? 'N' : d);
+    const same = async (table, key, cols) => {
+      const [{ data: m }, { data: rr }] = await Promise.all([p.from('sbx_' + table).select([key, ...cols].join(',')), o.from(table).select([key, ...cols].join(','))]);
+      const byId = new Map((rr || []).map((x) => [x[key], x]));
+      let compared = 0, leaked = 0, bent = 0;
+      for (const x of m || []) { const y = byId.get(x[key]); if (!y) continue; for (const c of cols) {
+        const real = moneyIn(y[c]), fake = moneyIn(x[c]);
+        real.forEach((n, i) => { compared++; if (fake[i] === n) leaked++; });
+        // the words around the money are the same facts (dates, blocks, counts untouched)
+        if (typeof y[c] === 'string' && nonMoney(y[c]) !== nonMoney(x[c])) { bent++; if (!same.example) same.example = `${table}.${c}: "${y[c]}" -> "${x[c]}"`; }
+      } }
+      return { compared, leaked, bent };
+    };
+    for (const [t, k, cols] of [['revenue_owed', 'id', ['amount', 'price_text']], ['revenue_sheet_event', 'id', ['rate_amount', 'amount_est', 'rate_text']],
+      ['bit_payment_requests', 'id', ['amount', 'paid_amount']], ['invoices', 'id', ['amount']], ['subscriptions', 'id', ['amount']], ['coaching_contracts', 'id', ['monthly_rate']]]) {
+      const { compared, leaked, bent } = await same(t, k, cols);
+      ok(leaked === 0 && bent === 0, `${t}: ${compared} money values compared, ${leaked} real ones in his copy, ${bent} texts whose non-money facts changed`);
+      if (bent && same.example) { console.log('      e.g. ' + same.example); same.example = null; }
+    }
+    {
+      const [{ data: ms }, { data: rs }] = await Promise.all([p.from('sbx_store').select('value').eq('key', 'expo-trainees'), o.from('store').select('value').eq('key', 'expo-trainees')]);
+      const real = new Map(((rs && rs[0] && rs[0].value) || []).map((t) => [t.id, t]));
+      let compared = 0, leaked = 0;
+      for (const t of (ms && ms[0] && ms[0].value) || []) { const r0 = real.get(t.id); if (!r0) continue;
+        for (const c of ['monthly', 'monthlyPrice', 'packagePrice', 'perSession', 'sessionPrice']) { const v = r0[c]; if (v == null || !/[1-9]/.test(String(v))) continue; compared++; if (String(t[c]) === String(v)) leaked++; } }
+      ok(compared > 0 && leaked === 0, `athlete prices: ${compared} compared, ${leaked} real ones in his copy`);
+    }
   }
 } finally {
   await p.auth.signOut({ scope: 'local' });

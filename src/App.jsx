@@ -1704,7 +1704,7 @@ function AuthedApp() {
   // EXPO, no roster management) and they get a Sign-out instead.
   // the partner's SANDBOX banner, on every shell he can reach - the BHBC zone
   // renders its own, so it gets this one too (#476)
-  const sandboxBanner = isPartner ? <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{t('SANDBOX · your own copy of EXPO: real athletes, fake money. Change anything - nothing touches the real app')}</div> : null;
+  const sandboxBanner = isPartner ? <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} data-sandbox-banner title={t('SANDBOX · your own copy of EXPO: real athletes, fake money. Change anything - nothing touches the real app')}>{/* ONE ROW at every width (#478; titles fit by wording) - the full sentence is the tooltip */}{t('SANDBOX · YOUR OWN COPY · FAKE MONEY')}</div> : null;
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <>{sandboxBanner}<Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
