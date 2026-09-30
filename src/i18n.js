@@ -697,6 +697,7 @@ export const HE = {
   // problem, it is an untranslated screen.
   'Bnei Herzliya': 'בני הרצליה',
   'vs prev 30d': 'מול 30 הימים הקודמים',
+  'Trailing 3 months': '3 חודשים אחרונים',
   Close: 'סגור',
   '+ Task': '+ משימה',
   Storage: 'אחסון',

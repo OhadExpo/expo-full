@@ -1508,12 +1508,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                        return (
                         <tr key={i} onClick={() => jumpTo(i, phaseKey)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
-                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump('release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}{T.unitS || 's'}</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump((T.phases && T.phases.release) || 'release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}{T.unitS || 's'}</td>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: st.color }}>{s.score ?? '—'}</td>
-                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'dip'); }} title={T.phaseJump ? T.phaseJump('dip') : undefined} data-jump="dip" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
-                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'set'); }} title={T.phaseJump ? T.phaseJump('set') : undefined} data-jump="set" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
-                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump('release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
-                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump('release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + (T.unitMs || 'ms').trim()}</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'dip'); }} title={T.phaseJump ? T.phaseJump((T.phases && T.phases.dip) || 'dip') : undefined} data-jump="dip" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'set'); }} title={T.phaseJump ? T.phaseJump((T.phases && T.phases.set) || 'set') : undefined} data-jump="set" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump((T.phases && T.phases.release) || 'release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
+                          <td onClick={(e) => { e.stopPropagation(); jumpTo(i, 'release'); }} title={T.phaseJump ? T.phaseJump((T.phases && T.phases.release) || 'release') : undefined} data-jump="release" style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + (T.unitMs || 'ms').trim()}</td>
                           {/* RELEASE HEIGHT, not "fix first". Ohad: "fix first is
                               useless you may remove it and fill it with something more
                               importnant". He was right, and the git history already
@@ -1735,7 +1735,11 @@ function SessionPanel({ result, T }) {
         // taken from that checkpoint's own drills in the viewer's language.
         const top = c.focus[0];
         const chk = (result.shots || []).flatMap((s) => s.checks || []).find((k) => k && k.key === top.key);
-        const drill = chk && Array.isArray(chk.how) && chk.how.length ? chk.how[0] : null;
+        // the checks on result.shots are the ENGINE's (English); the viewer's language
+        // comes from localiseCheck, as every other panel does (1.10 code review: the
+        // ONE DRILL line read in English inside the Hebrew panel)
+        const lchk = chk ? localiseCheck(chk, T, null) : null;
+        const drill = lchk && Array.isArray(lchk.how) && lchk.how.length ? lchk.how[0] : null;
         const broken = top.fixRate >= 0.5;
         return (
           <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}>

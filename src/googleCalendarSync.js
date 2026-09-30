@@ -156,6 +156,9 @@ const VERIFIED_CACHE_KEY = 'expo-gcal-verified-at';
 const VERIFIED_TTL_MS = 5 * 60 * 1000;
 
 export async function isCalendarConnected() {
+  // the sandbox seat never talks to Google: a token left in this browser by the
+  // owner would otherwise list the owner's real calendar here (1.10 audit S2)
+  if (isSandboxSeat()) return false;
   if (localStorage.getItem(CONNECTED_KEY) !== '1') return false;
   let token = getCachedAccessToken();
   // Passive check only — do NOT silently re-request a token here. The silent
@@ -336,8 +339,15 @@ async function gcalFetch(path, init = {}, allowRetry = true) {
   // THE SANDBOX SEAT NEVER CHANGES A CALENDAR (#476): a booking synced from it
   // would put an invite in front of a real athlete. Reads still work (freeBusy
   // is a POST that only reads).
-  if (isSandboxSeat() && String(init.method || 'GET').toUpperCase() !== 'GET' && !path.startsWith('/freeBusy')) {
-    return String(init.method).toUpperCase() === 'DELETE' ? null : { id: 'sandbox-' + Date.now(), sandbox: true };
+  // THE SANDBOX SEAT NEVER TALKS TO GOOGLE (#476, 1.10 audit S2): a write would put an
+  // invite in front of a real athlete, and a read would use whatever token this
+  // browser holds - possibly the owner's. Writes "succeed" into nothing; reads are empty.
+  if (isSandboxSeat()) {
+    const m = String(init.method || 'GET').toUpperCase();
+    if (m === 'DELETE') return null;
+    if (path.startsWith('/freeBusy')) return { calendars: {} };
+    if (m === 'GET') return { items: [] };
+    return { id: 'sandbox-' + Date.now(), sandbox: true };
   }
   let token = getCachedAccessToken();
   if (!token) throw new GoogleCalendarAuthError('No Google access token cached');

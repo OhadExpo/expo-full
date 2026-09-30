@@ -6342,7 +6342,9 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
   const nowD = new Date();
   const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   const games = React.useMemo(() => (fixtures || [])
-    .filter((f) => f && (f.type === 'game' || f.type === 'scrimmage') && f.date && (f.date < today || (f.date === today && (!f.start || f.start <= nowHHMM))))
+    // a CANCELLED game has no minutes to add either (1.10 code review: a cancelled scrimmage
+    // sat here as ADD MINUTES forever and its "N to add" never cleared)
+    .filter((f) => f && !isCancelled(f) && (f.type === 'game' || f.type === 'scrimmage') && f.date && (f.date < today || (f.date === today && (!f.start || f.start <= nowHHMM))))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 8), [fixtures, today, nowHHMM]);
   if (!games.length) return null;

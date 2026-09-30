@@ -428,7 +428,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
         <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
         <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
-        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={T('From the sheets')} accent={C.gn} />
+        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={T('Marked in the app')} accent={C.gn} />
       </div>
 
       {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
@@ -454,8 +454,9 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
             {[
               [T('MRR (ACTIVE)'), num(mrr), T('recurring committed'), C.ac],
-              [T('THIS MONTH'), num(collected30), T('From the sheets'), C.gn],
-              [T('LAST 3 MONTHS'), num(collected90), T('From the sheets'), C.gn],
+              // the real card's app-marked mode (1.10 #493: the sheets live in Billing only)
+              [T('30D COLLECTED'), num(collected30), T('Marked in the app'), C.gn],
+              [T('90D COLLECTED'), num(collected90), T('Trailing 3 months'), C.gn],
               [T('OUTSTANDING'), num(outstandingAmt), `${overdue.length} ${overdue.length === 1 ? T('overdue client') : T('overdue clients')}`, outstandingAmt > 0 ? C.or : C.ac],
               [T('AVG LTV'), num(avgLtv), TN('over {n} months, est.', TENURE_MONTHS), C.ac],
               [T('AVG TICKET'), num(avgTicket), T('per paying client, per month'), C.ac],

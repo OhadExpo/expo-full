@@ -136,11 +136,29 @@ const refreshTokenOf = (raw) => {
 // (the 18.9 lock trap) - the owner's and the athletes'
 // seats must run exactly as they did before the sandbox existed.
 let sandboxSeat = false;
-export const isSandboxSeat = () => sandboxSeat;
 function setSandboxFor(email) {
   sandboxSeat = !!email && PARTNER_EMAILS.includes(String(email).toLowerCase());
   try { if (typeof window !== 'undefined') window.__expoSandbox = sandboxSeat; } catch { /* noop */ }
 }
+// ASKED ON EVERY QUERY, FROM THE SHARED STORE (1.10 audit S1). Another tab can
+// sign someone else in: auth-js tells this tab over a BroadcastChannel and never
+// writes storage here, so a flag set only in setItem went stale - the owner's
+// UI in an old partner tab still hit the sandbox. localStorage is shared by
+// every tab, so the stored session IS the current seat. Cached on the raw
+// string, so it costs one read and no parse per query - and still no lock user.
+let lastSeatRaw;
+function sandboxNow() {
+  let raw = null;
+  try { raw = authStorage ? authStorage.getItem(AUTH_TOKEN_KEY) : null; } catch { /* storage blocked */ }
+  if (raw !== lastSeatRaw) {
+    lastSeatRaw = raw;
+    let email = null;
+    try { email = raw ? JSON.parse(raw)?.user?.email : null; } catch { /* not a session */ }
+    setSandboxFor(email);
+  }
+  return sandboxSeat;
+}
+export const isSandboxSeat = () => sandboxNow();
 
 const makeAuthStorage = () => {
   if (typeof window === 'undefined' || !window.localStorage) return undefined;
@@ -222,15 +240,26 @@ const SBX_TABLES = new Set([
   'revenue_owed', 'revenue_sheet_event', 'store', 'subscriptions', 'trainee_activity',
   'trainee_evaluations', 'trainee_next_actions', 'weekly_focus', 'bw_logs', 'plan_index',
 ]);
-const SBX_RPC = { purge_trainee_data: 'sbx_purge_trainee_data' };
+// every RPC that reads or writes a sandboxed table has an sbx_ twin (security
+// invoker - the sbx_ tables' own rule is the gate). The link pages (program
+// share, intake, contract, booking) open HIS records in his seat (1.10 audit C4).
+const SBX_RPC = Object.fromEntries(['purge_trainee_data', 'get_shared_program', 'verify_intake_token', 'submit_intake_form',
+  'get_contract_by_token', 'sign_contract', 'cancel_booking', 'get_occupied_slots', 'mark_intake_token_used'].map((f) => [f, 'sbx_' + f]));
 // decided BEFORE the first query, from the stored session; the auth storage
 // below keeps it current on every sign-in, refresh and sign-out
 try { const raw = authStorage && authStorage.getItem(AUTH_TOKEN_KEY); if (raw) setSandboxFor(JSON.parse(raw)?.user?.email); } catch { /* signed out */ }
 {
   const realFrom = supabase.from.bind(supabase);
-  supabase.from = (table) => realFrom(sandboxSeat && SBX_TABLES.has(table) ? 'sbx_' + table : table);
+  supabase.from = (table) => realFrom(sandboxNow() && SBX_TABLES.has(table) ? 'sbx_' + table : table);
   const realRpc = supabase.rpc.bind(supabase);
-  supabase.rpc = (fn, args, opts) => realRpc(sandboxSeat && SBX_RPC[fn] ? SBX_RPC[fn] : fn, args, opts);
+  supabase.rpc = (fn, args, opts) => realRpc(sandboxNow() && SBX_RPC[fn] ? SBX_RPC[fn] : fn, args, opts);
+  // the PUBLIC live channels (every seat hears them): in the sandbox they get
+  // their own name, so his autosave never tells the owner's open editor or a
+  // club coach "someone changed this" (1.10 audit C8) - and his own tabs and
+  // program preview still hear each other
+  const SBX_CHANNELS = new Set(['plans-live', 'bhbc-live']);
+  const realChannel = supabase.channel.bind(supabase);
+  supabase.channel = (name, opts) => realChannel(sandboxNow() && SBX_CHANNELS.has(name) ? 'sbx:' + name : name, opts);
 }
 
 // REVIVE A SESSION FROM THE REFRESH-TOKEN COOKIE.

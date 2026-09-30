@@ -63,7 +63,12 @@ try {
     }
     ok((mine || []).length === 1, `saved in his copy (sbx_coach_notes: ${(mine || []).length})`);
     ok((real || []).length === 0, `the real coach_notes never saw it (${(real || []).length})`);
-    if ((mine || []).length) await db.from('sbx_coach_notes').delete().ilike('body', `%${PROBE}%`);
+    if ((mine || []).length) {
+      // the note AND the event rows it made (1.10 audit F7: an orphan event stayed behind)
+      const ids = mine.map((m) => m.id);
+      await db.from('sbx_coach_note_events').delete().in('note_id', ids);
+      await db.from('sbx_coach_notes').delete().in('id', ids);
+    }
   }
 } catch (e) { fail++; console.log('FAIL: ' + e.message); }
 finally { await ctx.close(); b.disconnect(); await db.auth.signOut({ scope: 'local' }); }

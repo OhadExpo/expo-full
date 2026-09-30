@@ -24,9 +24,14 @@ export function installSandboxGuard() {
     return realOpen(url, ...rest);
   };
   // capture phase: runs before any handler on the link itself
-  document.addEventListener('click', (e) => {
+  // left click, middle click (auxclick) and the context menu's "open in new tab"
+  // (contextmenu is blocked on those links only) - 1.10 audit S3
+  const stop = (e) => {
     if (!isSandboxSeat()) return;
     const a = e.target && e.target.closest && e.target.closest('a[href]');
-    if (a && isOutwardUrl(a.getAttribute('href'))) { e.preventDefault(); e.stopPropagation(); say(); }
-  }, true);
+    if (a && isOutwardUrl(a.getAttribute('href'))) { e.preventDefault(); e.stopPropagation(); if (e.type !== 'contextmenu') say(); }
+  };
+  document.addEventListener('click', stop, true);
+  document.addEventListener('auxclick', stop, true);
+  document.addEventListener('contextmenu', stop, true);
 }

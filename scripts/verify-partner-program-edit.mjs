@@ -56,6 +56,15 @@ try {
   ok(writes.length > 0 && raw.length === 0, `every write went to his copy (${writes.length} writes${raw.length ? '; NOT sandboxed: ' + raw.join(', ') : ''})`);
   ok(!(await pg.evaluate(() => /SAVE FAILED|השמירה נכשלה/i.test(document.body.innerText))), 'no save error on screen');
 } catch (e) { fail++; console.log('FAIL: ' + e.message); }
-finally { await ctx.close(); b.disconnect(); await db.auth.signOut({ scope: 'local' }); }
+finally {
+  // put HIS program back exactly as the real one: he may be using the sandbox
+  // while this runs, and a probe edit in his copy is a visible change to him
+  try {
+    const { data: pl } = await db.from('plan_index').select('id').order('updated_at', { ascending: false }).limit(1);
+    const id = pl && pl[0] && pl[0].id;
+    if (id) { const { data: real } = await db.from('plans').select('data,updated_at,name').eq('id', id); if (real && real[0]) await db.from('sbx_plans').update(real[0]).eq('id', id); }
+  } catch { /* reported by the next run's walk */ }
+  await ctx.close(); b.disconnect(); await db.auth.signOut({ scope: 'local' });
+}
 console.log(`\nPARTNER PROGRAM EDIT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

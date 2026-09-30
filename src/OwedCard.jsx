@@ -53,6 +53,10 @@ function mergeOwed(rows, requests, overdue, trainees) {
     if (!byKey.has(key)) byKey.set(key, { key, name, traineeId: tid || null, sheet: null, requests: [], overdue: null });
     return byKey.get(key);
   };
+  // every client the SHEET covers, owing or not: a sheet row with nothing owed
+  // is the sheet saying "paid up", and it must silence the app's overdue flag
+  // (1.10 code review: a paid-up client read "OVERDUE 243d" / "NEVER PAID")
+  const coveredBySheet = new Set(rows.map((r) => r.trainee_id).filter(Boolean));
   for (const r of rows) {
     const onlineDue = r.section === 'online' && r.prices && r.prices.month && (daysSince(r.last_payment) ?? 0) > 31;
     if (!(r.amount > 0) && !onlineDue) continue;
@@ -60,6 +64,7 @@ function mergeOwed(rows, requests, overdue, trainees) {
   }
   for (const q of requests) get(q.trainee_id || `req:${q.id}`, nameOf(q.trainee_id) || q.reference || '—', q.trainee_id).requests.push(q);
   for (const o of overdue || []) {
+    if (o.id && coveredBySheet.has(o.id) && !byKey.has(o.id)) continue;
     const e = byKey.get(o.id) || (!o.id ? null : get(o.id, (he ? (o.nameLocal || o.name) : (nameOf(o.id) || o.name || o.nameLocal)), o.id));   // the name in the UI's language, as the other two sources (AUDIT-470)
     // A client the SHEET covers is judged by the sheet's own last payment: the
     // app's payment list lags it (it read "overdue 243 days" for a client the

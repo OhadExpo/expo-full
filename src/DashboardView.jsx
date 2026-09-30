@@ -157,39 +157,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // (pending Bit payment requests) + average client LTV + 6-month bar
   // sparkline. Keeps every metric pulled from the same payments array
   // the rest of the dashboard already loads, so no extra query cost.
-  const [sheetMonths, setSheetMonths] = useState(null);
-  useEffect(() => {
-    if (!isOwner) return undefined;
-    let live = true;
-    supabase.from('revenue_month_total').select('month,channel,amount,imported_at')
-      .then(({ data, error }) => { if (live && !error) setSheetMonths(data || []); })
-      .catch(() => {});
-    return () => { live = false; };
-  }, [isOwner]);
-  const sheet = useMemo(() => {
-    if (!sheetMonths || !sheetMonths.length) return null;
-    const NOT_COACHING = new Set(['national_insurance']);
-    const byMonth = new Map();
-    for (const r of sheetMonths) {
-      if (NOT_COACHING.has(r.channel)) continue;
-      const k = String(r.month).slice(0, 7);
-      byMonth.set(k, (byMonth.get(k) || 0) + (Number(r.amount) || 0));
-    }
-    const key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const bars = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      bars.push({ label: monthAbbr(d.getMonth()), value: byMonth.get(key(d)) || 0 });
-    }
-    const latest = [...byMonth.keys()].sort().pop();
-    // The newest imported_at is the clock's last successful run - the sync
-    // re-stamps every month row, so one stale row cannot hide a dead clock.
-    const syncedAt = sheetMonths.reduce((m, r) => (r.imported_at && (!m || r.imported_at > m) ? r.imported_at : m), null);
-    const syncAgeH = syncedAt ? (now - new Date(syncedAt)) / 3600000 : null;
-    return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size, syncedAt, syncAgeH };
-  // `now` is a per-render Date; the sheet rows are the only real dependency.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheetMonths]);
+  // THE SHEETS LIVE IN BILLING, NOT HERE (1.10 #493, Ohad: "From the sheets
+  // shouldn't be on the dashboard but in Billings I never asked for it there").
+  // The dashboard's money is what is marked in the app; the finance sheet's
+  // history is the FROM THE SHEETS card on /coach/billing. (17.9 had made the
+  // Collected tile fall back to the sheet's month when nothing was marked.)
   const ms30 = 30 * 86400000;
   const ms90 = 90 * 86400000;
   const paidPayments = payments.filter(p => p.status === 'Paid');
@@ -615,9 +587,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // 17.9 (Ohad: "dashboard is still not updated with the right amount of money"): no payment is
             // marked in the app, so this read ₪0 while the REVENUE card below showed the sheet's month.
             // With no app-marked money this month, the finance sheet's coaching total is the figure.
-            (thisMonthPaid === 0 && sheet)
-              ? { label: tt('Collected MTD'), short: he ? null : 'Collected', value: `₪${Math.round(sheet.thisMonth).toLocaleString()}`, sub: tt('From the sheets'), subColor: C.td, color: sheet.thisMonth > 0 ? C.gn : C.td }
-              : { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : tt('Marked in the app'), subShort: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}%` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩ ${tt('vs last month')}` : tt('Marked in the app'), subShort: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}%` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -709,7 +679,6 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         outstanding={outstanding}
         monthBars={monthBars}
         maxBar={maxBar}
-        sheet={sheet}
       />}
 
       {/* OWED (#386): who owes, how much, and why - the roster sheet's unpaid
