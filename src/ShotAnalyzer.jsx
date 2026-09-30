@@ -1725,12 +1725,32 @@ function SessionPanel({ result, T }) {
               : `Score ${c.trend.dir} across the clip: ${c.trend.first} → ${c.trend.last} (${Math.abs(c.trend.delta)} points).`)}
         </div>
       )}
-      {c.focus.length > 0 && (
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
-          <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.sessionFocus || 'FOCUS NEXT SESSION'}</div>
-          <div style={{ fontSize: 13, lineHeight: 1.5 }}>{c.focus.map((t) => name(t)).join(' · ')}</div>
-        </div>
-      )}
+      {c.focus.length > 0 && (() => {
+        // #424 (the coaching research: one fault, one cue, one drill - a list of
+        // five corrections is five things ignored). The worst focus leads with
+        // what KIND of work it needs (the session read's own definitions: broken
+        // = change the technique, wandering = repetition) and its first drill,
+        // taken from that checkpoint's own drills in the viewer's language.
+        const top = c.focus[0];
+        const chk = (result.shots || []).flatMap((s) => s.checks || []).find((k) => k && k.key === top.key);
+        const drill = chk && Array.isArray(chk.how) && chk.how.length ? chk.how[0] : null;
+        const broken = top.fixRate >= 0.5;
+        return (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+            <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.sessionFocus || 'FOCUS NEXT SESSION'}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.4 }}>{name(top)}</div>
+            <div style={{ fontSize: 12.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+              {broken ? (T.focusChange ? T.focusChange(top.fix, top.n) : `Off on ${top.fix} of ${top.n} reps.`) : (T.focusRepeat || '')}
+            </div>
+            {drill && (
+              <div style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 6 }}>
+                <span style={{ ...lbl, color: CYAN, marginInlineEnd: 6 }}>{T.oneDrill || 'ONE DRILL'}</span>{drill}
+              </div>
+            )}
+            {c.focus[1] && <div style={{ fontSize: 12, lineHeight: 1.5, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>{T.focusThen || 'After that:'} {name(c.focus[1])}</div>}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -204,6 +204,11 @@ export const SHOT_I18N = {
     sessionWander: 'INCONSISTENT — REPEAT IT, DO NOT CHANGE IT',
     sessionWanderLine: (label, pct) => `${label} — right ${pct} of the time`,
     sessionFocus: 'FOCUS NEXT SESSION',
+    // #424: ONE fault + ONE drill per session (the coaching research: one cue at a time)
+    focusChange: (n, reps) => `Off on ${n} of ${reps} reps - a technical change, not more reps.`,
+    focusRepeat: 'Right on some reps, off on others - repetition, not a change.',
+    oneDrill: 'ONE DRILL',
+    focusThen: 'After that:',
     trendFlat: 'Held the same level from the first reps to the last.',
     trendMoved: (dir, first, last, delta) => `Score ${dir} across the clip: ${first} to ${last}, ${delta} points.`,
     oblique: 'This shot was filmed at an angle — the ball moved AWAY from the camera, not across it. The rep-to-rep comparison and the angle spread still hold; the launch angle itself reads too steep, and the metres and m/s read low. Film square to the shot for those.',
@@ -393,6 +398,10 @@ export const SHOT_I18N = {
     sessionWander: 'לא עקבי — חזור על זה, אל תשנה',
     sessionWanderLine: (label, pct) => `${label} — תקין ב-${pct} מהזריקות`,
     sessionFocus: 'פוקוס לאימון הבא',
+    focusChange: (n, reps) => `לא תקין ב-${n} מתוך ${reps} חזרות - צריך שינוי טכני, לא עוד חזרות.`,
+    focusRepeat: 'תקין בחלק מהחזרות ולא בחלק - צריך חזרות, לא שינוי.',
+    oneDrill: 'תרגיל אחד',
+    focusThen: 'אחר כך:',
     trendFlat: 'שמר על אותה רמה מהזריקות הראשונות עד האחרונות.',
     trendMoved: (dir, first, last, delta) => (dir === 'declined'
       ? `הציון ירד לאורך הקליפ: מ-${first} ל-${last}, ${delta} נקודות.`
