@@ -54,4 +54,6 @@ run node scripts/verify-partner-program-edit.mjs
 run node scripts/verify-partner-media.mjs
 # the sandbox changed supabase.js: the athlete journey must still run clean (lock trap)
 run node scripts/verify-athlete-journey.mjs
+# #479: an athlete writes only his own presence row
+run node scripts/verify-presence-own-row.mjs
 echo "=== DONE ===" >> "$LOG"
