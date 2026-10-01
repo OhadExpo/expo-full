@@ -6647,13 +6647,17 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
+                  style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 4, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                  <div style={{ flex: 1 }} />
-                  {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', flexShrink: 0 }}>{tr('Cleared')}</span>
+                  {/* date + CLEARED are one unit pinned to the end: on a 360 phone the
+                      longest row ran 9px past the screen (box-fit, 1.10) - now the unit
+                      drops to a second line, still at the end, instead */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginInlineStart: 'auto', flexShrink: 0 }}>
+                    {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
+                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C' }}>{tr('Cleared')}</span>
+                  </span>
                 </div>
               ))}
             </div>

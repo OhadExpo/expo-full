@@ -98,16 +98,20 @@ const MEASURE = () => {
 const tabsOf = async (pg, root) => pg.evaluate((root) => {
   // in-page tab buttons: role=tab, or a nav row of 2-8 short uppercase buttons
   const set = new Set();
-  for (const t of document.querySelectorAll('[role="tab"]')) { const s = (t.innerText || '').trim(); if (s && s.length < 24) set.add(s); }
+  // the app's own header nav (.hdr-scroll) goes to OTHER routes - each is measured as its own surface;
+  // an element the reader cannot see is not a tab he can press
+  const skip = (b) => !!b.closest('.hdr-scroll') || !b.getClientRects().length || getComputedStyle(b).visibility === 'hidden';
+  for (const t of document.querySelectorAll('[role="tab"]')) { if (skip(t)) continue; const s = (t.innerText || '').trim(); if (s && s.length < 24) set.add(s); }
   for (const nav of document.querySelectorAll('nav, [data-tabs], .bhbc-tabs, [class*="tabs"]')) {
     for (const b of nav.querySelectorAll('button, a')) {
+      if (skip(b)) continue;
       if (b.tagName === 'A' && b.href && !new URL(b.href, location.href).pathname.startsWith(root)) continue;   // a link out of this surface is not one of its tabs
       const s = (b.innerText || '').trim(); if (s && s.length < 24 && !/sign out|log out|יציאה|התנתק/i.test(s)) set.add(s);
     }
   }
   return [...set].slice(0, 14);
 }, root);
-const clickTab = (pg, label) => pg.evaluate((l) => { const x = [...document.querySelectorAll('[role="tab"], nav button, nav a, [data-tabs] button, .bhbc-tabs button, [class*="tabs"] button')].find((e) => (e.innerText || '').trim() === l); if (x) { x.click(); return true; } return false; }, label);
+const clickTab = (pg, label) => pg.evaluate((l) => { const x = [...document.querySelectorAll('[role="tab"], nav button, nav a, [data-tabs] button, .bhbc-tabs button, [class*="tabs"] button')].find((e) => !e.closest('.hdr-scroll') && e.getClientRects().length && (e.innerText || '').trim() === l); if (x) { x.click(); return true; } return false; }, label);
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://[::1]:9444', defaultViewport: null, protocolTimeout: 300000 });
 const findings = []; const measuredViews = []; let measured = 0, errors = 0;
@@ -130,6 +134,8 @@ for (const seat of ['owner', 'partner', 'athlete', 'none', 'marketing']) {
       await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); } catch (e) {} }, lang);
       for (const w of WIDTHS) {
         await pg.emulate({ viewport: { width: w, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0 Mobile Safari/537.36' });
+        // the partner seat is the owner's screens plus a one-row banner: measured at the NARROWEST width only
+        if (seat === 'partner' && w !== Math.min(...WIDTHS)) continue;
         for (const s of list) {
           const id = `${s.url}/${lang}/${w}`;
           try {
