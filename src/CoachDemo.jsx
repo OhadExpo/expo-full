@@ -549,7 +549,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                 : <div className="cd-task-cols" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))`, gap: 10, alignItems: 'start' }}>
                     {cols.map(({ col, rows }) => (
                       <div key={col.id} data-rhythm="tray" style={{ border: `1px solid ${C.cardBd}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 34, boxSizing: 'border-box', padding: '0 10px', background: 'var(--c-sf2)', borderInlineStart: `3px solid ${col.color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tx }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 36 /* 34 -> 36 (OCD #494) */, boxSizing: 'border-box', padding: '0 10px', background: 'var(--c-sf2)', borderInlineStart: `3px solid ${col.color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tx }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color }} />{T(col.label)}</span>
                           <span style={{ color: C.tm }}>{rows.length}</span>
                         </div>
@@ -4663,7 +4663,7 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
       </div>
       {groups.map((g) => (
         <div key={g.key}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 30, padding: '0 14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: C.tx, textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 36 /* the real section headers' 36 (OCD #494: 30) */, boxSizing: 'border-box', padding: '0 14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: C.tx, textTransform: 'uppercase' }}>
             <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color }} />
             <span style={{ flex: 1 }}>{T(g.label)}</span>
             <span style={{ color: C.tm }}>{g.rows.length}</span>
@@ -4783,7 +4783,7 @@ function DemoTasks() {
             const rows = visible.filter(t => (boardGroup === 'category' ? t.src : t.status) === col.id);
             return (
               <div key={col.id} style={{ flex: '1 1 175px', minWidth: 175, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '7px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
+                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '0 10px', minHeight: 36, boxSizing: 'border-box' /* 30 -> 36 (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
                 <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 46 }}>

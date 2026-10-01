@@ -924,7 +924,9 @@ function Catalog() {
         // pushes the surviving tracks to the middle, so a single-result
         // filter (e.g. POWERBUILD → 1 program) renders centered instead
         // of pinned to the start (right edge in RTL Hebrew).
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 320px))',
+        // ONE column (under 2 x 280 + 14 = 574px) fills the width like every other card on the
+        // page; wider, the cards stay 320 and centred (OCD #494: 320 wide, 35px in, on a phone)
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), max(320px, min(100%, (574px - 100%) * 1000))))',
         justifyContent: 'center',
       }}>
         {list.map(p => <ProgramCard key={p.id} p={p} />)}
@@ -2730,10 +2732,11 @@ function SampleWeek({ sampleWeek, accent }) {
             }}>
               {label}
             </div>
-            <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column' }}>
               {(exercises || []).map((ex, i) => (
                 <li key={i} style={{
-                  paddingBottom: 10, borderBottom: i < exercises.length - 1 ? `1px solid ${C.bd}` : 'none',
+                  // a 36px row, its words centred between the rules (OCD #494: 28px, 0 above / 10 below)
+                  padding: '8px 0', minHeight: 36, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderBottom: i < exercises.length - 1 ? `1px solid ${C.bd}` : 'none',
                 }}>
                   {/* The prescription keeps nowrap - "1 × 3 @ 85% · 2 × 5 @ 70%"
                       must not break mid-value - so the ROW has to be able to

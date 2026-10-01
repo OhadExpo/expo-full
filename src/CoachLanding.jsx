@@ -649,7 +649,7 @@ export default function CoachLanding({ lang = 'en' }) {
       <main style={{ flex: 1 }}>
         {/* Hero */}
         <section style={{
-          maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
+          maxWidth: 920, margin: '0 auto', padding: '64px 16px 40px' /* the page's one 16px edge (OCD #494: 20) */, textAlign: 'center',
         }}>
           {/* EXPO icon (caret-X mark, not the wordmark) above "COACHING
               PLATFORM" — both center-aligned. gap and marginBottom kept

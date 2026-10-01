@@ -746,7 +746,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
               {tt('Tasks')} ({counts.all})
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
