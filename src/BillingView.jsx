@@ -46,7 +46,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
   const reqStacked = useStripFit(true, reqRowRef, reqTitleRef, reqBtnRef, 0, [reqPending]);
   const newReqBtn = (
     <button ref={reqStacked ? undefined : reqBtnRef} onClick={() => setShowRequest(true)}
-      style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+      style={{ ...stripBtnBase, ...(reqStacked ? { height: 'var(--btn-h)' } : null) /* out of the strip it is a control like any other: 36 (verify-control-heights, 1.10) */, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
   );
   const PAD = 14;
 
