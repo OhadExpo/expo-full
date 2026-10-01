@@ -5418,10 +5418,11 @@ export default function CoachDemo() {
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
           <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
-          <span>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
+          {/* two even lines on a phone, never 'BACK' alone (OCD #494) */}
+          <span style={{ textWrap: 'balance' }}>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo" data-demo-chrome="" style={{ color: C.td, textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', padding: '0 6px' }}>{T('← BACK')}</a>
+          <a href="/demo" data-demo-chrome="" style={{ color: C.td, textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', padding: 0 /* its text on the footer's edge, as the logo (was 6px in) */ }}>{T('← BACK')}</a>
         </span>
       </footer>
     </div>

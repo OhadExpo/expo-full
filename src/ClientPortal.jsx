@@ -3265,14 +3265,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:16}}>
           {visPlans.length > 1 && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
             {visPlans.map(p => <button key={p.name} onClick={() => setSelectedBlockName(p.name)}
-              style={{padding:'4px 10px',borderRadius:0,border:`${activePlan?.name===p.name?'2px':'0.25px'} solid ${C.ac}${activePlan?.name===p.name?'':'4D'}`,background:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
+              style={{height:'var(--btn-h)',boxSizing:'border-box',padding:'0 10px',borderRadius:0,border:`${activePlan?.name===p.name?'2px':'0.25px'} solid ${C.ac}${activePlan?.name===p.name?'':'4D'}`,background:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
           </div>}
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
-            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
+            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',height:'var(--btn-h)',boxSizing:'border-box',padding:0,borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>{tt('Log week')} {wk+1} · {activePlan?.name || tt('NO ACTIVE BLOCK')}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder={tt('Weight in kg')} type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder={tt('Weight in kg')} type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,height:'var(--btn-h)',padding:'0 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             {/* SAVE LOOKED LIVE AND WAS INERT.
                 It was disabled on demoMode alone, but styled from (bw &&
                 activePlan) — so in the demo it went cyan with a pointer
@@ -3282,7 +3282,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 visitor does. The style now reads the same condition, so a
                 button that cannot act never looks like it can. */}
             <button disabled={!activePlan||(demoMode&&!localWrites)} onClick={()=>{if(demoMode&&!localWrites)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
-              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${bwCanSave?C.ac:C.cardBd}`,background:'transparent',color:bwCanSave?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:bwCanSave?'pointer':'default'}}>{tt("SAVE")}</button>
+              style={{height:'var(--btn-h)',boxSizing:'border-box',padding:'0 20px',borderRadius:0,border:`1px solid ${bwCanSave?C.ac:C.cardBd}`,background:'transparent',color:bwCanSave?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:bwCanSave?'pointer':'default'}}>{tt("SAVE")}</button>
           </div>
           {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>{tt('Assign an active program to log bodyweight.')}</div>}
         </div>

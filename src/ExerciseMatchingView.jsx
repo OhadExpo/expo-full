@@ -15,7 +15,7 @@ import { useT, readLang, tr } from './i18n';
 
 // VIEW: a tag of its own height, its word on its centre (29.9 #447: as a bare
 // span it stretched with a wrapped row and the word sat 11px high in a 40px box)
-const VIEW_TAG = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 8px', height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', lineHeight: 1, flexShrink: 0, cursor: 'pointer' };
+const VIEW_TAG = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 8px', height: 'var(--btn-h)', boxSizing: 'border-box' /* a bordered tag is 36 like everything bordered (OCD #494: 24, and 40 on a phone) */, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', lineHeight: 1, flexShrink: 0, cursor: 'pointer' };
 
 // Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
 // "similar"). These are small UPPERCASE labels printed directly on the card, so

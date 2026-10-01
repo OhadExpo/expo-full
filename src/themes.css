@@ -1472,7 +1472,10 @@ body[data-lang="he"] > :not(#root):not([dir]) { direction: rtl; }
 }
 
 @media (max-width: 620px) {
-  button, [role="button"] { min-height: 40px; }
+  /* ONE HEIGHT (OCD #494, 1.10): this 40px floor predates the 36px decision of 23.9. `button` is
+     reset to --btn-h below, but [role="button"] (higher specificity) never was - every clickable
+     tag/span stood 40px on a phone beside 36px buttons. */
+  button, [role="button"] { min-height: var(--btn-h); }
   /* A TARGET NEEDS BOTH DIMENSIONS. After the height floor landed, the only
      ones left were the icon buttons — the ✕ close, the ‹ › month pagers, the ✎
      edit — 40px tall and 21-28px wide, which is still a miss. min-width only

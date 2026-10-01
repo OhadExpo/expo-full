@@ -1641,10 +1641,10 @@ function WhatsInside() {
            onClick={() => trackAndOpen('try_click', { from: 'whats_inside' })}
            target="_blank" rel="noopener"
            style={{
-             display: 'inline-block',
+             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
              fontFamily: FB, fontSize: 14, fontWeight: 700,
              color: '#000', background: C.ac,
-             padding: '12px 22px', borderRadius: 0,
+             minHeight: 36, boxSizing: 'border-box', padding: '0 22px', borderRadius: 0,   /* 41 -> 36 (OCD #494) */
              textDecoration: 'none', letterSpacing: 0.2,
            }}>
           {t('inside.tryCta')}
@@ -1872,7 +1872,7 @@ function WhyTemplates() {
       }}>
         <a href="#programs" style={{
           ...baseBtn,
-          background: C.ac, color: '#000', padding: '12px 24px',
+          background: C.ac, color: '#000', minHeight: 36, boxSizing: 'border-box', padding: '0 24px', /* the one bordered height (OCD #494: 37) */
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {String(t('why.cta')).replace(/\s*↓\s*$/, '')}<DownGlyph />
@@ -2467,7 +2467,7 @@ function QuizSection({ onOpen }) {
         }}>{t('quiz.body')}</p>
         <button onClick={onOpen} style={{
           ...baseBtn,
-          background: C.ac, color: '#000', padding: '12px 24px',
+          background: C.ac, color: '#000', minHeight: 36, boxSizing: 'border-box', padding: '0 24px', /* the one bordered height (OCD #494: 37) */
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('quiz.cta')}
@@ -2916,7 +2916,7 @@ function ProgramDetail({ program }) {
           onClick={() => trackAndOpen('buy_click', { programId: program.id, source: 'detail_page' })}
           style={{
             ...baseBtn,
-            background: C.ac, color: '#000', padding: '12px 24px',
+            background: C.ac, color: '#000', minHeight: 36, boxSizing: 'border-box', padding: '0 24px', /* the one bordered height (OCD #494: 37) */
             fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
           {t('detail.cta.buy')}
@@ -3045,7 +3045,7 @@ function NotFound() {
           not back to the ONLINE-vs-GYM chooser. */}
       <a href="#/online" style={{
         ...baseBtn,
-        background: C.ac, color: '#000', padding: '12px 24px',
+        background: C.ac, color: '#000', minHeight: 36, boxSizing: 'border-box', padding: '0 24px', /* the one bordered height (OCD #494: 37) */
         fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
       }}>
         {t('notfound.cta')}

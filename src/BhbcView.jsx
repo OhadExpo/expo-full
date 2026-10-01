@@ -3174,7 +3174,7 @@ function ActivityView({ activity = [], tr, he }) {
         {list.length === 0
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
           : <div className="bhbc-list">{list.slice(0, 120).map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', minHeight: 36, boxSizing: 'border-box' /* a row is never under the control height (OCD #494: 29) */, borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
               <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1')}</span>
               <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
@@ -4277,7 +4277,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         <span style={{ display: 'inline-flex', gap: 6 }}>
           {[['sc', tr('S&C'), showSc, setShowSc, SC_COLOR], ['lift', tr('Lifts'), showLift, setShowLift, FX_COLOR.lift]].map(([k, l, on, set, col]) => (
             <button key={k} type="button" aria-pressed={on} onClick={() => set(!on)} className="bhbc-ghost-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, minHeight: 26, padding: '0 10px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm, background: on ? `color-mix(in srgb, ${col} 14%, transparent)` : 'transparent', border: `1px solid ${on ? col : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', minHeight: 0, padding: '0 10px', boxSizing: 'border-box' /* 26 -> 36, as the LIFTS tab's own S&C toggle (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm, background: on ? `color-mix(in srgb, ${col} 14%, transparent)` : 'transparent', border: `1px solid ${on ? col : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
               <span style={{ width: 8, height: 8, background: on ? col : 'transparent', border: `1px solid ${col}` }} />{l}
             </button>
           ))}
@@ -5913,7 +5913,7 @@ function GameRow({ date, title, detail, end, onClick, dataKey }) {
 function GameSection({ label, count, children, first = false }) {
   return (
     <div style={{ marginTop: first ? 0 : 18 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tx }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 36, boxSizing: 'border-box' /* a 19-21px header with its word 3px from the top (OCD #494): a 36px row, ink centred */, borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tx }}>
         {label}{count != null ? <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }}>· {count}</span> : null}
       </div>
       <div className="bhbc-list">{children}</div>

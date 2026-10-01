@@ -164,7 +164,7 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
   const syncLabel = ageMin == null ? tt('not synced yet') : ageMin < 2 ? tt('synced just now') : ageMin < 60 ? `${tt('synced')} ${ageMin}${tt('m ago')}` : `${tt('synced')} ${Math.round(ageMin / 60)}${tt('h ago')}`;
 
   return (
-    <CollapsibleSection title={tt('Owed')} storageKey={expanded ? 'billing-owed' : 'dash-owed'} count={loaded ? list.length : undefined} style={{ marginBottom: 20 }}
+    <CollapsibleSection title={tt('Owed')} storageKey={expanded ? 'billing-owed' : 'dash-owed'} count={loaded ? list.length : undefined} style={{ marginBottom: expanded ? 0 : 20 }} /* Billing stacks its cards with a 14px gap - a margin on top read 34/14/14 (OCD #494) */
       right={<span data-owed-total style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', whiteSpace: 'nowrap' }}><bdi dir="ltr">{ils(total)}</bdi></span>}>
       <div data-owed-card>
         {error && <div style={{ fontFamily: FB, fontSize: 12, color: C.rd, marginBottom: 8 }}>{tt('Could not read the owed list')}: {error}</div>}

@@ -470,7 +470,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         {/* Cyan STRIP HEADER — matches PlansView: 3px cyan tick + label (white)
             on the left, recency pill on the right. The athlete name is the page
             title already, so the strip carries a block label instead (Ohad). */}
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'0 14px',minHeight:41,boxSizing:'border-box' /* the house strip box (OCD #494: was 32px) */}}>
           <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
             <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
             <span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'var(--c-stripTx)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tr(readLang(), earlier.length>0?'CURRENT BLOCK':'ASSIGNED PROGRAM')}</span>

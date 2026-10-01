@@ -283,7 +283,7 @@ function WaitlistForm({ t }) {
           }} />
         <button type="submit" disabled={state === 'sending'} style={{
           ...baseBtn,
-          height: 46, boxSizing: 'border-box',
+          height: 36, boxSizing: 'border-box',   /* the email box beside it is 36 (OCD #494: 46) */
           background: state === 'sending' ? C.bd : C.ac,
           color: state === 'sending' ? C.tm : '#000',
           padding: '0 20px',

@@ -548,9 +548,14 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     {chipCell(ex.primaryMuscles, 230)}
                     {chipCell(ex.secondaryMuscles, 210)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap', lineHeight: 0 /* the drawn icons are the content: a text line lifted them 1.3-1.9px (#467) */ }}>
-                      {hasVideo(ex) && <span title={tt('Has a demo video')} style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><PlayGlyph /></span>}
-                      {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12, display: 'inline-flex', verticalAlign: 'middle' }}><NotesGlyph /></span>}
-                      {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
+                      {/* TWO FIXED SLOTS (OCD #494): centred as a group, the ≡ moved ~8px between rows
+                          with and without a ▶ - now ▶ always has the first slot and ≡ the second */}
+                      {hasVideo(ex) || hasNotes(ex) ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, verticalAlign: 'middle' }}>
+                          <span title={hasVideo(ex) ? tt('Has a demo video') : undefined} style={{ color: C.ac, fontSize: 12, width: 12, height: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{hasVideo(ex) && <PlayGlyph />}</span>
+                          <span title={hasNotes(ex) ? tt('Has coaching cues') : undefined} style={{ color: C.or, fontSize: 12, width: 12, height: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{hasNotes(ex) && <NotesGlyph />}</span>
+                        </span>
+                      ) : emptyDot}
                     </td>
                     {!narrowUI && (
                       <td className="ex-act" style={{ padding: '6px 6px', whiteSpace: 'nowrap', textAlign: 'end' }}>

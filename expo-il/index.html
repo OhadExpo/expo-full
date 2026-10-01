@@ -102,6 +102,8 @@
     ::-webkit-scrollbar-thumb{background:#1e1e24;border-radius:4px}
     ::-webkit-scrollbar-thumb:hover{background:#39BDFF40}
     a{color:inherit;text-decoration:none}
+    /* NO WIDOWS (OCD #494): a heading never leaves one word alone on its last line; paragraphs avoid it too */
+    h1,h2,h3,h4{text-wrap:balance} p{text-wrap:pretty}
     /* TAP TARGETS ON A PHONE — the same floor the apps got on 21.9: 40px then, 36px since 24.9, when the whole product settled on ONE control height (src/themes.css --btn-h).
        Measured here first: 31 controls under 40px on the programs page alone.
        A floor rather than per-control edits, so nothing in the design has to

@@ -989,8 +989,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
-            { id:'all',    label:tb('All'),         n:openRows.length },
-            { id:'mine',   label:tb('General'),     n:manualRows.length },
+            // each word reserves only its own language's width: tb() reserved 'General' inside
+            // 'כללי', so the active Hebrew segment sat 9px off its centre (OCD #494)
+            { id:'all',    label:tr(readLang(), 'All'),     n:openRows.length },
+            { id:'mine',   label:tr(readLang(), 'General'), n:manualRows.length },
             // the short word reserves only its OWN language's width (tb() reserves
             // both, and the Hebrew fallback font made even the short word spill)
             { id:'alerts', label:tb('Auto-alerts'), short:tr(readLang(), 'Alerts'), n:autoRows.length },
