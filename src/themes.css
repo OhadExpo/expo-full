@@ -1666,10 +1666,13 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 
 /* KPI tile titles: the short phone label where the full one would wrap (26.9). */
 .kpi-title .kpi-short { display: none; }
+/* ...and only a NARROW phone (<=380, measured at 360) shrinks it: LOW SESSIONS, EST. MONTHLY,
+   OUTSTANDING and "מתאמנים פעילים" ran past their half-width tiles at 13px there (1.10) */
+@media (max-width: 380px) { .kpi-title { font-size: 12px !important; letter-spacing: 0.06em !important; } }
 @media (max-width: 480px) {
   .kpi-title .kpi-full { display: none; }
   .kpi-title .kpi-short { display: inline; }
-  .kpi-title { font-size: 12px !important; letter-spacing: 0.06em !important; }
+  /* one size down to 380px (OCD #494) - the SHORT words make it fit there */
 }
 
 /* The week board on a phone (26.9, Ohad: "11:00 practice 120 min and the two

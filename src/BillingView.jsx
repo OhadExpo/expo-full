@@ -174,7 +174,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
                 as RefinedHeaderStrip): as a padded block its words rode 3px low. */}
             <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}` }}>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, width: '100%' }}>
-                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{s.label}</span>
+                <span className="kpi-title" style={{ fontFamily: FN, fontSize: 13 /* the dashboard KPI tiles' spec, phone rule included (OCD #494: 12 everywhere) */, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{s.label}</span>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0, boxShadow: `0 0 5px ${s.dot}66` }} />
               </span>
             </div>
@@ -194,7 +194,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
               title sat 22px above the strip's centre (26.9). The title may wrap
               inside its own column; the button never moves under it. */}
           <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+            <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {/* one line on a phone: the count stays, its word steps aside */}
               {tt('PAYMENT REQUESTS')} · {requests.filter(r => r.status === 'pending').length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
             </span>
