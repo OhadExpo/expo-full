@@ -898,7 +898,8 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
   // A PLAIN-STRING HEADER GETS THE HOUSE TITLE (OCD #494): passed bare, it inherited the body's
   // 16px / 400 / mixed case - four pages (Matching, Cleanup, Classify, Waitlist) ran their own spec
   const headerNode = typeof header === 'string'
-    ? <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', overflowWrap: 'break-word', minWidth: 0 }}>{header}</span>
+    // display:block - inline in the strip's block it rode the inherited 16px line's baseline, 1px low (box-centring)
+    ? <span style={{ display: 'block', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', overflowWrap: 'break-word', minWidth: 0 }}>{header}</span>
     : header;
   const padNum = typeof padding === 'number' ? padding : 20;
   // the title never squeezed by the header controls (29.9 #452) - see useStripFit
