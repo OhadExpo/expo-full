@@ -5,10 +5,13 @@
 // auth-js tells tab A over a BroadcastChannel without writing storage in A, so
 // a flag set only on setItem stayed ON: the owner's UI in tab A read and wrote
 // the sandbox. Now tab A's next queries must go to the REAL tables.
-// HONEST LIMIT (1.10): the old build ALSO passes this sequence - auth-js in tab A
-// re-saves the session when tab B signs in, which moved the old flag too. So it is
-// a REGRESSION check, not proof of the broadcast-only path the audit described;
-// the per-query flag in supabase.js removes that path by construction.
+// (1.10 triple audit) The seat change must also RELOAD tab A: following the store
+// alone wrote tab A's stale state into the new seat's tables. The reload check
+// below is what the old builds fail.
+// (1.10 audit C) Every check is measured before this gate navigates tab A itself -
+// an earlier version ended with a goto that reloaded the tab, so it passed on any
+// build. Break-tested 1.10: the build before the seat guard (dist-499) fails 3 of
+// 6; the build that only reloaded on its NEXT query failed the reload check too.
 // Read-only (it only navigates). Headless Chrome, a throwaway context.
 //
 //   CDP=http://[::1]:9444 BASE=http://127.0.0.1:5271 node scripts/verify-partner-cross-tab.mjs
@@ -38,6 +41,18 @@ try {
   await signInAs(A, 'eladeluz24@gmail.com');
   await A.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' }); await wait(6000);
   ok(await A.evaluate(() => window.__expoSandbox === true), 'tab A (partner) is the sandbox');
+  // a mark that only survives if tab A is NOT reloaded
+  await A.evaluate(() => { window.__tabMark = 'before'; });
+  // tab A is watched from BEFORE tab B exists: the reload now comes the moment B writes the session
+  // (a 'storage' event), during B's sign-in - a listener added after it saw nothing, and the fresh
+  // owner page's own writes were then counted as stale ones
+  const hits = [], writesA = []; let reloaded = false;
+  A.on('framenavigated', (f) => { if (f === A.mainFrame()) reloaded = true; });
+  A.on('request', (rq) => {
+    const m = rq.url().match(/\/rest\/v1\/([a-z_0-9]+)/); if (!m) return;
+    if (reloaded) hits.push(m[1]);
+    else if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(rq.method())) writesA.push(rq.method() + ' ' + m[1]);
+  });
   const B = await ctx.newPage(); await B.setViewport({ width: 1366, height: 900 });
   // tab B drops the LOCAL session copy only (no server call: the app's own sign-out is
   // GLOBAL and would sign the real partner out on every device), then signs in as the owner
@@ -45,16 +60,18 @@ try {
   await B.evaluate(() => { for (const k of Object.keys(localStorage)) if (/-auth-token$/.test(k)) localStorage.removeItem(k); document.cookie.split(';').forEach((c) => { const n = c.split('=')[0].trim(); if (n) document.cookie = n + '=; Max-Age=0; Path=/'; }); });
   await signInAs(B, 'ohadyproductions@gmail.com');
   ok(await B.evaluate(() => window.__expoSandbox === false), 'tab B (owner) is NOT the sandbox');
-  // tab A: record every REST call from here on, then move to another view in-app
-  const hits = [];
-  A.on('request', (rq) => { const m = rq.url().match(/\/rest\/v1\/([a-z_0-9]+)/); if (m) hits.push(m[1]); });
+  // tab A: move to another view in-app (no navigation by this gate)
   await A.bringToFront(); await wait(4000);
   await A.evaluate(() => { const l = [...document.querySelectorAll('a, button, [role="button"]')].find((e) => /^\s*(ATHLETES|מתאמנים)\b/i.test(e.textContent || '')); if (l) l.click(); });
-  await wait(6000);
-  await A.goto(BASE + '/coach/programs', { waitUntil: 'domcontentloaded' }); await wait(7000);
+  await wait(8000);
+  // EVERYTHING below is measured before this gate navigates tab A itself (audit C M5: a final goto
+  // reloaded the tab, so the mark vanished and the queries were the fresh page's - on any build)
   const sbx = hits.filter((t) => t.startsWith('sbx_')), real = hits.filter((t) => !t.startsWith('sbx_'));
+  ok(reloaded && await A.evaluate(() => window.__tabMark !== 'before'), 'tab A RELOADED by itself when someone else signed in (its old state cannot be written anywhere)');
   ok(await A.evaluate(() => window.__expoSandbox === false), 'tab A now follows the owner (sandbox flag off)');
-  ok(real.length > 0 && sbx.length === 0, `tab A's queries after the owner signed in: ${real.length} real, ${sbx.length} sandbox`);
+  // no write left tab A for a REAL table before it reloaded (the stale-state overwrite the audit found)
+  ok(!writesA.some((w) => !/sbx_|__seat_changed/.test(w)), `no real-table write from the old tab (${writesA.length} write(s): ${writesA.join(', ') || 'none'})`);
+  ok(real.length > 0 && sbx.length === 0, `tab A's queries after its reload: ${real.length} real, ${sbx.length} sandbox`);
 } catch (e) { fail++; console.log('FAIL: ' + e.message); }
 finally { await ctx.close(); b.disconnect(); }
 console.log(`PARTNER CROSS-TAB: ${pass} passed, ${fail} failed`);

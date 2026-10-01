@@ -8,9 +8,16 @@
 //      (by primary key). Any money token - "₪N", "N ש"ח" (every spelling),
 //      "N/mo", "N לחודש", and in price-formula fields "× N" - that is still the
 //      real number in the same place is a LEAK.
+//      Rows pair by primary key, and by a NATURAL key when a re-sync gave the
+//      real row a new id (audit C, 1.10: 53% of revenue_sheet_event went
+//      unchecked by id alone); a money table with sandbox rows left unpaired
+//      fails - an unchecked row is not a clean one.
 //   2. ONE multiplier per athlete, across the roster prices, the sheet events,
 //      the owed rows, the cell history and the auto-notes, joined through every
 //      name variant of that athlete (sbx_alias, owner-readable).
+//   3. every NUMERIC money column (month totals, invoices, subscriptions,
+//      contracts, payment requests, payment settings): no value >= 20 equal
+//      to the real one.
 // Read-only, as the owner (supabase-js), local sign-out.
 //
 //   node scripts/verify-partner-money-leaks.mjs
@@ -28,11 +35,22 @@ const TABLES = ['athlete_app_opens', 'athlete_meals', 'availability_rules', 'bit
   'intake_submissions', 'intake_tokens', 'invoices', 'leads', 'plans', 'program_shares', 'revenue_cell_history',
   'revenue_month_total', 'revenue_owed', 'revenue_sheet_event', 'store', 'subscriptions', 'trainee_activity',
   'trainee_evaluations', 'trainee_next_actions', 'weekly_focus', 'bw_logs'];
-const PK = { store: 'key' };
+const PK = { store: 'key', intake_tokens: 'token' };
+// natural keys: a real row that a re-sync re-created (new id) still pairs with its copy
+const NK = {
+  revenue_sheet_event: ['source', 'sheet_id', 'section', 'event_kind', 'event_date', 'first_seen_rev', 'sessions_count', 'trainee_id'],
+  revenue_cell_history: ['sheet_id', 'rev', 'tab', 'section', 'field', 'client_name'],
+  revenue_owed: ['section', 'trainee_id', 'client_name', 'last_payment'],
+  revenue_month_total: ['month', 'channel'],
+  intake_tokens: ['form_type', 'trainee_id', 'label', 'created_at'],
+};
+const MONEY_TABLES = new Set(['revenue_sheet_event', 'revenue_cell_history', 'revenue_owed', 'revenue_month_total', 'invoices', 'subscriptions', 'coaching_contracts', 'bit_payment_requests', 'coach_payment_settings']);
 // fields that ARE a price (every number >= 20 not a block/date is money) and fields that hold a "× rate" formula
 const PRICE_FIELDS = new Set(['revenue_sheet_event.rate_text', 'revenue_owed.price_text']);
 const TIMES_FIELDS = new Set(['revenue_owed.method', 'revenue_sheet_event.basis']);
-const MARK = String.raw`(?:ש"ח|ש״ח|שייח|ש"י|ש\\"ח|₪|/mo|/חודש|\s*לחודש)`;
+// every way a price is written in his sheets/notes - INDEPENDENT of the faker's own list (audit C M1:
+// "70 לאימון" passed both while the gate reused the faker's vocabulary)
+const MARK = String.raw`(?:ש"ח|ש״ח|שייח|ש"י|ש\\"ח|₪|/mo|/חודש|\s*לחודש|\s*שח(?![א-ת])|\s*שקל|\s*NIS\b|\s*ILS\b|\s*nis\b|\s*לאימון|\s*לשיעור|/אימון|\s*per session|\s*a month)`;
 const NUM = String.raw`[0-9][0-9,]*(?:\.[0-9]+)?`;
 const n = (x) => Number(String(x).replace(/,/g, ''));
 function moneyTokens(text, { price = false, times = false } = {}) {
@@ -64,16 +82,19 @@ const { error: se } = await db.auth.signInWithPassword({ email: 'ohadyproduction
 if (se) { console.log('FAIL: owner sign-in - ' + se.message); process.exit(1); }
 try {
   console.log('1. no real money left in ANY text/json column of the sandbox');
-  let scanned = 0, withMoney = 0, leaks = 0; const examples = [];
+  let scanned = 0, withMoney = 0, leaks = 0; const examples = []; const unpairedMoney = [];
   const cache = {};
   for (const t of TABLES) {
     const [real, mine] = await Promise.all([all(t), all('sbx_' + t)]);
     cache[t] = { real, mine };
     const key = PK[t] || 'id';
     const byId = new Map(real.map((r) => [String(r[key]), r]));
+    const nk = NK[t] && ((r) => NK[t].map((c) => String(r[c])).join('|'));
+    const byNk = nk && new Map(real.map((r) => [nk(r), r]));
+    let unpaired = 0;
     for (const x of mine) {
-      const y = byId.get(String(x[key]));
-      if (!y) continue;
+      const y = byId.get(String(x[key])) || (byNk && byNk.get(nk(x)));
+      if (!y) { unpaired++; continue; }
       for (const col of Object.keys(y)) {
         const rv = y[col];
         if (rv == null || typeof rv === 'number' || typeof rv === 'boolean') continue;
@@ -93,7 +114,10 @@ try {
         if (same.length) { leaks++; if (examples.length < 6) examples.push(`${f} [${y[key]}] real ${rTok.join('/')} = sandbox ${mTok.join('/')}`); }
       }
     }
+    cache[t].unpaired = unpaired;
+    if (MONEY_TABLES.has(t) && unpaired) unpairedMoney.push(`${t}: ${unpaired} of ${mine.length} sandbox rows have no real row by id${nk ? ' or natural key' : ''}`);
   }
+  ok(!unpairedMoney.length, `every sandbox row of the ${MONEY_TABLES.size} money tables was paired with its real row and checked${unpairedMoney.length ? '\n      ' + unpairedMoney.join('\n      ') : ''}`);
   ok(withMoney > 0 && leaks === 0, `${scanned} text/json values scanned, ${withMoney} hold money, ${leaks} still show a real amount${examples.length ? '\n      ' + examples.join('\n      ') : ''}`);
 
   console.log('2. one multiplier per athlete, across every table and every name variant');
@@ -144,6 +168,27 @@ try {
     if (hi / lo > 1.02) split.push(`${a}: ${[...new Set(list.map((l) => `${l.where} x${l.k.toFixed(3)}`))].slice(0, 5).join(', ')}`);
   }
   ok(ratios.size > 20 && split.length === 0, `${ratios.size} athletes, ${[...ratios.values()].reduce((s, l) => s + l.length, 0)} money values: ${split.length} athletes scaled by more than one multiplier${split.length ? '\n      ' + split.slice(0, 6).join('\n      ') : ''}`);
+
+  console.log('3. no real amount left in a NUMERIC money column');
+  const NUMERIC = { revenue_month_total: ['amount'], invoices: ['amount'], subscriptions: ['amount'], coaching_contracts: ['monthly_rate'],
+    bit_payment_requests: ['amount', 'paid_amount'], coach_payment_settings: ['default_monthly'], revenue_owed: ['amount'], revenue_sheet_event: ['rate_amount', 'amount_est'] };
+  let numChecked = 0; const numLeaks = [];
+  for (const [t, cols] of Object.entries(NUMERIC)) {
+    const key = PK[t] || 'id';
+    const byId = new Map(cache[t].real.map((r) => [String(r[key]), r]));
+    const nk = NK[t] && ((r) => NK[t].map((c) => String(r[c])).join('|'));
+    const byNk = nk && new Map(cache[t].real.map((r) => [nk(r), r]));
+    for (const x of cache[t].mine) {
+      const y = byId.get(String(x[key])) || (byNk && byNk.get(nk(x)));
+      if (!y) continue;
+      for (const c of cols) {
+        if (y[c] == null || !(Math.abs(Number(y[c])) >= 20)) continue;
+        numChecked++;
+        if (Number(x[c]) === Number(y[c])) numLeaks.push(`${t}.${c} [${y[key]}] ${y[c]}`);
+      }
+    }
+  }
+  ok(numChecked > 50 && !numLeaks.length, `${numChecked} numeric amounts checked across ${Object.keys(NUMERIC).length} tables: ${numLeaks.length} still the real number${numLeaks.length ? '\n      ' + numLeaks.slice(0, 6).join('\n      ') : ''}`);
 } catch (e) { fail++; console.log('FAIL: ' + e.message); }
 finally { await db.auth.signOut({ scope: 'local' }); }
 console.log(`\nPARTNER MONEY LEAKS: ${pass} passed, ${fail} failed`);

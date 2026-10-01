@@ -584,10 +584,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
             // viewport widths). MTD = month-to-date, finance standard.
-            // 17.9 (Ohad: "dashboard is still not updated with the right amount of money"): no payment is
-            // marked in the app, so this read ₪0 while the REVENUE card below showed the sheet's month.
-            // With no app-marked money this month, the finance sheet's coaching total is the figure.
-            { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩ ${tt('vs last month')}` : tt('Marked in the app'), subShort: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}%` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            // The money MARKED IN THE APP (1.10 #493: the sheets' totals live in Billing only;
+            // 17.9 had made this tile fall back to the sheet's month when nothing was marked).
+            { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩ ${tt('vs last month')}` : tt('Marked in the app'), subShort: revDelta !== null ? `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -1013,9 +1012,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 // F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
-function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar, sheet = null }) {
-  const bars = sheet ? sheet.bars : monthBars;
-  const barMax = sheet ? Math.max(1, ...sheet.bars.map(b => b.value)) : maxBar;
+// The money MARKED IN THE APP only: the sheets' totals live in Billing (1.10 #493),
+// so the card's sheet mode is gone with them.
+function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+  const bars = monthBars;
+  const barMax = maxBar;
   const tt = useT();
   const he = useHe();
   const refined = isRefined5b();
@@ -1028,8 +1029,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
     border: `1px solid ${C.cardBd}`,
     background: 'var(--c-sf)',
   };
-  // one row per tile label at every width (27.9, #328): the source (the
-  // sheet) is on the tile's own sub-line, so the label does not repeat it
+  // one row per tile label at every width (27.9, #328)
   const labelStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 };
   const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 };   // a normal line left room under the digits: a tile read 16 above / 18 below (#467)
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
@@ -1047,23 +1047,18 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap' }}><SegWord full={tt('Recurring committed')} short={tt('Recurring')} /></span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH' : '30D COLLECTED'))}</span>
-            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {sheet && <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap', color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null
-              ? <SegWord full={tt('Synced from the sheet twice a day')} short={tt('Synced twice a day')} />
-              : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}`
-              : sheet.syncAgeH < 1 ? <SegWord full={tt('Synced from the sheet just now')} short={tt('Synced just now')} />
-              : <SegWord full={tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))} short={tt('Synced {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))} />}</span>}
-            {!sheet && delta30 !== null && (
+            <span style={labelStyle}>{noDangle(tt('30D COLLECTED'))}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
+            {delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
               </span>
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{noDangle(tt(sheet ? 'LAST 3 MONTHS' : '90D COLLECTED'))}</span>
-            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.last3).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
-            <span style={subStyle}>{sheet ? tt('From the sheets') : tt('Trailing 3 months')}</span>
+            <span style={labelStyle}>{noDangle(tt('90D COLLECTED'))}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
+            <span style={subStyle}>{tt('Trailing 3 months')}</span>
           </div>
           <div style={metricStyle}>
             {/* OUTSTANDING carries a real status (overdue money) — per the
@@ -1092,7 +1087,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             free implementation (just divs) so it stays under 2kb of
             DOM and inherits theme colors. */}
         <div>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt(sheet ? 'LAST 6 MONTHS · COLLECTED · SHEET' : 'LAST 6 MONTHS · COLLECTED')}</div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt('LAST 6 MONTHS · COLLECTED')}</div>
           {/* With nothing collected in any of the six months every bar renders at
               its 2% floor in the hairline colour, so the chart reads as an empty
               axis — i.e. as BROKEN rather than as "nothing came in yet". Say it

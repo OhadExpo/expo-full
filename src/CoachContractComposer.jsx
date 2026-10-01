@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
+import { sandboxLink } from './sandboxLink';
 import { useEscClose } from './ui';
 import { useT } from './i18n';
 
@@ -44,7 +45,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
       };
       const { error } = await supabase.from('coaching_contracts').insert(row);
       if (error) throw error;
-      const url = `${window.location.origin}/sign/${token}`;
+      const url = sandboxLink(`${window.location.origin}/sign/${token}`);
       try { await navigator.clipboard.writeText(url); } catch {}
       setCreatedUrl(url);
       onSent?.(url);

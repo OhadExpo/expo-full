@@ -7,11 +7,16 @@
 //     link he creates verifies;
 //   - as an ATHLETE and as a signed-out visitor: the sbx_ twins give nothing;
 //   - none of the real link RPCs resolve a sandbox token.
+//   - THE PAGE (1.10 audit C: the RPCs were tested, never the page): a signed-out
+//     visitor opening his share link, as the app copies it (sbx=1), is told the link
+//     lives in a sandbox - not a bare "not found" that reads as a broken product.
+//     Needs BASE (a built app); skipped, and said so, without it.
 // The probe rows are removed. Local sign-out.
 //
-//   node scripts/verify-partner-links.mjs
+//   CDP=http://[::1]:9444 BASE=http://127.0.0.1:5277 node scripts/verify-partner-links.mjs
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import P from 'puppeteer-core';
 
 const src = fs.readFileSync('src/supabase.js', 'utf8');
 const mk = () => createClient(src.match(/SUPA_URL = '([^']+)'/)[1], src.match(/SUPA_PUBLISHABLE_KEY = '([^']+)'/)[1], { auth: { persistSession: false } });
@@ -33,7 +38,20 @@ try {
   const { data: dp, error: de } = await d.rpc('sbx_get_shared_program', { p_token: tok });
   ok(!!de || !dp || (Array.isArray(dp) && !dp.length), 'an athlete gets nothing from the sandbox twin');
   const { error: ae } = await anon.rpc('sbx_get_shared_program', { p_token: tok });
-  ok(!!ae, 'a signed-out visitor cannot call the sandbox twin');
+  ok(ae?.code === '42501', 'a signed-out visitor cannot call the sandbox twin' + (ae ? ' (' + ae.code + ')' : ' - IT ANSWERED'));
+  if (process.env.BASE) {
+    const b = await P.connect({ browserURL: process.env.CDP || 'http://[::1]:9444', defaultViewport: null, protocolTimeout: 300000 });
+    const ctx = await b.createBrowserContext();
+    try {
+      const pg = await ctx.newPage(); await pg.setViewport({ width: 390, height: 844 });
+      for (const [lang, word] of [['en', /sandbox copy/i], ['he', /סביבת ניסוי/]]) {
+        await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (x) {} }, lang);
+        await pg.goto(`${process.env.BASE}/p/${tok}?sbx=1`, { waitUntil: 'domcontentloaded' });
+        let txt = ''; for (let k = 0; k < 20; k++) { await new Promise((r) => setTimeout(r, 500)); txt = await pg.evaluate(() => document.body.innerText); if (!/LOADING/.test(txt) && txt.length > 20) break; }
+        ok(word.test(txt), `a visitor opening his share link sees why it does not open (${lang}): "${(txt.match(word) ? txt.split('\n').find((l) => word.test(l)) : txt.replace(/\s+/g, ' ').slice(0, 60)) || ''}"`);
+      }
+    } finally { await ctx.close(); b.disconnect(); }
+  } else console.log('  - page check SKIPPED: no BASE');
   const itok = 'probei' + Date.now().toString(36);
   const { error: ii } = await e.from('sbx_intake_tokens').insert({ token: itok, form_type: 'initial', locale: 'he', label: 'probe' });
   ok(!ii, 'he creates an intake link in his copy' + (ii ? ' - ' + ii.message : ''));

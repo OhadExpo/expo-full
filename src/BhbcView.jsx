@@ -4510,8 +4510,10 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             1440 LAST LIFT ran past the edge - "28 SEP  YESTERDAY" is 133px in
             a 118px column. Name 186 + a 150 last-lift column + 31 days at 24
             is 1108 inside a 1162 card. Narrower than that the grid still
-            scrolls (a month cannot fit 390px), but the NAME and the LAST LIFT
-            stay pinned at the two edges and only the days move. */}
+            scrolls (a month cannot fit 390px), with the NAME and the LAST LIFT
+            pinned at the two edges and only the days moving - down to 620px.
+            On a phone only the NAME stays pinned and LAST LIFT shows "3d" /
+            "yesterday" without the date (themes.css, #400 / #499). */}
         <div className="bhbc-lifts-scroll" style={{ overflowX: 'auto' }}>
           {/* the column widths are CSS variables: a phone narrows them (themes.css, 1.10 #499) */}
           <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>

@@ -14,6 +14,7 @@
 import React, { useEffect, useState } from 'react';
 import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
+import { sandboxLinkNote } from './sandboxLink';
 
 import { isHebrew } from './script';
 export default function ProgramShare() {
@@ -27,14 +28,14 @@ export default function ProgramShare() {
         const { data, error } = await supabase.rpc('get_shared_program', { p_token: token });
         if (cancelled) return;
         if (error) {
-          setState({ loading: false, error: error.message, plan: null });
+          setState({ loading: false, error: sandboxLinkNote() || error.message, plan: null });
           return;
         }
         // SECURITY DEFINER function returns either a single row (object) or
         // an array depending on Postgres versions. Normalize.
         const plan = Array.isArray(data) ? data[0] : data;
         if (!plan) {
-          setState({ loading: false, error: 'Link not found or expired.', plan: null });
+          setState({ loading: false, error: sandboxLinkNote() || 'Link not found or expired.', plan: null });
           return;
         }
         setState({ loading: false, error: null, plan });

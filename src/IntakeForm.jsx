@@ -9,6 +9,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
+import { sandboxLinkNote } from './sandboxLink';
 import { getForm } from './intakeFormSchemas';
 
 function deriveLocale() {
@@ -285,7 +286,7 @@ export default function IntakeForm() {
             {dir === 'rtl' ? 'הקישור לא תקף' : 'Link not valid'}
           </h2>
           <p style={{ fontSize: 14, color: C.tm, marginTop: 12 }}>
-            {dir === 'rtl' ? 'בקש/י קישור חדש מהמאמן.' : 'Ask the coach for a new link.'}
+            {sandboxLinkNote(dir === 'rtl' ? 'he' : 'en') || (dir === 'rtl' ? 'בקש קישור חדש מהמאמן.' : 'Ask the coach for a new link.')}
           </p>
         </div>
       </div></div>
@@ -299,7 +300,7 @@ export default function IntakeForm() {
             {dir === 'rtl' ? 'הקישור כבר שומש' : 'Link already used'}
           </h2>
           <p style={{ fontSize: 14, color: C.tm, marginTop: 12 }}>
-            {dir === 'rtl' ? 'אם זה היה בטעות — בקש/י קישור חדש מהמאמן.' : 'If that was a mistake, ask the coach for a fresh link.'}
+            {dir === 'rtl' ? 'אם זה היה בטעות — בקש קישור חדש מהמאמן.' : 'If that was a mistake, ask the coach for a fresh link.'}
           </p>
         </div>
       </div></div>

@@ -2192,7 +2192,11 @@ select.avail-select:dir(rtl) {
    box that holds a horizontal scroller (as child or grandchild) may shrink to
    its track, so the scroller does the scrolling. :where() = zero specificity:
    a deliberate width rule still wins; this only replaces the default `auto`. */
-:where(*):has(> [style*="overflow-x: auto"], > [style*="overflow: auto"], > [style*="overflow-x: scroll"], > .bhbc-lifts-scroll),
-:where(*):has(> * > [style*="overflow-x: auto"], > * > [style*="overflow: auto"], > * > [style*="overflow-x: scroll"], > * > .bhbc-lifts-scroll) {
+/* (1.10 triple audit) the WHOLE selector sits in :where() - :has() takes its
+   argument's specificity, so `:where(*):has([style…])` was (0,1,0), not zero.
+   Horizontal scrollers only (a vertical overflow:auto list is not this bug),
+   and the scroller's own parent only - the grandchild variant doubled the
+   :has() work on every inline-style change in a style-heavy app. */
+:where(:has(> [style*="overflow-x: auto"], > [style*="overflow-x: scroll"], > [style*="overflow: auto hidden"], > [style*="overflow: scroll hidden"], > .bhbc-lifts-scroll)) {
   min-width: 0;
 }

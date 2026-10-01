@@ -416,6 +416,14 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
     .concat([[T(MON3[nowM]), collected30]]);
   const barMax = Math.max(...months6.map(m => m[1]));
   const collected90 = months6.slice(-3).reduce((s, m) => s + m[1], 0);
+  // the real tiles' sub-lines (DashboardView, audit C 1.10): a month-over-month delta,
+  // coloured, the % isolated so it reads left-to-right inside Hebrew
+  const revDelta = Math.round(((collected30 - prior[4]) / prior[4]) * 100);
+  const deltaTxt = `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩`;
+  const deltaCol = revDelta >= 0 ? C.gn : C.rd;
+  const pendingTxt = readLang() === 'he'
+    ? (overdue.length === 0 ? 'אין בקשות תשלום פתוחות' : overdue.length === 1 ? 'בקשת תשלום פתוחה אחת' : `${overdue.length} בקשות תשלום פתוחות`)
+    : `${overdue.length} ${T('Pending requests')}`;
   return (
     <section>
 
@@ -428,7 +436,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
         <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
         <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
-        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={T('Marked in the app')} accent={C.gn} />
+        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={`${deltaTxt} ${T('vs last month')}`} subShort={deltaTxt} subColor={deltaCol} accent={C.gn} />
       </div>
 
       {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
@@ -453,23 +461,23 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         {revOpen && <div style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
             {[
-              [T('MRR (ACTIVE)'), num(mrr), T('recurring committed'), C.ac],
-              // the real card's app-marked mode (1.10 #493: the sheets live in Billing only)
-              [T('30D COLLECTED'), num(collected30), T('Marked in the app'), C.gn],
-              [T('90D COLLECTED'), num(collected90), T('Trailing 3 months'), C.gn],
-              [T('OUTSTANDING'), num(outstandingAmt), `${overdue.length} ${overdue.length === 1 ? T('overdue client') : T('overdue clients')}`, outstandingAmt > 0 ? C.or : C.ac],
-              [T('AVG LTV'), num(avgLtv), TN('over {n} months, est.', TENURE_MONTHS), C.ac],
-              [T('AVG TICKET'), num(avgTicket), T('per paying client, per month'), C.ac],
-            ].map(([lab, val, sub, col], i) => (
+              // the real RevenueCard's words, tile by tile (1.10 #493: the sheets live in Billing only)
+              [T('MRR (ACTIVE)'), num(mrr), <SegWord full={T('Recurring committed')} short={T('Recurring')} />],
+              [T('30D COLLECTED'), num(collected30), <span style={{ color: deltaCol }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{revDelta >= 0 ? '+' : ''}{revDelta}%</span> {T('vs prev 30d')}</span>],
+              [T('90D COLLECTED'), num(collected90), T('Trailing 3 months')],
+              [T('OUTSTANDING'), num(outstandingAmt), pendingTxt, outstandingAmt > 0],
+              [T('AVG LTV'), num(avgLtv), T('Per paying client')],
+              [T('AVG TICKET'), num(avgTicket), T('Per payment row')],
+            ].map(([lab, val, sub, dot], i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' /* the real metricStyle: centred in the row's height (#404, ported #460) */, gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}{lab}</span>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 /* as the real tile (#467) */, fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2 }}>{sub}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2, display: 'flex', whiteSpace: 'nowrap' }}>{sub}</span>
               </div>
             ))}
           </div>
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')} · {T('Sheet')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')}</div>
             {/* THE REAL CARD'S CHART: a bar per month, drawn from ZERO (a bar's
                 length is its value), the month under it. The months carry a real
                 shape now, so honest bars still read (see `prior`). */}

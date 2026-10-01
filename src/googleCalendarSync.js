@@ -102,6 +102,7 @@ async function getTokenClient() {
 // Connect — prompts user for Calendar consent and resolves with the
 // access token. Returns null on user cancel or any error.
 export function connectGoogleCalendar() {
+  if (isSandboxSeat()) return Promise.resolve(null);   // never a consent popup from the sandbox
   return new Promise((resolve) => {
     (async () => {
       let client;

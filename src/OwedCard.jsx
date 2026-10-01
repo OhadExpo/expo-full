@@ -69,7 +69,9 @@ function mergeOwed(rows, requests, overdue, trainees) {
     // A client the SHEET covers is judged by the sheet's own last payment: the
     // app's payment list lags it (it read "overdue 243 days" for a client the
     // sheet shows paid 23 days ago).
-    if (e && !e.sheet) e.overdue = { days: o.daysOverdue, never: o.neverPaid };
+    // ...and so is one that ALSO has a pending request (it already has a row, from the
+    // request, with no sheet on it) - the sheet still says paid up (1.10 audit)
+    if (e && !e.sheet && !coveredBySheet.has(o.id)) e.overdue = { days: o.daysOverdue, never: o.neverPaid };
   }
   const list = [...byKey.values()].map((e) => ({
     ...e,

@@ -32,7 +32,7 @@ import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
-import { supabase } from './supabase';
+import { supabase, isSandboxSeat } from './supabase';
 import { useT, useTB } from './i18n';
 import { dayMonthShort } from './dates';
 import {
@@ -1949,6 +1949,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   }, []);
 
   const handleConnectGcal = async () => {
+    // the sandbox seat never talks to Google (1.10 audit: Connect opened a real
+    // consent popup, then failed verification with a red English toast)
+    if (isSandboxSeat()) { toast(tr(readLang(), 'Google Calendar is off in the sandbox'), 'info', { ttl: 4000 }); return; }
     setGcalBusy(true);
     const token = await connectGoogleCalendar();
     setGcalBusy(false);

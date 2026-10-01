@@ -16,6 +16,19 @@
 //
 //   CDP=http://[::1]:9444 BASE=http://127.0.0.1:5274 node scripts/verify-box-fit.mjs [--widths 360,390,414] [--lang en,he] [--only bhbc]
 // Exit 1 on any finding, any surface not measured, or nothing measured.
+//
+// AUDIT C (1.10) - what the first version could not see, and what changed:
+//  - at <=620px html/body/#root clip overflow-x (and the BHBC zone does too), and
+//    any clipping ancestor counted as "contained": check A could NEVER fire on a
+//    phone. A PAGE-LEVEL clip or scroller (html, body, #root, .app-root, .bhbc-zone,
+//    or anything spanning the whole screen width) no longer contains anything.
+//  - a box CUT by its own bordered card (overflow:hidden on the card) is a CUT
+//    finding - being cut off is the bug, not a pass.
+//  - the athlete and the partner seats are proven signed in (not the login page),
+//    a tab that cannot be clicked is an error, a "tab" that navigates to another
+//    route is not a tab, and every measured view is written to measured.json.
+//  - STILL NOT MEASURED: fixed/absolute layers (modals, drawers, popovers) - this
+//    gate does not open them.
 import fs from 'node:fs';
 import P from 'puppeteer-core';
 
@@ -34,6 +47,8 @@ const coachRoutes = (() => {
 })();
 const SURFACES = [
   ...coachRoutes.map((url) => ({ seat: 'owner', url })),
+  // Elad's sandbox seat: the owner's screens plus the sandbox banner (read-only navigation)
+  ...coachRoutes.map((url) => ({ seat: 'partner', url })),
   { seat: 'athlete', url: '/athlete' },
   ...['/demo', '/demo/coach', '/demo/athlete', '/try'].map((url) => ({ seat: 'none', url })),
   // the MARKETING site (expo-il) - "all platforms" (#499): MARKETING_BASE=http://127.0.0.1:5251
@@ -44,7 +59,9 @@ const SURFACES = [
 const MEASURE = () => {
   const vw = document.documentElement.clientWidth;
   const out = [];
-  const isScroller = (a) => { const cs = getComputedStyle(a); return /(auto|scroll|hidden|clip)/.test(cs.overflowX) && a.scrollWidth > a.clientWidth + 1; };
+  const pageWrapper = (a) => a === document.documentElement || a === document.body || a.id === 'root' || a.classList.contains('app-root') || a.classList.contains('bhbc-zone');
+  const fullWidth = (a) => { const r = a.getBoundingClientRect(); return r.left <= 1 && r.width >= vw - 2; };
+  const bordered = (a) => { const cs = getComputedStyle(a); return parseFloat(cs.borderRightWidth) >= 0.5 && parseFloat(cs.borderLeftWidth) >= 0.5 && a.getBoundingClientRect().width > 120; };
   const cardOf = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const cs = getComputedStyle(a); if (parseFloat(cs.borderRightWidth) >= 0.5 && parseFloat(cs.borderLeftWidth) >= 0.5 && a.getBoundingClientRect().width > 120) return a; } return null; };
   for (const el of document.querySelectorAll('body *')) {
     if (el.closest('svg, canvas, video, [aria-hidden="true"], [data-allow-overflow]')) continue;
@@ -54,14 +71,16 @@ const MEASURE = () => {
     const q = el.getBoundingClientRect();
     if (q.width < 2 || q.height < 2) continue;
     // inside a scroller (or a clip) that contains it: its own business
-    let inScroller = false;
+    let inScroller = false, cutBy = null;
     for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
       const acs = getComputedStyle(a);
       if (acs.position === 'fixed' || acs.position === 'absolute') { inScroller = true; break; }   // overlays/drawers move as a unit
+      if (pageWrapper(a)) continue;                                                                  // the page itself contains nothing
       if (/(auto|scroll)/.test(acs.overflowX)) { inScroller = true; break; }
-      if (/(hidden|clip)/.test(acs.overflowX) && a !== document.documentElement && !a.classList.contains('app-root')) { const ar = a.getBoundingClientRect(); if (q.right > ar.right + 1 || q.left < ar.left - 1) { inScroller = true; break; } }
+      if (/(hidden|clip)/.test(acs.overflowX) && !fullWidth(a)) { const ar = a.getBoundingClientRect(); if (q.right > ar.right + 1 || q.left < ar.left - 1) { if (bordered(a)) cutBy = a; else inScroller = true; break; } }
     }
     if (inScroller) continue;
+    if (cutBy) { const cr = cutBy.getBoundingClientRect(); out.push({ kind: 'CUT', tag: el.tagName, text: (el.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30), l: Math.round(q.left), r: Math.round(q.right), card: `${Math.round(cr.left)}-${Math.round(cr.right)}` }); continue; }
     if (q.right > vw + 1 || q.left < -1) {
       out.push({ kind: 'SCREEN', tag: el.tagName, text: (el.innerText || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 30), l: Math.round(q.left), r: Math.round(q.right), vw });
       continue;
@@ -76,20 +95,23 @@ const MEASURE = () => {
   return out.slice(0, 40);
 };
 
-const tabsOf = async (pg) => pg.evaluate(() => {
+const tabsOf = async (pg, root) => pg.evaluate((root) => {
   // in-page tab buttons: role=tab, or a nav row of 2-8 short uppercase buttons
   const set = new Set();
   for (const t of document.querySelectorAll('[role="tab"]')) { const s = (t.innerText || '').trim(); if (s && s.length < 24) set.add(s); }
   for (const nav of document.querySelectorAll('nav, [data-tabs], .bhbc-tabs, [class*="tabs"]')) {
-    for (const b of nav.querySelectorAll('button, a')) { const s = (b.innerText || '').trim(); if (s && s.length < 24 && !/sign out|log out|יציאה|התנתק/i.test(s)) set.add(s); }
+    for (const b of nav.querySelectorAll('button, a')) {
+      if (b.tagName === 'A' && b.href && !new URL(b.href, location.href).pathname.startsWith(root)) continue;   // a link out of this surface is not one of its tabs
+      const s = (b.innerText || '').trim(); if (s && s.length < 24 && !/sign out|log out|יציאה|התנתק/i.test(s)) set.add(s);
+    }
   }
   return [...set].slice(0, 14);
-});
+}, root);
 const clickTab = (pg, label) => pg.evaluate((l) => { const x = [...document.querySelectorAll('[role="tab"], nav button, nav a, [data-tabs] button, .bhbc-tabs button, [class*="tabs"] button')].find((e) => (e.innerText || '').trim() === l); if (x) { x.click(); return true; } return false; }, label);
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://[::1]:9444', defaultViewport: null, protocolTimeout: 300000 });
-const findings = []; let measured = 0, errors = 0;
-for (const seat of ['owner', 'athlete', 'none', 'marketing']) {
+const findings = []; const measuredViews = []; let measured = 0, errors = 0;
+for (const seat of ['owner', 'partner', 'athlete', 'none', 'marketing']) {
   const list = SURFACES.filter((s) => s.seat === seat);
   if (!list.length) continue;
   const ctx = await b.createBrowserContext();
@@ -97,10 +119,11 @@ for (const seat of ['owner', 'athlete', 'none', 'marketing']) {
   try {
     await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
     if (seat === 'marketing') { const { assertMarketingSite } = await import('./lib/il-site.mjs'); await pg.goto(process.env.MARKETING_BASE + '/', { waitUntil: 'domcontentloaded' }); await assertMarketingSite(pg, process.env.MARKETING_BASE); }
-    if (seat === 'owner' || seat === 'athlete') {
-      process.env.EXPO_EMAIL = seat === 'owner' ? 'ohadyproductions@gmail.com' : 'diego@diegoday.com';
+    if (seat === 'owner' || seat === 'athlete' || seat === 'partner') {
+      process.env.EXPO_EMAIL = { owner: 'ohadyproductions@gmail.com', athlete: 'diego@diegoday.com', partner: 'eladeluz24@gmail.com' }[seat];
       const A = await import('./lib/authed-page.mjs?' + seat);
-      let ok = false; for (let k = 0; k < 3 && !ok; k++) { await A.signIn(pg, BASE); ok = seat === 'owner' ? await A.assertAuthed(pg, BASE) : true; }
+      let ok = false; for (let k = 0; k < 3 && !ok; k++) { await A.signIn(pg, BASE); ok = await A.assertAuthed(pg, BASE, seat === 'athlete' ? '/athlete' : '/coach/dashboard'); }
+      if (ok && seat === 'partner') ok = await pg.evaluate(() => window.__expoSandbox === true);
       if (!ok) throw new Error('could not sign in as ' + seat);
     }
     for (const lang of LANGS) {
@@ -114,13 +137,19 @@ for (const seat of ['owner', 'athlete', 'none', 'marketing']) {
             if (s.url.includes('#')) { await pg.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange'))); }
             for (let k = 0; k < 30; k++) { await wait(500); if (await pg.evaluate(() => document.body.innerText.trim().length > 60 && !/LOADING DATA/.test(document.body.innerText.slice(0, 300)))) break; }
             await wait(2500);
-            if (seat === 'owner' && await pg.evaluate(() => !!document.querySelector('input[type="password"]'))) throw new Error('signed out - not measured');
+            if ((seat === 'owner' || seat === 'athlete' || seat === 'partner') && await pg.evaluate(() => !!document.querySelector('input[type="password"]'))) throw new Error('signed out - not measured');
             const views = [{ tab: '(default)' }];
-            for (const t of await tabsOf(pg)) views.push({ tab: t });
+            const root = s.url.split('#')[0] || '/';
+            for (const t of await tabsOf(pg, root)) views.push({ tab: t });
             for (const v of views) {
-              if (v.tab !== '(default)') { const okc = await clickTab(pg, v.tab); if (!okc) continue; await wait(2200); }
+              if (v.tab !== '(default)') {
+                const okc = await clickTab(pg, v.tab);
+                if (!okc) { errors++; console.log(`ERROR ${id} [${v.tab}] tab not clickable - not measured`); continue; }
+                await wait(2200);
+                if (!(await pg.evaluate(() => location.pathname)).startsWith(root)) { await pg.goto((s.base || BASE) + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 }); await wait(4000); continue; }
+              }
               const f = await pg.evaluate(MEASURE);
-              measured++;
+              measured++; measuredViews.push(`${id} [${v.tab}]`);
               for (const x of f) { findings.push({ id, tab: v.tab, ...x }); }
               if (f.length) console.log(`FIND ${id.padEnd(30)} [${v.tab}] ${f.length}: ${f.slice(0, 3).map((x) => `${x.kind} ${x.tag} "${x.text}" ${x.l}-${x.r}${x.card ? ' card ' + x.card : ' vw ' + x.vw}`).join(' | ')}`);
             }
@@ -134,8 +163,11 @@ for (const seat of ['owner', 'athlete', 'none', 'marketing']) {
 }
 b.disconnect();
 fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));
+fs.writeFileSync(`${OUT}/measured.json`, JSON.stringify(measuredViews, null, 1));
+const perSeat = {}; for (const s of SURFACES) perSeat[s.seat] = (perSeat[s.seat] || 0) + 1;
+console.log('surfaces per seat: ' + Object.entries(perSeat).map(([k, v]) => `${k} ${v}`).join(', ') + ` - widths ${WIDTHS.join('/')}, languages ${LANGS.join('/')} -> ${OUT}/measured.json`);
 const views = new Set(findings.map((f) => `${f.id} [${f.tab}]`));
-console.log(`\n${measured} page x tab x width x language views measured. Boxes past the screen or their card: ${findings.length} (in ${views.size} views) -> ${OUT}/findings.json`);
+console.log(`\n${measured} page x tab x width x language views measured. Boxes past the screen, past their card, or cut by it: ${findings.length} (in ${views.size} views) -> ${OUT}/findings.json`);
 if (!measured) { console.log('FAIL: measured nothing'); process.exit(1); }
 if (errors) { console.log(`FAIL: ${errors} surface(s) not measured`); process.exit(1); }
 process.exit(findings.length ? 1 : 0);

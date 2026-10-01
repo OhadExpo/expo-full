@@ -146,7 +146,21 @@ function setSandboxFor(email) {
 // UI in an old partner tab still hit the sandbox. localStorage is shared by
 // every tab, so the stored session IS the current seat. Cached on the raw
 // string, so it costs one read and no parse per query - and still no lock user.
+//
+// A DIFFERENT PERSON UNDER THIS TAB = THIS TAB STOPS (1.10 triple audit, HIGH).
+// Following the store alone was not enough: the tab's React state still holds
+// the PREVIOUS seat's data (useSupaStore loads a key once, saves the whole
+// value), so after a sign-in in another tab an edit here wrote that stale data
+// into the NEW seat's tables - the partner's sandbox copy over the owner's real
+// roster, or the owner's real data into the partner's sandbox. The first email
+// this tab sees is its seat; when the stored session belongs to someone else,
+// every query from this tab fails closed (an object that does not exist - no
+// write can land anywhere) and the tab reloads once, clean, as the new seat.
+// A sign-out, a token refresh, or the first sign-in on the login page is not a
+// change of seat.
 let lastSeatRaw;
+let tabSeat = null;          // the email this tab's state belongs to
+let seatChanged = false;     // set once; the reload follows
 function sandboxNow() {
   let raw = null;
   try { raw = authStorage ? authStorage.getItem(AUTH_TOKEN_KEY) : null; } catch { /* storage blocked */ }
@@ -154,11 +168,25 @@ function sandboxNow() {
     lastSeatRaw = raw;
     let email = null;
     try { email = raw ? JSON.parse(raw)?.user?.email : null; } catch { /* not a session */ }
+    const e = email ? String(email).toLowerCase() : null;
+    if (e && !tabSeat) tabSeat = e;
+    else if (e && tabSeat && e !== tabSeat && !seatChanged) {
+      seatChanged = true;
+      try { if (typeof window !== 'undefined') setTimeout(() => window.location.reload(), 0); } catch { /* noop */ }
+    }
     setSandboxFor(email);
   }
   return sandboxSeat;
 }
+const SEAT_CHANGED = '__seat_changed_reloading__';
 export const isSandboxSeat = () => sandboxNow();
+// ...and AT ONCE, not at this tab's next query (1.10 audit C): an in-app click
+// that needed no new data made no query, so the old tab kept showing the
+// previous seat until something fetched. The browser fires 'storage' in every
+// OTHER tab when one of them writes the session - no lock, no listener on auth.
+try {
+  if (typeof window !== 'undefined') window.addEventListener('storage', (ev) => { if (ev.key === AUTH_TOKEN_KEY || ev.key === null) sandboxNow(); });
+} catch { /* noop */ }
 
 const makeAuthStorage = () => {
   if (typeof window === 'undefined' || !window.localStorage) return undefined;
@@ -250,9 +278,9 @@ const SBX_RPC = Object.fromEntries(['purge_trainee_data', 'get_shared_program', 
 try { const raw = authStorage && authStorage.getItem(AUTH_TOKEN_KEY); if (raw) setSandboxFor(JSON.parse(raw)?.user?.email); } catch { /* signed out */ }
 {
   const realFrom = supabase.from.bind(supabase);
-  supabase.from = (table) => realFrom(sandboxNow() && SBX_TABLES.has(table) ? 'sbx_' + table : table);
+  supabase.from = (table) => { const sbx = sandboxNow(); return realFrom(seatChanged ? SEAT_CHANGED : sbx && SBX_TABLES.has(table) ? 'sbx_' + table : table); };
   const realRpc = supabase.rpc.bind(supabase);
-  supabase.rpc = (fn, args, opts) => realRpc(sandboxNow() && SBX_RPC[fn] ? SBX_RPC[fn] : fn, args, opts);
+  supabase.rpc = (fn, args, opts) => { const sbx = sandboxNow(); return realRpc(seatChanged ? SEAT_CHANGED : sbx && SBX_RPC[fn] ? SBX_RPC[fn] : fn, args, opts); };
   // the PUBLIC live channels (every seat hears them): in the sandbox they get
   // their own name, so his autosave never tells the owner's open editor or a
   // club coach "someone changed this" (1.10 audit C8) - and his own tabs and

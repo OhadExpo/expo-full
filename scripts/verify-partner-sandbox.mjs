@@ -77,17 +77,18 @@ try {
     const { data: pi } = await p.from('sbx_plan_index').select('id').limit(1);
     ok(Array.isArray(pi) && pi.length === 1, 'sbx_plan_index answers him');
     const { error: pe } = await p.rpc('purge_trainee_data', { p_trainee_id: 'nobody_probe' });
-    ok(!!pe, 'the REAL purge refuses him' + (pe ? ' (' + (pe.message || '').slice(0, 30) + ')' : ' - IT RAN'));
+    ok(!!pe && /not authorized|permission denied/i.test(pe.message || ''), 'the REAL purge refuses him' + (pe ? ' (' + pe.code + ' ' + (pe.message || '').slice(0, 30) + ')' : ' - IT RAN'));
     // his DELETE-ATHLETE runs the sandbox purge (supabase.js maps it); on a
     // nobody id it deletes nothing and reports every sandbox table it looked in
     const { data: sp, error: spe } = await p.rpc('sbx_purge_trainee_data', { p_trainee_id: 'nobody_probe' });
     ok(!spe && sp && Object.keys(sp).length >= 15 && Object.values(sp).every((n) => n === 0), 'his delete-athlete runs on his copy (' + (spe ? spe.message : Object.keys(sp || {}).length + ' tables, 0 rows') + ')');
     const { error: re } = await p.rpc('sbx_reset');
-    ok(!!re, 'he cannot re-copy/wipe the sandbox himself' + (re ? '' : ' - IT RAN'));
+    // a REFUSAL (42501), not any error: on 1.10 the reset itself was broken and this passed on that
+    ok(!!re && re.code === '42501', 'he cannot re-copy/wipe the sandbox himself' + (re ? ' (' + re.code + ')' : ' - IT RAN'));
     // the multiplier is the only thing between a fake price and the real one
     const { error: fe } = await p.rpc('sbx_fake', { n: 100, seed: 'tr_diego' });
     const { error: fe2 } = await p.rpc('sbx_factor', { seed: 'tr_diego' });
-    ok(!!fe && !!fe2, 'he cannot call the faking functions (the multiplier stays secret)' + (fe && fe2 ? '' : ' - ONE ANSWERED'));
+    ok(fe?.code === '42501' && fe2?.code === '42501', 'he cannot call the faking functions (the multiplier stays secret)' + (fe && fe2 ? ' (' + fe.code + '/' + fe2.code + ')' : ' - ONE ANSWERED'));
   }
   console.log('4. the money is fake');
   {
