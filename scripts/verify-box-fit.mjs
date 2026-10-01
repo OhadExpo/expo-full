@@ -36,7 +36,9 @@ const SURFACES = [
   ...coachRoutes.map((url) => ({ seat: 'owner', url })),
   { seat: 'athlete', url: '/athlete' },
   ...['/demo', '/demo/coach', '/demo/athlete', '/try'].map((url) => ({ seat: 'none', url })),
-].filter((s) => !ONLY || ONLY.split(',').some((o) => s.url.includes(o)));
+  // the MARKETING site (expo-il) - "all platforms" (#499): MARKETING_BASE=http://127.0.0.1:5251
+  ...(process.env.MARKETING_BASE ? ['/', '/#/online', '/#/programs', '/#/gym', '/#/privacy', '/#/terms', '/#/accessibility'].map((url) => ({ seat: 'marketing', url, base: process.env.MARKETING_BASE })) : []),
+].filter((s) => !ONLY || ONLY.split(',').some((o) => s.url.includes(o))).filter((s) => !process.env.SEATS || process.env.SEATS.split(',').includes(s.seat));
 
 // runs in the page: every box that crosses the screen or its card
 const MEASURE = () => {
@@ -87,14 +89,15 @@ const clickTab = (pg, label) => pg.evaluate((l) => { const x = [...document.quer
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://[::1]:9444', defaultViewport: null, protocolTimeout: 300000 });
 const findings = []; let measured = 0, errors = 0;
-for (const seat of ['owner', 'athlete', 'none']) {
+for (const seat of ['owner', 'athlete', 'none', 'marketing']) {
   const list = SURFACES.filter((s) => s.seat === seat);
   if (!list.length) continue;
   const ctx = await b.createBrowserContext();
   const pg = await ctx.newPage();
   try {
     await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
-    if (seat !== 'none') {
+    if (seat === 'marketing') { const { assertMarketingSite } = await import('./lib/il-site.mjs'); await pg.goto(process.env.MARKETING_BASE + '/', { waitUntil: 'domcontentloaded' }); await assertMarketingSite(pg, process.env.MARKETING_BASE); }
+    if (seat === 'owner' || seat === 'athlete') {
       process.env.EXPO_EMAIL = seat === 'owner' ? 'ohadyproductions@gmail.com' : 'diego@diegoday.com';
       const A = await import('./lib/authed-page.mjs?' + seat);
       let ok = false; for (let k = 0; k < 3 && !ok; k++) { await A.signIn(pg, BASE); ok = seat === 'owner' ? await A.assertAuthed(pg, BASE) : true; }
@@ -107,7 +110,8 @@ for (const seat of ['owner', 'athlete', 'none']) {
         for (const s of list) {
           const id = `${s.url}/${lang}/${w}`;
           try {
-            await pg.goto(BASE + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await pg.goto((s.base || BASE) + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            if (s.url.includes('#')) { await pg.evaluate(() => window.dispatchEvent(new HashChangeEvent('hashchange'))); }
             for (let k = 0; k < 30; k++) { await wait(500); if (await pg.evaluate(() => document.body.innerText.trim().length > 60 && !/LOADING DATA/.test(document.body.innerText.slice(0, 300)))) break; }
             await wait(2500);
             if (seat === 'owner' && await pg.evaluate(() => !!document.querySelector('input[type="password"]'))) throw new Error('signed out - not measured');
