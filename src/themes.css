@@ -1924,6 +1924,12 @@ select.avail-select:dir(rtl) {
    The pinned end cells are the grid's only inset-inline-end styles. */
 @media (max-width: 620px) {
   .bhbc-lifts-scroll [style*="inset-inline-end"] { position: static !important; }
+  /* phone columns (1.10 #499): 186 + 150 of fixed columns did not fit a 368px
+     card even with ONE day in the month, so LAST LIFT opened cut in half. The
+     name narrows, the last-lift column keeps only "3D" / "YESTERDAY" (the date
+     is its tooltip) - month-start fits, later days scroll with the name pinned. */
+  .bhbc-lifts-scroll { --lifts-name-w: 180px; --lifts-last-w: 96px; }
+  .bhbc-lifts-scroll .lifts-last-date { display: none; }
 }
 
 /* A cancelled session (BHBC, 29.9 #398): still on the calendar, struck through
@@ -2175,4 +2181,18 @@ select.avail-select:dir(rtl) {
   .dash-storage .ds-fig { grid-area: fig; justify-self: end; line-height: 20px; }
   .dash-storage .ds-bar { grid-area: bar; min-width: 0 !important; }
   .dash-storage .ds-files { grid-area: files; justify-self: end; line-height: 20px; font-size: 12px !important; }   /* letters the height of the row above's, or the ink sits low */
+}
+
+/* A SCROLLER'S BOX NEVER GROWS PAST ITS TRACK (1.10 #499, Ohad on BHBC LIFTS:
+   "massive fix for this type of design/layout mistake everywhere").
+   A grid or flex item defaults to min-width:auto = its content's width, so a
+   month grid inside an overflow-x:auto scroller stretched its CARD to 388px in
+   a 368px track on a 390 phone - the page clipped the card's right edge (the
+   S&C toggle, the last column) instead of the grid scrolling inside it. Any
+   box that holds a horizontal scroller (as child or grandchild) may shrink to
+   its track, so the scroller does the scrolling. :where() = zero specificity:
+   a deliberate width rule still wins; this only replaces the default `auto`. */
+:where(*):has(> [style*="overflow-x: auto"], > [style*="overflow: auto"], > [style*="overflow-x: scroll"], > .bhbc-lifts-scroll),
+:where(*):has(> * > [style*="overflow-x: auto"], > * > [style*="overflow: auto"], > * > [style*="overflow-x: scroll"], > * > .bhbc-lifts-scroll) {
+  min-width: 0;
 }
