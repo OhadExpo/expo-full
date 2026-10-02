@@ -250,6 +250,11 @@ export function useAthletePlans() {
 // exists (see scripts/migrations/2026-04-27-plans-is-template-purchase.sql)
 // we also try to write the typed column; if that 400s on an unmigrated DB
 // we retry without the column so coach saves never break.
+// planId -> the updated_at of THIS device's last successful save of it (#510-B7):
+// the editor keeps the version it loaded, so without this its second save would
+// read as somebody else's change.
+const lastSavedAt = new Map();
+const readPlanLangHe = () => { try { return (localStorage.getItem('expo-lang') || '') === 'he' || document.documentElement.lang === 'he'; } catch { return false; } };
 export async function savePlan(plan) {
   // Blank-overwrite guard. Old drive-imported plans store exercises under
   // day.ex (compressed keys: eid/s/r); the editor reads day.exercises (full
@@ -337,12 +342,42 @@ export async function savePlan(plan) {
     },
   };
   const rowWithCol = { ...baseRow, is_template_purchase: isTemplate };
-  let { error } = await supabase.from('plans').upsert(rowWithCol);
-  if (error && /column .*is_template_purchase/i.test(error.message || '')) {
+  const colMissing = (e) => !!e && /column .*is_template_purchase/i.test(e.message || '');
+
+  // TWO EDITORS, ONE PLAN (2.10 #510-B7). This was a blind upsert of the whole
+  // row: the owner and Yuval - or one coach on a phone and a laptop - editing
+  // the same program erased each other's day edits, last save wins, silently.
+  // A save now names the version it was built on (this device's own last save
+  // of the plan, else the updated_at it was loaded with) and is refused if the
+  // row moved since. The edit stays in the editor; the coach reloads and redoes
+  // it. A plan with no known version (brand new, or an old caller) keeps the
+  // upsert, as does one deleted elsewhere (it is re-created, as before).
+  const base = lastSavedAt.get(plan.id) || plan.updatedAt || null;
+  if (base) {
+    const casUpdate = (row) => supabase.from('plans').update(row).eq('id', plan.id).eq('updated_at', base).select('updated_at');
+    let { data: upd, error: ue } = await casUpdate(rowWithCol);
+    if (colMissing(ue)) ({ data: upd, error: ue } = await casUpdate(baseRow));
+    if (ue) { console.error('savePlan error:', ue); return false; }
+    if (upd && upd.length) { lastSavedAt.set(plan.id, upd[0].updated_at); return true; }
+    const { data: cur, error: ce } = await supabase.from('plans').select('updated_at').eq('id', plan.id).maybeSingle();
+    if (ce) { console.error('savePlan error:', ce); return false; }
+    if (cur && cur.updated_at !== base) {
+      console.warn(`[savePlan] ${plan.id} changed on another device since this editor loaded it (${base} -> ${cur.updated_at}); not overwriting.`);
+      if (typeof window !== 'undefined') {
+        try { toast(readPlanLangHe() ? 'התוכנית שונתה במכשיר אחר - טען מחדש לפני שמירה. השינוי שלך עדיין בעורך.' : 'This program was changed on another device - reload before saving. Your edit is still in the editor.', 'error', { ttl: 9000 }); } catch {}
+      }
+      return false;
+    }
+    if (cur) { console.error('savePlan error: the update was refused (row unchanged, nothing written)'); return false; }
+    // the row is gone: re-create it below, as the upsert always did
+  }
+  let { data: ins, error } = await supabase.from('plans').upsert(rowWithCol).select('updated_at');
+  if (colMissing(error)) {
     // Pre-migration DB — fall back to JSONB-only write.
-    ({ error } = await supabase.from('plans').upsert(baseRow));
+    ({ data: ins, error } = await supabase.from('plans').upsert(baseRow).select('updated_at'));
   }
   if (error) console.error('savePlan error:', error);
+  else if (ins && ins[0]) lastSavedAt.set(plan.id, ins[0].updated_at);
   return !error;
 }
 
