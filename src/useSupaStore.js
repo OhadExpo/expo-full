@@ -210,8 +210,13 @@ function isTransient(err) {
 // so the sign-out purge (auth.jsx CACHE_KEYS_RX) removes it with the snapshot.
 // Never for the library (no snapshot of it exists, and it is ~1MB).
 const BASE_SUFFIX = '::base';
-const persistBase = (key, at, val) => {
+// A base must describe the SAME moment as the snapshot beside it. The roster's
+// snapshot is written only on load, so its base is too (persistBase(...,
+// {withSnapshot:true}) there) - persisting it on every write made a snapshot
+// boot treat the old roster as "my edit" and it won whole (review of #510, HIGH).
+const persistBase = (key, at, val, { withSnapshot = false } = {}) => {
   if (key === 'expo-exercises' || val === undefined) return;
+  if (key === 'expo-trainees' && !withSnapshot) return;
   try { lsSnapshotSoon(key + BASE_SUFFIX, { at, val }); } catch { /* a cache */ }
 };
 const readPersistedBase = (key) => {
@@ -221,10 +226,15 @@ const readPersistedBase = (key) => {
 const BASE_IN_QUEUE_MAX = 200000;
 const queueBase = (val) => { try { return val !== undefined && JSON.stringify(val).length <= BASE_IN_QUEUE_MAX ? val : undefined; } catch { return undefined; } };
 
+// at: undefined = not known, null = NO ROW, NULL_AT = a row whose updated_at is
+// NULL (the column is nullable; an sbx_ copy can carry one) - conflating the last
+// two made such a row read as an RLS refusal forever (review of #510).
+const NULL_AT = '\u0000null';
+const atOf = (row) => (row ? (row.updated_at == null ? NULL_AT : row.updated_at) : null);
 async function readStoreRow(key) {
   const { data, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
   if (error) throw error;
-  return data ? { at: data.updated_at ?? null, val: data.value } : { at: null, val: undefined };
+  return data ? { at: atOf(data), val: data.value } : { at: null, val: undefined };
 }
 
 // One CAS attempt. `at` = the updated_at the value was built on; null = the
@@ -236,7 +246,8 @@ async function casWriteOnce(key, value, at) {
     if (error) { if (error.code === '23505') return { conflict: true }; throw error; }
     return { ok: true, at: (data && data[0] && data[0].updated_at) || now };
   }
-  const { data, error } = await supabase.from('store').update({ value, updated_at: now }).eq('key', key).eq('updated_at', at).select('updated_at');
+  const q = supabase.from('store').update({ value, updated_at: now }).eq('key', key);
+  const { data, error } = await (at === NULL_AT ? q.is('updated_at', null) : q.eq('updated_at', at)).select('updated_at');
   if (error) throw error;
   if (data && data.length) return { ok: true, at: data[0].updated_at || now };
   return { conflict: true };
@@ -395,11 +406,23 @@ const UPLOAD_FV_FIELDS = [...ATHLETE_FV_FIELDS, 'uploadFailed', 'failReason'];
 registerHandler('client_workouts.fvSlot', async ({ id, index, slot }) => {
   const { data: row, error } = await supabase.from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
   if (error) throw error;
-  if (!row) throw new Error('workout row not on the server yet - network wait, retry after its own upsert');
+  if (!row) {
+    // its own upsert still queued -> wait for it; nothing queued -> the workout
+    // is gone (deleted, or its row was refused): retrying would park forever
+    const waiting = getEntries().some((e) => e && e.type === 'client_workouts.upsert' && e.payload && e.payload.row && e.payload.row.id === id);
+    if (waiting) throw new Error('workout row not on the server yet - network wait, retry after its own upsert');
+    console.warn(`[fvSlot] workout ${id} is not on the server and none is queued - dropping the slot update`);
+    return;
+  }
   const fv = Array.isArray(row.form_videos) ? row.form_videos.slice() : [];
   while (fv.length <= index) fv.push(null);
   const next = { ...(fv[index] || {}) };
-  for (const k of UPLOAD_FV_FIELDS) { if (slot && Object.prototype.hasOwnProperty.call(slot, k)) next[k] = slot[k]; else delete next[k]; }
+  // the upload STATE fields follow the slot exactly (a stale pendingBlobId must
+  // go); the athlete's words (note, fileName) are set when given, never blanked
+  for (const k of UPLOAD_FV_FIELDS) {
+    if (slot && Object.prototype.hasOwnProperty.call(slot, k)) next[k] = slot[k];
+    else if (k !== 'note' && k !== 'fileName') delete next[k];
+  }
   fv[index] = next;
   const { error: e2 } = await supabase.from('client_workouts').update({ form_videos: fv }).eq('id', id);
   if (e2) throw e2;
@@ -532,8 +555,8 @@ export function useSupaStore(key, initial) {
         const { data: row, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
         if (error) throw error;
         // the base every write from here is built on (#510-B1)
-        baseRef.current = { known: true, at: row ? (row.updated_at ?? null) : null, val: row ? row.value : undefined };
-        if (row) persistBase(key, row.updated_at ?? null, row.value);
+        baseRef.current = { known: true, at: atOf(row), val: row ? row.value : undefined };
+        if (row) persistBase(key, atOf(row), row.value, { withSnapshot: key !== 'expo-trainees' || (Array.isArray(row.value) && row.value.length > 0) });
         // Record what the SERVER holds before deciding whether to apply it.
         // This must happen even when the apply is skipped below, because it is
         // what unlocks writing at all (see the guard in save()).
@@ -643,12 +666,21 @@ export function useSupaStore(key, initial) {
       if (disposed || savingRef.current) return;
       const gen = saveGenRef.current;
       try {
+        // the version first: a focus on a tab whose stores did not move costs one
+        // tiny read per key, not the value (the library is ~1MB)
+        const { data: v, error: ve } = await supabase.from('store').select('updated_at').eq('key', key).maybeSingle();
+        if (disposed || ve || !v || savingRef.current || gen !== saveGenRef.current) return;
+        if (baseRef.current.known && atOf(v) === baseRef.current.at) return;
         const { data: row, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
         // a write that finished while this read was out is newer than it (#510-B8)
         if (disposed || error || savingRef.current || gen !== saveGenRef.current) return;
         if (!row || row.value === undefined) return;
-        baseRef.current = { known: true, at: row.updated_at ?? null, val: row.value };
-        persistBase(key, row.updated_at ?? null, row.value);
+        baseRef.current = { known: true, at: atOf(row), val: row.value };
+        persistBase(key, atOf(row), row.value);
+        // AN EDIT STILL IN THE OFFLINE QUEUE IS NOT ON THE SERVER YET: showing the
+        // server value now would make it vanish from the screen until its replay
+        // lands (review of #510). The base moves; the screen keeps the edit.
+        if (getEntries().some((e) => e && e.type === 'store.upsert' && e.payload && e.payload.key === key)) return;
         const val = asShape(row.value);
         if (JSON.stringify(val) === JSON.stringify(dataRef.current)) return;
         setData(val); dataRef.current = val;
@@ -665,8 +697,11 @@ export function useSupaStore(key, initial) {
     // A TAB CLOSING MID-SAVE (#510-B4): the value on the wire, or the edit
     // waiting behind it, existed only in memory. It goes to the offline queue
     // with its base; if the write did land, the replay merges to the same value.
+    // Only the edit WAITING behind the write (never sent). The value on the wire
+    // usually lands; re-sending it later on its old base made the replay revert
+    // other devices' edits made after it (review of #510).
     const onHide = () => {
-      const v = pendingRef.current !== null ? pendingRef.current : inflightRef.current;
+      const v = pendingRef.current;
       if (v === null || v === undefined) return;
       const b = baseRef.current;
       try { enqueue({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key }); } catch { /* best effort */ }

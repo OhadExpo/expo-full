@@ -250,11 +250,29 @@ export function useAthletePlans() {
 // exists (see scripts/migrations/2026-04-27-plans-is-template-purchase.sql)
 // we also try to write the typed column; if that 400s on an unmigrated DB
 // we retry without the column so coach saves never break.
-// planId -> the updated_at of THIS device's last successful save of it (#510-B7):
-// the editor keeps the version it loaded, so without this its second save would
-// read as somebody else's change.
+// planId -> { seen, at } (#510-B7): the LINEAGE of this device's saves of the
+// plan - every version it started from or produced (`seen`) and the newest one
+// (`at`). The editor keeps the version it LOADED, so its next save arrives with
+// an old version from that lineage and must build on `at`. A plan arriving with
+// a version OUTSIDE the lineage was re-read since (the editor's Reload, a
+// copy-into re-read) - that fresher version wins and starts a new lineage.
+// (A two-field memory refused every save after a Reload, then every second save
+// of a new plan - both caught by verify-plan-cas.)
 const lastSavedAt = new Map();
+const inLineage = (m, plan) => !!m && (!plan.updatedAt || m.seen.has(plan.updatedAt));
+const baseFor = (plan) => {
+  const m = lastSavedAt.get(plan.id);
+  if (inLineage(m, plan)) return m.at;
+  return plan.updatedAt || null;
+};
+const remember = (plan, at) => {
+  if (!at) return;
+  const m = lastSavedAt.get(plan.id);
+  if (inLineage(m, plan)) { m.seen.add(at); m.at = at; return; }
+  lastSavedAt.set(plan.id, { seen: new Set([plan.updatedAt, at].filter(Boolean)), at });
+};
 const readPlanLangHe = () => { try { return (localStorage.getItem('expo-lang') || '') === 'he' || document.documentElement.lang === 'he'; } catch { return false; } };
+
 export async function savePlan(plan) {
   // Blank-overwrite guard. Old drive-imported plans store exercises under
   // day.ex (compressed keys: eid/s/r); the editor reads day.exercises (full
@@ -352,13 +370,13 @@ export async function savePlan(plan) {
   // row moved since. The edit stays in the editor; the coach reloads and redoes
   // it. A plan with no known version (brand new, or an old caller) keeps the
   // upsert, as does one deleted elsewhere (it is re-created, as before).
-  const base = lastSavedAt.get(plan.id) || plan.updatedAt || null;
+  const base = baseFor(plan);
   if (base) {
     const casUpdate = (row) => supabase.from('plans').update(row).eq('id', plan.id).eq('updated_at', base).select('updated_at');
     let { data: upd, error: ue } = await casUpdate(rowWithCol);
     if (colMissing(ue)) ({ data: upd, error: ue } = await casUpdate(baseRow));
     if (ue) { console.error('savePlan error:', ue); return false; }
-    if (upd && upd.length) { lastSavedAt.set(plan.id, upd[0].updated_at); return true; }
+    if (upd && upd.length) { remember(plan, upd[0].updated_at); return true; }
     const { data: cur, error: ce } = await supabase.from('plans').select('updated_at').eq('id', plan.id).maybeSingle();
     if (ce) { console.error('savePlan error:', ce); return false; }
     if (cur && cur.updated_at !== base) {
@@ -377,7 +395,7 @@ export async function savePlan(plan) {
     ({ data: ins, error } = await supabase.from('plans').upsert(baseRow).select('updated_at'));
   }
   if (error) console.error('savePlan error:', error);
-  else if (ins && ins[0]) lastSavedAt.set(plan.id, ins[0].updated_at);
+  else if (ins && ins[0]) remember(plan, ins[0].updated_at);
   return !error;
 }
 

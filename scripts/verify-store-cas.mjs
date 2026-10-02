@@ -63,6 +63,18 @@ try {
   ok("B's new row is there (d)", !!by.d, fin);
   ok("B's delete of an untouched row stands (no c)", !by.c, fin);
   ok('nothing duplicated', (fin || []).length === 3, fin);
+  // A ROW WITH updated_at NULL (nullable column; review of #510): a write from a
+  // device that does not know the version must land, not read as a refusal
+  const nul = await run(A, async ({ KEY, mod, sbMod }) => {
+    const { supabase } = await import(sbMod);
+    const { storeWriteMerged } = await import(mod);
+    await supabase.from('store').delete().eq('key', KEY);
+    const ins = await supabase.from('store').insert({ key: KEY, value: [{ id: 'n', n: 1 }], updated_at: null });
+    if (ins.error) return { skip: ins.error.message };
+    try { const r = await storeWriteMerged(KEY, [{ id: 'n', n: 2 }], undefined, undefined); return { ok: true, val: r.val }; } catch (e) { return { err: e.message }; }
+  }, { KEY, mod, sbMod });
+  if (nul.skip) console.log('   (null updated_at not insertable here:', nul.skip, ')');
+  else ok('a row with NULL updated_at is written, not refused', nul.ok && nul.val && nul.val[0].n === 2, nul);
   // B's stale RLS-refusal path is not exercised here (owner may write); the
   // CAS refusal semantics are measured by audit-out/_cas-probe.mjs.
 } finally {

@@ -22,6 +22,7 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInpu
 import { savePlan } from './usePlansStore';
 import { useLineageLauncher } from './LineageLauncher';
 import { supabase } from './supabase';
+import { deepEqual } from './storeMerge';
 import OverloadChart from './OverloadChart';
 import { hasReadiness, CHECKIN_METRICS, readinessColor } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
@@ -1193,6 +1194,18 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
 const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draftKey, onSave, onClose }) {
   const t = useT();
   const [editForm, setEditForm] = useState(null);
+  // THE RECORD AS THE FORM OPENED IT (2.10 #510-R2 H1). Save used to write the
+  // WHOLE form - a snapshot from when the modal opened, or a draft restored days
+  // later - over the current record: a session logged meanwhile came back
+  // (8 -> 7 -> 8), and old prices / last payment returned with it. Save now
+  // writes only the fields the coach changed against this base; everything else
+  // keeps whatever the record holds now. The draft stores its base with it.
+  const baseRef = useRef(null);
+  const freshForm = () => {
+    const ef = { ...td, _emails: emailsToArr(td.email) };
+    if (couple) ef._members = td.members.map(m => ({ ...m, _emails: emailsToArr(m.email) }));
+    return ef;
+  };
   const [hasDraft, setHasDraft] = useState(false);
   // Bnei Herzliya players are CLUB athletes — the club pays. Read from the live
   // form so switching Format to/from Bnei Herzliya updates the fields at once.
@@ -1205,13 +1218,22 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
   useEffect(() => {
     let restored = null;
     try { const raw = localStorage.getItem(draftKey); restored = raw ? JSON.parse(raw) : null; } catch {}
-    if (restored) {
+    const fresh = freshForm();
+    baseRef.current = fresh;
+    if (restored && restored.__v === 2 && restored.form && restored.base) {
+      // the coach's own edits, laid over the record as it is NOW - a field he
+      // did not touch shows (and keeps) today's value, not the draft's
+      const f = { ...fresh };
+      for (const k of Object.keys(restored.form)) if (!deepEqual(restored.form[k], restored.base[k])) f[k] = restored.form[k];
+      setEditForm(f);
+      setHasDraft(true);
+    } else if (restored) {
+      // a draft from before 2.10 carries no base: it is shown as saved, and only
+      // what differs from the record now will be written
       setEditForm(restored);
       setHasDraft(true);
     } else {
-      const ef = { ...td, _emails: emailsToArr(td.email) };
-      if (couple) ef._members = td.members.map(m => ({ ...m, _emails: emailsToArr(m.email) }));
-      setEditForm(ef);
+      setEditForm(fresh);
       setHasDraft(false);
     }
     // Intentionally NOT depending on td/couple — those references can change
@@ -1225,38 +1247,49 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
     editForm,
     async (form) => {
       if (!form) return true;
-      try { localStorage.setItem(draftKey, JSON.stringify(form)); return true; }
+      try { localStorage.setItem(draftKey, JSON.stringify({ __v: 2, base: baseRef.current, form })); return true; }
       catch { return false; }
     },
     { debounceMs: 400 }
   );
   const editStatus = autosaveStatusLabel(editAutosave.status, C);
 
-  const handleSave = () => {
-    if (!editForm?.name) return;
-    const toSave = { ...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email)) };
+  // form -> the stored shape (emails joined, BHBC package stripped, members flattened)
+  const toStored = (form) => {
+    const out = { ...form, email: emailsToStore(form._emails || emailsToArr(form.email)) };
     // Strip, don't just hide — otherwise a client converted to Bnei Herzliya
     // keeps their old package/price alive but invisible, and the card still
     // renders "8 SESSIONS LEFT" (audit 08-22 #45). Mirrors TraineesView.
-    if (toSave.format === 'Bnei Herzliya' || toSave.branch === 'Bnei Herzliya') {
-      toSave.package = '';
-      toSave.sessionsRemaining = null;
-      toSave.packagePrice = '';
-      toSave.monthly = 0;
-      toSave.perSession = 0;
+    if (out.format === 'Bnei Herzliya' || out.branch === 'Bnei Herzliya') {
+      out.package = '';
+      out.sessionsRemaining = null;
+      out.packagePrice = '';
+      out.monthly = 0;
+      out.perSession = 0;
     }
-    delete toSave._emails;
-    if (toSave._members) {
-      toSave.members = toSave._members.map(m => {
+    delete out._emails;
+    if (out._members) {
+      out.members = out._members.map(m => {
         const email = emailsToStore(m._emails || emailsToArr(m.email));
         const { _emails, ...rest } = m;
         return { ...rest, email };
       });
-      delete toSave._members;
+      delete out._members;
     }
+    return out;
+  };
+  const handleSave = () => {
+    if (!editForm?.name) return;
+    const toSave = toStored(editForm);
+    const base = toStored(baseRef.current || freshForm());
+    // only what the coach changed (#510-R2 H1); the name always rides along -
+    // the parent refuses a save without one
+    const changed = { name: toSave.name };
+    for (const k of Object.keys(toSave)) if (!deepEqual(toSave[k], base[k])) changed[k] = toSave[k];
+    for (const k of Object.keys(base)) if (!(k in toSave)) changed[k] = undefined;
     try { localStorage.removeItem(draftKey); } catch {}
     editAutosave.markClean();
-    onSave(toSave);
+    onSave(changed);
   };
 
   // Explicit Cancel — the user chose to discard; purge the draft.

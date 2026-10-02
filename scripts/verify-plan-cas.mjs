@@ -39,6 +39,14 @@ try {
   ok("A's edit is still on the server", name && name.name === 'v2-by-A', name);
   const b2 = await call(B, async ({ p }) => { const { savePlan } = await import('/src/usePlansStore.js'); return savePlan(p); }, { p: plan('v3-by-B-after-reload', name.updated_at) });
   ok('B, reloaded, saves', b2 === true, b2);
+  // THE CASE THE FIRST VERSION GOT WRONG (review of #510, HIGH): A saved earlier
+  // in this tab, B has saved since, A presses Reload in the editor and saves -
+  // A's remembered old version must not beat the one it just reloaded
+  const fresh = await call(A, async ({ ID }) => { const { supabase } = await import('/src/supabase.js'); const { data } = await supabase.from('plans').select('updated_at').eq('id', ID).single(); return data.updated_at; }, { ID });
+  const a3 = await call(A, async ({ p }) => { const { savePlan } = await import('/src/usePlansStore.js'); return savePlan(p); }, { p: plan('v4-by-A-after-reload', fresh) });
+  ok('A, after reloading what B saved, saves (its old map entry does not win)', a3 === true, a3);
+  const a4 = await call(A, async ({ p }) => { const { savePlan } = await import('/src/usePlansStore.js'); return savePlan(p); }, { p: plan('v5-by-A', fresh) });
+  ok('...and keeps saving from that editor', a4 === true, a4);
 } finally {
   try { await A.evaluate(async ({ ID }) => { const { supabase } = await import('/src/supabase.js'); await supabase.from('plans').delete().eq('id', ID); }, { ID }); } catch { /* best effort */ }
   await A.close().catch(() => {}); await B.close().catch(() => {});
