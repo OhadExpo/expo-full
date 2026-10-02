@@ -149,7 +149,12 @@ for (const seat of ['owner', 'partner', 'athlete', 'none', 'marketing']) {
             for (const t of await tabsOf(pg, root)) views.push({ tab: t });
             for (const v of views) {
               if (v.tab !== '(default)') {
-                const okc = await clickTab(pg, v.tab);
+                // the exercise pages remount on a tab switch (a lazy view behind
+                // Suspense): the bar is back within a second or two, so wait for
+                // the tab instead of reading its absence as "not clickable" - it
+                // failed 5 random views a run (1002a, 1002c), never the same five
+                let okc = false;
+                for (let k = 0; k < 12 && !(okc = await clickTab(pg, v.tab)); k++) await new Promise((r) => setTimeout(r, 500));
                 if (!okc) { errors++; console.log(`ERROR ${id} [${v.tab}] tab not clickable - not measured`); continue; }
                 await wait(2200);
                 if (!(await pg.evaluate(() => location.pathname)).startsWith(root)) { await pg.goto((s.base || BASE) + s.url, { waitUntil: 'domcontentloaded', timeout: 60000 }); await wait(4000); continue; }
