@@ -72,8 +72,19 @@ export function useSheetRevenue() {
     (async () => {
       const [m, e, newest, count] = await Promise.all([
         supabase.from('revenue_month_total').select('*').order('month', { ascending: false }),
-        supabase.from('revenue_sheet_event').select('*').in('event_kind', ['payment', 'card_start', 'session', 'rate_change'])
-          .order('event_date', { ascending: false }).limit(5000),
+        // EVERY EVENT, PAGED (#510-R2 L12): limit(5000) is silently cut to the
+        // API's 1000-row maximum - history past it simply vanished
+        (async () => {
+          const all = [];
+          for (let from = 0; from < 20000; from += 1000) {
+            const page = await supabase.from('revenue_sheet_event').select('*').in('event_kind', ['payment', 'card_start', 'session', 'rate_change'])
+              .order('event_date', { ascending: false }).order('id', { ascending: true }).range(from, from + 999);
+            if (page.error) return { data: all.length ? all : null, error: page.error };
+            all.push(...(page.data || []));
+            if (!page.data || page.data.length < 1000) break;
+          }
+          return { data: all, error: null };
+        })(),
         supabase.from('revenue_cell_history').select('rev,rev_time,imported_at').order('rev', { ascending: false }).limit(1),
         supabase.from('revenue_cell_history').select('rev', { count: 'exact', head: true }),
       ]);
@@ -194,8 +205,9 @@ export default function RevenueSheetCard() {
       if (!map.has(r.month)) map.set(r.month, { month: r.month, rows: [], coaching: 0, other: 0 });
       const g = map.get(r.month);
       g.rows.push(r);
-      if (NOT_COACHING.has(r.channel)) g.other += Number(r.amount);
-      else g.coaching += Number(r.amount);
+      // a missing amount is no money, not NaN (NaN rendered as ₪0 for the whole month, #510-R2 L12)
+      if (NOT_COACHING.has(r.channel)) g.other += Number(r.amount) || 0;
+      else g.coaching += Number(r.amount) || 0;
     }
     return [...map.values()].sort((a, b) => (a.month < b.month ? 1 : -1));
   }, [months]);
