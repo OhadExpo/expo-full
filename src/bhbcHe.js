@@ -730,6 +730,8 @@ Object.assign(HE, {
     'פס זה אימון שהוא היה בו. ריבוע אדום זה אימון שהיה זמין אליו ולא הגיע. מקף זה אימון שנקבע ואף אחד לא רשם.',
   'attended this month': 'נוכחויות החודש',
   'nothing logged this month': 'לא נרשם כלום החודש',
+  'attended this week': 'נוכחויות בשבוע הזה',
+  'nothing logged this week': 'לא נרשם כלום בשבוע הזה',
   'nobody logged this session': 'אף אחד לא רשם את האימון הזה',
   // Two words in Hebrew for one in English. The banner over the list of names
   // needs a NOUN ("absences"); the cell tooltip and the legend need the verb

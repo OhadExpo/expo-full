@@ -579,7 +579,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {/* ONLINE NOW - the real dashboard lifts it out of the alert rail: its own
           full-width card above Messages */}
       {onlineNow.length > 0 && (
-        <div className="alert-card" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
+        <div className="alert-card alert-sev" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
           <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 8px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
             <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>
           </div>
@@ -750,7 +750,7 @@ function DemoSectionIcon({ kind }) {
 // cyan border for Leads), cyan RefinedHeaderStrip with a white icon + label.
 function Panel({ title, tint, icon, children, cyanBorder }) {
   return (
-    <div style={{
+    <div className={cyanBorder ? undefined : 'alert-sev'} style={{
       background: C.sf,
       // the real alert card: a full 1px border in its colour (was a 3px side bar)
       // and the rail's own widths (.alert-rail > *) - a fixed 300 overrode them

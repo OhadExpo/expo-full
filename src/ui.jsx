@@ -679,7 +679,7 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
         // A CONTROL IN THE STRIP IS NOT THE STRIP (29.9 #402, "when i click copy
         // it shouldnt collapse"): a click on a button / link / field inside the
         // strip's right cluster does its own job and never toggles the card.
-        onClick={(e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; toggle(); }}
+        onClick={(e) => { const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label, [role="button"], [role="switch"], [role="checkbox"], [role="tab"], [data-strip-stop]'); if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return; toggle(); }}
         role="button" tabIndex={0}
         aria-expanded={open}
         // a key pressed on a control inside the strip is that control's (29.9 audit)
@@ -723,7 +723,11 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
             the START, under the title, and leaves the one-line case
             untouched. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'nowrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '100%' }}>
-          {right && !stacked && <span ref={clusterRef} onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
+          {/* NO blanket stopPropagation here (2.10 #516, Ohad: "Owed not collapsable"):
+              on a phone the finger lands on the strip's total, next to the
+              chevron, and the cluster swallowed it. Controls are skipped by the
+              strip's own click test above; passive text toggles like the title. */}
+          {right && !stacked && <span ref={clusterRef} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           {/* WHITE on purpose — this chevron sits on the COLOURED strip header
               whose title span three lines up is also #FFFFFF. Switching it to
               --c-tx made it near-black on BHBC's deep-navy strip (1.33:1,

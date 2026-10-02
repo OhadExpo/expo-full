@@ -1868,6 +1868,7 @@ function AuthedApp() {
                20 and hanging 5.2px past the border on BOTH sides, measured at 390.
                Only the HEIGHT was ever the complaint, so only the block padding moves. */
             .alert-card{padding-block:12px !important}
+            .alert-sev.alert-card{padding-top:0 !important}
             /* The font size moved out of this media query and onto the card's
                own container query above, which is correct at every width. Only
                the height belongs to "is this a phone". */

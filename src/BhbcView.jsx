@@ -350,6 +350,34 @@ const monthDays = (today, monthOff) => {
   }
   return { list: out, label: `${monFor(anchor.getMonth(), MON[anchor.getMonth()])} ${anchor.getFullYear()}` };
 };
+// A PHONE READS A WEEK, NOT A MONTH (2.10 #515, Ohad on the live Lifts grid at
+// 390: "still bad layout"). The month at 24px a day scrolled and opened with
+// today against the name and four empty days ahead of it - the past, the only
+// part with anything in it, off screen. At 620 and under both month grids draw
+// the seven days that END today (the pager steps a week): every column on
+// screen, nothing to scroll, nothing ahead. Above 620, the month.
+const weekDays = (today, weekOff) => {
+  const end = parseISO(today); end.setDate(end.getDate() + weekOff * 7);
+  const out = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date(end); d.setDate(end.getDate() - i);
+    const iso = localISO(d);
+    out.push({ iso, dom: d.getDate(), dow: d.getDay(), future: iso > today });
+  }
+  return { list: out, text: `${monDay(out[0].iso)} – ${monDay(out[6].iso)}` };
+};
+const PHONE_GRID_Q = '(max-width: 620px)';
+function usePhoneGrid() {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(PHONE_GRID_Q).matches);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const mq = window.matchMedia(PHONE_GRID_Q);
+    const f = () => setOn(mq.matches);
+    f(); mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, []);
+  return on;
+}
 const FUTURE_BG = 'color-mix(in srgb, var(--c-cardBd) 18%, transparent)';
 const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_DEEP : d.future || d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm);
 // today in view on a narrow screen: the scroller moves so today's column sits
@@ -4067,8 +4095,8 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
     const sc = scLoggedFor(loads, ids, f, fixtures);
     const started = !!f.start && f.start <= nowHHMM;
     return (
-      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sc ? C.tm : started ? ORANGE_DEEP : C.td, whiteSpace: 'nowrap' }}>
-        {sc ? <>{tr('S&C')} ✓ <MinTok n={sc.min} /></> : tr('S&C not logged yet')}
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sc ? C.tx : started ? ORANGE_DEEP : C.td, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        {sc ? <><span aria-hidden style={{ width: 8, height: 8, background: SC_COLOR, flexShrink: 0 }} />{tr('S&C')}<MinTok n={sc.min} /></> : tr('S&C not logged yet')}
       </span>
     );
   };
@@ -4220,7 +4248,9 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const isCourtRow = (r) => { const k = rowKind(r); return k === 'practice' || k === 'game' || k === 'sc'; };
   const courtMins = (r) => { const k = rowKind(r); return (k === 'practice' || k === 'game') ? (Number(r.min) || 0) : 0; };
 
-  const days = useMemo(() => monthDays(today, monthOff), [today, monthOff]);
+  const phone = usePhoneGrid();
+  const [weekOff, setWeekOff] = useState(0);            // phone: 0 = the 7 days ending today
+  const days = useMemo(() => (phone ? weekDays(today, weekOff) : monthDays(today, monthOff)), [phone, today, weekOff, monthOff]);
   const scrollRef = useRef(null);
   useScrollToToday(scrollRef, `${today}|${monthOff}`);
 
@@ -4308,7 +4338,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const absentees = per.filter((p) => p.missed > 0).sort((a, b) => b.missed - a.missed);
   // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
   // into the next column at 22.
-  const CELL = 24;
+  const CELL = phone ? 17 : 24;   // seven days fit a 360 phone at 17 (#515)
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   const MISS = '#DE4E3B';
   const pct = (p) => (p.owed ? Math.round((p.went / p.owed) * 100) : null);
@@ -4333,7 +4363,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
     <Card leftStripe={FX_COLOR.practice} padding={0} header={secTitle('Practice Attendance')}
       headerRight={(
         <span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, whiteSpace: 'nowrap' }}>
-          {monthOwed ? `${monthWent}/${monthOwed} ${tr('attended this month')}` : tr('nothing logged this month')}
+          {monthOwed ? `${monthWent}/${monthOwed} ${tr(phone ? 'attended this week' : 'attended this month')}` : tr(phone ? 'nothing logged this week' : 'nothing logged this month')}
         </span>
       )}>
       {!!absentees.length && (
@@ -4354,11 +4384,11 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
+          <button type="button" onClick={() => (phone ? setWeekOff((v) => v - 1) : setMonthOff((v) => v - 1))} className="bhbc-ghost-btn" aria-label={tr(phone ? 'Previous week' : 'Previous month')}
             style={navArrow(false)}>{he ? '›' : '‹'}</button>
-          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
-          <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
-            style={navArrow(monthOff >= 0)}>{he ? '‹' : '›'}</button>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{days.text || <>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</>}</span>
+          <button type="button" disabled={phone ? weekOff >= 0 : monthOff >= 0} onClick={() => (phone ? setWeekOff((v) => Math.min(0, v + 1)) : setMonthOff((v) => Math.min(0, v + 1)))} className="bhbc-ghost-btn" aria-label={tr(phone ? 'Next week' : 'Next month')}
+            style={navArrow(phone ? weekOff >= 0 : monthOff >= 0)}>{he ? '‹' : '›'}</button>
         </div>
         {/* The sentence gets its own line rather than being squeezed into the
             gap beside the pager - same rule as the weight room. */}
@@ -4387,7 +4417,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                 ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
                 : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
             ))}
-            <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={tr('attended')} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+            <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('there')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px 6px' }}>
             <span style={{ ...pinStart('var(--c-sf)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
@@ -4425,7 +4455,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                     </span>
                   );
                 })}
-                <span style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 36, paddingInlineStart: 10, alignSelf: 'stretch' }}>
+                <span data-end-cell="" style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 36, paddingInlineStart: 10, alignSelf: 'stretch' }}>
                   <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: pctInk(pct({ went, owed })), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end', unicodeBidi: 'isolate' }}>
                     {owed ? `${went}/${owed}` : tr('none')}
@@ -4484,7 +4514,9 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
 
   // The month on screen, as local dates - never toISOString, which rolls back a
   // day in Israel between midnight and 03:00.
-  const days = useMemo(() => monthDays(today, monthOff), [today, monthOff]);
+  const phone = usePhoneGrid();
+  const [weekOff, setWeekOff] = useState(0);            // phone: 0 = the 7 days ending today
+  const days = useMemo(() => (phone ? weekDays(today, weekOff) : monthDays(today, monthOff)), [phone, today, weekOff, monthOff]);
   const scrollRef = useRef(null);
   useScrollToToday(scrollRef, `${today}|${monthOff}`);
 
@@ -4530,7 +4562,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
   const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= LIFT_DUE_DAYS ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6); amber = due (6), red = a week
   // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
   // into the next column at 22.
-  const CELL = 24;
+  const CELL = phone ? 17 : 24;   // seven days fit a 360 phone at 17 (#515)
   // SORTABLE LIKE EVERY TABLE IN THE ZONE (27.9): the name A->Z, a DAY by that
   // day's lift (the longest first; no lift that day sorts last either way), the
   // last column by the date of his last lift, newest first - never lifted last.
@@ -4575,11 +4607,11 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             (Ohad, 19.9: "anywhere where there is text, it has its own space"). */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
+            <button type="button" onClick={() => (phone ? setWeekOff((v) => v - 1) : setMonthOff((v) => v - 1))} className="bhbc-ghost-btn" aria-label={tr(phone ? 'Previous week' : 'Previous month')}
               style={navArrow(false)}>{he ? '›' : '‹'}</button>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
-            <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
-              style={navArrow(monthOff >= 0)}>{he ? '‹' : '›'}</button>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{days.text || <>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</>}</span>
+            <button type="button" disabled={phone ? weekOff >= 0 : monthOff >= 0} onClick={() => (phone ? setWeekOff((v) => Math.min(0, v + 1)) : setMonthOff((v) => Math.min(0, v + 1)))} className="bhbc-ghost-btn" aria-label={tr(phone ? 'Next week' : 'Next month')}
+              style={navArrow(phone ? weekOff >= 0 : monthOff >= 0)}>{he ? '‹' : '›'}</button>
           </div>
           {/* THE S&C TOGGLE LIVES WITH THE OTHER CONTROL (29.9 #415, Ohad: "sc
               button is located in a bad spot" - it sat alone under the grid):
@@ -4645,7 +4677,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   })}
                   {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
-                  <span title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
+                  <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
                     <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? `1 ${tr('days')}` : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
@@ -5362,16 +5394,21 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   // In the tag the word is the short one - Hebrew "כוח", as the caption above
   // already writes "+ כוח" (29.9 #458: "כוח קבוצתי ✓ 10′" did not fit one width)
   const scWord = he ? 'כוח' : tr('S&C');
-  const scLabel = (d, f) => { const sc = scOf(d, f); return sc ? <>{scWord} ✓ <MinTok n={sc.min} /></> : `+ ${scWord}`; };
+  // LOGGED READS AS DONE, NOT AS THE BUTTON WITH A TICK (2.10 #514, Ohad: "I
+  // don't like the sc 10 with the check"). The segment fills with the S&C
+  // colour, leads with the S&C square the grids use, and says what was logged
+  // in plain ink - "S&C 10′". "+ S&C" stays the action.
+  const scLabel = (d, f) => { const sc = scOf(d, f); return sc ? <><span aria-hidden style={{ width: 8, height: 8, background: SC_COLOR, flexShrink: 0, marginInlineEnd: 2 }} />{scWord}<MinTok n={sc.min} /></> : `+ ${scWord}`; };
+  const scBg = (d, f) => (scOf(d, f) ? `color-mix(in srgb, ${SC_COLOR} 14%, transparent)` : 'transparent');
   const scTitle = (d, f) => tr(scOf(d, f) ? 'S&C logged - open it to correct' : 'Log S&C Session');
   // logged or gone by = quiet; still to log today or ahead = the orange action
-  const scInk = (d, f) => (scOf(d, f) || d < today ? C.tm : ORANGE);
+  const scInk = (d, f) => (scOf(d, f) ? C.tx : d < today ? C.tm : ORANGE);
   // THE S&C ACTION (29.9 #458: "should all be the same horizontal length no
   // matter the text"): one width (--sc-w) whatever it says. Since #509 it is a
   // SEGMENT of the chip (segBtn) - the whole chip height, no face of its own.
   const scBtn = (d, f) => (
     <button type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)}
-      style={segBtn(scInk(d, f), { width: 'var(--sc-w)', padding: 0 })}>{scLabel(d, f)}</button>
+      style={segBtn(scInk(d, f), { width: 'var(--sc-w)', padding: 0, background: scBg(d, f) })}>{scLabel(d, f)}</button>
   );
   const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
   const days = useMemo(() => {
@@ -5480,7 +5517,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                       style={segBtn(C.tm, { width: horizontalWeek ? undefined : 'var(--cx-w)', flex: horizontalWeek ? '1 1 0' : undefined, padding: 0 })}>{off || horizontalWeek ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
                   ) : null;
                   const sc = !off && onAttachSc && court
-                    ? (horizontalWeek ? <button key="sc" type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)} style={segBtn(scInk(d, f), { flex: '1 1 0', padding: 0, borderInlineStart: 'none' })}>{scLabel(d, f)}</button> : scBtn(d, f))
+                    ? (horizontalWeek ? <button key="sc" type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)} style={segBtn(scInk(d, f), { flex: '1 1 0', padding: 0, borderInlineStart: 'none', background: scBg(d, f) })}>{scLabel(d, f)}</button> : scBtn(d, f))
                     : null;
                   const edits = onUpsert ? [
                     <button key="ed" type="button" onClick={() => startEdit(d, f)} className="bhbc-seg" title={tr('Edit session')} aria-label={tr('Edit session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: horizontalWeek ? '1 1 0' : undefined })}><PencilGlyph /></button>,

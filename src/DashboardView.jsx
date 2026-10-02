@@ -753,7 +753,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           a phone. Messages stays its own full-width row below it, never inside
           the alerts grid. */}
           {onlineNow.length > 0 && (
-        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}>
+        <div className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}>
           <RefinedHeaderStrip>
             <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
@@ -791,7 +791,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // alertHeaderDragProps drive the visuals + gesture).
             const cardsByKey = {
               expiring: expiring.length > 0 && (
-                <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
+                <div key="expiring" data-alert-key="expiring" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
@@ -807,7 +807,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 </div>
               ),
               overdue: isOwner && overduePayment.length > 0 && (
-                <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
+                <div key="overdue" data-alert-key="overdue" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
                       <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dollar" color="var(--c-stripTx)"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
@@ -823,7 +823,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 </div>
               ),
               dormant: dropoutRisk.length > 0 && (
-                <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
+                <div key="dormant" data-alert-key="dormant" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="moon" color="var(--c-stripTx)"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
