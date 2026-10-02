@@ -255,8 +255,17 @@ check('S26', 'sign-out purges the device BEFORE the network call', () => {
   const i = t.indexOf('const signOut');
   const seg = t.slice(i, i + 2400);
   const purge = seg.indexOf('purgeLocalCaches()');
-  const net = seg.indexOf('supabase.auth.signOut()');
+  const net = seg.indexOf('supabase.auth.signOut(');
   return { ok: purge > -1 && net > -1 && purge < net, why: (purge > -1 && purge < net) ? 'purge precedes the round trip' : 'the network call runs first' };
+});
+// S26b (2.10 #510-R2 H3): a bare signOut() is scope GLOBAL in supabase-js v2 -
+// signing out on one device revoked every session on the account (proven:
+// the other device's refresh 400). The app's sign-out must be device-local.
+check('S26b', "the app's sign-out is device-local (scope:'local')", () => {
+  const t = stripComments(fs.readFileSync(path.join(ROOT, 'src', 'auth.jsx'), 'utf8'));
+  const calls = [...t.matchAll(/supabase\.auth\.signOut\(([^)]*)\)/g)].map((m) => m[1].trim());
+  const bad = calls.filter((a) => !/scope\s*:\s*['"]local['"]/.test(a));
+  return { ok: calls.length > 0 && !bad.length, why: bad.length ? `global sign-out call(s): ${bad.length}` : `${calls.length} call(s), all local` };
 });
 check('S27', 'personal snapshots are latched off while signed out', () => {
   const t = fs.readFileSync(path.join(ROOT, 'src', 'auth.jsx'), 'utf8');
