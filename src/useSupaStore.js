@@ -546,6 +546,9 @@ export function useSupaStore(key, initial) {
   const baseRef = useRef({ known: false, at: undefined, val: undefined });
   const saveGenRef = useRef(0);
   const inflightRef = useRef(null);
+  // the guarded refetch below, for callers that learn of a change another way
+  // (the club zone's broadcast + fallback poll, #510-R2 M7)
+  const refetchRef = useRef(null);
 
   // Load from Supabase on mount. On failure, fall back to any localStorage
   // snapshot and surface the error so the caller can show a banner.
@@ -687,6 +690,7 @@ export function useSupaStore(key, initial) {
         if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { lsSnapshot(key, val); } catch {} }
       } catch { /* transient */ }
     };
+    refetchRef.current = refetch;
     try {
       ch = supabase.channel('store-rt-' + key)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${key}` }, refetch)
@@ -713,6 +717,7 @@ export function useSupaStore(key, initial) {
     } catch { /* no DOM */ }
     return () => {
       disposed = true;
+      refetchRef.current = null;
       if (ch) { try { supabase.removeChannel(ch); } catch {} }
       try {
         document.removeEventListener('visibilitychange', onVisible);
@@ -851,7 +856,11 @@ export function useSupaStore(key, initial) {
     }
   }, [key]);
 
-  return [data, save, loaded, loadError, saveLocal];
+  // refresh(): re-read this key through every guard the hook has (a save in
+  // flight, a save finished meanwhile, an edit still queued) - never apply a
+  // server value from outside with saveLocal (#510-R2 M7)
+  const refresh = useCallback(() => { const f = refetchRef.current; return f ? f() : Promise.resolve(); }, []);
+  return [data, save, loaded, loadError, saveLocal, refresh];
 }
 
 // Longest the athlete waits in the logger for the server after Complete. The

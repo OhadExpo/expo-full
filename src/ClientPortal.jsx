@@ -35,7 +35,6 @@ import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue }
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
 import { useT as useAppT, tr, readLang } from './i18n';
-import { resolveStoredUrl } from './storageUrl';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
