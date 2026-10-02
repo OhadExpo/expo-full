@@ -358,8 +358,8 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       if (/relation .* does not exist/i.test(error.message || '')) {
         setRows([]); setLoading(false); return;
       }
+      // the thread stays on screen (#510-R2 M6) - blanking it on a blip read as "no messages"
       toast(`Messages load failed: ${error.message}`, 'error', { ttl: 6000 });
-      setRows([]);
     } else {
       setRows(data || []);
     }

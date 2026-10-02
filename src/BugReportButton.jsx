@@ -12,6 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { toast, useEscClose } from './ui';
+import { supabase } from './supabase';
 import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
 
 import { useT } from './i18n';
@@ -99,9 +100,12 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
       context: previewCtx || gatherContext(),
     };
     try {
+      // the session token lets the server say who reported it (#510-A8)
+      let authz = {};
+      try { const { data } = await supabase.auth.getSession(); const t = data?.session?.access_token; if (t) authz = { Authorization: `Bearer ${t}` }; } catch { /* anonymous report */ }
       const r = await fetch('/api/report-bug', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...authz },
         body: JSON.stringify(payload),
         keepalive: true,
       });

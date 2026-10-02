@@ -168,7 +168,12 @@ export default function IntakeForm() {
   const [phase, setPhase] = useState(token ? 'verifying' : 'no-token');
   const [tokenInfo, setTokenInfo] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [answers, setAnswers] = useState({});
+  // ANSWERS SURVIVE A RELOAD (2.10 #510-R2 M10): they lived only in memory, so
+  // a phone discarding the tab - or an app update reloading it - wiped a half-
+  // filled form. Kept per link in sessionStorage (this tab only), dropped once sent.
+  const answersKey = `expo-intake-answers:${token || 'open'}`;
+  const [answers, setAnswers] = useState(() => { try { const s = sessionStorage.getItem(answersKey); return s ? JSON.parse(s) || {} : {}; } catch { return {}; } });
+  useEffect(() => { try { if (phase !== 'done') sessionStorage.setItem(answersKey, JSON.stringify(answers)); else sessionStorage.removeItem(answersKey); } catch { /* private mode */ } }, [answers, phase, answersKey]);
 
   // Verify token (or fall back to "open form" mode if no token at all —
   // useful for Ohad's own testing; coach-distributed links always carry a

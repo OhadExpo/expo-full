@@ -847,6 +847,7 @@ export const HE = {
   'm ago': ' דק׳',
   'h ago': ' שע׳',
   'Could not read the owed list': 'לא הצלחתי לקרוא את רשימת החובות',
+  'showing the last one read': 'מוצגת הרשימה האחרונה שנקראה',
   'Loading…': 'טוען…',
   'Nobody owes anything': 'אף אחד לא חייב כלום',
   'From the roster sheet': 'מרשימת המתאמנים',

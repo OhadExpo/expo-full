@@ -119,6 +119,7 @@ for (const c of changed) console.log(`  ${c}`);
 console.log(`fixtures: ${existing.length} → ${out.length} · updated ${updated} · added ${added} · dropped ${dropped} (absent from the calendar) · kept outside window ${kept}`);
 console.log('by type:', JSON.stringify(byType));
 if (DRY) { console.log('--dry: nothing written'); process.exit(0); }
-const { error: e2 } = await s.from('store').upsert({ key: 'expo-bhbc-fixtures', value: out }, { onConflict: 'key' });
+// updated_at stamped (#510-R2): app writes are compare-and-swap on it
+const { error: e2 } = await s.from('store').upsert({ key: 'expo-bhbc-fixtures', value: out, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 if (e2) { console.log('write failed', e2.message); process.exit(1); }
 console.log(`written; backup audit-out/sheets/backup-expo-bhbc-fixtures-${stamp}.json`);

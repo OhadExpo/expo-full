@@ -110,6 +110,12 @@ function prettyWhen(d) {
   return `${day} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// HOW FAR AHEAD A SLOT IS OFFERED (2.10 #510-A2): the database accepts a public
+// booking only < 90 days out (scripts/migrations/2026-10-02-bookings-only-offered-slots.sql),
+// so the page offers to 89 and stops paging at 12 weeks - a visitor never picks a
+// slot the server then refuses.
+const HORIZON_DAYS = 89;
+const MAX_WEEK_OFFSET = 12;
 function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEnd, occupied) {
   if (!rules || rules.length === 0) return [];
   const stepMin = duration + buffer;
@@ -136,6 +142,7 @@ function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEn
       for (let m = startMin; m + duration <= endMin; m += stepMin) {
         const slot = coachTzInstant(civil.getUTCFullYear(), civil.getUTCMonth(), civil.getUTCDate(), m);
         if (slot.getTime() < minStart) continue;
+        if (slot.getTime() >= Date.now() + HORIZON_DAYS * 86400000) continue;
         if (slot < windowStart || slot >= windowEnd) continue;
         // Skip if it overlaps an occupied window
         const slotStart = slot.getTime();
@@ -564,8 +571,8 @@ export default function BookingPublic() {
           <button onClick={() => setWeekOffset(o => Math.max(0, o - 1))} disabled={weekOffset === 0}
             style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: weekOffset === 0 ? '1px solid transparent' : `1px solid ${C.ac}`, color: weekOffset === 0 ? C.td : C.ac, opacity: weekOffset === 0 ? 0.45 : 1, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>{backArrow()} {tr(readLang(), 'PREV')}</button>
           <span style={{ flex: 1, textAlign: 'center' }}>{weekLabel}</span>
-          <button onClick={() => setWeekOffset(o => o + 1)}
-            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT')} {fwdArrow()}</button>
+          <button onClick={() => setWeekOffset(o => Math.min(MAX_WEEK_OFFSET, o + 1))} disabled={weekOffset >= MAX_WEEK_OFFSET}
+            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: weekOffset >= MAX_WEEK_OFFSET ? '1px solid transparent' : `1px solid ${C.ac}`, color: weekOffset >= MAX_WEEK_OFFSET ? C.td : C.ac, cursor: weekOffset >= MAX_WEEK_OFFSET ? 'default' : 'pointer' }}>{tr(readLang(), 'NEXT')} {fwdArrow()}</button>
         </div>
 
         {/* SAY WHICH CLOCK. Every time on this page is rendered with the

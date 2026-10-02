@@ -1934,7 +1934,11 @@ select.avail-select:dir(rtl) {
    tooltip; "yesterday" is "1d" here. */
 .lifts-age-short { display: none; }
 @media (max-width: 620px) {
-  .bhbc-lifts-scroll { --lifts-name-w: 146px; --lifts-last-w: 60px; }
+  /* a phone draws a week (#515): 140 + 7 x 17 + 46 fits 360 (310 inside the card) with nothing to scroll;
+     140, not 132: 'D. BROUGHTON' touched the first day at 132 */
+  .bhbc-lifts-scroll { --lifts-name-w: 140px; --lifts-last-w: 46px; }
+  .bhbc-lifts-scroll [data-end-cell] { padding-inline-start: 4px !important; }
+  .bhbc-lifts-scroll [data-end-cell] > span { min-width: 0 !important; }
   .bhbc-lifts-scroll .lifts-name { font-size: 11px !important; }
   .bhbc-lifts-scroll [data-end-head] { font-size: 9px !important; letter-spacing: 0.02em !important; }
   .bhbc-lifts-scroll .lifts-last-date { display: none; }
@@ -2214,3 +2218,12 @@ select.avail-select:dir(rtl) {
 :where(:has(> [style*="overflow-x: auto"], > [style*="overflow-x: scroll"], > [style*="overflow: auto hidden"], > [style*="overflow: scroll hidden"], > .bhbc-lifts-scroll)) {
   min-width: 0;
 }
+
+/* A COLOURED CARD COLOURS ITS BODY, NOT ITS TITLE (2.10 #517/#518, Ohad: "green
+   highlights look weird when the borders are just 3/4 of the box" / "the solution
+   is just not having the highlight around the title box"). The dashboard alert
+   cards (Online now / Expiring / Overdue / Dormant, and the demo's copy) draw a
+   1px severity border; the strip now bleeds over it with the house hairline,
+   so the colour runs only around the rows - as CollapsibleSection's leftStripe. */
+.alert-sev { padding-top: 0 !important; padding-inline: 18px !important; }  /* phones read 12 on top, desktop 14: fixed here so the bleed below is exact */
+.alert-sev .title-strip { margin: -1px -19px 12px !important; border: 1px solid var(--c-cardBd); border-bottom: 0; position: relative; }

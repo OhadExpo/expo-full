@@ -7,6 +7,13 @@
 // Cached at the edge for a day so we don't re-scrape Google on every page
 // load. The resolved googleusercontent URLs themselves stay valid for weeks.
 
+// EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
+// hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
+// instead of this handler's JSON error. An abort is an error the handler
+// already catches. A caller's own signal wins.
+const FETCH_TIMEOUT_MS = 10000;
+const fetch = (url, opts = {}) => globalThis.fetch(url, { ...opts, signal: opts.signal || AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
 const ALLOWED = /^https:\/\/(photos\.app\.goo\.gl|photos\.google\.com)\//i;
 
 // Each redirect hop must land on one of these hosts. Anything else (an

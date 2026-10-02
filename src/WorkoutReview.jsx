@@ -135,8 +135,20 @@ function PrefetchVideos({ urls }) {
     }, 8000);
     return () => clearTimeout(t);
   }, [key]);
+  // warm the SIGNED urls - the ones FormVideoPlayer will actually play (the
+  // resolver caches them, so it is the same string); a raw public url warmed
+  // nothing it would use and 400s once the bucket is private (#510-S8)
+  const [signed, setSigned] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    setSigned([]);
+    if (!armed || !key) return undefined;
+    Promise.all(urls.map((u) => resolveStoredUrl(u).catch(() => u))).then((list) => { if (alive) setSigned(list); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [armed, key]);
   if (!armed || !key) return null;
-  return <>{urls.map(u => <video key={u} src={u} preload="auto" muted style={{ display: 'none' }} />)}</>;
+  return <>{signed.map(u => <video key={u} src={u} preload="auto" muted style={{ display: 'none' }} />)}</>;
 }
 
 export function FormVideoPlayer(props) {

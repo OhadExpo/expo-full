@@ -84,8 +84,14 @@ const anonReadDenied = async (table) => {
   if (Array.isArray(body) && body.length === 0) return { ok: true, why: 'HTTP 200, 0 rows (RLS filtered)' };
   return { ok: false, why: 'HTTP ' + status + ' returned ' + (Array.isArray(body) ? body.length : '?') + ' row(s): ' + JSON.stringify(body).slice(0, 160) };
 };
+// return=MINIMAL (2.10 #510-A3). With return=representation a table where anon
+// may INSERT but not SELECT refuses the returned row, the insert rolls back and
+// this read "denied" over a real hole. Minimal asks only whether the write is
+// allowed. The cost, accepted: if the hole is real, the junk row lands - and is
+// itself the finding. (PostgREST here does not honour Prefer: tx=rollback,
+// measured 2.10, so a no-commit probe is not available.)
 const anonWriteDenied = async (table, row) => {
-  const { status, body } = await anon(table, { method: 'POST', body: JSON.stringify(row), headers: { Prefer: 'return=representation' } });
+  const { status, body } = await anon(table, { method: 'POST', body: JSON.stringify(row), headers: { Prefer: 'return=minimal' } });
   if (status >= 400) return { ok: true, why: 'HTTP ' + status + ' ' + ((body && body.code) || '') };
   return { ok: false, why: 'HTTP ' + status + ' WROTE A ROW: ' + JSON.stringify(body).slice(0, 160) };
 };
@@ -188,6 +194,24 @@ check('S19', 'CSP script-src has no unsafe-inline / unsafe-eval', () => {
   const bad = /'unsafe-inline'|'unsafe-eval'/.test(s);
   return { ok: !!s && !bad, why: s || 'script-src missing' };
 });
+// S19b (2.10 #510-A6): a WHOLE public CDN in script-src is a script source for
+// anything anyone has published to npm or GitHub - it undoes the CSP the day an
+// injection lands. jsdelivr is allowed only as the exact package@version paths
+// the app loads, and every path the source loads from jsdelivr must be one.
+check('S19b', 'CSP script-src pins CDN scripts to exact package paths', () => {
+  const csp = headerMap(vercel())['content-security-policy'] || '';
+  const s = (/script-src ([^;]+)/.exec(csp) || [])[1] || '';
+  const srcs = s.split(/\s+/).filter(Boolean);
+  const bareCdn = srcs.filter((x) => /^https:\/\/(cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com)\/?$/.test(x));
+  if (bareCdn.length) return { ok: false, why: `whole CDN allowed: ${bareCdn.join(' ')}` };
+  const used = new Set();
+  for (const f of readDir(path.join(ROOT, 'src'), ['.js', '.jsx'])) {
+    const txt = fs.readFileSync(f, 'utf8');
+    for (const m of txt.matchAll(/https:\/\/cdn\.jsdelivr\.net\/npm\/((?:@[^/'"\s]+\/)?[^/'"\s]+)/g)) used.add(m[1]);
+  }
+  const missing = [...used].filter((pkg) => !srcs.some((x) => x.startsWith(`https://cdn.jsdelivr.net/npm/${pkg}/`)));
+  return { ok: !missing.length, why: missing.length ? `loaded but not allowed: ${missing.join(', ')}` : `pinned: ${[...used].join(', ')}` };
+});
 check('S20', "CSP pins object-src 'none' and base-uri 'self'", () => {
   const csp = headerMap(vercel())['content-security-policy'] || '';
   return { ok: /object-src 'none'/.test(csp) && /base-uri 'self'/.test(csp), why: csp ? 'checked' : 'no CSP' };
@@ -231,8 +255,17 @@ check('S26', 'sign-out purges the device BEFORE the network call', () => {
   const i = t.indexOf('const signOut');
   const seg = t.slice(i, i + 2400);
   const purge = seg.indexOf('purgeLocalCaches()');
-  const net = seg.indexOf('supabase.auth.signOut()');
+  const net = seg.indexOf('supabase.auth.signOut(');
   return { ok: purge > -1 && net > -1 && purge < net, why: (purge > -1 && purge < net) ? 'purge precedes the round trip' : 'the network call runs first' };
+});
+// S26b (2.10 #510-R2 H3): a bare signOut() is scope GLOBAL in supabase-js v2 -
+// signing out on one device revoked every session on the account (proven:
+// the other device's refresh 400). The app's sign-out must be device-local.
+check('S26b', "the app's sign-out is device-local (scope:'local')", () => {
+  const t = stripComments(fs.readFileSync(path.join(ROOT, 'src', 'auth.jsx'), 'utf8'));
+  const calls = [...t.matchAll(/supabase\.auth\.signOut\(([^)]*)\)/g)].map((m) => m[1].trim());
+  const bad = calls.filter((a) => !/scope\s*:\s*['"]local['"]/.test(a));
+  return { ok: calls.length > 0 && !bad.length, why: bad.length ? `global sign-out call(s): ${bad.length}` : `${calls.length} call(s), all local` };
 });
 check('S27', 'personal snapshots are latched off while signed out', () => {
   const t = fs.readFileSync(path.join(ROOT, 'src', 'auth.jsx'), 'utf8');
@@ -269,9 +302,12 @@ if (!staticOnly) {
   // all. They are not trivial: a booking row carries the coach's calendar busy
   // times, i.e. where he is and when, and the settings row is what makes his
   // public booking page live.
-  check('A16', 'anon cannot insert a booking', () => anonWriteDenied('bookings', {
-    coach_email: '__sec_audit__@example.com', start_at: new Date().toISOString(), duration_min: 30, status: 'busy',
-  }));
+  // A16 IS NOT "anon cannot insert a booking": the public booking page IS an
+  // anonymous insert, by design. The old probe sent a row the policy rejects on
+  // its own (start_at now, no contact_name, status busy) and passed on that.
+  // The real rule - only a slot the coach offers, at his duration, within his
+  // horizon - is #510-A2 (a create_booking RPC); until it lands this says so.
+  check('A16', 'anon can only book a slot the coach offers (#510-A2)', () => ({ ok: false, why: 'OPEN #510-A2: bookings_public_insert does not check status / duration / slot / horizon (create_booking RPC not applied yet)' }));
   check('A17', 'anon cannot insert booking settings', () => anonWriteDenied('coach_booking_settings', {
     coach_email: '__sec_audit__@example.com',
   }));

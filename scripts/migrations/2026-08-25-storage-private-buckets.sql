@@ -33,53 +33,71 @@
 --
 -- ROLLBACK is instant and total: set public = true again.
 
--- 1) the flip
-UPDATE storage.buckets
-   SET public = false
- WHERE id IN ('form-videos', 'meal-photos', 'coach-voice', 'coaching-contracts');
+-- (2.10: ONE transaction, the read policies FIRST and the flip LAST - with the
+-- flip first there was a window with private buckets and no policy to read them)
+BEGIN;
 
--- 2) reads must now be granted explicitly. An athlete reads their OWN folder;
+-- reads must be granted explicitly once the buckets are private. An athlete reads their OWN folder;
 --    staff read everything. Mirrors the INSERT scoping from
 --    scripts/migrations/2026-07-19-*.sql, including the couple `__N` strip.
 --
 --    NOTE: current_client_id() / is_staff() are the helpers those migrations
 --    already rely on. If either is missing, STOP — do not invent one here.
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'media_read_own_or_staff') THEN
-    CREATE POLICY media_read_own_or_staff ON storage.objects
-      FOR SELECT TO authenticated
-      USING (
-        bucket_id IN ('form-videos', 'meal-photos', 'coach-voice')
-        AND (
-          is_staff()
-          OR split_part(name, '/', 1) = split_part(current_client_id(), '__', 1)
-        )
-      );
-  END IF;
+-- CORRECTED 2026-10-02 (#510-S9, S10), before it has ever run:
+--   * a couple's members upload to '<parent>__0/...' and '<parent>__1/...'
+--     (2026-07-19-scope-storage-writes.sql); the first draft compared the bare
+--     folder with the stripped caller id, so a couple member would have lost
+--     their OWN videos, meals and voice notes. Both sides are stripped now,
+--     with the same expression the write policy uses.
+--   * plan exercise demos live in form-videos/_lib/ and every athlete plays
+--     them; the first draft made them staff-only. _lib is readable by any
+--     signed-in seat.
+--   * DROP + CREATE, not IF NOT EXISTS: a policy of the same name left by an
+--     earlier experiment must not survive with the old predicate.
+-- Measured 2.10 while still public: an athlete seat signs its OWN form-videos
+-- object and cannot list or sign another athlete's (audit-out/_athlete-sign-probe.mjs).
+DROP POLICY IF EXISTS media_read_own_or_staff ON storage.objects;
+CREATE POLICY media_read_own_or_staff ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id IN ('form-videos', 'meal-photos', 'coach-voice')
+    AND (
+      public.is_staff()
+      OR (bucket_id = 'form-videos' AND (storage.foldername(name))[1] = '_lib')
+      OR (
+        public.current_trainee_id() IS NOT NULL
+        AND regexp_replace((storage.foldername(name))[1], '__[0-9]+$', '')
+            = regexp_replace(public.current_trainee_id(), '__[0-9]+$', '')
+      )
+    )
+  );
 
-  -- Signed contracts are staff-only: there is no athlete-facing reader for them.
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'contracts_read_staff_only') THEN
-    CREATE POLICY contracts_read_staff_only ON storage.objects
-      FOR SELECT TO authenticated
-      USING (bucket_id = 'coaching-contracts' AND is_staff());
-  END IF;
-END $$;
+-- Signed contracts are staff-only: there is no athlete-facing reader for them.
+DROP POLICY IF EXISTS contracts_read_staff_only ON storage.objects;
+CREATE POLICY contracts_read_staff_only ON storage.objects
+  FOR SELECT TO authenticated
+  USING (bucket_id = 'coaching-contracts' AND public.is_staff());
+
+-- the flip, last
+UPDATE storage.buckets
+   SET public = false
+ WHERE id IN ('form-videos', 'meal-photos', 'coach-voice', 'coaching-contracts');
+
+COMMIT;
 
 -- STATUS 2026-08-25 — WHAT IS AND IS NOT VERIFIED:
 --   ✓ The exposure is real: unauthenticated HEAD on two real athletes' form
 --     videos returned 200 (scripts/_probe-storage-exposure.cjs).
 --   ✓ Signing WORKS from the OWNER seat — resolveStoredUrl returned a real
 --     /object/sign/ URL in the live app.
---   ✗ Signing from an ATHLETE seat is UNVERIFIED. scripts/_probe-athlete-signing.mjs
---     could not complete an athlete sign-in, so we do NOT know whether an athlete
---     session can sign its own media. Object reads bypass RLS while the buckets
---     are public, so storage.objects may have no SELECT policy at all today.
---     >>> THIS IS THE BLOCKER. Verify it from a real athlete seat before running
---         this file, or athletes lose access to their own videos the moment it
---         executes. The policies below are written for exactly that, but they
---         have not been proven against a real athlete session.
+--   ✓ (2.10) Signing from an ATHLETE seat WORKS for the athlete's own folder
+--     and is refused for another athlete's ("Object not found") - a SELECT
+--     policy is already live and scopes (audit-out/_athlete-sign-probe.mjs, as
+--     the diego fixture). The 2.10 read-path audit found 8 raw-URL renderers;
+--     all now go through StoredMedia / resolveStoredUrl (#510-S1..S8).
+--   ? Still to measure before running: a COUPLE member (tr_x__0) signing their
+--     own media, and the owner signing coach-voice (QUEUE #480 saw a 400).
 --
 -- VERIFY AFTER RUNNING (both must hold):
 --   • node scripts/_probe-storage-exposure.cjs  -> the HEADs must now be 400/403.

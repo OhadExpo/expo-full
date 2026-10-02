@@ -22,7 +22,12 @@ const DAY = 86400000;
 const daysSince = (iso) => { if (!iso) return null; const t = Date.parse(iso); return Number.isFinite(t) ? Math.floor((Date.now() - t) / DAY) : null; };
 
 function useOwedData() {
-  const [state, setState] = useState({ rows: [], requests: [], loaded: false, error: null });
+  // `good`: at least one read succeeded. A FAILED READ IS NOT "NOBODY OWES"
+  // (2.10 #510-R2 M6): it used to replace the list with [] - ₪0 and "Nobody owes
+  // anything" on a network blip, and with the empty sheet cover the false
+  // "OVERDUE 243d" flags came back. A failed refresh now keeps the last good
+  // list and says so; before any good read the card shows no number at all.
+  const [state, setState] = useState({ rows: [], requests: [], loaded: false, error: null, good: false });
   useEffect(() => {
     let dead = false;
     const load = async () => {
@@ -31,7 +36,9 @@ function useOwedData() {
         supabase.from('bit_payment_requests').select('id, trainee_id, amount, reference, created_at').eq('status', 'pending').order('created_at', { ascending: false }).limit(500),
       ]);
       if (dead) return;
-      setState({ rows: a.data || [], requests: b.data || [], loaded: true, error: a.error ? a.error.message : null });
+      const err = a.error || b.error;
+      if (err) { setState((s) => ({ ...s, loaded: true, error: err.message || String(err) })); return; }
+      setState({ rows: a.data || [], requests: b.data || [], loaded: true, error: null, good: true });
     };
     load();
     // The daemon rewrites the table every 20 minutes; re-read on the same beat
@@ -154,7 +161,7 @@ const btn = (primary) => ({ height: 36, boxSizing: 'border-box', background: 'tr
 
 export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, onSelectTrainee, expanded = false }) {
   const tt = useT();
-  const { rows, requests, loaded, error } = useOwedData();
+  const { rows, requests, loaded, error, good } = useOwedData();
   const list = useMemo(() => mergeOwed(rows, requests, overdue, trainees), [rows, requests, overdue, trainees]);
   const [open, setOpen] = useState(null);
   const total = list.reduce((a, e) => a + e.amount, 0);
@@ -165,10 +172,11 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
 
   return (
     <CollapsibleSection title={tt('Owed')} storageKey={expanded ? 'billing-owed' : 'dash-owed'} count={loaded ? list.length : undefined} style={{ marginBottom: expanded ? 0 : 20 }} /* Billing stacks its cards with a 14px gap - a margin on top read 34/14/14 (OCD #494) */
-      right={<span data-owed-total style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', whiteSpace: 'nowrap' }}><bdi dir="ltr">{ils(total)}</bdi></span>}>
+      right={<span data-owed-total style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', whiteSpace: 'nowrap' }}><bdi dir="ltr">{good ? ils(total) : '—'}</bdi></span>}>
       <div data-owed-card>
-        {error && <div style={{ fontFamily: FB, fontSize: 12, color: C.rd, marginBottom: 8 }}>{tt('Could not read the owed list')}: {error}</div>}
+        {error && <div style={{ fontFamily: FB, fontSize: 12, color: C.rd, marginBottom: 8 }}>{tt('Could not read the owed list')}{good ? ` - ${tt('showing the last one read')}` : ''}: {error}</div>}
         {!loaded ? <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'var(--c-td)', minHeight: 36, display: 'flex', alignItems: 'center' }}>{tt('Loading…')}</div>
+          : !good ? null
           : list.length === 0 ? <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'var(--c-td)', minHeight: 36, display: 'flex', alignItems: 'center' }}>{tt('Nobody owes anything')}</div>
           : (
             <div role="list" className="app-list" style={{ display: 'flex', flexDirection: 'column' }}>

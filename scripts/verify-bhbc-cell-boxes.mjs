@@ -42,6 +42,7 @@ try {
     await page.goto(`${base}/coach/bhbc/${t}`, { waitUntil: 'domcontentloaded' });
     await setWidth(page, W, W > 600 ? 900 : 844);
     await wait(3500);
+    if (process.env.BREAK_CSS) await page.addStyleTag({ content: process.env.BREAK_CSS });   // the break test: prove a broken layout is caught
     // A ZERO MUST SAY WHAT IT MEASURED: wait until the tab has painted its title strips (a loading screen has none)
     for (let k = 0; k < 20 && !(await page.evaluate(() => document.querySelectorAll('.bhbc-zone .title-strip').length).catch(() => 0)); k++) await wait(500);
     await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((e) => /^\s*(maybe later)\s*$/i.test(e.textContent || '')); if (b) b.click(); });
@@ -76,6 +77,10 @@ try {
           // the spec: a title strip is 41; a control nested IN a strip is the
           // nested height (26, 32 on touch); everything else that paints a box is 36
           if (e.parentElement && e.parentElement.closest('[data-strip-toggle]') && e.hasAttribute('data-strip-toggle') && e.tagName === 'BUTTON') continue;   // a segment of a segmented group: the group is the control
+          // a FILLED segment (#514: the logged S&C is tinted) is still the row's own
+          // segment when it spans the chip's whole inner height - a state of the row,
+          // not a box drawn inside it. A shorter fill is a box in a box and stays caught.
+          if (e.classList.contains('bhbc-seg') && sides < 4) { const chip = e.closest('.bhbc-chip'); if (chip && Math.abs(h - chip.clientHeight) <= 1) continue; }
           const nested = !!e.parentElement && !!e.parentElement.closest('.title-strip');
           const want = e.classList.contains('title-strip') ? 41 : nested ? (matchMedia('(pointer: coarse)').matches ? 32 : 26) : 36;
           if (Math.abs(h - want) > 1) out.push({ tag: e.tagName.toLowerCase(), h, w: Math.round(r.width), txt: txt.slice(0, 34), cls: String(e.className || '').slice(0, 30) });

@@ -316,7 +316,9 @@ if (typeof window !== 'undefined') {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     if (getCount() > 0) drain();
   }, DRAIN_INTERVAL_MS);
-  document.addEventListener('visibilitychange', () => {
+  // guarded like the interval above: under Node (scripts/test-offline-queue.mjs)
+  // there is a window but no document, and this line crashed the import
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && getCount() > 0) drain();
   });
   // Best-effort initial drain on app load — handles the case where a tab

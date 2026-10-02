@@ -279,7 +279,10 @@ function playerLine(c) {
   delete archive[seasonLabel];
   payload.archive = archive;
   console.log(`  archive: ${Object.keys(archive).join(', ') || 'none'}`);
-  const op = existing ? supabase.from('store').update({ value: payload }).eq('key', 'expo-bhbc-league') : supabase.from('store').insert({ key: 'expo-bhbc-league', value: payload });
+  // updated_at stamped (2.10 #510-R2): the app's writes are compare-and-swap on it, and a
+  // write that leaves it unchanged is invisible to them - the store has no trigger yet
+  const stampAt = new Date().toISOString();
+  const op = existing ? supabase.from('store').update({ value: payload, updated_at: stampAt }).eq('key', 'expo-bhbc-league') : supabase.from('store').insert({ key: 'expo-bhbc-league', value: payload, updated_at: stampAt });
   const { error: wErr } = await op;
   if (wErr) { console.error('WRITE FAILED:', wErr.message); process.exit(1); }
   console.log('OK — expo-bhbc-league written.');

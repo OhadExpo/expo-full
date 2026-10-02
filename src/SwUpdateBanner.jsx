@@ -138,7 +138,9 @@ export default function SwUpdateBanner() {
       return [...document.querySelectorAll('textarea, input:not([type]), input[type=text], input[type=search], input[type=email], input[type=number], input[type=tel], [contenteditable="true"]')]
         .some((x) => (x.isContentEditable ? (x.textContent || '').trim() : (x.value || '').trim()) && x.getClientRects().length > 0);
     } catch { return true; } };
-    const onAthletePortal = () => { try { return /^\/(athlete|demo\/athlete)(\/|$)/.test(window.location.pathname) || !!document.body.getAttribute('data-athlete-lang'); } catch { return true; } };
+    // ...and the public form pages (#510-R2 M10): a half-filled intake, a contract
+    // being signed or a booking being made is never reloaded from under the visitor
+    const onAthletePortal = () => { try { return /^\/(athlete|demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname) || !!document.body.getAttribute('data-athlete-lang'); } catch { return true; } };
     const autoOk = () => !busy() && !writing() && !onAthletePortal();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.

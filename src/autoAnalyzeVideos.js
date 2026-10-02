@@ -134,6 +134,9 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
   let analyzed = 0, failed = 0, i = 0, aborted = false;
   try {
     const { captureClipFrames } = await import('./MovementLab');
+    // lazy like MovementLab: the resolver pulls the browser Supabase client, and
+    // this module's helpers are loaded under Node by verify-auto-analyze
+    const { resolveStoredUrl } = await import('./storageUrl');
     for (const v of vids) {
       // Bound the work done in ONE call. The report-open path passes a small cap
       // so a large backlog (e.g. the one-time re-analyze storm after a DONE_KEY
@@ -150,7 +153,10 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
       if (typeof onIdle === 'function') { await onIdle(); if (typeof shouldStop === 'function' && shouldStop()) break; }
       i++;
       try {
-        const frames = await captureClipFrames(v.url, { crossOrigin: true, shouldStop: stopClip || null });
+        // read from the SIGNED url (the raw public one fails once the bucket is
+        // private, and three failures mark the clip done - dropped from the vault
+        // for good, #510-S3); the metric stays keyed by the stored url
+        const frames = await captureClipFrames(await resolveStoredUrl(v.url), { crossOrigin: true, shouldStop: stopClip || null });
         if (frames && frames.length >= 4) {
           const analysis = analyzeClip(frames, v.title);
           if (analysis && analysis.ok) {

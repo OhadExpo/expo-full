@@ -1,10 +1,10 @@
 // Role allow-lists and the pure predicates over them.
 //
 // Split out of auth.jsx for one reason: these decide who may edit the BHBC
-// medical board, and until the RLS migration is applied that UI check is the
-// ONLY thing enforcing it. The database currently allows any BHBC coach to
-// write `expo-bhbc-medical` through the API
-// (scripts/migrations/2026-08-26-bhbc-coach-write-scope.sql, still pending).
+// medical board. The database enforces it too since 08-27 - measured 2.10 by
+// verify-bhbc-write-scope: a non-medical club coach is refused a write to
+// `expo-bhbc-medical` through the API - so this is the UI's half of the rule,
+// not the only lock.
 //
 // A guard carrying that much weight has to be testable, and node cannot import
 // .jsx. auth.jsx re-exports everything here, so every existing

@@ -14,6 +14,7 @@
 // overlay) launch per-athlete from here but are separate surfaces.
 
 import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react';
+import { StoredVideo } from './StoredMedia';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
@@ -66,7 +67,7 @@ function InlineVideo({ url }) {
   }
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
     return (
-      <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
+      <StoredVideo src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
         style={{ width: '100%', marginTop: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
     );
   }
@@ -793,8 +794,8 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                     <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
                       <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
                       <input value={s.reps} onChange={e => onSet(ei, si, { reps: e.target.value })} placeholder="reps" inputMode="numeric" style={cell} />
-                      <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
-                      <input value={s.rpe} onChange={e => onSet(ei, si, { rpe: e.target.value })} placeholder="—" inputMode="decimal" style={cell} />
+                      <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value.replace(',', '.') })} placeholder="kg" inputMode="decimal" style={cell} />
+                      <input value={s.rpe} onChange={e => onSet(ei, si, { rpe: e.target.value.replace(',', '.') })} placeholder="—" inputMode="decimal" style={cell} />
                       <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                         <input type="checkbox" checked={!!s.done} onChange={e => onSet(ei, si, { done: e.target.checked })} style={{ width: 20, height: 20, accentColor: C.gn, cursor: 'pointer' }} />
                       </label>

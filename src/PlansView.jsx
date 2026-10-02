@@ -4305,7 +4305,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       const existingDays = data.data?.days || [];
       const merged = {
         id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
-        active: data.active, createdAt: data.created_at,
+        active: data.active, createdAt: data.created_at, updatedAt: data.updated_at,   // the version just read (#510-B7)
         days: [...existingDays, ...cloned],
         warmup: data.data?.warmup || [], weeks: data.data?.weeks || 4, kind: data.data?.kind,
         isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,
@@ -4342,7 +4342,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       const existingWarmup = data.data?.warmup || [];
       const merged = {
         id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
-        active: data.active, createdAt: data.created_at,
+        active: data.active, createdAt: data.created_at, updatedAt: data.updated_at,   // the version just read (#510-B7)
         days: data.data?.days || [],
         warmup: [...existingWarmup, ...steps], weeks: data.data?.weeks || 4, kind: data.data?.kind,
         isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,

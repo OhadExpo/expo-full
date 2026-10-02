@@ -62,13 +62,19 @@ export function useCoachNotes(filter = {}) {
     if (filter.targetKind) q = q.eq('target_kind', filter.targetKind);
     if (filter.targetId) q = q.eq('target_id', filter.targetId);
     if (filter.pinnedOnly) q = q.eq('pinned', true);
-    q = q.order('pinned', { ascending: false })
+    // OPEN BEFORE DONE, THEN THE LIMIT (2.10 #510-R2 M5): ordered pinned -> newest
+    // with done tasks mixed in, a table past the limit (200 on Tasks) silently
+    // dropped OLDER OPEN tasks off the page. 'done' sorts last descending - the
+    // order autoTasks.js already uses.
+    q = q.order('status', { ascending: false })
+         .order('pinned', { ascending: false })
          .order('created_at', { ascending: false })
          .limit(filter.limit || 100);
     const { data, error } = await q;
     if (error) {
+      // a failed refresh keeps the tasks on screen (M6) - an empty list read as
+      // "nothing to do" on a network blip
       reportFailure('Loading tasks', error);
-      setRows([]);
     } else {
       setRows(data || []);
     }

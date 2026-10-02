@@ -15,7 +15,8 @@ import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
 // programme and the trainee record their identity resolves to. Both would
 // otherwise sit on a shared phone after sign-out, which is exactly what this
 // exists to prevent.
-const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises|plans-|self-trainee)/;
+// edit-trainee-: the trainee edit modal's draft holds a client's full record (#510-R2 L16)
+const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises|plans-|self-trainee|edit-trainee-)/;
 function purgeLocalCaches() {
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -305,7 +306,13 @@ export function AuthProvider({ children, clientList }) {
     setRole(null);
     setClientId(null);
     purgeLocalCaches();
-    try { await supabase.auth.signOut(); } catch { /* the phone is already clean */ }
+    // THIS DEVICE ONLY (2.10 #510-R2). A bare signOut() is scope GLOBAL in
+    // supabase-js v2: signing out on the laptop - or the staff seat tapping
+    // "Portal" - revoked the refresh token of EVERY session on the account, and
+    // the phone dropped to the sign-in screen within the hour, mid-edit. The
+    // scripts learned this on 29.9 ({scope:'local'}); the app had not. Local
+    // still ends this device's session on the server.
+    try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* the phone is already clean */ }
     purgeLocalCaches();
     try { setQueueUser(null); } catch {}
   };

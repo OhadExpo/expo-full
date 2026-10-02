@@ -57,12 +57,20 @@ export default function BillingView({ trainees, onSelectTrainee }) {
     setLoading(true);
     setLoadError(null);
     try {
-      const { data: r, error: re } = await supabase
-        .from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200);
+      // EVERY PENDING REQUEST, plus the newest 200 of the rest (2.10 #510-R2 L11):
+      // OUTSTANDING / OVERDUE are sums over the pending ones, and with one
+      // limit(200) over everything an older pending request fell off the page -
+      // out of the totals, and impossible to mark paid.
+      const [{ data: pend, error: pe }, { data: r, error: re }] = await Promise.all([
+        supabase.from('bit_payment_requests').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200),
+      ]);
       // PostgREST errors don't throw — surface them so an RLS/permission
       // failure doesn't read as "No payment requests yet".
-      if (re) { setLoadError(re.message); return; }
-      setRequests(r || []);
+      if (re || pe) { setLoadError((re || pe).message); return; }
+      const byId = new Map();
+      for (const x of [...(pend || []), ...(r || [])]) byId.set(x.id, x);
+      setRequests([...byId.values()].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))));
     } catch (e) { setLoadError(e?.message || 'Could not load billing data.'); }
     finally { setLoading(false); } // never strand the spinner
   }, []);
@@ -71,8 +79,10 @@ export default function BillingView({ trainees, onSelectTrainee }) {
 
   const markPaid = async (id) => {
     if (!(await confirmToast('Mark this request as PAID? Use this only after the money has actually arrived.', { okLabel: 'Mark paid', cancelLabel: 'Cancel' }))) return;
-    const { error } = await supabase.from('bit_payment_requests').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', id);
+    const { data: upd, error } = await supabase.from('bit_payment_requests').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', id).select('id');
     if (error) { toast(`Update failed: ${error.message}`, 'error'); return; }
+    // an update RLS refuses matches ZERO rows without an error - it is not paid (#510-R2 L11)
+    if (!upd || !upd.length) { toast('Not marked paid - the request was not updated (no permission, or it no longer exists).', 'error'); return; }
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'paid', paid_at: new Date().toISOString() } : r));
   };
 

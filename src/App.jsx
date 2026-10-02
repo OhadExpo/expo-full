@@ -120,11 +120,18 @@ import { setSeat } from './seatWrite';
 // failure later in the session can still trigger one more reload.
 const RELOAD_FLAG = 'expo-chunk-reload-once';
 const CHUNK_ERR_RX = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+// NOT EVERY CHUNK ERROR IS A NEW DEPLOY, AND NOT EVERY MOMENT IS SAFE TO RELOAD
+// (2.10 #510-R2 M8). The same message comes from a plain network loss - and a
+// reload while offline strands the user on the browser's offline page - and a
+// reload mid-upload or mid-workout kills the upload / interrupts the session the
+// update banner refuses to touch. Then the error goes to the view's error
+// boundary, which offers the reload when the user is ready.
+const unsafeToReload = () => { try { return navigator.onLine === false || (window.__expoUploadInFlight | 0) > 0 || (window.__expoWorkoutActive | 0) > 0; } catch { return false; } };
 function lazyReload(importFn) {
   return lazy(() => importFn().catch(err => {
     if (err && err.message && CHUNK_ERR_RX.test(err.message)) {
       try {
-        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+        if (!sessionStorage.getItem(RELOAD_FLAG) && !unsafeToReload()) {
           sessionStorage.setItem(RELOAD_FLAG, '1');
           window.location.reload();
           // Park the promise so React.lazy doesn't surface the error
@@ -798,7 +805,7 @@ function AuthedApp() {
   // courtside on dead wifi saw a complete, confident club zone with no hint
   // that any of it was from cache. Measured: 10 of 10 players still on screen
   // with every Supabase call cut, and not a word about it.
-  const [trainees,setTrainees,tL,traineesLoadError,setTraineesLocal]=useSupaStore(isBhbcCoach ? 'expo-bhbc-roster' : KEYS.trainees,[]);
+  const [trainees,setTrainees,tL,traineesLoadError,,refreshTrainees]=useSupaStore(isBhbcCoach ? 'expo-bhbc-roster' : KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
@@ -812,10 +819,10 @@ function AuthedApp() {
   const [portalVis,setPortalVis,,,setPortalVisLocal]=useSupaStore('expo-portal-vis',{});
   // BHBC team command center (/coach/bhbc) — per-athlete session-RPE load + readiness.
   // Owner-only store key (never trainee-visible); JSON blob like expo-bw.
-  const [bhbcLoads,setBhbcLoads,,,setBhbcLoadsLocal]=useSupaStore('expo-bhbc-loads',{});
-  const [bhbcFixtures,setBhbcFixtures,,,setBhbcFixturesLocal]=useSupaStore('expo-bhbc-fixtures',[]);
-  const [bhbcLeague,,,,setBhbcLeagueLocal]=useSupaStore('expo-bhbc-league',{});
-  const [bhbcMedical,setBhbcMedical,,,setBhbcMedicalLocal]=useSupaStore('expo-bhbc-medical',{});
+  const [bhbcLoads,setBhbcLoads,,,,refreshBhbcLoads]=useSupaStore('expo-bhbc-loads',{});
+  const [bhbcFixtures,setBhbcFixtures,,,,refreshBhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
+  const [bhbcLeague,,,,,refreshBhbcLeague]=useSupaStore('expo-bhbc-league',{});
+  const [bhbcMedical,setBhbcMedical,,,,refreshBhbcMedical]=useSupaStore('expo-bhbc-medical',{});
   // (`expo-bhbc-plans`, the per-slot practice plan, is no longer read: the
   // zone has no practice plans since 24.9. The key stays in the database.)
   // Live portal-visibility sync: when the coach hides/shows a block, the
@@ -1243,7 +1250,31 @@ function AuthedApp() {
       }
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    // A NOTIFICATION TAP ROUTES IN PLACE (#510-R2 M9; src/sw.js asks, we answer
+    // on the port). A coach path goes through the same popstate route as Back;
+    // any other path navigates only when nothing is open that a reload would
+    // lose - mid-workout or mid-upload the tap just focuses the app.
+    const onSwMsg = (e) => {
+      const d = e && e.data;
+      if (!d || d.type !== 'expo-navigate' || typeof d.url !== 'string' || !d.url.startsWith('/')) return;
+      const port = e.ports && e.ports[0];
+      try {
+        const here = window.location.pathname + window.location.search + window.location.hash;
+        if (here !== d.url) {
+          if (d.url.startsWith('/coach')) { window.history.pushState(null, '', d.url); window.dispatchEvent(new PopStateEvent('popstate')); }
+          else {
+            const busy = (window.__expoWorkoutActive | 0) > 0 || (window.__expoUploadInFlight | 0) > 0;
+            if (!busy) window.location.assign(d.url);
+          }
+        }
+      } catch { /* the focus already happened */ }
+      try { if (port) port.postMessage('ok'); } catch { /* the SW timed out */ }
+    };
+    try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', onSwMsg); } catch { /* no SW */ }
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      try { navigator.serviceWorker && navigator.serviceWorker.removeEventListener('message', onSwMsg); } catch { /* no SW */ }
+    };
   }, []);
 
   const openPreview = useCallback((id) => {
@@ -1508,18 +1539,17 @@ function AuthedApp() {
     return () => clearInterval(iv);
   }, [isCoach]);
 
-  // Live sync for the BHBC zone — poll the store keys so coaches see each other's
-  // changes without refreshing (shared-Google-Sheet feel). Gated to the zone.
-  // saveLocal applies the incoming value WITHOUT re-writing. First read is
-  // skipped so it never clobbers a local edit made just before entering.
-  // (A true realtime-broadcast layer like portal-sync is the next step.)
-  const bhbcSeenRef = useRef({});
-  // What the app ALREADY holds, per key (29.9 #422): after every save of our own
-  // the realtime echo refetched the key and swapped in a new, identical copy -
-  // a second full re-render of the zone for nothing. Now an incoming value equal
-  // to the local one is dropped.
-  const bhbcLocalRef = useRef({});
-  bhbcLocalRef.current = { 'expo-bhbc-loads': bhbcLoads, 'expo-bhbc-fixtures': bhbcFixtures, 'expo-bhbc-league': bhbcLeague, 'expo-bhbc-medical': bhbcMedical, 'expo-trainees': trainees };
+  // Live sync for the BHBC zone: coaches see each other's changes without
+  // refreshing (shared-Google-Sheet feel). Gated to the zone.
+  // THROUGH THE STORE HOOK'S OWN GUARDED REFETCH (2.10 #510-R2 M7): this used to
+  // read the five keys itself and push them in with saveLocal - so a poll read
+  // that started before one of our saves and answered after it put the OLDER
+  // value back, and the next edit, built on it, erased our own previous one.
+  // refresh() skips while a save is out or has finished since, keeps an edit
+  // still in the offline queue, reads the version first and the value only if
+  // it moved, and keeps the hook's compare-and-swap base current.
+  const bhbcRefreshRef = useRef([]);
+  bhbcRefreshRef.current = [refreshBhbcLoads, refreshBhbcFixtures, refreshBhbcLeague, refreshBhbcMedical, refreshTrainees];
   const bhbcChanRef = useRef(null);
   // Called by the zone after any local write so other open clients refetch at once.
   const notifyBhbcChange = useCallback(() => {
@@ -1532,25 +1562,7 @@ function AuthedApp() {
     // live-sync as the owner).
     if (tab !== 'bhbc' && !isBhbcCoach) return undefined;
     let stop = false;
-    const poll = async () => {
-      try {
-        const { data: rows } = await supabase.from('store').select('key, value').in('key', ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees']);
-        if (stop || !rows) return;
-        for (const r of rows) {
-          const j = JSON.stringify(r.value);
-          if (bhbcSeenRef.current[r.key] === j) continue;
-          const first = bhbcSeenRef.current[r.key] === undefined;
-          bhbcSeenRef.current[r.key] = j;
-          if (first) continue;
-          try { if (JSON.stringify(bhbcLocalRef.current[r.key]) === j) continue; } catch { /* compare failed - apply */ }
-          if (r.key === 'expo-bhbc-loads') setBhbcLoadsLocal(r.value);
-          else if (r.key === 'expo-bhbc-fixtures') setBhbcFixturesLocal(r.value);
-          else if (r.key === 'expo-bhbc-league') setBhbcLeagueLocal(r.value);
-          else if (r.key === 'expo-bhbc-medical') setBhbcMedicalLocal(r.value);
-          else if (r.key === 'expo-trainees') setTraineesLocal(r.value);
-        }
-      } catch { /* transient */ }
-    };
+    const poll = () => { for (const f of bhbcRefreshRef.current) { try { f(); } catch { /* transient */ } } };
     poll();
     // True realtime: refetch the instant any BHBC store key changes (a coach or
     // the sync script writing) — the "shared Google Sheet" feel. The interval
@@ -1856,6 +1868,7 @@ function AuthedApp() {
                20 and hanging 5.2px past the border on BOTH sides, measured at 390.
                Only the HEIGHT was ever the complaint, so only the block padding moves. */
             .alert-card{padding-block:12px !important}
+            .alert-sev.alert-card{padding-top:0 !important}
             /* The font size moved out of this media query and onto the card's
                own container query above, which is correct at every width. Only
                the height belongs to "is this a phone". */

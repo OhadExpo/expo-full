@@ -147,12 +147,14 @@ function CoverHeader({ contract }) {
 
 function MetaBlock({ contract }) {
   const c = contract;
-  const total = (c.monthly_rate || 0) * (c.package_length_months || 1);
+  // AN OPEN-ENDED CONTRACT HAS NO TOTAL (2.10 #510-R2 L13): monthly x (months || 1)
+  // printed one month's fee as the TOTAL on a signed document
+  const total = c.package_length_months ? (c.monthly_rate || 0) * c.package_length_months : null;
   const rows = [
     { l: 'MONTHLY RATE', v: `₪${Math.round(c.monthly_rate || 0).toLocaleString()}` },
     { l: 'SESSIONS / WEEK', v: c.sessions_per_week ? `${c.sessions_per_week}` : '—' },
     { l: 'PACKAGE LENGTH', v: c.package_length_months ? `${c.package_length_months} mo` : 'Open-ended' },
-    { l: 'TOTAL (INCL. VAT)', v: `₪${Math.round(total).toLocaleString()}` },
+    { l: 'TOTAL (INCL. VAT)', v: total != null ? `₪${Math.round(total).toLocaleString()}` : `₪${Math.round(c.monthly_rate || 0).toLocaleString()} / month` },
   ];
   return (
     <div style={{

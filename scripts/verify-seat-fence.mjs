@@ -54,30 +54,41 @@ setSeat('unknown');
 
 // 2. the wiring --------------------------------------------------------------
 const hook = fs.readFileSync('src/useSupaStore.js', 'utf8');
-const storeUpserts = [...hook.matchAll(/from\('store'\)\.upsert\(/g)].map((m) => m.index);
-check('useSupaStore.js has exactly the two known store upserts (replay + live writer)', storeUpserts.length === 2, `found ${storeUpserts.length} — a new write path must be fenced and listed here`);
-// the enclosing top-level function of an offset: nearest preceding line that
-// starts a function at column 0 or 2
-const enclosing = (idx) => {
-  const head = hook.slice(0, idx);
-  const starts = [...head.matchAll(/\n(?:export )?(?:async )?function \w+|\n {2}const \w+ = useCallback\(/g)];
-  return starts.length ? starts.at(-1).index : 0;
-};
-for (const at of storeUpserts) {
-  const fnStart = enclosing(at);
-  const body = hook.slice(fnStart, at);
-  const line = hook.slice(0, at).split('\n').length;
-  const isWriter = /const writeToSupa = useCallback/.test(body);
-  if (isWriter) {
-    const callers = [...hook.matchAll(/writeToSupa\(/g)].map((m) => m.index);
-    const save = hook.indexOf('const save = useCallback(async (next) =>');
-    const fence = hook.indexOf('if (!canSeatWrite(key))', save);
-    const saveEnd = hook.indexOf('\n  }, [', save);
-    check(`line ${line}: writeToSupa is called only from save()`, callers.length === 1 && callers[0] > save && callers[0] < saveEnd, `callers at ${callers.map((c) => hook.slice(0, c).split('\n').length)}`);
-    check(`line ${line}: save() checks the fence before it calls writeToSupa`, fence > save && fence < callers[0], `fence at ${fence}`);
-  } else {
-    check(`line ${line}: the queued replay checks the fence before its upsert`, /if \(!canSeatWrite\(key\)\)/.test(body), 'no canSeatWrite in the enclosing function');
-  }
+const lineOf = (i) => hook.slice(0, i).split('\n').length;
+// Since 2.10 (#510-B1) a store write is compare-and-swap: the ONLY raw store
+// writes in the hook are casWriteOnce's insert + update, casWriteOnce is called
+// only by storeWriteMerged, and storeWriteMerged only by (a) the queued replay,
+// which checks the fence first, and (b) writeToSupa, which only save() calls,
+// after the fence. Every link is checked, so a new write path fails here.
+const raw = [...hook.matchAll(/from\('store'\)\s*\.\s*(upsert|insert|update|delete)\(/g)];
+const storeUpserts = raw.map((m) => m.index);   // kept for the summary line
+const casStart = hook.indexOf('async function casWriteOnce(');
+const endOf = (from) => from + hook.slice(from).search(/\r?\n\}\r?\n/);   // the function's closing brace, CRLF or LF
+const casEnd = endOf(casStart);
+check('the hook writes the store only inside casWriteOnce (its insert + update)', raw.length === 2 && raw.every((m) => m.index > casStart && m.index < casEnd), `raw writes at lines ${raw.map((m) => lineOf(m.index)).join(', ')}`);
+const casCalls = [...hook.matchAll(/casWriteOnce\(/g)].map((m) => m.index).filter((i) => i !== casStart + 'async function '.length);
+const swmStart = hook.indexOf('export async function storeWriteMerged(');
+const swmEnd = endOf(swmStart);
+check('casWriteOnce is called only by storeWriteMerged', casCalls.length >= 1 && casCalls.every((i) => i > swmStart && i < swmEnd), `calls at lines ${casCalls.map(lineOf).join(', ')}`);
+const swmCalls = [...hook.matchAll(/storeWriteMerged\(/g)].map((m) => m.index).filter((i) => i !== swmStart + 'export async function '.length);
+const replay = hook.indexOf("registerHandler('store.upsert'");
+const replayEnd = hook.indexOf('\n});', replay);
+const writer = hook.indexOf('const writeToSupa = useCallback');
+const writerEnd = hook.indexOf('\n  }, [key]);', writer);
+check('storeWriteMerged is called only by the replay and by writeToSupa', swmCalls.length === 2 && swmCalls.some((i) => i > replay && i < replayEnd) && swmCalls.some((i) => i > writer && i < writerEnd), `calls at lines ${swmCalls.map(lineOf).join(', ')}`);
+const replayBody = hook.slice(replay, replayEnd);
+check('the queued replay checks the fence before it writes', replayBody.indexOf('if (!canSeatWrite(key))') > -1 && replayBody.indexOf('if (!canSeatWrite(key))') < replayBody.indexOf('storeWriteMerged('), 'no fence before storeWriteMerged in the replay');
+{
+  const callers = [...hook.matchAll(/writeToSupa\(/g)].map((m) => m.index);
+  const save = hook.indexOf('const save = useCallback(async (next) =>');
+  const fence = hook.indexOf('if (!canSeatWrite(key))', save);
+  const saveEnd = hook.indexOf('\n  }, [', save);
+  check('writeToSupa is called only from save()', callers.length === 1 && callers[0] > save && callers[0] < saveEnd, `callers at ${callers.map(lineOf)}`);
+  check('save() checks the fence before it calls writeToSupa', fence > save && fence < callers[0], `fence at ${fence}`);
+}
+// nothing else in src calls the exported writer
+for (const f of fs.readdirSync('src').filter((x) => /\.(jsx?|mjs)$/.test(x) && x !== 'useSupaStore.js')) {
+  if (/storeWriteMerged\(/.test(fs.readFileSync(`src/${f}`, 'utf8'))) check(`src/${f} does not call storeWriteMerged (it bypasses save()'s fence)`, false, 'found');
 }
 
 // 3. the bypasses ------------------------------------------------------------

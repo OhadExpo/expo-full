@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { StoredVideo } from './StoredMedia';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid } from './theme';
 
@@ -46,7 +47,7 @@ function InlineVideo({ url }) {
   }
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
     return (
-      <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
+      <StoredVideo src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
         style={{ width: '100%', maxWidth: 400, display: 'block', marginInlineStart: 'auto', marginInlineEnd: 'auto', marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
     );
   }
