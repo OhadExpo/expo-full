@@ -60,6 +60,27 @@ ok('unchanged mine -> theirs', deepEqual(M([1, 2], [1, 2], [1, 2, 3]), [1, 2, 3]
 ok('unchanged theirs -> mine', deepEqual(M([1, 2], [9], [1, 2]), [9]), M([1, 2], [9], [1, 2]));
 ok('identical edits', deepEqual(M(1, 5, 5), 5), M(1, 5, 5));
 
+// --- counters and id-less lists (#510-R2 M4) ---
+{
+  // counters are LEAVES, deliberately (replay safety): a replay of a decrement
+  // that already landed must not count twice
+  const b = [{ id: 'a', sessionsRemaining: 5, phone: '1' }];
+  const replay = M(b, [{ id: 'a', sessionsRemaining: 4, phone: '1' }], [{ id: 'a', sessionsRemaining: 4, phone: '2' }]);
+  ok('counter: a replayed decrement is not counted twice (4, not 3)', replay[0].sessionsRemaining === 4 && replay[0].phone === '2', replay);
+}
+{
+  const feed = [{ who: 'x', at: 1 }, { who: 'y', at: 0 }];
+  const mine = [{ who: 'me', at: 3 }, ...feed];          // newest first
+  const theirs = [{ who: 'them', at: 2 }, ...feed];
+  const r = M(feed, mine, theirs);
+  ok('feed: both new entries kept', r.length === 4 && r.some((x) => x.who === 'me') && r.some((x) => x.who === 'them'), r);
+  ok('feed: my newest-first entry stays at the front', r[0].who === 'me', r);
+  const r2 = M(['a', 'b', 'c'], ['a', 'c'], ['a', 'b', 'c', 'd']);
+  ok('list: my removal + their addition both stand', JSON.stringify(r2) === JSON.stringify(['a', 'c', 'd']), r2);
+  const rp = M(feed, mine, [{ who: 'them', at: 2 }, ...mine]);
+  ok('feed: a replay of my entry that already landed is not duplicated', rp.filter((x) => x.who === 'me').length === 1 && rp.length === 4, rp);
+}
+
 // --- THE BREAK TEST: the old write was "mine, whole" - prove the roster case catches it
 {
   const mine = [{ id: 'a', name: 'Amit G', sessions: 8 }, { id: 'b', name: 'Bar', sessions: 4 }];

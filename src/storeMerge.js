@@ -50,6 +50,47 @@ export function deepEqual(a, b) {
 
 const ABSENT = Symbol('absent');
 
+// NOT DELTAS FOR COUNTERS (#510-R2 M4, decided 2.10). A sessions-left count
+// changed on two devices could be summed as deltas - but a replay of a write
+// whose response was lost arrives on its OLD base with the SAME decrement the
+// server already holds, and a delta merge counts it twice: the athlete is
+// charged a session he did not use. Losing one of two truly simultaneous
+// decrements (a free session) is the safer error, so a counter is a leaf.
+
+// LISTS WITHOUT IDS MERGE AS MULTISETS (#510-R2 M4): the club activity feed, a
+// day's session rows, a fixture list. My additions and removals relative to the
+// base are applied to theirs; my new items go to the front if I put them at the
+// front (a newest-first feed), else to the end.
+const keyOfItem = (x) => { try { return JSON.stringify(x); } catch { return String(x); } };
+function mergeUnkeyedArrays(base, mine, theirs) {
+  const count = (arr) => { const m = new Map(); for (const x of arr) { const k = keyOfItem(x); m.set(k, (m.get(k) || 0) + 1); } return m; };
+  const cb = count(base), cm = count(mine), ct = count(theirs);
+  // removed by me: what the base had more of than mine
+  const removed = new Map();
+  for (const [k, n] of cb) { const r = n - (cm.get(k) || 0); if (r > 0) removed.set(k, r); }
+  // added by me, REPLAY-SAFE: only copies theirs does not already hold - a write
+  // that landed and is replayed on its old base must not duplicate its entries
+  const toAdd = new Map();
+  for (const [k, n] of cm) { const a2 = n - Math.max(cb.get(k) || 0, ct.get(k) || 0); if (a2 > 0) toAdd.set(k, a2); }
+  const added = [];
+  let addedAtFront = true, sawOld = false;
+  const oldLeft = new Map(cb);            // base copies still to walk past in mine
+  for (const x of mine) {
+    const k = keyOfItem(x);
+    if ((oldLeft.get(k) || 0) > 0) { oldLeft.set(k, oldLeft.get(k) - 1); sawOld = true; continue; }
+    const left = toAdd.get(k) || 0;
+    if (left > 0) { toAdd.set(k, left - 1); added.push(x); if (sawOld) addedAtFront = false; }
+  }
+  const out = [];
+  for (const x of theirs) {
+    const k = keyOfItem(x);
+    const r = removed.get(k) || 0;
+    if (r > 0) { removed.set(k, r - 1); continue; }
+    out.push(x);
+  }
+  return addedAtFront && base.length ? [...added, ...out] : [...out, ...added];
+}
+
 function mergeAny(base, mine, theirs) {
   if (deepEqual(mine, theirs)) return mine;
   if (deepEqual(mine, base)) return theirs;      // I did not touch it
@@ -59,6 +100,7 @@ function mergeAny(base, mine, theirs) {
   if (keyedArray(mine) && keyedArray(theirs) && (base === ABSENT || base === undefined || keyedArray(base))) {
     return mergeKeyedArrays(keyedArray(base) ? base : [], mine, theirs);
   }
+  if (Array.isArray(mine) && Array.isArray(theirs) && Array.isArray(base)) return mergeUnkeyedArrays(base, mine, theirs);
   return mine;                                   // a leaf both changed: this device's edit
 }
 
