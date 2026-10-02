@@ -120,11 +120,18 @@ import { setSeat } from './seatWrite';
 // failure later in the session can still trigger one more reload.
 const RELOAD_FLAG = 'expo-chunk-reload-once';
 const CHUNK_ERR_RX = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+// NOT EVERY CHUNK ERROR IS A NEW DEPLOY, AND NOT EVERY MOMENT IS SAFE TO RELOAD
+// (2.10 #510-R2 M8). The same message comes from a plain network loss - and a
+// reload while offline strands the user on the browser's offline page - and a
+// reload mid-upload or mid-workout kills the upload / interrupts the session the
+// update banner refuses to touch. Then the error goes to the view's error
+// boundary, which offers the reload when the user is ready.
+const unsafeToReload = () => { try { return navigator.onLine === false || (window.__expoUploadInFlight | 0) > 0 || (window.__expoWorkoutActive | 0) > 0; } catch { return false; } };
 function lazyReload(importFn) {
   return lazy(() => importFn().catch(err => {
     if (err && err.message && CHUNK_ERR_RX.test(err.message)) {
       try {
-        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+        if (!sessionStorage.getItem(RELOAD_FLAG) && !unsafeToReload()) {
           sessionStorage.setItem(RELOAD_FLAG, '1');
           window.location.reload();
           // Park the promise so React.lazy doesn't surface the error
@@ -1243,7 +1250,31 @@ function AuthedApp() {
       }
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    // A NOTIFICATION TAP ROUTES IN PLACE (#510-R2 M9; src/sw.js asks, we answer
+    // on the port). A coach path goes through the same popstate route as Back;
+    // any other path navigates only when nothing is open that a reload would
+    // lose - mid-workout or mid-upload the tap just focuses the app.
+    const onSwMsg = (e) => {
+      const d = e && e.data;
+      if (!d || d.type !== 'expo-navigate' || typeof d.url !== 'string' || !d.url.startsWith('/')) return;
+      const port = e.ports && e.ports[0];
+      try {
+        const here = window.location.pathname + window.location.search + window.location.hash;
+        if (here !== d.url) {
+          if (d.url.startsWith('/coach')) { window.history.pushState(null, '', d.url); window.dispatchEvent(new PopStateEvent('popstate')); }
+          else {
+            const busy = (window.__expoWorkoutActive | 0) > 0 || (window.__expoUploadInFlight | 0) > 0;
+            if (!busy) window.location.assign(d.url);
+          }
+        }
+      } catch { /* the focus already happened */ }
+      try { if (port) port.postMessage('ok'); } catch { /* the SW timed out */ }
+    };
+    try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', onSwMsg); } catch { /* no SW */ }
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      try { navigator.serviceWorker && navigator.serviceWorker.removeEventListener('message', onSwMsg); } catch { /* no SW */ }
+    };
   }, []);
 
   const openPreview = useCallback((id) => {

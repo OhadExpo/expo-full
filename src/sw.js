@@ -128,7 +128,20 @@ self.addEventListener('notificationclick', (event) => {
     for (const client of allClients) {
       if (client.url.startsWith(self.location.origin)) {
         await client.focus();
-        if ('navigate' in client) {
+        // ROUTE INSIDE THE OPEN APP, DON'T RELOAD IT (2.10 #510-R2 M9):
+        // client.navigate() is a full page load - whatever the coach or athlete
+        // had in memory and unsaved went with it. The app is asked first and
+        // routes in place; only an app that does not answer (an older bundle)
+        // gets the old full navigation.
+        const handled = await new Promise((res) => {
+          try {
+            const mc = new MessageChannel();
+            const t = setTimeout(() => res(false), 1500);
+            mc.port1.onmessage = () => { clearTimeout(t); res(true); };
+            client.postMessage({ type: 'expo-navigate', url: targetUrl }, [mc.port2]);
+          } catch { res(false); }
+        });
+        if (!handled && 'navigate' in client) {
           try { await client.navigate(targetUrl); } catch {}
         }
         return;
