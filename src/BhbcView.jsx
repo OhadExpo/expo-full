@@ -1752,6 +1752,19 @@ function attendance28(rec, days) {
              buttons were shrinking and the text overflowed its own padding.
              They keep their size; the strip scrolls, which is what it is for. */
           .bhbc-hdr-tabs button{flex:0 0 auto!important}
+          /* THE TABS SPAN THE ROW ON A TABLET (2.10 #511). With 10px gaps eight
+             tabs needed 745px of the 740 a 768 tablet has: the strip overflowed by
+             5 and its edge fade swallowed ACTIVITY; at 834 and 1024 they fit but
+             sat packed left beside a void. No fixed gap - the row's free width is
+             shared between them (space-between), so they fit at 768 and fill the
+             row above it; a strip that truly overflows still scrolls from its start. */
+          .bhbc-hdr-tabs{gap:0!important;justify-content:space-between!important}
+        }
+        /* MICROCYCLE ON A TABLET (#511): six 160px day cards in a sideways strip
+           cut the fifth mid-card ("TUE GA") at 768. Three columns, two rows -
+           the phone already gets two. */
+        @media (max-width:1100px) and (min-width:621px){
+          .bhbc-micro-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;min-width:0!important}
         }
         /* THE LAST ROW DOES NOT DRAW A RULE INTO THE CARD'S OWN EDGE. Ohad:
            "there shouldnt be a cyan border after the last name and adjust the
@@ -3165,6 +3178,18 @@ function Segmented({ text, style, keepDots = false }) {
   );
 }
 
+// HOME OR AWAY, ONE RULE EVERYWHERE (2.10 #511). The flag when the coach set it;
+// otherwise a calendar venue that SAYS it ("Away", "Away #TBD", "Home") - those
+// rows showed the word in the subtitle and no chip, beside rows with a chip.
+// venueRest(): that venue minus the word, so it is not said twice.
+const HA_WORD = /^\s*(away|home)\b\s*[·,-]?\s*/i;
+const homeOfFixture = (f) => {
+  if (!f) return null;
+  if (f.home === true || f.home === false) return f.home;
+  const m = HA_WORD.exec(String(f.venue || ''));
+  return m ? m[1].toLowerCase() === 'home' : null;
+};
+const venueRest = (f) => (f && f.venue ? String(f.venue).replace(HA_WORD, '').trim() : '');
 function HAChip({ home }) {
   const tr = useT();
   if (home == null) return null;
@@ -3224,6 +3249,17 @@ function ActivityView({ activity = [], tr, he }) {
   const people = peopleSeen(list, 30);
   const KIND = { open: tr('Signed in'), session: tr('Sessions'), checkin: tr('Check-in'), medical: tr('Medical'), game: tr('Games'), plan: tr('Session plan'), schedule: tr('Schedule'), edit: tr('Edit') };
   const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
+  // ONE ROW PER RUN OF THE SAME THING (2.10 #511): twenty-seven "opened the club
+  // zone" rows in a row buried every real change. Consecutive entries with the
+  // same kind, words and person fold into one, "x27", at the newest time.
+  const groups = [];
+  for (const e of list.slice(0, 120)) {
+    const prev = groups[groups.length - 1];
+    if (prev && prev.kind === e.kind && prev.what === e.what && prev.by === e.by) prev.n += 1;
+    else groups.push({ ...e, n: 1 });
+  }
+  // a number never parts from its unit or from the dot before it ("... 45 / MIN")
+  const keepTogether = (t) => t.replace(/(\d) (min|in|kg|AU)\b/gi, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0');   // both sides: "2026 · 45 MIN" moves as one, no dot left hanging
   return (
     <>
       <Card padding={14} leftStripe={NAVY} header={secTitle('Who has been in, last 30 days')}>
@@ -3240,10 +3276,10 @@ function ActivityView({ activity = [], tr, he }) {
       <Card padding={14} leftStripe={ORANGE} header={secTitle('What changed')}>
         {list.length === 0
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
-          : <div className="bhbc-list">{list.slice(0, 120).map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', minHeight: 36, boxSizing: 'border-box' /* a row is never under the control height (OCD #494: 29) */, borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+          : <div className="bhbc-list">{groups.map((e, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', minHeight: 36, boxSizing: 'border-box' /* a row is never under the control height (OCD #494: 29) */, borderBottom: i < groups.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1')}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{keepTogether(String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1'))}{e.n > 1 && <span dir="ltr" style={{ ...lbl, marginInlineStart: 8, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}</span>
               <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
             </div>
@@ -3299,7 +3335,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                     a continuation of a date; give it a line and no separator
                     can be left hanging. */}
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`].filter(Boolean).join(' · ')}</div>
-                {g.venue && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(g.venue)}</div>}
+                {venueRest(g) && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(venueRest(g))}</div>}
               </div>
               {/* THE BADGES ARE A COLUMN, NOT A TAIL ON THE NAME.
                   The row was already a 46px / 1fr / auto grid but the third
@@ -3313,7 +3349,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                     anchored edge and the optional flags sit before it. With the
                     chip first, a row carrying a plane pushed its chip 17px off
                     the edge the chip above it sat on. */}
-                <HAChip home={g.home} />
+                <HAChip home={homeOfFixture(g)} />
               </div>
             </div>
           );
@@ -5668,11 +5704,15 @@ function ScheduleWeek({ fixtures, today }) {
                   <div key={i} className={'bhbc-wk-ev' + (isCancelled(f) ? ' fx-cancelled' : '')}
                     title={[f.start, fxLabelFor(f.type, FX_LABEL[f.type] || 'Session'), Number(f.minutes) > 0 ? `${f.minutes} ${tr('min')}` : '', where].filter(Boolean).join(' · ')}
                     style={{ position: 'absolute', zIndex: 1, top: `${pctOf(s0)}%`, height: `${pctOf(e0) - pctOf(s0)}%`, insetInlineStart: `calc(${(L / n) * 100}% + 3px)`, width: `calc(${100 / n}% - 6px)`, boxSizing: 'border-box', overflow: 'hidden', padding: '4px 6px', background: `color-mix(in srgb, ${col} 13%, var(--c-sf))`, borderInlineStart: `3px solid ${col}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {/* time + length on line 1, the kind on its own line (#511: at a
+                        768 tablet a ~95px day column cut "PRACTICE" to "PRA…") */}
                     <span style={{ display: 'flex', gap: 5, alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap' }}>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-                      <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: col, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
+                      {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 9.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes}′</span>}
                     </span>
-                    {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 9.5, color: C.td, whiteSpace: 'nowrap' }}><MinTok n={f.minutes} /></span>}
+                    <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: col, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>
+                      <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxLabelFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} />
+                    </span>
                     {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{where}</span>}
                   </div>
                 );
@@ -6114,7 +6154,8 @@ function fixturesToGames(fixtures) {
   // entirely, exactly as before.
   const scored = (f) => Number.isFinite(f.us) && Number.isFinite(f.them);
   return (fixtures || []).filter((f) => f.type === 'game' || (f.type === 'scrimmage' && scored(f))).map((f) => {
-    const bhHome = f.home !== false;
+    const ha = homeOfFixture(f);
+    const bhHome = ha !== false;
     const done = scored(f);
     return {
       round: null, stage: f.type === 'scrimmage' ? 'Pre-season' : undefined,
@@ -6123,10 +6164,10 @@ function fixturesToGames(fixtures) {
       away: bhHome ? (f.opponent || zoneT('TBD')) : 'Bnei Herzliya',
       // null means the coach picked "—": the venue is genuinely unknown, so
       // downstream must not paint a HOME/AWAY chip for it.
-      homeKnown: f.home === true || f.home === false,
+      homeKnown: ha === true || ha === false,
       hs: done ? (bhHome ? f.us : f.them) : null,
       as: done ? (bhHome ? f.them : f.us) : null,
-      played: done, timeTBD: f.timeTBD, venue: f.venue, travel: f.travel,
+      played: done, timeTBD: f.timeTBD, venue: venueRest(f) || undefined, travel: f.travel,
     };
   });
 }
@@ -6557,7 +6598,7 @@ function StatusPill({ status, small, full }) {
   const s = MED_STATUS[status] || MED_STATUS.available;
   const exc = !!MED_STATUS[status] && status !== 'available';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: exc ? `color-mix(in srgb, ${s.color} 12%, transparent)` : 'var(--c-sf)', border: exc ? `1px solid color-mix(in srgb, ${s.color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : 136, padding: '0 9px',   /* ONE width for every status (#511: min-width 96 let AVAILABLE grow past OUT - three pill widths in one column); 136 holds the widest, NON-CONTACT */ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: exc ? `color-mix(in srgb, ${s.color} 12%, transparent)` : 'var(--c-sf)', border: exc ? `1px solid color-mix(in srgb, ${s.color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
       {/* tinted by status like the load board's chips, and like them ONLY for the
           exceptions (27.9: "colour only the exceptions") - AVAILABLE is plain */}
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
@@ -6702,8 +6743,11 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
               ))}
               <div />
             </div>
-            <SortBar sort={sort} className="bhbc-inj-sortbar" cols={injCols}
-              style={{ alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+            {/* ONE ROW ON A PHONE (#511): "SINCE · PAIN" and "REPORTED BY" wrapped
+                the bar onto two lines at 390, REPORTED BY under ATHLETE. The phone
+                bar says the same in short words, spread across the row. */}
+            <SortBar sort={sort} className="bhbc-inj-sortbar" cols={[['name', tr('Athlete')], ['injury', tr('Injury')], ['status', tr('Status')], ['since', tr('Since')], ['by', tr('By')]]}
+              style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
             {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (

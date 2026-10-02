@@ -150,6 +150,8 @@ export const HE = {
   'Status': 'סטטוס',
   'Since · pain': 'מאז · כאב',
   'Reported by': 'דווח ע״י',
+  'Since': 'מאז',
+  'By': 'מדווח',
   'Point Guard': 'פוינט גארד',
   'Shooting Guard': 'שוטינג גארד',
   'Guard': 'גארד',
