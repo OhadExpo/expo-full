@@ -14,6 +14,7 @@
 // overlay) launch per-athlete from here but are separate surfaces.
 
 import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react';
+import { StoredVideo } from './StoredMedia';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
@@ -66,7 +67,7 @@ function InlineVideo({ url }) {
   }
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
     return (
-      <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
+      <StoredVideo src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
         style={{ width: '100%', marginTop: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
     );
   }

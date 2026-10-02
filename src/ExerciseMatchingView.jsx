@@ -7,6 +7,7 @@
 // trainee-visible plans.data, so it's gated behind an explicit confirm with a
 // count, and only touches rows whose normalized title matches the accepted group.
 import React, { useState, useEffect, useMemo } from 'react';
+import { StoredVideo } from './StoredMedia';
 import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, EmptyState, toast } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
@@ -74,7 +75,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
                 </span>
               </div>
             )) : fileVid ? (
-              <video src={ex.videoLink} controls playsInline style={{ ...box, display: 'block' }} />
+              <StoredVideo src={ex.videoLink} controls playsInline style={{ ...box, display: 'block' }} />
             ) : (
               <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `1px solid ${C.bd}` }}>{tt('No video in the library for this exercise')}</div>
             )}

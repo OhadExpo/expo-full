@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { alignByEid, setRowUsed, fitRows } from './draftMerge';
 import ErrorBoundary from './ErrorBoundary';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
@@ -35,6 +36,7 @@ import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
 import { useT as useAppT, tr, readLang } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
+import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
@@ -325,27 +327,6 @@ const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-bloc
 // stream URL we can hand to <video>. Resolution is cached at the edge for a
 // day, so subsequent loads are instant.
 const _gphResolveCache = new Map();
-// A stored form video, resolved before it is played.
-//
-// The athlete's own video is stored as an /object/public/ URL, which only
-// works while the bucket is world-readable - and it being world-readable is a
-// finding, not a feature: an unauthenticated fetch returns a real athlete's
-// training video today. resolveStoredUrl signs the URL, works unchanged on a
-// public bucket, and falls back to the original on any failure, so this changes
-// nothing now and is what keeps playback alive the moment the bucket is made
-// private. Every other surface (coach review, meal photos, voice notes) already
-// goes through it; this was the last raw one.
-function StoredVideo({ src, ...rest }) {
-  const [url, setUrl] = useState(src);
-  useEffect(() => {
-    let alive = true;
-    setUrl(src);
-    if (src) resolveStoredUrl(src).then((u) => { if (alive && u) setUrl(u); }).catch(() => {});
-    return () => { alive = false; };
-  }, [src]);
-  return <video src={url} {...rest} />;
-}
-
 function GooglePhotosEmbed({ url }) {
   const tt = useAppT();
   const [state, setState] = useState(() => _gphResolveCache.get(url) || { phase: 'loading' });
@@ -597,11 +578,36 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return best;
   };
+  // How an exercise's rows start when there is no draft for it: from what he
+  // already logged (AGAIN, matched by eid, position as the fallback - never a
+  // blank sheet: a blank sheet completed by mistake is the 0-set row
+  // incident), else blank with last session's top set prefilled on set 1.
+  const freshRowsFor = (ex, i) => {
+    if (editOf && Array.isArray(editOf.exercises)) {
+      const px = editOf.exercises.find(e => e && e.eid === ex.eid) || editOf.exercises[i];
+      const src = (px && Array.isArray(px.sets)) ? px.sets : [];
+      const count = Math.max(setCountFor(ex), src.length);
+      return Array.from({ length: count }, (_, si) => {
+        const st = src[si];
+        return st ? { reps: st.reps ?? '', load: st.load ?? '', rpe: st.rpe ?? '', done: !!st.done } : { reps: '', load: '', rpe: '', done: false };
+      });
+    }
+    const count = setCountFor(ex);
+    const prior = priorTopFor(ex.eid, (EX[ex.eid]?.t || '').toLowerCase().trim());
+    // Only the first set carries the prior numbers; subsequent sets stay blank
+    // so the trainee makes a deliberate call set-by-set instead of robotically
+    // copying last session across all four sets.
+    // `prefill:true` marks the auto-filled top set as UNTOUCHED. It's stripped
+    // the moment the athlete edits the set (uSet) and blanked on save if still
+    // untouched — so a prefilled number the athlete never actually lifted can't
+    // resurface next week as a phantom "last week" ghost (empty = empty).
+    return Array.from({ length: count }, (_, si) => si === 0 && prior
+      ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false, prefill: true }
+      : { reps: '', load: '', rpe: '', done: false });
+  };
   const [allSets, setAllSets] = useState(() => {
-    // Resume from draft if the cached row count matches the current day shape.
-    // Mismatch means the trainer reshaped the day since the draft was written
-    // (added/removed exercises or sets) — safer to rebuild from the prescribed
-    // plan than to splice partial old data into the new structure.
+    const savedDone = editOf ? countDoneSets(editOf.exercises) : 0;
+    // Resume from the draft exactly when the day is still the shape it was.
     if (_restoredSession?.allSets?.length === day.ex.length) {
       const sizesOk = _restoredSession.allSets.every((rows, i) => rows.length === setCountFor(day.ex[i]));
       // Identity check: the day's exercise eids must match, in order. Without
@@ -616,45 +622,41 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // replace a saved log that holds MORE ticked sets (device B's old partial
       // draft over device A's finished 17/20).
       const draftDone = _restoredSession.allSets.reduce((a, rows) => a + (rows || []).filter((x) => x && x.done).length, 0);
-      const savedDone = editOf ? countDoneSets(editOf.exercises) : 0;
       if (sizesOk && identityOk && draftDone >= savedDone) return _restoredSession.allSets;
     }
-    // Re-opening an existing log (AGAIN): start from what he already logged,
-    // matched by eid (position as the fallback), never from a blank sheet —
-    // a blank sheet completed by mistake is exactly the 0-set row incident.
-    if (editOf && Array.isArray(editOf.exercises)) {
-      return day.ex.map((ex, i) => {
-        const px = editOf.exercises.find(e => e && e.eid === ex.eid) || editOf.exercises[i];
-        const src = (px && Array.isArray(px.sets)) ? px.sets : [];
-        const count = Math.max(setCountFor(ex), src.length);
-        return Array.from({ length: count }, (_, si) => {
-          const st = src[si];
-          return st ? { reps: st.reps ?? '', load: st.load ?? '', rpe: st.rpe ?? '', done: !!st.done } : { reps: '', load: '', rpe: '', done: false };
-        });
-      });
+    // ...and when the coach reshaped it since, by exercise (#510-B3): each
+    // exercise keeps its own draft rows, padded to the new set count and never
+    // cut below a row he already used.
+    if (Array.isArray(_restoredSession?.allSets) && Array.isArray(_restoredSession.exOrder)) {
+      const aligned = alignByEid(_restoredSession.exOrder, _restoredSession.allSets, day.ex.map(e => e.eid));
+      const merged = day.ex.map((ex, i) => fitRows(aligned[i], setCountFor(ex)));
+      const used = merged.reduce((a, rows) => a + (rows || []).filter(setRowUsed).length, 0);
+      const draftDone = merged.reduce((a, rows) => a + (rows || []).filter((x) => x && x.done).length, 0);
+      if (used > 0 && draftDone >= savedDone) return merged.map((rows, i) => rows || freshRowsFor(day.ex[i], i));
     }
-    return day.ex.map(ex => {
-      const count = setCountFor(ex);
-      const prior = priorTopFor(ex.eid, (EX[ex.eid]?.t || '').toLowerCase().trim());
-      // Only the first set carries the prior numbers; subsequent sets stay blank
-      // so the trainee makes a deliberate call set-by-set instead of robotically
-      // copying last session across all four sets.
-      // `prefill:true` marks the auto-filled top set as UNTOUCHED. It's stripped
-      // the moment the athlete edits the set (uSet) and blanked on save if still
-      // untouched — so a prefilled number the athlete never actually lifted can't
-      // resurface next week as a phantom "last week" ghost (empty = empty).
-      return Array.from({ length: count }, (_, i) => i === 0 && prior
-        ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false, prefill: true }
-        : { reps: '', load: '', rpe: '', done: false });
-    });
+    return day.ex.map((ex, i) => freshRowsFor(ex, i));
   });
   const [fv, setFv] = useState(() => {
-    if (_restoredSession?.fv?.length === day.ex.length) {
+    // the video slots follow their exercises like the sets do (#510-B3): by
+    // eid when the draft recorded them - a count match alone put a swapped
+    // exercise's video on its replacement
+    const curEids = day.ex.map(e => e.eid);
+    const restoredFv = Array.isArray(_restoredSession?.fv) && Array.isArray(_restoredSession.exOrder)
+      ? alignByEid(_restoredSession.exOrder, _restoredSession.fv, curEids)
+      : (_restoredSession?.fv?.length === day.ex.length ? _restoredSession.fv : null);
+    if (restoredFv && restoredFv.some(Boolean)) {
       // Older drafts persisted blob: URLs verbatim. Strip them on hydrate
       // so a resumed session never renders a dead <video src="blob:..."> —
       // pendingBlobId (if present) re-mints from IDB; otherwise has:false.
-      return _restoredSession.fv.map(f => {
-        if (!f) return { note:'', has:false };
+      // a slot the draft never had takes the saved log's slot for that exercise
+      const savedSlot = (i) => {
+        if (!editOf || !Array.isArray(editOf.formVideos)) return null;
+        const at = Array.isArray(editOf.exercises) ? editOf.exercises.findIndex(e => e && e.eid === curEids[i]) : -1;
+        const f = editOf.formVideos[at >= 0 ? at : i];
+        return f ? { ...f, note: f.note || '', has: !!(f.has && (f.cloudUrl || f.pendingBlobId)), uploading: false } : null;
+      };
+      return restoredFv.map((f, i) => {
+        if (!f) return savedSlot(i) || { note:'', has:false };
         const out = { ...f };
         if (typeof out.videoUrl === 'string' && out.videoUrl.startsWith('blob:')) {
           out.videoUrl = null;
@@ -1777,10 +1779,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
           <YouTubeLite id={vid} short={vidShort} /></div>
           : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
-          <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
+          <StoredVideo src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
           : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
-          <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
+          <StoredVideo src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
@@ -2162,10 +2164,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
         <YouTubeLite id={vid} short={vidShort} /></div>
         : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
-        <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
+        <StoredVideo src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
         : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(effectiveVid) ? <GooglePhotosEmbed url={effectiveVid} />
         : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
-        <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
+        <StoredVideo src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
 
       {/* WEEKLY FOCUS \u2014 outer border is always neutral now; the left accent
           stripe (3px) is the cyan-when-set indicator. Reads as a calm card
@@ -2270,7 +2272,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               onError={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], videoError:true}; return n; })}
               style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
             {f.videoError && (
-              <div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or||'#c97a00'}`,fontSize:11,color:C.or||'#c97a00',fontFamily:FN}}>{tt('Video failed to load.')}{safeUrl(f.cloudUrl) ? <a href={safeUrl(f.cloudUrl)} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</a> : 'Try Re-recording.'}
+              <div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or||'#c97a00'}`,fontSize:11,color:C.or||'#c97a00',fontFamily:FN}}>{tt('Video failed to load.')}{safeUrl(f.cloudUrl) ? <StoredLink href={safeUrl(f.cloudUrl)} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</StoredLink> : 'Try Re-recording.'}
               </div>
             )}
             <div style={{display:'flex',gap:8,marginTop:6}}>

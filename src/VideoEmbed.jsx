@@ -4,6 +4,7 @@
 // Google Photos shares (server-resolved), and lh3.googleusercontent.com.
 
 import React, { useState, useEffect } from 'react';
+import { StoredVideo } from './StoredMedia';
 import { C, FN, ytId, ytIsShort } from './theme';
 import { tr, readLang } from './i18n';
 
@@ -128,7 +129,7 @@ export default function VideoEmbed({ url }) {
       : { ...wrap, background: 'transparent' };
     return <div style={frame}><YouTubeLite id={yid} short={ytIsShort(url)} /></div>;
   }
-  if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return <div style={wrap}><video src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
+  if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return <div style={wrap}><StoredVideo src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
   if (/(photos\.app\.goo\.gl|photos\.google\.com)/i.test(url)) return <GooglePhotos url={url} />;
   if (/lh3\.googleusercontent\.com/i.test(url)) return <div style={wrap}><video src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
   return null;

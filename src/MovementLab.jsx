@@ -27,6 +27,7 @@ import {
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift } from './poseMetricsStore';
 import { romReadingFor } from './romGoniometer';
+import { resolveStoredUrl } from './storageUrl';
 import { useT, HE } from './i18n';
 import { RefinedHeaderStrip, useIsMobile } from './ui';
 
@@ -572,9 +573,12 @@ export default function MovementLab({
   // seek-stepped at the clip's real frame rate — see captureClipFrames.
   const analyzeSource = useCallback(async (url, { crossOrigin = false } = {}) => {
     setError(null); setResult(null); setJump(null); setDisplayFrames([]); setProgress(0); setPhase('analyzing');
-    setSource(url);
+    // a stored clip plays and is read from its SIGNED url - the raw public one
+    // fails once the bucket is private (#510-S4); a blob: or other url passes through
+    const playable = await resolveStoredUrl(url);
+    setSource(playable);
     try {
-      const frames = await captureClipFrames(url, { crossOrigin, onProgress: setProgress });
+      const frames = await captureClipFrames(playable, { crossOrigin, onProgress: setProgress });
       finishFrames(frames);
     } catch (e) {
       setPhase('idle'); setError(e?.message || 'Could not process that video.');

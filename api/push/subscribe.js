@@ -7,6 +7,13 @@
 // create duplicate rows). The Supabase row's user_email is enforced
 // by RLS to match the JWT claim — we don't trust the client to set it.
 
+// EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
+// hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
+// instead of this handler's JSON error. An abort is an error the handler
+// already catches. A caller's own signal wins.
+const FETCH_TIMEOUT_MS = 10000;
+const fetch = (url, opts = {}) => globalThis.fetch(url, { ...opts, signal: opts.signal || AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 

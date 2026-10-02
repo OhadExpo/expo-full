@@ -213,12 +213,15 @@ async function markCwBlobFailed(workoutId, exerciseIndex, reason) {
     localStorage.setItem('expo-cw', JSON.stringify(next));
     try { window.dispatchEvent(new CustomEvent('expo-cw-patched', { detail: { workoutId } })); } catch {}
     if (nextFv) {
-      // Idempotent last-write-wins update; same dedupeKey as the success path so
-      // a success and a later failure for the same workout don't both linger.
+      // THIS SLOT ONLY (#510-B5) - the whole cached array would put the
+      // athlete's stale copy over a coach's notes on the other slots. Same
+      // dedupeKey as the success path, per slot, so a success and a later
+      // failure for the same video don't both linger.
       enqueueOp({
-        type: 'client_workouts.update',
-        payload: { id: workoutId, patch: { form_videos: nextFv } },
-        dedupeKey: 'fv:' + workoutId,
+        type: 'client_workouts.fvSlot',
+        payload: { id: workoutId, index: exerciseIndex, slot: nextFv[exerciseIndex] || null },
+        dedupeKey: 'fv:' + workoutId + ':' + exerciseIndex,
+        critical: true,   // the only pointer to uploaded bytes: parked, never aged out
       });
     }
     return nextFv;
@@ -257,10 +260,13 @@ async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
       // HERE: an unsynced (brand-new) workout has no server-side coach reviews to
       // lose. Returning true lets the blob be dropped (its bytes are already up).
       if (patchedFv) {
+        // the slot's URL, queued until the row lands (#510-B5: no stub insert,
+        // no whole-array write)
         const persisted = enqueueOp({
-          type: 'client_workouts.update',
-          payload: { id: workoutId, patch: { form_videos: patchedFv } },
-          dedupeKey: 'fv:' + workoutId,
+          type: 'client_workouts.fvSlot',
+          payload: { id: workoutId, index: exerciseIndex, slot: patchedFv[exerciseIndex] || { cloudUrl, has: true } },
+          dedupeKey: 'fv:' + workoutId + ':' + exerciseIndex,
+        critical: true,   // the only pointer to uploaded bytes: parked, never aged out
         });
         // Drop the blob ONLY if the reference actually persisted to localStorage.
         // On a quota failure the enqueue is memory-only and dies with the tab —

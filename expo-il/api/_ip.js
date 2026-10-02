@@ -29,7 +29,9 @@ export function originAllowed(req) {
   if (!raw) return true;            // same-origin fetches often omit Origin
   try {
     const h = new URL(String(raw)).hostname;
-    return ALLOWED_HOSTS.includes(h) || h.endsWith('.vercel.app');
+    // previews of THIS project only (#510-A8): any *.vercel.app let every
+    // Vercel-hosted page call the paid endpoints with a browser's blessing
+    return ALLOWED_HOSTS.includes(h) || h === 'expo-il.vercel.app' || h.endsWith('-ohadyproductions-4644s-projects.vercel.app');
   } catch { return false; }
 }
 

@@ -3,7 +3,7 @@
 // Athlete-facing UI. Three steps:
 //   1. Tap "📸 LOG MEAL" → file picker (or camera on mobile via accept).
 //   2. Photo previews + uploads to Supabase storage `meal-photos` bucket.
-//   3. We POST the public URL to /api/meal-macros, AI returns macros JSON.
+//   3. We POST the photo's signed URL to /api/meal-macros, AI returns macros JSON.
 //   4. Athlete can tweak any number then SAVE — inserts into `athlete_meals`.
 //
 // Past meals list below the composer (today by default, with a "← prev day"
@@ -15,6 +15,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { DEMO_MEALS } from './demoTraineeData';
 import { resolveStoredUrl } from './storageUrl';
+import { StoredImg } from './StoredMedia';
 import { useT as useAppT, useHe } from './i18n';
 
 const BUCKET = 'meal-photos';
@@ -55,6 +56,8 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   // In-flight guard for save() — see the double-tap note there.
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  // the photo of the last save attempt that did not confirm (#510-B6)
+  const lastTryRef = useRef(null);
   const [meals, setMeals] = useState([]);
   const [day, setDay] = useState(todayISO());
 
@@ -140,7 +143,10 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           'content-type': 'application/json',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ photoUrl, hint }),
+        // the AI fetches the photo itself, so it gets a SIGNED URL - the raw
+        // public one 400s once the bucket is private (#510-S2). The row keeps
+        // the raw URL; a signed one expires.
+        body: JSON.stringify({ photoUrl: await resolveStoredUrl(photoUrl), hint }),
       });
       // The endpoint *should* always return JSON, but a Vercel runtime
       // crash (timeout, OOM, cold-start failure) returns plaintext like
@@ -185,8 +191,24 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         fat_g: macros.fat_g,
         notes: macros.notes || hint || null,
       };
-      const { error } = await supabase.from('athlete_meals').insert(row);
-      if (error) throw error;
+      // A SAVE THAT LANDED WITHOUT ITS ANSWER IS NOT SAVED AGAIN (2.10 #510-B6).
+      // On weak signal the insert can commit and the response be lost: "Save
+      // failed", the photo and macros stay, he taps Save again and the day's
+      // totals double. The photo is one upload per meal, so it is the meal's
+      // key: a retry of the SAME photo first asks whether the last try landed.
+      const retry = lastTryRef.current === photoUrl;
+      lastTryRef.current = photoUrl;
+      let landed = false;
+      if (retry) {
+        const { data: had, error: hadErr } = await supabase.from('athlete_meals').select('id').eq('trainee_id', clientId).eq('photo_url', photoUrl).limit(1);
+        if (hadErr) throw hadErr;
+        landed = !!(had && had.length);
+      }
+      if (!landed) {
+        const { error } = await supabase.from('athlete_meals').insert(row);
+        if (error) throw error;
+      }
+      lastTryRef.current = null;
       setPhotoUrl(null);
       setMacros(null);
       setHint('');
@@ -315,7 +337,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             )}
             {photoUrl && !macros && !analyzing && (
               <div>
-                <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
+                <StoredImg src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
                 <input type="text" value={hint} onChange={e => setHint(e.target.value)} dir="auto"
                   placeholder={tt('Optional hint (e.g. "1 tbsp olive oil")')}
                   style={{
@@ -427,7 +449,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           )}
           {photoUrl && !macros && !analyzing && (
             <div>
-              <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
+              <StoredImg src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
               <input type="text" value={hint} onChange={e => setHint(e.target.value)} dir="auto"
                 placeholder={tt('Optional hint (e.g. "1 tbsp olive oil")')}
                 style={{
@@ -474,7 +496,7 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving })
   const setField = (k, v) => setMacros({ ...macros, [k]: v });
   return (
     <div>
-      <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
+      <StoredImg src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
       <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('AI ESTIMATE · CONFIDENCE:')}<span style={{ color: macros.confidence === 'high' ? C.gn : macros.confidence === 'medium' ? C.or : C.rd }}>{macros.confidence?.toUpperCase()}</span>
       </div>
       {macros.items?.length > 0 && (

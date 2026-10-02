@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 import { enqueue, enqueueEntry, removeEntry, patchEntry, getEntries, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
+import { mergeStoreValues, deepEqual } from './storeMerge';
 import { TRAINER_EMAILS } from './authRoles';
 import { canSeatWrite, recordBlockedWrite } from './seatWrite';
 
@@ -196,16 +197,87 @@ function isTransient(err) {
   return true; // default: queue
 }
 
+// ─── Compare-and-swap store writes (2.10 #510-B1/B2/B4/B8) ──────────────────
+// Every save wrote the WHOLE value with a blind upsert, so a device holding a
+// stale copy - booted from a snapshot after a failed load, asleep through
+// realtime, or replaying a queued offline write - put its old copy over every
+// save other devices had made since (src/storeMerge.js has the measured cases).
+// A write now names the updated_at it was built on; if the row moved, it reads
+// the newer value, merges base + mine + theirs, and tries again.
+
+// The base a device last knew, persisted beside its snapshot so a phone that
+// boots offline can still merge instead of overwrite. Same prefix as the key,
+// so the sign-out purge (auth.jsx CACHE_KEYS_RX) removes it with the snapshot.
+// Never for the library (no snapshot of it exists, and it is ~1MB).
+const BASE_SUFFIX = '::base';
+const persistBase = (key, at, val) => {
+  if (key === 'expo-exercises' || val === undefined) return;
+  try { lsSnapshotSoon(key + BASE_SUFFIX, { at, val }); } catch { /* a cache */ }
+};
+const readPersistedBase = (key) => {
+  try { const s = localStorage.getItem(key + BASE_SUFFIX); const j = s ? JSON.parse(s) : null; return j && typeof j === 'object' ? j : null; } catch { return null; }
+};
+// a queued entry carries its base value only while it is small (the queue is localStorage)
+const BASE_IN_QUEUE_MAX = 200000;
+const queueBase = (val) => { try { return val !== undefined && JSON.stringify(val).length <= BASE_IN_QUEUE_MAX ? val : undefined; } catch { return undefined; } };
+
+async function readStoreRow(key) {
+  const { data, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
+  if (error) throw error;
+  return data ? { at: data.updated_at ?? null, val: data.value } : { at: null, val: undefined };
+}
+
+// One CAS attempt. `at` = the updated_at the value was built on; null = the
+// row did not exist. Resolves { ok, at } or { conflict }; throws on a real error.
+async function casWriteOnce(key, value, at) {
+  const now = new Date().toISOString();
+  if (at === null) {
+    const { data, error } = await supabase.from('store').insert({ key, value, updated_at: now }).select('updated_at');
+    if (error) { if (error.code === '23505') return { conflict: true }; throw error; }
+    return { ok: true, at: (data && data[0] && data[0].updated_at) || now };
+  }
+  const { data, error } = await supabase.from('store').update({ value, updated_at: now }).eq('key', key).eq('updated_at', at).select('updated_at');
+  if (error) throw error;
+  if (data && data.length) return { ok: true, at: data[0].updated_at || now };
+  return { conflict: true };
+}
+
+// Write `mine` (built on baseVal, read at baseAt) without clobbering anything
+// saved since. baseAt undefined = this device does not know what it was built
+// on (snapshot boot, an old queue entry): it reads first and merges with
+// whatever base it has. Resolves { at, val } with the value actually stored.
+export async function storeWriteMerged(key, mine, baseAt, baseVal) {
+  let val = mine, at = baseAt, bval = baseVal;
+  if (at === undefined) {
+    const r = await readStoreRow(key);
+    if (r.val !== undefined && !deepEqual(r.val, mine)) val = mergeStoreValues(bval, mine, r.val);
+    at = r.at; bval = r.val;
+  }
+  for (let i = 0; i < 4; i++) {
+    const res = await casWriteOnce(key, val, at);
+    if (res.ok) return { at: res.at, val };
+    const r = await readStoreRow(key);
+    // The row did not move and nothing was written: RLS refused the update
+    // (an UPDATE it may not make matches zero rows, it does not error).
+    if (r.at === at) { const e = new Error('new row violates row-level security policy for table "store" (update refused)'); e.code = '42501'; throw e; }
+    val = r.val === undefined ? val : mergeStoreValues(bval, val, r.val);
+    at = r.at; bval = r.val;
+  }
+  throw new Error('store write kept racing other writers - network timeout, will retry');
+}
+
 // ─── Queue handlers ─────────────────────────────────────────────────────────
 // Each Supabase write that we want to survive offline gets a handler here.
 // The wrapper functions in the hooks below try the write directly; on failure
 // they enqueue with the matching `type`, and the handler replays it.
-registerHandler('store.upsert', async ({ key, value }) => {
+registerHandler('store.upsert', async ({ key, value, baseAt, baseVal }) => {
   // A queued write replays on a later launch, possibly on another seat: the
   // fence applies here too, and a blocked replay is done, not failed.
   if (!canSeatWrite(key)) { recordBlockedWrite(key, 'queued replay on a seat that may not write it'); return; }
-  const { error } = await supabase.from('store').upsert({ key, value, updated_at: new Date().toISOString() });
-  if (error) throw error;
+  // CAS + merge (#510-B1): a replay hours later must not put its old copy over
+  // what other devices saved meanwhile. An entry from before this change has no
+  // base: it reads first and keeps both sides.
+  await storeWriteMerged(key, value, baseAt === undefined ? undefined : baseAt, baseVal);
 });
 // ONE write path for a workout row, used by the direct save AND the queue
 // replay, so the two can never drift apart again. (Before 27.9 the replay had
@@ -309,6 +381,28 @@ registerHandler('client_workouts.upsert', async ({ row }, entry) => {
     if (entry && entry.id && !entryStillQueued(entry.id)) return; // superseded or already landed
     await upsertWorkoutRow(row);
   });
+});
+// ONE UPLOAD SLOT, NOT THE WHOLE ARRAY (2.10 #510-B5). The blob queue used to
+// queue the device's whole cached form_videos for a failed upload or a row that
+// had not landed yet, and client_workouts.update upserts it as is: a coach's
+// reviewNotes and replies on OTHER slots were replaced by the athlete's stale
+// copy, and a stub insert for a row not there yet had no client_id, failed RLS,
+// counted as permanent and was dropped while the blob was already deleted.
+// This replaces only the slot's UPLOAD fields on the server's own row - coach
+// fields stay the server's - and waits for a row that has not landed instead of
+// inventing one (a 'network' error is transient: the queue retries it).
+const UPLOAD_FV_FIELDS = [...ATHLETE_FV_FIELDS, 'uploadFailed', 'failReason'];
+registerHandler('client_workouts.fvSlot', async ({ id, index, slot }) => {
+  const { data: row, error } = await supabase.from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!row) throw new Error('workout row not on the server yet - network wait, retry after its own upsert');
+  const fv = Array.isArray(row.form_videos) ? row.form_videos.slice() : [];
+  while (fv.length <= index) fv.push(null);
+  const next = { ...(fv[index] || {}) };
+  for (const k of UPLOAD_FV_FIELDS) { if (slot && Object.prototype.hasOwnProperty.call(slot, k)) next[k] = slot[k]; else delete next[k]; }
+  fv[index] = next;
+  const { error: e2 } = await supabase.from('client_workouts').update({ form_videos: fv }).eq('id', id);
+  if (e2) throw e2;
 });
 registerHandler('client_workouts.update', async ({ id, patch }) => {
   // Update + ensure the row exists. The blob queue can race ahead of the
@@ -421,14 +515,25 @@ export function useSupaStore(key, initial) {
   // catastrophic shrink is measured against.
   const serverLoadedRef = useRef(false);
   const serverLenRef = useRef(null);
+  // What the SERVER held when this device last synced (#510-B1): its updated_at
+  // and value - the base a write is built on. known:false = not read this
+  // session (the writer reads first). saveGenRef counts finished writes, so a
+  // refetch that started before one finished can not put the older value back
+  // (#510-B8). inflightRef is the value on the wire, for the pagehide flush.
+  const baseRef = useRef({ known: false, at: undefined, val: undefined });
+  const saveGenRef = useRef(0);
+  const inflightRef = useRef(null);
 
   // Load from Supabase on mount. On failure, fall back to any localStorage
   // snapshot and surface the error so the caller can show a banner.
   useEffect(() => {
     (async () => {
       try {
-        const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
+        const { data: row, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
         if (error) throw error;
+        // the base every write from here is built on (#510-B1)
+        baseRef.current = { known: true, at: row ? (row.updated_at ?? null) : null, val: row ? row.value : undefined };
+        if (row) persistBase(key, row.updated_at ?? null, row.value);
         // Record what the SERVER holds before deciding whether to apply it.
         // This must happen even when the apply is skipped below, because it is
         // what unlocks writing at all (see the guard in save()).
@@ -501,6 +606,10 @@ export function useSupaStore(key, initial) {
               // one data-loss bug for a different one.
               serverLoadedRef.current = true;
               serverLenRef.current = storeSize(parsed);
+              // writing from a snapshot: the writer reads the row first and
+              // merges against the base this snapshot was built on (#510-B1)
+              const pb = readPersistedBase(key);
+              baseRef.current = { known: false, at: undefined, val: pb ? pb.val : undefined };
             }
           }
         } catch {}
@@ -527,22 +636,55 @@ export function useSupaStore(key, initial) {
   useEffect(() => {
     let disposed = false;
     let ch = null;
+    // One refetch for realtime, a return to the tab and the network coming back
+    // (#510-B1/B2): a phone that slept through realtime used to keep its stale
+    // copy until the next server change - and build its next write on it.
+    const refetch = async () => {
+      if (disposed || savingRef.current) return;
+      const gen = saveGenRef.current;
+      try {
+        const { data: row, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
+        // a write that finished while this read was out is newer than it (#510-B8)
+        if (disposed || error || savingRef.current || gen !== saveGenRef.current) return;
+        if (!row || row.value === undefined) return;
+        baseRef.current = { known: true, at: row.updated_at ?? null, val: row.value };
+        persistBase(key, row.updated_at ?? null, row.value);
+        const val = asShape(row.value);
+        if (JSON.stringify(val) === JSON.stringify(dataRef.current)) return;
+        setData(val); dataRef.current = val;
+        if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { lsSnapshot(key, val); } catch {} }
+      } catch { /* transient */ }
+    };
     try {
       ch = supabase.channel('store-rt-' + key)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${key}` }, async () => {
-          if (disposed || savingRef.current) return;
-          try {
-            const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
-            if (disposed || error || !row || row.value === undefined || savingRef.current) return;
-            const val = asShape(row.value);
-            if (JSON.stringify(val) === JSON.stringify(dataRef.current)) return;
-            setData(val); dataRef.current = val;
-            if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { lsSnapshot(key, val); } catch {} }
-          } catch { /* transient */ }
-        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${key}` }, refetch)
         .subscribe();
     } catch { /* realtime optional */ }
-    return () => { disposed = true; if (ch) { try { supabase.removeChannel(ch); } catch {} } };
+    const onVisible = () => { if (document.visibilityState === 'visible' && serverLoadedRef.current) refetch(); };
+    const onOnline = () => { if (serverLoadedRef.current) refetch(); };
+    // A TAB CLOSING MID-SAVE (#510-B4): the value on the wire, or the edit
+    // waiting behind it, existed only in memory. It goes to the offline queue
+    // with its base; if the write did land, the replay merges to the same value.
+    const onHide = () => {
+      const v = pendingRef.current !== null ? pendingRef.current : inflightRef.current;
+      if (v === null || v === undefined) return;
+      const b = baseRef.current;
+      try { enqueue({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key }); } catch { /* best effort */ }
+    };
+    try {
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('online', onOnline);
+      window.addEventListener('pagehide', onHide);
+    } catch { /* no DOM */ }
+    return () => {
+      disposed = true;
+      if (ch) { try { supabase.removeChannel(ch); } catch {} }
+      try {
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('online', onOnline);
+        window.removeEventListener('pagehide', onHide);
+      } catch { /* no DOM */ }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
@@ -559,28 +701,41 @@ export function useSupaStore(key, initial) {
       while (pendingRef.current !== null) {
         const toWrite = pendingRef.current;
         pendingRef.current = null;
+        inflightRef.current = toWrite;
+        const b = baseRef.current;
+        const fail = (err) => {
+          if (isTransient(err)) {
+            enqueue({ type: 'store.upsert', payload: { key, value: toWrite, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key });
+          } else {
+            console.warn(`useSupaStore[${key}] save error:`, err?.message || err);
+            emitSaveError({ key, op: 'save', msg: err?.message || 'save failed' });
+          }
+        };
         try {
-          const { error } = await supabase.from('store').upsert({ key, value: toWrite, updated_at: new Date().toISOString() });
-          if (error) {
-            if (isTransient(error)) {
-              enqueue({ type: 'store.upsert', payload: { key, value: toWrite }, dedupeKey: key });
-            } else {
-              console.warn(`useSupaStore[${key}] save error:`, error.message || error);
-              emitSaveError({ key, op: 'save', msg: error.message || String(error) });
-            }
+          // CAS on the base this value was built on; merged if the row moved (#510-B1)
+          const r = await storeWriteMerged(key, toWrite, b.known ? b.at : undefined, b.val);
+          baseRef.current = { known: true, at: r.at, val: r.val };
+          persistBase(key, r.at, r.val);
+          if (r.val !== toWrite && !deepEqual(r.val, toWrite)) {
+            // Someone else saved in between and the merge kept both. An edit made
+            // while this write was out was built on toWrite: fold it onto the merge.
+            if (pendingRef.current !== null) pendingRef.current = mergeStoreValues(toWrite, pendingRef.current, r.val);
+            const show = asShape(pendingRef.current !== null ? pendingRef.current : r.val);
+            setData(show); dataRef.current = show;
+            if (Array.isArray(show)) serverLenRef.current = show.length;
+            if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { lsSnapshotSoon(key, show); } catch {} }
           }
         } catch (e) {
-          if (isTransient(e)) {
-            enqueue({ type: 'store.upsert', payload: { key, value: toWrite }, dedupeKey: key });
-          } else {
-            console.warn(`useSupaStore[${key}] save threw:`, e?.message || e);
-            emitSaveError({ key, op: 'save', msg: e?.message || 'save failed' });
-          }
+          fail(e);
+        } finally {
+          inflightRef.current = null;
+          saveGenRef.current++;
         }
       }
     } finally {
       savingRef.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const save = useCallback(async (next) => {

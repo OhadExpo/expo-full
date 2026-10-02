@@ -6,6 +6,13 @@
 
 import { clientIp } from './_ip.js';
 
+// EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
+// hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
+// instead of this handler's JSON error. An abort is an error the handler
+// already catches. A caller's own signal wins.
+const FETCH_TIMEOUT_MS = 2000;
+const fetch = (url, opts = {}) => globalThis.fetch(url, { ...opts, signal: opts.signal || AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
 export const config = {
   maxDuration: 5,
   api: { bodyParser: { sizeLimit: '64kb' } },
@@ -55,8 +62,24 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'Description required.' });
     return;
   }
-  const reporter_email = trunc(String(body.reporterEmail || '').trim().toLowerCase(), 240);
-  const role = ['coach', 'athlete', 'anon'].includes(body.role) ? body.role : 'anon';
+  // WHO REPORTED IT IS THE TOKEN'S, NOT THE BODY'S (2.10 #510-A8). The email
+  // and role came from the client, so anyone could file a report "from" the
+  // coach or any athlete. A signed-in report carries its session token and the
+  // email is read from it; anything else is labelled unverified.
+  const claimed = trunc(String(body.reporterEmail || '').trim().toLowerCase(), 200);
+  let verifiedEmail = '';
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) {
+    try {
+      const userR = await fetch(`${SUPA_URL}/auth/v1/user`, {
+        headers: { 'apikey': SUPA_PUBLISHABLE_KEY, 'Authorization': `Bearer ${authHeader.slice('Bearer '.length).trim()}` },
+        signal: AbortSignal.timeout(1500),
+      });
+      if (userR.ok) { const u = await userR.json().catch(() => null); verifiedEmail = String(u?.email || '').toLowerCase(); }
+    } catch { /* unverified */ }
+  }
+  const reporter_email = verifiedEmail || (claimed ? trunc(`unverified: ${claimed}`, 240) : '');
+  const role = verifiedEmail && ['coach', 'athlete'].includes(body.role) ? body.role : 'anon';
   const url = trunc(String(body.url || ''), 800);
   // Context bundle — already structured client-side. Cap each subfield
   // before persisting so a malformed client can't bloat the row.
