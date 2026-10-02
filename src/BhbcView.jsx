@@ -687,7 +687,9 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
 // same type, as one row of taps above the list instead, so the phone sorts too.
 function SortBar({ sort, cols, className, style }) {
   return (
-    <div className={`bhbc-sortbar ${className || ''}`} style={{ flexWrap: 'wrap', columnGap: 16, rowGap: 6, ...style }}>
+    // ONE ROW, SPREAD ACROSS (#511): wrapped, the phone bar put its last column
+    // (AVAILABILITY, REPORTED BY) on a second line under the first
+    <div className={`bhbc-sortbar ${className || ''}`} style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, whiteSpace: 'nowrap', ...style }}>
       {cols.map(([k, label]) => <SortHeader key={k} k={k} sort={sort} label={label} />)}
     </div>
   );
@@ -3334,7 +3336,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                     in the sweep the moment the column was fixed. A place is not
                     a continuation of a date; give it a line and no separator
                     can be left hanging. */}
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`].filter(Boolean).join(' · ')}</div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{g.comp ? <>{tr(g.comp)}{' · '}</> : null}<span style={{ whiteSpace: 'nowrap' }}>{dow(g.date)} {monDay(g.date)}</span></div>{/* the date is one token (#511: "WED 21 / OCT" at 360) */}
                 {venueRest(g) && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(venueRest(g))}</div>}
               </div>
               {/* THE BADGES ARE A COLUMN, NOT A TAIL ON THE NAME.
