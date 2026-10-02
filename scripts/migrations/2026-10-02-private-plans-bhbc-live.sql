@@ -24,6 +24,7 @@
 --   src/PlansView.jsx          supabase.channel('plans-live', { config: { private: true, broadcast: { self: false } } })
 --   src/CoachPreviewPortal.jsx supabase.channel('plans-live', { config: { private: true, broadcast: { self: false } } })
 --   src/App.jsx                supabase.channel('bhbc-live', { config: { private: true } })
+--   scripts/bhbc-sync-league.mjs supabase.channel('bhbc-live', { config: { private: true } })   (signed in as the owner)
 --
 -- VERIFY: an anon socket joining 'plans-live' with private:true is refused; the
 -- owner's editor + preview still exchange plan-changed; a club coach's zone

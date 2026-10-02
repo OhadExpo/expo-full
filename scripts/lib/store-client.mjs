@@ -36,13 +36,25 @@ export async function readStore(s, key) {
 }
 
 // Every write snapshots what it is about to replace, named by the second.
+// (2.10 #510-R2) The app's store writes are compare-and-swap on updated_at, so a
+// script write must STAMP it - one that leaves it unchanged is invisible to them
+// and a phone's queued edit lands on top of it. And between the backup read and
+// the write, an app save is refused rather than overwritten: the write names the
+// version it read, and if the row moved the script stops and says so (re-run it).
 export async function writeStore(s, key, value) {
-  const prev = await readStore(s, key);
+  const { data: cur, error: re } = await s.from('store').select('value, updated_at').eq('key', key).maybeSingle();
+  if (re) { console.log('read failed', key, re.message); process.exit(1); }
+  const prev = cur ? cur.value : undefined;
   const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
   fs.mkdirSync('audit-out/sheets', { recursive: true });
   const backup = `audit-out/sheets/backup-${key}-${stamp}.json`;
-  fs.writeFileSync(backup, JSON.stringify(prev));
-  const { error } = await s.from('store').upsert({ key, value }, { onConflict: 'key' });
-  if (error) { console.log('write failed', key, error.message); process.exit(1); }
+  fs.writeFileSync(backup, JSON.stringify(prev ?? null));   // a new key has no previous value
+  const now = new Date().toISOString();
+  let res;
+  if (!cur) res = await s.from('store').insert({ key, value, updated_at: now }).select('updated_at');
+  else if (cur.updated_at) res = await s.from('store').update({ value, updated_at: now }).eq('key', key).eq('updated_at', cur.updated_at).select('updated_at');
+  else res = await s.from('store').update({ value, updated_at: now }).eq('key', key).select('updated_at');
+  if (res.error) { console.log('write failed', key, res.error.message); process.exit(1); }
+  if (!res.data || !res.data.length) { console.log(`write REFUSED for ${key}: it changed while this script ran (an app save landed). Nothing written - run it again.`); process.exit(1); }
   return backup;
 }
