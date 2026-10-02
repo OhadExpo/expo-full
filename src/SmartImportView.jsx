@@ -127,7 +127,11 @@ async function pdfToImages(file, { maxPages = 8, scale = 2 } = {}) {
   // Worker — Vite serves the dist worker file as-is.
   pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
   const buf = await fileToArrayBuffer(file);
-  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  // isEvalSupported:false (2.10 #510): text extraction never needs PDF.js to
+  // compile font programs with eval, and that path is how a crafted PDF runs
+  // script (npm audit, high). The import is owner-only - this is the cheap half
+  // until the major upgrade.
+  const doc = await pdfjs.getDocument({ data: buf, isEvalSupported: false }).promise;
   const n = Math.min(doc.numPages, maxPages);
   // Don't let a long PDF truncate silently — the coach needs to know pages 9+
   // weren't read so they can split the file. (deep-logic audit)
