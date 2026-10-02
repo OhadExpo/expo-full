@@ -283,7 +283,7 @@ function WaitlistForm({ t }) {
           }} />
         <button type="submit" disabled={state === 'sending'} style={{
           ...baseBtn,
-          height: 46, boxSizing: 'border-box',
+          height: 36, boxSizing: 'border-box',   /* the email box beside it is 36 (OCD #494: 46) */
           background: state === 'sending' ? C.bd : C.ac,
           color: state === 'sending' ? C.tm : '#000',
           padding: '0 20px',
@@ -649,7 +649,7 @@ export default function CoachLanding({ lang = 'en' }) {
       <main style={{ flex: 1 }}>
         {/* Hero */}
         <section style={{
-          maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
+          maxWidth: 920, margin: '0 auto', padding: '64px 16px 40px' /* the page's one 16px edge (OCD #494: 20) */, textAlign: 'center',
         }}>
           {/* EXPO icon (caret-X mark, not the wordmark) above "COACHING
               PLATFORM" — both center-aligned. gap and marginBottom kept

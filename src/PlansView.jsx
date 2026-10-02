@@ -4377,7 +4377,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         toast(`Share failed: ${error.message}`, 'error');
         return;
       }
-      const url = `${window.location.origin}/p/${token}`;
+      const { sandboxLink } = await import('./sandboxLink');
+      const url = sandboxLink(`${window.location.origin}/p/${token}`);
       try { await navigator.clipboard.writeText(url); } catch {}
       const { toast } = await import('./ui');
       toast(readLang() === 'he' ? `הקישור הציבורי הועתק — ${url}` : `Public link copied — ${url}`, 'success');

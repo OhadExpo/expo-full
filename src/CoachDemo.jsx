@@ -416,6 +416,14 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
     .concat([[T(MON3[nowM]), collected30]]);
   const barMax = Math.max(...months6.map(m => m[1]));
   const collected90 = months6.slice(-3).reduce((s, m) => s + m[1], 0);
+  // the real tiles' sub-lines (DashboardView, audit C 1.10): a month-over-month delta,
+  // coloured, the % isolated so it reads left-to-right inside Hebrew
+  const revDelta = Math.round(((collected30 - prior[4]) / prior[4]) * 100);
+  const deltaTxt = `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩`;
+  const deltaCol = revDelta >= 0 ? C.gn : C.rd;
+  const pendingTxt = readLang() === 'he'
+    ? (overdue.length === 0 ? 'אין בקשות תשלום פתוחות' : overdue.length === 1 ? 'בקשת תשלום פתוחה אחת' : `${overdue.length} בקשות תשלום פתוחות`)
+    : `${overdue.length} ${T('Pending requests')}`;
   return (
     <section>
 
@@ -428,7 +436,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
         <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
         <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
-        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={T('From the sheets')} accent={C.gn} />
+        <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={`${deltaTxt} ${T('vs last month')}`} subShort={deltaTxt} subColor={deltaCol} accent={C.gn} />
       </div>
 
       {/* INCOMING · 30D IS DELIBERATELY NOT HERE.
@@ -453,22 +461,23 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         {revOpen && <div style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
             {[
-              [T('MRR (ACTIVE)'), num(mrr), T('recurring committed'), C.ac],
-              [T('THIS MONTH'), num(collected30), T('From the sheets'), C.gn],
-              [T('LAST 3 MONTHS'), num(collected90), T('From the sheets'), C.gn],
-              [T('OUTSTANDING'), num(outstandingAmt), `${overdue.length} ${overdue.length === 1 ? T('overdue client') : T('overdue clients')}`, outstandingAmt > 0 ? C.or : C.ac],
-              [T('AVG LTV'), num(avgLtv), TN('over {n} months, est.', TENURE_MONTHS), C.ac],
-              [T('AVG TICKET'), num(avgTicket), T('per paying client, per month'), C.ac],
-            ].map(([lab, val, sub, col], i) => (
+              // the real RevenueCard's words, tile by tile (1.10 #493: the sheets live in Billing only)
+              [T('MRR (ACTIVE)'), num(mrr), <SegWord full={T('Recurring committed')} short={T('Recurring')} />],
+              [T('30D COLLECTED'), num(collected30), <span style={{ color: deltaCol }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{revDelta >= 0 ? '+' : ''}{revDelta}%</span> {T('vs prev 30d')}</span>],
+              [T('90D COLLECTED'), num(collected90), T('Trailing 3 months')],
+              [T('OUTSTANDING'), num(outstandingAmt), pendingTxt, outstandingAmt > 0],
+              [T('AVG LTV'), num(avgLtv), T('Per paying client')],
+              [T('AVG TICKET'), num(avgTicket), T('Per payment row')],
+            ].map(([lab, val, sub, dot], i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' /* the real metricStyle: centred in the row's height (#404, ported #460) */, gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}{lab}</span>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 /* as the real tile (#467) */, fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2 }}>{sub}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2, display: 'flex', whiteSpace: 'nowrap' }}>{sub}</span>
               </div>
             ))}
           </div>
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')} · {T('Sheet')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{T('LAST 6 MONTHS · COLLECTED')}</div>
             {/* THE REAL CARD'S CHART: a bar per month, drawn from ZERO (a bar's
                 length is its value), the month under it. The months carry a real
                 shape now, so honest bars still read (see `prior`). */}
@@ -540,7 +549,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                 : <div className="cd-task-cols" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))`, gap: 10, alignItems: 'start' }}>
                     {cols.map(({ col, rows }) => (
                       <div key={col.id} data-rhythm="tray" style={{ border: `1px solid ${C.cardBd}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 34, boxSizing: 'border-box', padding: '0 10px', background: 'var(--c-sf2)', borderInlineStart: `3px solid ${col.color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tx }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 36 /* 34 -> 36 (OCD #494) */, boxSizing: 'border-box', padding: '0 10px', background: 'var(--c-sf2)', borderInlineStart: `3px solid ${col.color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tx }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color }} />{T(col.label)}</span>
                           <span style={{ color: C.tm }}>{rows.length}</span>
                         </div>
@@ -572,7 +581,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {onlineNow.length > 0 && (
         <div className="alert-card" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
           <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 8px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>
+            <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>
           </div>
           {onlineNow.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
@@ -751,7 +760,7 @@ function Panel({ title, tint, icon, children, cyanBorder }) {
       boxSizing: 'border-box',
     }}>
       <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
+        <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
           {icon && <DemoSectionIcon kind={icon} />}{title}
         </span>
       </div>
@@ -4654,7 +4663,7 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
       </div>
       {groups.map((g) => (
         <div key={g.key}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 30, padding: '0 14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: C.tx, textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 36 /* the real section headers' 36 (OCD #494: 30) */, boxSizing: 'border-box', padding: '0 14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', color: C.tx, textTransform: 'uppercase' }}>
             <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: g.color }} />
             <span style={{ flex: 1 }}>{T(g.label)}</span>
             <span style={{ color: C.tm }}>{g.rows.length}</span>
@@ -4774,7 +4783,7 @@ function DemoTasks() {
             const rows = visible.filter(t => (boardGroup === 'category' ? t.src : t.status) === col.id);
             return (
               <div key={col.id} style={{ flex: '1 1 175px', minWidth: 175, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '7px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
+                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '0 10px', minHeight: 36, boxSizing: 'border-box' /* 30 -> 36 (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
                 <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 46 }}>
@@ -4872,6 +4881,10 @@ function DemoBilling({ onJumpToTrainee }) {
   const [showReq, setShowReq] = useState(false);
   const [amount, setAmount] = useState('600');
   const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
+  // the real Billing strip's rule (useStripFit, #452): + NEW REQUEST leaves the strip when the title
+  // would not fit beside it - at 360 the demo's nowrap title ran under the button (OCD #494)
+  const reqRowRef = React.useRef(null), reqTitleRef = React.useRef(null), reqBtnRef = React.useRef(null);
+  const reqStacked = useStripFit(true, reqRowRef, reqTitleRef, reqBtnRef, 0, [pending.length]);
   const panel = (children) => <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 16 }}>{children}</div>;
   const outstanding = pending.reduce((s, p) => s + p.amount, 0);
   const collected = DEMO_PAYMENTS.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
@@ -4912,10 +4925,11 @@ function DemoBilling({ onJumpToTrainee }) {
       {/* OWED, expanded - the real billing page's second section */}
       <DemoOwedCard onJumpToTrainee={onJumpToTrainee || (() => {})} expanded />
       {panel(<>
-        <div className="title-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}>
-          <span style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('PAYMENT REQUESTS')} · {pending.length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : T('Waiting')}</span></span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-stripTx)', border: '1px solid var(--c-stripTx)', height: 'var(--btn-h-in)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', fontSize: 10, whiteSpace: 'nowrap' }}>+ {T('NEW REQUEST')}</button>
+        <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} className="title-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}>
+          <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('PAYMENT REQUESTS')} · {pending.length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : T('Waiting')}</span></span>
+          {!reqStacked && <button ref={reqStacked ? undefined : reqBtnRef} onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-stripTx)', border: '1px solid var(--c-stripTx)', height: 'var(--btn-h-in)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', fontSize: 10, whiteSpace: 'nowrap' }}>+ {T('NEW REQUEST')}</button>}
         </div>
+        {reqStacked && <div data-strip-actions="" style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 14px 0' }}><button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-stripTx)', border: '1px solid var(--c-stripTx)', height: 'var(--btn-h)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', fontSize: 10, whiteSpace: 'nowrap' }}>+ {T('NEW REQUEST')}</button></div>}
         <div>
           {DEMO_PAYMENTS.map(p => {
             const st = PAY_STATUS[p.status];
@@ -5409,10 +5423,11 @@ export default function CoachDemo() {
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
           <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
-          <span>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
+          {/* two even lines on a phone, never 'BACK' alone (OCD #494) */}
+          <span style={{ textWrap: 'balance' }}>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo" data-demo-chrome="" style={{ color: C.td, textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', padding: '0 6px' }}>{T('← BACK')}</a>
+          <a href="/demo" data-demo-chrome="" style={{ color: C.td, textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', padding: 0 /* its text on the footer's edge, as the logo (was 6px in) */ }}>{T('← BACK')}</a>
         </span>
       </footer>
     </div>

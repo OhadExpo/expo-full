@@ -11,6 +11,7 @@
 // "Add to Home Screen first" hint instead of a confusing failure.
 
 import { supabase, isSandboxSeat } from './supabase';
+import { tr, readLang } from './i18n';
 
 // Public key is fine to embed — it's meant to identify our app to push
 // services and ships to every client anyway. Env var takes precedence
@@ -66,6 +67,9 @@ export async function getCurrentSubscription() {
 // Subscribe + persist on the server. Returns the subscription object
 // on success. Throws with a user-friendly message on failure.
 export async function enablePush(role) {
+  // the sandbox seat has nothing real to be told about - and a coach-role
+  // subscription from it used to join the owner's production alerts (1.10 audit C5)
+  if (isSandboxSeat()) throw new Error(tr(readLang(), 'Notifications are off in the sandbox.'));
   if (!isPushSupported()) throw new Error('Push notifications are not supported in this browser.');
   if (isIOS() && !isPwaInstalled()) {
     throw new Error('On iPhone/iPad, add EXPO to your home screen first, then enable notifications from the installed app.');

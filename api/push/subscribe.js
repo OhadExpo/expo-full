@@ -58,6 +58,13 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Failed to resolve user.' });
     return;
   }
+  // THE SANDBOX SEAT HAS NOTHING REAL TO BE TOLD ABOUT (1.10 audit): refused here
+  // too, not only in the client - a coach-role row from the partner would sit
+  // beside the owner's. Same list as src/authRoles.js PARTNER_EMAILS.
+  if (['eladeluz24@gmail.com'].includes(String(userEmail).toLowerCase())) {
+    res.status(403).json({ error: 'Notifications are off in the sandbox.' });
+    return;
+  }
 
   const row = {
     user_email: userEmail,

@@ -13,6 +13,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
+import { sandboxLinkNote } from './sandboxLink';
 import { toast } from './ui';
 
 import { isHebrew } from './script';
@@ -80,7 +81,7 @@ export default function ContractSign() {
   }
   if (state.error || !state.contract) {
     return <Shell>
-      <ErrorPanel message={state.error || 'Contract not found.'} />
+      <ErrorPanel message={sandboxLinkNote() || state.error || 'Contract not found.'} />
     </Shell>;
   }
 

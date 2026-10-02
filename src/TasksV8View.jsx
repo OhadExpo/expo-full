@@ -32,7 +32,7 @@ import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
-import { supabase } from './supabase';
+import { supabase, isSandboxSeat } from './supabase';
 import { useT, useTB } from './i18n';
 import { dayMonthShort } from './dates';
 import {
@@ -1007,7 +1007,7 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
       aria-label={tr(readLang(), 'Toggle the {x} section').replace('{x}', tr(readLang(), label))}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '8px 12px', cursor: 'pointer',
+        padding: '0 12px', minHeight: 36, boxSizing: 'border-box' /* a row is 36 at every width (OCD #494: 29 on desktop, 40 on a phone) */, cursor: 'pointer',
         borderBottom: `1px solid var(--c-cardBd)`,
         background: 'var(--c-sf2, transparent)',
       }}>
@@ -1949,6 +1949,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   }, []);
 
   const handleConnectGcal = async () => {
+    // the sandbox seat never talks to Google (1.10 audit: Connect opened a real
+    // consent popup, then failed verification with a red English toast)
+    if (isSandboxSeat()) { toast(tr(readLang(), 'Google Calendar is off in the sandbox'), 'info', { ttl: 4000 }); return; }
     setGcalBusy(true);
     const token = await connectGoogleCalendar();
     setGcalBusy(false);
@@ -2813,7 +2816,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 aria-label={tt('Toggle auto-alerts')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 12px',
+                  padding: '0 12px', minHeight: 36, boxSizing: 'border-box',   // as the section headers (OCD #494: 34)
                   borderBottom: autoOpen ? `1px solid var(--c-cardBd)` : 'none',
                   background: 'transparent',
                   cursor: 'pointer',
@@ -2955,7 +2958,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             aria-expanded={doneOpen}
             aria-label={tt('Toggle done history')}
             style={{
-              padding: '10px 14px',
+              padding: '0 14px', minHeight: 36, boxSizing: 'border-box',   // 34 -> 36 (OCD #494)
               fontFamily: FN, fontSize: 10, fontWeight: 700,
               letterSpacing: '0.18em', color: 'var(--c-td)',
               textTransform: 'uppercase', cursor: 'pointer',

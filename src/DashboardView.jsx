@@ -157,39 +157,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // (pending Bit payment requests) + average client LTV + 6-month bar
   // sparkline. Keeps every metric pulled from the same payments array
   // the rest of the dashboard already loads, so no extra query cost.
-  const [sheetMonths, setSheetMonths] = useState(null);
-  useEffect(() => {
-    if (!isOwner) return undefined;
-    let live = true;
-    supabase.from('revenue_month_total').select('month,channel,amount,imported_at')
-      .then(({ data, error }) => { if (live && !error) setSheetMonths(data || []); })
-      .catch(() => {});
-    return () => { live = false; };
-  }, [isOwner]);
-  const sheet = useMemo(() => {
-    if (!sheetMonths || !sheetMonths.length) return null;
-    const NOT_COACHING = new Set(['national_insurance']);
-    const byMonth = new Map();
-    for (const r of sheetMonths) {
-      if (NOT_COACHING.has(r.channel)) continue;
-      const k = String(r.month).slice(0, 7);
-      byMonth.set(k, (byMonth.get(k) || 0) + (Number(r.amount) || 0));
-    }
-    const key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const bars = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      bars.push({ label: monthAbbr(d.getMonth()), value: byMonth.get(key(d)) || 0 });
-    }
-    const latest = [...byMonth.keys()].sort().pop();
-    // The newest imported_at is the clock's last successful run - the sync
-    // re-stamps every month row, so one stale row cannot hide a dead clock.
-    const syncedAt = sheetMonths.reduce((m, r) => (r.imported_at && (!m || r.imported_at > m) ? r.imported_at : m), null);
-    const syncAgeH = syncedAt ? (now - new Date(syncedAt)) / 3600000 : null;
-    return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size, syncedAt, syncAgeH };
-  // `now` is a per-render Date; the sheet rows are the only real dependency.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheetMonths]);
+  // THE SHEETS LIVE IN BILLING, NOT HERE (1.10 #493, Ohad: "From the sheets
+  // shouldn't be on the dashboard but in Billings I never asked for it there").
+  // The dashboard's money is what is marked in the app; the finance sheet's
+  // history is the FROM THE SHEETS card on /coach/billing. (17.9 had made the
+  // Collected tile fall back to the sheet's month when nothing was marked.)
   const ms30 = 30 * 86400000;
   const ms90 = 90 * 86400000;
   const paidPayments = payments.filter(p => p.status === 'Paid');
@@ -612,12 +584,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
             // viewport widths). MTD = month-to-date, finance standard.
-            // 17.9 (Ohad: "dashboard is still not updated with the right amount of money"): no payment is
-            // marked in the app, so this read ₪0 while the REVENUE card below showed the sheet's month.
-            // With no app-marked money this month, the finance sheet's coaching total is the figure.
-            (thisMonthPaid === 0 && sheet)
-              ? { label: tt('Collected MTD'), short: he ? null : 'Collected', value: `₪${Math.round(sheet.thisMonth).toLocaleString()}`, sub: tt('From the sheets'), subColor: C.td, color: sheet.thisMonth > 0 ? C.gn : C.td }
-              : { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : tt('Marked in the app'), subShort: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}%` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            // The money MARKED IN THE APP (1.10 #493: the sheets' totals live in Billing only;
+            // 17.9 had made this tile fall back to the sheet's month when nothing was marked).
+            { label: tt('Collected MTD'), short: he ? null : 'Collected', value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩ ${tt('vs last month')}` : tt('Marked in the app'), subShort: revDelta !== null ? `⁦${revDelta >= 0 ? '+' : ''}${revDelta}%⁩` : tt('In the app'), subColor: revDelta === null ? C.td : revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -709,7 +678,6 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         outstanding={outstanding}
         monthBars={monthBars}
         maxBar={maxBar}
-        sheet={sheet}
       />}
 
       {/* OWED (#386): who owes, how much, and why - the roster sheet's unpaid
@@ -787,7 +755,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           {onlineNow.length > 0 && (
         <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}>
           <RefinedHeaderStrip>
-            <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
+            <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
           {onlineNow.map(t => (
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
@@ -826,7 +794,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('expiring', expiring).map(t => (
@@ -842,7 +810,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="var(--c-stripTx)"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
+                      <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dollar" color="var(--c-stripTx)"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('overdue', overduePayment).map(t => (
@@ -858,7 +826,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="var(--c-stripTx)"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="moon" color="var(--c-stripTx)"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('dormant', dropoutRisk).map(t => {
@@ -899,7 +867,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
+                  <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
                   <span title={readLang() === 'he' ? (gateOpen ? 'הסף עבר — זה הזמן להריץ את המיגרציה לכמה מאמנים' : `המיגרציה לכמה מאמנים רצה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: 'var(--c-stripTx)', border: 'none', background: 'transparent', borderRadius: 0, padding: '2px 0', letterSpacing: '0.04em' }}>
                     🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
@@ -949,7 +917,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           <div className="title-strip" onClick={() => setAllAthletesOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAllAthletesOpen(o => !o); } }}
             style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: allAthletesOpen ? '1px solid var(--c-cardBd)' : 'none', padding: '0 14px', minHeight: 41, boxSizing: 'border-box', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-            <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
+            <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
             <StripCaret open={allAthletesOpen} color={'var(--c-stripTx)'} />
           </div>
           <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }} inert={allAthletesOpen ? undefined : ''} /* hidden = not reachable by keyboard (29.9 audit) */>
@@ -1044,9 +1012,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 // F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
-function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar, sheet = null }) {
-  const bars = sheet ? sheet.bars : monthBars;
-  const barMax = sheet ? Math.max(1, ...sheet.bars.map(b => b.value)) : maxBar;
+// The money MARKED IN THE APP only: the sheets' totals live in Billing (1.10 #493),
+// so the card's sheet mode is gone with them.
+function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+  const bars = monthBars;
+  const barMax = maxBar;
   const tt = useT();
   const he = useHe();
   const refined = isRefined5b();
@@ -1059,8 +1029,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
     border: `1px solid ${C.cardBd}`,
     background: 'var(--c-sf)',
   };
-  // one row per tile label at every width (27.9, #328): the source (the
-  // sheet) is on the tile's own sub-line, so the label does not repeat it
+  // one row per tile label at every width (27.9, #328)
   const labelStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 };
   const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 };   // a normal line left room under the digits: a tile read 16 above / 18 below (#467)
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
@@ -1078,23 +1047,18 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap' }}><SegWord full={tt('Recurring committed')} short={tt('Recurring')} /></span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{noDangle(tt(sheet ? 'THIS MONTH' : '30D COLLECTED'))}</span>
-            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {sheet && <span style={{ ...subStyle, display: 'flex', whiteSpace: 'nowrap', color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null
-              ? <SegWord full={tt('Synced from the sheet twice a day')} short={tt('Synced twice a day')} />
-              : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}`
-              : sheet.syncAgeH < 1 ? <SegWord full={tt('Synced from the sheet just now')} short={tt('Synced just now')} />
-              : <SegWord full={tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))} short={tt('Synced {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))} />}</span>}
-            {!sheet && delta30 !== null && (
+            <span style={labelStyle}>{noDangle(tt('30D COLLECTED'))}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
+            {delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
               </span>
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{noDangle(tt(sheet ? 'LAST 3 MONTHS' : '90D COLLECTED'))}</span>
-            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.last3).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
-            <span style={subStyle}>{sheet ? tt('From the sheets') : tt('Trailing 3 months')}</span>
+            <span style={labelStyle}>{noDangle(tt('90D COLLECTED'))}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
+            <span style={subStyle}>{tt('Trailing 3 months')}</span>
           </div>
           <div style={metricStyle}>
             {/* OUTSTANDING carries a real status (overdue money) — per the
@@ -1123,7 +1087,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             free implementation (just divs) so it stays under 2kb of
             DOM and inherits theme colors. */}
         <div>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt(sheet ? 'LAST 6 MONTHS · COLLECTED · SHEET' : 'LAST 6 MONTHS · COLLECTED')}</div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt('LAST 6 MONTHS · COLLECTED')}</div>
           {/* With nothing collected in any of the six months every bar renders at
               its 2% floor in the hairline colour, so the chart reads as an empty
               axis — i.e. as BROKEN rather than as "nothing came in yet". Say it

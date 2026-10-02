@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { C, FN, FB, FH } from './theme';
 import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog, CaretGlyph } from './ui';
 import { supabase } from './supabase';
+import { sandboxLink } from './sandboxLink';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
 import IntakeResponses from './IntakeResponses';
@@ -155,7 +156,7 @@ export default function IntakeView({ trainees }) {
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       // progress + standard share the /intake path; the token's form_type picks the form
       const path = `/intake/${genForm.locale}`;
-      const url = `${origin}${path}?t=${token}`;
+      const url = sandboxLink(`${origin}${path}?t=${token}`);
       try { await navigator.clipboard.writeText(url); } catch {}
       setGenResult({ url, label: row.label || `${genForm.formType} · ${genForm.locale}` });
       reload();
@@ -236,7 +237,7 @@ export default function IntakeView({ trainees }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {tokens.filter(t => !t.used_at).slice(0, 5).map(t => {
               const origin = typeof window !== 'undefined' ? window.location.origin : '';
-              const url = `${origin}/intake/${t.locale}?t=${t.token}`;
+              const url = sandboxLink(`${origin}/intake/${t.locale}?t=${t.token}`);
               return (
                 <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB, flexWrap: 'wrap' }}>
                   <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{tt(t.form_type)}</Badge></span>

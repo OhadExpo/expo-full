@@ -297,7 +297,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 style={{
                   width: '100%', background: 'var(--c-sf)',
                   border: `1px solid ${open ? C.ac : `${C.cardBd}`}`,
-                  borderRadius: 0, padding: '12px 14px', color: C.tx,
+                  borderRadius: 0, height: 'var(--btn-h)', padding: '0 14px', color: C.tx,   /* 44 -> the one bordered height (OCD #494) */
                   fontFamily: FB, fontSize: 15, fontWeight: 600,
                   outline: 'none', boxSizing: 'border-box', cursor: 'text',
                 }}

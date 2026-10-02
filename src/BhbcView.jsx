@@ -37,6 +37,10 @@ import { isOwnerEmail } from './authRoles';
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
+// TODAY's ink and edge (#509): the zone's theme-aware navy - raw NAVY on the
+// dark page was near-invisible (the week's "FRI 2", the list's day, the
+// microcycle's TODAY).
+const TODAY_INK = `var(--bhbc-ha-home, ${NAVY})`;
 // EVERY CONFIRMATION IN THE ZONE'S LANGUAGE (#305 N-E8). The zone's toasts
 // were English on the Hebrew screen - 'Lift logged' under a Hebrew button.
 // One wrapper, so no call site can forget; an untranslated line stays English.
@@ -327,6 +331,41 @@ const LIFTS_LAST_W = 150;
 const pinStart = (bg) => ({ position: 'sticky', insetInlineStart: 0, zIndex: 1, background: bg, marginInlineStart: -14, paddingInlineStart: 14 });
 const pinEnd = (bg) => ({ position: 'sticky', insetInlineEnd: 0, zIndex: 1, background: bg, marginInlineEnd: -14, paddingInlineEnd: 14 });
 
+// THE MONTH GRIDS ARE ONE GRID (#509, Ohad 2.10: "the tables in ... lifts are
+// very bad"). Lifts and Practice Attendance drew only the days that had
+// happened, each column minmax(24px, 1fr) - so on the 2nd of a month two day
+// columns split ~800px and a lift box sat alone in a 400px cell. Now both draw
+// the WHOLE month at one column width (a sheet's month, the thing he reads
+// them against), the days still ahead quiet and empty; one 36px row; the name
+// and the end column pinned while the days scroll; and on a phone the grid
+// opens scrolled to today instead of to the 1st.
+const monthDays = (today, monthOff) => {
+  const base = parseISO(today);
+  const anchor = new Date(base.getFullYear(), base.getMonth() + monthOff, 1);
+  const out = [];
+  const m = anchor.getMonth();
+  for (let d = new Date(anchor); d.getMonth() === m; d.setDate(d.getDate() + 1)) {
+    const iso = localISO(d);
+    out.push({ iso, dom: d.getDate(), dow: d.getDay(), future: iso > today });
+  }
+  return { list: out, label: `${monFor(anchor.getMonth(), MON[anchor.getMonth()])} ${anchor.getFullYear()}` };
+};
+const FUTURE_BG = 'color-mix(in srgb, var(--c-cardBd) 18%, transparent)';
+const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_DEEP : d.future || d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm);
+// today in view on a narrow screen: the scroller moves so today's column sits
+// at the inner edge of the days (works in both directions - it moves by the
+// measured overshoot, never by an absolute scrollLeft, which RTL inverts)
+function useScrollToToday(ref, key) {
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el || el.scrollWidth <= el.clientWidth + 1) return;
+    const cell = el.querySelector('[data-today-col]'); if (!cell) return;
+    const box = el.getBoundingClientRect(); const c = cell.getBoundingClientRect();
+    const rtl = getComputedStyle(el).direction === 'rtl';
+    const delta = rtl ? c.left - box.left - 24 : c.right - box.right + 24;
+    if ((rtl && delta < 0) || (!rtl && delta > 0)) el.scrollLeft += delta;
+  }, [ref, key]);
+}
+
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
 // 'Out · Pers' rather than 'Out · Personal': the long label made ONE button in
 // the column 168px against 135px for every other state, and Ohad wants a single
@@ -428,6 +467,45 @@ function CellMarks({ bands = [], outline = null, label }) {
     <span aria-label={label} style={{ width: 16, height: 16, boxSizing: 'border-box', display: 'inline-flex', flexDirection: 'column', gap: 1, border: outline ? `1.5px solid ${outline}` : 'none', background: bands.length > 1 ? 'var(--c-sf)' : 'transparent' }}>
       {bands.map((c, i) => <span key={i} style={{ flex: 1, background: c }} />)}
     </span>
+  );
+}
+
+// AN ACTION INSIDE A ROW IS A SEGMENT OF THE ROW (2.10 #509, Ohad: "a lot more
+// buttons inside cells that are designed bad all around bhbc. work it out once
+// a for all"). Measured on the branch before this: S&C and CANCEL drew 22px
+// faces inside 26px buttons inside a 36px chip, schedule-list chips were 28,
+// week chips 39, the MD tags 16 - five heights for one idea, and every one a
+// box inside a box. Now an action inside a bordered row takes the row's whole
+// height, is split from what precedes it by one hairline, and draws no box of
+// its own: the row is the box. Fixed widths come from the caller (--sc-w).
+const segBtn = (ink = C.tm, extra = null) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, alignSelf: 'stretch', flexShrink: 0, height: 'auto', minHeight: 0, margin: 0, padding: '0 12px', boxSizing: 'border-box', border: 'none', borderInlineStart: `1px solid ${C.cardBd}`, borderRadius: 0, background: 'transparent', color: ink, fontFamily: FN, fontSize: 10, fontWeight: 700, lineHeight: 1, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', ...extra });
+
+// ONE SESSION CHIP for the whole zone (#509): the planner, the schedule list,
+// today's sessions. 36px, the session's colour as its border, time - kind -
+// minutes on one line, actions (segBtn) at its end. `stacked` (a narrow
+// column) puts the actions on a second row of equal segments under a hairline.
+// The venue is never inside it: it is the line that broke a chip to 54px.
+function EventChip({ f, time = null, actions = null, stacked = false, className = '', ...rest }) {
+  const tr = useT();
+  const off = isCancelled(f);
+  const col = FX_COLOR[f.type] || NAVY;
+  const info = (
+    <span className="bhbc-chip-info" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 9px', minWidth: 0, flex: '1 1 auto', height: stacked ? 'calc(var(--btn-h) - 2px)' : undefined }}>
+      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{time != null ? time : f.start}</span>
+      <span className={'bhbc-chip-meta bhbc-kind-' + String(f.type || '').toLowerCase()} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', minWidth: 0 }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
+      {Number(f.minutes) > 0 && <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}><MinTok n={f.minutes} /></span>}
+      {f.optional && <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>· {tr('optional')}</span>}
+      {off && <span className="fx-cancelled-tag" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', textDecoration: 'none' }}>{tr('Cancelled')}</span>}
+    </span>
+  );
+  return (
+    <div {...rest} className={'bhbc-chip' + (off ? ' fx-cancelled' : '') + (stacked ? ' bhbc-chip-stacked' : '') + (className ? ' ' + className : '')} data-fx-cancelled={off ? '' : undefined}
+      style={{ display: 'flex', flexDirection: stacked ? 'column' : 'row', alignItems: 'stretch', minWidth: 0, height: stacked ? 'auto' : 'var(--btn-h)', boxSizing: 'border-box', border: `1px ${off ? 'dashed' : 'solid'} ${off ? C.cardBd : col}`, background: 'var(--c-sf)' }}>
+      {info}
+      {actions && (stacked
+        ? <span className="bhbc-chip-acts" style={{ display: 'flex', alignItems: 'stretch', height: 'calc(var(--btn-h) - 2px)', borderTop: `1px solid ${C.cardBd}` }}>{actions}</span>
+        : actions)}
+    </div>
   );
 }
 // "vs Rishon LeZion · HaYovel" / "vs Hapoel Eilat · Begin Arena, Eilat" - the
@@ -579,7 +657,7 @@ function useSort(rows, cols, defaultKey = null, defaultDir = null) {
 // month grids, `float`) hangs its arrow just past the word without taking any
 // width at all instead: a reserved slot would push the word off the column's
 // centre - and in a 22px day column, off its own column.
-function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, float = false, title, aLabel }) {
+function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, float = false, title, aLabel, ...rest }) {
   const tr = useT();
   const on = sort.key === k;
   const glyph = on && sort.dir === 'asc' ? '↑' : '↓';
@@ -589,7 +667,7 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
   return (
     // aria-sort belongs to a real column header: only the <th> form carries
     // it; outside a table the button says its own state (27.9 review)
-    <Tag aria-sort={Tag === 'th' ? (on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+    <Tag {...rest} aria-sort={Tag === 'th' ? (on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
       onClick={go} title={title || (on ? tr(sort.dir === 'asc' ? 'Sort descending' : 'Sort ascending') : `${tr('Sort by')} ${label}`)}
       style={{ ...style, ...(on ? { color: ORANGE_DEEP } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
       <span role="button" tabIndex={0} aria-label={Tag === 'th' ? (aLabel || undefined) : `${aLabel || label}${on ? ` · ${tr(sort.dir === 'asc' ? 'Sort ascending' : 'Sort descending')}` : ''}`}
@@ -1400,13 +1478,8 @@ function attendance28(rec, days) {
         .bhbc-week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch}
         @media (max-width:620px){ .bhbc-week-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
         @media (max-width:400px){ .bhbc-week-grid{grid-template-columns:1fr} }
-        /* In a seven-across week each column is ~130px, so a session chip
-           stacks instead of sitting on one line. Tighter type and a real
-           line-height make that stack read as a block rather than as text
-           that fell apart. */
-        .bhbc-week-grid .bhbc-chip{display:block;line-height:1.45}
-        .bhbc-week-grid .bhbc-chip .bhbc-chip-focus{font-size:11px;display:block;margin-top:2px}
-        .bhbc-week-grid .bhbc-chip .bhbc-chip-meta{margin-inline-end:6px}
+        /* In a seven-across week a session chip stacks: EventChip's stacked
+           form (info row over a row of action segments, #509). */
         @media (max-width:620px){
           /* Label above value, both full width. A 150px label column on a 390px
              screen leaves the value ~200px and everything wraps three deep. */
@@ -1573,21 +1646,15 @@ function attendance28(rec, days) {
              padding to 3 closes it, so the month fits without scrolling. */
           .bhbc-cal-cell{padding:5px 3px!important;min-width:0!important;overflow:hidden!important}
           .bhbc-cal-cell *{min-width:0!important;max-width:100%!important}
-          /* A month cell is 43px wide on a phone. An event chip carrying a time
-             cannot fit in it - "10:30" alone is 35px before padding - so the
-             text spilled 20px past the cell. The month view answers WHICH DAYS;
-             the week planner directly below it carries the times. */
-          /* A month cell is 43px wide. Its event chip carries a time and a label
-             that need ~29px each, so max-width:100% squeezed the time element to
-             9px and its text spilled 20px past the cell - measured boxW 9,
-             inkW 29. The month view answers WHICH DAYS; each event becomes a
-             coloured bar and the week planner right below carries the detail. */
-          /* Target by STRUCTURE, not class - the time sits in an unclassed
-             element, which is why hiding .bhbc-chip-meta missed it. The first
-             child of a day cell is the date; everything after it is an event,
-             and each becomes a 5px coloured bar. */
-          .bhbc-cal-cell > *:not(:first-child){height:5px!important;min-height:0!important;padding:0!important;margin:2px 0 0!important;font-size:0!important;line-height:0!important;overflow:hidden!important;border-radius:0!important}
-          .bhbc-cal-cell > *:not(:first-child) *{display:none!important}
+          /* A MONTH CELL ON A PHONE SAYS WHEN (#509). It used to turn every
+             session into a bare 5px bar - a month of coloured dashes that said
+             nothing (Ohad 2.10: "very bad"). The cell is ~43px: the kind word
+             and the venue do not fit, the TIME does - 9px "10:30" is ~27px -
+             so each session is its time in the session's colour, on its tint. */
+          .bhbc-cal-cell{gap:2px!important}
+          .bhbc-cal-chip{padding:1px 2px!important;border-inline-start-width:2px!important;font-size:9px!important;letter-spacing:-0.01em}
+          .bhbc-cal-chip > .bhbc-cal-kind, .bhbc-cal-chip > .bhbc-cal-where{display:none!important}
+          .bhbc-cal-more{font-size:8.5px!important}
           /* Next game: the day count is 40px type in a column of its own, and
              with flex-wrap the details dropped BELOW it - so two characters
              owned about 200px of height and the card was mostly white. Keep
@@ -3174,7 +3241,7 @@ function ActivityView({ activity = [], tr, he }) {
         {list.length === 0
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
           : <div className="bhbc-list">{list.slice(0, 120).map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', minHeight: 36, boxSizing: 'border-box' /* a row is never under the control height (OCD #494: 29) */, borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
               <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1')}</span>
               <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
@@ -3974,13 +4041,8 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
       {scLine(f)}
     </span>
   );
-  const chip = (f, i, showDate) => (
-    <span key={i} className={isCancelled(f) ? 'fx-cancelled' : undefined} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${FX_COLOR[f.type] || NAVY}` }}>
-      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-stripTx)', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
-      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY, padding: '5px 8px', display: 'inline-flex', alignItems: 'center' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
-      {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 12, color: C.td, padding: '5px 9px 5px 2px', display: 'inline-flex', alignItems: 'center' }}><MinTok n={f.minutes} /></span>}
-    </span>
-  );
+  // the zone's one session chip (#509) - it was a 30px chip of its own here
+  const chip = (f, i, showDate) => <EventChip key={i} f={f} time={showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start} />;
   // Today's prescribed training focus, from the microcycle (game-anchored).
   const mdToday = fx.nextGame ? -dayDiff(fx.nextGame.date, today) : null;
   const focus = mdToday != null ? mdPlan(mdToday) : null;
@@ -3994,7 +4056,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingTop: 7, paddingBottom: 7, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* as every 22px tag: Nord's normal line rode the caps 1.25px high (#467) */, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* the house 36 (#509: it was a 22px pill beside 36px controls); line-height 1 keeps the caps centred (#467) */, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
           <Segmented text={tr(focus.emphasis)} style={{ fontFamily: FB, fontSize: 13, color: C.tx }} />
         </div>
       )}
@@ -4120,18 +4182,9 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   const isCourtRow = (r) => { const k = rowKind(r); return k === 'practice' || k === 'game' || k === 'sc'; };
   const courtMins = (r) => { const k = rowKind(r); return (k === 'practice' || k === 'game') ? (Number(r.min) || 0) : 0; };
 
-  const days = useMemo(() => {
-    const base = parseISO(today);
-    const anchor = new Date(base.getFullYear(), base.getMonth() + monthOff, 1);
-    const out = [];
-    const m = anchor.getMonth();
-    for (let d = new Date(anchor); d.getMonth() === m; d.setDate(d.getDate() + 1)) {
-      const iso = localISO(d);
-      if (iso > today) break;
-      out.push({ iso, dom: d.getDate(), dow: d.getDay() });
-    }
-    return { list: out, label: `${monFor(anchor.getMonth(), MON[anchor.getMonth()])} ${anchor.getFullYear()}` };
-  }, [today, monthOff]);
+  const days = useMemo(() => monthDays(today, monthOff), [today, monthOff]);
+  const scrollRef = useRef(null);
+  useScrollToToday(scrollRef, `${today}|${monthOff}`);
 
   // Which court sessions each day held, and what kind the day was. A day with a
   // game in it reads as a game day even if it also held a shootaround.
@@ -4163,7 +4216,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
     const attended = [];
     const cells = days.list.map((d) => {
       const slots = dayFx[d.iso] || [];
-      if (!slots.length) return { iso: d.iso, state: 'none' };
+      if (d.future || !slots.length) return { iso: d.iso, state: 'none', future: d.future };
       const kind = slots.some((f) => f.type === 'game') ? 'game'
         : slots.some((f) => f.type === 'scrimmage') ? 'scrimmage'
           : slots.some((f) => f.type === 'practice') ? 'practice' : 'shootaround';
@@ -4277,41 +4330,45 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         <span style={{ display: 'inline-flex', gap: 6 }}>
           {[['sc', tr('S&C'), showSc, setShowSc, SC_COLOR], ['lift', tr('Lifts'), showLift, setShowLift, FX_COLOR.lift]].map(([k, l, on, set, col]) => (
             <button key={k} type="button" aria-pressed={on} onClick={() => set(!on)} className="bhbc-ghost-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, minHeight: 26, padding: '0 10px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm, background: on ? `color-mix(in srgb, ${col} 14%, transparent)` : 'transparent', border: `1px solid ${on ? col : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', minHeight: 0, padding: '0 10px', boxSizing: 'border-box' /* 26 -> 36, as the LIFTS tab's own S&C toggle (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm, background: on ? `color-mix(in srgb, ${col} 14%, transparent)` : 'transparent', border: `1px solid ${on ? col : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
               <span style={{ width: 8, height: 8, background: on ? col : 'transparent', border: `1px solid ${col}` }} />{l}
             </button>
           ))}
         </span>
       </div>
 
-      {/* Sideways scroll is deliberate: a month of days cannot fit 390px. */}
-      <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 298 + 28 + days.list.length * CELL }}>
-          <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6 }}>
-            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
+      {/* THE SAME GRID AS LIFTS (#509): the whole month at one column width,
+          the name and the ATTENDED column pinned while the days scroll, rows
+          of 36 (they were 26 - under the zone's row height). */}
+      <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6 }}>
+            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
             {days.list.map((d) => (
-              <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
+              d.future
+                ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+                : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
             ))}
-            <SortHeader k="pct" sort={sort} label={tr('attended')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+            <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={tr('attended')} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
-            <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px 6px' }}>
+            <span style={{ ...pinStart('var(--c-sf)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
             {perDay.map((v, i) => (
-              // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8)
-              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{v == null || !v.expected ? '—' : v.went}</span>
+              // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
+              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
             ))}
-            <span />
+            <span style={{ ...pinEnd('var(--c-sf)'), alignSelf: 'stretch' }} />
           </div>
           <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
-            {sort.rows.map(({ t, cells, since, last, todayCode, went, owed }) => (
+            {sort.rows.map(({ t, cells, last, todayCode, went, owed }) => (
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
                 onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 26 }}>
+                style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
+                <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch' }}>
                   <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
+                  <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
                 </span>
                 {cells.map((c) => {
                   const label = c.state === 'none' ? (t.arrival && c.iso < t.arrival && dayFx[c.iso] ? `${monDay(c.iso)} · ${tr('before he landed')}` : monDay(c.iso))
@@ -4325,13 +4382,13 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   const outline = c.state === 'missed' ? MISS : c.state === 'dnp' ? FX_COLOR.game : null;
                   return (
                     <span key={c.iso} title={label}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.state === 'none' ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: c.future ? FUTURE_BG : c.state === 'none' ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
                       <CellMarks bands={bands} outline={outline} label={label} />
                     </span>
                   );
                 })}
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10 }}>
-                  <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
+                <span style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 36, paddingInlineStart: 10, alignSelf: 'stretch' }}>
+                  <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: pctInk(pct({ went, owed })), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end', unicodeBidi: 'isolate' }}>
                     {owed ? `${went}/${owed}` : tr('none')}
                   </span>
@@ -4389,18 +4446,9 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
 
   // The month on screen, as local dates - never toISOString, which rolls back a
   // day in Israel between midnight and 03:00.
-  const days = useMemo(() => {
-    const base = parseISO(today);
-    const anchor = new Date(base.getFullYear(), base.getMonth() + monthOff, 1);
-    const out = [];
-    const m = anchor.getMonth();
-    for (let d = new Date(anchor); d.getMonth() === m; d.setDate(d.getDate() + 1)) {
-      const iso = localISO(d);
-      if (iso > today) break;                 // a day that has not happened is not a column
-      out.push({ iso, dom: d.getDate(), dow: d.getDay() });
-    }
-    return { list: out, label: `${monFor(anchor.getMonth(), MON[anchor.getMonth()])} ${anchor.getFullYear()}` };
-  }, [today, monthOff]);
+  const days = useMemo(() => monthDays(today, monthOff), [today, monthOff]);
+  const scrollRef = useRef(null);
+  useScrollToToday(scrollRef, `${today}|${monthOff}`);
 
   const per = useMemo(() => (rows || []).map(({ t }) => {
     const rec = loads[t.id] || {};
@@ -4510,21 +4558,26 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             1440 LAST LIFT ran past the edge - "28 SEP  YESTERDAY" is 133px in
             a 118px column. Name 186 + a 150 last-lift column + 31 days at 24
             is 1108 inside a 1162 card. Narrower than that the grid still
-            scrolls (a month cannot fit 390px), but the NAME and the LAST LIFT
-            stay pinned at the two edges and only the days move. */}
-        <div className="bhbc-lifts-scroll" style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: LIFTS_NAME_W + LIFTS_LAST_W + 28 + days.list.length * CELL }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `${LIFTS_NAME_W}px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) ${LIFTS_LAST_W}px`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
+            scrolls (a month cannot fit 390px), with the NAME and the LAST LIFT
+            pinned at the two edges and only the days moving - down to 620px.
+            On a phone only the NAME stays pinned and LAST LIFT shows "3d" /
+            "yesterday" without the date (themes.css, #400 / #499). */}
+        <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
+          {/* the column widths are CSS variables: a phone narrows them (themes.css, 1.10 #499) */}
+          <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
               <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
-                <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} />
+                d.future
+                  ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+                  : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
               ))}
-              <SortHeader k="last" sort={sort} label={tr('last lift')} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+              <SortHeader data-end-head="" k="last" sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `${LIFTS_NAME_W}px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) ${LIFTS_LAST_W}px`, alignItems: 'center', padding: '0 14px 6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px 6px' }}>
               <span style={{ ...pinStart('var(--c-sf)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
               {liftedPerDay.map((n, i) => (
-                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n == null ? '—' : n}</span>
+                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
               ))}
               <span style={{ ...pinEnd('var(--c-sf)'), alignSelf: 'stretch' }} />
             </div>
@@ -4534,11 +4587,11 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                  style={{ display: 'grid', gridTemplateColumns: `${LIFTS_NAME_W}px repeat(${cells.length}, minmax(${CELL}px, 1fr)) ${LIFTS_LAST_W}px`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
+                  style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
                   <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch' }}>
                     <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
-                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{t.name}</span>
+                    <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
                   </span>
                   {cells.map((c) => {
                     const bands = [];
@@ -4546,18 +4599,18 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                     if (showSc && c.sc) bands.push(SC_COLOR);
                     const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
                     return (
-                      <span key={c.iso} title={title}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}` }}>
+                      <span key={c.iso} title={c.future ? monDay(c.iso) : title}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}`, background: c.future ? FUTURE_BG : 'transparent' }}>
                         <CellMarks bands={bands} label={title} />
                       </span>
                     );
                   })}
                   {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
-                  <span style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
-                    <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
+                  <span title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
+                    <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
-                      {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
+                      {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? `1 ${tr('days')}` : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
                     </span>
                   </span>
                 </div>
@@ -4990,8 +5043,8 @@ function MicrocycleView({ fx, today }) {
   // A day that is BOTH keeps the orange wash and takes the navy ring,
   // so game-day-is-today reads as both rather than as neither.
             <div key={d.iso} style={{
-              border: `1px solid ${d.isToday ? NAVY : d.isGame ? ORANGE : C.cardBd}`,
-              ...(d.isToday ? { boxShadow: `inset 0 0 0 1px ${NAVY}` } : null),
+              border: `1px solid ${d.isToday ? TODAY_INK : d.isGame ? ORANGE : C.cardBd}`,
+              ...(d.isToday ? { boxShadow: `inset 0 0 0 1px ${TODAY_INK}` } : null),
               borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`,
               padding: '10px 10px 12px',
               background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)`
@@ -5006,7 +5059,7 @@ function MicrocycleView({ fx, today }) {
                   this one first on a wrong reading of the gate output. */}
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, minWidth: 0 }}>{dow(d.iso)} {monDay(d.iso)}</span>
-                {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: NAVY }}>{tr('TODAY')}</span>}
+                {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: TODAY_INK }}>{tr('TODAY')}</span>}
               </div>
               <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{tr(d.plan.label)}</span>
               <Segmented text={tr(d.plan.emphasis)} style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }} />
@@ -5273,17 +5326,14 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   const scWord = he ? 'כוח' : tr('S&C');
   const scLabel = (d, f) => { const sc = scOf(d, f); return sc ? <>{scWord} ✓ <MinTok n={sc.min} /></> : `+ ${scWord}`; };
   const scTitle = (d, f) => tr(scOf(d, f) ? 'S&C logged - open it to correct' : 'Log S&C Session');
-  const scInk = (d, f) => (scOf(d, f) || d < today ? { color: C.tm, border: `1px solid ${C.cardBd}` } : { color: ORANGE, border: `1px solid ${ORANGE}` });
-  // THE S&C CONTROL (29.9 #458, his phone: "The sc button is too vertically big
-  // and should all be the same horizontal length no matter the text"). The
-  // button keeps its finger-sized tap area (--btn-h-in, 32 on a touch screen)
-  // but draws nothing; its FACE is a 22px tag of ONE width - "+ S&C" and
-  // "S&C ✓ 10′" the same box - sitting inside the 36px chip with air around it.
-  const scBtn = (d, f, full) => (
-    <button onClick={() => onAttachSc(d, f.start || '')} className="bhbc-ghost-btn bhbc-sc-btn" title={scTitle(d, f)}
-      style={{ marginInlineStart: full ? 0 : 'auto', width: full ? '100%' : 'var(--sc-w)', flexShrink: 0, background: 'transparent', border: 'none', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-      <span className="bhbc-sc-face" style={{ ...scInk(d, f), width: '100%', height: 22, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: 'var(--c-sf)' }}>{scLabel(d, f)}</span>
-    </button>
+  // logged or gone by = quiet; still to log today or ahead = the orange action
+  const scInk = (d, f) => (scOf(d, f) || d < today ? C.tm : ORANGE);
+  // THE S&C ACTION (29.9 #458: "should all be the same horizontal length no
+  // matter the text"): one width (--sc-w) whatever it says. Since #509 it is a
+  // SEGMENT of the chip (segBtn) - the whole chip height, no face of its own.
+  const scBtn = (d, f) => (
+    <button type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)}
+      style={segBtn(scInk(d, f), { width: 'var(--sc-w)', padding: 0 })}>{scLabel(d, f)}</button>
   );
   const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
   const days = useMemo(() => {
@@ -5365,13 +5415,13 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
           const isToday = d === today;
           return (
             <div key={d} data-week-date={d} data-week-n={list.length} className={horizontalWeek ? undefined : 'bhbc-week-row'} style={horizontalWeek
-              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? NAVY : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
+              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? TODAY_INK : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
               // 12px sides on EVERY row, so today's tint has an inset and the
               // day label never sits on its edge (26.9: "sat, sep 26 is too close
               // to the dark grey edge"); all rows share it, so nothing shifts.
               : { display: 'flex', gap: 12, alignItems: 'center', padding: '6px 12px', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
               <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0 }}>
-                <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? NAVY : C.tx }}>{dow(d)}</div>
+                <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? TODAY_INK : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -5383,37 +5433,24 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                   if (isEditing) return null;
                   const off = isCancelled(f);
                   const court = ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
-                  // CANCEL / RESTORE: a quiet bordered action; a cancel asks first
-                  // (the session drops out of every count), a restore does not.
+                  // CANCEL / RESTORE: a quiet segment; a cancel asks first (the
+                  // session drops out of every count), a restore does not.
                   const cancelBtn = onCancel && court ? (
-                    <button type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className={'bhbc-ghost-btn' + (off || horizontalWeek ? '' : ' bhbc-cancel-btn')} aria-label={tr(off ? 'Restore this session' : 'Cancel this session')}
+                    <button key="cx" type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className="bhbc-seg bhbc-cancel-btn" aria-label={tr(off ? 'Restore this session' : 'Cancel this session')}
                       onClick={async (e) => { const el = e.currentTarget; if (off) { onCancel(f, false); return; } if (await confirmToast(he ? `לבטל את האימון של ${f.start || ''}? הוא יישאר בלוח עם קו עליו ולא ייספר בשום מקום.` : `Cancel the ${f.start || ''} ${tr(FX_LABEL[f.type] || 'session').toLowerCase()}? It stays on the calendar, struck through, and counts nowhere.`, { okLabel: he ? 'ביטול האימון' : 'Cancel session', cancelLabel: he ? 'חזרה' : 'Back' })) onCancel(f, true); try { el.blur(); document.activeElement?.blur?.(); } catch { /* gone */ } }}
                       title={tr(off ? 'Restore this session' : 'Cancel this session')}
-                      style={{ marginInlineStart: horizontalWeek ? 0 : (off ? 'auto' : 0), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, background: 'transparent', height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', width: horizontalWeek ? '100%' : undefined, boxSizing: 'border-box', padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{off || horizontalWeek ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
+                      style={segBtn(C.tm, { width: horizontalWeek ? undefined : 'var(--cx-w)', flex: horizontalWeek ? '1 1 0' : undefined, padding: 0 })}>{off || horizontalWeek ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
                   ) : null;
+                  const sc = !off && onAttachSc && court
+                    ? (horizontalWeek ? <button key="sc" type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)} style={segBtn(scInk(d, f), { flex: '1 1 0', padding: 0, borderInlineStart: 'none' })}>{scLabel(d, f)}</button> : scBtn(d, f))
+                    : null;
+                  const edits = onUpsert ? [
+                    <button key="ed" type="button" onClick={() => startEdit(d, f)} className="bhbc-seg" title={tr('Edit session')} aria-label={tr('Edit session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: horizontalWeek ? '1 1 0' : undefined })}><PencilGlyph /></button>,
+                    <button key="rm" type="button" onClick={() => onRemove(f)} className="bhbc-seg" title={tr('Remove session')} aria-label={tr('Remove session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: horizontalWeek ? '1 1 0' : undefined })}><CrossGlyph /></button>,
+                  ] : [];
+                  const acts = [sc, cancelBtn, ...edits].filter(Boolean);
                   return (
-                    <React.Fragment key={i}>
-                    <div className={off ? 'bhbc-chip fx-cancelled' : 'bhbc-chip'} data-fx-cancelled={off ? '' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'nowrap', minWidth: 0, border: `1px ${off ? 'dashed' : 'solid'} ${off ? C.cardBd : (FX_COLOR[f.type] || NAVY)}`, background: 'var(--c-sf)', height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 9px' }}>
-                      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }} className="bhbc-chip-meta">{f.start}</span>
-                      <span className={'bhbc-chip-meta bhbc-kind-' + String(f.type || '').toLowerCase()} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
-                      {/* the number and its unit never part; a phone gets 120′ where "120 MIN" would break (26.9) */}
-                      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{f.minutes ? <>{f.minutes}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></> : ''}</span>
-                      {off && <span className="fx-cancelled-tag" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', textDecoration: 'none' }}>{tr('Cancelled')}</span>}
-                      {!horizontalWeek && off && cancelBtn}
-                      {!horizontalWeek && !off && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
-                        scBtn(d, f, false)
-                      )}
-                      {!horizontalWeek && !off && cancelBtn}
-                      {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
-                        <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title={tr('Edit session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><PencilGlyph /></button>
-                        <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title={tr('Remove session')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', width: 36, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><CrossGlyph /></button>
-                      </span>}
-                    </div>
-                      {horizontalWeek && !off && onAttachSc && ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase()) && (
-                        scBtn(d, f, true)
-                      )}
-                      {horizontalWeek && cancelBtn}
-                    </React.Fragment>
+                    <EventChip key={i} f={f} stacked={horizontalWeek} actions={acts.length ? acts : null} />
                   );
                 })}
                 {editing && editing.date === d && (
@@ -5478,9 +5515,11 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
     return <Card padding={14} leftStripe={'#DE4E3B'} header={secTitle('Schedule')}><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: '#DE4E3B' }}>{tr('Schedule data is not connected — report this.')}</div></Card>;
   }
   const toggle = (
-    <div style={{ display: 'inline-flex', border: '1px solid rgba(255,255,255,0.32)' }}>
+    // ONE nested height (#509): the group is the strip's nested control height
+    // with its border inside it - it measured 28 around 26px buttons.
+    <div data-strip-toggle="" style={{ display: 'inline-flex', alignItems: 'stretch', height: 'var(--btn-h-in)', boxSizing: 'border-box', border: '1px solid rgba(255,255,255,0.32)' }}>
       {[['calendar', 'Month'], ['week', 'Week'], ['list', 'List']].map(([k, l]) => (
-        <button key={k} onClick={() => setMode(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: mode === k ? NAVY : '#fff', background: mode === k ? '#fff' : 'transparent', border: 'none', padding: '5px 12px', cursor: 'pointer' }}>{tr(l)}</button>
+        <button key={k} type="button" data-strip-toggle="" aria-pressed={mode === k} onClick={() => setMode(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, lineHeight: 1, letterSpacing: '0.06em', textTransform: 'uppercase', color: mode === k ? NAVY : '#fff', background: mode === k ? '#fff' : 'transparent', border: 'none', height: 'auto', minHeight: 0, padding: '0 12px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>{tr(l)}</button>
       ))}
     </div>
   );
@@ -5521,24 +5560,26 @@ function ScheduleList({ fx, today }) {
         const isToday = d.date === today;
         const gd = fx.nextGame ? dayDiff(d.date, fx.nextGame.date) : null;
         // ONE VOCABULARY (#305 N-E4): the microcycle and Today's focus say MD-3;
-        // this list said GD-3 for the same day.
+        // this list said GD-3 for the same day. Words, not boxes (#509): the
+        // 16px bordered MD tag was the smallest box in the zone.
         const gdLabel = gd == null ? null : gd === 0 ? tr('GAME DAY') : tr(mdPlan(gd).label);
         return (
-          <div key={d.date} style={{ display: 'flex', gap: 14, padding: '9px 2px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'flex-start' }}>
+          // TODAY IS THE ROW'S TINT, as on the planner - "FRI · TODAY" broke the
+          // day column onto two lines (#509).
+          <div key={d.date} data-list-date={d.date} style={{ display: 'flex', gap: 14, padding: '8px 10px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
             <div style={{ width: 84, flexShrink: 0 }}>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, color: isToday ? NAVY : C.tx }}>{dow(d.date)}{isToday ? ` · ${tr('today')}` : ''}</div>
-              <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 2 }}>{monDay(d.date)}</div>
-              {gdLabel && <div style={{ marginTop: 6, display: 'inline-block', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: gd === 0 ? '#fff' : C.tm, background: gd === 0 ? ORANGE : 'transparent', border: gd === 0 ? 'none' : `1px solid ${C.cardBd}`, padding: '2px 6px' }}>{gdLabel}</div>}
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 12, color: isToday ? TODAY_INK : C.tx }}>{dow(d.date)}</div>
+              <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{monDay(d.date)}</div>
+              {gdLabel && <div style={{ marginTop: 3, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: gd === 0 ? ORANGE_DEEP : C.tm, whiteSpace: 'nowrap' }}>{gdLabel}</div>}
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+            {/* chips span the row, one under the other - as on the planner and
+                the phone week; a game's venue is the line under its chip */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 0 }}>
               {d.items.map((f, i) => (
-                <span key={i} className={isCancelled(f) ? 'fx-cancelled' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
-                  <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
-                  {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}><MinTok n={f.minutes} /></span>}
-                  {f.optional && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '1px 5px' }}>{tr('optional')}</span>}
-                  {fxWhere(f) && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }} dir="ltr">· {fxWhere(f)}</span>}
-                </span>
+                <React.Fragment key={i}>
+                  <EventChip f={f} />
+                  {fxWhere(f) && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, unicodeBidi: 'isolate', paddingInlineStart: 10 }}>{fxWhere(f)}</span>}
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -5548,6 +5589,15 @@ function ScheduleList({ fx, today }) {
   );
 }
 
+// THE WEEK, TWO WAYS (#509, Ohad 2.10: "the tables in schedule ... are very
+// bad"). It was seven bordered columns stretched to the month view's height -
+// at 1440, 580px columns holding one 39px chip each; on a phone a sideways
+// scroller whose chips spilled their own words.
+//   desktop: a real week - hours down the side, each session a block at its
+//            time, as long as it lasts. The height it is given is the day.
+//   phone:   the seven days as rows, each holding its session chips.
+// Both are rendered; themes.css shows the one that fits (.bhbc-wk-*).
+const hhmmToMin = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
 function ScheduleWeek({ fixtures, today }) {
   const tr = useT();
   // Anchor to the week that holds the next session, so it's never blank pre-season.
@@ -5557,29 +5607,93 @@ function ScheduleWeek({ fixtures, today }) {
   const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const byDate = {};
   (fixtures || []).forEach((f) => { (byDate[f.date] = byDate[f.date] || []).push(f); });
-  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d; });
+  // a slot with no start time must not take the card down (#305 N-F2)
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+    const iso = isoOf(d);
+    return { d, iso, items: (byDate[iso] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || ''))) };
+  });
+  // the hours shown: 08-22 at least, widened to any session outside them
+  const all = days.flatMap((x) => x.items);
+  const st = all.map((f) => hhmmToMin(f.start)).filter((v) => v != null);
+  const en = all.map((f) => { const v = hhmmToMin(f.start); return v == null ? null : v + (Number(f.minutes) || 60); }).filter((v) => v != null);
+  const h0 = Math.min(8, ...st.map((v) => Math.floor(v / 60)));
+  const h1 = Math.min(24, Math.max(22, ...en.map((v) => Math.ceil(v / 60))));
+  const span = (h1 - h0) * 60;
+  const hours = Array.from({ length: h1 - h0 + 1 }, (_, i) => h0 + i);
+  const pctOf = (min) => Math.max(0, Math.min(100, ((min - h0 * 60) / span) * 100));
+  // side by side only where two sessions overlap in time
+  const placed = (items) => {
+    const ends = [];
+    const xs = items.map((f) => {
+      const s0 = hhmmToMin(f.start) ?? h0 * 60;
+      const e0 = s0 + (Number(f.minutes) || 60);
+      let L = ends.findIndex((e) => e <= s0);
+      if (L < 0) { L = ends.length; ends.push(e0); } else ends[L] = e0;
+      return { f, s0, e0, L };
+    });
+    return xs.map((x) => ({ ...x, n: Math.max(1, ...xs.filter((y) => y.s0 < x.e0 && x.s0 < y.e0).map((y) => y.L + 1)) }));
+  };
+  const GUT = 44;
   return (
-    <div style={{ overflowX: 'auto', height: '100%' }}>
-      <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6, height: '100%' }}>
-        {days.map((d) => {
-          const di = isoOf(d); const isToday = di === today;
-          const items = (byDate[di] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));   // a slot with no start time must not take the card down (#305 N-F2)
-          const hasGame = items.some((f) => f.type === 'game');
-          return (
-            <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 6%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center', position: 'relative' }}>
-                {hasGame && <div style={{ position: 'absolute', top: 5, insetInlineEnd: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--c-stripTx)', background: ORANGE, padding: '1px 4px' }}>{tr('GAME')}</div>}
-                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? NAVY : C.tm }}>{dowFor(d, DOW[d.getDay()])}</div>
-                <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? NAVY : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="bhbc-wk-axis" style={{ flex: 1, minHeight: 480, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `${GUT}px repeat(7, minmax(0, 1fr))`, borderBottom: `1px solid ${C.cardBd}` }}>
+          <span />
+          {days.map((x) => {
+            const isToday = x.iso === today;
+            const hasGame = x.items.some((f) => f.type === 'game' && !isCancelled(f));
+            return (
+              <div key={x.iso} style={{ textAlign: 'center', padding: '6px 4px', borderTop: `2px solid ${isToday ? TODAY_INK : hasGame ? ORANGE : 'transparent'}` }}>
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? TODAY_INK : C.tm }}>{dowFor(x.d, DOW[x.d.getDay()])}</div>
+                <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? TODAY_INK : C.tx, fontVariantNumeric: 'tabular-nums' }}>{x.d.getDate()}</div>
               </div>
-              <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {items.map((f, i) => (
-                  <div key={i} className={isCancelled(f) ? 'fx-cancelled' : undefined} style={{ border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
-                    <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, textTransform: 'uppercase' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</div>
-                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start}{Number(f.minutes) > 0 ? <>{' · '}<MinTok n={f.minutes} /></> : null}</div>
-                    {fxWhere(f) && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }} dir="ltr">{fxWhere(f)}</div>}
+            );
+          })}
+        </div>
+        <div style={{ flex: 1, position: 'relative', display: 'grid', gridTemplateColumns: `${GUT}px repeat(7, minmax(0, 1fr))` }}>
+          {/* the hour lines run under every day; each label sits on its line */}
+          {hours.map((h) => (
+            <div key={h} aria-hidden="true" style={{ position: 'absolute', insetInline: 0, top: `${pctOf(h * 60)}%`, height: 0, borderTop: `1px solid ${h === h0 || h === h1 ? 'transparent' : 'color-mix(in srgb, var(--c-cardBd) 55%, transparent)'}`, zIndex: 0 }}>
+              {h > h0 && h < h1 && <span style={{ position: 'absolute', insetInlineStart: 0, width: GUT - 8, top: -6, textAlign: 'end', fontFamily: FN, fontSize: 9, fontWeight: 600, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: '12px' }}>{String(h).padStart(2, '0')}:00</span>}
+            </div>
+          ))}
+          <span />
+          {days.map((x) => (
+            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ position: 'relative', borderInlineStart: `1px solid ${C.cardBd}`, background: x.iso === today ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+              {placed(x.items).map(({ f, s0, e0, L, n }, i) => {
+                const col = FX_COLOR[f.type] || NAVY;
+                const where = fxWhere(f);
+                return (
+                  <div key={i} className={'bhbc-wk-ev' + (isCancelled(f) ? ' fx-cancelled' : '')}
+                    title={[f.start, fxLabelFor(f.type, FX_LABEL[f.type] || 'Session'), Number(f.minutes) > 0 ? `${f.minutes} ${tr('min')}` : '', where].filter(Boolean).join(' · ')}
+                    style={{ position: 'absolute', zIndex: 1, top: `${pctOf(s0)}%`, height: `${pctOf(e0) - pctOf(s0)}%`, insetInlineStart: `calc(${(L / n) * 100}% + 3px)`, width: `calc(${100 / n}% - 6px)`, boxSizing: 'border-box', overflow: 'hidden', padding: '4px 6px', background: `color-mix(in srgb, ${col} 13%, var(--c-sf))`, borderInlineStart: `3px solid ${col}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{ display: 'flex', gap: 5, alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+                      <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: col, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
+                    </span>
+                    {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 9.5, color: C.td, whiteSpace: 'nowrap' }}><MinTok n={f.minutes} /></span>}
+                    {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{where}</span>}
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bhbc-wk-agenda" style={{ flex: 1, flexDirection: 'column' }}>
+        {days.map((x) => {
+          const isToday = x.iso === today;
+          return (
+            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ flex: '1 0 auto', display: 'flex', gap: 10, alignItems: 'center', padding: '6px 10px', minHeight: 48, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+              <div style={{ width: 52, flexShrink: 0 }}>
+                <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? TODAY_INK : C.tx }}>{dowFor(x.d, DOW[x.d.getDay()])}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(x.iso)}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {x.items.length
+                  ? x.items.map((f, i) => <EventChip key={i} f={f} />)
+                  : <span style={{ fontFamily: FB, fontSize: 12, color: C.td, fontStyle: 'italic' }}>{tr('No sessions')}</span>}
               </div>
             </div>
           );
@@ -5614,7 +5728,7 @@ function ScheduleMonth({ fixtures, today }) {
     // light blue on the dark page), the days already gone dimmed.
     return (
       <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 2px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? TODAY_INK : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
           <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', flexWrap: 'wrap' /* the venue takes its own line (flexBasis 100%) - without wrap it squeezed the kind to a 19px stub (AUDIT-470) */, alignItems: 'center', gap: 5, rowGap: 1, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
@@ -5624,7 +5738,7 @@ function ScheduleMonth({ fixtures, today }) {
             {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="ltr">{fxWhere(f)}</span> : null}
           </div>
         ))}
-        {items.length > 3 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>{tr('+{n} more').replace('{n}', items.length - 3)}</div>}
+        {items.length > 3 && <div className="bhbc-cal-more" style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>{tr('+{n} more').replace('{n}', items.length - 3)}</div>}
       </div>
     );
   };
@@ -5910,7 +6024,7 @@ function GameRow({ date, title, detail, end, onClick, dataKey }) {
 function GameSection({ label, count, children, first = false }) {
   return (
     <div style={{ marginTop: first ? 0 : 18 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingBottom: 6, borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tx }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 36, boxSizing: 'border-box' /* a 19-21px header with its word 3px from the top (OCD #494): a 36px row, ink centred */, borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tx }}>
         {label}{count != null ? <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }}>· {count}</span> : null}
       </div>
       <div className="bhbc-list">{children}</div>
@@ -6342,7 +6456,9 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
   const nowD = new Date();
   const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   const games = React.useMemo(() => (fixtures || [])
-    .filter((f) => f && (f.type === 'game' || f.type === 'scrimmage') && f.date && (f.date < today || (f.date === today && (!f.start || f.start <= nowHHMM))))
+    // a CANCELLED game has no minutes to add either (1.10 code review: a cancelled scrimmage
+    // sat here as ADD MINUTES forever and its "N to add" never cleared)
+    .filter((f) => f && !isCancelled(f) && (f.type === 'game' || f.type === 'scrimmage') && f.date && (f.date < today || (f.date === today && (!f.start || f.start <= nowHHMM))))
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 8), [fixtures, today, nowHHMM]);
   if (!games.length) return null;
@@ -6642,13 +6758,17 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
+                  style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 4, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                  <div style={{ flex: 1 }} />
-                  {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', flexShrink: 0 }}>{tr('Cleared')}</span>
+                  {/* date + CLEARED are one unit pinned to the end: on a 360 phone the
+                      longest row ran 9px past the screen (box-fit, 1.10) - now the unit
+                      drops to a second line, still at the end, instead */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginInlineStart: 'auto', flexShrink: 0 }}>
+                    {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
+                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C' }}>{tr('Cleared')}</span>
+                  </span>
                 </div>
               ))}
             </div>

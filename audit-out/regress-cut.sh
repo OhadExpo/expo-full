@@ -54,4 +54,13 @@ run node scripts/verify-partner-program-edit.mjs
 run node scripts/verify-partner-media.mjs
 # the sandbox changed supabase.js: the athlete journey must still run clean (lock trap)
 run node scripts/verify-athlete-journey.mjs
+# 1.10 triple audit: an INDEPENDENT money scan of every sbx_ text/json column + one multiplier per athlete
+run node scripts/verify-partner-money-leaks.mjs
+run node scripts/verify-partner-links.mjs
+run node scripts/verify-partner-cross-tab.mjs
+run node scripts/verify-partner-realtime.mjs
+# #499: no BOX past the screen or its card - every page AND tab, 360/390/414, en+he, app + demo + marketing
+run node scripts/verify-box-fit.mjs
+# #479: an athlete writes only his own presence row
+run node scripts/verify-presence-own-row.mjs
 echo "=== DONE ===" >> "$LOG"

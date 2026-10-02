@@ -306,7 +306,7 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
           {benefits.map((b, i) => (
             <div key={i} style={{
               fontFamily: FN, fontSize: 11, color: C.tx, lineHeight: 1.6,   // the row's own height, centred (a normal line put Hebrew 1px low; #467)
-              letterSpacing: '0.04em', padding: '8px 0',
+              letterSpacing: '0.04em', padding: '6px 0', minHeight: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center',   // a row is never under 36 (OCD #494: 34.6)
               borderTop: i === 0 ? `1px solid ${C.ac}26` : 'none',
               borderBottom: `1px solid ${C.ac}26`,
               fontWeight: 600,

@@ -895,6 +895,12 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
   // full brand cyan; dark mode strip uses the same brand cyan via the
   // --c-stripBg token override below.
   const hasStrip = !!header;
+  // A PLAIN-STRING HEADER GETS THE HOUSE TITLE (OCD #494): passed bare, it inherited the body's
+  // 16px / 400 / mixed case - four pages (Matching, Cleanup, Classify, Waitlist) ran their own spec
+  const headerNode = typeof header === 'string'
+    // display:block - inline in the strip's block it rode the inherited 16px line's baseline, 1px low (box-centring)
+    ? <span style={{ display: 'block', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', overflowWrap: 'break-word', minWidth: 0 }}>{header}</span>
+    : header;
   const padNum = typeof padding === 'number' ? padding : 20;
   // the title never squeezed by the header controls (29.9 #452) - see useStripFit
   const cardStripRef = React.useRef(null), cardTitleRef = React.useRef(null), cardRightRef = React.useRef(null);
@@ -972,17 +978,17 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
             <div ref={cardStripRef} data-strip-stacked={cardStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'nowrap' /* one row, always (26.9) */ }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
-              <div ref={cardTitleRef} style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
+              <div ref={cardTitleRef} style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{headerNode}</div>
               {/* the controls leave the strip when the title would not fit beside them (#452) */}
               {!cardStacked && headerRight && <div ref={cardRightRef} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>}
               {headerFixed && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', color: 'var(--c-stripTx)', marginInlineStart: headerRight && !cardStacked ? -4 : 0 /* 8px from the controls, as inside their cluster before */ }}>{headerFixed}</div>}
             </div>
-          ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
+          ) : <div style={{ color: 'var(--c-stripTx)' }}>{headerNode}</div>}
         </RefinedHeaderStrip>
       )}
       {!hasStrip && header && (
         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 0 }}>{header}</div>
+          <div style={{ minWidth: 0 }}>{headerNode}</div>
           {headerRight && <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>{headerRight}</div>}
         </div>
       )}

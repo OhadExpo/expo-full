@@ -53,6 +53,10 @@ function mergeOwed(rows, requests, overdue, trainees) {
     if (!byKey.has(key)) byKey.set(key, { key, name, traineeId: tid || null, sheet: null, requests: [], overdue: null });
     return byKey.get(key);
   };
+  // every client the SHEET covers, owing or not: a sheet row with nothing owed
+  // is the sheet saying "paid up", and it must silence the app's overdue flag
+  // (1.10 code review: a paid-up client read "OVERDUE 243d" / "NEVER PAID")
+  const coveredBySheet = new Set(rows.map((r) => r.trainee_id).filter(Boolean));
   for (const r of rows) {
     const onlineDue = r.section === 'online' && r.prices && r.prices.month && (daysSince(r.last_payment) ?? 0) > 31;
     if (!(r.amount > 0) && !onlineDue) continue;
@@ -60,11 +64,14 @@ function mergeOwed(rows, requests, overdue, trainees) {
   }
   for (const q of requests) get(q.trainee_id || `req:${q.id}`, nameOf(q.trainee_id) || q.reference || '—', q.trainee_id).requests.push(q);
   for (const o of overdue || []) {
+    if (o.id && coveredBySheet.has(o.id) && !byKey.has(o.id)) continue;
     const e = byKey.get(o.id) || (!o.id ? null : get(o.id, (he ? (o.nameLocal || o.name) : (nameOf(o.id) || o.name || o.nameLocal)), o.id));   // the name in the UI's language, as the other two sources (AUDIT-470)
     // A client the SHEET covers is judged by the sheet's own last payment: the
     // app's payment list lags it (it read "overdue 243 days" for a client the
     // sheet shows paid 23 days ago).
-    if (e && !e.sheet) e.overdue = { days: o.daysOverdue, never: o.neverPaid };
+    // ...and so is one that ALSO has a pending request (it already has a row, from the
+    // request, with no sheet on it) - the sheet still says paid up (1.10 audit)
+    if (e && !e.sheet && !coveredBySheet.has(o.id)) e.overdue = { days: o.daysOverdue, never: o.neverPaid };
   }
   const list = [...byKey.values()].map((e) => ({
     ...e,
@@ -157,7 +164,7 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
   const syncLabel = ageMin == null ? tt('not synced yet') : ageMin < 2 ? tt('synced just now') : ageMin < 60 ? `${tt('synced')} ${ageMin}${tt('m ago')}` : `${tt('synced')} ${Math.round(ageMin / 60)}${tt('h ago')}`;
 
   return (
-    <CollapsibleSection title={tt('Owed')} storageKey={expanded ? 'billing-owed' : 'dash-owed'} count={loaded ? list.length : undefined} style={{ marginBottom: 20 }}
+    <CollapsibleSection title={tt('Owed')} storageKey={expanded ? 'billing-owed' : 'dash-owed'} count={loaded ? list.length : undefined} style={{ marginBottom: expanded ? 0 : 20 }} /* Billing stacks its cards with a 14px gap - a margin on top read 34/14/14 (OCD #494) */
       right={<span data-owed-total style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', whiteSpace: 'nowrap' }}><bdi dir="ltr">{ils(total)}</bdi></span>}>
       <div data-owed-card>
         {error && <div style={{ fontFamily: FB, fontSize: 12, color: C.rd, marginBottom: 8 }}>{tt('Could not read the owed list')}: {error}</div>}
