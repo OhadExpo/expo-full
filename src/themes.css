@@ -1682,7 +1682,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 620px) {
   .bhbc-week-row { gap: 10px !important; padding-inline: 10px !important; }
   .bhbc-week-row > div:first-child { width: 52px !important; }
-  .bhbc-chip { gap: 7px !important; padding-inline: 8px !important; }
+  .bhbc-chip-info { gap: 7px !important; padding-inline: 8px !important; }
   .bhbc-chip .bhbc-chip-meta { letter-spacing: 0.03em !important; }
 }
 
@@ -1697,7 +1697,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (pointer: coarse) { :root { --btn-h-in: 32px; } }
 /* the program card's strip header (.prog-striphdr) is a title strip too - its
    ANALYSIS button stood at 36 and made the strip 53px, not 41 (29.9 #444) */
-.title-strip button:not([data-strip-toggle]), .bhbc-chip button, .prog-striphdr button {
+.title-strip button:not([data-strip-toggle]), .bhbc-chip button:not(.bhbc-seg), .prog-striphdr button {
   min-height: var(--btn-h-in) !important; height: var(--btn-h-in) !important;
   padding-block: 0 !important; box-sizing: border-box;
 }
@@ -1711,7 +1711,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 
 /* week planner COLUMNS mode (27.9, 00:07 clip: "120 MIN" spilled out of every
    chip): a column holds time, kind and 120' - the S&C button sits under it */
-.bhbc-week-grid .bhbc-chip { gap: 6px !important; padding-inline: 7px !important; }
+.bhbc-week-grid .bhbc-chip-info { gap: 6px !important; padding-inline: 7px !important; }
 .bhbc-week-grid .bhbc-chip .bhbc-chip-meta { letter-spacing: 0.02em !important; }
 .bhbc-week-grid .bhbc-chip .min-unit { display: none; }
 .bhbc-week-grid .bhbc-chip .min-tick { display: inline; }
@@ -1925,17 +1925,21 @@ select.avail-select:dir(rtl) {
   .bhbc-zone .bhbc-rh-row > button, .bhbc-zone .bhbc-rh-row > span:last-child:not([data-status]) { flex: 1 1 calc(50% - 7px) !important; min-width: 0 !important; }
 }
 
-/* Lifts grid on a phone (29.9 #400): only the NAME stays pinned - pinning the
-   last-lift column too filled the whole 368px scroller and left no day visible.
-   The pinned end cells are the grid's only inset-inline-end styles. */
+/* THE MONTH GRIDS ON A PHONE (Lifts + Practice Attendance, 2.10 #509). Both
+   edges stay pinned and the days scroll between them, opened on today: the
+   name (initial + surname when the full one does not fit - PlayerName) and the
+   one number that matters, the age of the last lift / the attendance count.
+   (29.9 #400 unpinned the end because 186 + 150 left no day visible; at
+   146 + 60 a 360 phone keeps four days in view, the name at 11px.) The date is the cell's
+   tooltip; "yesterday" is "1d" here. */
+.lifts-age-short { display: none; }
 @media (max-width: 620px) {
-  .bhbc-lifts-scroll [style*="inset-inline-end"] { position: static !important; }
-  /* phone columns (1.10 #499): 186 + 150 of fixed columns did not fit a 368px
-     card even with ONE day in the month, so LAST LIFT opened cut in half. The
-     name narrows, the last-lift column keeps only "3D" / "YESTERDAY" (the date
-     is its tooltip) - month-start fits, later days scroll with the name pinned. */
-  .bhbc-lifts-scroll { --lifts-name-w: 180px; --lifts-last-w: 96px; }
+  .bhbc-lifts-scroll { --lifts-name-w: 146px; --lifts-last-w: 60px; }
+  .bhbc-lifts-scroll .lifts-name { font-size: 11px !important; }
+  .bhbc-lifts-scroll [data-end-head] { font-size: 9px !important; letter-spacing: 0.02em !important; }
   .bhbc-lifts-scroll .lifts-last-date { display: none; }
+  .bhbc-lifts-scroll .lifts-age-long { display: none; }
+  .bhbc-lifts-scroll .lifts-age-short { display: inline; }
 }
 
 /* A cancelled session (BHBC, 29.9 #398): still on the calendar, struck through
@@ -2116,31 +2120,35 @@ select.avail-select:dir(rtl) {
   table.dash-roster .dash-opt { display: none !important; }
 }
 
-/* THE WEEK PLANNER'S S&C CONTROL (29.9 #458): one width whatever it says - the
-   widest label ("S&C ✓ 10′", Hebrew "כוח ✓ 10′") plus air - and a 22px face
-   inside a tap area of the nested height. The face gets the hover tint, not the
-   invisible button around it. */
-:root { --sc-w: 96px; }
+/* SCHEDULE > WEEK (#509): an hour-axis week where there is room, the seven
+   days as rows on a phone (BhbcView ScheduleWeek renders both). */
+.bhbc-wk-agenda { display: none; }
+@media (max-width: 620px) {
+  .bhbc-wk-axis { display: none !important; }
+  .bhbc-wk-agenda { display: flex !important; }
+}
+
+/* THE WEEK PLANNER'S ACTIONS ARE SEGMENTS OF THE CHIP (2.10 #509, replacing
+   the 29.9 #458 22px faces): S&C one width whatever it says (--sc-w: the widest
+   label, "S&C ✓ 10′" / Hebrew "כוח ✓ 10′", plus air), CANCEL one width
+   (--cx-w), each the chip's full height behind one hairline. A segment tints on
+   hover; nothing inside it draws a box. */
+:root { --sc-w: 96px; --cx-w: 76px; }
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
-.bhbc-sc-btn:hover .bhbc-sc-face { background: color-mix(in srgb, currentColor 8%, var(--c-sf)) !important; }
-.bhbc-sc-btn:focus-visible { outline: none; }
-.bhbc-sc-btn:focus-visible .bhbc-sc-face { outline: 2px solid var(--c-ac); outline-offset: 1px; }
+.bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
+.bhbc-seg:focus-visible { outline: 2px solid var(--c-ac); outline-offset: -2px; }
+.bhbc-chip-acts > .bhbc-seg:first-child { border-inline-start: none !important; }
 /* ...and on a phone the chip keeps ONE row with its actions in it: a practice
    chip's kind word steps aside (the blue time already says practice - games and
-   the rest keep theirs), and CANCEL is a 28px ⊘ square (the confirm still asks).
-   At 390 time + PRACTICE + 120' + S&C + CANCEL wanted ~330px of a 250px chip. */
+   the rest keep theirs), and CANCEL is a ⊘ segment the width of a control (the
+   confirm still asks). At 390 time + PRACTICE + 120' + S&C + CANCEL wanted
+   ~330px of a 250px chip. */
 .bhbc-cancel-btn .cx-icon { display: none; }
-/* CANCEL draws the same 22px face as the S&C tag beside it, at every width */
-.bhbc-chip .bhbc-cancel-btn { border-color: transparent !important; background: transparent !important; padding: 0 !important; }
-.bhbc-chip .bhbc-cancel-btn:hover { border-color: transparent !important; }
-.bhbc-cancel-btn .cx-full { display: inline-flex; align-items: center; height: 22px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--c-cardBd); background: var(--c-sf); }
-.bhbc-chip .bhbc-cancel-btn:hover .cx-full { border-color: currentColor; }
 @media (max-width: 480px) {
   .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none; }
-  .bhbc-cancel-btn { width: 32px !important; min-width: 32px !important; padding: 0 !important; /* a finger's 32px tap area around the 26px face (AUDIT-470) */ font-size: 13px !important; letter-spacing: 0 !important; }
-  .bhbc-cancel-btn .cx-full { display: none; }
-  .bhbc-cancel-btn .cx-icon { display: inline-flex; width: 26px; height: 22px; box-sizing: border-box; align-items: center; justify-content: center; border: 1px solid var(--c-cardBd); background: var(--c-sf); font-size: 12px; line-height: 1; }
-  .bhbc-chip .bhbc-cancel-btn:hover .cx-icon { border-color: currentColor; }
+  .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn { width: var(--btn-h) !important; font-size: 13px !important; letter-spacing: 0 !important; }
+  .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn .cx-full { display: none; }
+  .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn .cx-icon { display: inline; }
 }
 
 /* KPI NUMBERS SIZED AGAINST THEIR CARD (App.jsx carries the same rule inline;
