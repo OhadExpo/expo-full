@@ -23,8 +23,10 @@
 
 BEGIN;
 
-CREATE OR REPLACE FUNCTION public.touch_updated_at() RETURNS trigger
-LANGUAGE plpgsql AS $$
+-- a store-specific name (a generic touch_updated_at() could overwrite one that
+-- already exists for another table) and a pinned search_path (Supabase lint)
+CREATE OR REPLACE FUNCTION public.store_touch_updated_at_fn() RETURNS trigger
+LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   NEW.updated_at := now();
   RETURN NEW;
@@ -32,13 +34,14 @@ END $$;
 
 DROP TRIGGER IF EXISTS store_touch_updated_at ON public.store;
 CREATE TRIGGER store_touch_updated_at BEFORE INSERT OR UPDATE ON public.store
-  FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.store_touch_updated_at_fn();
 
 DO $$
 BEGIN
-  IF to_regclass('public.sbx_store') IS NOT NULL THEN
+  -- only a real TABLE takes a row trigger (a view would abort the transaction)
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'sbx_store' AND c.relkind = 'r') THEN
     EXECUTE 'DROP TRIGGER IF EXISTS store_touch_updated_at ON public.sbx_store';
-    EXECUTE 'CREATE TRIGGER store_touch_updated_at BEFORE INSERT OR UPDATE ON public.sbx_store FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at()';
+    EXECUTE 'CREATE TRIGGER store_touch_updated_at BEFORE INSERT OR UPDATE ON public.sbx_store FOR EACH ROW EXECUTE FUNCTION public.store_touch_updated_at_fn()';
   END IF;
 END $$;
 

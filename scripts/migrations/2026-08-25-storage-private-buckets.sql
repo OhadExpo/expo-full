@@ -33,12 +33,11 @@
 --
 -- ROLLBACK is instant and total: set public = true again.
 
--- 1) the flip
-UPDATE storage.buckets
-   SET public = false
- WHERE id IN ('form-videos', 'meal-photos', 'coach-voice', 'coaching-contracts');
+-- (2.10: ONE transaction, the read policies FIRST and the flip LAST - with the
+-- flip first there was a window with private buckets and no policy to read them)
+BEGIN;
 
--- 2) reads must now be granted explicitly. An athlete reads their OWN folder;
+-- reads must be granted explicitly once the buckets are private. An athlete reads their OWN folder;
 --    staff read everything. Mirrors the INSERT scoping from
 --    scripts/migrations/2026-07-19-*.sql, including the couple `__N` strip.
 --
@@ -79,6 +78,13 @@ DROP POLICY IF EXISTS contracts_read_staff_only ON storage.objects;
 CREATE POLICY contracts_read_staff_only ON storage.objects
   FOR SELECT TO authenticated
   USING (bucket_id = 'coaching-contracts' AND public.is_staff());
+
+-- the flip, last
+UPDATE storage.buckets
+   SET public = false
+ WHERE id IN ('form-videos', 'meal-photos', 'coach-voice', 'coaching-contracts');
+
+COMMIT;
 
 -- STATUS 2026-08-25 — WHAT IS AND IS NOT VERIFIED:
 --   ✓ The exposure is real: unauthenticated HEAD on two real athletes' form

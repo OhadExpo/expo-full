@@ -73,6 +73,31 @@ export default async function handler(req, res) {
     return;
   }
 
+  // ONLY A REAL PUSH SERVICE, AND NOT A THOUSAND OF THEM (2.10 #510 security
+  // round 2): the endpoint was stored as given, so an athlete could register any
+  // URL - or thousands - and make the server POST blind to them on every push.
+  // A browser's endpoint is always https on its vendor's push service.
+  const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/];
+  let host = '';
+  try { const u = new URL(String(sub.endpoint)); if (u.protocol === 'https:') host = u.hostname.toLowerCase(); } catch { /* not a URL */ }
+  if (!host || !PUSH_HOSTS.some((re) => re.test(host)) || String(sub.endpoint).length > 1000
+      || String(sub.keys.p256dh || '').length > 200 || String(sub.keys.auth || '').length > 100) {
+    res.status(400).json({ error: 'Not a browser push subscription.' });
+    return;
+  }
+  try {
+    const listR = await fetch(`${SUPA_URL}/rest/v1/push_subscriptions?select=endpoint&user_email=eq.${encodeURIComponent(userEmail)}`, {
+      headers: { 'apikey': SUPA_PUBLISHABLE_KEY, 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (listR.ok) {
+      const mine = await listR.json().catch(() => []);
+      if (Array.isArray(mine) && mine.length >= 10 && !mine.some((r) => r && r.endpoint === sub.endpoint)) {
+        res.status(429).json({ error: 'Too many devices subscribed - remove one first.' });
+        return;
+      }
+    }
+  } catch { /* the cap is best effort; the upsert below still runs under RLS */ }
+
   const row = {
     user_email: userEmail,
     role,

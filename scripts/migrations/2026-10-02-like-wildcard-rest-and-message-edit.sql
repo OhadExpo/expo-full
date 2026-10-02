@@ -13,7 +13,8 @@
 -- A5. coach_messages_athlete_mark_read lets an athlete UPDATE any column of any
 -- message in his own thread (body_text, sender_role) - rewrite what the coach
 -- said. No client code updates coach_messages at all. The policy stays (scoped
--- like the others) but the athlete's UPDATE privilege is narrowed to read_at.
+-- like the others); a BEFORE UPDATE trigger lets a non-staff update change
+-- read_at only.
 --
 -- Every ALTER is guarded: the repo's rls-baseline.json is from June and some
 -- objects were created through MCP since, so a missing policy is reported, not
@@ -64,19 +65,30 @@ BEGIN
   -- the same leak on any OTHER policy this file does not know by name: report it
   FOR r IN
     SELECT schemaname, tablename, policyname FROM pg_policies
-     WHERE (coalesce(qual, '') || coalesce(with_check, '')) ~ 'current_client_id\(\) \|\| ''__%'''
+     -- any LIKE (~~) built on an id helper, not only current_client_id (review 2.10)
+     WHERE (coalesce(qual, '') || coalesce(with_check, '')) ~ '(~~|LIKE).{0,60}(current_client_id|current_trainee_id|my_trainee)\('
   LOOP
     RAISE NOTICE 'STILL WILDCARD (not in this file): %.%.%', r.schemaname, r.tablename, r.policyname;
   END LOOP;
 END $$;
 
--- A5: an athlete marks a message read; he does not edit it. Column privilege
--- narrows UPDATE for every role that is not staff-by-RLS anyway (authenticated
--- is the only role athletes have). Staff edits go through their own policies,
--- which still need UPDATE on the columns they write - so grant those back to
--- the service paths explicitly if a staff UPDATE ever exists (none in src/ today).
-REVOKE UPDATE ON public.coach_messages FROM authenticated;
-GRANT UPDATE (read_at) ON public.coach_messages TO authenticated;
+-- A5: an athlete marks a message read; he does not edit it. NOT a column
+-- REVOKE (review 2.10: REVOKE ... FROM authenticated also takes UPDATE from the
+-- owner and staff - they are `authenticated` too, policies grant no privileges -
+-- and read_at may not even exist, which would abort the whole transaction). A
+-- trigger instead: a non-staff UPDATE may change nothing but read_at.
+CREATE OR REPLACE FUNCTION public.coach_messages_athlete_edit_guard() RETURNS trigger
+LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF public.is_staff() THEN RETURN NEW; END IF;
+  IF (to_jsonb(NEW) - 'read_at') IS DISTINCT FROM (to_jsonb(OLD) - 'read_at') THEN
+    RAISE EXCEPTION 'an athlete may only mark a message read' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS coach_messages_athlete_edit_guard ON public.coach_messages;
+CREATE TRIGGER coach_messages_athlete_edit_guard BEFORE UPDATE ON public.coach_messages
+  FOR EACH ROW EXECUTE FUNCTION public.coach_messages_athlete_edit_guard();
 
 -- the anon rollback probe that #510-A3 had to send (PostgREST ignores
 -- Prefer: tx=rollback here, so it committed). Marked, harmless, removed.
