@@ -99,6 +99,28 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   const [picking, setPicking] = useState(false);
   const [planDays, setPlanDays] = useState({}); // planId → days[] (for live tempo/video/cue lookup)
   const saveTimer = useRef(null);
+  // THE SESSION'S DURABLE WRITE (4.10 #524 audit): a set ticked < 0.5 s before a tab
+  // switch was lost (the unmount CANCELLED the debounced write) and a failed write
+  // was dropped silently (.then(()=>{},()=>{}) swallowed the resolved {error}). One
+  // writer now: the latest value waits in pendingWrite, a debounce or a FLUSH writes
+  // it, the result is checked and retried, and leaving the screen flushes.
+  const pendingWrite = useRef(null);
+  const writeNow = useCallback(async (value, tries = 0) => {
+    const { error } = await supabase.from('store').upsert({ key: SKEY, value, updated_at: new Date().toISOString() }).then((r) => r, (e) => ({ error: e }));
+    if (!error) return;
+    if (tries < 3) { setTimeout(() => { if (!endedRef.current) writeNow(value, tries + 1); }, 1500 * (tries + 1)); return; }
+    try { toast(tr(readLang(), 'Could not save — check your connection and try again.')); } catch { /* */ }
+  }, []);
+  const flushWrite = useCallback(() => {
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    const v = pendingWrite.current; pendingWrite.current = null;
+    if (v != null && !endedRef.current) writeNow(v);
+  }, [writeNow]);
+  const scheduleWrite = useCallback((value, ms) => {
+    pendingWrite.current = value;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(flushWrite, ms);
+  }, [flushWrite]);
   // Realtime broadcast channel for live cross-device session sync.
   const chanRef = useRef(null);
   // Re-entrancy guard for FINISH (a double-tap on the floor touchscreen must not
@@ -202,11 +224,8 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     // Live-broadcast the new state to every other device on the channel
     // (immediate — no DB round-trip), then debounce the durable store write.
     try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: next } }); } catch { /* channel not ready yet */ }
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {});
-    }, 400);
-  }, []);
+    scheduleWrite(next, 400);
+  }, [scheduleWrite]);
 
   // ---- LIVE sync across devices (Supabase Broadcast) ----
   // The on-the-floor big screen mirrors edits made from any other device on the
@@ -222,9 +241,8 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // receives the granular event directly and merges independently).
   const persistStore = useCallback((next) => {
     if (endedRef.current) return; // session ended — don't resurrect the deleted store row (audit #2)
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 500);
-  }, []);
+    scheduleWrite(next, 500);
+  }, [scheduleWrite]);
 
   // 'gym-session' = COACH DEVICES ONLY — the full-session mirror so the floor
   // big screen and the coach's phone stay in sync. Athletes never join this
@@ -242,6 +260,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         // every device, gets FINISHED a second time, and every athlete gets a
         // duplicate, trainee-visible history row (audit 08-22 #41).
         if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+        pendingWrite.current = null;
         endedRef.current = true;
         setSession(null);
         return;
@@ -396,8 +415,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         for (const [k, t] of recentTouchRef.current) if (now - t > 6000) recentTouchRef.current.delete(k);
       } catch { /* diffing is best-effort — never block the edit */ }
       try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: draft } }); } catch { /* not ready */ }
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: draft, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 400);
+      scheduleWrite(draft, 400);
       return draft;
     });
   }, []);
@@ -534,6 +552,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     // about to delete — otherwise a set edited just before FINISH resurrects the
     // finished session on next load. (audit)
     if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    pendingWrite.current = null;
     // Tell the other devices the session ended so their floor screen clears too.
     try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: null } }); } catch { /* noop */ }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
@@ -546,7 +565,13 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 
   // Cancel a pending debounced session upsert on unmount (a late write after
   // navigating away could otherwise revive a cleared session). (audit)
-  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+  // leaving the screen or hiding the page FLUSHES the last edit (it used to cancel it)
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') flushWrite(); };
+    window.addEventListener('pagehide', flushWrite);
+    document.addEventListener('visibilitychange', onHide);
+    return () => { window.removeEventListener('pagehide', flushWrite); document.removeEventListener('visibilitychange', onHide); flushWrite(); };
+  }, [flushWrite]);
 
   if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
