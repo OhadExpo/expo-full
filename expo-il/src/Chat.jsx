@@ -245,7 +245,12 @@ export default function Chat() {
           }}
           onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >💬</button>
+        >
+          {/* a line icon in the site's stroke style - the emoji drew differently on every phone */}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z" />
+          </svg>
+        </button>
       )}
 
       {open && (

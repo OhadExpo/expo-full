@@ -2017,6 +2017,9 @@ const TESTIMONIALS = [
 function Testimonials() {
   const t = useT();
   const realCount = TESTIMONIALS.filter(x => !x.empty).length;
+  // A sales page does not say "quotes coming soon" (4.10 audit, "ready for
+  // sale"): the section appears with its first real, cleared quote.
+  if (realCount === 0) return null;
   return (
     <section id="testimonials" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
       <div style={{
@@ -2650,8 +2653,10 @@ function FAQ() {
 function Footer() {
   const t = useT();
   return (
-    <footer style={{
-      borderTop: `1px solid ${C.bd}`, padding: '40px 16px 24px',
+    <footer className="fv-footer" style={{
+      // the bottom clears the round chat button (56px, 20px off the edge), so the
+      // last links are never under it at the end of the page (4.10 audit)
+      borderTop: `1px solid ${C.bd}`, padding: '40px 16px 104px',
       maxWidth: 1200, margin: '40px auto 0',
     }}>
       {/* Footer lead capture — second touch point for the visitor who scrolled
@@ -3342,6 +3347,10 @@ export default function App() {
         }
         @media (min-width: 721px) {
           .fv-sticky-cta { display: none !important; }
+        }
+        /* phones: the chat button rides 76px up (over the sticky bar) - the footer's last line clears it too */
+        @media (max-width: 720px) {
+          .fv-footer { padding-bottom: 160px !important; }
         }
         /* Visible focus ring for keyboard users on every interactive element.
            Mouse users don't see it (focus-visible). */
