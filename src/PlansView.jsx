@@ -4843,15 +4843,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             return (
               <div key={row.tid} style={{ borderTop: top }}>
                 <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
-                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 56, padding: '9px 12px', boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '9px 12px', boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, height: 17 }}>
                     <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{row.name}</bdi>
                     <BhbcBadge tid={row.tid} trainees={trainees} />
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
                   </span>
@@ -4859,18 +4859,21 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
                         title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 32, minHeight: 0, minWidth: 0, padding: '0 8px', background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>
-                        +{row.earlier.length}
+                        style={{ display: 'inline-flex', alignItems: 'center', height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', padding: 0, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer' }}>
+                        {/* the tap area is 32 tall; the chip drawn inside is 16, as tall as the text line */}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
+                        <bdi dir="ltr">+{row.earlier.length}</bdi>
                         <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
+                        </span>
                       </button>
                     )}
                     {vk && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis({ ...portalVis, [vk]: !isVis }); }} aria-pressed={isVis}
                         title={tr(readLang(), isVis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
-                        className="prog-phone-switch" style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                        {/* the tap area is 44x32 (touch minimum); the switch drawn inside is 32x18 */}
-                        <span aria-hidden style={{ width: 32, height: 18, borderRadius: 9, background: isVis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
-                          <span style={{ width: 14, height: 14, borderRadius: 7, background: isVis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: isVis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                        className="prog-phone-switch" style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                        {/* the tap area is 44x32 (touch minimum); the switch drawn inside is 30x16, as tall as the +N chip */}
+                        <span aria-hidden style={{ width: 30, height: 16, borderRadius: 8, background: isVis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
+                          <span style={{ width: 12, height: 12, borderRadius: 6, background: isVis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: isVis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
                         </span>
                       </button>
                     )}

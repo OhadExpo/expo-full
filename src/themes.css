@@ -2246,7 +2246,7 @@ select.avail-select:dir(rtl) {
 /* ACTIVITY ON A PHONE (4.10 #531): the person under the words, on the words' x;
    the team table drops to name | actions | last seen at 76 / 92. */
 @media (max-width: 620px) {
-  .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; }
+  .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 9px 0 11px !important; } /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
   .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
   .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 76px 92px !important; }
 }

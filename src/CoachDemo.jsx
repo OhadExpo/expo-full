@@ -2610,21 +2610,21 @@ function DemoPrograms({ resetToken = 0 }) {
                     const heL = readLang() === 'he';
                     return (
                       <div key={row.tid} role="button" tabIndex={0} onClick={() => setSelectedProgramId(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedProgramId(cur.id); } }}
-                        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 56, padding: '9px 12px', boxSizing: 'border-box', cursor: 'pointer', borderTop: ri === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
+                        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '9px 12px', boxSizing: 'border-box', cursor: 'pointer', borderTop: ri === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
                         <span style={{ fontWeight: 700, fontSize: 14, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{row.name}</bdi></span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                         </span>
-                        <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                           <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
                           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{cur.dayCount}{heL ? ' ימים' : 'D'} · {cur.exerciseCount}{heL ? ' תרגילים' : ' EX'}</span>
                         </span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
-                          {row.earlier.length > 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>+{row.earlier.length}</span>}
+                          {row.earlier.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, padding: '0 7px', boxSizing: 'border-box', border: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">+{row.earlier.length}</bdi><span aria-hidden style={{ fontSize: 8, lineHeight: 1 }}>▾</span></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis((v) => ({ ...v, ['pv_' + cur.id]: !vis })); }} aria-pressed={vis}
-                            style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                            <span aria-hidden style={{ width: 32, height: 18, borderRadius: 9, background: vis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
-                              <span style={{ width: 14, height: 14, borderRadius: 7, background: vis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: vis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                            style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                            <span aria-hidden style={{ width: 30, height: 16, borderRadius: 8, background: vis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
+                              <span style={{ width: 12, height: 12, borderRadius: 6, background: vis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: vis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
                             </span>
                           </button>
                         </span>
