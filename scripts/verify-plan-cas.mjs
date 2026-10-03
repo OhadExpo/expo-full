@@ -47,6 +47,21 @@ try {
   ok('A, after reloading what B saved, saves (its old map entry does not win)', a3 === true, a3);
   const a4 = await call(A, async ({ p }) => { const { savePlan } = await import('/src/usePlansStore.js'); return savePlan(p); }, { p: plan('v5-by-A', fresh) });
   ok('...and keeps saving from that editor', a4 === true, a4);
+  // THE EDITOR'S OWN LOADER (4.10 #524 audit, HIGH): every case above hands savePlan
+  // a version by hand. The editor builds its plan with planFromRow - which had no
+  // updatedAt, so its first save was a blind overwrite. C opens the plan exactly as
+  // the editor does, A saves on top, C's stale save must be refused.
+  const C = await browser.newPage();
+  try {
+    await C.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' });
+    await new Promise((r) => setTimeout(r, 2500));
+    const opened = await call(C, async ({ ID }) => { const { supabase } = await import('/src/supabase.js'); const { planFromRow } = await import('/src/usePlansStore.js'); const { data } = await supabase.from('plans').select('*').eq('id', ID).single(); return planFromRow(data); }, { ID });
+    ok("the editor's loader carries the version it opened", !!(opened && opened.updatedAt), opened && opened.updatedAt);
+    const a5 = await call(A, async ({ p }) => { const { savePlan } = await import('/src/usePlansStore.js'); return savePlan(p); }, { p: plan('v6-by-A', fresh) });
+    ok('A saves after C opened it', a5 === true, a5);
+    const c1 = await call(C, async ({ p }) => { const { savePlan } = await import('/src/usePlansStore.js'); return savePlan({ ...p, name: 'STALE-by-C' }); }, { p: opened });
+    ok("C's save from the loader-built plan is refused (not a blind overwrite)", c1 === false, c1);
+  } finally { await C.close().catch(() => {}); }
 } finally {
   try { await A.evaluate(async ({ ID }) => { const { supabase } = await import('/src/supabase.js'); await supabase.from('plans').delete().eq('id', ID); }, { ID }); } catch { /* best effort */ }
   await A.close().catch(() => {}); await B.close().catch(() => {});
