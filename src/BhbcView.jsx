@@ -1748,13 +1748,24 @@ function attendance28(rec, days) {
                days · pain ......... UPDATE ›
              The Update action used to float on a fourth line, indented under
              nothing. */
-          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:6px 12px!important}
+          /* THREE LINES, EVERY LINE FULL (4.10 #526, Ohad: "active injuries table can
+             look better ... especially on mobile"): the injury had half the row and
+             wrapped ("KNEE · RIGHT ·" / "OVERUSE") beside a reported-by column.
+               12 NAME ........................ [ STATUS ]
+                  ANKLE · LEFT · SPRAIN                    (the whole width)
+                  40D · PAIN 9 · TOMERLICH · NO UPDATE 18D (the whole width)
+             No UPDATE word on a phone: the whole row opens the record (rowOpens),
+             and beside the 136px status column the word squeezed the injury onto
+             two lines.
+             Every line starts on the name's x (jersey 22 + gap 9). */
+          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:7px 12px!important}
           .bhbc-inj-row>:nth-child(1){grid-area:1/1!important}
           .bhbc-inj-row>:nth-child(3){grid-area:1/2!important;justify-self:end!important}
-          .bhbc-inj-row>:nth-child(2){grid-area:2/1!important;padding-inline-start:27px!important}
-          .bhbc-inj-row>:nth-child(5){grid-area:2/2!important;justify-self:end!important;align-self:center!important}
-          .bhbc-inj-row>:nth-child(4){grid-area:3/1!important;padding-inline-start:27px!important}
-          .bhbc-inj-row>:nth-child(6){grid-area:3/2!important;justify-self:end!important;align-self:center!important}
+          .bhbc-inj-row>:nth-child(2){grid-area:2/1/3/3!important;padding-inline-start:31px!important}
+          .bhbc-inj-row>.bhbc-inj-meta{display:flex!important;grid-area:3/1/4/3!important;flex-wrap:wrap;align-items:baseline;column-gap:8px;row-gap:2px;padding-inline-start:31px;min-width:0}
+          .bhbc-inj-meta>div:nth-child(2):not(:empty)::before{content:'·';margin-inline-end:8px;color:var(--c-cardBd)}
+          .bhbc-inj-meta>div:nth-child(2)>span{display:inline!important;margin:0!important;margin-inline-start:8px!important}
+          .bhbc-inj-row>:nth-child(5){display:none!important}
           .bhbc-inj-head{display:none!important}
         }
         /* TWO ROWS BEFORE ANYTHING SCROLLS AWAY.
@@ -6083,12 +6094,13 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   }, 'ppg');
   // ONE TABLE STYLE FOR THE ZONE (27.9, Ohad: "make the tables nicer, they're
   // badly designed"): a 36px header band on the surface tint, 40px rows on a
-  // light hairline, numbers END-aligned in tabular figures so a column reads as
+  // light hairline, numbers CENTRED under their heading in tabular figures (4.10
+  // #528, Ohad: "the gp mpg and ppg ... centre aligned") so a column reads as
   // a column, the jersey muted, and colour for ONE thing only - the column the
   // table is sorted by (its cells tinted, its values bold). PPG used to be
   // orange whatever the sort, which put colour on the rule, not the exception.
   const th = (k, h, first) => (
-    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'end' }} />
+    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center' }} />
   );
   return (
     <div className="bhbc-list" style={{ overflowX: 'auto' }}>
@@ -6106,7 +6118,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
             return (
               <tr key={t.id} className="bhbc-row bhbc-trow" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ cursor: 'pointer' }}>
                 <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
-                {cols.map((c) => <td key={c.k} style={cell(c.k)}>{dash(c.k, s ? s[c.k] : null)}</td>)}
+                {cols.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
               </tr>
             );
           })}
@@ -6760,7 +6772,7 @@ function LoadOutputCard({ rows, loads, medical }) {
   );
 }
 
-const INJ_COLS = '190px minmax(0, 1fr) 120px 118px 96px 72px';
+const INJ_COLS = '190px minmax(0, 1fr) 136px 118px 120px 72px';   // status = the pill's 136 (3.10 #526: at 120 the pill ran into SINCE)
 
 function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedical = true, onReport, onEdit, onOpen, onLog }) {
   const he = useHe();
@@ -6821,7 +6833,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 not have (it put every label 2px off its column), and ATHLETE
                 starts where the NAMES start - past the 22px jersey slot and its
                 9px gap - not over the numbers. */}
-            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: 0, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
+            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
               {injCols.map(([k, h], i) => (
                 <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, ...(i === 0 ? { paddingInlineStart: 31 } : null) }} />
               ))}
@@ -6831,7 +6843,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 the bar onto two lines at 390, REPORTED BY under ATHLETE. The phone
                 bar says the same in short words, spread across the row. */}
             <SortBar sort={sort} className="bhbc-inj-sortbar" cols={[['name', tr('Athlete')], ['injury', tr('Injury')], ['status', tr('Status')], ['since', tr('Since')], ['by', tr('By')]]}
-              style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+              style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 16px', margin: '0 -14px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
             {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
@@ -6846,6 +6858,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <StatusPill status={inj.status} />
                   {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
                       reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
+                  <div className="bhbc-inj-meta" style={{ display: 'contents' }}>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : '—'}{latestPain(inj) != null ? <> · <span style={{ fontWeight: latestPain(inj) >= 4 ? 800 : 400, color: latestPain(inj) >= 6 ? '#DE4E3B' : latestPain(inj) >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.td }}>{tr('pain')} {latestPain(inj)}</span></> : ''}</div>
                   {/* WHO assessed this. With two PTs sharing the board, an
                       unsigned record cannot be questioned or followed up. */}
@@ -6864,6 +6877,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                       </div>
                     );
                   })()}
+                  </div>
                   <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{canMedical ? tr('Update ›') : ''}</div>
                 </div>
               );

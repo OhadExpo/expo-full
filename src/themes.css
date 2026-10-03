@@ -1393,7 +1393,7 @@ html.theme-switching *::after {
   /* 29.9 #380: the by-column was 80px and "REPORTED BY" / "NO UPDATE 14D"
      (~110px) ran into UPDATE ›; it takes 120 now, to 1199px (was 900). */
   .bhbc-zone .bhbc-inj-head,
-  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 100px 96px 120px 64px !important; gap: 10px !important; }
+  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 136px 96px 120px 64px !important; gap: 10px !important; }   /* status = the pill (4.10 #526) */
 }
 .bhbc-zone .bhbc-inj-row > :nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
 
@@ -2232,12 +2232,8 @@ select.avail-select:dir(rtl) {
    better" / "easier to view more" / "perfectly displayable for the head coach").
    Seen from his seat at 390: the load board kept each row two CONTROLS tall
    (status over MED) although his seat has no MED, ~28px of air a player; the
-   medical board wrapped "KNEE · RIGHT ·" / "OVERUSE" beside an UPDATE column
-   that is empty for a view-only seat. Where the control is absent the row is
-   as tall as its lines, and the injury takes the width the control left. */
+   medical rows are redesigned in BhbcView (4.10 #526). Where the MED control is
+   absent the load row is as tall as its lines. */
 @media (max-width: 760px) {
   .bhbc-zone .bhbc-load-row:not(:has(> [data-lbl="actions"] button)) > *:nth-child(2) { min-height: 0 !important; justify-content: flex-start !important; gap: 3px; }
-  .bhbc-zone .bhbc-inj-row:has(> :nth-child(6):empty) > :nth-child(2) { grid-area: 2 / 1 / 3 / 3 !important; }
-  .bhbc-zone .bhbc-inj-row:has(> :nth-child(6):empty) > :nth-child(5) { grid-area: 3 / 2 !important; }
-  .bhbc-zone .bhbc-inj-row:has(> :nth-child(6):empty) > :nth-child(6) { display: none !important; }
 }
