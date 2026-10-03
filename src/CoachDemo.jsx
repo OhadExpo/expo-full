@@ -2298,6 +2298,7 @@ function DemoPrograms({ resetToken = 0 }) {
   // programs with no exercises or no days.
   const [flags, setFlags] = useState({ unassigned: false, empty: false });
   const [progView, setProgView] = useState('table'); // 'table' | 'grid' (the real toggle)
+  const phoneList = useIsMobile(620);   // the real Programs on a phone: TABLE is a dense list (4.10 #532)
   // Training Analysis opens per athlete from the card's ANALYSIS button, as a full
   // page with a Back bar - the real PlansView (it was a third toggle here, #448)
   const [lineageFor, setLineageFor] = useState(null);
@@ -2584,6 +2585,38 @@ function DemoPrograms({ resetToken = 0 }) {
                   worse, because the control reports a state change. Grid lays
                   the same programs out in columns, the way the real
                   PlansView does (repeat(auto-fill, minmax(...))). */}
+              {progView === 'table' && phoneList ? (
+                /* PARITY with the real phone TABLE (4.10 #532): two lines an athlete */
+                <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+                  {rows.map((row, ri) => {
+                    const cur = row.current;
+                    const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
+                    const tagText = row.daysSince == null ? T('NEVER LOGGED') : row.daysSince === 0 ? T('TRAINED TODAY') : (readLang() === 'he' ? daysAgoHe(row.daysSince) : TN('{n}D AGO', row.daysSince));
+                    const vis = portalVis['pv_' + cur.id] !== false;
+                    const heL = readLang() === 'he';
+                    return (
+                      <div key={row.tid} role="button" tabIndex={0} onClick={() => setSelectedProgramId(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedProgramId(cur.id); } }}
+                        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 56, padding: '9px 12px', boxSizing: 'border-box', cursor: 'pointer', borderTop: ri === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{row.name}</bdi></span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                          <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
+                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{cur.dayCount}{heL ? ' ימים' : 'D'} · {cur.exerciseCount}{heL ? ' תרגילים' : ' EX'}</span>
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
+                          {row.earlier.length > 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>+{row.earlier.length}</span>}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis((v) => ({ ...v, ['pv_' + cur.id]: !vis })); }} aria-pressed={vis}
+                            style={{ width: 32, height: 18, minHeight: 0, minWidth: 0, borderRadius: 9, border: 'none', padding: 0, background: vis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+                            <span style={{ width: 14, height: 14, borderRadius: 7, background: vis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: vis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
               <div style={{ display: 'grid', gap: 15, gridTemplateColumns: progView === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))' : undefined, alignItems: 'start' }}>
                 {rows.map(row => {
                   const expanded = expandedAthletes.has(row.tid);
@@ -2698,6 +2731,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   );
                 })}
               </div>
+              )}
             </>
           );
         })()}

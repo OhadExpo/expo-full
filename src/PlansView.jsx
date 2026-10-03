@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -3970,6 +3970,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Persisted so Ohad's pick survives reloads. Only affects the grouped
   // (unfiltered) view — search/trainee-filter always fall back to the flat list.
   const [progView, setProgView] = usePersistentState('programs-view-mode', 'table');
+  // TABLE AND GRID MUST LOOK DIFFERENT ON A PHONE (4.10 #532/#535, Ohad: "All the
+  // grid/table options don't change anything on expo mobile" / "Unacceptable").
+  // Both drew the same 265px card per athlete at 390 (grid's one column = the
+  // table's full-width card), ~10,000px for the roster, and the grid card's meta
+  // line ran into PORTAL. On a phone TABLE is now a dense list (two lines an
+  // athlete) and GRID the full card, laid out explicitly.
+  const phoneList = useIsMobile(620);
   // Migrate a stale persisted 'lineage' (a removed view mode — Lineage is now a
   // per-athlete modal) back to a real view so the list still renders.
   useEffect(() => { if (progView !== 'table' && progView !== 'grid') setProgView('table'); }, [progView, setProgView]);
@@ -4653,6 +4660,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <style>{`
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
+        /* the phone grid card's action line (4.10 #535): four words edge to edge -
+           no per-word language reserve, no phone minimum width */
+        .prog-actions-phone .prog-txtbtn { min-width: 0 !important; min-height: 0 !important; }
+        .prog-actions-phone .prog-txtbtn [aria-hidden="true"] { display: none; }
+        .prog-phone-switch { min-height: 0 !important; min-width: 0 !important; }
         .prog-txtbtn:hover { text-decoration: underline; }
         /* On a phone the action row WRAPS, so these stack into a visual column -
           and PORTAL (93px) beside Delete (52px) reads as a ragged one. A shared
@@ -4807,7 +4819,77 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           surfaced prominently with last-session signal. (N earlier blocks)
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
-      {displayGrouped && displayGrouped.length > 0 && progView === 'table' && (
+      {displayGrouped && displayGrouped.length > 0 && progView === 'table' && phoneList && (
+        <div className="prog-phone-list" style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+          {displayGrouped.map((row, ri) => {
+            const top = ri === 0 ? 'none' : `1px solid ${C.cardBd}`;
+            if (row.orphan) {
+              return (
+                <div key={row.tid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</bdi><BhbcBadge tid={row.tid} trainees={trainees} /></span>
+                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.or }}>{tt('No program yet')}</span>
+                  </span>
+                  <button type="button" onClick={() => handleNewPlan(row.coupleMembers ? row.coupleMembers[0].id : row.tid)} style={{ height: 32, padding: '0 12px', background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>{tb('+ ASSIGN PROGRAM')}</button>
+                </div>
+              );
+            }
+            const cur = row.current;
+            const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
+            const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
+            const tagText = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);
+            const vk = setPortalVis ? visKeyForPlan(cur, trainees) : null;
+            const isVis = vk ? portalVis?.[vk] !== false : null;
+            return (
+              <div key={row.tid} style={{ borderTop: top }}>
+                <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
+                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 56, padding: '9px 12px', boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{row.name}</bdi>
+                    <BhbcBadge tid={row.tid} trainees={trainees} />
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
+                    {row.earlier.length > 0 && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
+                        title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, minHeight: 0, minWidth: 0, padding: '0 8px', background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>
+                        +{row.earlier.length}
+                        <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
+                      </button>
+                    )}
+                    {vk && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis({ ...portalVis, [vk]: !isVis }); }} aria-pressed={isVis}
+                        title={tr(readLang(), isVis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
+                        className="prog-phone-switch" style={{ width: 32, height: 18, minHeight: 0, minWidth: 0, borderRadius: 9, border: 'none', padding: 0, background: isVis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+                        <span style={{ width: 14, height: 14, borderRadius: 7, background: isVis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: isVis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                      </button>
+                    )}
+                  </span>
+                </div>
+                {expanded && row.earlier.length > 0 && (
+                  <div className="prog-reveal" style={{ borderTop: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
+                    {row.earlier.map((p) => (
+                      <div key={p.id} role="button" tabIndex={0} onClick={() => handleOpenPlan(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(p.id); } }}
+                        style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, padding: '10px 12px', boxSizing: 'border-box', cursor: 'pointer', opacity: openingId === p.id ? 0.45 : 0.85 }}>
+                        <span style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em' }}>{p.name || 'Untitled'}</span>
+                        <span style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{p.dayCount}{he ? ' ימים' : 'D'} · {p.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {displayGrouped && displayGrouped.length > 0 && progView === 'table' && !phoneList && (
         // gap 14 = SAME as the grid view — toggling table↔grid must not shift
         // the vertical rhythm (Ohad 2026-08-21).
         <div style={{display:"grid",gap:14}}>
@@ -4972,7 +5054,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const cur = row.current;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
-            const tagText = row.daysSince == null ? 'never logged' : row.daysSince === 0 ? 'trained today' : `${row.daysSince}d ago`;
+            const tagText = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);   // the table's words, Hebrew included (4.10 #533: the grid said '4D AGO' in Hebrew)
             // Orphan (active athlete, no program) — dashed card mirroring the
             // table's zero-state row.
             if (row.orphan) {
@@ -5062,13 +5144,28 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
                   </div>
-                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(cur.dayCount, 'day', he ? 'he' : 'en')} · {plural(cur.exerciseCount, 'exercise', he ? 'he' : 'en')}</div>
+                  {phoneList ? (
+                    // meta + PORTAL share one line (they collided as two stacked blocks at 390)
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:6,minHeight:24}}>
+                      <span style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',whiteSpace:'nowrap'}}>{plural(cur.dayCount, 'day', he ? 'he' : 'en')} · {plural(cur.exerciseCount, 'exercise', he ? 'he' : 'en')}</span>
+                      <span onClick={e=>e.stopPropagation()}>{portalToggle(cur)}</span>
+                    </div>
+                  ) : (
+                    <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(cur.dayCount, 'day', he ? 'he' : 'en')} · {plural(cur.exerciseCount, 'exercise', he ? 'he' : 'en')}</div>
+                  )}
                 </div>
+                {phoneList ? (
+                  // four text actions spread edge to edge on one line
+                  <div className="prog-actions-phone" onMouseEnter={cancelHover} style={{padding:'10px 14px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:`1px solid ${C.cardBd}`,marginTop:10}}>
+                    {txtActs(cur.id, () => { setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped(''); })}
+                  </div>
+                ) : (
                 <div className="prog-actions" onMouseEnter={cancelHover} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
                   {portalToggle(cur)}
                   <div className="prog-spacer" style={{flex:1,minWidth:8}} />
                   {txtActs(cur.id, () => { setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped(''); })}
                 </div>
+                )}
                 {/* Expanded previous blocks — light stacked rows matching the card. */}
                 {expanded && row.earlier.length > 0 && (
                   <div className="prog-reveal" style={{borderTop:`1px solid ${C.cardBd}`}}>
