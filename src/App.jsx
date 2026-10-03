@@ -1569,7 +1569,7 @@ function AuthedApp() {
     // stays as a safety-net fallback if realtime is unavailable.
     let ch = null;
     try {
-      ch = supabase.channel('bhbc-live');
+      ch = supabase.channel('bhbc-live', { config: { private: true } });   // private (#510-A4): RLS on realtime.messages decides who hears it
       ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees'].forEach((k) => {
         ch.on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${k}` }, () => { if (!stop) poll(); });
       });
