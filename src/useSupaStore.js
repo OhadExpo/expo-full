@@ -257,6 +257,14 @@ async function casWriteOnce(key, value, at) {
 // saved since. baseAt undefined = this device does not know what it was built
 // on (snapshot boot, an old queue entry): it reads first and merges with
 // whatever base it has. Resolves { at, val } with the value actually stored.
+// A ONE-OFF WRITER OUTSIDE THE HOOK (Smart Import, 4.10 #524): the same fence as
+// save() and the replay, then the compare-and-swap merge. baseVal = the value the
+// caller read and built on (untouched copy).
+export async function storeWriteFenced(key, mine, baseVal) {
+  if (!canSeatWrite(key)) { recordBlockedWrite(key, 'one-off write on a seat that may not write it'); const e = new Error('This seat may not change ' + key); e.code = '42501'; throw e; }
+  return storeWriteMerged(key, mine, undefined, baseVal);
+}
+
 export async function storeWriteMerged(key, mine, baseAt, baseVal) {
   let val = mine, at = baseAt, bval = baseVal;
   if (at === undefined) {
