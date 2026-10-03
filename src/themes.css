@@ -2227,3 +2227,17 @@ select.avail-select:dir(rtl) {
    so the colour runs only around the rows - as CollapsibleSection's leftStripe. */
 .alert-sev { padding-top: 0 !important; padding-inline: 18px !important; }  /* phones read 12 on top, desktop 14: fixed here so the bleed below is exact */
 .alert-sev .title-strip { margin: -1px -19px 12px !important; border: 1px solid var(--c-cardBd); border-bottom: 0; position: relative; }
+
+/* THE HEAD COACH'S PHONE (3.10 #522/#523, Ohad: "make the tables on bhbc on mobile
+   better" / "easier to view more" / "perfectly displayable for the head coach").
+   Seen from his seat at 390: the load board kept each row two CONTROLS tall
+   (status over MED) although his seat has no MED, ~28px of air a player; the
+   medical board wrapped "KNEE · RIGHT ·" / "OVERUSE" beside an UPDATE column
+   that is empty for a view-only seat. Where the control is absent the row is
+   as tall as its lines, and the injury takes the width the control left. */
+@media (max-width: 760px) {
+  .bhbc-zone .bhbc-load-row:not(:has(> [data-lbl="actions"] button)) > *:nth-child(2) { min-height: 0 !important; justify-content: flex-start !important; gap: 3px; }
+  .bhbc-zone .bhbc-inj-row:has(> :nth-child(6):empty) > :nth-child(2) { grid-area: 2 / 1 / 3 / 3 !important; }
+  .bhbc-zone .bhbc-inj-row:has(> :nth-child(6):empty) > :nth-child(5) { grid-area: 3 / 2 !important; }
+  .bhbc-zone .bhbc-inj-row:has(> :nth-child(6):empty) > :nth-child(6) { display: none !important; }
+}

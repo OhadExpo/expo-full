@@ -4924,6 +4924,51 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     const lp = leaguePast ? null : leaguePlayerFor(league, t);
     return lp && lp.ppg != null ? lp.ppg : null;
   };
+  // A PHONE READS THE ROSTER AS A LIST (3.10 #522/#523, Ohad: "make the tables on
+  // bhbc on mobile better" / "easier to view more" / "perfectly displayable for
+  // the head coach"). The card is built to line up in a GRID; at 390 the grid is
+  // one column, so eleven 154px cards ran 1,700px. Here each player is two lines:
+  // jersey + name + PPG, then position + injury (or when he lands) across the
+  // row; the rail is the load band. Desktop and tablet keep the cards.
+  const phone = usePhoneGrid();
+  if (phone) {
+    const meta = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' };
+    const row = (t, extra, kids) => (
+      <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}
+        className="bhbc-roster-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '8px 0', paddingInlineStart: 8, boxSizing: 'border-box', cursor: 'pointer', ...extra }}>
+        {kids}
+      </div>
+    );
+    return (
+      <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
+        <div className="hl-rows" style={{ display: 'grid' }}>
+          {rows.map(({ t, acwr, att }) => {
+            const inj = worstInjury(medical, t.id);
+            const injShort = !inj ? null : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
+            const lands = !injShort && t.arrival && t.arrival > todayISO();
+            const ppg = ppgFor(t);
+            return row(t, { borderInlineStart: `2px solid ${acwr.band.color}` }, <>
+              <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
+              <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
+              <span style={{ ...meta, color: ppg != null ? ORANGE_DEEP : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
+              <span style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                <span style={{ fontFamily: FB, fontSize: 11, color: C.td, flexShrink: 0 }}>{tr(t.position) || '—'}</span>
+                {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status), whiteSpace: 'nowrap' }}>{injShort}</span>}
+                {lands && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {monDay(t.arrival)}</span>}
+              </span>
+              {/* the injury takes the whole second line (at 390 it was cut: "KNEE R · AVAILA..."); its colour is its status, the rail is the load band */}
+            </>);
+          })}
+          {ghosts.map((t) => row(t, { opacity: 0.6, borderInlineStart: `2px dashed ${C.cardBd}` }, <>
+            <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
+            <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
+            <span />
+            <span style={{ gridColumn: '2 / 4', fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'} · <span style={meta}>{tr('not counted')}</span></span>
+          </>))}
+        </div>
+      </CollapsibleSection>
+    );
+  }
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
       {/* 264, not 232 (29.9 #380): a card's footer - height · nation · PPG ...
