@@ -4860,8 +4860,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
                         title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
                         style={{ display: 'inline-flex', alignItems: 'center', height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', padding: 0, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer' }}>
-                        {/* the tap area is 32 tall; the chip drawn inside is 16, as tall as the text line */}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
+                        {/* the tap area is 32 tall; the tag drawn inside is 16, as tall as the text line - filled, not bordered (a bordered control is 36, the house height) */}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'color-mix(in srgb, var(--c-ac) 18%, transparent)' : 'rgba(127,127,138,0.16)', color: expanded ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
                         <bdi dir="ltr">+{row.earlier.length}</bdi>
                         <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
                         </span>
