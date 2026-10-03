@@ -8,7 +8,7 @@
 // in Vercel env vars (production + preview).
 
 import crypto from 'crypto';
-import { clientIp } from './_ip.js';
+import { clientIp, originAllowed, capMessages, budgetOk } from './_ip.js';
 
 // EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
 // hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
@@ -198,6 +198,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' }); return;
   }
 
+  if (!originAllowed(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
   const ip = clientIp(req);
   if (!checkRate(ip)) {
     res.status(429).json({ error: 'Slow down — try again in a bit, or email Ohad directly.' }); return;
@@ -224,12 +225,12 @@ export default async function handler(req, res) {
   if (messages.length > 20) {
     res.status(400).json({ error: 'Conversation too long' }); return;
   }
-  const cleanMessages = messages.slice(-20).map(m => ({
-    role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: String(m.content || '').slice(0, 1500),
-  })).filter(m => m.content.trim().length > 0);
+  const cleanMessages = capMessages(messages, { maxMessages: 20, maxChars: 1500 }).filter(m => m.content.trim().length > 0);
   if (cleanMessages.length === 0) {
     res.status(400).json({ error: 'Empty messages' }); return;
+  }
+  if (!(await budgetOk('chat-app'))) {
+    res.status(429).json({ error: 'The chat is busy today — leave your email below and Ohad will answer you himself.' }); return;
   }
   // Server-side memory: stitch in prior turns from chat_logs when the
   // frontend has just (re)started a thread under a known sessionId.

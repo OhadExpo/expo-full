@@ -224,15 +224,20 @@ export default async function handler(req, res) {
     return;
   }
 
+  // THE TAG IS THE SENDER'S, NOT THE BODY'S (3.10 #524 audit): the service
+  // worker REPLACES a notification with the same tag, so an athlete sending
+  // tag 'athlete-health' silently swapped the owner's outage alert for his own
+  // text. Only the owner names a tag; anyone else's pushes group per sender.
+  const safeTag = callerEmail === OWNER_EMAIL ? tag : (tag ? `msg:${callerEmail}` : undefined);
   const payload = JSON.stringify({
-    title: notifTitle, body: text, url, tag,
+    title: notifTitle, body: text, url, tag: safeTag,
     icon: '/icon-192.png', badge: '/icon-192.png',
   });
 
   const results = await Promise.allSettled(subs.map(async (s) => {
     const pushSub = { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } };
     try {
-      await webpush.sendNotification(pushSub, payload);
+      await webpush.sendNotification(pushSub, payload, { timeout: 5000 });   // a push host that never answers cannot hold the function (3.10)
       return { id: s.id, ok: true };
     } catch (e) {
       const status = e?.statusCode || 0;

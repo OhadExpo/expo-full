@@ -3,7 +3,7 @@
 // source/context tags and a summary prompt scoped to athlete intents
 // (which program, equipment, scheduling, etc).
 
-import { clientIp, originAllowed, rateLimit, capMessages } from './_ip.js';
+import { clientIp, originAllowed, rateLimit, capMessages, budgetOk } from './_ip.js';
 
 // EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
 // hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
@@ -185,9 +185,11 @@ export default async function handler(req, res) {
   // an email with no summary is worth far more than a 500.
   let summary = null, intent = null;
   try {
+    // past the day's shared budget the lead still saves, without the AI summary (3.10)
+    const aiKey = (await budgetOk('capture-il')) ? process.env.ANTHROPIC_API_KEY : null;
     [summary, intent] = await Promise.all([
-      summarize(messages, process.env.ANTHROPIC_API_KEY),
-      extractIntent(messages, process.env.ANTHROPIC_API_KEY),
+      summarize(messages, aiKey),
+      extractIntent(messages, aiKey),
     ]);
   } catch (e) {
     console.error('capture enrichment failed (saving lead anyway):', e?.message || e);
