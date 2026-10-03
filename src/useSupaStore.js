@@ -1316,6 +1316,10 @@ export function useSupaBwLog(initial = []) {
       // row; the direct send only removes that entry once the server confirms.
       // The upsert is keyed (client, block, week), so a replay racing the direct
       // send cannot duplicate it.
+      // A NEWER WEIGH-IN BEATS AN OLDER QUEUED DELETE of the same week (4.10 #524
+      // audit): a delete that failed and was queued, then the athlete re-entered
+      // the week - the drain replayed the delete and erased the new weigh-in.
+      try { getEntries().filter((q) => q.type === 'bw_logs.delete' && q.payload && q.payload.filter && q.payload.filter.client_id === row.client_id && q.payload.filter.block_name === row.block_name && q.payload.filter.week === row.week).forEach((q) => removeEntry(q.id)); } catch { /* best effort */ }
       const { id: qid } = enqueueEntry({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
       try {
         const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });
