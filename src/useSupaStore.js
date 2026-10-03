@@ -444,7 +444,19 @@ registerHandler('client_workouts.update', async ({ id, patch }) => {
 // reviewNotes — the offline mirror of updateFormVideos's online read-modify-write,
 // so a coach note drained later can't clobber an athlete upload. (WorkoutReview
 // audit Finding 1 — residual close.)
-registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos }) => {
+// THE NOTES ON A SLOT ARE MERGED, NOT REPLACED (4.10 #524 audit, HIGH): the save
+// used to take this screen's whole reviewNotes array, so a coach note written
+// after the athlete opened History was deleted by the athlete's reply (and the
+// other way round). base = the notes this screen started from; with it the merge
+// keeps the other side's new notes/replies and applies this side's edits and
+// deletions. No base (an old queued entry) = this screen's array, as before.
+function mergeSlotNotes(baseNotes, mineNotes, serverNotes) {
+  if (mineNotes === undefined) return serverNotes;
+  if (baseNotes === undefined) return mineNotes;
+  const merged = mergeStoreValues(baseNotes || [], mineNotes || [], serverNotes || []);
+  return Array.isArray(merged) ? merged : mineNotes;
+}
+registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos, baseFormVideos }) => {
   const { data: row, error: readErr } = await supabase
     .from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
   if (readErr) throw readErr;
@@ -454,7 +466,8 @@ registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos }) =
   const merged = [];
   for (let i = 0; i < len; i++) {
     const s = serverFv[i], c = inc[i];
-    if (s && c) merged.push({ ...s, reviewNotes: c.reviewNotes !== undefined ? c.reviewNotes : s.reviewNotes });
+    const b = Array.isArray(baseFormVideos) ? baseFormVideos[i] : undefined;
+    if (s && c) merged.push({ ...s, reviewNotes: mergeSlotNotes(b ? (b.reviewNotes || []) : undefined, c.reviewNotes, s.reviewNotes) });
     else merged.push(s || c);
   }
   const { error } = await supabase.from('client_workouts').upsert({ id, form_videos: merged }, { onConflict: 'id' });
@@ -1121,6 +1134,8 @@ export function useSupaClientWorkouts(initial = []) {
   // Optimistic: updates local state first, then writes to Supabase. Errors
   // surface via emitSaveError and get shown in the save-error toast.
   const updateFormVideos = useCallback(async (id, formVideos) => {
+    // the slots as this screen had them before this edit - the merge's base
+    const baseFormVideos = ((dataRef.current.find((w) => w.id === id) || {}).formVideos) || undefined;
     // Optimistic local update for immediate UI.
     const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
     mutatedRef.current = true;
@@ -1144,9 +1159,11 @@ export function useSupaClientWorkouts(initial = []) {
       const merged = [];
       for (let i = 0; i < len; i++) {
         const s = serverFv[i], c = inc[i];
-        // shared slot: server owns media fields, client owns reviewNotes;
+        const b = Array.isArray(baseFormVideos) ? baseFormVideos[i] : undefined;
+        // shared slot: server owns media fields; the notes are merged three-way
+        // (base = what this screen started from) so neither side erases the other;
         // server-only slot (an athlete upload the coach never saw) is preserved.
-        if (s && c) merged.push({ ...s, reviewNotes: c.reviewNotes !== undefined ? c.reviewNotes : s.reviewNotes });
+        if (s && c) merged.push({ ...s, reviewNotes: mergeSlotNotes(b ? (b.reviewNotes || []) : undefined, c.reviewNotes, s.reviewNotes) });
         else merged.push(s || c);
       }
       const { error } = await supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id);
@@ -1162,7 +1179,13 @@ export function useSupaClientWorkouts(initial = []) {
       // fields), NOT the generic update — so a note drained after an athlete's
       // offline-window upload still can't clobber the video. Distinct dedupeKey
       // from blobQueue's 'fv:' URL writes so the two never replace each other.
-      if (isTransient(e)) enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos }, dedupeKey: 'fvnotes:' + id });
+      if (isTransient(e)) {
+        // a later offline edit REPLACES the queued one (dedupe): keep the FIRST
+        // edit's base, or the merge would read the first edit as already saved
+        const prior = getEntries().find((q) => q.type === 'client_workouts.mergeReviewNotes' && q.dedupeKey === 'fvnotes:' + id);
+        const base = prior && prior.payload && prior.payload.baseFormVideos !== undefined ? prior.payload.baseFormVideos : (prior ? undefined : baseFormVideos);
+        enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos, baseFormVideos: base }, dedupeKey: 'fvnotes:' + id, critical: true });
+      }
       else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
     }
   }, []);
