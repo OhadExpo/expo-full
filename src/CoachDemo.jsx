@@ -350,7 +350,21 @@ function DemoOwedCard({ onJumpToTrainee, onNav, expanded = false }) {
         <span>{T('Owed')} ({owed.length})</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span dir="ltr" style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.75 }}>{nis(total)}</span><StripCaret open={owedOpen} /></span>
       </div>
-      {owedOpen && <div style={{ padding: '0 14px 14px' }}>
+      {owedOpen && !expanded && (
+        /* PARITY with the real dashboard (4.10 #534): the total and how many owe it;
+           the list lives on Billing */
+        <div style={{ padding: '14px 14px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 30, fontWeight: 800, lineHeight: 1, color: C.or, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', alignSelf: 'flex-start' }}>{nis(total)}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-tm)' }}>{readLang() === 'he' ? `חוב של ${owed.length} ${owed.length === 1 ? 'מתאמן' : 'מתאמנים'}` : `owed by ${owed.length} ${owed.length === 1 ? 'client' : 'clients'}`}</span>
+            </span>
+            <button type="button" onClick={() => onNav && onNav('billing')} style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', borderRadius: 0 }}>{readLang() === 'he' ? 'פירוט בחיובים ←' : 'DETAILS ON BILLING →'}</button>
+          </div>
+          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginTop: 12 }}>{T('From the roster sheet')} · {T('synced')} 12{T('m ago')}</div>
+        </div>
+      )}
+      {owedOpen && expanded && <div style={{ padding: '0 14px 14px' }}>
         {owed.map((t, n) => (
           <button key={t.id} type="button" data-owed-row="" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: n < owed.length - 1 ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
