@@ -2622,8 +2622,10 @@ function DemoPrograms({ resetToken = 0 }) {
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
                           {row.earlier.length > 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>+{row.earlier.length}</span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis((v) => ({ ...v, ['pv_' + cur.id]: !vis })); }} aria-pressed={vis}
-                            style={{ width: 32, height: 18, minHeight: 0, minWidth: 0, borderRadius: 9, border: 'none', padding: 0, background: vis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
-                            <span style={{ width: 14, height: 14, borderRadius: 7, background: vis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: vis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                            style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                            <span aria-hidden style={{ width: 32, height: 18, borderRadius: 9, background: vis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
+                              <span style={{ width: 14, height: 14, borderRadius: 7, background: vis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: vis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                            </span>
                           </button>
                         </span>
                       </div>

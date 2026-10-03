@@ -797,6 +797,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // (27.9 #375) - it lands on OVERVIEW instead (`coach` is the prop; the
   // preview toggle cannot be on at first render)
   const [view, setView] = useState(() => { const p = pageFromUrl(); return p && !(coach && p === 'activity') ? p : 'overview'; });   // overview | schedule | roster
+  // the tab's content renders with the tab (a deferred copy was measured slower, 4.10 #529)
+  const shownView = view;
   useEffect(() => {
     const m = window.location.pathname.match(/^\/(coach\/)?bhbc/);
     if (!m) return;
@@ -1955,7 +1957,7 @@ function attendance28(rec, days) {
           <ErrorBoundary key={view} inline>
           <div className="motion-rise" style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
 
-            {view === 'overview' && (
+            {shownView === 'overview' && (
               <>
                 <ReturnLoadAlert roster={roster} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} loads={bhbcLoads} today={today} onOpen={setDetailFor}
@@ -1978,12 +1980,12 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {view === 'lifts' && (
+            {shownView === 'lifts' && (
               <LiftsTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor}
                 action={canLog ? <StripBtn onClick={() => setLogFor('new')}>{tr('Log lift')}</StripBtn> : null} />
             )}
 
-            {view === 'schedule' && (
+            {shownView === 'schedule' && (
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
@@ -1998,7 +2000,7 @@ function attendance28(rec, days) {
                 fits"): the week's practices with their S&C, who was at each, and
                 what was done. The calendar, the next game and the microcycle stay
                 on SCHEDULE. */}
-            {view === 'practices' && (
+            {shownView === 'practices' && (
               <>
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
                 {/* fixtures={bhbcFixtures} was MISSING, and the prop defaults to []
@@ -2030,23 +2032,23 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {view === 'roster' && (
+            {shownView === 'roster' && (
               <>
                 <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} onOpen={setDetailFor}
                   action={!asCoach ? <StripBtn onClick={() => setManageOpen(true)}>{tr('Manage roster')}</StripBtn> : null} />
               </>
             )}
 
-            {view === 'games' && (
+            {shownView === 'games' && (
               <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
                 bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />
             )}
 
-            {view === 'activity' && !asCoach && (
+            {shownView === 'activity' && !asCoach && (
               <ActivityView activity={activity} tr={tr} he={he} />
             )}
 
-            {view === 'medical' && (
+            {shownView === 'medical' && (
               <MedicalView roster={roster} rows={rows} loads={bhbcLoads} medical={medical} canMedical={effCanMedical} onLog={canLog ? ((aid) => setLogFor(aid)) : null} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 

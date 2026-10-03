@@ -1178,6 +1178,24 @@ function AuthedApp() {
     ? (initRoute.tab || 'dashboard')
     : (STAFF_TABS.includes(initRoute.tab) ? initRoute.tab : 'dashboard');
   const [tab,setTab]=useState(isCoach ? coachInitialTab : "client");
+  // the view area reads the tab directly: a deferred copy (useDeferredValue) was
+  // measured 4.10 #529 at 4x CPU - the screen arrived ~100 ms LATER on every tab
+  const viewTab = tab;
+  // THE NEXT SCREEN IS ALREADY HERE (4.10 #529): every coach view is its own
+  // chunk, fetched on the FIRST tap - Programs measured ~500ms and Exercises ~1s
+  // at a phone's CPU. Once the coach app is up, the views are fetched one per
+  // idle slot (never more than one at a time, never on Save-Data), so the first
+  // tap on a tab finds its code parsed and waiting.
+  useEffect(() => {
+    if (!isCoach || typeof window === 'undefined') return undefined;
+    try { if (navigator.connection && navigator.connection.saveData) return undefined; } catch { /* */ }
+    const loaders = [() => import('./PlansView'), () => import('./TraineesView'), () => import('./ExercisesView'), () => import('./SessionsView'), () => import('./WorkoutReview'), () => import('./CoachTasksView'), () => import('./BillingView'), () => import('./BhbcView'), () => import('./TraineeDetail'), () => import('./WorkoutsView')];
+    let i = 0, cancelled = false, h = 0;
+    const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1200));
+    const next = () => { if (cancelled || i >= loaders.length) return; const f = loaders[i++]; f().catch(() => {}).finally(() => { if (!cancelled) h = idle(next); }); };
+    const start = setTimeout(() => { h = idle(next); }, 2500);   // after the first screen has had its turn
+    return () => { cancelled = true; clearTimeout(start); try { if (window.cancelIdleCallback) window.cancelIdleCallback(h); else clearTimeout(h); } catch { /* */ } };
+  }, [isCoach]);
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [previewPlan,setPreviewPlan]=useState(initRoute.planPreviewId || null);
@@ -1989,19 +2007,19 @@ function AuthedApp() {
               throwing away the editor's just-set editMode and dumping the coach
               back on the programs list. tab + trainee already reset a stuck
               recovery card on navigation. */}
-          <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}`} inline>
+          <ErrorBoundary key={`${viewTab}:${selectedTrainee||''}:${previewTrainee||''}`} inline>
           {/* a page switch fades in (opacity only: a transform here would trap every
               fixed overlay inside the view; 30.9 #461) */}
-          <div key={`mv:${tab}:${selectedTrainee||''}`} className="motion-view">
-          {tab==="dashboard"&&<DashboardView dataIncomplete={dataIncomplete} isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTraineeMessages={id=>navTo("trainees",id,"messages")} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
-          {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
-          {tab==="intake"&&<IntakeView trainees={trainees}/>}
-          {tab==="chatAudit"&&<ChatAuditView/>}
-          {tab==="smartImport"&&<SmartImportView/>}
-          {tab==="trainees"&&!selectedTrainee&&<TraineesView dataIncomplete={dataIncomplete} trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
-          {tab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
-          {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail key={selectedTrainee} trainee={selectedTrainee} trainees={trainees} bhbcLoads={bhbcLoads} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} setBwLog={setBwLog} portalVis={portalVis} setPortalVis={setPortalVisSynced} presence={presence} onBack={()=>navTo("trainees")}/>}
-          {(tab==="exercises"||tab==="exerciseMatching"||tab==="exerciseClassify"||tab==="exerciseCleanup")&&(
+          <div key={`mv:${viewTab}:${selectedTrainee||''}`} className="motion-view">
+          {viewTab==="dashboard"&&<DashboardView dataIncomplete={dataIncomplete} isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTraineeMessages={id=>navTo("trainees",id,"messages")} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
+          {viewTab==="waitlist"&&<WaitlistView trainees={trainees}/>}
+          {viewTab==="intake"&&<IntakeView trainees={trainees}/>}
+          {viewTab==="chatAudit"&&<ChatAuditView/>}
+          {viewTab==="smartImport"&&<SmartImportView/>}
+          {viewTab==="trainees"&&!selectedTrainee&&<TraineesView dataIncomplete={dataIncomplete} trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
+          {viewTab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
+          {viewTab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail key={selectedTrainee} trainee={selectedTrainee} trainees={trainees} bhbcLoads={bhbcLoads} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} setBwLog={setBwLog} portalVis={portalVis} setPortalVis={setPortalVisSynced} presence={presence} onBack={()=>navTo("trainees")}/>}
+          {(viewTab==="exercises"||viewTab==="exerciseMatching"||viewTab==="exerciseClassify"||viewTab==="exerciseCleanup")&&(
             <div>
               {/* Exercises hub: Library + its two maintenance tools (Matching,
                   Classify) live here as sub-tabs instead of separate Athletes ▾
@@ -2009,31 +2027,31 @@ function AuthedApp() {
                   control grammar. Deep-link routes still resolve to each tab. */}
               <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
-                  const on=tab===r;
+                  const on=viewTab===r;
                   return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{tb(l)}</button>;
                 })}
               </div>
-              {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}
-              {tab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
-              {tab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
-              {tab==="exerciseCleanup"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseCleanupView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {viewTab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}
+              {viewTab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {viewTab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {viewTab==="exerciseCleanup"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseCleanupView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
             </div>
           )}
-          {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}
-          {tab==="reviewTools"&&isOwner&&<ReviewToolsView clientWorkouts={clientWorkouts} trainees={trainees}/>}
-          {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
-          {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVisSynced} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
-          {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts}/>}
-          {tab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
-          {tab==="bugs"&&<BugsView/>}
-          {tab==="challenges"&&<ChallengesView trainees={trainees} clientWorkouts={clientWorkouts} bwLog={bwLog} />}
-          {tab==="calendar"&&<BookingView trainees={trainees} />}
-          {tab==="billing"&&<BillingView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} />}
+          {viewTab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}
+          {viewTab==="reviewTools"&&isOwner&&<ReviewToolsView clientWorkouts={clientWorkouts} trainees={trainees}/>}
+          {viewTab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
+          {viewTab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVisSynced} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
+          {viewTab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts}/>}
+          {viewTab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
+          {viewTab==="bugs"&&<BugsView/>}
+          {viewTab==="challenges"&&<ChallengesView trainees={trainees} clientWorkouts={clientWorkouts} bwLog={bwLog} />}
+          {viewTab==="calendar"&&<BookingView trainees={trainees} />}
+          {viewTab==="billing"&&<BillingView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} />}
           {/* Sessions = owner-only TRIAL. The tab is hidden for staff (not in
               STAFF_TABS) and the URL guard redirects non-owners; this isOwner
               gate is belt-and-suspenders so it can never render for anyone but
               Ohad. Athletes never reach the coach app at all. */}
-          {(tab==="sessions"||tab==="sessionsSolo")&&isOwner&&<SessionsView mode={tab==="sessionsSolo"?"single":"group"} trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
+          {(viewTab==="sessions"||viewTab==="sessionsSolo")&&isOwner&&<SessionsView mode={viewTab==="sessionsSolo"?"single":"group"} trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
           </div>
           </ErrorBoundary>
         </Suspense>

@@ -4859,7 +4859,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
                         title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, minHeight: 0, minWidth: 0, padding: '0 8px', background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 32, minHeight: 0, minWidth: 0, padding: '0 8px', background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}>
                         +{row.earlier.length}
                         <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
                       </button>
@@ -4867,8 +4867,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {vk && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis({ ...portalVis, [vk]: !isVis }); }} aria-pressed={isVis}
                         title={tr(readLang(), isVis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
-                        className="prog-phone-switch" style={{ width: 32, height: 18, minHeight: 0, minWidth: 0, borderRadius: 9, border: 'none', padding: 0, background: isVis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
-                        <span style={{ width: 14, height: 14, borderRadius: 7, background: isVis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: isVis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                        className="prog-phone-switch" style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                        {/* the tap area is 44x32 (touch minimum); the switch drawn inside is 32x18 */}
+                        <span aria-hidden style={{ width: 32, height: 18, borderRadius: 9, background: isVis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
+                          <span style={{ width: 14, height: 14, borderRadius: 7, background: isVis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: isVis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                        </span>
                       </button>
                     )}
                   </span>
