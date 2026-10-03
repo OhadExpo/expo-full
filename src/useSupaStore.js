@@ -721,7 +721,7 @@ export function useSupaStore(key, initial) {
       const v = pendingRef.current;
       if (v === null || v === undefined) return;
       const b = baseRef.current;
-      try { enqueue({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key }); } catch { /* best effort */ }
+      try { enqueue({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key, critical: true }); } catch { /* best effort */ }
     };
     try {
       document.addEventListener('visibilitychange', onVisible);
@@ -756,9 +756,11 @@ export function useSupaStore(key, initial) {
         pendingRef.current = null;
         inflightRef.current = toWrite;
         const b = baseRef.current;
+        const startedAt = Date.now();
         const fail = (err) => {
           if (isTransient(err)) {
-            enqueue({ type: 'store.upsert', payload: { key, value: toWrite, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key });
+            // critical: this entry is the only durable copy of an offline edit (4.10 audit)
+            enqueue({ type: 'store.upsert', payload: { key, value: toWrite, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key, critical: true });
           } else {
             console.warn(`useSupaStore[${key}] save error:`, err?.message || err);
             emitSaveError({ key, op: 'save', msg: err?.message || 'save failed' });
@@ -767,6 +769,12 @@ export function useSupaStore(key, initial) {
         try {
           // CAS on the base this value was built on; merged if the row moved (#510-B1)
           const r = await storeWriteMerged(key, toWrite, b.known ? b.at : undefined, b.val);
+          // A QUEUED SAVE OF THIS KEY IS NOW HISTORY (4.10 #524 audit): this value was
+          // built on the screen's data, which already carries the queued edit. Left
+          // in the queue, the old value replayed on the next drain and the merge kept
+          // its stale leaves ("mine wins") - x=1 came back over x=2, a deleted row
+          // returned. Only entries queued BEFORE this write started are dropped.
+          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
           baseRef.current = { known: true, at: r.at, val: r.val };
           persistBase(key, r.at, r.val);
           if (r.val !== toWrite && !deepEqual(r.val, toWrite)) {
