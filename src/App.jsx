@@ -1187,7 +1187,9 @@ function AuthedApp() {
   // idle slot (never more than one at a time, never on Save-Data), so the first
   // tap on a tab finds its code parsed and waiting.
   useEffect(() => {
-    if (!isCoach || typeof window === 'undefined') return undefined;
+    // a BHBC club seat opens one screen (the club zone, already loaded) - fetching
+    // every coach screen for it was ~30 requests it can never use (4.10 perf audit)
+    if (!isCoach || isBhbcCoach || typeof window === 'undefined') return undefined;
     try { if (navigator.connection && navigator.connection.saveData) return undefined; } catch { /* */ }
     const loaders = [() => import('./PlansView'), () => import('./TraineesView'), () => import('./ExercisesView'), () => import('./SessionsView'), () => import('./WorkoutReview'), () => import('./CoachTasksView'), () => import('./BillingView'), () => import('./BhbcView'), () => import('./TraineeDetail'), () => import('./WorkoutsView')];
     let i = 0, cancelled = false, h = 0;
@@ -1195,7 +1197,7 @@ function AuthedApp() {
     const next = () => { if (cancelled || i >= loaders.length) return; const f = loaders[i++]; f().catch(() => {}).finally(() => { if (!cancelled) h = idle(next); }); };
     const start = setTimeout(() => { h = idle(next); }, 2500);   // after the first screen has had its turn
     return () => { cancelled = true; clearTimeout(start); try { if (window.cancelIdleCallback) window.cancelIdleCallback(h); else clearTimeout(h); } catch { /* */ } };
-  }, [isCoach]);
+  }, [isCoach, isBhbcCoach]);
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [previewPlan,setPreviewPlan]=useState(initRoute.planPreviewId || null);
