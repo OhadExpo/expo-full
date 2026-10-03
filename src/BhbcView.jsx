@@ -3286,47 +3286,143 @@ function TravelStrip({ travel }) {
 // the actions themselves. Nothing is derived from session dates — every line is
 // stamped with the moment the action happened (see bhbcActivity.js).
 function ActivityView({ activity = [], tr, he }) {
+  // THE TRAIL, REDESIGNED (4.10 #531, Ohad: "activity page on bhbc awfully
+  // designed redo it all perfectly"). Measured at 390 before: every entry was
+  // two lines and a label column (~70px), the date written twice in two forms
+  // ("28/09/2026" in the text, "28 SEP 17:49" under it) and nothing grouped by
+  // day. Now: the team as a table, and the changes as a day-by-day timeline -
+  // one line an entry (time | kind colour | what | who), repeats folded, a
+  // filter by kind, older entries on request. The data is unchanged.
   const list = Array.isArray(activity) ? activity : [];
   const people = peopleSeen(list, 30);
+  const [kindF, setKindF] = useState('all');
+  const [shown, setShown] = useState(80);
   const KIND = { open: tr('Signed in'), session: tr('Sessions'), checkin: tr('Check-in'), medical: tr('Medical'), game: tr('Games'), plan: tr('Session plan'), schedule: tr('Schedule'), edit: tr('Edit') };
-  const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
-  // ONE ROW PER RUN OF THE SAME THING (2.10 #511): twenty-seven "opened the club
-  // zone" rows in a row buried every real change. Consecutive entries with the
-  // same kind, words and person fold into one, "x27", at the newest time.
-  const groups = [];
-  for (const e of list.slice(0, 120)) {
-    const prev = groups[groups.length - 1];
+  const KIND_INK = { open: C.tm, session: FX_COLOR.lift, checkin: '#37B27C', medical: '#DE4E3B', game: ORANGE, plan: SC_COLOR, schedule: FX_COLOR.practice, edit: C.td };
+  const lbl = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm };
+  const kinds = Object.keys(KIND).map((k) => [k, list.filter((e) => e && e.kind === k).length]).filter(([, n]) => n > 0);
+  const filtered = kindF === 'all' ? list : list.filter((e) => e && e.kind === kindF);
+  // local day of an entry, and the day header's words
+  const dayOf = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : localISO(d); };
+  const today = todayISO();
+  const yday = daysAgoISO(1);
+  const dayHead = (d) => (d === today ? `${tr('Today')} · ${dow(d)} ${monDay(d)}` : d === yday ? `${tr('Yesterday')} · ${dow(d)} ${monDay(d)}` : `${dow(d)} ${monDay(d)}`);
+  const hhmm = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  // the session date inside the text reads like every other date in the zone ("28 Sep")
+  const words = (w) => String(tr(w || ''))
+    .replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, (m, y, mo, d) => monDay(`${y}-${mo}-${d}`))
+    .replace(/\b(\d\d)\/(\d\d)\/(20\d\d)\b/g, (m, d, mo, y) => monDay(`${y}-${mo}-${d}`))
+    .replace(/(\d) (min|in|kg|AU)\b/gi, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0');
+  // THE TRAIL IN HEBREW (4.10 #533): the zone writes its lines in English (one
+  // shape per action), and inside a Hebrew page they scrambled ("MIN 45 · באוק׳
+  // LOGGED A LIFT ON 2"). Each shape is said again in his register, the date as
+  // the zone writes dates, the parts joined with " · " so no preposition guesses.
+  const dIso = (x) => { const n = String(x).match(/(20\d\d)-(\d\d)-(\d\d)/); const m = String(x).match(/(\d\d)\/(\d\d)\/(20\d\d)/); return n ? monDay(n[0]) : m ? monDay(`${m[3]}-${m[2]}-${m[1]}`) : x; };
+  const FX_HE = { practice: 'אימון', game: 'משחק', shootaround: 'זריקות', scrimmage: 'משחק אימון', session: 'אימון', lift: 'הרמה' };
+  const HE_WHAT = [
+    [/^opened the club zone$/, () => 'נכנס לאזור המועדון'],
+    [/^added an athlete to the club roster$/, () => 'הוסיף שחקן לסגל'],
+    [/^took an athlete off the club roster$/, () => 'הוציא שחקן מהסגל'],
+    [/^set an athlete as a ghost$/, () => 'סימן שחקן כלא נספר'],
+    [/^counted a ghost athlete again$/, () => 'החזיר שחקן לספירה'],
+    [/^added a new athlete to the club roster$/, () => 'הוסיף שחקן חדש לסגל'],
+    [/^logged a session$/, () => 'רשם אימון'],
+    [/^updated a medical record$/, () => 'עדכן רשומה רפואית'],
+    [/^edited a session on (.+)$/, (m) => `ערך אימון · ${dIso(m[1])}`],
+    [/^deleted a session on (.+)$/, (m) => `מחק אימון · ${dIso(m[1])}`],
+    [/^logged a lift on (\S+) · (\d+) min$/, (m) => `רשם הרמה · ${dIso(m[1])} · ${m[2]} דק׳`],
+    [/^logged the practice and an S&C session on (\S+)(?: (\d\d:\d\d))? · (\d+) min · (\d+) in$/, (m) => `רשם אימון וכוח קבוצתי · ${dIso(m[1])}${m[2] ? ` ${m[2]}` : ''} · ${m[3]} דק׳ · ${m[4]} נכחו`],
+    [/^saved the readiness check-in for (.+)$/, (m) => `שמר צ׳ק-אין מוכנות · ${dIso(m[1])}`],
+    [/^updated a game on (.+)$/, (m) => `עדכן משחק · ${dIso(m[1])}`],
+    [/^(changed|added) a slot on (.+)$/, (m) => `${m[1] === 'added' ? 'הוסיף' : 'שינה'} אימון בלוח · ${dIso(m[2])}`],
+    [/^(cancelled|restored) the (\S*) ?(\S+) on (.+)$/, (m) => `${m[1] === 'cancelled' ? 'ביטל' : 'החזיר'} ${FX_HE[m[3]] || m[3]}${m[2] ? ` ${m[2]}` : ''} · ${dIso(m[4])}`],
+    [/^removed a slot on (.+)$/, (m) => `הסיר אימון מהלוח · ${dIso(m[1])}`],
+    [/^logged game minutes for (\S+)(?: · (\d+) marked out that day played)?$/, (m) => `רשם דקות משחק · ${dIso(m[1])}${m[2] ? ` · ${m[2]} סומנו כלא זמינים ושיחקו` : ''}`],
+  ];
+  const say = (w) => {
+    if (!he) return words(w);
+    const raw = String(w || '');
+    for (const [re, f] of HE_WHAT) { const m = raw.match(re); if (m) return f(m).replace(/(\d) (דק׳)/g, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0'); }
+    return words(w);
+  };
+  // one row per run of the same thing, inside a day (#511 folded across days)
+  const days = [];
+  for (const e of filtered.slice(0, shown)) {
+    if (!e) continue;
+    const d = dayOf(e.at);
+    let day = days[days.length - 1];
+    if (!day || day.d !== d) { day = { d, rows: [] }; days.push(day); }
+    const prev = day.rows[day.rows.length - 1];
     if (prev && prev.kind === e.kind && prev.what === e.what && prev.by === e.by) prev.n += 1;
-    else groups.push({ ...e, n: 1 });
+    else day.rows.push({ ...e, n: 1 });
   }
-  // a number never parts from its unit or from the dot before it ("... 45 / MIN")
-  const keepTogether = (t) => t.replace(/(\d) (min|in|kg|AU)\b/gi, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0');   // both sides: "2026 · 45 MIN" moves as one, no dot left hanging
+  const band = { display: 'flex', alignItems: 'center', minHeight: 32, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` };
   return (
     <>
       <Card padding={14} leftStripe={NAVY} header={secTitle('Who has been in, last 30 days')}>
         {people.length === 0
-          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
-          : people.map((p) => (
-            <div key={p.by} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '9px 0', borderBottom: `1px solid ${C.cardBd}` }}>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, unicodeBidi: 'isolate', flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }} title={p.by}>{byName(p.by) || p.by /* the same name the change list uses (#305 N-E7) */}</span>
-              <span style={{ ...lbl, flexShrink: 0 }}>{p.n} {p.n === 1 ? tr('action') : tr('actions')}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0 }}>{whenText(p.at, he)}</span>
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
+          : <>
+            <div className="bhbc-act-people bhbc-act-head" style={{ ...band, borderTop: 'none', marginTop: -14, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12 }}>
+              <span style={lbl}>{tr('Person')}</span>
+              <span style={{ ...lbl, textAlign: 'center' }}>{tr('Actions')}</span>
+              <span style={{ ...lbl, textAlign: 'end' }}>{tr('Last seen')}</span>
             </div>
-          ))}
+            <div className="hl-rows">
+              {people.map((p) => (
+                <div key={p.by} className="bhbc-act-people" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12, alignItems: 'center', minHeight: 40 }}>
+                  <span title={p.by} style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{byName(p.by) || p.by}</span>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.n}</span>
+                  <span style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'end', whiteSpace: 'nowrap' }}>{whenText(p.at, he)}</span>
+                </div>
+              ))}
+            </div>
+          </>}
       </Card>
       <Card padding={14} leftStripe={ORANGE} header={secTitle('What changed')}>
         {list.length === 0
-          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
-          : <div className="bhbc-list">{groups.map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', minHeight: 36, boxSizing: 'border-box' /* a row is never under the control height (OCD #494: 29) */, borderBottom: i < groups.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-              <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{keepTogether(String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1'))}{e.n > 1 && <span dir="ltr" style={{ ...lbl, marginInlineStart: 8, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}</span>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
+          : <>
+            {/* the filter: one 36px control a kind, its count beside the word */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 12 }}>
+              {[['all', tr('All'), list.length], ...kinds.map(([k, n]) => [k, KIND[k], n])].map(([k, label, n]) => {
+                const on = kindF === k;
+                return (
+                  <button key={k} type="button" aria-pressed={on} onClick={() => { setKindF(k); setShown(80); }} className="bhbc-ghost-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 'var(--btn-h)', minHeight: 0, padding: '0 12px', boxSizing: 'border-box', border: `1px solid ${on ? NAVY : C.cardBd}`, background: on ? `color-mix(in srgb, ${NAVY} 10%, transparent)` : 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm }}>
+                    {k !== 'all' && <span aria-hidden style={{ width: 8, height: 8, boxSizing: 'border-box', background: k === 'open' ? 'transparent' : (KIND_INK[k] || C.tm), border: k === 'open' ? `1.5px solid ${C.tm}` : 'none', flexShrink: 0 }} />}   /* signed in = hollow: it is presence, not a change */
+                    {label}<span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+                  </button>
+                );
+              })}
             </div>
-          ))}</div>}
-        {/* the trail keeps everything; the card shows the newest 120 and SAYS so (#305 N-O2) */}
-        {list.length > 120 && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, paddingTop: 8 }}>{tr('+{n} older changes not shown').replace('{n}', list.length - 120)}</div>}
+            {days.map((day) => (
+              <div key={day.d || 'x'}>
+                <div style={band}><span dir="auto" style={{ ...lbl, color: C.tx }}>{day.d ? dayHead(day.d) : '—'}</span></div>
+                <div className="hl-rows">
+                  {day.rows.map((e, i) => (
+                    <div key={i} className="bhbc-act-row" style={{ display: 'grid', gridTemplateColumns: '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 40, padding: '11px 0', boxSizing: 'border-box' }}>
+                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
+                      <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'center' }} />
+                      <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
+                        {say(e.what)}
+                        {e.n > 1 && <span dir="ltr" style={{ ...lbl, marginInlineStart: 8, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
+                      </span>
+                      <span className="bhbc-act-by" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{e.by ? byName(e.by) : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {filtered.length > shown && (
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+                <button type="button" onClick={() => setShown((n) => n + 120)} className="bhbc-ghost-btn"
+                  style={{ height: 'var(--btn-h)', minHeight: 0, padding: '0 16px', border: `1px solid ${C.cardBd}`, background: 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>
+                  {tr('Show older')} <span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{filtered.length - shown}</span>
+                </button>
+              </div>
+            )}
+          </>}
       </Card>
     </>
   );
