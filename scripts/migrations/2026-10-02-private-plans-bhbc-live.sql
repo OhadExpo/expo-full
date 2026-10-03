@@ -1,3 +1,4 @@
+-- APPLIED 3.10 via Supabase MCP; client private:true in 8a0c8e12. scripts/verify-live-channels-private.mjs 12/12.
 -- 2026-10-02  #510-A4   (security round 1, 2.10)   APPLY TOGETHER WITH THE CLIENT CHANGE BELOW
 --
 -- 'plans-live' (the program editor -> open previews) and 'bhbc-live' (the club

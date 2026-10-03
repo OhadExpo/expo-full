@@ -1,3 +1,4 @@
+-- APPLIED 3.10 via Supabase MCP (as below). The presence policies the leak scan still listed are fixed in 2026-10-03-audit-round-db.sql.
 -- 2026-10-02  #510-A1 + #510-A5   (security round 1, 2.10)
 --
 -- A1. THE LIKE-WILDCARD PREFIX LEAK, EVERYWHERE IT IS STILL OPEN.
@@ -80,7 +81,8 @@ END $$;
 CREATE OR REPLACE FUNCTION public.coach_messages_athlete_edit_guard() RETURNS trigger
 LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
-  IF public.is_staff() THEN RETURN NEW; END IF;
+  -- server-side jobs (service role / the database owner) and staff edit freely (3.10)
+  IF coalesce(auth.role(), '') = 'service_role' OR current_user IN ('postgres', 'supabase_admin') OR public.is_staff() THEN RETURN NEW; END IF;
   IF (to_jsonb(NEW) - 'read_at') IS DISTINCT FROM (to_jsonb(OLD) - 'read_at') THEN
     RAISE EXCEPTION 'an athlete may only mark a message read' USING ERRCODE = '42501';
   END IF;
