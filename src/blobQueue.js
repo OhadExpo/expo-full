@@ -316,7 +316,8 @@ export async function drainBlobs() {
     // Only attempt blobs whose workout has been attached. Unattached blobs
     // belong to in-progress workouts not yet finished — drainBlobs() runs
     // again on the next trigger (or is invoked explicitly post-finish).
-    const ready = queue.filter(e => e.workoutId && e.exerciseIndex != null);
+    // a clip resting after repeated transient failures waits out its backoff (4.10)
+    const ready = queue.filter(e => e.workoutId && e.exerciseIndex != null && !(e.nextTryAt && e.nextTryAt > Date.now()));
     for (const entry of ready) {
       try {
         // Supabase hard-rejects objects >= 50MB (413, project-wide free-plan
@@ -427,6 +428,20 @@ export async function drainBlobs() {
           continue; // next entry — don't burn retries on a doomed upload
         }
         if (!isAuth) cur.attempts = (cur.attempts || 0) + 1;
+        // A TRANSIENT FAILURE NEVER COSTS THE CLIP (4.10 #524 audit): five failures
+        // on a weak gym signal (~2.5 min with the app open) deleted the 10-40MB
+        // video for good. Past MAX_ATTEMPTS it now RESTS on the device and is tried
+        // again with a growing backoff (30 s .. 30 min); only a permanent rejection
+        // (above) or the 50MB cap drops it. The athlete is told it is still waiting.
+        if (cur.attempts >= MAX_ATTEMPTS && !permanent) {
+          const waitMs = Math.min(30 * 60 * 1000, 30 * 1000 * 2 ** Math.min(10, cur.attempts - MAX_ATTEMPTS));
+          cur.nextTryAt = Date.now() + waitMs;
+          await writeEntry(cur);
+          if (cur.attempts === MAX_ATTEMPTS) {
+            try { window.dispatchEvent(new CustomEvent('expo-blob-failed', { detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'retrying-later', msg } })); } catch {}
+          }
+          break;
+        }
         if (cur.attempts >= MAX_ATTEMPTS) {
           await deleteEntry(entry.id);
           if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath }, msg }); } catch {} }
