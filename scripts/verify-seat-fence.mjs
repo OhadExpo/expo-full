@@ -102,7 +102,6 @@ const KNOWN_BYPASSES = {
   'src/App.jsx': [1, 'expo-bhbc-roster projection, inside `if (!isOwner) return`'],
   'src/ClientPortal.jsx': [1, "the athlete's own expo-presence-<id> row, the one write the seat is allowed"],
   'src/SessionsView.jsx': [2, 'expo-gym-session, the coach-only live floor (1 upsert in writeNow + 1 delete)'],
-  'src/WaitlistView.jsx': [1, 'expo-lead-notes, owner-only waitlist'],
 };
 const re = /from\(['"]store['"]\)\s*\.\s*(upsert|insert|update|delete)\(/g;
 const found = {};
