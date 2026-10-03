@@ -307,7 +307,42 @@ if (!staticOnly) {
   // its own (start_at now, no contact_name, status busy) and passed on that.
   // The real rule - only a slot the coach offers, at his duration, within his
   // horizon - is #510-A2 (a create_booking RPC); until it lands this says so.
-  check('A16', 'anon can only book a slot the coach offers (#510-A2)', () => ({ ok: false, why: 'OPEN #510-A2: bookings_public_insert does not check status / duration / slot / horizon (create_booking RPC not applied yet)' }));
+  // Applied 3.10 (2026-10-02-bookings-only-offered-slots): the policy calls
+  // booking_slot_is_offered(). Proven from the anon seat both ways - the rule
+  // ACCEPTS the coach's real next slot (so the page still books) and REFUSES an
+  // off-grid one; then an anon INSERT of that off-grid slot must be denied.
+  check('A16', 'anon can only book a slot the coach offers (#510-A2)', async () => {
+    const st = await anon('coach_booking_settings?select=coach_email,duration_min,buffer_min&limit=1');
+    const cs = Array.isArray(st.body) && st.body[0];
+    if (!cs) return { ok: false, why: 'cannot read coach_booking_settings as anon (HTTP ' + st.status + ') - the booking page could not either' };
+    const ru = await anon('availability_rules?select=day_of_week,start_time&coach_email=eq.' + encodeURIComponent(cs.coach_email) + '&limit=1');
+    const rule = Array.isArray(ru.body) && ru.body[0];
+    if (!rule) return { ok: false, why: 'no availability rule readable as anon' };
+    // the next date (2..15 days out) on the rule's weekday, at its start, Jerusalem civil time
+    let on = null;
+    for (let i = 2; i < 16 && !on; i++) {
+      const d = new Date(Date.now() + i * 86400000);
+      const civil = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).formatToParts(d);
+      const get = (t) => (civil.find((x) => x.type === t) || {}).value;
+      const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
+      if (dow !== rule.day_of_week) continue;
+      const [hh, mm] = String(rule.start_time).split(':').map(Number);
+      // Jerusalem is UTC+2/+3: find the UTC instant whose Jerusalem civil time is hh:mm that day
+      for (const off of [2, 3]) {
+        const t = new Date(Date.UTC(+get('year'), +get('month') - 1, +get('day'), hh - off, mm));
+        const back = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false }).format(t);
+        if (back === `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`) { on = t; break; }
+      }
+    }
+    if (!on) return { ok: false, why: 'could not place the next slot of the rule' };
+    const off = new Date(on.getTime() + 20 * 60000);
+    const ask = async (at) => (await anon('rpc/booking_slot_is_offered', { method: 'POST', body: JSON.stringify({ p_coach: cs.coach_email, p_start: at.toISOString(), p_duration: cs.duration_min }) })).body;
+    const real = await ask(on), bad = await ask(off);
+    if (real !== true) return { ok: false, why: 'the rule REFUSES the real slot of the coach ' + on.toISOString() + ' - the booking page would be broken (' + JSON.stringify(real) + ')' };
+    if (bad !== false) return { ok: false, why: 'the rule ACCEPTS an off-grid slot ' + off.toISOString() + ' (' + JSON.stringify(bad) + ')' };
+    const ins = await anonWriteDenied('bookings', { coach_email: cs.coach_email, contact_name: '[security-audit probe]', start_at: off.toISOString(), duration_min: cs.duration_min, status: 'confirmed', source: 'public' });
+    return { ok: ins.ok, why: 'real slot offered, off-grid refused by the rule; anon off-grid insert: ' + ins.why };
+  });
   check('A17', 'anon cannot insert booking settings', () => anonWriteDenied('coach_booking_settings', {
     coach_email: '__sec_audit__@example.com',
   }));

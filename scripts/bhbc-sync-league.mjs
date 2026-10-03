@@ -288,7 +288,7 @@ function playerLine(c) {
   console.log('OK — expo-bhbc-league written.');
   // Broadcast so any open BHBC zone refetches instantly (shared-sheet feel).
   try {
-    const bch = supabase.channel('bhbc-live');
+    const bch = supabase.channel('bhbc-live', { config: { private: true } });
     await new Promise((res) => { bch.subscribe((s) => { if (s === 'SUBSCRIBED') res(); }); setTimeout(res, 4000); });
     await bch.send({ type: 'broadcast', event: 'change', payload: { src: 'league-sync' } });
     console.log('broadcast sent.');

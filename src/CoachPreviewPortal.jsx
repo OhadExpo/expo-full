@@ -77,7 +77,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   // athlete-view reflects edits live. Read-only, so there's nothing to clobber.
   useEffect(() => {
     let disposed = false;
-    const ch = supabase.channel('plans-live', { config: { broadcast: { self: false } } });
+    const ch = supabase.channel('plans-live', { config: { private: true, broadcast: { self: false } } });
     ch.on('broadcast', { event: 'plan-changed' }, ({ payload }) => {
       if (disposed || !payload) return;
       const hitPlan = planId && payload.planId === planId;

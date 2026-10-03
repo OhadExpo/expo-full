@@ -2186,7 +2186,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     let disposed = false;
     import('./supabase').then(({ supabase }) => {
       if (disposed) return;
-      const ch = supabase.channel('plans-live', { config: { broadcast: { self: false } } });
+      const ch = supabase.channel('plans-live', { config: { private: true, broadcast: { self: false } } });
       ch.on('broadcast', { event: 'plan-changed' }, ({ payload }) => {
         if (disposed || !payload || payload.editorId === editorIdRef.current) return;
         if (planRef.current && payload.planId === planRef.current.id) setRemoteEdit(true);
