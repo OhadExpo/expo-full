@@ -32,12 +32,13 @@ const PERIOD_OFFLINE_MS = 10000;   // ...and sooner while it is not: "as soon as
 const MIN_GAP_MS = 2000;           // failed-fetch probes are coalesced to this
 
 let probeUrl = null;
+let probeHeaders = null;
 let state = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : 'online';
 let lastProbeAt = 0;
 let inflight = null;
 const listeners = new Set();
 
-export function setProbeUrl(url) { probeUrl = url; }
+export function setProbeUrl(url, headers = null) { probeUrl = url; probeHeaders = headers; }
 
 export function getState() { return state; }
 
@@ -76,7 +77,7 @@ export function probeNow() {
   const started = Date.now();
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = setTimeout(() => { try { ctl && ctl.abort(); } catch { /* noop */ } }, PROBE_TIMEOUT_MS);
-  inflight = fetch(probeUrl, { method: 'GET', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+  inflight = fetch(probeUrl, { method: 'GET', cache: 'no-store', headers: probeHeaders || undefined, signal: ctl ? ctl.signal : undefined })
     .then((r) => {
       const took = Date.now() - started;
       setState(r.status >= 500 || took > SLOW_MS ? 'degraded' : 'online');

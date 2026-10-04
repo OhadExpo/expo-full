@@ -678,7 +678,9 @@ Fix each. Strict JSON only.`;
         const bad = [];
         result.items = [];
         validated.forEach((v, idx) => { if (v.errors.length) bad.push({ idx, v }); else result.items.push(v.item); });
-        result.errors = bad.map(({ idx, v }) => ({ rowIdx: idx, msg: v.errors.join('; ') }));
+        // the model's OWN skipped-row errors stay (5.10 review S4); only the repair
+        // pass's subset-indexed notes are replaced by this authoritative list
+        result.errors = (Array.isArray(result.errors) ? result.errors : []).filter((e) => !/^repair-failed/.test(String(e && e.msg))).concat(bad.map(({ idx, v }) => ({ rowIdx: idx, msg: v.errors.join('; ') })));
         result.rejected = bad.map(({ idx, v }) => ({ rowIdx: idx, item: v.item, msg: v.errors.join('; ') }));
         if (bad.length) result.warnings = (result.warnings || []).concat([`${bad.length} row(s) held back: they failed the schema check and will NOT be written.`]);
       }

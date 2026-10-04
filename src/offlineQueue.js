@@ -240,7 +240,22 @@ export async function drain(opts) {
       // FIFO among the entries that are not resting after a failure; an entry
       // whose backoff has not elapsed is left in place and the rest go on.
       const now = Date.now();
-      const next = q.find((e) => force || !(e.nextTryAt && e.nextTryAt > now));
+      // ...but never past a resting entry for the SAME ROW (5.10 review N1): an
+      // upsert waiting out its backoff, then a delete of that workout run first,
+      // then the upsert lands and the deleted workout is back. Same table + same
+      // row (or store key / body-weight filter) = keep their order.
+      const rowOf = (e) => {
+        const p = (e && e.payload) || {};
+        const id = p.id || (p.row && (p.row.id || (p.row.client_id && p.row.date && `${p.row.client_id}|${p.row.date}`))) || p.key || p.k || (p.filter && JSON.stringify(p.filter));
+        return id ? `${String(e.type || '').split('.')[0]}:${id}` : null;
+      };
+      const blocked = new Set();
+      const next = q.find((e) => {
+        const resting = !force && e.nextTryAt && e.nextTryAt > now;
+        const rk = rowOf(e);
+        if (resting) { if (rk) blocked.add(rk); return false; }
+        return !(rk && blocked.has(rk));
+      });
       if (!next) {
         scheduleRetry(Math.min(...q.map((e) => e.nextTryAt)) - now);
         break;

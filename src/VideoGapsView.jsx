@@ -26,7 +26,7 @@ import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, ChipGrid, baseInput } from './ui';
 import { StoredVideo } from './StoredMedia';
 import { supabase } from './supabase';
-import { savePlan, planFromRow } from './usePlansStore';
+import { savePlan, lastWrittenAt, planFromRow } from './usePlansStore';
 import { rankGaps, candidatesFor, applyVideoToPlanData } from './videoGaps';
 import { checkLink, markCurrent, missingAthletes, dryRun, setLibraryVideo, undoVerdict, unknownDataKeys, chunk, linksToCheck, deadRows } from './videoGapsApply';
 import { normTitle } from './exerciseMatch';
@@ -231,7 +231,7 @@ export default function VideoGapsView({ exercises = [], setExercises, exercisesL
             const ok = await savePlan({ ...planFromRow(row), days: applied.data.days || [], warmup: applied.data.warmup || [] });
             if (!ok) r = { status: 'failed' };
             else {
-              const { data: after } = await supabase.from('plans').select('updated_at').eq('id', g.planId).maybeSingle();
+              const after = { updated_at: lastWrittenAt(g.planId) };   // the version WE wrote, not a re-read (5.10 review N6)
               r = { status: 'saved', changed: applied.changed };
               record.plans.push({ planId: g.planId, athlete: g.athlete, block: g.block, writtenAt: after && after.updated_at, before: { days: (row.data && row.data.days) || [], warmup: (row.data && row.data.warmup) || [] } });
             }

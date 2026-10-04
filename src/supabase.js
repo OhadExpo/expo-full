@@ -266,11 +266,26 @@ if (typeof window !== 'undefined' && window.sessionStorage && window.localStorag
 const FETCH_TIMEOUT_READ_MS = 20000;
 const FETCH_TIMEOUT_WRITE_MS = 10000;
 const FETCH_TIMEOUT_UPLOAD_MS = 60000;
+// A BUDGET THAT GROWS WITH THE BODY (5.10 review B1/S2): a flat 60 s cut every
+// 34 MB clip on weak gym LTE (it needs ~4.5 Mbps to finish in 60 s) and the
+// queue retried it forever, each try cut at 60 s again; a flat 10 s did the same
+// to a 1-2 MB store write on a 3G uplink. Now the budget is the flat floor OR
+// the time the body needs at 25 KB/s (~200 kbps, a poor uplink), whichever is
+// longer - a slow upload that is moving finishes, a dead socket still ends.
+const UPLINK_FLOOR_BPS = 25 * 1024;
+const bodyBytes = (b) => {
+  if (!b) return 0;
+  if (typeof b === 'string') return b.length;
+  if (typeof b.size === 'number') return b.size;          // Blob / File
+  if (typeof b.byteLength === 'number') return b.byteLength;  // ArrayBuffer / typed array
+  return 0;
+};
 const fetchBudgetFor = (url, init) => {
   const method = String((init && init.method) || 'GET').toUpperCase();
-  if (/\/storage\/v1\/(object|upload)\//.test(url) && method !== 'GET' && method !== 'HEAD') return FETCH_TIMEOUT_UPLOAD_MS;
+  const need = Math.ceil((bodyBytes(init && init.body) / UPLINK_FLOOR_BPS) * 1000);
+  if (/\/storage\/v1\/(object|upload)\//.test(url) && method !== 'GET' && method !== 'HEAD') return Math.max(FETCH_TIMEOUT_UPLOAD_MS, need);
   if (/\/rest\/v1\//.test(url) && (method === 'GET' || method === 'HEAD')) return FETCH_TIMEOUT_READ_MS;
-  return FETCH_TIMEOUT_WRITE_MS;
+  return Math.max(FETCH_TIMEOUT_WRITE_MS, need);
 };
 const timedFetch = (input, init) => {
   const url = typeof input === 'string' ? input : (input && input.url) || '';
@@ -289,11 +304,12 @@ const timedFetch = (input, init) => {
     (e) => { clearTimeout(t); noteFailure(); throw e; },   // a caller's own timeout is a failure too
   );
 };
-// The probe carries no key on purpose: a key in the URL trips the S25 gate (no
-// token in a URL, ever) and a key header costs a CORS preflight. Without one
-// the gateway answers 401 - and an answer from sb-gateway IS the proof that
-// Supabase can be reached (measured: 401 in ~40 ms with sb-gateway-version).
-setProbeUrl(`${SUPA_URL}/auth/v1/health`);
+// The probe sends the public key as a HEADER, never in the URL (the S25 gate:
+// no token in a URL, ever). Keyless, the gateway answered 401 - reachable, but a
+// red "Failed to load resource" in the console every 30 s, which the
+// console-clean sweeps read as an error (5.10 review N3). Keyed it answers 200;
+// the CORS preflight the header costs is cached for an hour (max-age 3600).
+setProbeUrl(`${SUPA_URL}/auth/v1/health`, { apikey: SUPABASE_ANON_KEY });
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -311,6 +327,18 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // token's hour booted into the login screen with a perfectly good refresh token
 // in storage. auth.jsx uses this to keep the last known person signed in while
 // the server cannot be reached; the real refresh lands the moment it can.
+// FORGET THIS DEVICE'S SESSION, WITH OR WITHOUT A NETWORK (5.10 review S3).
+// supabase-js signOut({scope:'local'}) returns early - token still stored - when
+// it cannot reach the server; with the offline boot, the next start on dead
+// wifi signed the person who had just signed out straight back in (a shared
+// gym phone). The token, its sessionStorage copy and the refresh cookie go here.
+export function forgetStoredSession() {
+  try { if (authStorage) authStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* storage blocked */ }
+  try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* noop */ }
+  try { sessionStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* noop */ }
+  cookieDel(REFRESH_COOKIE);
+}
+
 export function readStoredSession() {
   try {
     const raw = authStorage ? authStorage.getItem(AUTH_TOKEN_KEY) : null;

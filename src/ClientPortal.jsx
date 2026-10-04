@@ -1305,7 +1305,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // the 50 MB cap it uploads as is; over it the queue says so) rather than
     // waiting a clip's length for the encode. Kept current below as the blob,
     // extension and path are decided.
-    const inflight = { blob: file, contentType, ext, path: null, abort: null, handedOff: null };
+    // COMPLETE WAITS FOR THE ENCODE, NEVER FOR THE NETWORK (5.10 review B2): a
+    // Complete tapped mid-encode used to hand the ORIGINAL file to the queue -
+    // over 50 MB it was dropped there as too large, under it a raw iPhone clip
+    // went up uncompressed. Now finish() awaits `compressDone` (compression runs
+    // on the phone, no network involved) and hands the compressed clip over.
+    // `settled` resolves when this upload ends either way, with where the clip
+    // went - finish() awaits it only for a clip the queue could not take (S1).
+    let compressResolve = null, settleResolve = null;
+    const inflight = { blob: file, contentType, ext, path: null, abort: null, handedOff: null, compressing: false,
+      compressDone: new Promise((r) => { compressResolve = r; }), settled: new Promise((r) => { settleResolve = r; }), cloudUrl: null, pendingBlobId: null };
     inflightRef.current[exIdx] = inflight;
     const handedToQueue = () => Object.assign(new Error('handed to the offline queue'), { handedOff: inflight.handedOff });
 
@@ -1327,6 +1336,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const shouldCompress = compressionAvailable && file.size > 15 * 1024 * 1024;
 
       if (shouldCompress) {
+        inflight.compressing = true;
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'compress'}; return n; });
         // Compression runs at REAL TIME (playbackRate=1 — speeding it up bakes
         // fast-motion into the output), so a 120s clip needs ~120s to encode. A
@@ -1378,8 +1388,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
         }
       }
-      if (inflight.handedOff) throw handedToQueue();
       inflight.blob = uploadBlob; inflight.ext = ext; inflight.contentType = contentType; inflight.abort = null;
+      inflight.compressing = false; compressResolve();
+      if (inflight.handedOff) throw handedToQueue();
 
       // FINAL size gate — whatever we're about to ship (compressed or original
       // after a compression failure/timeout) must clear the 50MB server cap,
@@ -1446,6 +1457,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // Switch the video element to the cloud URL BEFORE revoking the preview
       // blob — otherwise the next replay would try to re-fetch a dead blob URL
       // and the video would silently disappear from the player.
+      inflight.cloudUrl = publicUrl;
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, videoUrl:publicUrl, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null, pendingBlobId:null}; return n; });
       URL.revokeObjectURL(previewUrl);
     } catch(err) {
@@ -1491,6 +1503,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         try {
           const blobId = newBlobId();
           await enqueueBlob({ id: blobId, blob: uploadBlob, contentType, storagePath: path });
+          inflight.pendingBlobId = blobId;
           if (isAuth) toast('Session expired — sign back in. Your video is saved and will upload once you do.', 'warn', { ttl: 9000 });
           // Keep previewUrl alive — it's the only way to play the recording
           // until the blob queue uploads it. Browser GC reclaims it when the
@@ -1521,6 +1534,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
       toast(`Video upload failed: ${msg}\nTry again or pick a shorter clip.`, 'error', { ttl: 7000 });
     } finally {
+      inflight.compressing = false; compressResolve();
+      settleResolve({ cloudUrl: inflight.cloudUrl, pendingBlobId: inflight.pendingBlobId });
       if (inflightRef.current[exIdx] === inflight) delete inflightRef.current[exIdx];
     }
   };
@@ -1572,7 +1587,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // workout row is saved at once with that pointer; the queue uploads the
     // clip when it can and patches the row. Only a device that cannot keep the
     // blob (IndexedDB refused) lets the upload run on.
+    // a clip still being ENCODED finishes its encode first (B2): on the phone,
+    // no network involved - then the compressed clip is what the queue gets
+    for (const inf of Object.values(inflightRef.current)) {
+      if (inf && inf.compressing && inf.compressDone) { try { await inf.compressDone; } catch { /* resolved either way */ } }
+    }
     const handed = {};
+    const unhanded = {};
     for (const [k, inf] of Object.entries(inflightRef.current)) {
       const i = Number(k);
       if (!inf || inf.handedOff || !inf.blob) continue;
@@ -1584,19 +1605,28 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         handed[i] = blobId;
         try { if (inf.abort) inf.abort(); } catch { /* already settled */ }
       } catch (e) {
-        try { console.warn('[logger] could not hand the clip to the queue - the upload runs on:', e?.message || e); } catch { /* no console */ }
+        // the device could not keep the clip (private mode, storage full): the
+        // upload is the only copy, so Complete waits for it (5.10 review S1) -
+        // saving the row without it left the video in storage with nothing
+        // pointing at it
+        try { console.warn('[logger] could not hand the clip to the queue - waiting for its upload:', e?.message || e); } catch { /* no console */ }
+        if (inf.settled) unhanded[i] = inf.settled;
       }
+    }
+    const landed = {};
+    for (const [k, p] of Object.entries(unhanded)) {
+      try { const r = await p; if (r && r.cloudUrl) landed[k] = r.cloudUrl; else if (r && r.pendingBlobId) handed[k] = r.pendingBlobId; } catch { /* the upload's own catch reported it */ }
     }
     // Carry pendingBlobId on each form_video entry so the blob queue can find
     // and patch this workout once the upload eventually succeeds. Only the
     // athlete's own fields: the coach's (reviewNotes…) are merged from the
     // SERVER copy at write time (upsertWorkoutRow), never from this device's.
     const formVideos = fv.map((f, i) => ({
-      has: f.has || !!handed[i],
+      has: f.has || !!handed[i] || !!landed[i],
       note: f.note,
       fileName: f.fileName || null,
-      cloudUrl: f.cloudUrl || null,
-      pendingBlobId: handed[i] || f.pendingBlobId || null,
+      cloudUrl: f.cloudUrl || landed[i] || null,
+      pendingBlobId: landed[i] ? null : (handed[i] || f.pendingBlobId || null),
     }));
     // Attach the now-known workout id to each queued blob, then poke the
     // drainer in case we're online.
@@ -1984,7 +2014,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           a clip still in flight is handed to the blob queue by finish() and the
           row saves at once. The athlete is told the clip follows on its own. */}
       {fv.some(f => f.uploading) && (
-        <div dir="auto" data-upload-background style={{marginBottom:12,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{tt('Video uploading in the background — you can keep going.')}</div>
+        <div dir="auto" data-upload-background style={{marginBottom:12,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{fv.some(f => f.uploading && f.phase === 'compress') ? tt('Preparing your video on the phone — Complete waits for it, then the upload carries on in the background.') : tt('Video uploading in the background — you can keep going.')}</div>
       )}
       {(
         <>

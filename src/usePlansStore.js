@@ -282,6 +282,10 @@ const remember = (plan, at) => {
   if (inLineage(m, plan)) { m.seen.add(at); m.at = at; return; }
   lastSavedAt.set(plan.id, { seen: new Set([plan.updatedAt, at].filter(Boolean)), at });
 };
+// The version THIS device last wrote for a plan (5.10 review N6): a caller that
+// needs it (the Videos screen's undo) reads it here instead of re-reading the
+// row, which could return a newer save by someone else.
+export const lastWrittenAt = (planId) => { const m = lastSavedAt.get(planId); return m ? m.at : null; };
 const readPlanLangHe = () => { try { return (localStorage.getItem('expo-lang') || '') === 'he' || document.documentElement.lang === 'he'; } catch { return false; } };
 
 export async function savePlan(plan) {

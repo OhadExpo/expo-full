@@ -2306,7 +2306,8 @@ function drawScene3D(canvas, scene) {
 // the hand and hip paths and true 3D joint angles. three.js is ~600KB, so it
 // loads only when a 3D view opens; until then - and on a device with no WebGL -
 // the light canvas Viewer3D below shows the same skeleton.
-const Replay3D = React.lazy(() => import('./Replay3D'));
+// a stale tab after a deploy cannot fetch the old chunk: fall back to the canvas viewer, never a crash (5.10 review N5)
+const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable(p) { React.useEffect(() => { if (p.onUnsupported) p.onUnsupported(); }, [p]); return null; } })));
 function ThreeDPanel({ frames, playheadT = null }) {
   const [fallback, setFallback] = useState(false);
   if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;

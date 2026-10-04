@@ -1202,6 +1202,10 @@ function attendance28(rec, days) {
     if (Number(newMin) <= 0 && cur && !attendanceRow) { toast('Minutes must be more than 0 — delete the session instead'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
+      // the signature is checked again on the LIVE row (5.10 review N4): a merge
+      // that shifted the day's indexes between the click and here must not move
+      // or edit a different session
+      if (sig != null && sessionSig(rec.sessions[date][idx]) !== sig) return prev;
       const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
       const arr = [...out.sessions[date]];
       const s = { ...arr[idx] };

@@ -994,6 +994,7 @@ export const HE = {
   'Expiring Packages': 'חבילות שנגמרות',
   'Block ending': 'בלוק מסתיים',
   'Vimeo': 'Vimeo',
+  'Preparing your video on the phone — Complete waits for it, then the upload carries on in the background.': 'מכין את הסרטון בטלפון — הסיום מחכה לזה, ואז ההעלאה ממשיכה ברקע.',
   'New Leads': 'פניות חדשות',
   Expiring: 'נגמרת',
   'Never trained': 'אף פעם לא התאמן',
@@ -2830,6 +2831,18 @@ export const HE = {
   "Couldn't load programs:": 'לא הצלחנו לטעון תוכניות:',
   'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates, filling missing videos.':
     'דמו בלבד — באפליקציה המלאה זה פותח את כלי הספרייה: התאמת כותרות שלא זוהו, סיווג מרוכז, ניקוי כפילויות והשלמת סרטונים חסרים.',
+  // 5.10 #554 Smart Import: a program sheet read directly, matched, sent to an athlete
+  'Read directly - no AI': 'ישר מהגיליון, בלי AI',
+  'Read by AI': 'דרך AI',
+  'PROGRAM IMPORT': 'ייבוא תוכנית',
+  'PROGRAM PREVIEW': 'תצוגת התוכנית',
+  'Pick an athlete': 'תבחר מתאמן',
+  'Pick a library match for every exercise first.': 'קודם תבחר התאמה מהספרייה לכל תרגיל.',
+  'Pick the athlete first.': 'קודם תבחר מתאמן.',
+  'Not matched': 'בלי התאמה',
+  'Linked automatically': 'קושר אוטומטית',
+  'Create new': 'תרגיל חדש',
+  'Library match': 'בספרייה',
 };
 
 /** Translate one label; falls back to the English so a missing key renders

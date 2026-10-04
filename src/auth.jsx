@@ -2,7 +2,7 @@
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase, AUTH_TOKEN_KEY, reviveSession, readStoredSession } from './supabase';
+import { supabase, AUTH_TOKEN_KEY, reviveSession, readStoredSession, forgetStoredSession } from './supabase';
 import { setQueueUser } from './offlineQueue';
 import { getState as netState, subscribe as subscribeNet, probeNow } from './connectivity';
 import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
@@ -383,7 +383,12 @@ export function AuthProvider({ children, clientList }) {
     // the phone dropped to the sign-in screen within the hour, mid-edit. The
     // scripts learned this on 29.9 ({scope:'local'}); the app had not. Local
     // still ends this device's session on the server.
-    try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* the phone is already clean */ }
+    // the server call ends this device's session online; it can hang on the
+    // auth lock or return early offline, so it gets 5 s - and the stored token
+    // is forgotten either way (5.10 review S3: offline it stayed, and the
+    // offline boot signed the same person back in)
+    try { await Promise.race([supabase.auth.signOut({ scope: 'local' }), new Promise((r) => setTimeout(r, 5000))]); } catch { /* the phone is cleaned below */ }
+    forgetStoredSession();
     purgeLocalCaches();
     try { setQueueUser(null); } catch {}
   };
