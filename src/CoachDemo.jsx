@@ -2654,9 +2654,9 @@ function DemoPrograms({ resetToken = 0 }) {
                         </span>
                         <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                           <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
-                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{cur.dayCount}{heL ? ' ימים' : 'D'} · {cur.exerciseCount}{heL ? ' תרגילים' : ' EX'}</span>
+                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap', flexBasis: heL ? '100%' : undefined }}>{cur.dayCount}{heL ? ' ימים' : 'D'} · {cur.exerciseCount}{heL ? ' תרגילים' : ' EX'}</span>
                         </span>
-                        <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 16 }}>
+                        <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 }}>
                           {row.earlier.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 16, minWidth: 44, margin: '-1px 0', padding: '0 7px', boxSizing: 'border-box', background: 'rgba(127,127,138,0.16)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">+{row.earlier.length}</bdi><span aria-hidden style={{ fontSize: 8, lineHeight: 1 }}>▾</span></span>}
                         </span>
                         <span style={{ gridColumn: 3, gridRow: '1 / span 2', alignSelf: 'center', display: 'inline-flex' }}>

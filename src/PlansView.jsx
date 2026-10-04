@@ -4862,18 +4862,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
                   style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', columnGap: 14, rowGap: 5, alignItems: 'center', minHeight: 56, paddingBlock: 10, paddingInlineStart: 12, paddingInlineEnd: 4, boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
                   {/* the whole name, always: a word is never cut (his rule) - a long one takes a second line */}
-                  <span style={{ gridColumn: 1, gridRow: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, minHeight: 18 }}>
-                    <bdi style={{ fontWeight: 700, fontSize: 14, lineHeight: '18px', color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>{row.name}</bdi>
-                    <BhbcBadge tid={row.tid} trainees={trainees} />
+                  <span style={{ gridColumn: 1, gridRow: 1, display: 'block', minWidth: 0, minHeight: 18, lineHeight: '18px' }}>
+                    <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi>
+                    {/* inline after the LAST word: in a flex row it sat at the far end once a long name wrapped */}
+                    <span style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                   </span>
                   <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull))} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                   </span>
                   <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap', flexBasis: he ? '100%' : undefined /* Hebrew: always its own line - beside the name it fitted on some rows and not others */ }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
                   </span>
-                  <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 16 }}>
+                  <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 /* on the program line */ }}>
                     {row.earlier.length > 0 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
                         title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
