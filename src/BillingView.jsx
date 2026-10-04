@@ -44,7 +44,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
   // two do not fit side by side (the section runs the same useStripFit)
   const reqPending = requests.filter(r => r.status === 'pending').length;
   const newReqBtn = (
-    <button onClick={() => setShowRequest(true)}
+    <button onClick={() => setShowRequest(true)} className="strip-btn-stacks"
       style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
   );
   const PAD = 14;

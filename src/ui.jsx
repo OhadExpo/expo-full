@@ -42,6 +42,19 @@ export function StripCaret({ open, color = 'var(--c-stripTx)', size = 11 }) {
 // mount-time check found no strip and never looked again), so the observer is
 // (re)attached whenever the strip element itself changes, checked after every
 // render - a ref compare, nothing measured unless something changed.
+// A LIST SETTLES IN ONCE (4.10 #539 review): the stagger class stays on only for
+// the list's first paint. React re-inserts a row it moves (drag, re-sort, a new
+// entry on top), which restarts a CSS animation - with the class gone it just moves.
+export function useSettleIn(ready = true, ms = 700) {
+  const [done, setDone] = React.useState(false);
+  React.useEffect(() => {
+    if (!ready || done) return undefined;
+    const t = setTimeout(() => setDone(true), ms);
+    return () => clearTimeout(t);
+  }, [ready, done, ms]);
+  return done ? '' : 'motion-stagger';
+}
+
 export function useStripFit(active, stripRef, titleRef, rightRef, extra = 0, deps = []) {
   const [stacked, setStacked] = React.useState(false);
   const rightW = React.useRef(0);

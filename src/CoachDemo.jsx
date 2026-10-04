@@ -394,6 +394,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
   // the real cards' collapse carets + expanders (29.9 #448)
   const [tasksOpen, setTasksOpen] = useState(true);
   const [msgsOpen, setMsgsOpen] = useState(true);
+  const [onlineOpen, setOnlineOpen] = useState(true);
   const [answeredOpen, setAnsweredOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(true);
   const [rosterFilter, setRosterFilter] = useState('');
@@ -447,7 +448,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         {/* every tile carries a caption, as the real dashboard's do (27.9 #300 O9) */}
         {/* the real tiles' words (DashboardView): short titles where a phone's
             half-width tile would wrap, the real captions in the real grey */}
-        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} sub={T('of {n} on the roster').replace('{n}', MOCK_TRAINEES.length)} accent={C.gn} />
+        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} sub={T('of {n} on the roster').replace('{n}', MOCK_TRAINEES.length)} subShort={T('of {n}').replace('{n}', MOCK_TRAINEES.length)} accent={C.gn} />
         <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
         <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
         <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={`${deltaTxt} ${T('vs last month')}`} subShort={deltaTxt} subColor={deltaCol} accent={C.gn} />
@@ -594,10 +595,12 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
           full-width card above Messages */}
       {onlineNow.length > 0 && (
         <div className="alert-card alert-sev" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
-          <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 8px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
+          {/* collapsible like the real card (4.10 #540): the strip is the handle */}
+          <div className="title-strip" onClick={() => setOnlineOpen((o) => !o)} {...stripToggleProps(onlineOpen, () => setOnlineOpen((o) => !o))} style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: onlineOpen ? '-14px -18px 8px' : '-14px -18px -14px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>
+            <StripCaret open={onlineOpen} />
           </div>
-          {onlineNow.map(t => (
+          {onlineOpen && onlineNow.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.gn, boxShadow: `0 0 4px ${C.gn}`, flexShrink: 0 }} />
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -1340,6 +1343,15 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
 // cyan strip header (white title, cyan hairline bottom) over an sf body, so
 // the demo athlete-detail reads like the real TraineeDetail instead of the
 // old two-column key/value panels.
+// A demo strip that toggles its card is a button to the keyboard too, as the real
+// CollapsibleSection's strip (role, focus, Enter/Space) - 4.10 #540 review
+function stripToggleProps(open, flip) {
+  return {
+    role: 'button', tabIndex: 0, 'aria-expanded': open,
+    onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } },
+  };
+}
+
 function DemoDetailCard({ header, headerRight, children, padding = 18, style, collapsible = true }) {
   const pad = padding;
   // The strip is the expand/collapse handle, as the real TraineeDetail's
@@ -1347,7 +1359,7 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style, co
   // Roster cards). A control in the strip does its own job and never toggles.
   const [open, setOpen] = useState(true);
   const canToggle = collapsible && !!header;
-  const body = canToggle && !open ? null : children;
+  const shown = !canToggle || open;
   const onStripClick = canToggle ? (e) => {
     const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label, [role="button"], [role="switch"], [role="checkbox"], [role="tab"]');
     if (hit && e.currentTarget.contains(hit)) return;
@@ -1357,11 +1369,11 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style, co
   return (
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: pad, ...style }}>
       {header && (
-        <div onClick={onStripClick} aria-expanded={canToggle ? open : undefined} style={{
+        <div onClick={onStripClick} {...(canToggle ? stripToggleProps(open, () => setOpen((o) => !o)) : {})} style={{
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
           // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
           // A collapsed card is header-only, so it closes up the same way.
-          margin: `-${pad}px -${pad}px ${body ? 12 : -pad}px`,
+          margin: `-${pad}px -${pad}px ${shown && children ? 12 : -pad}px`,
           // The real strip's box (RefinedHeaderStrip): one 41px height, the
           // title centred in it. 8px padding made these 36px and their titles
           // rode 1-2px low (26.9, #215).
@@ -1380,7 +1392,7 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style, co
           ) : <div style={{ display: 'flex', alignItems: 'center' /* no 16px strut line under a 13px title: it sat 1-2px low (#460 rhythm) */, color: '#FFFFFF' }}>{header}</div>}
         </div>
       )}
-      {body}
+      {children != null && <div hidden={!shown} style={shown ? { display: 'contents' } : undefined /* no box: the card lays its children out as before */}>{children}</div>}
     </div>
   );
 }
@@ -4026,7 +4038,7 @@ function DemoReview() {
               real strip (#376): at 760 and under the plan name + week boxes -
               said again in the cards below - step aside, exactly as
               WorkoutReview's .wr-strip-repeat does. */}
-          <div className="cd-rv-strip title-strip" onClick={() => setClosedGroups((m) => ({ ...m, [gk]: gOpen }))} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
+          <div className="cd-rv-strip title-strip" onClick={() => setClosedGroups((m) => ({ ...m, [gk]: gOpen }))} {...stripToggleProps(gOpen, () => setClosedGroups((m) => ({ ...m, [gk]: gOpen })))} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'nowrap', gap: 8, minWidth: 0, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
               <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}><bdi>{isHeb(data.name) ? data.name : data.name.toUpperCase()}</bdi> ({data.workouts.length})</span>
               <span className="cd-rv-repeat" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>

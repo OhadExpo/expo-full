@@ -14,7 +14,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -3292,6 +3292,7 @@ function TravelStrip({ travel }) {
 // the actions themselves. Nothing is derived from session dates — every line is
 // stamped with the moment the action happened (see bhbcActivity.js).
 function ActivityView({ activity = [], tr, he }) {
+  const settle = useSettleIn(activity.length > 0);
   // THE TRAIL, REDESIGNED (4.10 #531, Ohad: "activity page on bhbc awfully
   // designed redo it all perfectly"). Measured at 390 before: every entry was
   // two lines and a label column (~70px), the date written twice in two forms
@@ -3405,7 +3406,7 @@ function ActivityView({ activity = [], tr, he }) {
             {days.map((day) => (
               <div key={day.d || 'x'}>
                 <div style={band}><span dir="auto" style={{ ...lbl, color: C.tx }}>{day.d ? dayHead(day.d) : '—'}</span></div>
-                <div className="hl-rows motion-stagger">
+                <div className={`hl-rows ${settle}`}>
                   {day.rows.map((e, i) => (
                     <div key={i} className="bhbc-act-row" style={{ display: 'grid', gridTemplateColumns: '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 40, padding: '10px 0', boxSizing: 'border-box' }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
@@ -5023,6 +5024,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
 
 function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, onOpen, action = null }) {
   const tr = useT();
+  const settle = useSettleIn((rows || []).length > 0);
   // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
   // first, the league feed only for a player with none - and never a league
   // number from a season that is over (the Games tab shows those as last
@@ -5054,7 +5056,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     );
     return (
       <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
-        <div className="hl-rows motion-stagger" style={{ display: 'grid' }}>
+        <div className={`hl-rows ${settle}`} style={{ display: 'grid' }}>
           {rows.map(({ t, acwr, att }) => {
             const inj = worstInjury(medical, t.id);
             const injShort = !inj ? null : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;

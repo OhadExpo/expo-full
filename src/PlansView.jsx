@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -3946,6 +3946,7 @@ function BhbcBadge({ tid, trainees }) {
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const tt = useAppT();
+  const settle = useSettleIn(!!(planIndex && planIndex.length));
   const tb = useTB();
   const he = useHe();
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
@@ -4827,7 +4828,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
       {displayGrouped && displayGrouped.length > 0 && progView === 'table' && phoneList && (
-        <div className="prog-phone-list motion-stagger" style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+        <div className={`prog-phone-list ${settle}`} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
           {displayGrouped.map((row, ri) => {
             const top = ri === 0 ? 'none' : `1px solid ${C.cardBd}`;
             if (row.orphan) {

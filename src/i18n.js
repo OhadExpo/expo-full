@@ -588,6 +588,7 @@ export const HE = {
   'Less': 'פחות',
   'Active / roster': 'פעילים / בסגל',
   'of {n} on the roster': 'מתוך {n} בסגל',
+  'of {n}': 'מתוך {n}',
   '2 or fewer sessions left': 'נותרו 2 אימונים או פחות',
   '≤2 sessions left': 'נותרו 2 או פחות',
   'Recurring': 'מנויים',
