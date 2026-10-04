@@ -521,6 +521,23 @@ registerHandler('weekly_focus.upsert', async ({ k, v }) => {
 
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
 // on network failure so the UI isn't stuck empty when Supabase is unreachable.
+// ONE MOUNT READ PER KEY AT A TIME (4.10, measured on the head coach's cold load:
+// league x3, loads x3, medical x3, roster x2, fixtures x2 - ~45 KB of the same rows,
+// one read per screen that uses the key). Screens that mount together share the read
+// that is already on the wire; nothing is kept after it lands, so a later mount
+// still reads fresh. Each caller gets its OWN copy of the row.
+const mountReads = new Map();
+function readStoreOnMount(key) {
+  let p = mountReads.get(key);
+  if (!p) {
+    p = Promise.resolve(supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle());
+    mountReads.set(key, p);
+    const done = () => { if (mountReads.get(key) === p) mountReads.delete(key); };
+    p.then(done, done);
+  }
+  return p.then((res) => ({ data: res.data ? structuredClone(res.data) : res.data, error: res.error }));
+}
+
 export function useSupaStore(key, initial) {
   const [data, setData] = useState(() => {
     // Skip synchronous localStorage parse for auth/exercise stores — Supabase is
@@ -586,7 +603,7 @@ export function useSupaStore(key, initial) {
   useEffect(() => {
     (async () => {
       try {
-        const { data: row, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
+        const { data: row, error } = await readStoreOnMount(key);
         if (error) throw error;
         // the base every write from here is built on (#510-B1)
         baseRef.current = { known: true, at: atOf(row), val: row ? row.value : undefined };
