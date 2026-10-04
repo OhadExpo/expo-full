@@ -100,6 +100,7 @@ export const hasAuthPayload = () => {
 import { parseTraineeId } from './traineeUtils';
 import { logAppOpen } from './logAppOpen';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
+import { getState as netState, subscribe as subscribeNet } from './connectivity';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
 import { setSeat } from './seatWrite';
@@ -165,6 +166,8 @@ const BhbcView = lazyReload(() => import('./BhbcView'));
 const ExerciseMatchingView = lazyReload(() => import('./ExerciseMatchingView'));
 const ExerciseClassifyView = lazyReload(() => import('./ExerciseClassifyView'));
 const ExerciseCleanupView = lazyReload(() => import('./ExerciseCleanupView'));
+// Exercises hub -> VIDEOS: library video gaps ranked by who misses them (5.10 #559)
+const VideoGapsView = lazyReload(() => import('./VideoGapsView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazyReload(() => import('./TrySandbox'));
@@ -500,7 +503,12 @@ function BootSplash() {
   const [slow, setSlow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setSlow(true), 10000); return () => clearTimeout(t); }, []);
   const reload = () => {
-    try { if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))); } catch { /* noop */ }
+    // OFFLINE, THE PRECACHE IS THE ONLY COPY OF THE APP (5.10 #560). Deleting
+    // every cache and reloading with no network turns a slow boot into no app
+    // at all - the service worker has nothing left to serve. Clear caches only
+    // when the server can be reached to refill them; offline, just reload.
+    const canRefill = netState() !== 'offline' && (typeof navigator === 'undefined' || navigator.onLine !== false);
+    if (canRefill) { try { if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))); } catch { /* noop */ } }
     window.location.reload();
   };
   return (
@@ -1027,15 +1035,27 @@ function AuthedApp() {
     let cancelled = false;
     setSelfTrainee(undefined);
     setSelfTraineeError(false);
+    // RACED AGAINST THE CACHED IDENTITY (5.10 #560). On a dead wifi this RPC
+    // neither fails nor answers, and the athlete sat on "Loading…" for as long
+    // as the socket stayed open. The cached record is used after 5 s, or the
+    // moment the probe says the server is out of reach; a late answer from the
+    // server still replaces it (and a late "no row" still means not registered).
+    let settled = false;
+    const fromCache = () => { if (cancelled || settled) return; settled = true; setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); };
+    const timer = setTimeout(fromCache, 5000);
+    const unsubNet = subscribeNet((st) => { if (st === 'offline') fromCache(); });
     supabase.rpc('my_trainee')
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) { setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); return; }
+        clearTimeout(timer);
+        if (error) { fromCache(); return; }
+        settled = true;
         setSelfTrainee(data || null);
+        setSelfTraineeError(false);
         rememberSelfTrainee(email, data || null);
       })
-      .catch(() => { if (!cancelled) setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); });
-    return () => { cancelled = true; };
+      .catch(() => { clearTimeout(timer); fromCache(); });
+    return () => { cancelled = true; clearTimeout(timer); unsubNet(); };
   }, [email, storeClientTrainee, isTrainerEmail]);
   const clientTrainee = storeClientTrainee || selfTrainee || null;
   const hasClientRow = !!clientTrainee;
@@ -1157,7 +1177,7 @@ function AuthedApp() {
       }
       // /coach/bhbc/<tab>: the club zone owns the segment after bhbc (27.9).
       if (sub.startsWith('bhbc/')) return { mode:'coach', tab:'bhbc', traineeId:null };
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup','exercise-videos':'exerciseVideos',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -1249,7 +1269,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',exerciseVideos:'exercise-videos',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
     // The club zone writes its own page into the URL (/coach/bhbc/roster);
     // entering the zone must not flatten that back to /coach/bhbc.
     if (newTab === 'bhbc' && /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname)) return;
@@ -2025,14 +2045,15 @@ function AuthedApp() {
           {viewTab==="trainees"&&!selectedTrainee&&<TraineesView dataIncomplete={dataIncomplete} trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
           {viewTab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
           {viewTab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail key={selectedTrainee} trainee={selectedTrainee} trainees={trainees} bhbcLoads={bhbcLoads} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} setBwLog={setBwLog} portalVis={portalVis} setPortalVis={setPortalVisSynced} presence={presence} onBack={()=>navTo("trainees")}/>}
-          {(viewTab==="exercises"||viewTab==="exerciseMatching"||viewTab==="exerciseClassify"||viewTab==="exerciseCleanup")&&(
+          {(viewTab==="exercises"||viewTab==="exerciseMatching"||viewTab==="exerciseClassify"||viewTab==="exerciseCleanup"||viewTab==="exerciseVideos")&&(
             <div>
               {/* Exercises hub: Library + its two maintenance tools (Matching,
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
               <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
-                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
+                {/* VIDEOS (5.10 #559) is owner-only: it writes the library AND athletes' programs */}
+                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup'],...(isOwner?[['exerciseVideos','Videos']]:[])].map(([r,l])=>{
                   const on=viewTab===r;
                   return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{tb(l)}</button>;
                 })}
@@ -2041,6 +2062,8 @@ function AuthedApp() {
               {viewTab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
               {viewTab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
               {viewTab==="exerciseCleanup"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseCleanupView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {/* eL gates every library write in VideoGapsView: a write before the library loaded wiped it once (27.8) */}
+              {viewTab==="exerciseVideos"&&isOwner&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><VideoGapsView exercises={exercises} setExercises={setExercises} exercisesLoaded={eL} trainees={trainees} clientWorkouts={clientWorkouts} isOwner={isOwner}/></ErrorBoundary></Suspense>}
             </div>
           )}
           {viewTab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}

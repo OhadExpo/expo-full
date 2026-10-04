@@ -317,11 +317,10 @@ GOOD OUTPUT (abridged):
     "name": { "source": "Name", "confidence": 0.99 },
     "phone": { "source": "Mobile", "transform": "normalize to +972 E.164", "confidence": 0.95 },
     "goals": { "source": "Goal", "confidence": 0.98 },
-    "injuries": { "source": "Notes", "transform": "treat free-text as injuries; coach can split", "confidence": 0.6 },
     "status": { "source": "Status", "confidence": 0.95 }
   },
   "enumNormalizations": { "status": { "Active": "Active", "": null } },
-  "notes": "Mobile column mixes 0-prefixed and +972; transform normalizes both. 'Notes' is overloaded — mapped to injuries since both sample rows describe physical issues.",
+  "notes": "Mobile column mixes 0-prefixed and +972; transform normalizes both. 'Notes' is free text and is NOT mapped to injuries: a health field is filled only from a column that says it holds injuries.",
   "warnings": ["Empty Status on row 2 — will be left blank."],
   "confidence": 0.9
 }`;
@@ -377,7 +376,9 @@ Wave logs: columns "W1","W2","W3","W4" or "Week 1"…"Week 4" → wk: [w1,w2,...
 
 Set-rep notation in single cell ("3x10","5x5 @ RPE 8"):
 - "3x10" → sets:3, reps:"10" · "3x10-12" → sets:3, reps:"10-12" · "AMRAP" → sets:1, reps:"AMRAP"
-- When uncertain, leave verbatim in reps and put sets:3.`;
+- When uncertain, leave the cell verbatim in reps and leave sets EMPTY ("").
+
+NEVER output a number, set count, load, rep scheme or injury that is not written in that row. A blank cell stays blank (""). The coach fills gaps; you never guess them (5.10 #554).`;
 
 const SYSTEM_PROMPT_REPAIR = `You are EXPO's data-repair engineer. The previous transform pass produced items that failed schema validation. Fix each broken item to satisfy the schema. Strict JSON only:
 {
@@ -385,7 +386,9 @@ const SYSTEM_PROMPT_REPAIR = `You are EXPO's data-repair engineer. The previous 
   "stillBroken": [ { "itemIdx": <number>, "msg": "<short reason>" }, ... ]
 }
 
-For each broken item, look at the schemaErrors message and apply the minimal targeted fix. Don't restructure the whole record. If you can't fix without inventing, push to stillBroken.`;
+For each broken item, look at the schemaErrors message and apply the minimal targeted fix. Don't restructure the whole record. If you can't fix without inventing, push to stillBroken. Never pick an enum value, number or name the row does not contain - blank is allowed, a guess is not.
+
+Every object in "fixed" MUST carry "itemIdx" - the itemIdx of the broken item it fixes, copied exactly. A fix without itemIdx is discarded.`;
 
 const SYSTEM_PROMPT_VISION = `You are EXPO's senior document-OCR + extraction engineer. Coaches send any kind of document — handwritten training-block PDFs, screenshots of Google Sheets, photos of paper notebooks, exported reports. Your job: read the image(s) and turn the data into a CLEAN tabular AOA (array-of-arrays) — exactly the shape a parsed XLSX sheet would produce.
 
@@ -633,16 +636,22 @@ SCHEMA FIELDS:
 ${JSON.stringify(schema.fields, null, 2)}
 
 BAD ITEMS (with their schema errors):
-${JSON.stringify(broken.slice(0, 50), null, 2)}
+${JSON.stringify(broken.slice(0, 50).map((v, itemIdx) => ({ itemIdx, item: v.item, errors: v.errors })), null, 2)}
 
 Fix each. Strict JSON only.`;
           const fix = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_REPAIR, userPrompt: repairUser, maxTokens: 4000 });
           const fixedArr = Array.isArray(fix?.fixed) ? fix.fixed : [];
-          let fi = 0;
-          for (const v of validated) {
-            if (v.errors.length === 0) continue;
-            if (fi < fixedArr.length) { v.item = fixedArr[fi]; v.errors = validateAgainstSchema(fixedArr[fi], target, schema); }
-            fi++;
+          // MATCHED BY itemIdx, NEVER BY POSITION (5.10 #554 audit): one dropped or
+          // reordered fix used to put row 7's repair onto row 6, and every row after
+          // it. A fix that does not name a broken item it belongs to is discarded.
+          const brokenIdx = validated.map((v, i) => (v.errors.length ? i : -1)).filter((i) => i >= 0);
+          let applied = 0;
+          for (const f of fixedArr) {
+            const k = f && Number.isInteger(f.itemIdx) ? f.itemIdx : -1;
+            const vi = brokenIdx[k];
+            if (vi == null) continue;
+            const { itemIdx, ...item } = f;
+            validated[vi].item = item; validated[vi].errors = validateAgainstSchema(item, target, schema); applied++;
           }
           if (Array.isArray(fix?.stillBroken)) {
             for (const sb of fix.stillBroken) {
@@ -651,7 +660,7 @@ Fix each. Strict JSON only.`;
             }
           }
           result.items = validated.map(v => v.item);
-          result.warnings = (result.warnings || []).concat([`Auto-repaired ${fixedArr.length} item(s) that failed initial schema check.`]);
+          result.warnings = (result.warnings || []).concat([`Auto-repaired ${applied} item(s) that failed initial schema check.`]);
         } catch (e) {
           result.warnings = (result.warnings || []).concat([`Repair pass failed: ${e.message}`]);
         }
@@ -660,15 +669,18 @@ Fix each. Strict JSON only.`;
       // beyond the repair batch, or an AI "fix" that still doesn't validate) is
       // reported so the preview shows the real error count and commit can block —
       // never return invalid rows to the client as "0 errors".
+      // AN INVALID ROW IS HELD BACK, NOT WRITTEN (5.10 #554 audit): the Commit
+      // button only checked that there were items, so a row the schema check
+      // still rejected went into the database with the rest. Now `items` holds
+      // only rows that pass; the rest come back in `rejected` with the reason,
+      // so the preview says what was held back and Commit can never write them.
       {
-        result.items = validated.map(v => v.item);
-        const known = new Set((result.errors || []).map(e => e.rowIdx));
-        validated.forEach((v, idx) => {
-          if (v.errors.length && !known.has(idx)) {
-            result.errors = result.errors || [];
-            result.errors.push({ rowIdx: idx, msg: v.errors.join('; ') });
-          }
-        });
+        const bad = [];
+        result.items = [];
+        validated.forEach((v, idx) => { if (v.errors.length) bad.push({ idx, v }); else result.items.push(v.item); });
+        result.errors = bad.map(({ idx, v }) => ({ rowIdx: idx, msg: v.errors.join('; ') }));
+        result.rejected = bad.map(({ idx, v }) => ({ rowIdx: idx, item: v.item, msg: v.errors.join('; ') }));
+        if (bad.length) result.warnings = (result.warnings || []).concat([`${bad.length} row(s) held back: they failed the schema check and will NOT be written.`]);
       }
       res.status(200).json(result);
       return;
