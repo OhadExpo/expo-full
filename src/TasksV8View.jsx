@@ -2888,7 +2888,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 </span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-tm)' }}>{section.rows.length}</span>
               </div>
-              <div style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
+              <div className="motion-stagger" style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (
                   <div key={row.id} className="tv8-board-card"
                     draggable={!isReadOnly(row)}

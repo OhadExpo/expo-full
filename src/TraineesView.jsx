@@ -924,7 +924,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
         // cards are the same height (the action row's marginTop:auto absorbs the
         // slack consistently, keeping internal dividers aligned across the row).
-        <div className="tv-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
+        <div className="tv-cards-grid motion-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
           {filtered.map(t => {
             const couple = isCouple(t);
             const mpc = getMemberPlanCounts(t, planCounts);

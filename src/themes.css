@@ -880,6 +880,20 @@ html {
 @media (prefers-reduced-motion: no-preference) {
   :where(body > div:not(#root):not([data-no-motion])) { animation: expoFadeIn var(--m-base) ease backwards; }
 }
+/* A LIST SETTLES IN (4.10 #539): rows fade in one after another on a list's first
+   paint. OPACITY ONLY (the fixed-overlay trap), capped at 200ms of delay so a long
+   list is never waiting; the reduced-motion kill below/above turns it off. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-stagger > * { animation: expoFadeIn var(--m-base) var(--m-ease) both; }
+  .motion-stagger > :nth-child(2) { animation-delay: 25ms; }
+  .motion-stagger > :nth-child(3) { animation-delay: 50ms; }
+  .motion-stagger > :nth-child(4) { animation-delay: 75ms; }
+  .motion-stagger > :nth-child(5) { animation-delay: 100ms; }
+  .motion-stagger > :nth-child(6) { animation-delay: 125ms; }
+  .motion-stagger > :nth-child(7) { animation-delay: 150ms; }
+  .motion-stagger > :nth-child(8) { animation-delay: 175ms; }
+  .motion-stagger > :nth-child(n+9) { animation-delay: 200ms; }
+}
 @keyframes expoPop { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 @keyframes expoMenu { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 @keyframes expoFadeIn { from { opacity: 0; } to { opacity: 1; } }

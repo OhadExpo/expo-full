@@ -161,10 +161,14 @@ const BModal = ({ children, title, ...rest }) => {
 // uses, and the state is remembered per box so a physio who keeps Medical open
 // and the rest shut finds it that way tomorrow. A card with no header strip has
 // no handle, so it is left alone.
+// A title that carries today's date ("Today · Sun 4 Oct", "Today's sessions ·
+// …") keys on the words before the date, or the key - and the box's remembered
+// state - changed every day.
+const DATED_TITLE = /^(Today(?:'s sessions)?) · .*$/;
 const cardKey = (header) => {
-  if (typeof header === 'string') return header;
+  if (typeof header === 'string') return header.replace(DATED_TITLE, '$1');
   const s = header && header.props && header.props.s;
-  return typeof s === 'string' ? s : '';
+  return typeof s === 'string' ? s.replace(DATED_TITLE, '$1') : '';
 };
 // AN ACTION IN ITS OWN CARD'S STRIP (29.9 #396, Ohad: "i don't need the manage
 // roster, log lift, log sc session to be appearing on all the screens. they
@@ -3401,7 +3405,7 @@ function ActivityView({ activity = [], tr, he }) {
             {days.map((day) => (
               <div key={day.d || 'x'}>
                 <div style={band}><span dir="auto" style={{ ...lbl, color: C.tx }}>{day.d ? dayHead(day.d) : '—'}</span></div>
-                <div className="hl-rows">
+                <div className="hl-rows motion-stagger">
                   {day.rows.map((e, i) => (
                     <div key={i} className="bhbc-act-row" style={{ display: 'grid', gridTemplateColumns: '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 40, padding: '10px 0', boxSizing: 'border-box' }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
@@ -5050,7 +5054,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     );
     return (
       <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
-        <div className="hl-rows" style={{ display: 'grid' }}>
+        <div className="hl-rows motion-stagger" style={{ display: 'grid' }}>
           {rows.map(({ t, acwr, att }) => {
             const inj = worstInjury(medical, t.id);
             const injShort = !inj ? null : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;

@@ -747,7 +747,10 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
             without it hidden buttons (e.g. DELETE rows) stay tab-focusable
             and Enter-activatable while invisible. Empty string = set the
             attribute (React 18 passes unknown attrs through as strings). */}
-        <div style={{ overflow: 'hidden' }} inert={open ? undefined : ''}>
+        {/* the body FADES with the height (4.10 #539, Ohad: "add effects and transitions
+            to anywhere where it fits"): it used to slide open at full opacity. Opacity
+            only - a transform here would trap the fixed overlays inside. */}
+        <div style={{ overflow: 'hidden', opacity: open ? 1 : 0, transition: 'opacity 260ms var(--m-ease, ease)' }} inert={open ? undefined : ''}>
           {/* Rail on the BODY, not the whole section - same reason as Card:
               alongside the title strip it reads as a stripe on the title.
               Ohad: "only next to the white part of the card". */}
