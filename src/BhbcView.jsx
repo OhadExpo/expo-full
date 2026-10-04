@@ -745,7 +745,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [bhbcTheme, setBhbcTheme] = usePersistentState('bhbc-theme', 'light');
   // The activity trail is read and written HERE, not in App: this component
   // only ever mounts inside the club zone, so no athlete seat carries the read.
-  const [activity, setActivity] = useSupaStore('expo-bhbc-activity', []);
+  const [activity, setActivity, activityLoaded] = useSupaStore('expo-bhbc-activity', []);
   const zoneDark = bhbcTheme === 'dark';
   const he = bhbcLang === 'he';
   setBhbcDateLang(bhbcLang);
@@ -768,7 +768,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     setActivity((prev) => appendActivity(prev, { by: currentUser || null, kind, what }));
   }, [setActivity, currentUser]);
   const trackRef = React.useRef(track); trackRef.current = track;
-  useEffect(() => { trackRef.current('open', 'opened the club zone'); }, []);
+  // logged once the feed has LOADED (#547): on mount it raced the read, the write
+  // guard refused it (rightly - it would have replaced the feed with one line), and
+  // a coach opening the zone from a cold start never reached the ACTIVITY tab
+  const openLoggedRef = React.useRef(false);
+  useEffect(() => {
+    if (!activityLoaded || openLoggedRef.current) return;
+    openLoggedRef.current = true;
+    trackRef.current('open', 'opened the club zone');
+  }, [activityLoaded]);
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   // Which already-landed athlete has had their date re-opened for editing in
