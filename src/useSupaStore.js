@@ -717,6 +717,10 @@ export function useSupaStore(key, initial) {
     // copy until the next server change - and build its next write on it.
     const refetch = async () => {
       if (disposed || savingRef.current) return;
+      // the first read is still on the wire: it IS the fresh copy (4.10, the club
+      // zone's refresh on entry fired beside the mount reads and read every key
+      // again - measured on the head coach's cold load)
+      if (!baseRef.current.known && mountReads.has(key)) return;
       const gen = saveGenRef.current;
       try {
         // the version first: a focus on a tab whose stores did not move costs one
