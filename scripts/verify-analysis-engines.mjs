@@ -71,6 +71,7 @@ const suites = [
   'verify-video-gaps-apply.mjs',     // the Videos screen's writes: guarded library setter, dry run, undo only on the version we wrote (5.10 #559)
   'verify-block-ending.mjs',         // the dashboard's BLOCK ENDING card: last week, no next block written, real completion (5.10 #565)
   'verify-pose-stable.mjs',          // the 3D skeleton: one length per bone, L/R flips undone, feet on the floor (5.10 #558)
+  'verify-sheet-parse.mjs',          // Smart Import's direct sheet reader: blank stays blank, superset groups, merges, waves (5.10 #554)
   'verify-medical-out.mjs',          // medicalAvailOn - who is Out on a given DAY; was dead (not in the build) until 29.9 and then caught a real edge
 ];
 

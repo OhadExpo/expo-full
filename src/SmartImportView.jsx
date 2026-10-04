@@ -11,16 +11,30 @@
 //   2. Analyze (per-sheet column → field mapping, AI, with existingContext)
 //   3. Coach reviews / overrides mapping
 //   4. Transform (AI per-row normalization with auto-repair)
-//   5. Coach previews JSON
+//   5. Coach previews (programs: a table per day, see below)
 //   6. Commit to Supabase (dedupe on commit)
-import React, { useState, useMemo, useRef } from 'react';
+//
+// A PROGRAM SHEET IS READ DIRECTLY, NO AI (5.10 #554). The coach's own block
+// sheets - a `#|Day name|Sets|Reps|...` header row per day, hyperlinked videos,
+// a warm-up grid, 1a/1b supersets - are what his ~210 plans were imported from,
+// by a parser that only existed as a CLI. The AI path picked the first 3-cell
+// row as THE header, dropped the links, the warm-up and merged cells, matched
+// exercises by exact lowercase title (so "DB RDL" became a second library entry
+// beside "Dumbbell RDL") and committed the plan to nobody (trainee_id ''). Now
+// such a sheet goes through sheetProgramParse (no AI call, no rate limit, blank
+// stays blank), every title is ranked against the library on suggestMatches'
+// scale (auto-linked only at same-meaning or better, else the coach picks or
+// creates), and the plan is committed to the athlete the coach picks.
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { mergeFilled } from './importMerge';
 import { useT, tr, readLang } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
-import { Btn, Input, Select, Badge, SectionLabel, isRefined5b, toast } from './ui';
+import { Btn, Input, Select, Badge, SectionLabel, isRefined5b, toast, ChipGrid } from './ui';
 import { storeWriteFenced } from './useSupaStore';
+import { normTitle } from './exerciseMatch';
+import { hasDayHeader, parseSheetProgram, buildLibIndex, rankMatches, autoLinkId, guessAthleteId, draftToPlanRow } from './sheetProgramParse';
 
 // AN IMPORT NEVER WRITES OVER WHAT IT COULD NOT READ (4.10 #524 audit): a failed
 // read gave `row` undefined -> [] -> the import upserted ONLY the new rows over the
@@ -182,6 +196,186 @@ function aoaToSheetGrid(aoa, sheetName) {
   return { headers, rows: dataRows, sample: dataRows.slice(0, 6), sheetName };
 }
 
+// An AI-transformed program in the same draft shape the direct reader returns,
+// so both paths share one preview, one matcher and one commit (5.10 #554).
+// Blank stays blank: a missing sets cell is '' (never 3).
+function aiItemToDraft(prog, sheetName) {
+  const days = (prog.days || []).map(d => ({
+    name: d.name || '',
+    exercises: (d.exercises || []).map(ex => ({
+      title: String(ex.title || '').trim(),
+      sets: typeof ex.sets === 'number' ? ex.sets : (parseInt(ex.sets) || ''),
+      reps: ex.reps || '', tempo: ex.tempo || '', rest: ex.rest || '', notes: ex.notes || '',
+      superset: ex.superset || '',
+      ...(Array.isArray(ex.wk) && ex.wk.length ? { wk: ex.wk } : {}),
+    })),
+  }));
+  return { name: prog.programName || sheetName || 'Imported Block', days, warmup: [], weeks: 4, warnings: [] };
+}
+
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return 'link'; } };
+const HE_UI = () => readLang() === 'he';
+const thStyle = { padding: '6px 8px', textAlign: 'start', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' };
+const tdStyle = { padding: '6px 8px', fontFamily: FB, fontSize: 12, color: C.tx, borderBottom: `1px solid ${C.cardBd}`, verticalAlign: 'top' };
+const cardStyle = { background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 };
+const stripStyle = { background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' };
+const metaStyle = { fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' };
+
+function warnText(w) {
+  if (w.code === 'above-first-day') return HE_UI() ? `${w.n === 1 ? 'שורה ממוספרת אחת' : `${w.n} שורות ממוספרות`} מעל היום הראשון לא ${w.n === 1 ? 'יובאה' : 'יובאו'} כתרגיל.` : `${w.n} numbered row${w.n === 1 ? '' : 's'} above the first day ${w.n === 1 ? 'was' : 'were'} not read as an exercise.`;
+  if (w.code === 'unlabelled-columns') return HE_UI() ? `ביום "${w.day}" אין כותרת Sets / Reps, אז העמודות האלה נשארו ריקות.` : `Day "${w.day}" has no Sets / Reps header, so those columns were left blank.`;
+  return '';
+}
+
+// One day of a program as a readable table: what the sheet says, what it will
+// link to. Blanks are blank; an unmatched title is coloured TEXT, never a fill.
+function ProgramDayTable({ day, resOf, libById }) {
+  const tt = useT();
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ ...metaStyle, color: C.tx, marginBottom: 6 }}>{day.name || tt('Day')} · {day.exercises.length}</div>
+      <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}` }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
+          <thead><tr>
+            {['#', 'Exercise', 'Library match', 'Sets', 'Reps', 'Tempo', 'Rest', 'Video'].map(h => <th key={h} style={thStyle}>{tt(h)}</th>)}
+          </tr></thead>
+          <tbody>{day.exercises.map((ex, i) => {
+            const pick = resOf(ex.title);
+            const lib = pick && pick !== 'new' ? libById.get(pick) : null;
+            const open = !pick;
+            const reps = ex.reps !== '' && ex.reps != null ? String(ex.reps) : (Array.isArray(ex.wk) ? ex.wk.join('>') : '');
+            return (
+              <tr key={i}>
+                <td style={{ ...tdStyle, fontFamily: FN, color: C.tm, whiteSpace: 'nowrap' }}>{i + 1}{ex.superset ? <span style={{ color: C.ac, marginInlineStart: 4 }}>{ex.superset}</span> : null}</td>
+                <td style={{ ...tdStyle, color: open ? C.or : C.tx, fontWeight: open ? 700 : 400 }}>{ex.title}</td>
+                <td style={{ ...tdStyle, color: open ? C.or : pick === 'new' ? C.ac : C.tm }}>{open ? tt('Not matched') : pick === 'new' ? tt('New') : (lib ? lib.title : '')}</td>
+                <td style={{ ...tdStyle, fontFamily: FN }}>{ex.sets === '' || ex.sets == null ? '' : String(ex.sets)}</td>
+                <td style={{ ...tdStyle, fontFamily: FN }}>{reps}</td>
+                <td style={{ ...tdStyle, fontFamily: FN }}>{ex.tempo || ''}</td>
+                <td style={{ ...tdStyle, fontFamily: FN }}>{ex.rest || ''}</td>
+                <td style={tdStyle}>{ex.videoUrl ? <a href={ex.videoUrl} target="_blank" rel="noreferrer" style={{ color: C.ac, fontFamily: FN, fontSize: 11 }}>{hostOf(ex.videoUrl)}</a> : ''}</td>
+              </tr>
+            );
+          })}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Every unique title once: auto-linked ones show their match, the rest wait
+// for the coach - one of the top 3 library suggestions, or a new entry.
+function TitleMatchList({ groups, resOf, onPick }) {
+  const tt = useT();
+  const ordered = [...groups].sort((a, b) => (resOf(a.title) ? 1 : 0) - (resOf(b.title) ? 1 : 0));
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {ordered.map(g => {
+        const pick = resOf(g.title);
+        const items = [
+          ...g.ranked.map(m => ({ k: m.ex.id, label: `${m.ex.title} · ${tt(m.why)}`, title: `${m.score}` })),
+          { k: 'new', label: tt('Create new') },
+        ];
+        return (
+          <div key={g.key}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: pick ? C.tx : C.or }}>{g.title}</span>
+              <span style={{ ...metaStyle, letterSpacing: '0.1em' }}>×{g.count}</span>
+              {!pick && <span style={{ ...metaStyle, color: C.or }}>{tt('Not matched')}</span>}
+              {pick && g.auto && pick === g.auto && <span style={{ ...metaStyle, color: C.tm }}>{tt('Linked automatically')}</span>}
+            </div>
+            <ChipGrid items={items} value={pick} onChange={(k) => onPick(g.key, k)} prose cols={items.length} phoneCols={1} ariaLabel={g.title} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function WarmupTable({ warmup }) {
+  const tt = useT();
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ ...metaStyle, color: C.tx, marginBottom: 6 }}>{tt('Warm-up')} · {warmup.length}</div>
+      <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}` }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
+          <thead><tr>{['Exercise', 'Prescription', 'Video'].map(h => <th key={h} style={thStyle}>{tt(h)}</th>)}</tr></thead>
+          <tbody>{warmup.map((w, i) => (
+            <tr key={i}>
+              <td style={tdStyle}>{w.t}</td>
+              <td style={{ ...tdStyle, fontFamily: FN }}>{w.rx || ''}</td>
+              <td style={tdStyle}>{w.vid ? <a href={w.vid} target="_blank" rel="noreferrer" style={{ color: C.ac, fontFamily: FN, fontSize: 11 }}>{hostOf(w.vid)}</a> : ''}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// The program import: who it is for + commit, the title matching, then the
+// program itself day by day. Commit stays disabled while any title is open or
+// no athlete is picked (`block` says which).
+function ProgramImport({ drafts, source, lib, titleGroups, resOf, onPickMatch, libById, unresolvedCount, rosterOptions, athleteId, onAthlete, block, committing, onCommit }) {
+  const tt = useT();
+  const he = HE_UI();
+  const nDays = drafts.reduce((a, p) => a + p.days.length, 0);
+  const nEx = drafts.reduce((a, p) => a + p.days.reduce((b, d) => b + d.exercises.length, 0), 0);
+  const nVid = drafts.reduce((a, p) => a + p.days.reduce((b, d) => b + d.exercises.filter(e => e.videoUrl).length, 0), 0);
+  const linked = titleGroups.length - unresolvedCount;
+  return (
+    <>
+      <div style={cardStyle} data-si-program="">
+        <div className="title-strip" style={stripStyle}>
+          <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('PROGRAM IMPORT')}</SectionLabel>
+        </div>
+        <div style={{ padding: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, alignItems: 'end' }}>
+            <Select label="Athlete" placeholder={tt('Pick an athlete')} options={rosterOptions} value={athleteId} onChange={onAthlete} />
+            <div style={{ ...metaStyle, minHeight: 'var(--btn-h)', display: 'flex', alignItems: 'center', lineHeight: 1.6 }}>
+              <span><span style={{ color: source === 'direct' ? C.ac : C.tm }}>{source === 'direct' ? tt('Read directly - no AI') : tt('Read by AI')}</span>{` · ${nDays} ${tt('days')} · ${nEx} ${tt('exercises')} · ${nVid} ${tt('videos')}`}</span>
+            </div>
+            <Btn onClick={onCommit} disabled={committing || !!block} style={{ minWidth: 168, justifyContent: 'center' }}>{tr(readLang(), committing ? 'Writing…' : 'Commit to Database')}</Btn>
+          </div>
+          {block && <div data-si-block="" style={{ fontFamily: FB, fontSize: 12, color: lib ? C.or : C.tm, marginTop: 10 }}>{block}</div>}
+          {drafts.flatMap(p => p.warnings || []).map((w, i) => <div key={i} style={{ fontFamily: FB, fontSize: 12, color: C.or, marginTop: 6 }}>{warnText(w)}</div>)}
+        </div>
+      </div>
+
+      <div style={cardStyle} data-si-matching="">
+        <div className="title-strip" style={stripStyle}>
+          <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('EXERCISE MATCHING')}</SectionLabel>
+        </div>
+        <div style={{ padding: 12 }}>
+          {!lib ? <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>{tt('Loading the library…')}</div> : (
+            <>
+              <div style={{ ...metaStyle, marginBottom: 10 }}>
+                {he ? `${linked} מקושרים · ${unresolvedCount} לבחירה` : `${linked} linked · ${unresolvedCount} to pick`}
+              </div>
+              <TitleMatchList groups={titleGroups} resOf={resOf} onPick={onPickMatch} />
+            </>
+          )}
+        </div>
+      </div>
+
+      <div style={cardStyle} data-si-days="">
+        <div className="title-strip" style={stripStyle}>
+          <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('PROGRAM PREVIEW')}</SectionLabel>
+        </div>
+        <div style={{ padding: 12 }}>
+          {drafts.map((prog, pi) => (
+            <div key={pi}>
+              <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx, marginBottom: 10 }}>{prog.name}</div>
+              {prog.warmup && prog.warmup.length > 0 && <WarmupTable warmup={prog.warmup} />}
+              {prog.days.map((d, di) => <ProgramDayTable key={di} day={d} resOf={resOf} libById={libById} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function SmartImportView() {
   const tt = useT();
   const [fileName, setFileName] = useState('');
@@ -209,12 +403,19 @@ export default function SmartImportView() {
       if (kind === 'sheet') {
         const buf = await fileToArrayBuffer(f);
         const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
-        const out = wb.SheetNames.map(name => aoaToSheetGrid(
-          XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false }),
-          name,
-        ));
+        const out = wb.SheetNames.map(name => {
+          const ws = wb.Sheets[name];
+          const grid = aoaToSheetGrid(XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false }), name);
+          // the coach's own block layout: read it directly, no AI (5.10 #554)
+          if (hasDayHeader(ws)) {
+            const program = parseSheetProgram(ws, name);
+            if (program.days.length) grid.program = program;
+          }
+          return grid;
+        });
         setSheets(out);
         setActiveSheetIdx(0);
+        if (out[0]?.program) setTarget('programs');
       } else if (kind === 'text') {
         const text = await f.text();
         // tab-first, fall back to comma
@@ -282,7 +483,58 @@ export default function SmartImportView() {
   };
 
   const onTargetChange = v => { setTarget(v); setMapping(null); setTransform(null); };
-  const onSheetChange = v => { setActiveSheetIdx(parseInt(v) || 0); setMapping(null); setTransform(null); };
+  const onSheetChange = v => { const i = parseInt(v) || 0; setActiveSheetIdx(i); setMapping(null); setTransform(null); if (sheets[i]?.program) setTarget('programs'); };
+
+  // ── programs: one draft shape for both paths (5.10 #554) ──
+  const directProg = target === 'programs' && !transform && sheetGrid?.program ? sheetGrid.program : null;
+  const aiDrafts = useMemo(() => (target === 'programs' && transform?.items?.length ? transform.items.map(it => aiItemToDraft(it, sheetGrid?.sheetName)) : null), [transform, target, sheetGrid]);
+  const drafts = useMemo(() => aiDrafts || (directProg ? [directProg] : null), [aiDrafts, directProg]);
+  const draftKey = drafts ? `${fileName}|${activeSheetIdx}|${aiDrafts ? 'ai' : 'direct'}` : '';
+  // The library + roster, read once a program preview needs them (read only;
+  // the commit re-reads the library fresh before it writes).
+  const [lib, setLib] = useState(null);
+  const [roster, setRoster] = useState(null);
+  const needLib = !!drafts;
+  useEffect(() => {
+    if (!needLib || lib) return undefined;
+    let alive = true;
+    (async () => {
+      try {
+        const [l, t] = await Promise.all([readStoreForImport('expo-exercises'), readStoreForImport('expo-trainees')]);
+        if (!alive) return;
+        setLib(l.value); setRoster(t.value);
+      } catch (e) { if (alive) setErr((readLang() === 'he' ? 'לא הצלחתי לטעון את הספרייה: ' : 'Could not load the library: ') + (e.message || e)); }
+    })();
+    return () => { alive = false; };
+  }, [needLib, lib]);
+  const libIndex = useMemo(() => (lib ? buildLibIndex(lib) : null), [lib]);
+  const libById = useMemo(() => new Map((lib || []).map(e => [e.id, e])), [lib]);
+  // every unique title once, ranked against a library tokenized ONCE
+  const titleGroups = useMemo(() => {
+    if (!drafts || !libIndex) return [];
+    const map = new Map();
+    for (const p of drafts) for (const d of p.days || []) for (const ex of d.exercises || []) {
+      const key = normTitle(ex.title); if (!key) continue;
+      if (!map.has(key)) map.set(key, { key, title: String(ex.title).trim(), count: 0, video: '' });
+      const g = map.get(key); g.count++; if (!g.video && ex.videoUrl) g.video = ex.videoUrl;
+    }
+    return [...map.values()].map(g => { const ranked = rankMatches(g.title, libIndex, 3); return { ...g, ranked, auto: autoLinkId(ranked) }; });
+  }, [drafts, libIndex]);
+  const groupByKey = useMemo(() => new Map(titleGroups.map(g => [g.key, g])), [titleGroups]);
+  const [picks, setPicks] = useState({ forKey: '', map: {} });
+  const pickMap = picks.forKey === draftKey ? picks.map : {};
+  // a library id, 'new', or '' (not resolved yet)
+  const resOf = (title) => { const k = normTitle(title); return pickMap[k] || groupByKey.get(k)?.auto || ''; };
+  const onPickMatch = (key, v) => setPicks(p => ({ forKey: draftKey, map: { ...(p.forKey === draftKey ? p.map : {}), [key]: v } }));
+  const unresolvedCount = titleGroups.filter(g => !resOf(g.title)).length;
+  const athleteGuess = useMemo(() => (roster && drafts ? guessAthleteId(roster, `${fileName} ${sheetGrid?.sheetName || ''}`) : ''), [roster, draftKey]);
+  const [athletePick, setAthletePick] = useState({ forKey: '', id: '' });
+  const athleteId = athletePick.forKey === draftKey ? athletePick.id : athleteGuess;
+  const rosterOptions = useMemo(() => (roster || []).filter(t => t && t.id && t.name).map(t => ({ value: t.id, label: t.name })).sort((a, b) => a.label.localeCompare(b.label)), [roster]);
+  const progBlock = !drafts ? '' : !lib ? tt('Loading the library…') : unresolvedCount ? tt('Pick a library match for every exercise first.') : !athleteId ? tt('Pick the athlete first.') : '';
+  // a retry after a partial commit upserts the SAME plan row, never a duplicate
+  const planIds = useRef(new WeakMap());
+  const planIdFor = (prog) => { if (!planIds.current.has(prog)) planIds.current.set(prog, 'plan_' + uid()); return planIds.current.get(prog); };
 
   const analyze = async () => {
     if (!sheetGrid) return;
@@ -343,7 +595,8 @@ export default function SmartImportView() {
   };
 
   const commit = async () => {
-    if (!transform?.items?.length) return;
+    // a program read directly has no AI transform behind it (5.10 #554)
+    if (target === 'programs' ? !drafts : !transform?.items?.length) return;
     setErr(''); setCommitting(true); setCommitMsg('');
     try {
       let summary = '';
@@ -429,69 +682,42 @@ export default function SmartImportView() {
         await writeStoreForImport('expo-trainees', rosterRead.base, arr);
         summary = readLang() === 'he' ? `${added === 1 ? 'נוסף מתאמן חדש אחד' : `נוספו ${added} מתאמנים חדשים`}, ${updated === 1 ? 'מתאמן אחד עודכן' : `${updated} עודכנו`}.` + (skippedNameless ? ` ${skippedNameless === 1 ? 'דולגה שורה אחת בלי שם' : `דולגו ${skippedNameless} שורות בלי שם`}.` : '') : `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
       } else if (target === 'programs') {
+        // 5.10 #554: the coach's picks, the athlete, and the plan row are all
+        // decided in the preview; nothing here guesses. Refuse if any is open.
+        if (!drafts || !titleGroups.length || unresolvedCount || !athleteId) throw new Error(progBlock || 'Nothing to commit');
+        // Re-read the library FRESH and resolve against it: a linked entry that
+        // was deleted meanwhile stops the commit; a "new" title someone added
+        // meanwhile links to that entry instead of making a duplicate.
         const libRead = await readStoreForImport('expo-exercises');
-        const lib = libRead.value;
-        const byTitle = new Map(lib.map(e => [(e.title || '').toLowerCase().trim(), e]));
+        const fresh = libRead.value;
+        const byId = new Map(fresh.map(e => [e.id, e]));
+        const byNorm = new Map();
+        for (const e of fresh) { const n = normTitle(e && e.title); if (n && !byNorm.has(n)) byNorm.set(n, e); }
         const newLibEntries = [];
-        const resolveEid = title => {
-          const k = (title || '').toLowerCase().trim();
-          if (!k) return null;
-          if (byTitle.has(k)) return byTitle.get(k).id;
-          const entry = { id: 'ex_' + uid(), title: title.trim(), videoLink: '', cues: '', notes: '', category: '', resistanceType: '', bodyPosition: '', movementPattern: '', laterality: '', primaryMuscles: '', secondaryMuscles: '', primaryJoints: '', jointMovements: '', movementType: '' };
-          newLibEntries.push(entry); byTitle.set(k, entry); return entry.id;
-        };
-        // Build every plan row first (this also fully populates newLibEntries via
-        // resolveEid) so we can write the library BEFORE the plans that point at
-        // it — a mid-loop plan failure must never leave a committed plan
-        // referencing a lib id that was never written. (audit #2)
-        const planRows = transform.items.map(prog => {
-          const days = (prog.days || []).map(d => ({
-            id: 'pd_' + uid(),
-            name: d.name || 'Day',
-            exercises: (d.exercises || []).map((ex, i) => ({
-              id: 'pe_' + uid(),
-              exerciseId: resolveEid(ex.title) || '',
-              // Athletes CANNOT read the exercise library (RLS staff-only), so a
-              // plan row with no `title` renders as "Exercise N" on their portal.
-              // Snapshot the name here — the coach never sees the bug (they resolve
-              // via the library), the athlete gets a broken program. (audit #1)
-              title: (ex.title || '').trim(),
-              // blank stays blank (his rule: never invent training data) - a missing
-              // sets cell became 3 and a missing rest 90s (5.10 #554 audit)
-              sets: typeof ex.sets === 'number' ? ex.sets : (parseInt(ex.sets) || ''),
-              reps: ex.reps || '',
-              load: '', rpe: '', tempo: ex.tempo || '',
-              rest: ex.rest || '',
-              notes: ex.notes || '',
-              order: i,
-              superset: ex.superset || '',
-              wk: Array.isArray(ex.wk) && ex.wk.length ? ex.wk : null,
-              wkS: null,
-            })),
-          }));
-          // weeks must cover the longest wk array, else weeks 5+ are hidden in the
-          // editor and truncated the first time the coach edits a visible week. (audit #3)
-          let wkMax = 4;
-          for (const d of days) for (const ex of d.exercises) {
-            if (Array.isArray(ex.wk)) wkMax = Math.max(wkMax, ex.wk.length);
+        const chosen = new Map();
+        for (const g of titleGroups) {
+          const pick = resOf(g.title);
+          if (pick === 'new') {
+            const same = byNorm.get(g.key);
+            if (same) { chosen.set(g.key, same); continue; }
+            const entry = { id: 'ex_' + uid(), title: g.title, videoLink: g.video || '', cues: '', notes: '', category: '', resistanceType: '', bodyPosition: '', movementPattern: '', laterality: '', primaryMuscles: '', secondaryMuscles: '', primaryJoints: '', jointMovements: '', movementType: '' };
+            newLibEntries.push(entry); byNorm.set(g.key, entry); chosen.set(g.key, entry);
+          } else {
+            const e = byId.get(pick);
+            if (!e) throw new Error(readLang() === 'he' ? `התרגיל שקישרת ל"${g.title}" כבר לא בספרייה. תטען מחדש ותבחר שוב.` : `The library exercise "${g.title}" was linked to is gone. Reload and pick again.`);
+            chosen.set(g.key, e);
           }
-          return {
-            // Stable id per source program (memoized on the item): a retry after a
-            // partial-commit failure upserts the SAME row instead of inserting a
-            // duplicate block with fresh ids. (audit #2)
-            id: prog._planId || (prog._planId = 'plan_' + uid()),
-            name: prog.programName || sheetGrid.sheetName || 'Imported Block',
-            trainee_id: '',
-            phase: '', notes: '',
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_template_purchase: false,
-            data: { days, warmup: [], weeks: wkMax, isTemplatePurchase: false },
-          };
-        });
+        }
+        const now = new Date().toISOString();
+        // Build every plan row first, then write the library BEFORE the plans
+        // that point at it - a failed plan write must never leave a committed
+        // plan referencing a library id that was never written. (audit #2)
+        const planRows = drafts.map(prog => draftToPlanRow(prog, {
+          resolve: (t) => chosen.get(normTitle(t)) || null,
+          traineeId: athleteId, planId: planIdFor(prog), makeId: uid, now,
+        }));
         if (newLibEntries.length) {
-          await writeStoreForImport('expo-exercises', libRead.base, [...lib, ...newLibEntries]);
+          await writeStoreForImport('expo-exercises', libRead.base, [...fresh, ...newLibEntries]);
         }
         let created = 0;
         for (const planRow of planRows) {
@@ -553,12 +779,17 @@ export default function SmartImportView() {
               <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
             )}
             <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
-            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{tr(readLang(), analyzing ? 'Analyzing…' : 'Analyze with AI')}</Btn>
+            {directProg ? (
+              // the coach's block layout was read by sheetProgramParse - no AI call, no rate limit (5.10 #554)
+              <div data-si-direct="" style={{ height: 'var(--btn-h)', boxSizing: 'border-box', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.ac, whiteSpace: 'nowrap' }}>{tt('Read directly - no AI')}</div>
+            ) : (
+              <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{tr(readLang(), analyzing ? 'Analyzing…' : 'Analyze with AI')}</Btn>
+            )}
           </div>
         </div>
       )}
 
-      {sheetGrid && (
+      {sheetGrid && !directProg && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div className="title-strip" style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
             <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('SHEET PREVIEW')}</SectionLabel>
@@ -635,17 +866,20 @@ export default function SmartImportView() {
               <Badge color={C.gn}>{readLang() === 'he' ? (transform.items.length === 1 ? 'פריט אחד' : `${transform.items.length} פריטים`) : `${transform.items.length} item${transform.items.length === 1 ? '' : 's'}`}</Badge>
               {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginInlineStart: 6 }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שגיאה אחת' : `${transform.errors.length} שגיאות`) : `${transform.errors.length} error${transform.errors.length === 1 ? '' : 's'}`}</Badge>}
             </div>
-            <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{tr(readLang(), committing ? 'Writing…' : 'Commit to Database')}</Btn>
+            {target !== 'programs' && <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{tr(readLang(), committing ? 'Writing…' : 'Commit to Database')}</Btn>}
           </div>
           {Array.isArray(transform.warnings) && transform.warnings.length > 0 && (
             <ul style={{ margin: '4px 0 10px 16px', padding: 0, color: C.or, fontSize: 12 }}>
               {transform.warnings.map((w, i) => <li key={i} style={{ marginBottom: 2 }}>{w}</li>)}
             </ul>
           )}
+          {/* programs: the readable day tables below replace the raw JSON (5.10 #554) */}
+          {target !== 'programs' && (
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, maxHeight: 280, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11, color: C.tm, whiteSpace: 'pre-wrap' }}>
             {JSON.stringify(transform.items.slice(0, 20), null, 2)}
             {transform.items.length > 20 && `\n…and ${transform.items.length - 20} more`}
           </div>
+          )}
           {transform.errors.length > 0 && (
             <details style={{ marginTop: 8 }}>
               <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שורה אחת דולגה' : `${transform.errors.length} שורות דולגו`) : `${transform.errors.length} skipped row${transform.errors.length === 1 ? '' : 's'}`}</summary>
@@ -656,6 +890,12 @@ export default function SmartImportView() {
           )}
           </div>
         </div>
+      )}
+
+      {drafts && (
+        <ProgramImport drafts={drafts} source={aiDrafts ? 'ai' : 'direct'} lib={lib} titleGroups={titleGroups} resOf={resOf} onPickMatch={onPickMatch}
+          libById={libById} unresolvedCount={unresolvedCount} rosterOptions={rosterOptions} athleteId={athleteId}
+          onAthlete={(id) => setAthletePick({ forKey: draftKey, id })} block={progBlock} committing={committing} onCommit={commit} />
       )}
 
       {commitMsg && <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '10px 12px', fontSize: 13 }}>{commitMsg}</div>}
