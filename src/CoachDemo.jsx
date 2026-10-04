@@ -1371,7 +1371,7 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style, co
   return (
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: pad, ...style }}>
       {header && (
-        <div onClick={onStripClick} {...(canToggle ? stripToggleProps(open, () => setOpen((o) => !o)) : {})} style={{
+        <div className="title-strip" /* a strip, as the real card's - not a 41px 'button' to the box-height gate */ onClick={onStripClick} {...(canToggle ? stripToggleProps(open, () => setOpen((o) => !o)) : {})} style={{
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
           // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
           // A collapsed card is header-only, so it closes up the same way.

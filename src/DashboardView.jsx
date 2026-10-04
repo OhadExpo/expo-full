@@ -756,7 +756,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         // collapsible like Incoming / Revenue (the strip is the handle; this card is
         // not in the drag-reorder rail, so its header is free to toggle). The green
         // severity edge rides leftStripe, the house way to colour a collapsible card.
-        <CollapsibleSection storageKey="dash-online-now" leftStripe={C.gn} style={{ marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}
+        <CollapsibleSection storageKey="dash-online-now" leftStripe={C.gn} padY={12} /* the body opens 12 under the strip: 12 above the frame too, so a name sits centred (rule-rhythm CENTRE 18/20, 4.10) */ style={{ marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}
           titleNode={<SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>}>
           {onlineNow.map(t => (
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>

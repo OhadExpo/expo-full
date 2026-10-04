@@ -203,7 +203,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
       <CollapsibleSection storageKey="billing-requests" padX={PAD} padY={PAD} style={{ marginBottom: 0 }} count={reqPending /* not rendered beside a titleNode; it re-measures the strip when the count changes */}
         right={newReqBtn}
         titleNode={
-          <span style={{ display: 'block', minWidth: 0, overflowWrap: 'break-word', fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+          <span style={{ display: 'inline' /* NOT block: the strip-fit check measures the title with a range, and a block span reads as the whole strip wide - + NEW REQUEST stacked under it at every width, 1440 too (4.10 audit) */, overflowWrap: 'break-word', fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {/* one line on a phone: the count stays, its word steps aside */}
             {tt('PAYMENT REQUESTS')} · {reqPending}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
           </span>
@@ -262,6 +262,10 @@ export default function BillingView({ trainees, onSelectTrainee }) {
             not belong on a roster-payment list. Ohad, 21.9: "remove the payments
             and billing from all their names". Listing them with NO REQUEST
             beside their name reads as a debt that does not exist. */}
+        {/* the section body opens with 12px; a row list starts at the strip so the
+            first name sits centred between the strip and its rule, like every
+            other row (verify-rule-rhythm FIRSTGAP: 22 above / 10 below, 4.10) */}
+        <div style={{ marginTop: -12 }}>
         {(trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t)).map((t, i, arr) => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
@@ -279,6 +283,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
             </div>
           );
         })}
+        </div>
       </CollapsibleSection>
 
       {/* FROM THE SHEETS LAST (29.9 #448 audit): ~1,900px of history sat between
