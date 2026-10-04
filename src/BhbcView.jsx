@@ -6155,6 +6155,7 @@ const clubSeasonStats = (t, loads) => {
 };
 
 function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
+  const he = useHe();
   const tr = useT();
   // Ohad: "it doesnt re-order the column based on up and down when i click on
   // the column headers." It sorted, but only ever DESCENDING - clicking the
@@ -6162,9 +6163,13 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   // header was half dead. Clicking a new column starts descending (the useful
   // default for a stat); clicking the active one flips it. The zone's shared
   // useSort now (27.9), which also sorts the Player column A->Z / Z->A.
+  // hs = the HEBREW HEADER, the short form the league's own tables use (4.10, the
+  // head coach's phone in Hebrew): 'דק׳ למשחק' pushed the sorted PPG column past
+  // the edge of the scroller at 390 - English GP/MPG/PPG fit. The long forms stay
+  // everywhere else ('15.7 נק׳ למשחק' on a roster row).
   const cols = [
-    { k: 'gp', h: 'GP' }, { k: 'mpg', h: 'MPG' }, { k: 'ppg', h: 'PPG' },
-    { k: 'rpg', h: 'RPG' }, { k: 'apg', h: 'APG' }, { k: 'tpp', h: '3P%' },
+    { k: 'gp', h: 'GP', hs: 'מש׳' }, { k: 'mpg', h: 'MPG', hs: 'דק׳' }, { k: 'ppg', h: 'PPG', hs: 'נק׳' },
+    { k: 'rpg', h: 'RPG', hs: 'ריב׳' }, { k: 'apg', h: 'APG', hs: 'אס׳' }, { k: 'tpp', h: '3P%' },
     { k: 'ftp', h: 'FT%' }, { k: 'pirpg', h: 'PIR' },
   ];
   const dash = (k, v) => (v == null ? '—' : k === 'tpp' || k === 'ftp' ? `${v}%` : v);
@@ -6208,7 +6213,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
           display:table (themes.css .bhbc-stats-table) + the player column
           pinned while the numbers scroll. */}
       <table className="bhbc-stats-table bhbc-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
-        <thead><tr>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, tr(c.h)))}</tr></thead>
+        <thead><tr>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, he && c.hs ? c.hs : tr(c.h)))}</tr></thead>
         <tbody>
           {sort.rows.map(({ t, s }) => {
             const td = { ...BHBC_TD, color: s ? C.tx : C.tm };
