@@ -2273,3 +2273,13 @@ select.avail-select:dir(rtl) {
 
 /* #530 analysis note composer: its cyan frame is the focus cue - the global ring spilled past it */
 .analysis-note-text:focus, .analysis-note-text:focus-visible { outline: none !important; box-shadow: none !important; }
+
+/* CLUB TEAM STATS (4.10 #547): four tiles across, two by two on a phone; the
+   dividers sit only BETWEEN tiles in both layouts */
+.bhbc-team-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.bhbc-team-sum > * + * { border-inline-start: 1px solid var(--c-cardBd); }
+@media (max-width: 600px) {
+  .bhbc-team-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bhbc-team-sum > :nth-child(odd) { border-inline-start: none; }
+  .bhbc-team-sum > :nth-child(n+3) { border-top: 1px solid var(--c-cardBd); }
+}
