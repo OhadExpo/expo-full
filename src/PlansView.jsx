@@ -4698,6 +4698,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
              the whole first line and the meta always takes the second. Every
              strip 82.8px, every ANALYSIS button on the same y. */
           .prog-striphdr > :first-child{ flex: 1 1 100%; }
+          /* wrapped under the name, the status follows ANALYSIS like any word (4.10 #550) */
+          .prog-striphdr .prog-recency{ min-width: 0 !important; }
           /* ...and the name line gets an explicit line-height, or the two
              scripts disagree: with the metrics left to the font, a Hebrew name
              produced a 78px strip and a Latin one 82.8. Same rule as his
@@ -4828,12 +4830,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
       {displayGrouped && displayGrouped.length > 0 && progView === 'table' && phoneList && (
-        <div className={`prog-phone-list ${settle}`} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+        // ONE GRID FOR THE WHOLE LIST (4.10 #551, Ohad: "make it way better"): every
+        // row's columns ARE these columns (CSS subgrid) - name/program | status/+N |
+        // portal - so every status dot sits on one vertical line, every +N chip under
+        // its dot, every switch on the edge. Each row sized its own right side
+        // before, and dots, chips and labels landed at a different x on every row.
+        <div className={`prog-phone-list ${settle}`} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) max-content max-content' }}>
           {displayGrouped.map((row, ri) => {
             const top = ri === 0 ? 'none' : `1px solid ${C.cardBd}`;
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
+                <div key={row.tid} style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</bdi><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.or }}>{tt('No program yet')}</span>
@@ -4845,36 +4852,41 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const cur = row.current;
             const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
-            const tagText = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);
+            // the phone's short forms: the status column stays narrow, the names keep their room
+            const tagText = row.daysSince == null ? (he ? 'אין אימונים' : 'NO LOGS') : row.daysSince === 0 ? (he ? 'היום' : 'TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);
+            const tagFull = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : tagText;
             const vk = setPortalVis ? visKeyForPlan(cur, trainees) : null;
             const isVis = vk ? portalVis?.[vk] !== false : null;
             return (
-              <div key={row.tid} style={{ borderTop: top }}>
+              <div key={row.tid} style={{ borderTop: top, gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid' }}>
                 <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
-                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '9px 12px', boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, height: 17 }}>
-                    <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{row.name}</bdi>
+                  style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', columnGap: 14, rowGap: 5, alignItems: 'center', minHeight: 56, paddingBlock: 10, paddingInlineStart: 12, paddingInlineEnd: 4, boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
+                  {/* the whole name, always: a word is never cut (his rule) - a long one takes a second line */}
+                  <span style={{ gridColumn: 1, gridRow: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, minHeight: 18 }}>
+                    <bdi style={{ fontWeight: 700, fontSize: 14, lineHeight: '18px', color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>{row.name}</bdi>
                     <BhbcBadge tid={row.tid} trainees={trainees} />
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
+                  <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull))} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
-                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
+                  <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
+                  <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 16 }}>
                     {row.earlier.length > 0 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
                         title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
                         style={{ display: 'inline-flex', alignItems: 'center', height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', padding: 0, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer' }}>
                         {/* the tap area is 32 tall; the tag drawn inside is 16, as tall as the text line - filled, not bordered (a bordered control is 36, the house height) */}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'color-mix(in srgb, var(--c-ac) 18%, transparent)' : 'rgba(127,127,138,0.16)', color: expanded ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 16, minWidth: 44 /* one width for +1 and +27 */, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'color-mix(in srgb, var(--c-ac) 18%, transparent)' : 'rgba(127,127,138,0.16)', color: expanded ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
                         <bdi dir="ltr">+{row.earlier.length}</bdi>
                         <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
                         </span>
                       </button>
                     )}
+                  </span>
+                  <span style={{ gridColumn: 3, gridRow: '1 / span 2', alignSelf: 'center', display: 'inline-flex' }}>
                     {vk && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis({ ...portalVis, [vk]: !isVis }); }} aria-pressed={isVis}
                         title={tr(readLang(), isVis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
@@ -4888,7 +4900,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                 </div>
                 {expanded && row.earlier.length > 0 && (
-                  <div className="prog-reveal" style={{ borderTop: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
+                  <div className="prog-reveal" style={{ gridColumn: '1 / -1', borderTop: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
                     {row.earlier.map((p) => (
                       <div key={p.id} role="button" tabIndex={0} onClick={() => handleOpenPlan(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(p.id); } }}
                         style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, padding: '10px 12px', boxSizing: 'border-box', cursor: 'pointer', opacity: openingId === p.id ? 0.45 : 0.85 }}>
@@ -4963,7 +4975,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         (Ohad #195 "colored but less colorful") and the pill has a
                         fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
                         size regardless of length. */}
-                    <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:124,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                    <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} className="prog-recency" style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-start' /* starts its box: pushed to the far end, '6D AGO' floated mid-row on a phone (4.10 #550) */,gap:6,minWidth:124,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                       <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                     </span>
                   </span>
@@ -5141,7 +5153,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
                     style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'transparent',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
-                  <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText))} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                  <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText))} className="prog-recency" style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-start' /* see the card strip (4.10 #550) */,gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>
                 </span>
