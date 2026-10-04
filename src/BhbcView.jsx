@@ -18,6 +18,7 @@ import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, to
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
+import { supabase } from './supabase';
 import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, countWord, daysFor, overdueFor, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
@@ -763,10 +764,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // WHO WORKS IN HERE, AND WHAT THEY TOUCHED. Ohad's owner-only ACTIVITY tab.
   // One line per action, stamped with the moment it happened (not with the date
   // of the session being typed up) and with the person who did it.
+  // A CLUB COACH'S SEAT can neither read nor write the trail (it is the owner's),
+  // so every line he made was refused and the tab showed only the owner (#547,
+  // measured: 51 of 51). His lines go through the append-only door instead
+  // (bhbc_activity_append: who + when from his token, same duplicate rule + cap).
   const track = useCallback((kind, what) => {
+    if (coach) { supabase.rpc('bhbc_activity_append', { p_kind: kind, p_what: what }).then(() => {}, () => {}); return; }
     if (!setActivity) return;
     setActivity((prev) => appendActivity(prev, { by: currentUser || null, kind, what }));
-  }, [setActivity, currentUser]);
+  }, [setActivity, currentUser, coach]);
   const trackRef = React.useRef(track); trackRef.current = track;
   // logged once the feed has LOADED (#547): on mount it raced the read, the write
   // guard refused it (rightly - it would have replaced the feed with one line), and
