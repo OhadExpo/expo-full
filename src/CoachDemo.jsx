@@ -2097,6 +2097,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
           {/* RECENT WORKOUTS */}
           {showSec('workouts') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Recent Workouts')}>
+            {/* a row list starts AT the strip: the first row centred between the strip
+                and its rule like the rest (rule-rhythm FIRSTGAP 22/10, 4.10) */}
+            <div style={{ marginTop: -12 }}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
@@ -2108,10 +2111,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.vol}</span>
               </div>
             ))}
+            </div>
           </DemoDetailCard>}
 
           {/* PROGRAMS */}
           {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
+            <div style={{ marginTop: -12 }}>{/* rule-rhythm FIRSTGAP 20/8 (4.10) */}
             {trainee.plans.map((name, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
                 {/* Was nowrap + ellipsis, so at 360 "Block #4 — Pull
@@ -2122,6 +2127,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 <Badge color={i === 0 ? C.gn : C.td}>{tr(readLang(), i === 0 ? 'ACTIVE' : 'ARCHIVED')}</Badge>
               </div>
             ))}
+            </div>
           </DemoDetailCard>}
 
           {/* EVALUATION · INTAKE (context — shown in View All) */}
