@@ -753,17 +753,18 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           a phone. Messages stays its own full-width row below it, never inside
           the alerts grid. */}
           {onlineNow.length > 0 && (
-        <div className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}>
-          <RefinedHeaderStrip>
-            <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
-          </RefinedHeaderStrip>
+        // collapsible like Incoming / Revenue (the strip is the handle; this card is
+        // not in the drag-reorder rail, so its header is free to toggle). The green
+        // severity edge rides leftStripe, the house way to colour a collapsible card.
+        <CollapsibleSection storageKey="dash-online-now" leftStripe={C.gn} style={{ marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}
+          titleNode={<SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>}>
           {onlineNow.map(t => (
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
               <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
               {t.name}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* MESSAGES — full-width inbox card, slotted between Tasks

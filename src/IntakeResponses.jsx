@@ -15,6 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { FORM_BY_KEY } from './intakeFormSchemas';
 import { useT } from './i18n';
+import { CollapsibleSection } from './ui';
 
 const isEmpty = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0);
 const asNum = (v) => { const n = Number(String(v).replace(',', '.').replace(/[^\d.-]/g, '')); return Number.isFinite(n) && String(v).trim() !== '' ? n : null; };
@@ -121,12 +122,11 @@ export default function IntakeResponses({ submissions = [], traineeNameFor }) {
   );
 
   return (
-    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, marginBottom: 18 }}>
-      <div className="title-strip" style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tt('Responses')}</span>
-        <span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{subs.length} {tt('responses')}</span>
-      </div>
-      <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    // collapsible like Unused Links on the same page (the strip is the handle;
+    // the section supplies the 18px body padding the inner column carried)
+    <CollapsibleSection title={tt('Responses')} storageKey="intake-responses" style={{ marginBottom: 18 }}
+      right={<span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{subs.length} {tt('responses')}</span>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* which form */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {forms.map((f) => (
@@ -195,6 +195,6 @@ export default function IntakeResponses({ submissions = [], traineeNameFor }) {
           </div>
         )}
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }

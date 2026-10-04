@@ -14,7 +14,7 @@ import { useT, useTB, tr, readLang } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, CollapsibleSection, stripBtnBase } from './ui';
+import { Btn, Input, toast, confirmToast, CollapsibleSection, stripBtnBase } from './ui';
 import { fetchBusy, isCalendarConnected, pushBookingToCalendar, removeBookingFromCalendar } from './googleCalendarSync';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -71,7 +71,6 @@ export default function BookingView({ trainees }) {
   const [loading, setLoading] = useState(true);
   const [draftSettings, setDraftSettings] = useState(null);
   const [calBusy, setCalBusy] = useState({ connected: null, blocks: 0, syncedAt: null, error: '' });
-  const refined = isRefined5b();
   const PAD = 14;
   const coachEmail = 'ohadyproductions@gmail.com';
 
@@ -381,10 +380,8 @@ export default function BookingView({ trainees }) {
       </CollapsibleSection>
 
       {/* UPCOMING */}
-      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>{tt('UPCOMING')} ({realBookings.length})</span>
-        </RefinedHeaderStrip>
+      {/* collapsible like Booking Settings / Availability above it */}
+      <CollapsibleSection title={tt('UPCOMING')} count={realBookings.length} storageKey="cal-upcoming" padX={PAD} padY={PAD} style={{ marginBottom: 0 }}>
         {/* THE EMPTY STATE TESTS THE LIST THAT IS ACTUALLY RENDERED.
             It used to test `bookings.length`, which includes the Google-busy
             mirror rows - up to 21 days of them - while the list below filters
@@ -448,7 +445,7 @@ export default function BookingView({ trainees }) {
             </React.Fragment>
           );
         })}
-      </div>
+      </CollapsibleSection>
     </div>
   );
 }

@@ -88,7 +88,9 @@ function mergeOwed(rows, requests, overdue, trainees) {
   return list;
 }
 
-const tagStyle = (color) => ({ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color, border: `1px solid ${color}`, height: 20, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '0 6px', whiteSpace: 'nowrap', lineHeight: 'normal' });
+// a FILLED tag, not a bordered one: a bordered control is 36px (the house height) and a
+// 36px box does not belong in a row (verify-control-heights on Billing, 4.10)
+const tagStyle = (color) => ({ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color, background: `color-mix(in srgb, ${color} 14%, transparent)`, height: 20, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '0 6px', whiteSpace: 'nowrap', lineHeight: 'normal' });
 
 // ONE tag per row at most, the one thing the amount does not already say.
 function Tag({ e, tt }) {

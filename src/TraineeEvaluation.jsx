@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate, ageFromDob } from './dates';
 import { supabase } from './supabase';
 import { C, FN, FB } from './theme';
-import { isRefined5b, RefinedHeaderStrip, toast, useEscClose, ConfirmDialog } from './ui';
+import { isRefined5b, toast, useEscClose, ConfirmDialog, CollapsibleSection } from './ui';
 import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
@@ -443,34 +443,23 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
   const PAD = 14;
 
   return (
-    <div style={{
-      background: 'var(--c-sf)',
-      border: `1px solid var(--c-cardBd)`,
-      borderRadius: 0, padding: PAD, marginBottom: 12,
-      boxShadow: C.cardShadow,
-    }}>
-      {/* Cyan header strip — same vocabulary as every other dashboard /
-          trainee-card section. Title + NEW EVAL button live on the strip. */}
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        {/* ONE ROW (26.9, #215/#220): the title and the section's one primary
-            action. CAMERA TEST lives under the strip — two buttons beside the
-            title never fitted one row on a phone. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
-            {tt('Evaluation')} ({rows.length})
-          </span>
-          <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
-            <button onClick={() => setEditing('new')}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`,
-                color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
-                padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
-                fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>{tt('+ NEW EVALUATION')}</button>
-          </div>
+    // Collapsible like the rest of the athlete page (Billing, Vitals): the strip is
+    // the handle, + NEW EVALUATION rides `right` (a control in the strip never
+    // toggles it). The editor and camera tools are portals, so they still open
+    // when the section is collapsed.
+    <CollapsibleSection title={tt('Evaluation')} count={rows.length} storageKey={`td-evaluation-${trainee?.id}`} padX={PAD} padY={PAD}
+      right={
+        <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
+          <button onClick={() => setEditing('new')}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`,
+              color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
+              padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+            }}>{tt('+ NEW EVALUATION')}</button>
         </div>
-      </RefinedHeaderStrip>
+      }>
 
       {/* CAMERA TEST sits under the strip, not in it: two actions beside the
           title did not fit one row on a phone (26.9, "a title box is always one
@@ -575,7 +564,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
           onClose={() => setEditing(null)}
         />
       )}
-    </div>
+    </CollapsibleSection>
   );
 }
 

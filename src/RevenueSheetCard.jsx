@@ -25,7 +25,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useT, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { RefinedHeaderStrip, ScrollFade } from './ui';
+import { CollapsibleSection, ScrollFade } from './ui';
 import { fmtNumericDate, monthAbbr } from './dates';
 import { noDangle } from './script';
 
@@ -238,19 +238,15 @@ export default function RevenueSheetCard() {
   const totalSessions = clients.reduce((a, c) => a + c.sessions, 0);
 
   return (
-    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD, boxShadow: C.cardShadow }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-        {/* One row: at 390 the meta line wrapped UNDER the title and the title
-            sat 18px above the strip's centre (26.9). The title keeps one line at
-            the start; the meta wraps inside its own column at the end. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          {/* the house strip title (13 / 700 / 0.04em / caps) - it was larger and lighter than every other strip */}
-          <span style={{ flexShrink: 0, fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: FN, color: 'var(--c-stripTx)' }}>{tt('From the sheets')}</span>
-          <span className="strip-meta" style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
-            {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')} · {totalPayments} {tt('payments')} · {totalSessions} {tt('sessions counted')}
-          </span>
-        </div>
-      </RefinedHeaderStrip>
+    // collapsible like OWED / REQUESTS / ROSTER on the same page (0 margin: Billing
+    // stacks its cards with a 14px gap). ONE ROW: the meta rides `right` as
+    // .strip-meta, which steps aside on a phone.
+    <CollapsibleSection title={tt('From the sheets')} storageKey="billing-from-sheets" padX={PAD} padY={PAD} style={{ marginBottom: 0 }}
+      right={
+        <span className="strip-meta" style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85, color: 'var(--c-stripTx)' }}>
+          {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')} · {totalPayments} {tt('payments')} · {totalSessions} {tt('sessions counted')}
+        </span>
+      }>
       {health && (
         <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em', marginBottom: 12 }}>
           {/* One string, then noDangle: built as JSX fragments the separators
@@ -434,6 +430,6 @@ export default function RevenueSheetCard() {
       <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 12, lineHeight: 1.5 }}>
         {tt('Amounts in the month table come from ניהול פיננסי (its older months from the sheet\'s own revision history). Per-client rows come from every revision of רשימת מתאמנים: each change of the payment date is a payment, the counter beside it is the cycle, and the amount is an estimate from rate × counter — green dot when both were on the sheet, orange when one was inferred, red when the sheet gave no way to price it.')}
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }

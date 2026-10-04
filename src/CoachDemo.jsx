@@ -1340,15 +1340,28 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
 // cyan strip header (white title, cyan hairline bottom) over an sf body, so
 // the demo athlete-detail reads like the real TraineeDetail instead of the
 // old two-column key/value panels.
-function DemoDetailCard({ header, headerRight, children, padding = 18, style }) {
+function DemoDetailCard({ header, headerRight, children, padding = 18, style, collapsible = true }) {
   const pad = padding;
+  // The strip is the expand/collapse handle, as the real TraineeDetail's
+  // CollapsibleSection sections (local state, like the demo's Owed / Revenue /
+  // Roster cards). A control in the strip does its own job and never toggles.
+  const [open, setOpen] = useState(true);
+  const canToggle = collapsible && !!header;
+  const body = canToggle && !open ? null : children;
+  const onStripClick = canToggle ? (e) => {
+    const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label, [role="button"], [role="switch"], [role="checkbox"], [role="tab"]');
+    if (hit && e.currentTarget.contains(hit)) return;
+    setOpen((o) => !o);
+  } : undefined;
+  const caret = canToggle ? <StripCaret open={open} /> : null;
   return (
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: pad, ...style }}>
       {header && (
-        <div style={{
+        <div onClick={onStripClick} aria-expanded={canToggle ? open : undefined} style={{
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
           // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
-          margin: `-${pad}px -${pad}px ${children ? 12 : -pad}px`,
+          // A collapsed card is header-only, so it closes up the same way.
+          margin: `-${pad}px -${pad}px ${body ? 12 : -pad}px`,
           // The real strip's box (RefinedHeaderStrip): one 41px height, the
           // title centred in it. 8px padding made these 36px and their titles
           // rode 1-2px low (26.9, #215).
@@ -1357,16 +1370,17 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
           borderBottom: '1px solid var(--c-cardBd)',
           color: '#FFFFFF',
+          cursor: canToggle ? 'pointer' : undefined, userSelect: canToggle ? 'none' : undefined,
         }}>
-          {headerRight ? (
+          {headerRight || caret ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ minWidth: 0, flex: '1 1 auto', display: 'flex', alignItems: 'center', color: '#FFFFFF' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}{caret}</div>
             </div>
           ) : <div style={{ display: 'flex', alignItems: 'center' /* no 16px strut line under a 13px title: it sat 1-2px low (#460 rhythm) */, color: '#FFFFFF' }}>{header}</div>}
         </div>
       )}
-      {children}
+      {body}
     </div>
   );
 }
@@ -1859,7 +1873,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         {/* Identity header strip — same grammar as the solo detail (cyan glow
             name + status dropdown) so couples don't look like a stale build. */}
         {(() => { const heb = isHeb(trainee.name); return (
-          <DemoDetailCard style={{ marginBottom: 14 }}
+          <DemoDetailCard style={{ marginBottom: 14 }} collapsible={false /* the couple's identity header, a plain Card in the real app */}
             headerRight={<DemoStatusMenu />}
             header={<span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, minWidth: 0, fontWeight: 700, fontSize: heb ? 16 : 14, fontFamily: heb ? FH : undefined, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase' }}>
               <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
@@ -3792,6 +3806,9 @@ function DemoReview() {
   // The real queue (WorkoutReview): pending athletes first; the reviewed
   // archive stays behind a SHOW REVIEWED (n) toggle under the last of them.
   const [showReviewed, setShowReviewed] = useState(false);
+  // each athlete group's strip toggles its day cards, as the real queue's
+  // CollapsibleSection does (the caret used to be drawn and never turn)
+  const [closedGroups, setClosedGroups] = useState({});
   const groupOf = (list) => {
     const by = {};
     for (const wo of list) {
@@ -3998,7 +4015,7 @@ function DemoReview() {
       {weeklyFocus}
 
       {(() => {
-        const renderGroup = ([cid, data]) => (
+        const renderGroup = (ns) => ([cid, data]) => { const gk = `${ns}:${cid}`; const gOpen = !closedGroups[gk]; return (
         <div key={cid} style={{ marginBottom: 20 }}>
           {/* Athlete group header — solid cyan strip: name + (n) pending +
               · planName (cyan) + current-stage week boxes + Athlete page →.
@@ -4009,7 +4026,7 @@ function DemoReview() {
               real strip (#376): at 760 and under the plan name + week boxes -
               said again in the cards below - step aside, exactly as
               WorkoutReview's .wr-strip-repeat does. */}
-          <div className="cd-rv-strip title-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
+          <div className="cd-rv-strip title-strip" onClick={() => setClosedGroups((m) => ({ ...m, [gk]: gOpen }))} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'nowrap', gap: 8, minWidth: 0, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
               <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}><bdi>{isHeb(data.name) ? data.name : data.name.toUpperCase()}</bdi> ({data.workouts.length})</span>
               <span className="cd-rv-repeat" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
@@ -4021,10 +4038,10 @@ function DemoReview() {
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
               <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' }}><span>{T('Athlete page')} {readLang() === 'he' ? '←' : '→'}</span></button>
-              <StripCaret open />
+              <StripCaret open={gOpen} />
             </span>
           </div>
-          {data.workouts.map((wo, wi) => {
+          {gOpen && data.workouts.map((wo, wi) => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
             // the real page's quiet BLOCK · WEEK divider over each week's day
             // cards (#376 parity) - once per block + week
@@ -4074,10 +4091,10 @@ function DemoReview() {
             );
           })}
         </div>
-        );
+        ); };
         const reviewedCount = reviewedList.length;
         return (<>
-          {Object.entries(byClient).map(renderGroup)}
+          {Object.entries(byClient).map(renderGroup('pending'))}
           {/* Queue divider, as on the real queue: under the last pending
               athlete, the reviewed archive behind a toggle. */}
           {reviewedCount > 0 && (
@@ -4088,7 +4105,7 @@ function DemoReview() {
               </button>
             </div>
           )}
-          {showReviewed && Object.entries(byClientReviewed).map(renderGroup)}
+          {showReviewed && Object.entries(byClientReviewed).map(renderGroup('reviewed'))}
         </>);
       })()}
     </section>
