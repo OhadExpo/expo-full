@@ -1212,12 +1212,13 @@ export function useSupaClientWorkouts(initial = []) {
       // this result does not have it - replacing the screen here hid that stroke
       // and the next edit, built from the screen, then deleted it on the server
       // (review of ae569e50). The last write in the line reconciles.
-      if ((fvBusyRef.current.get(id) || 0) > 1) return;
+      if ((fvBusyRef.current.get(id) || 0) > 1) return 'saved';
       // Reconcile local state to the merged truth (may now include an athlete
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
       setData(reconciled); dataRef.current = reconciled;
       try { lsSnapshotRecent('expo-cw', reconciled); } catch {}
+      return 'saved';
     } catch (e) {
       // Offline / DB flap: keep the optimistic local update and durably enqueue.
       // Drains via the reviewNotes-merge handler (server-authoritative on upload
@@ -1230,8 +1231,12 @@ export function useSupaClientWorkouts(initial = []) {
         const prior = getEntries().find((q) => q.type === 'client_workouts.mergeReviewNotes' && q.dedupeKey === 'fvnotes:' + id);
         const base = prior && prior.payload && prior.payload.baseFormVideos !== undefined ? prior.payload.baseFormVideos : (prior ? undefined : baseFormVideos);
         enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos, baseFormVideos: base }, dedupeKey: 'fvnotes:' + id, critical: true });
+        return 'queued';
       }
-      else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
+      emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
+      // the outcome, for a caller that tells the user (SEND TO ATHLETE, #530): 'saved' |
+      // 'queued' (offline - it lands when back online) | 'failed'. Nobody else awaits it.
+      return 'failed';
     }
     };
     const prev = fvChainRef.current.get(id) || Promise.resolve();

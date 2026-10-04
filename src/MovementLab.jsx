@@ -436,6 +436,11 @@ export default function MovementLab({
   const [progress, setProgress] = useState(0);
   const [displayFrames, setDisplayFrames] = useState([]);
   const [srcUrl, setSrcUrl] = useState(null);
+  // IS THE VIDEO ON SCREEN THE PICKED CLIP? (review of #530): after picking athlete A's
+  // clip the coach can still RECORD or UPLOAD another set here - its numbers must never be
+  // sent to A's clip or saved to A's jump trend. (srcUrl is the SIGNED url, so it cannot
+  // be compared with initialClipUrl.)
+  const [onPickedClip, setOnPickedClip] = useState(false);
   const [videoTime, setVideoTime] = useState(0);
   // The coach PICKS the movement. '' = none → neutral read, no rep counting.
   // Nothing in this tool infers it (Ohad: "auto detection doesn't work and
@@ -567,13 +572,15 @@ export default function MovementLab({
     // Frames are captured — release the camera (battery / privacy).
     stopStream(streamRef.current); streamRef.current = null;
     setSource(null);
+    setOnPickedClip(false);   // a recorded set is never the picked clip
     setPhase('analyzing');
     setTimeout(() => finishFrames(frames), 30);
   }, [finishFrames, setSource]);
 
   // Offline read of a clip (upload or a picked reviewed clip): the 'full' model,
   // seek-stepped at the clip's real frame rate — see captureClipFrames.
-  const analyzeSource = useCallback(async (url, { crossOrigin = false } = {}) => {
+  const analyzeSource = useCallback(async (url, { crossOrigin = false, picked = false } = {}) => {
+    setOnPickedClip(!!picked);
     setError(null); setResult(null); setJump(null); setDisplayFrames([]); setProgress(0); setPhase('analyzing');
     // a stored clip plays and is read from its SIGNED url - the raw public one
     // fails once the bucket is private (#510-S4); a blob: or other url passes through
@@ -593,7 +600,7 @@ export default function MovementLab({
   useEffect(() => {
     if (!initialClipUrl || initialDoneRef.current) return;
     initialDoneRef.current = true;
-    analyzeSource(initialClipUrl, { crossOrigin: true });
+    analyzeSource(initialClipUrl, { crossOrigin: true, picked: true });
   }, [initialClipUrl, analyzeSource]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
@@ -754,7 +761,7 @@ export default function MovementLab({
       <Section title={tt('RESULT')}>
         {(jump?.jumpType || jumpKind) === 'broad'
           ? <BroadJumpResult jump={jump} onSave={onSaveJump} onClose={onClose} />
-          : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} vaultClientId={vaultClientId} vaultDate={vaultDate} clipKey={initialClipUrl} onSendNote={onSendNote} />}
+          : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} vaultClientId={onPickedClip ? vaultClientId : null} vaultDate={vaultDate} clipKey={initialClipUrl} onSendNote={onPickedClip ? onSendNote : null} noteTitle={exerciseTitle} />}
       </Section>
     ) : (
       <>
@@ -778,7 +785,7 @@ export default function MovementLab({
           <Section title={tt(initialView === 'metrics' ? 'LIFT METRICS' : 'ANALYSIS')}>
             <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} movement={movement}
               tab={tab} setTab={setTab} view={initialView}
-              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps} onSendNote={onSendNote}
+              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps} onSendNote={onPickedClip ? onSendNote : null} pickedClip={onPickedClip}
               playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
           </Section>
         )}
@@ -844,7 +851,7 @@ function ReadSummary({ result, movement }) {
 // movement: the coach's explicit pick from MovementLab (a MOVEMENTS entry, or
 // null = neutral). Left undefined by callers that only know the LOGGED exercise
 // (Workout Review) — then the logged title decides the joint channel.
-export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, onSendNote = null, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
+export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, onSendNote = null, pickedClip = false, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
   // First/last-rep trim (Ohad: "I want to be able to set where is the first
   // and last rep, to avoid random movement analyzed into the means") — 1-
   // indexed, inclusive, defaults to the full detected set. Only the MEAN
@@ -886,7 +893,8 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
     return romTempoMetrics(frames, angle, slice);
   }, [result, trimmed, effFrom, effTo, frames, exerciseTitle, movement]);
   // the last saved set of this lift on an earlier day (#530) - re-read after a save
-  const prevEntry = useMemo(() => (vaultClientId ? getLastPoseEntryBefore(vaultClientId, exerciseTitle, vaultDate) : null), [vaultClientId, exerciseTitle, vaultDate, vaultSaved]);
+  // only against the picked clip: a set recorded here may be someone else
+  const prevEntry = useMemo(() => (vaultClientId && pickedClip ? getLastPoseEntryBefore(vaultClientId, exerciseTitle, vaultDate) : null), [vaultClientId, pickedClip, exerciseTitle, vaultDate, vaultSaved]);
   if (!result?.ok) return <Empty msg={tt("Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame.")} />;
   // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
@@ -2118,7 +2126,7 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
   );
 }
 
-function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg, vaultClientId = null, vaultDate = null, clipKey = null, onSendNote = null }) {
+function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg, vaultClientId = null, vaultDate = null, clipKey = null, onSendNote = null, noteTitle = '' }) {
   const [saved, setSaved] = useState(false);
   const [trendSaved, setTrendSaved] = useState(false); // the jump trend (#530), this device
   const tt = useT();
@@ -2130,12 +2138,15 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg, vaultC
   // jump of this type, and sent to him as a note on the clip.
   const prevJ = vaultClientId && !onSave ? getLastJumpBefore(vaultClientId, jump.jumpType, vaultDate) : null;
   const jumpShare = vaultClientId && !onSave ? (() => {
-    const parts = [tt(title)];
-    if (jump.reactive && typeof jump.rsi === 'number') parts.push(`RSI ${jump.rsi}`, `${tt('contact')} ${jump.contactMs} ms`);
+    // the note names the jump as it was LOGGED (he knows it by that name; the tool's
+    // titles are English capitals and the reactive ones already end in RSI)
+    const parts = [String(noteTitle || '').trim() || tt(title)];
+    if (jump.reactive && typeof jump.rsi === 'number') parts.push(`RSI ${jump.rsi}`);
+    if (jump.reactive && typeof jump.contactMs === 'number') parts.push(`${tt('contact')} ${jump.contactMs} ms`);
     if (typeof jump.heightCm === 'number') parts.push(`${tt('height')} ${jump.heightCm} cm`);
     const key = jump.reactive ? 'rsi' : 'heightCm';
     if (prevJ && typeof prevJ[key] === 'number' && typeof jump[key] === 'number') {
-      const dd = Math.round((jump[key] - prevJ[key]) * 10) / 10;
+      const dd = jump.reactive ? Math.round((jump[key] - prevJ[key]) * 100) / 100 : Math.round((jump[key] - prevJ[key]) * 10) / 10;
       const m = String(prevJ.date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
       parts.push(`${tt('vs {d}').replace('{d}', m ? `${m[3]}/${m[2]}` : '')}: ${dd > 0 ? '+' : ''}${dd}${jump.reactive ? ' RSI' : ' cm'}`);
     }

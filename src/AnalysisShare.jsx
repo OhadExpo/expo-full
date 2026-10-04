@@ -41,18 +41,20 @@ export function VsLastTime({ rows, date }) {
   );
 }
 
-// onSend(text) -> Promise<boolean>. Nothing is written until SEND.
+// onSend(text) resolves 'saved' | 'queued' (offline: lands when back online) | 'failed'.
+// Nothing is written until SEND, and the screen says which of the three happened.
 export function SendToAthlete({ defaultText, onSend }) {
   const tt = useT();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
-  const [state, setState] = useState('idle'); // idle | sending | sent | failed
+  const [state, setState] = useState('idle'); // idle | sending | sent | queued | failed
   if (!onSend) return null;
   const box = { height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
-  if (state === 'sent') {
+  if (state === 'sent' || state === 'queued') {
+    const col = state === 'sent' ? C.gn : (C.or || '#f0b429');
     return (
-      <div className="motion-rise" style={{ ...box, cursor: 'default', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.gn}`, color: C.gn }}>
-        ✓ {tt('SENT - ON HIS CLIP')}
+      <div className="motion-rise" style={{ ...box, cursor: 'default', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${col}`, color: col }}>
+        {state === 'sent' ? `✓ ${tt('SENT - ON HIS CLIP')}` : tt('NO CONNECTION - IT REACHES HIS CLIP WHEN YOU ARE BACK ONLINE')}
       </div>
     );
   }
@@ -72,10 +74,10 @@ export function SendToAthlete({ defaultText, onSend }) {
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} dir="auto" data-allow-copy className="analysis-note-text"
         // the athlete reads exactly this text: no inherited uppercase, no letter-spacing
         style={{ display: 'block', width: '100%', boxSizing: 'border-box', resize: 'vertical', background: 'transparent', border: 'none', outline: 'none', color: '#FFF', fontFamily: FB, fontSize: 14, lineHeight: 1.5, padding: '10px 12px', textTransform: 'none', letterSpacing: 'normal' }} />
-      {state === 'failed' && <div style={{ padding: '0 12px 8px', fontFamily: FN, fontSize: 11, color: C.rd }}>{tt('Not sent - check the connection and try again.')}</div>}
+      {state === 'failed' && <div style={{ padding: '0 12px 8px', fontFamily: FN, fontSize: 11, color: C.rd }}>{tt('Not sent - try again.')}</div>}
       <div style={{ display: 'flex', gap: 8, padding: '0 12px 12px' }}>
         <button type="button" disabled={!text.trim() || state === 'sending'}
-          onClick={async () => { setState('sending'); let ok = false; try { ok = await onSend(text.trim()); } catch { ok = false; } setState(ok ? 'sent' : 'failed'); }}
+          onClick={async () => { setState('sending'); let r = 'failed'; try { r = await onSend(text.trim()); } catch { r = 'failed'; } setState(r === 'saved' ? 'sent' : r === 'queued' ? 'queued' : 'failed'); }}
           style={{ ...box, flex: 1, background: C.ac, border: `1px solid ${C.ac}`, color: '#000', opacity: !text.trim() || state === 'sending' ? 0.5 : 1 }}>
           {state === 'sending' ? tt('SENDING…') : tt('SEND')}
         </button>

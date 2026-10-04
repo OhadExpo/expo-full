@@ -373,8 +373,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
     if (!wo || !Array.isArray(wo.formVideos) || !wo.formVideos[clipMeta.slot]) return false;
     const note = { id: 'rn_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36), ts: 0, text, author: 'trainer', createdAt: new Date().toISOString(), replies: [], drawings: [] };
     const updated = wo.formVideos.map((fv, i) => (i === clipMeta.slot ? { ...fv, reviewNotes: [...((fv && fv.reviewNotes) || []), note] } : fv));
-    await updateFormVideos(clipMeta.wid, updated);
-    return true;
+    return (await updateFormVideos(clipMeta.wid, updated)) || 'failed';   // 'saved' | 'queued' | 'failed'
   } : null;
 
   return (
