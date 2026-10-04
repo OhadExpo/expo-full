@@ -3392,7 +3392,7 @@ function ActivityView({ activity = [], tr, he }) {
                 return (
                   <button key={k} type="button" aria-pressed={on} onClick={() => { setKindF(k); setShown(80); }} className="bhbc-ghost-btn"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 'var(--btn-h)', minHeight: 0, padding: '0 12px', boxSizing: 'border-box', border: `1px solid ${on ? NAVY : C.cardBd}`, background: on ? `color-mix(in srgb, ${NAVY} 10%, transparent)` : 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm }}>
-                    {k !== 'all' && <span aria-hidden style={{ width: 8, height: 8, boxSizing: 'border-box', background: k === 'open' ? 'transparent' : (KIND_INK[k] || C.tm), border: k === 'open' ? `1.5px solid ${C.tm}` : 'none', flexShrink: 0 }} />}   /* signed in = hollow: it is presence, not a change */
+                    {k !== 'all' && <span aria-hidden style={{ width: 8, height: 8, boxSizing: 'border-box', background: k === 'open' ? 'transparent' : (KIND_INK[k] || C.tm), border: k === 'open' ? `1.5px solid ${C.tm}` : 'none', flexShrink: 0 }} />}{/* signed in = hollow: it is presence, not a change */}
                     {label}<span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
                   </button>
                 );

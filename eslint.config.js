@@ -4,6 +4,20 @@
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 
+// A code comment written between JSX tags without braces is TEXT: React renders
+// it. 4.10: `/* signed in = hollow... */` shipped as words inside every BHBC
+// Activity filter button - found by a code review, not by any gate or screenshot.
+const noCommentText = {
+  meta: { type: 'problem' },
+  create(context) {
+    return {
+      JSXText(node) {
+        if (/(^|\s)(\/\*|\/\/)/.test(node.value)) context.report({ node, message: 'A comment between JSX tags renders as text - wrap it: {/* ... */}' });
+      },
+    };
+  },
+};
+
 export default [
   {
     files: ['src/**/*.{js,jsx}', 'expo-il/src/**/*.{js,jsx}'],
@@ -11,7 +25,7 @@ export default [
     // Legacy `// eslint-disable react-hooks/exhaustive-deps` comments are
     // harmless no-ops now that the rule is off — don't report them.
     linterOptions: { reportUnusedDisableDirectives: 'off' },
-    plugins: { 'react-hooks': reactHooks },
+    plugins: { 'react-hooks': reactHooks, expo: { rules: { 'no-comment-text': noCommentText } } },
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -37,6 +51,7 @@ export default [
       'no-dupe-args': 'error',
       'no-unreachable': 'error',
       'no-self-assign': 'error',
+      'expo/no-comment-text': 'error',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'off', // many intentional omissions; not gating on it
     },

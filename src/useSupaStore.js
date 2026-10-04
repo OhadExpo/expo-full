@@ -565,6 +565,27 @@ export function useSupaStore(key, initial) {
   // refetch that started before one finished can not put the older value back
   // (#510-B8). inflightRef is the value on the wire, for the pagehide flush.
   const baseRef = useRef({ known: false, at: undefined, val: undefined });
+  // QUEUED SAVES THIS SCREEN OWNS (4.10 review of #524). A save queued before
+  // this screen loaded (an offline edit, then a reload) is NOT in the screen -
+  // the load shows the server value. So a successful direct save may only drop
+  // the queue entries this screen created, and a save this screen queues must
+  // fold into an older queued one instead of replacing it (the queue keeps one
+  // entry per key) - either way the earlier edit was lost.
+  const myQueuedRef = useRef(new Set());
+  const queueMine = (v, b) => {
+    let value = v, baseAt = b.known ? b.at : undefined, baseVal = queueBase(b.val);
+    try {
+      const prior = getEntries().find((q) => q.type === 'store.upsert' && q.dedupeKey === key);
+      if (prior && prior.payload && !myQueuedRef.current.has(prior.id)) {
+        const foldBase = b.known ? b.val : prior.payload.baseVal;
+        if (foldBase !== undefined) value = mergeStoreValues(foldBase, v, prior.payload.value);
+        baseAt = prior.payload.baseAt; baseVal = prior.payload.baseVal;
+      }
+    } catch { /* the queue is best effort */ }
+    const r = enqueueEntry({ type: 'store.upsert', payload: { key, value, baseAt, baseVal }, dedupeKey: key, critical: true });
+    myQueuedRef.current.add(r.id);
+    return r.durable;
+  };
   const saveGenRef = useRef(0);
   const inflightRef = useRef(null);
   // the guarded refetch below, for callers that learn of a change another way
@@ -729,7 +750,7 @@ export function useSupaStore(key, initial) {
       const v = pendingRef.current;
       if (v === null || v === undefined) return;
       const b = baseRef.current;
-      try { enqueue({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key, critical: true }); } catch { /* best effort */ }
+      try { queueMine(v, b); } catch { /* best effort */ }
     };
     try {
       document.addEventListener('visibilitychange', onVisible);
@@ -768,7 +789,7 @@ export function useSupaStore(key, initial) {
         const fail = (err) => {
           if (isTransient(err)) {
             // critical: this entry is the only durable copy of an offline edit (4.10 audit)
-            enqueue({ type: 'store.upsert', payload: { key, value: toWrite, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key, critical: true });
+            queueMine(toWrite, b);
           } else {
             console.warn(`useSupaStore[${key}] save error:`, err?.message || err);
             emitSaveError({ key, op: 'save', msg: err?.message || 'save failed' });
@@ -781,8 +802,9 @@ export function useSupaStore(key, initial) {
           // built on the screen's data, which already carries the queued edit. Left
           // in the queue, the old value replayed on the next drain and the merge kept
           // its stale leaves ("mine wins") - x=1 came back over x=2, a deleted row
-          // returned. Only entries queued BEFORE this write started are dropped.
-          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
+          // returned. Only entries THIS screen queued, BEFORE this write started, are
+          // dropped - one queued before the screen loaded is not in it (it replays).
+          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && myQueuedRef.current.has(q.id) && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
           baseRef.current = { known: true, at: r.at, val: r.val };
           persistBase(key, r.at, r.val);
           if (r.val !== toWrite && !deepEqual(r.val, toWrite)) {
@@ -1149,15 +1171,29 @@ export function useSupaClientWorkouts(initial = []) {
   // timestamped-comment feature and the client's reply-to-comment flow.
   // Optimistic: updates local state first, then writes to Supabase. Errors
   // surface via emitSaveError and get shown in the save-error toast.
+  // TWO QUICK NOTE EDITS MUST NOT ERASE EACH OTHER (4.10 review of #524): the
+  // base used to be this screen's optimistic copy, so a second stroke drawn
+  // while the first was still saving counted the first as "already saved"; a
+  // server read without it then looked like a deletion and the merge dropped
+  // it. Now: one write per workout at a time, and while one is in flight the
+  // next one's base is what the server CONFIRMED last, not the screen's guess.
+  const fvConfirmedRef = useRef(new Map());
+  const fvBusyRef = useRef(new Map());
+  const fvChainRef = useRef(new Map());
   const updateFormVideos = useCallback(async (id, formVideos) => {
-    // the slots as this screen had them before this edit - the merge's base
-    const baseFormVideos = ((dataRef.current.find((w) => w.id === id) || {}).formVideos) || undefined;
+    // the slots as this screen had them before this edit
+    const callBase = ((dataRef.current.find((w) => w.id === id) || {}).formVideos) || undefined;
+    // nothing in flight for this workout: the screen IS the confirmed state
+    if (!(fvBusyRef.current.get(id) > 0)) fvConfirmedRef.current.set(id, callBase);
+    fvBusyRef.current.set(id, (fvBusyRef.current.get(id) || 0) + 1);
     // Optimistic local update for immediate UI.
     const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
     try { lsSnapshotRecent('expo-cw', next); } catch {}
+    const run = async () => {
+    const baseFormVideos = fvConfirmedRef.current.get(id);
     try {
       // Server-authoritative READ-MODIFY-WRITE (audit CRITICAL). The coach's
       // clientWorkouts snapshot is frozen at page-load and never refreshes from
@@ -1184,6 +1220,7 @@ export function useSupaClientWorkouts(initial = []) {
       }
       const { error } = await supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id);
       if (error) throw error;
+      fvConfirmedRef.current.set(id, merged);
       // Reconcile local state to the merged truth (may now include an athlete
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
@@ -1204,6 +1241,14 @@ export function useSupaClientWorkouts(initial = []) {
       }
       else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
     }
+    };
+    const prev = fvChainRef.current.get(id) || Promise.resolve();
+    const p = prev.then(run, run).finally(() => {
+      fvBusyRef.current.set(id, Math.max(0, (fvBusyRef.current.get(id) || 1) - 1));
+      if (fvChainRef.current.get(id) === p) fvChainRef.current.delete(id);
+    });
+    fvChainRef.current.set(id, p);
+    return p;
   }, []);
 
   // Hard-delete a workout (and its form videos / review notes by cascade —

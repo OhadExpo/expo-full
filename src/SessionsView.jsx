@@ -105,10 +105,29 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // writer now: the latest value waits in pendingWrite, a debounce or a FLUSH writes
   // it, the result is checked and retried, and leaving the screen flushes.
   const pendingWrite = useRef(null);
-  const writeNow = useCallback(async (value, tries = 0) => {
+  // A RETRY NEVER WRITES AN OLD VALUE (4.10 review of #524): each write gets a
+  // number, and a retry runs only if no newer value has been written since - a
+  // failed v1 retried 1.5 s later used to land over a ticked v2. And a retry first
+  // looks at the row: if the session it carries was FINISHED on another device
+  // (row gone after it had landed, or a different session there), it stops instead
+  // of re-creating the finished session (the duplicate-history shape, audit #41).
+  const writeSeqRef = useRef(0);
+  const landedIdRef = useRef(null);
+  const writeNow = useCallback(async (value, tries = 0, seq = ++writeSeqRef.current) => {
+    if (seq !== writeSeqRef.current) return;
     const { error } = await supabase.from('store').upsert({ key: SKEY, value, updated_at: new Date().toISOString() }).then((r) => r, (e) => ({ error: e }));
-    if (!error) return;
-    if (tries < 3) { setTimeout(() => { if (!endedRef.current) writeNow(value, tries + 1); }, 1500 * (tries + 1)); return; }
+    if (!error) { landedIdRef.current = value && value.id; return; }
+    if (tries < 3) {
+      setTimeout(async () => {
+        if (endedRef.current || seq !== writeSeqRef.current) return;
+        const r = await supabase.from('store').select('value').eq('key', SKEY).maybeSingle().then((x) => x, () => null);
+        const row = r && !r.error ? r.data : undefined;   // undefined = could not look: retry anyway
+        if (row === null && value && landedIdRef.current === value.id) return;
+        if (row && row.value && row.value.id && value && value.id && row.value.id !== value.id) return;
+        writeNow(value, tries + 1, seq);
+      }, 1500 * (tries + 1));
+      return;
+    }
     try { toast(tr(readLang(), 'Could not save — check your connection and try again.')); } catch { /* */ }
   }, []);
   const flushWrite = useCallback(() => {

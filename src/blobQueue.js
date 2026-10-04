@@ -432,7 +432,8 @@ export async function drainBlobs() {
         // on a weak gym signal (~2.5 min with the app open) deleted the 10-40MB
         // video for good. Past MAX_ATTEMPTS it now RESTS on the device and is tried
         // again with a growing backoff (30 s .. 30 min); only a permanent rejection
-        // (above) or the 50MB cap drops it. The athlete is told it is still waiting.
+        // (above) or the 50MB cap drops it. An expo-blob-failed event (retrying-later) is
+        // sent - NOTHING in the app listens to these events yet, so the athlete is not told.
         if (cur.attempts >= MAX_ATTEMPTS && !permanent) {
           const waitMs = Math.min(30 * 60 * 1000, 30 * 1000 * 2 ** Math.min(10, cur.attempts - MAX_ATTEMPTS));
           cur.nextTryAt = Date.now() + waitMs;

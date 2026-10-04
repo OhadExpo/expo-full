@@ -227,8 +227,12 @@ export default async function handler(req, res) {
   // THE TAG IS THE SENDER'S, NOT THE BODY'S (3.10 #524 audit): the service
   // worker REPLACES a notification with the same tag, so an athlete sending
   // tag 'athlete-health' silently swapped the owner's outage alert for his own
-  // text. Only the owner names a tag; anyone else's pushes group per sender.
-  const safeTag = callerEmail === OWNER_EMAIL ? tag : (tag ? `msg:${callerEmail}` : undefined);
+  // text. Only the owner names a tag freely; anyone else's tag is put under the
+  // sender's own name, so it can never replace the owner's or another sender's
+  // notification - but two different pushes from one athlete (a finished workout,
+  // then a message) stay two notifications (4.10 review: 'msg:<sender>' for all
+  // of them made each replace the last).
+  const safeTag = callerEmail === OWNER_EMAIL ? tag : (tag ? `${callerEmail}:${String(tag).slice(0, 80)}` : undefined);
   const payload = JSON.stringify({
     title: notifTitle, body: text, url, tag: safeTag,
     icon: '/icon-192.png', badge: '/icon-192.png',
