@@ -286,11 +286,16 @@ try { const raw = authStorage && authStorage.getItem(AUTH_TOKEN_KEY); if (raw) s
   // their own name, so his autosave never tells the owner's open editor or a
   // club coach "someone changed this" (1.10 audit C8) - and his own tabs and
   // program preview still hear each other
-  const SBX_CHANNELS = new Set(['plans-live', 'bhbc-live']);
+  const SBX_CHANNELS = new Set(['plans-live', 'bhbc-live', 'portal-sync', 'gym-session']);
+  // gym mode's per-athlete set channel too (4.10 #542): on the real 'gym-set:<id>'
+  // only the database rule stood between his seat and a real athlete's phone;
+  // on 'sbx:' his own coach screens still hear each other (realtime policy
+  // "expo: partner sbx live read/write")
+  const sbxChannel = (name) => SBX_CHANNELS.has(name) || /^gym-set:/.test(name);
   const realChannel = supabase.channel.bind(supabase);
   supabase.channel = (name, opts) => {
     const sbx = sandboxNow();
-    const ch = realChannel(sbx && SBX_CHANNELS.has(name) ? 'sbx:' + name : name, opts);
+    const ch = realChannel(sbx && sbxChannel(name) ? 'sbx:' + name : name, opts);
     if (!sbx) return ch;
     // live table changes follow the queries: his seat listens to HIS copy
     // (the sbx_ tables are in the realtime publication; RLS limits who hears)
