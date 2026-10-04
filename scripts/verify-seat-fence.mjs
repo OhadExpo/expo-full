@@ -75,7 +75,12 @@ const replay = hook.indexOf("registerHandler('store.upsert'");
 const replayEnd = hook.indexOf('\n});', replay);
 const writer = hook.indexOf('const writeToSupa = useCallback');
 const writerEnd = hook.indexOf('\n  }, [key]);', writer);
-check('storeWriteMerged is called only by the replay and by writeToSupa', swmCalls.length === 2 && swmCalls.some((i) => i > replay && i < replayEnd) && swmCalls.some((i) => i > writer && i < writerEnd), `calls at lines ${swmCalls.map(lineOf).join(', ')}`);
+// (c) storeWriteFenced - the one-off writer (Smart Import, 4.10): it must check the fence first
+const fencedStart = hook.indexOf('export async function storeWriteFenced(');
+const fencedEnd = hook.indexOf('\n}', fencedStart);
+const fencedBody = fencedStart > -1 ? hook.slice(fencedStart, fencedEnd) : '';
+check('storeWriteFenced checks the fence before it writes', fencedStart > -1 && fencedBody.indexOf('if (!canSeatWrite(key))') > -1 && fencedBody.indexOf('if (!canSeatWrite(key))') < fencedBody.indexOf('storeWriteMerged('), 'no fence before the write');
+check('storeWriteMerged is called only by the replay, writeToSupa and storeWriteFenced', swmCalls.length === 3 && swmCalls.some((i) => i > fencedStart && i < fencedEnd) && swmCalls.some((i) => i > replay && i < replayEnd) && swmCalls.some((i) => i > writer && i < writerEnd), `calls at lines ${swmCalls.map(lineOf).join(', ')}`);
 const replayBody = hook.slice(replay, replayEnd);
 check('the queued replay checks the fence before it writes', replayBody.indexOf('if (!canSeatWrite(key))') > -1 && replayBody.indexOf('if (!canSeatWrite(key))') < replayBody.indexOf('storeWriteMerged('), 'no fence before storeWriteMerged in the replay');
 {
@@ -96,9 +101,7 @@ for (const f of fs.readdirSync('src').filter((x) => /\.(jsx?|mjs)$/.test(x) && x
 const KNOWN_BYPASSES = {
   'src/App.jsx': [1, 'expo-bhbc-roster projection, inside `if (!isOwner) return`'],
   'src/ClientPortal.jsx': [1, "the athlete's own expo-presence-<id> row, the one write the seat is allowed"],
-  'src/SessionsView.jsx': [4, 'expo-gym-session, the coach-only live floor (3 upserts + 1 delete)'],
-  'src/SmartImportView.jsx': [3, 'owner-only import tool (library + roster)'],
-  'src/WaitlistView.jsx': [1, 'expo-lead-notes, owner-only waitlist'],
+  'src/SessionsView.jsx': [2, 'expo-gym-session, the coach-only live floor (1 upsert in writeNow + 1 delete)'],
 };
 const re = /from\(['"]store['"]\)\s*\.\s*(upsert|insert|update|delete)\(/g;
 const found = {};

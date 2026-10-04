@@ -6,7 +6,7 @@
 // Vercel auto-routes this file to /api/chat. ANTHROPIC_API_KEY must be
 // set in this project's Vercel env vars (production + preview).
 
-import { clientIp, originAllowed } from './_ip.js';
+import { clientIp, originAllowed, budgetOk } from './_ip.js';
 
 import crypto from 'crypto';
 
@@ -231,12 +231,16 @@ export default async function handler(req, res) {
   if (messages.length > 20) {
     res.status(400).json({ error: 'Conversation too long' }); return;
   }
-  const cleanMessages = messages.slice(-20).map(m => ({
+  const cleanMessages = messages.slice(-20).filter(m => m && typeof m === 'object').map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: String(m.content || '').slice(0, 1500),
   })).filter(m => m.content.trim().length > 0);
   if (cleanMessages.length === 0) {
     res.status(400).json({ error: 'Empty messages' }); return;
+  }
+  // the day's shared ceiling on the paid model (3.10 #524 audit)
+  if (!(await budgetOk('chat-il'))) {
+    res.status(429).json({ error: 'The chat is busy today — leave your email and Ohad will answer you himself.' }); return;
   }
   // Server-side memory: if the frontend has only a fresh thread (1–2 messages)
   // but we have prior turns logged for this sessionId, prepend them so a

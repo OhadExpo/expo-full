@@ -19,6 +19,22 @@ import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
 import { Btn, Input, Select, Badge, SectionLabel, isRefined5b, toast } from './ui';
+import { storeWriteFenced } from './useSupaStore';
+
+// AN IMPORT NEVER WRITES OVER WHAT IT COULD NOT READ (4.10 #524 audit): a failed
+// read gave `row` undefined -> [] -> the import upserted ONLY the new rows over the
+// whole key (the 25-row anti-wipe trigger spared the library; a small key had no
+// such luck), and the write was blind to an edit made meanwhile. Now the read must
+// succeed, the base is kept untouched, and the write merges (compare-and-swap).
+async function readStoreForImport(key) {
+  const { data, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
+  if (error) throw error;
+  const v = data ? data.value : undefined;
+  return { base: v === undefined ? undefined : JSON.parse(JSON.stringify(v)), value: Array.isArray(v) ? v : [] };
+}
+async function writeStoreForImport(key, base, value) {
+  await storeWriteFenced(key, value, base);
+}
 
 // Drop target rendered below the header when no file has been picked
 // yet. The header copy ("Drop any document — XLSX, CSV, PDF, image,
@@ -356,8 +372,8 @@ export default function SmartImportView() {
           }
         });
         await Promise.all(workers);
-        const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
-        const lib = row?.value || [];
+        const libRead = await readStoreForImport('expo-exercises');
+        const lib = libRead.value;
         const titles = new Set(lib.map(e => (e.title || '').toLowerCase().trim()));
         let added = 0;
         for (const item of transform.items) {
@@ -380,12 +396,11 @@ export default function SmartImportView() {
           });
           titles.add(t.toLowerCase()); added++;
         }
-        const { error } = await supabase.from('store').upsert({ key: 'expo-exercises', value: lib, updated_at: new Date().toISOString() });
-        if (error) throw error;
+        await writeStoreForImport('expo-exercises', libRead.base, lib);
         summary = readLang() === 'he' ? `${added === 1 ? 'נוסף תרגיל חדש אחד' : `נוספו ${added} תרגילים חדשים`} (${transform.items.length - added === 1 ? 'כפילות אחת דולגה' : `${transform.items.length - added} כפילויות דולגו`}).` : `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
       } else if (target === 'athletes') {
-        const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-trainees').maybeSingle();
-        const arr = row?.value || [];
+        const rosterRead = await readStoreForImport('expo-trainees');
+        const arr = rosterRead.value;
         const keyOf = t => {
           const n = (t.name || '').toLowerCase().trim();
           const p = (t.phone || '').replace(/\D/g, '').slice(-9);
@@ -407,12 +422,11 @@ export default function SmartImportView() {
             added++;
           }
         }
-        const { error } = await supabase.from('store').upsert({ key: 'expo-trainees', value: arr, updated_at: new Date().toISOString() });
-        if (error) throw error;
+        await writeStoreForImport('expo-trainees', rosterRead.base, arr);
         summary = readLang() === 'he' ? `${added === 1 ? 'נוסף מתאמן חדש אחד' : `נוספו ${added} מתאמנים חדשים`}, ${updated === 1 ? 'מתאמן אחד עודכן' : `${updated} עודכנו`}.` + (skippedNameless ? ` ${skippedNameless === 1 ? 'דולגה שורה אחת בלי שם' : `דולגו ${skippedNameless} שורות בלי שם`}.` : '') : `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
       } else if (target === 'programs') {
-        const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
-        const lib = row?.value || [];
+        const libRead = await readStoreForImport('expo-exercises');
+        const lib = libRead.value;
         const byTitle = new Map(lib.map(e => [(e.title || '').toLowerCase().trim(), e]));
         const newLibEntries = [];
         const resolveEid = title => {
@@ -471,8 +485,7 @@ export default function SmartImportView() {
           };
         });
         if (newLibEntries.length) {
-          const { error } = await supabase.from('store').upsert({ key: 'expo-exercises', value: [...lib, ...newLibEntries], updated_at: new Date().toISOString() });
-          if (error) throw error;
+          await writeStoreForImport('expo-exercises', libRead.base, [...lib, ...newLibEntries]);
         }
         let created = 0;
         for (const planRow of planRows) {

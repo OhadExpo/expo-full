@@ -117,7 +117,10 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'apikey': SUPA_PUBLISHABLE_KEY,
-        'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+        // a verified reporter's report is written AS him (3.10 #524): the table's
+        // trigger takes the reporter from the token, so a direct anon insert can
+        // no longer pose as the owner or an athlete
+        'Authorization': `Bearer ${verifiedEmail ? authHeader.slice('Bearer '.length).trim() : SUPA_PUBLISHABLE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal',
       },

@@ -1,3 +1,4 @@
+-- APPLIED 3.10 via Supabase MCP (as below). A16 in security-audit proves it from the anon seat both ways.
 -- 2026-10-02  #510-A2   (security round 1, 2.10)
 --
 -- THE PUBLIC BOOKING PAGE IS AN ANONYMOUS INSERT, BY DESIGN - but the policy
@@ -119,6 +120,7 @@ END $$;
 ALTER POLICY bookings_public_insert ON public.bookings WITH CHECK (
   source = 'public'
   AND status = 'confirmed'
+  AND trainee_id IS NULL   -- kept from the live policy (3.10): a public booking never attaches to an athlete
   AND length(coalesce(contact_name, '')) BETWEEN 1 AND 120
   AND length(coalesce(contact_email, '')) <= 200
   AND length(coalesce(contact_phone, '')) <= 40

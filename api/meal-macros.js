@@ -16,7 +16,7 @@
 // cold-start with FUNCTION_INVOCATION_FAILED. Mirrors api/chat.js +
 // api/capture.js which already proxy Anthropic this way.
 
-import { clientIp } from './_ip.js';
+import { clientIp, budgetOk } from './_ip.js';
 
 // EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
 // hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
@@ -117,6 +117,12 @@ export default async function handler(req, res) {
   // as a generic vision proxy for arbitrary URLs.
   if (!photoUrl.startsWith(`${SUPA_URL}/storage/v1/object/`)) {
     res.status(400).json({ error: 'photoUrl must be an EXPO storage URL.' });
+    return;
+  }
+
+  // the day's shared ceiling on the paid model (3.10 #524 audit)
+  if (!(await budgetOk('meal-macros'))) {
+    res.status(429).json({ error: 'Meal estimates are busy today - log the meal and try the estimate later.' });
     return;
   }
 

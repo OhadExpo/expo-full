@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     let anySent = false;
     for (const s of info.subs) {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload);
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload, { timeout: 5000 });   // one dead endpoint cannot stall the whole run (3.10)
         sent++;
         anySent = true;
       } catch (e) {

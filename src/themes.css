@@ -1393,7 +1393,12 @@ html.theme-switching *::after {
   /* 29.9 #380: the by-column was 80px and "REPORTED BY" / "NO UPDATE 14D"
      (~110px) ran into UPDATE ›; it takes 120 now, to 1199px (was 900). */
   .bhbc-zone .bhbc-inj-head,
-  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 100px 96px 120px 64px !important; gap: 10px !important; }
+  .bhbc-zone .bhbc-inj-row { grid-template-columns: 150px minmax(0, 1fr) 136px 120px 64px !important; gap: 10px !important; }   /* status = the pill (4.10 #526) */
+  /* TABLET: FIVE COLUMNS (4.10 #523, the head coach's tablet at 768): with six the
+     injury had ~90px and broke into three lines ("ANKLE · / LEFT · / SPRAIN").
+     Since-and-pain and reported-by stack in one column; its header is SINCE · PAIN. */
+  .bhbc-zone .bhbc-inj-row > .bhbc-inj-meta { display: flex !important; flex-direction: column; gap: 3px; min-width: 0; }
+  .bhbc-zone .bhbc-inj-head > :nth-child(5) { display: none !important; }
 }
 .bhbc-zone .bhbc-inj-row > :nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
 
@@ -2227,3 +2232,21 @@ select.avail-select:dir(rtl) {
    so the colour runs only around the rows - as CollapsibleSection's leftStripe. */
 .alert-sev { padding-top: 0 !important; padding-inline: 18px !important; }  /* phones read 12 on top, desktop 14: fixed here so the bleed below is exact */
 .alert-sev .title-strip { margin: -1px -19px 12px !important; border: 1px solid var(--c-cardBd); border-bottom: 0; position: relative; }
+
+/* THE HEAD COACH'S PHONE (3.10 #522/#523, Ohad: "make the tables on bhbc on mobile
+   better" / "easier to view more" / "perfectly displayable for the head coach").
+   Seen from his seat at 390: the load board kept each row two CONTROLS tall
+   (status over MED) although his seat has no MED, ~28px of air a player; the
+   medical rows are redesigned in BhbcView (4.10 #526). Where the MED control is
+   absent the load row is as tall as its lines. */
+@media (max-width: 760px) {
+  .bhbc-zone .bhbc-load-row:not(:has(> [data-lbl="actions"] button)) > *:nth-child(2) { min-height: 0 !important; justify-content: flex-start !important; gap: 3px; }
+}
+
+/* ACTIVITY ON A PHONE (4.10 #531): the person under the words, on the words' x;
+   the team table drops to name | actions | last seen at 76 / 92. */
+@media (max-width: 620px) {
+  .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 9px 0 11px !important; } /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
+  .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
+  .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 76px 92px !important; }
+}

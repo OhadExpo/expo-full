@@ -350,7 +350,21 @@ function DemoOwedCard({ onJumpToTrainee, onNav, expanded = false }) {
         <span>{T('Owed')} ({owed.length})</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span dir="ltr" style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.75 }}>{nis(total)}</span><StripCaret open={owedOpen} /></span>
       </div>
-      {owedOpen && <div style={{ padding: '0 14px 14px' }}>
+      {owedOpen && !expanded && (
+        /* PARITY with the real dashboard (4.10 #534): the total and how many owe it;
+           the list lives on Billing */
+        <div style={{ padding: '14px 14px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 30, fontWeight: 800, lineHeight: 1, color: C.or, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', alignSelf: 'flex-start' }}>{nis(total)}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-tm)' }}>{readLang() === 'he' ? `חוב של ${owed.length} ${owed.length === 1 ? 'מתאמן' : 'מתאמנים'}` : `owed by ${owed.length} ${owed.length === 1 ? 'client' : 'clients'}`}</span>
+            </span>
+            <button type="button" onClick={() => onNav && onNav('billing')} style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', borderRadius: 0 }}>{readLang() === 'he' ? 'פירוט בחיובים ←' : 'DETAILS ON BILLING →'}</button>
+          </div>
+          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginTop: 12 }}>{T('From the roster sheet')} · {T('synced')} 12{T('m ago')}</div>
+        </div>
+      )}
+      {owedOpen && expanded && <div style={{ padding: '0 14px 14px' }}>
         {owed.map((t, n) => (
           <button key={t.id} type="button" data-owed-row="" onClick={() => onJumpToTrainee(t.id, 'dashboard')}
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateRows: '24px minmax(20px, auto)', columnGap: 12, rowGap: 4, alignItems: 'center', minHeight: 68, boxSizing: 'border-box', padding: '10px 0', background: 'transparent', border: 'none', borderBottom: n < owed.length - 1 ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start', cursor: 'pointer', color: C.tx, width: '100%' }}>
@@ -2298,6 +2312,7 @@ function DemoPrograms({ resetToken = 0 }) {
   // programs with no exercises or no days.
   const [flags, setFlags] = useState({ unassigned: false, empty: false });
   const [progView, setProgView] = useState('table'); // 'table' | 'grid' (the real toggle)
+  const phoneList = useIsMobile(620);   // the real Programs on a phone: TABLE is a dense list (4.10 #532)
   // Training Analysis opens per athlete from the card's ANALYSIS button, as a full
   // page with a Back bar - the real PlansView (it was a third toggle here, #448)
   const [lineageFor, setLineageFor] = useState(null);
@@ -2584,6 +2599,41 @@ function DemoPrograms({ resetToken = 0 }) {
                   worse, because the control reports a state change. Grid lays
                   the same programs out in columns, the way the real
                   PlansView does (repeat(auto-fill, minmax(...))). */}
+              {progView === 'table' && phoneList ? (
+                /* PARITY with the real phone TABLE (4.10 #532): two lines an athlete */
+                <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+                  {rows.map((row, ri) => {
+                    const cur = row.current;
+                    const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
+                    const tagText = row.daysSince == null ? T('NEVER LOGGED') : row.daysSince === 0 ? T('TRAINED TODAY') : (readLang() === 'he' ? daysAgoHe(row.daysSince) : TN('{n}D AGO', row.daysSince));
+                    const vis = portalVis['pv_' + cur.id] !== false;
+                    const heL = readLang() === 'he';
+                    return (
+                      <div key={row.tid} role="button" tabIndex={0} onClick={() => setSelectedProgramId(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedProgramId(cur.id); } }}
+                        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '9px 12px', boxSizing: 'border-box', cursor: 'pointer', borderTop: ri === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
+                        <span style={{ display: 'flex', alignItems: 'center', minWidth: 0, height: 17 }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{row.name}</bdi></span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
+                          <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
+                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{cur.dayCount}{heL ? ' ימים' : 'D'} · {cur.exerciseCount}{heL ? ' תרגילים' : ' EX'}</span>
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
+                          {row.earlier.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, margin: '-1px 0', padding: '0 7px', boxSizing: 'border-box', background: 'rgba(127,127,138,0.16)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">+{row.earlier.length}</bdi><span aria-hidden style={{ fontSize: 8, lineHeight: 1 }}>▾</span></span>}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis((v) => ({ ...v, ['pv_' + cur.id]: !vis })); }} aria-pressed={vis}
+                            title={tr(readLang(), vis ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
+                            style={{ width: 44, height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', border: 'none', padding: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                            <span aria-hidden style={{ width: 30, height: 16, borderRadius: 8, background: vis ? 'rgba(46,213,115,0.35)' : 'rgba(127,127,138,0.25)', position: 'relative', display: 'block' }}>
+                              <span style={{ width: 12, height: 12, borderRadius: 6, background: vis ? C.gn : C.tm, position: 'absolute', top: 2, insetInlineStart: vis ? 16 : 2, transition: 'inset-inline-start .15s' }} />
+                            </span>
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
               <div style={{ display: 'grid', gap: 15, gridTemplateColumns: progView === 'grid' ? 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))' : undefined, alignItems: 'start' }}>
                 {rows.map(row => {
                   const expanded = expandedAthletes.has(row.tid);
@@ -2698,6 +2748,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   );
                 })}
               </div>
+              )}
             </>
           );
         })()}

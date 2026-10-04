@@ -8,7 +8,7 @@
 // so no service-role secret needed. If summary generation fails the lead
 // still saves — funnel capture is more important than annotation.
 
-import { clientIp } from './_ip.js';
+import { clientIp, originAllowed, capMessages, budgetOk } from './_ip.js';
 
 // EVERY OUTBOUND CALL ENDS BEFORE THIS FUNCTION'S OWN KILL (2.10 #510-B9): a
 // hung upstream ran to maxDuration and the caller got Vercel's plaintext 504
@@ -179,22 +179,26 @@ export default async function handler(req, res) {
   const email = String(body?.email || '').trim();
   const source = String(body?.source || 'expo-app-chat').slice(0, 60);
   const context = String(body?.context || 'coach_waitlist').slice(0, 60);
-  const messages = Array.isArray(body?.messages) ? body.messages.slice(-30) : [];
+  // clamped and malformed entries dropped (a [null] used to throw outside any try and 500 - 3.10 audit)
+  const messages = capMessages(body?.messages, { maxMessages: 30, maxChars: 1500 });
   const userAgent = (req.headers['user-agent'] || '').toString().slice(0, 200);
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     res.status(400).json({ error: 'Invalid email' }); return;
   }
 
+  if (!originAllowed(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
   const ip = clientIp(req);
   if (!checkRate(ip)) {
     res.status(429).json({ error: 'Too many requests — try again shortly.' }); return;
   }
 
-  // Run summary + intent extraction in parallel — independent calls.
+  // Run summary + intent extraction in parallel — independent calls. Past the
+  // day's shared budget the lead still saves, just without the AI summary.
+  const aiKey = (await budgetOk('capture-app')) ? process.env.ANTHROPIC_API_KEY : null;
   const [summary, intent] = await Promise.all([
-    summarize(messages, process.env.ANTHROPIC_API_KEY),
-    extractIntent(messages, process.env.ANTHROPIC_API_KEY),
+    summarize(messages, aiKey),
+    extractIntent(messages, aiKey),
   ]);
 
   try {

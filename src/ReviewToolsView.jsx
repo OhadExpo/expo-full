@@ -100,6 +100,33 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
 
   const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex)); };
+  // RECENT CLIPS, ONE TAP (4.10 #530, Ohad: "the tools in expo can be 10x better"):
+  // reaching a clip took five dropdowns in a row (athlete, block, week, day,
+  // exercise). The newest recorded sets across every athlete are listed first;
+  // a tap sets the same five choices and loads the clip. The dropdowns stay for
+  // anything older.
+  const recent = useMemo(() => {
+    const out = [];
+    tree.forEach((A, ai) => A.blocks.forEach((B, bi) => B.weeks.forEach((W, wi) => W.days.forEach((D, di) => D.exercises.forEach((X, xi) => {
+      out.push({ ai, bi, wi, di, xi, name: A.name, ex: X });
+    })))));
+    return out.sort((x, y) => String(y.ex.date || '').localeCompare(String(x.ex.date || ''))).slice(0, 8);
+  }, [tree]);
+  const pickRecent = (r) => {
+    setA(String(r.ai)); setB(String(r.bi)); setW(String(r.wi)); setD(String(r.di)); setE(String(r.xi));
+    onPick(r.ex.url, r.ex.title, r.ex.cid, r.ex.date, r.ex.recorded, null);
+  };
+  // the prescription arrives with the athlete's programs - say it once it is known
+  const lastEmit = useRef('');
+  useEffect(() => {
+    const ex = day && e !== '' ? day.exercises[e] : null;
+    if (!ex || !plans) return;
+    const t = targetFor(ex);
+    const sig = `${ex.url}|${t}`;
+    if (t != null && lastEmit.current !== sig) { lastEmit.current = sig; onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, t); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans, day, e]);
+  const shortDate = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}` : ''; };
 
   if (!tree.length) {
     return (
@@ -115,6 +142,27 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
       <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
         {tt("Pick an athlete's already-recorded set — only exercises with a video are listed — and the tools analyse it directly, no re-upload.")}
       </div>
+      {recent.length > 0 && (
+        <div style={{ maxWidth: 720, marginBottom: 12, border: `1px solid ${C.cardBd}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', minHeight: 30, padding: '0 11px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.tm }}>{tt('Recent clips')}</div>
+          {recent.map((r, i) => {
+            const on = activeUrl && r.ex.url === activeUrl;
+            return (
+              <button key={r.ex.url + i} type="button" onClick={() => pickRecent(r)} aria-pressed={!!on}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 12, alignItems: 'center', width: '100%', minHeight: 44, padding: '6px 11px', boxSizing: 'border-box', background: on ? 'color-mix(in srgb, var(--c-ac) 10%, transparent)' : 'transparent', border: 'none', borderTop: i ? `1px solid ${C.cardBd}` : 'none', borderInlineStart: `2px solid ${on ? C.ac : 'transparent'}`, cursor: 'pointer', textAlign: 'start', color: C.tx, borderRadius: 0 }}>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.ex.title}</bdi></span>
+                  <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.name}</bdi></span>
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
+                  <span dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{shortDate(r.ex.date)}</span>
+                  <span style={{ color: C.ac }}>{on ? tt('Loaded') : tt('Load')}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 720 }}>
         <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel}>
           <option value="">{tt('Athlete…')}</option>
@@ -330,7 +378,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
 
         {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
             the video + tools lay out below as a two-column workspace. */}
-        <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees}
+        <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
           onPick={(url, t, cid, date, recorded, target) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [], target: target || null }); }} />
       </div>
 

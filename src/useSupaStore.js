@@ -257,6 +257,14 @@ async function casWriteOnce(key, value, at) {
 // saved since. baseAt undefined = this device does not know what it was built
 // on (snapshot boot, an old queue entry): it reads first and merges with
 // whatever base it has. Resolves { at, val } with the value actually stored.
+// A ONE-OFF WRITER OUTSIDE THE HOOK (Smart Import, 4.10 #524): the same fence as
+// save() and the replay, then the compare-and-swap merge. baseVal = the value the
+// caller read and built on (untouched copy).
+export async function storeWriteFenced(key, mine, baseVal) {
+  if (!canSeatWrite(key)) { recordBlockedWrite(key, 'one-off write on a seat that may not write it'); const e = new Error('This seat may not change ' + key); e.code = '42501'; throw e; }
+  return storeWriteMerged(key, mine, undefined, baseVal);
+}
+
 export async function storeWriteMerged(key, mine, baseAt, baseVal) {
   let val = mine, at = baseAt, bval = baseVal;
   if (at === undefined) {
@@ -444,7 +452,19 @@ registerHandler('client_workouts.update', async ({ id, patch }) => {
 // reviewNotes — the offline mirror of updateFormVideos's online read-modify-write,
 // so a coach note drained later can't clobber an athlete upload. (WorkoutReview
 // audit Finding 1 — residual close.)
-registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos }) => {
+// THE NOTES ON A SLOT ARE MERGED, NOT REPLACED (4.10 #524 audit, HIGH): the save
+// used to take this screen's whole reviewNotes array, so a coach note written
+// after the athlete opened History was deleted by the athlete's reply (and the
+// other way round). base = the notes this screen started from; with it the merge
+// keeps the other side's new notes/replies and applies this side's edits and
+// deletions. No base (an old queued entry) = this screen's array, as before.
+function mergeSlotNotes(baseNotes, mineNotes, serverNotes) {
+  if (mineNotes === undefined) return serverNotes;
+  if (baseNotes === undefined) return mineNotes;
+  const merged = mergeStoreValues(baseNotes || [], mineNotes || [], serverNotes || []);
+  return Array.isArray(merged) ? merged : mineNotes;
+}
+registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos, baseFormVideos }) => {
   const { data: row, error: readErr } = await supabase
     .from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
   if (readErr) throw readErr;
@@ -454,7 +474,8 @@ registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos }) =
   const merged = [];
   for (let i = 0; i < len; i++) {
     const s = serverFv[i], c = inc[i];
-    if (s && c) merged.push({ ...s, reviewNotes: c.reviewNotes !== undefined ? c.reviewNotes : s.reviewNotes });
+    const b = Array.isArray(baseFormVideos) ? baseFormVideos[i] : undefined;
+    if (s && c) merged.push({ ...s, reviewNotes: mergeSlotNotes(b ? (b.reviewNotes || []) : undefined, c.reviewNotes, s.reviewNotes) });
     else merged.push(s || c);
   }
   const { error } = await supabase.from('client_workouts').upsert({ id, form_videos: merged }, { onConflict: 'id' });
@@ -544,6 +565,16 @@ export function useSupaStore(key, initial) {
   // refetch that started before one finished can not put the older value back
   // (#510-B8). inflightRef is the value on the wire, for the pagehide flush.
   const baseRef = useRef({ known: false, at: undefined, val: undefined });
+  // QUEUED SAVES THIS SCREEN OWNS (4.10 review of #524). A save queued before
+  // this screen loaded (an offline edit, then a reload) is NOT in the screen -
+  // the load shows the server value. So a successful direct save drops only the
+  // queue entries THIS screen created; an older one replays and merges.
+  const myQueuedRef = useRef(new Set());
+  const queueMine = (v, b) => {
+    const r = enqueueEntry({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key, critical: true });
+    myQueuedRef.current.add(r.id);
+    return r.durable;
+  };
   const saveGenRef = useRef(0);
   const inflightRef = useRef(null);
   // the guarded refetch below, for callers that learn of a change another way
@@ -708,7 +739,7 @@ export function useSupaStore(key, initial) {
       const v = pendingRef.current;
       if (v === null || v === undefined) return;
       const b = baseRef.current;
-      try { enqueue({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key }); } catch { /* best effort */ }
+      try { queueMine(v, b); } catch { /* best effort */ }
     };
     try {
       document.addEventListener('visibilitychange', onVisible);
@@ -743,9 +774,11 @@ export function useSupaStore(key, initial) {
         pendingRef.current = null;
         inflightRef.current = toWrite;
         const b = baseRef.current;
+        const startedAt = Date.now();
         const fail = (err) => {
           if (isTransient(err)) {
-            enqueue({ type: 'store.upsert', payload: { key, value: toWrite, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key });
+            // critical: this entry is the only durable copy of an offline edit (4.10 audit)
+            queueMine(toWrite, b);
           } else {
             console.warn(`useSupaStore[${key}] save error:`, err?.message || err);
             emitSaveError({ key, op: 'save', msg: err?.message || 'save failed' });
@@ -754,6 +787,13 @@ export function useSupaStore(key, initial) {
         try {
           // CAS on the base this value was built on; merged if the row moved (#510-B1)
           const r = await storeWriteMerged(key, toWrite, b.known ? b.at : undefined, b.val);
+          // A QUEUED SAVE OF THIS KEY IS NOW HISTORY (4.10 #524 audit): this value was
+          // built on the screen's data, which already carries the queued edit. Left
+          // in the queue, the old value replayed on the next drain and the merge kept
+          // its stale leaves ("mine wins") - x=1 came back over x=2, a deleted row
+          // returned. Only entries THIS screen queued, BEFORE this write started, are
+          // dropped - one queued before the screen loaded is not in it (it replays).
+          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && myQueuedRef.current.has(q.id) && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
           baseRef.current = { known: true, at: r.at, val: r.val };
           persistBase(key, r.at, r.val);
           if (r.val !== toWrite && !deepEqual(r.val, toWrite)) {
@@ -1120,13 +1160,26 @@ export function useSupaClientWorkouts(initial = []) {
   // timestamped-comment feature and the client's reply-to-comment flow.
   // Optimistic: updates local state first, then writes to Supabase. Errors
   // surface via emitSaveError and get shown in the save-error toast.
+  // TWO QUICK NOTE EDITS MUST NOT ERASE EACH OTHER (4.10, two reviews of #524):
+  // the writes ran side by side, so a second stroke's server read could miss the
+  // first stroke still in flight, and the merge read that as a deletion. Now one
+  // write per workout at a time: each reads the server AFTER the previous one
+  // landed, with the base it was built on (the screen at that edit). A write that
+  // finishes while a later edit waits does not replace the screen (it would hide
+  // that stroke); the last one in the line reconciles.
+  const fvBusyRef = useRef(new Map());
+  const fvChainRef = useRef(new Map());
   const updateFormVideos = useCallback(async (id, formVideos) => {
+    // the slots as this screen had them before this edit
+    const baseFormVideos = ((dataRef.current.find((w) => w.id === id) || {}).formVideos) || undefined;
+    fvBusyRef.current.set(id, (fvBusyRef.current.get(id) || 0) + 1);
     // Optimistic local update for immediate UI.
     const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
     try { lsSnapshotRecent('expo-cw', next); } catch {}
+    const run = async () => {
     try {
       // Server-authoritative READ-MODIFY-WRITE (audit CRITICAL). The coach's
       // clientWorkouts snapshot is frozen at page-load and never refreshes from
@@ -1135,8 +1188,10 @@ export function useSupaClientWorkouts(initial = []) {
       // the blobQueue.attachUrl per-slot fix). Re-read the row and keep the
       // SERVER's upload/media fields per slot (cloudUrl / pendingBlobId / has /
       // uploadFailed / fileName …), applying only the local reviewNotes.
-      const { data: row, error: readErr } = await supabase
-        .from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
+      // timed: these writes run one at a time per workout, so a request that
+      // never answers must not hold every later note behind it (review of ae569e50)
+      const { data: row, error: readErr } = await withTimeout(() => supabase
+        .from('client_workouts').select('form_videos').eq('id', id).maybeSingle());
       if (readErr) throw readErr;
       const serverFv = Array.isArray(row?.form_videos) ? row.form_videos : [];
       const inc = Array.isArray(formVideos) ? formVideos : [];
@@ -1144,13 +1199,20 @@ export function useSupaClientWorkouts(initial = []) {
       const merged = [];
       for (let i = 0; i < len; i++) {
         const s = serverFv[i], c = inc[i];
-        // shared slot: server owns media fields, client owns reviewNotes;
+        const b = Array.isArray(baseFormVideos) ? baseFormVideos[i] : undefined;
+        // shared slot: server owns media fields; the notes are merged three-way
+        // (base = what this screen started from) so neither side erases the other;
         // server-only slot (an athlete upload the coach never saw) is preserved.
-        if (s && c) merged.push({ ...s, reviewNotes: c.reviewNotes !== undefined ? c.reviewNotes : s.reviewNotes });
+        if (s && c) merged.push({ ...s, reviewNotes: mergeSlotNotes(b ? (b.reviewNotes || []) : undefined, c.reviewNotes, s.reviewNotes) });
         else merged.push(s || c);
       }
-      const { error } = await supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id);
+      const { error } = await withTimeout(() => supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id));
       if (error) throw error;
+      // A LATER EDIT IS WAITING: the screen already shows it (optimistic) and
+      // this result does not have it - replacing the screen here hid that stroke
+      // and the next edit, built from the screen, then deleted it on the server
+      // (review of ae569e50). The last write in the line reconciles.
+      if ((fvBusyRef.current.get(id) || 0) > 1) return;
       // Reconcile local state to the merged truth (may now include an athlete
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
@@ -1162,9 +1224,23 @@ export function useSupaClientWorkouts(initial = []) {
       // fields), NOT the generic update — so a note drained after an athlete's
       // offline-window upload still can't clobber the video. Distinct dedupeKey
       // from blobQueue's 'fv:' URL writes so the two never replace each other.
-      if (isTransient(e)) enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos }, dedupeKey: 'fvnotes:' + id });
+      if (isTransient(e)) {
+        // a later offline edit REPLACES the queued one (dedupe): keep the FIRST
+        // edit's base, or the merge would read the first edit as already saved
+        const prior = getEntries().find((q) => q.type === 'client_workouts.mergeReviewNotes' && q.dedupeKey === 'fvnotes:' + id);
+        const base = prior && prior.payload && prior.payload.baseFormVideos !== undefined ? prior.payload.baseFormVideos : (prior ? undefined : baseFormVideos);
+        enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos, baseFormVideos: base }, dedupeKey: 'fvnotes:' + id, critical: true });
+      }
       else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
     }
+    };
+    const prev = fvChainRef.current.get(id) || Promise.resolve();
+    const p = prev.then(run, run).finally(() => {
+      fvBusyRef.current.set(id, Math.max(0, (fvBusyRef.current.get(id) || 1) - 1));
+      if (fvChainRef.current.get(id) === p) fvChainRef.current.delete(id);
+    });
+    fvChainRef.current.set(id, p);
+    return p;
   }, []);
 
   // Hard-delete a workout (and its form videos / review notes by cascade —
@@ -1277,6 +1353,10 @@ export function useSupaBwLog(initial = []) {
       // row; the direct send only removes that entry once the server confirms.
       // The upsert is keyed (client, block, week), so a replay racing the direct
       // send cannot duplicate it.
+      // A NEWER WEIGH-IN BEATS AN OLDER QUEUED DELETE of the same week (4.10 #524
+      // audit): a delete that failed and was queued, then the athlete re-entered
+      // the week - the drain replayed the delete and erased the new weigh-in.
+      try { getEntries().filter((q) => q.type === 'bw_logs.delete' && q.payload && q.payload.filter && q.payload.filter.client_id === row.client_id && q.payload.filter.block_name === row.block_name && q.payload.filter.week === row.week).forEach((q) => removeEntry(q.id)); } catch { /* best effort */ }
       const { id: qid } = enqueueEntry({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
       try {
         const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });

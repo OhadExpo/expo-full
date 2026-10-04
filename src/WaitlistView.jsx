@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { C, FN, FB } from './theme';
 import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection, Card } from './ui';
 import { supabase } from './supabase';
+import { storeWriteFenced } from './useSupaStore';
 import { useT as useAppT, tr, readLang, agoLabel } from './i18n';
 
 const COACH_GATE = 5;
@@ -128,8 +129,20 @@ export default function WaitlistView({ trainees }) {
     return () => { ctx.cancelled = true; };
   }, [reload]);
 
-  const persistNotes = useCallback(async (next) => {
-    try { await supabase.from('store').upsert({ key: NOTES_KEY, value: next }, { onConflict: 'key' }); } catch {}
+  // ONE NOTE IS SAVED AS ONE NOTE (4.10 #524 audit): the whole notes map was
+  // written from this screen's copy - after a failed load that copy was {} and
+  // typing one note erased every other lead's notes (the error was swallowed).
+  // Now: read the current map, set this lead's note, write through the fenced
+  // compare-and-swap merge; a failure says so.
+  const persistNote = useCallback(async (id, text) => {
+    try {
+      const { data, error } = await supabase.from('store').select('value').eq('key', NOTES_KEY).maybeSingle();
+      if (error) throw error;
+      const base = data && data.value && typeof data.value === 'object' ? data.value : {};
+      await storeWriteFenced(NOTES_KEY, { ...base, [id]: text }, base);
+    } catch (e) {
+      try { toast(tr(readLang(), 'Could not save — check your connection and try again.')); } catch { /* */ }
+    }
   }, []);
   // Per-id debounce timers — keyed by lead id so editing two notes
   // concurrently doesn't have keystrokes on note B clobber note A's
@@ -147,7 +160,7 @@ export default function WaitlistView({ trainees }) {
     setSavingNote(id);
     if (setNoteTimersRef.current[id]) clearTimeout(setNoteTimersRef.current[id]);
     setNoteTimersRef.current[id] = setTimeout(() => {
-      persistNotes(next);
+      persistNote(id, text);
       setSavingNote(null);
       delete setNoteTimersRef.current[id];
     }, 600);

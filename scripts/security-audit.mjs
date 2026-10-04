@@ -358,6 +358,21 @@ if (!staticOnly) {
     return { ok: status >= 400 || !rows.length, why: 'HTTP ' + status + ' ' + rows.length + ' row(s)' };
   });
 
+  // 4.10 #524 audit: the push / AI-budget guards live in the DATABASE, so a direct
+  // REST call that skips the API endpoints still meets them.
+  check('A19', 'an athlete cannot register a non-push-service device (direct REST insert)', async () => {
+    const tok = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: process.env.ATHLETE_EMAIL || 'diego@diegoday.com', password: process.env.ATHLETE_PW || '1234' }) }).then((r) => r.json()).catch(() => null);
+    if (!tok || !tok.access_token) return { ok: false, why: 'athlete sign-in failed - the seat was NOT measured' };
+    const r = await fetch(SUPA_URL + '/rest/v1/push_subscriptions', { method: 'POST', headers: { apikey: ANON, Authorization: 'Bearer ' + tok.access_token, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ user_email: (process.env.ATHLETE_EMAIL || 'diego@diegoday.com'), role: 'athlete', endpoint: 'https://attacker.example/x', p256dh: 'x', auth: 'y' }) });
+    let body = null; try { body = await r.json(); } catch { /* empty */ }
+    return { ok: r.status >= 400, why: 'HTTP ' + r.status + ' ' + ((body && body.code) || '') };
+  });
+  check('A20', 'the paid-AI daily budget: unknown buckets refused, the counter table unreadable', async () => {
+    const rpc = await anon('rpc/api_budget_take', { method: 'POST', body: JSON.stringify({ p_bucket: '__sec_audit_unknown__' }) });
+    const read = await anon('api_daily_budget?select=*&limit=1');
+    const rows = Array.isArray(read.body) ? read.body.length : 0;
+    return { ok: rpc.body === false && (read.status >= 400 || rows === 0), why: `unknown bucket -> ${JSON.stringify(rpc.body)}; table read HTTP ${read.status}, ${rows} row(s)` };
+  });
   check('A15', 'anon cannot reach auth users through a view', async () => {
     const { status, body } = await anon('users?select=*&limit=1');
     return { ok: status >= 400, why: 'HTTP ' + status + ' ' + JSON.stringify(body).slice(0, 120) };

@@ -138,6 +138,37 @@ export function usePlanIndex() {
 }
 
 // Full plan loader: fetches single plan data for editing
+// The editor's program, from its plans row - exported so verify-plan-cas tests
+// the exact mapping the editor uses (the version stamp went missing here, 4.10).
+export function planFromRow(data) {
+  return {
+    id: data.id,
+    name: data.name,
+    traineeId: data.trainee_id,
+    phase: data.phase || '',
+    notes: data.notes || '',
+    active: data.active,
+    createdAt: data.created_at,
+    // the version this editor was opened on - savePlan's compare-and-swap
+    // builds on it (4.10 #524 audit: without it the first save of an opened
+    // program was a blind upsert over another device's newer save, and a
+    // Reload after a save pinned every later save to a stale version)
+    updatedAt: data.updated_at,
+    days: normalizeDays(data.data?.days),
+    warmup: data.data?.warmup || [],
+    weeks: data.data?.weeks || 4,
+    // Plan kind — 'daily' = single-day repeatable routine (Roei
+    // HaTzvi pattern). Anything else (undefined / 'standard') is
+    // a normal multi-day block. Persisted in data JSONB.
+    kind: data.data?.kind || undefined,
+    // Template-purchase flag — same precedence as in usePlanIndex.
+    isTemplatePurchase:
+      data.is_template_purchase === true
+      || data.data?.isTemplatePurchase === true
+      || /^(\[expo\]|expo · |expo - )/i.test(data.name || ''),
+  };
+}
+
 export function useFullPlan() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -159,27 +190,7 @@ export function useFullPlan() {
         .single();
       if (data) {
         // Convert from DB format to app format
-        loaded = {
-          id: data.id,
-          name: data.name,
-          traineeId: data.trainee_id,
-          phase: data.phase || '',
-          notes: data.notes || '',
-          active: data.active,
-          createdAt: data.created_at,
-          days: normalizeDays(data.data?.days),
-          warmup: data.data?.warmup || [],
-          weeks: data.data?.weeks || 4,
-          // Plan kind — 'daily' = single-day repeatable routine (Roei
-          // HaTzvi pattern). Anything else (undefined / 'standard') is
-          // a normal multi-day block. Persisted in data JSONB.
-          kind: data.data?.kind || undefined,
-          // Template-purchase flag — same precedence as in usePlanIndex.
-          isTemplatePurchase:
-            data.is_template_purchase === true
-            || data.data?.isTemplatePurchase === true
-            || /^(\[expo\]|expo · |expo - )/i.test(data.name || ''),
-        };
+        loaded = planFromRow(data);
         if (myReq === reqRef.current) setPlan(loaded);
       }
     } catch (e) { console.error('useFullPlan load error:', e); }

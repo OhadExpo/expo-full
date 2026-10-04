@@ -160,16 +160,32 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     // the exercises in either direction - they were the first 30 rows a coach saw
     // (29.9 #443). The data is untouched.
     const noteLike = (e) => !/^[\p{L}]/u.test(String(e.title || '').trim());
-    out = out.slice().sort((a, b) => {
-      if (sortKey === 'title') { const na = noteLike(a), nb = noteLike(b); if (na !== nb) return na ? 1 : -1; }
-      const av = String(a[sortKey] || ''), bv = String(b[sortKey] || '');
-      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base', numeric: true });
+    // KEYS ONCE, NOT PER COMPARISON (4.10 #529): the comparator ran a Unicode
+    // regex and a fresh Intl compare on both sides of ~15,000 comparisons - the
+    // largest single cost of opening the library (profiled ~75 ms of 215 on a
+    // desktop CPU, ~1 s at a phone's). One Collator, one key pass, same order.
+    const coll = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+    const keyed = out.map((e) => ({ e, nl: sortKey === 'title' ? noteLike(e) : false, v: String(e[sortKey] || '') }));
+    keyed.sort((a, b) => {
+      if (a.nl !== b.nl) return a.nl ? 1 : -1;
+      const cmp = coll.compare(a.v, b.v);
       return sortDir === 'asc' ? cmp : -cmp;
     });
+    out = keyed.map((k) => k.e);
     return out;
   }, [exercises, passFilters, sortKey, sortDir]);
 
-  const rows = showAll ? filtered : filtered.slice(0, ROW_CAP);
+  // THE FIRST SCREEN FIRST (4.10 #529): 200 rows laid out before the first paint
+  // were most of the ~1 s a phone waited on the library tab. 60 rows paint at once
+  // (a phone sees ~15), the rest follow in the next idle moment - the same 200.
+  const [cap, setCap] = useState(60);
+  useEffect(() => {
+    if (cap >= ROW_CAP) return undefined;
+    const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 600 }) : setTimeout(fn, 120));
+    const h = idle(() => setCap(ROW_CAP));
+    return () => { try { if (window.cancelIdleCallback) window.cancelIdleCallback(h); else clearTimeout(h); } catch { /* */ } };
+  }, [cap]);
+  const rows = showAll ? filtered : filtered.slice(0, Math.min(cap, ROW_CAP));
 
   const handleSave = () => {
     if (!form.title) return;

@@ -69,3 +69,22 @@ export function capMessages(raw, { maxMessages = 20, maxChars = 1500 } = {}) {
     .map(m => ({ role: m.role, content: String(m.content ?? '').slice(0, maxChars) }))
     .filter(m => m.content.length > 0);
 }
+
+// ONE CEILING SHARED BY EVERY INSTANCE (3.10 #524 audit). The per-instance
+// counters above reset on each cold start, so spend on the paid model had no
+// bound. public.api_budget_take(bucket) counts per Israel day in Postgres; the
+// limits live in that function, not here, so a caller cannot raise them.
+// Fails OPEN on a database hiccup (the per-instance limiter still holds) -
+// a visitor is never refused because the counter could not be reached.
+export async function budgetOk(bucket) {
+  try {
+    const r = await globalThis.fetch('https://gtcbfglttoiyfsnfbhdy.supabase.co/rest/v1/rpc/api_budget_take', {
+      method: 'POST',
+      headers: { apikey: 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv', Authorization: 'Bearer sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_bucket: bucket }),
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!r.ok) return true;
+    return (await r.json()) !== false;
+  } catch { return true; }
+}

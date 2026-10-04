@@ -73,7 +73,7 @@ async function pageCoaches(failure) {
   let paged = 0;
   for (const s of subs) {
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { timeout: 5000 });
       paged++;
     } catch (_) { /* dead sub — ignore here */ }
   }

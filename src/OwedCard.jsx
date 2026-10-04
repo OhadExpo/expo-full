@@ -165,6 +165,7 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
   const list = useMemo(() => mergeOwed(rows, requests, overdue, trainees), [rows, requests, overdue, trainees]);
   const [open, setOpen] = useState(null);
   const total = list.reduce((a, e) => a + e.amount, 0);
+  const oldest = list.map((e) => e.sheet && e.sheet.last_payment).filter(Boolean).sort()[0] || null;
   const synced = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');
   const ageMin = synced ? Math.round((Date.now() - Date.parse(synced)) / 60000) : null;
   const stale = ageMin != null && ageMin > 90;
@@ -178,6 +179,22 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
         {!loaded ? <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'var(--c-td)', minHeight: 36, display: 'flex', alignItems: 'center' }}>{tt('Loading…')}</div>
           : !good ? null
           : list.length === 0 ? <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'var(--c-td)', minHeight: 36, display: 'flex', alignItems: 'center' }}>{tt('Nobody owes anything')}</div>
+          : !expanded ? (
+            // THE DASHBOARD SAYS HOW MUCH, BILLING SAYS WHO (4.10 #534, Ohad: "details
+            // about trainers owing money should be on billing, and total money from x
+            // clients should be on the dashboard"). One number, how many clients,
+            // since when - and the way to the list.
+            <div data-owed-summary-block style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', paddingTop: 2 }}>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 30, fontWeight: 800, lineHeight: 1, color: C.or, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', alignSelf: 'flex-start' }}>{ils(total)}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-tm)' }}>
+                  {readLang() === 'he' ? `חוב של ${list.length} ${list.length === 1 ? 'מתאמן' : 'מתאמנים'}` : `owed by ${list.length} ${list.length === 1 ? 'client' : 'clients'}`}
+                  {oldest ? <>{'\u00a0·\u00a0'}{tt('since')} {shortDate(oldest)}</> : null}
+                </span>
+              </span>
+              {onOpenBilling && <button type="button" data-owed-billing onClick={onOpenBilling} style={btn(true)}>{readLang() === 'he' ? 'פירוט בחיובים ←' : 'DETAILS ON BILLING →'}</button>}
+            </div>
+          )
           : (
             <div role="list" className="app-list" style={{ display: 'flex', flexDirection: 'column' }}>
               {(expanded ? list : list.slice(0, 8)).map((e) => (
@@ -198,7 +215,6 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
           )}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, marginTop: 12 }}>
           <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: stale ? C.rd : 'var(--c-td)' }}>{tt('From the roster sheet')} · {syncLabel}</span>
-          {!expanded && onOpenBilling && <button type="button" data-owed-billing onClick={onOpenBilling} style={btn(true)}>{list.length > 8 ? `${tt('ALL')} ${list.length}` : tt('BILLING')} {readLang() === 'he' ? '←' : '→'}</button>}
         </div>
       </div>
       {open && <Detail e={open} tt={tt} onClose={() => setOpen(null)} onOpenBilling={expanded ? null : onOpenBilling} onSelectTrainee={onSelectTrainee} />}

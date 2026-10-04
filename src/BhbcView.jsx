@@ -797,6 +797,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // (27.9 #375) - it lands on OVERVIEW instead (`coach` is the prop; the
   // preview toggle cannot be on at first render)
   const [view, setView] = useState(() => { const p = pageFromUrl(); return p && !(coach && p === 'activity') ? p : 'overview'; });   // overview | schedule | roster
+  // the tab's content renders with the tab (a deferred copy was measured slower, 4.10 #529)
+  const shownView = view;
   useEffect(() => {
     const m = window.location.pathname.match(/^\/(coach\/)?bhbc/);
     if (!m) return;
@@ -1748,13 +1750,24 @@ function attendance28(rec, days) {
                days · pain ......... UPDATE ›
              The Update action used to float on a fourth line, indented under
              nothing. */
-          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:6px 12px!important}
+          /* THREE LINES, EVERY LINE FULL (4.10 #526, Ohad: "active injuries table can
+             look better ... especially on mobile"): the injury had half the row and
+             wrapped ("KNEE · RIGHT ·" / "OVERUSE") beside a reported-by column.
+               12 NAME ........................ [ STATUS ]
+                  ANKLE · LEFT · SPRAIN                    (the whole width)
+                  40D · PAIN 9 · TOMERLICH · NO UPDATE 18D (the whole width)
+             No UPDATE word on a phone: the whole row opens the record (rowOpens),
+             and beside the 136px status column the word squeezed the injury onto
+             two lines.
+             Every line starts on the name's x (jersey 22 + gap 9). */
+          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:7px 12px!important}
           .bhbc-inj-row>:nth-child(1){grid-area:1/1!important}
           .bhbc-inj-row>:nth-child(3){grid-area:1/2!important;justify-self:end!important}
-          .bhbc-inj-row>:nth-child(2){grid-area:2/1!important;padding-inline-start:27px!important}
-          .bhbc-inj-row>:nth-child(5){grid-area:2/2!important;justify-self:end!important;align-self:center!important}
-          .bhbc-inj-row>:nth-child(4){grid-area:3/1!important;padding-inline-start:27px!important}
-          .bhbc-inj-row>:nth-child(6){grid-area:3/2!important;justify-self:end!important;align-self:center!important}
+          .bhbc-inj-row>:nth-child(2){grid-area:2/1/3/3!important;padding-inline-start:31px!important}
+          .bhbc-inj-row>.bhbc-inj-meta{display:flex!important;grid-area:3/1/4/3!important;flex-wrap:wrap;align-items:baseline;column-gap:8px;row-gap:2px;padding-inline-start:31px;min-width:0}
+          .bhbc-inj-meta>div:nth-child(2):not(:empty)::before{content:'·';margin-inline-end:8px;color:var(--c-cardBd)}
+          .bhbc-inj-meta>div:nth-child(2)>span{display:inline!important;margin:0!important;margin-inline-start:8px!important}
+          .bhbc-inj-row>:nth-child(5){display:none!important}
           .bhbc-inj-head{display:none!important}
         }
         /* TWO ROWS BEFORE ANYTHING SCROLLS AWAY.
@@ -1944,7 +1957,7 @@ function attendance28(rec, days) {
           <ErrorBoundary key={view} inline>
           <div className="motion-rise" style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
 
-            {view === 'overview' && (
+            {shownView === 'overview' && (
               <>
                 <ReturnLoadAlert roster={roster} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} loads={bhbcLoads} today={today} onOpen={setDetailFor}
@@ -1967,12 +1980,12 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {view === 'lifts' && (
+            {shownView === 'lifts' && (
               <LiftsTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor}
                 action={canLog ? <StripBtn onClick={() => setLogFor('new')}>{tr('Log lift')}</StripBtn> : null} />
             )}
 
-            {view === 'schedule' && (
+            {shownView === 'schedule' && (
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
@@ -1987,7 +2000,7 @@ function attendance28(rec, days) {
                 fits"): the week's practices with their S&C, who was at each, and
                 what was done. The calendar, the next game and the microcycle stay
                 on SCHEDULE. */}
-            {view === 'practices' && (
+            {shownView === 'practices' && (
               <>
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
                 {/* fixtures={bhbcFixtures} was MISSING, and the prop defaults to []
@@ -2019,23 +2032,23 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {view === 'roster' && (
+            {shownView === 'roster' && (
               <>
                 <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} onOpen={setDetailFor}
                   action={!asCoach ? <StripBtn onClick={() => setManageOpen(true)}>{tr('Manage roster')}</StripBtn> : null} />
               </>
             )}
 
-            {view === 'games' && (
+            {shownView === 'games' && (
               <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
                 bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />
             )}
 
-            {view === 'activity' && !asCoach && (
+            {shownView === 'activity' && !asCoach && (
               <ActivityView activity={activity} tr={tr} he={he} />
             )}
 
-            {view === 'medical' && (
+            {shownView === 'medical' && (
               <MedicalView roster={roster} rows={rows} loads={bhbcLoads} medical={medical} canMedical={effCanMedical} onLog={canLog ? ((aid) => setLogFor(aid)) : null} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
@@ -3275,47 +3288,143 @@ function TravelStrip({ travel }) {
 // the actions themselves. Nothing is derived from session dates — every line is
 // stamped with the moment the action happened (see bhbcActivity.js).
 function ActivityView({ activity = [], tr, he }) {
+  // THE TRAIL, REDESIGNED (4.10 #531, Ohad: "activity page on bhbc awfully
+  // designed redo it all perfectly"). Measured at 390 before: every entry was
+  // two lines and a label column (~70px), the date written twice in two forms
+  // ("28/09/2026" in the text, "28 SEP 17:49" under it) and nothing grouped by
+  // day. Now: the team as a table, and the changes as a day-by-day timeline -
+  // one line an entry (time | kind colour | what | who), repeats folded, a
+  // filter by kind, older entries on request. The data is unchanged.
   const list = Array.isArray(activity) ? activity : [];
   const people = peopleSeen(list, 30);
+  const [kindF, setKindF] = useState('all');
+  const [shown, setShown] = useState(80);
   const KIND = { open: tr('Signed in'), session: tr('Sessions'), checkin: tr('Check-in'), medical: tr('Medical'), game: tr('Games'), plan: tr('Session plan'), schedule: tr('Schedule'), edit: tr('Edit') };
-  const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
-  // ONE ROW PER RUN OF THE SAME THING (2.10 #511): twenty-seven "opened the club
-  // zone" rows in a row buried every real change. Consecutive entries with the
-  // same kind, words and person fold into one, "x27", at the newest time.
-  const groups = [];
-  for (const e of list.slice(0, 120)) {
-    const prev = groups[groups.length - 1];
+  const KIND_INK = { open: C.tm, session: FX_COLOR.lift, checkin: '#37B27C', medical: '#DE4E3B', game: ORANGE, plan: SC_COLOR, schedule: FX_COLOR.practice, edit: C.td };
+  const lbl = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm };
+  const kinds = Object.keys(KIND).map((k) => [k, list.filter((e) => e && e.kind === k).length]).filter(([, n]) => n > 0);
+  const filtered = kindF === 'all' ? list : list.filter((e) => e && e.kind === kindF);
+  // local day of an entry, and the day header's words
+  const dayOf = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : localISO(d); };
+  const today = todayISO();
+  const yday = daysAgoISO(1);
+  const dayHead = (d) => (d === today ? `${tr('Today')} · ${dow(d)} ${monDay(d)}` : d === yday ? `${tr('Yesterday')} · ${dow(d)} ${monDay(d)}` : `${dow(d)} ${monDay(d)}`);
+  const hhmm = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  // the session date inside the text reads like every other date in the zone ("28 Sep")
+  const words = (w) => String(tr(w || ''))
+    .replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, (m, y, mo, d) => monDay(`${y}-${mo}-${d}`))
+    .replace(/\b(\d\d)\/(\d\d)\/(20\d\d)\b/g, (m, d, mo, y) => monDay(`${y}-${mo}-${d}`))
+    .replace(/(\d) (min|in|kg|AU)\b/gi, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0');
+  // THE TRAIL IN HEBREW (4.10 #533): the zone writes its lines in English (one
+  // shape per action), and inside a Hebrew page they scrambled ("MIN 45 · באוק׳
+  // LOGGED A LIFT ON 2"). Each shape is said again in his register, the date as
+  // the zone writes dates, the parts joined with " · " so no preposition guesses.
+  const dIso = (x) => { const n = String(x).match(/(20\d\d)-(\d\d)-(\d\d)/); const m = String(x).match(/(\d\d)\/(\d\d)\/(20\d\d)/); return n ? monDay(n[0]) : m ? monDay(`${m[3]}-${m[2]}-${m[1]}`) : x; };
+  const FX_HE = { practice: 'אימון', game: 'משחק', shootaround: 'זריקות', scrimmage: 'משחק אימון', session: 'אימון', lift: 'הרמה' };
+  const HE_WHAT = [
+    [/^opened the club zone$/, () => 'נכנס לאזור המועדון'],
+    [/^added an athlete to the club roster$/, () => 'הוסיף שחקן לסגל'],
+    [/^took an athlete off the club roster$/, () => 'הוציא שחקן מהסגל'],
+    [/^set an athlete as a ghost$/, () => 'סימן שחקן כלא נספר'],
+    [/^counted a ghost athlete again$/, () => 'החזיר שחקן לספירה'],
+    [/^added a new athlete to the club roster$/, () => 'הוסיף שחקן חדש לסגל'],
+    [/^logged a session$/, () => 'רשם אימון'],
+    [/^updated a medical record$/, () => 'עדכן רשומה רפואית'],
+    [/^edited a session on (.+)$/, (m) => `ערך אימון · ${dIso(m[1])}`],
+    [/^deleted a session on (.+)$/, (m) => `מחק אימון · ${dIso(m[1])}`],
+    [/^logged a lift on (\S+) · (\d+) min$/, (m) => `רשם הרמה · ${dIso(m[1])} · ${m[2]} דק׳`],
+    [/^logged the practice and an S&C session on (\S+)(?: (\d\d:\d\d))? · (\d+) min · (\d+) in$/, (m) => `רשם אימון וכוח קבוצתי · ${dIso(m[1])}${m[2] ? ` ${m[2]}` : ''} · ${m[3]} דק׳ · ${m[4]} נכחו`],
+    [/^saved the readiness check-in for (.+)$/, (m) => `שמר צ׳ק-אין מוכנות · ${dIso(m[1])}`],
+    [/^updated a game on (.+)$/, (m) => `עדכן משחק · ${dIso(m[1])}`],
+    [/^(changed|added) a slot on (.+)$/, (m) => `${m[1] === 'added' ? 'הוסיף' : 'שינה'} אימון בלוח · ${dIso(m[2])}`],
+    [/^(cancelled|restored) the (\S*) ?(\S+) on (.+)$/, (m) => `${m[1] === 'cancelled' ? 'ביטל' : 'החזיר'} ${FX_HE[m[3]] || m[3]}${m[2] ? ` ${m[2]}` : ''} · ${dIso(m[4])}`],
+    [/^removed a slot on (.+)$/, (m) => `הסיר אימון מהלוח · ${dIso(m[1])}`],
+    [/^logged game minutes for (\S+)(?: · (\d+) marked out that day played)?$/, (m) => `רשם דקות משחק · ${dIso(m[1])}${m[2] ? ` · ${m[2]} סומנו כלא זמינים ושיחקו` : ''}`],
+  ];
+  const say = (w) => {
+    if (!he) return words(w);
+    const raw = String(w || '');
+    for (const [re, f] of HE_WHAT) { const m = raw.match(re); if (m) return f(m).replace(/(\d) (דק׳)/g, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0'); }
+    return words(w);
+  };
+  // one row per run of the same thing, inside a day (#511 folded across days)
+  const days = [];
+  for (const e of filtered.slice(0, shown)) {
+    if (!e) continue;
+    const d = dayOf(e.at);
+    let day = days[days.length - 1];
+    if (!day || day.d !== d) { day = { d, rows: [] }; days.push(day); }
+    const prev = day.rows[day.rows.length - 1];
     if (prev && prev.kind === e.kind && prev.what === e.what && prev.by === e.by) prev.n += 1;
-    else groups.push({ ...e, n: 1 });
+    else day.rows.push({ ...e, n: 1 });
   }
-  // a number never parts from its unit or from the dot before it ("... 45 / MIN")
-  const keepTogether = (t) => t.replace(/(\d) (min|in|kg|AU)\b/gi, '$1\u00a0$2').replace(/ · /g, '\u00a0·\u00a0');   // both sides: "2026 · 45 MIN" moves as one, no dot left hanging
+  const band = { display: 'flex', alignItems: 'center', minHeight: 32, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` };
   return (
     <>
       <Card padding={14} leftStripe={NAVY} header={secTitle('Who has been in, last 30 days')}>
         {people.length === 0
-          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
-          : people.map((p) => (
-            <div key={p.by} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '9px 0', borderBottom: `1px solid ${C.cardBd}` }}>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, unicodeBidi: 'isolate', flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }} title={p.by}>{byName(p.by) || p.by /* the same name the change list uses (#305 N-E7) */}</span>
-              <span style={{ ...lbl, flexShrink: 0 }}>{p.n} {p.n === 1 ? tr('action') : tr('actions')}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0 }}>{whenText(p.at, he)}</span>
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
+          : <>
+            <div className="bhbc-act-people bhbc-act-head" style={{ ...band, borderTop: 'none', marginTop: -14, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12 }}>
+              <span style={lbl}>{tr('Person')}</span>
+              <span style={{ ...lbl, textAlign: 'center' }}>{tr('Actions')}</span>
+              <span style={{ ...lbl, textAlign: 'end' }}>{tr('Last seen')}</span>
             </div>
-          ))}
+            <div className="hl-rows">
+              {people.map((p) => (
+                <div key={p.by} className="bhbc-act-people" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12, alignItems: 'center', minHeight: 40 }}>
+                  <span title={p.by} style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{byName(p.by) || p.by}</span>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.n}</span>
+                  <span style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'end', whiteSpace: 'nowrap' }}>{whenText(p.at, he)}</span>
+                </div>
+              ))}
+            </div>
+          </>}
       </Card>
       <Card padding={14} leftStripe={ORANGE} header={secTitle('What changed')}>
         {list.length === 0
-          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
-          : <div className="bhbc-list">{groups.map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', minHeight: 36, boxSizing: 'border-box' /* a row is never under the control height (OCD #494: 29) */, borderBottom: i < groups.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-              <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{keepTogether(String(tr(e.what)).replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, '$3/$2/$1'))}{e.n > 1 && <span dir="ltr" style={{ ...lbl, marginInlineStart: 8, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}</span>
-              <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by ? byName(e.by) : '—'}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
+          : <>
+            {/* the filter: one 36px control a kind, its count beside the word */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 12 }}>
+              {[['all', tr('All'), list.length], ...kinds.map(([k, n]) => [k, KIND[k], n])].map(([k, label, n]) => {
+                const on = kindF === k;
+                return (
+                  <button key={k} type="button" aria-pressed={on} onClick={() => { setKindF(k); setShown(80); }} className="bhbc-ghost-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 'var(--btn-h)', minHeight: 0, padding: '0 12px', boxSizing: 'border-box', border: `1px solid ${on ? NAVY : C.cardBd}`, background: on ? `color-mix(in srgb, ${NAVY} 10%, transparent)` : 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm }}>
+                    {k !== 'all' && <span aria-hidden style={{ width: 8, height: 8, boxSizing: 'border-box', background: k === 'open' ? 'transparent' : (KIND_INK[k] || C.tm), border: k === 'open' ? `1.5px solid ${C.tm}` : 'none', flexShrink: 0 }} />}{/* signed in = hollow: it is presence, not a change */}
+                    {label}<span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+                  </button>
+                );
+              })}
             </div>
-          ))}</div>}
-        {/* the trail keeps everything; the card shows the newest 120 and SAYS so (#305 N-O2) */}
-        {list.length > 120 && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, paddingTop: 8 }}>{tr('+{n} older changes not shown').replace('{n}', list.length - 120)}</div>}
+            {days.map((day) => (
+              <div key={day.d || 'x'}>
+                <div style={band}><span dir="auto" style={{ ...lbl, color: C.tx }}>{day.d ? dayHead(day.d) : '—'}</span></div>
+                <div className="hl-rows">
+                  {day.rows.map((e, i) => (
+                    <div key={i} className="bhbc-act-row" style={{ display: 'grid', gridTemplateColumns: '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 40, padding: '10px 0', boxSizing: 'border-box' }}>
+                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
+                      <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'baseline' }} />
+                      <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
+                        {say(e.what)}
+                        {e.n > 1 && <span dir="ltr" style={{ ...lbl, marginInlineStart: 8, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
+                      </span>
+                      <span className="bhbc-act-by" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{e.by ? byName(e.by) : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {filtered.length > shown && (
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+                <button type="button" onClick={() => setShown((n) => n + 120)} className="bhbc-ghost-btn"
+                  style={{ height: 'var(--btn-h)', minHeight: 0, padding: '0 16px', border: `1px solid ${C.cardBd}`, background: 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>
+                  {tr('Show older')} <span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{filtered.length - shown}</span>
+                </button>
+              </div>
+            )}
+          </>}
       </Card>
     </>
   );
@@ -4924,6 +5033,51 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     const lp = leaguePast ? null : leaguePlayerFor(league, t);
     return lp && lp.ppg != null ? lp.ppg : null;
   };
+  // A PHONE READS THE ROSTER AS A LIST (3.10 #522/#523, Ohad: "make the tables on
+  // bhbc on mobile better" / "easier to view more" / "perfectly displayable for
+  // the head coach"). The card is built to line up in a GRID; at 390 the grid is
+  // one column, so eleven 154px cards ran 1,700px. Here each player is two lines:
+  // jersey + name + PPG, then position + injury (or when he lands) across the
+  // row; the rail is the load band. Desktop and tablet keep the cards.
+  const phone = usePhoneGrid();
+  if (phone) {
+    const meta = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' };
+    const row = (t, extra, kids) => (
+      <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}
+        className="bhbc-roster-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '8px 0', paddingInlineStart: 8, boxSizing: 'border-box', cursor: 'pointer', ...extra }}>
+        {kids}
+      </div>
+    );
+    return (
+      <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
+        <div className="hl-rows" style={{ display: 'grid' }}>
+          {rows.map(({ t, acwr, att }) => {
+            const inj = worstInjury(medical, t.id);
+            const injShort = !inj ? null : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
+            const lands = !injShort && t.arrival && t.arrival > todayISO();
+            const ppg = ppgFor(t);
+            return row(t, { borderInlineStart: `2px solid ${acwr.band.color}` }, <>
+              <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
+              <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
+              <span style={{ ...meta, color: ppg != null ? ORANGE_DEEP : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
+              <span style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                <span style={{ fontFamily: FB, fontSize: 11, color: C.td, flexShrink: 0 }}>{tr(t.position) || '—'}</span>
+                {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status), whiteSpace: 'nowrap' }}>{injShort}</span>}
+                {lands && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {monDay(t.arrival)}</span>}
+              </span>
+              {/* the injury takes the whole second line (at 390 it was cut: "KNEE R · AVAILA..."); its colour is its status, the rail is the load band */}
+            </>);
+          })}
+          {ghosts.map((t) => row(t, { opacity: 0.6, borderInlineStart: `2px dashed ${C.cardBd}` }, <>
+            <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
+            <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
+            <span />
+            <span style={{ gridColumn: '2 / 4', fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'} · <span style={meta}>{tr('not counted')}</span></span>
+          </>))}
+        </div>
+      </CollapsibleSection>
+    );
+  }
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
       {/* 264, not 232 (29.9 #380): a card's footer - height · nation · PPG ...
@@ -6038,12 +6192,13 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   }, 'ppg');
   // ONE TABLE STYLE FOR THE ZONE (27.9, Ohad: "make the tables nicer, they're
   // badly designed"): a 36px header band on the surface tint, 40px rows on a
-  // light hairline, numbers END-aligned in tabular figures so a column reads as
+  // light hairline, numbers CENTRED under their heading in tabular figures (4.10
+  // #528, Ohad: "the gp mpg and ppg ... centre aligned") so a column reads as
   // a column, the jersey muted, and colour for ONE thing only - the column the
   // table is sorted by (its cells tinted, its values bold). PPG used to be
   // orange whatever the sort, which put colour on the rule, not the exception.
   const th = (k, h, first) => (
-    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'end' }} />
+    <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center' }} />
   );
   return (
     <div className="bhbc-list" style={{ overflowX: 'auto' }}>
@@ -6061,7 +6216,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
             return (
               <tr key={t.id} className="bhbc-row bhbc-trow" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ cursor: 'pointer' }}>
                 <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
-                {cols.map((c) => <td key={c.k} style={cell(c.k)}>{dash(c.k, s ? s[c.k] : null)}</td>)}
+                {cols.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
               </tr>
             );
           })}
@@ -6715,7 +6870,7 @@ function LoadOutputCard({ rows, loads, medical }) {
   );
 }
 
-const INJ_COLS = '190px minmax(0, 1fr) 120px 118px 96px 72px';
+const INJ_COLS = '190px minmax(0, 1fr) 136px 118px 120px 72px';   // status = the pill's 136 (3.10 #526: at 120 the pill ran into SINCE)
 
 function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedical = true, onReport, onEdit, onOpen, onLog }) {
   const he = useHe();
@@ -6776,7 +6931,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 not have (it put every label 2px off its column), and ATHLETE
                 starts where the NAMES start - past the 22px jersey slot and its
                 9px gap - not over the numbers. */}
-            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: 0, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
+            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', minHeight: 36, padding: '0 14px', margin: '0 -14px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
               {injCols.map(([k, h], i) => (
                 <SortHeader key={k} k={k} sort={sort} label={h} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, ...(i === 0 ? { paddingInlineStart: 31 } : null) }} />
               ))}
@@ -6786,7 +6941,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 the bar onto two lines at 390, REPORTED BY under ATHLETE. The phone
                 bar says the same in short words, spread across the row. */}
             <SortBar sort={sort} className="bhbc-inj-sortbar" cols={[['name', tr('Athlete')], ['injury', tr('Injury')], ['status', tr('Status')], ['since', tr('Since')], ['by', tr('By')]]}
-              style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 2px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+              style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 16px', margin: '0 -14px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
             {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
@@ -6801,6 +6956,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <StatusPill status={inj.status} />
                   {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
                       reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
+                  <div className="bhbc-inj-meta" style={{ display: 'contents' }}>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : '—'}{latestPain(inj) != null ? <> · <span style={{ fontWeight: latestPain(inj) >= 4 ? 800 : 400, color: latestPain(inj) >= 6 ? '#DE4E3B' : latestPain(inj) >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : C.td }}>{tr('pain')} {latestPain(inj)}</span></> : ''}</div>
                   {/* WHO assessed this. With two PTs sharing the board, an
                       unsigned record cannot be questioned or followed up. */}
@@ -6819,6 +6975,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                       </div>
                     );
                   })()}
+                  </div>
                   <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{canMedical ? tr('Update ›') : ''}</div>
                 </div>
               );

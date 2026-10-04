@@ -1,3 +1,4 @@
+-- APPLIED 3.10 via Supabase MCP. Probe: writes without updated_at now get a fresh stamp; verify-store-cas 8/8.
 -- 2026-10-02  #510-R2 H2   (bulletproofing round 2)   APPLY FIRST of the 2.10 set
 --
 -- The app's store writes are compare-and-swap on store.updated_at (#510-B1,
