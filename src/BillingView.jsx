@@ -203,7 +203,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
       <CollapsibleSection storageKey="billing-requests" padX={PAD} padY={PAD} style={{ marginBottom: 0 }} count={reqPending /* not rendered beside a titleNode; it re-measures the strip when the count changes */}
         right={newReqBtn}
         titleNode={
-          <span style={{ display: 'inline' /* NOT block: the strip-fit check measures the title with a range, and a block span reads as the whole strip wide - + NEW REQUEST stacked under it at every width, 1440 too (4.10 audit) */, overflowWrap: 'break-word', fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+          <span style={{ display: 'block', width: 'fit-content', maxWidth: '100%', minWidth: 0 /* a block (its own 13px line - inline sat 2px low, box-centring 4.10) that is only as wide as its words: full-width, the strip-fit check read it as the whole strip and + NEW REQUEST stacked under it at every width (4.10 audit) */, overflowWrap: 'break-word', fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {/* one line on a phone: the count stays, its word steps aside */}
             {tt('PAYMENT REQUESTS')} · {reqPending}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
           </span>
