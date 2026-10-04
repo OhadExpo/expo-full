@@ -140,7 +140,8 @@ if (AUTO) {
   const loadsNow = await readStore(s, 'expo-bhbc-loads') || {};
   const endOf = (f) => { const [h, m] = String(f.start || '00:00').split(':').map(Number); const d = new Date(`${f.date}T00:00:00`); d.setHours(h || 0, (m || 0) + (Number(f.minutes) || 120), 0, 0); return d.getTime(); };
   const logged = (date) => roster.some((t) => (((loadsNow[t.id] || {}).sessions || {})[date] || []).some((r) => r && r.kind === 'game'));
-  const pending = fixtures.filter((f) => f.type === 'game' && endOf(f) < Date.now() - 20 * 60000 && endOf(f) > Date.now() - 14 * 86400000 && !logged(f.date));
+  // a Champions League game is not on basket.co.il: bhbc-log-game-bcl.mjs logs it (5.10 #578) - without this every BCL date reopened Chrome here every 20 min for 14 days
+  const pending = fixtures.filter((f) => f.type === 'game' && !/champions/i.test(f.comp || '') && endOf(f) < Date.now() - 20 * 60000 && endOf(f) > Date.now() - 14 * 86400000 && !logged(f.date));
   if (!pending.length) { console.log('AUTO: no finished game waiting to be logged'); process.exit(0); }
   console.log(`AUTO: ${pending.length} finished game(s) not logged: ${pending.map((f) => `${f.date} ${f.title}`).join(' | ')}`);
   const f = await findGameIds();

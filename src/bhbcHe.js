@@ -233,6 +233,7 @@ export const HE = {
   'Show': 'הצג',
   'This season only': 'העונה הזו בלבד',
   'Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.': 'כל משחק שנרשם העונה — משחקים ודקות סופרים את כולם; נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה (מנהלת הליגה). לחיצה על שחקן — המשחקים שלו.',
+  'Every official game this season - cup, league and Europe; scrimmages do not count. Points, rebounds, assists and shooting come from the games with a box score. Tap an athlete for his games.': 'כל משחק רשמי העונה — גביע, ליגה ואירופה; משחקי אימון לא נספרים. נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה. לחיצה על שחקן — המשחקים שלו.',
   'Season': 'עונה',
   'PIR': 'מדד',
   'Off. reb': 'ריבאונד התקפה',
@@ -282,6 +283,9 @@ export const HE = {
   'entries': 'רישומים',
   'entry': 'רישום',
   'lifted': 'הרימו',
+  'A box is a lift he logged.': 'ריבוע = הרמה שנרשמה.',
+  'S&C in green.': 'כוח קבוצתי בירוק.',
+  'Every practice is drawn from the day’s availability.': 'כל אימון נבנה לפי הזמינות של אותו יום.',
   'A box is a lift he logged. S&C shows when its toggle is on.': 'ריבוע = הרמה שנרשמה. אימוני כוח מופיעים כשהמתג שלהם דולק.',
   'Ghost': 'לא פעיל',
   'not counted': 'לא נספר',
@@ -627,6 +631,13 @@ export const fxLabelFor = (kind, en) => {
   // __min is the minutes unit, routed through the same helper so the one
   // language switch covers labels and units together.
   return { game: 'משחק', practice: 'אימון', lift: 'כוח', scrimmage: 'משחק אימון', shootaround: 'שוטאראונד', __min: 'דק׳' }[kind] ?? en;
+};
+
+/** The SHORT word, for a cell the full one does not fit (5.10 #568: in Hebrew the
+ *  short form came back as the full "שוטאראונד" and ran 4px past its chip). */
+export const fxShortFor = (kind, en) => {
+  if (_dateLang !== 'he') return en;
+  return { game: 'משחק', practice: 'אימון', lift: 'כוח', scrimmage: 'משחק אימון', shootaround: 'זריקות' }[kind] ?? en;
 };
 
 /** Availability state → the word for one player. */

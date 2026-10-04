@@ -19,7 +19,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
-import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, countWord, daysFor, overdueFor, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
+import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, countWord, daysFor, overdueFor, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor, fxShortFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
@@ -287,6 +287,57 @@ function PlayerName({ name, style, ...rest }) {
   return <span {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', ...style }}><SegWord full={name} short={initialName(name)} /></span>;
 }
 
+// A LIST OF PLAYERS IS A ROLL, NOT A SENTENCE (5.10 #571). Jersey + name in
+// equal columns under a small label with the count - the roster's own grammar -
+// so "who trained" is counted at a glance instead of read as a comma list.
+function NameRoll({ label, list, color, empty = '—' }) {
+  const rows = (list || []).filter(Boolean);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color }}>{label}<span style={{ marginInlineStart: 6, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{rows.length}</span></span>
+      {rows.length
+        ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', columnGap: 12, rowGap: 4 }}>
+            {rows.map((t) => (
+              <span key={t.id || t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, width: 18, textAlign: 'end', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx }} />
+              </span>
+            ))}
+          </div>
+        : <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{empty}</span>}
+    </div>
+  );
+}
+
+// ONE CHIP GRID FOR EVERY GROUP OF KIND / FILTER BUTTONS (5.10 #574, Ohad:
+// "button/tag layout looks awful ... massive sweep"): a segmented control of
+// equal cells joined by hairlines, 36 tall, the count beside the word. Desktop:
+// one row. Phone: 2 or 3 equal columns so every row is full; with a count that
+// fills neither, the first chip (ALL) takes the whole first row and the rest
+// fill two columns under it - never an empty cell (27.9). items: [{ k, label,
+// n, mark }] where mark is a colour for a filled square, or 'hollow'.
+function KindChips({ items, value, onChange, style = null }) {
+  const n = items.length;
+  const cols = n <= 3 ? n : n % 3 === 0 ? 3 : 2;
+  const allSpan = n > 3 && n % 3 !== 0 && n % 2 !== 0;
+  return (
+    <div className="bhbc-hist-chips hl-grid" role="group" data-allspan={allSpan ? '' : undefined}
+      style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(max-content, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, ...style }}>
+      {items.map((it) => {
+        const on = value === it.k;
+        return (
+          <button key={it.k} type="button" aria-pressed={on} onClick={() => onChange(it.k)} className="bhbc-ghost-btn"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 'var(--btn-h)', minHeight: 0, minWidth: 0, boxSizing: 'border-box', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', color: on ? '#fff' : C.tm, background: on ? NAVY : 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer' }}>
+            {it.mark && <span aria-hidden style={{ width: 8, height: 8, boxSizing: 'border-box', flexShrink: 0, background: it.mark === 'hollow' ? 'transparent' : it.mark, border: it.mark === 'hollow' ? `1.5px solid ${on ? '#fff' : C.tm}` : 'none', opacity: on && it.mark !== 'hollow' ? 0.9 : 1 }} />}
+            {it.label}
+            {it.n != null && <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>{it.n}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // LOCAL calendar date, not UTC. toISOString() is UTC, so between 00:00 and
 // 03:00 Israel time it returns YESTERDAY — "Today" would show the wrong day and
 // a late-night session/availability write would land on the previous date
@@ -383,7 +434,6 @@ function usePhoneGrid() {
   }, []);
   return on;
 }
-const FUTURE_BG = 'color-mix(in srgb, var(--c-cardBd) 18%, transparent)';
 const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_DEEP : d.future || d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm);
 // today in view on a narrow screen: the scroller moves so today's column sits
 // at the inner edge of the days (works in both directions - it moves by the
@@ -524,9 +574,18 @@ function EventChip({ f, time = null, actions = null, stacked = false, className 
   const col = FX_COLOR[f.type] || NAVY;
   const info = (
     <span className="bhbc-chip-info" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 9px', minWidth: 0, flex: '1 1 auto', height: stacked ? 'calc(var(--btn-h) - 2px)' : undefined }}>
-      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{time != null ? time : f.start}</span>
-      <span className={'bhbc-chip-meta bhbc-kind-' + String(f.type || '').toLowerCase()} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', minWidth: 0 }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
-      {Number(f.minutes) > 0 && <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}><MinTok n={f.minutes} /></span>}
+      <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time != null ? time : f.start}</span>
+      {/* THE KIND NEVER PAINTS OVER THE MINUTES (5.10 #568, Ohad's phone: "11:00
+          SHOOTAROUND" ran under "60′"). nowrap + minWidth:0 let the box shrink
+          while its text could not, so the word spilled onto the next token. The
+          word now gives way the way the columns view does: the short word at the
+          same size when the full one would not fit, and overflow hidden so a
+          spill can never reach a neighbour. The time and the minutes keep their
+          width - they are the facts. */}
+      <span className={'bhbc-chip-meta bhbc-kind-' + String(f.type || '').toLowerCase()} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', display: 'flex' }}>
+        <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} />
+      </span>
+      {Number(f.minutes) > 0 && <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap', flexShrink: 0 }}><MinTok n={f.minutes} /></span>}
       {f.optional && <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>· {tr('optional')}</span>}
       {off && <span className="fx-cancelled-tag" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', textDecoration: 'none' }}>{tr('Cancelled')}</span>}
     </span>
@@ -1126,10 +1185,17 @@ function attendance28(rec, days) {
   // Edit / delete an already-logged session (Ohad 2026-08-21: sessions must be
   // fixable after the fact). Editing rewrites minutes — and load for sRPE
   // entries; deleting subtracts the entry's load so ACWR stays truthful.
-  const editSession = useCallback((athleteId, date, idx, newMin, sig) => {
+  // `newMin` may be a number, or a patch { min, date } - a DATE change moves the
+  // row to the other day (5.10 #576, Ohad: "when editing allow me to change the
+  // date"). The row keeps everything else (kind, start, note, by, box).
+  const editSession = useCallback((athleteId, date, idx, newMinOrPatch, sig) => {
+    const patch = newMinOrPatch && typeof newMinOrPatch === 'object' ? newMinOrPatch : { min: newMinOrPatch };
+    const newMin = patch.min;
+    const newDate = patch.date && /^\d{4}-\d{2}-\d{2}$/.test(String(patch.date)) && patch.date !== date ? patch.date : null;
     const cur = bhbcLoads && bhbcLoads[athleteId] && bhbcLoads[athleteId].sessions
       && bhbcLoads[athleteId].sessions[date] && bhbcLoads[athleteId].sessions[date][idx];
     if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen it'); return; }
+    if (newDate && newDate > todayISO()) { toast('A session cannot move to a day that has not happened'); return; }
     // A session with no minutes is not a session (audit #71) — unless it is a
     // court session, which is attendance and has no duration by design.
     const attendanceRow = cur && rowKind(cur) === 'practice';
@@ -1150,10 +1216,16 @@ function attendance28(rec, days) {
       if (s.load) { out.loads[date] = Math.max(0, (out.loads[date] || 0) - s.load); s.load = 0; }
       s.rpe = null;
       s.min = isAttendanceRow ? 0 : min;
-      arr[idx] = s; out.sessions[date] = arr;
+      if (newDate) {
+        // moved: out of this day's list (the day disappears when it empties), onto the other day's
+        arr.splice(idx, 1);
+        if (arr.length) out.sessions[date] = arr; else delete out.sessions[date];
+        out.sessions[newDate] = [...(out.sessions[newDate] || []), s];
+      } else { arr[idx] = s; out.sessions[date] = arr; }
       return { ...prev, [athleteId]: out };
     });
-    toast('Session updated'); track('session', `edited a session on ${fmtNumericDate(date)}`); notify();
+    toast(newDate ? 'Session moved' : 'Session updated');
+    track('session', newDate ? `moved a session from ${fmtNumericDate(date)} to ${fmtNumericDate(newDate)}` : `edited a session on ${fmtNumericDate(date)}`); notify();
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const deleteSession = useCallback((athleteId, date, idx, sig) => {
@@ -2052,7 +2124,7 @@ function attendance28(rec, days) {
 
             {shownView === 'roster' && (
               <>
-                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} onOpen={setDetailFor}
+                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} fixtures={bhbcFixtures} onOpen={setDetailFor}
                   action={!asCoach ? <StripBtn onClick={() => setManageOpen(true)}>{tr('Manage roster')}</StripBtn> : null} />
               </>
             )}
@@ -2673,20 +2745,8 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             // hairlines. Desktop: one row. Phone: 2 or 3 equal columns so every
             // row is full; with an odd count that neither fills, ALL takes the
             // whole first row and the kinds fill two columns under it.
-            (() => { const n = kindChips.length + 1; const cols = n <= 3 ? n : n % 3 === 0 ? 3 : n % 2 === 0 ? 2 : 2; const allSpan = n > 3 && n % 3 !== 0 && n % 2 !== 0; return (
-            <div className="bhbc-hist-chips hl-grid" data-allspan={allSpan ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(max-content, 1fr))`, '--hc-phone': cols, gap: 1, background: C.cardBd, margin: '8px 12px', border: `1px solid ${C.cardBd}` }}>
-              {['all', ...kindChips].map((k) => {
-                const on = effKind === k;
-                return (
-                  <button key={k} onClick={() => setHistKind(k)} className="bhbc-ghost-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, height: 'var(--btn-h)', minWidth: 0, boxSizing: 'border-box', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'var(--c-sf)', color: on ? '#fff' : C.tm, border: 'none' }}>
-                    {tr(k === 'all' ? 'All' : KIND_LABEL[k])}
-                    <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>{k === 'all' ? activity.length : kindCount[k]}</span>
-                  </button>
-                );
-              })}
-            </div>
-            ); })()
+            <KindChips value={effKind} onChange={setHistKind} style={{ margin: '8px 12px' }}
+              items={['all', ...kindChips].map((k) => ({ k, label: tr(k === 'all' ? 'All' : KIND_LABEL[k]), n: k === 'all' ? activity.length : kindCount[k] }))} />
           )}
           {pastSeasons.length > 0 && (
             <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
@@ -2751,14 +2811,20 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                       <span style={{ marginInlineStart: 'auto', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a · {a.game.min}′</span>
                     </span>
                   ) : a.sess && editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-                      <input autoFocus type="number" inputMode="numeric" min="0" value={editSess.min}
+                    // EDITING IS A FORM, NOT A 64PX BOX (5.10 #576, Ohad: "allow me to
+                    // change the date and make the editing more comfortable"): the
+                    // date and the minutes side by side at the house control height,
+                    // Save and Cancel as full segments under them on a phone.
+                    <span className="bhbc-edit-form" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 88px auto auto', gap: 6, alignItems: 'center', minWidth: 0, flex: 1 }}>
+                      <input type="date" value={editSess.date2 || editSess.date} max={todayISO()} aria-label={tr('Date')}
+                        onChange={(e) => setEditSess({ ...editSess, date2: e.target.value })}
+                        style={{ fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', height: 'var(--btn-h)', boxSizing: 'border-box', minWidth: 0 }} />
+                      <input autoFocus type="number" inputMode="numeric" min="0" value={editSess.min} aria-label={tr('Minutes')} placeholder={tr('min')}
                         onChange={(e) => setEditSess({ ...editSess, min: e.target.value })}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { onEditSession(editSess.date, editSess.idx, editSess.min, editSess.sig); setEditSess(null); } if (e.key === 'Escape') setEditSess(null); }}
-                        style={{ width: 64, fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 6px' }} />
-                      <span style={{ color: C.td }}>{tr('min')}</span>
-                      <button onClick={() => { onEditSession(editSess.date, editSess.idx, editSess.min, editSess.sig); setEditSess(null); }} title={tr('Save')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: '#37B27C', background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✓</button>
-                      <button onClick={() => setEditSess(null)} title={tr('Cancel')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}><CrossGlyph /></button>
+                        onKeyDown={(e) => { if (e.key === 'Enter') { onEditSession(editSess.date, editSess.idx, { min: editSess.min, date: editSess.date2 }, editSess.sig); setEditSess(null); } if (e.key === 'Escape') setEditSess(null); }}
+                        style={{ fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', height: 'var(--btn-h)', boxSizing: 'border-box', minWidth: 0, textAlign: 'center' }} />
+                      <button onClick={() => { onEditSession(editSess.date, editSess.idx, { min: editSess.min, date: editSess.date2 }, editSess.sig); setEditSess(null); }} title={tr('Save')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: NAVY, border: `1px solid ${NAVY}`, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 14px', borderRadius: 0, cursor: 'pointer' }}>{tr('Save')}</button>
+                      <button onClick={() => setEditSess(null)} title={tr('Cancel')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', borderRadius: 0, cursor: 'pointer' }}>{tr('Cancel')}</button>
                     </span>
                   ) : (
                     <span style={{ color: C.tx, minWidth: 0, flex: 1, overflowWrap: 'break-word' }}>{a.label}
@@ -2807,7 +2873,12 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           // under one "season average" caption (27.9: "נק׳ למשחק" wrapped to two
           // lines in a quarter of a phone; a title fits by wording, never a
           // smaller font). Then the shooting, the rating and games played.
-          const avg = [['PTS', leaguePlayer.ppg], ['REB', leaguePlayer.rpg], ['AST', leaguePlayer.apg], ['MIN', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
+          // ONE PPG EVERYWHERE (5.10 #578): the club's season numbers first (every
+          // official game, every competition), the league feed only for a figure
+          // the logged games do not carry - the rule Player Stats uses.
+          const cs = clubSeasonStats(row.t, { [row.t.id]: rec }, fixtures) || {};
+          const pick = (k) => (cs[k] != null ? cs[k] : leaguePlayer[k]);
+          const avg = [['PTS', pick('ppg')], ['REB', pick('rpg')], ['AST', pick('apg')], ['MIN', pick('mpg')], ['3P%', pick('tpp') + '%'], ['FT%', pick('ftp') + '%'], ['PIR', pick('pirpg')], ['GP', cs.gp != null ? cs.gp : leaguePlayer.gp]];
           return (
             <div style={{ border: `1px solid ${C.cardBd}` }}>
               {/* WHERE THESE NUMBERS COME FROM, and how old they are (the feed
@@ -3101,19 +3172,11 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
             refused: a long block is possible, a copied 120 is the usual cause. */}
         {!future && Number(minutes) > 60 && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{tr('Over an hour - is that the practice length rather than the S&C block?')}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which practice')}</span>
-            {dayFx.length ? dayFx.map((f, i) => {
-              const on = (f.start || '') === slotStart;
-              return (
-                <button key={i} type="button" data-dirties onClick={() => setSlotStart(f.start || '')}
-                  style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0,
-                    background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
-                  {f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? <>{' · '}<MinTok n={f.minutes} /></> : null}
-                </button>
-              );
-            }) : <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('No practice on the schedule for this date — it is saved to the day.')}</span>}
-          </div>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which practice')}</span>
+          {dayFx.length
+            ? <KindChips value={slotStart} onChange={(k) => setSlotStart(k)}
+                items={dayFx.map((f) => ({ k: f.start || '', label: <span data-dirties>{f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? <>{' · '}<MinTok n={f.minutes} /></> : null}</span> }))} />
+            : <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('No practice on the schedule for this date — it is saved to the day.')}</span>}
         </div>
         {/* WHO WAS THERE — read, not edited (Ohad 26.9: "same for sc sessions:
             time, and note"). Attendance is the day's availability, as he set on
@@ -3127,12 +3190,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
           const isIn = (e) => e && e.avail < 4 && e.attended !== false;
           const ins = roster.filter((t) => isIn(entries[t.id]));
           const outs = roster.filter((t) => { const e = entries[t.id]; return e && !isIn(e); });
-          const line = (label, list, color) => (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', fontFamily: FB, fontSize: 12, color: C.tx }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color, flexShrink: 0 }}>{label} · {list.length}</span>
-              <span style={{ color: C.tm }}>{list.length ? list.map((t) => t.name).join(' · ') : '—'}</span>
-            </div>
-          );
+          const line = (label, list, color) => <NameRoll label={label} list={list} color={color} />;
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}`, padding: '10px 0' }}>
               {line(tr('In'), ins, '#37B27C')}
@@ -3404,32 +3462,30 @@ function ActivityView({ activity = [], tr, he }) {
         {list.length === 0
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
           : <>
-            {/* the filter: one 36px control a kind, its count beside the word */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 12 }}>
-              {[['all', tr('All'), list.length], ...kinds.map(([k, n]) => [k, KIND[k], n])].map(([k, label, n]) => {
-                const on = kindF === k;
-                return (
-                  <button key={k} type="button" aria-pressed={on} onClick={() => { setKindF(k); setShown(80); }} className="bhbc-ghost-btn"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 'var(--btn-h)', minHeight: 0, padding: '0 12px', boxSizing: 'border-box', border: `1px solid ${on ? NAVY : C.cardBd}`, background: on ? `color-mix(in srgb, ${NAVY} 10%, transparent)` : 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm }}>
-                    {k !== 'all' && <span aria-hidden style={{ width: 8, height: 8, boxSizing: 'border-box', background: k === 'open' ? 'transparent' : (KIND_INK[k] || C.tm), border: k === 'open' ? `1.5px solid ${C.tm}` : 'none', flexShrink: 0 }} />}{/* signed in = hollow: it is presence, not a change */}
-                    {label}<span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* THE FILTER IS ONE SEGMENTED CONTROL (5.10 #574, Ohad: "button/tag
+                layout looks awful"): four loose boxes wrapped 2+2 at four widths.
+                KindChips is the grammar every chip group in the zone now shares -
+                equal cells joined by hairlines, full rows, 36 tall. The mark
+                before a kind is the one its rows carry (signed in = hollow: it is
+                presence, not a change). */}
+            <KindChips value={kindF} onChange={(k) => { setKindF(k); setShown(80); }} style={{ marginBottom: 12 }}
+              items={[{ k: 'all', label: tr('All'), n: list.length }, ...kinds.map(([k, n]) => ({ k, label: KIND[k], n, mark: k === 'open' ? 'hollow' : (KIND_INK[k] || C.tm) }))]} />
             {days.map((day) => (
               <div key={day.d || 'x'}>
                 <div style={band}><span dir="auto" style={{ ...lbl, color: C.tx }}>{day.d ? dayHead(day.d) : '—'}</span></div>
                 <div className={`hl-rows ${settle}`}>
                   {day.rows.map((e, i) => (
-                    <div key={i} className="bhbc-act-row" style={{ display: 'grid', gridTemplateColumns: '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 40, padding: '10px 0', boxSizing: 'border-box' }}>
+                    // ONE LINE A CHANGE (5.10 #575). The "by" column only when more than
+                    // one person has been in: with one coach it said OHAD under every
+                    // row and doubled the height of the whole trail for nothing.
+                    <div key={i} className="bhbc-act-row" data-solo={people.length < 2 ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: people.length < 2 ? '44px 8px minmax(0, 1fr)' : '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 36, padding: '8px 0', boxSizing: 'border-box' }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
                       <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'baseline' }} />
                       <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
                         {say(e.what)}
-                        {e.n > 1 && <span dir="ltr" style={{ ...lbl, marginInlineStart: 8, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
+                        {e.n > 1 && <span dir="ltr" style={{ ...lbl, display: 'inline-block', margin: '0 8px' /* both sides: in Hebrew the run sits at the line's left end, where an inline-START margin is on the wrong side (5.10) */, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
                       </span>
-                      <span className="bhbc-act-by" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{e.by ? byName(e.by) : '—'}</span>
+                      {people.length >= 2 && <span className="bhbc-act-by" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{e.by ? byName(e.by) : '—'}</span>}
                     </div>
                   ))}
                 </div>
@@ -3439,7 +3495,7 @@ function ActivityView({ activity = [], tr, he }) {
               <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
                 <button type="button" onClick={() => setShown((n) => n + 120)} className="bhbc-ghost-btn"
                   style={{ height: 'var(--btn-h)', minHeight: 0, padding: '0 16px', border: `1px solid ${C.cardBd}`, background: 'transparent', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>
-                  {tr('Show older')} <span style={{ color: C.td, fontVariantNumeric: 'tabular-nums' }}>{filtered.length - shown}</span>
+                  {tr('Show older')}<span style={{ color: C.td, fontVariantNumeric: 'tabular-nums', marginInlineStart: 7 }}>{filtered.length - shown}</span>
                 </button>
               </div>
             )}
@@ -3772,12 +3828,6 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   // Sessions > Group is white cards with hairline borders and colour used only
   // as an accent - no filled bars anywhere. Ohad pointed at it twice; this is
   // that material.
-  const chip = (on) => ({
-    fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-    padding: '5px 10px', minHeight: 26, boxSizing: 'border-box', cursor: 'pointer', borderRadius: 0,
-    background: 'transparent', color: on ? C.tx : C.tm,
-    border: '1px solid ' + (on ? C.tx : C.cardBd),
-  });
 
   return (
     <BModal open onClose={onClose} wide title={<>{athleteName}<span className="bm-lead"> · {tr('Program')}</span></>}>
@@ -3810,12 +3860,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
             </span>
           </div>
           {pickOpen && plans.length > 1 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {plans.map((p) => (
-                <button key={p.id} type="button" aria-pressed={p.id === planId}
-                  onClick={() => { setPlanId(p.id); setPickOpen(false); }} style={chip(p.id === planId)}>{p.name}</button>
-              ))}
-            </div>
+            <KindChips value={planId} onChange={(k) => { setPlanId(k); setPickOpen(false); }} items={plans.map((p) => ({ k: p.id, label: p.name }))} />
           )}
 
           {loading && <div style={{ padding: 20, textAlign: 'center', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em', color: C.tm }}>{tr('Loading')}</div>}
@@ -3828,13 +3873,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
               exercises - on the floor, mid-session, on a tablet. A single day
               has nothing to pick, so the row does not appear. */}
           {!loading && days.length > 1 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {days.map((d, di) => (
-                <button key={di} onClick={() => { setDayIdx(di); setOpenEx(null); }} style={chip(di === safeDay)}>
-                  {d.name || d.n || (tr('Day') + ' ' + (di + 1))}
-                </button>
-              ))}
-            </div>
+            <KindChips value={safeDay} onChange={(k) => { setDayIdx(k); setOpenEx(null); }} items={days.map((d, di) => ({ k: di, label: d.name || d.n || (tr('Day') + ' ' + (di + 1)) }))} />
           )}
           {!loading && shownDays.map(([d, di]) => {
             const list = rowsFor(d);
@@ -4467,7 +4506,6 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
   // into the next column at 22.
   const CELL = phone ? 17 : 24;   // seven days fit a 360 phone at 17 (#515)
-  const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   const MISS = '#DE4E3B';
   const pct = (p) => (p.owed ? Math.round((p.went / p.owed) * 100) : null);
   // colour only the exceptions (#305 N-E6): 90%+ is the normal state, plain ink
@@ -4521,9 +4559,10 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         {/* The sentence gets its own line rather than being squeezed into the
             gap beside the pager - same rule as the weight room. */}
         <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>
-          {tr('Every practice is drawn from the day’s availability. A filled box is a session he was at; a red outline, a session he missed while available; an outlined game, a game he did not play.')}
+          {tr('Every practice is drawn from the day’s availability.')}
+          {showSc && !sort.rows.some((r) => r.cells.some((c) => c.sc)) && <> <span style={{ color: C.td }}>{he ? 'לא נרשם כוח קבוצתי בטווח הזה.' : 'No S&C logged in this range.'}</span></>}
         </span>
-        <span style={{ display: 'inline-flex', gap: 6 }}>
+        <span className="hl-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` /* one joined pair, equal cells (5.10 #574) */ }}>
           {[['sc', tr('S&C'), showSc, setShowSc, SC_COLOR], ['lift', tr('Lifts'), showLift, setShowLift, FX_COLOR.lift]].map(([k, l, on, set, col]) => (
             <button key={k} type="button" aria-pressed={on} onClick={() => set(!on)} className="bhbc-ghost-btn"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', minHeight: 0, padding: '0 10px', boxSizing: 'border-box' /* 26 -> 36, as the LIFTS tab's own S&C toggle (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? C.tx : C.tm, background: on ? `color-mix(in srgb, ${col} 14%, transparent)` : 'transparent', border: `1px solid ${on ? col : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
@@ -4547,13 +4586,13 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
             ))}
             <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('there')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px 6px' }}>
-            <span style={{ ...pinStart('var(--c-sf)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '4px 14px 5px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` /* the count row is part of the header band (5.10 #570) */ }}>
+            <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
             {perDay.map((v, i) => (
               // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
               <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
             ))}
-            <span style={{ ...pinEnd('var(--c-sf)'), alignSelf: 'stretch' }} />
+            <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch' }} />
           </div>
           <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
             {sort.rows.map(({ t, cells, last, todayCode, went, owed }) => (
@@ -4578,12 +4617,12 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   const outline = c.state === 'missed' ? MISS : c.state === 'dnp' ? FX_COLOR.game : null;
                   return (
                     <span key={c.iso} title={label}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: c.future ? FUTURE_BG : c.state === 'none' ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
                       <CellMarks bands={bands} outline={outline} label={label} />
                     </span>
                   );
                 })}
-                <span data-end-cell="" style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 36, paddingInlineStart: 10, alignSelf: 'stretch' }}>
+                <span data-end-cell="" style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 36, paddingInlineStart: 10, alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }}>
                   <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: pctInk(pct({ went, owed })), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end', unicodeBidi: 'isolate' }}>
                     {owed ? `${went}/${owed}` : tr('none')}
@@ -4685,7 +4724,6 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
   const due = [...per].filter((x) => (x.since == null || x.since >= LIFT_DUE_DAYS) && x.todayCode < 4 && !(x.t.arrival && x.t.arrival > today))
     .sort((a, b) => (b.since == null ? 1e9 : b.since) - (a.since == null ? 1e9 : a.since));
   const liftedToday = per.filter((x) => x.since === 0).length;
-  const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   // an overdue lift is only coloured for someone who could have lifted (#305 N-K3)
   const ink = (since, code = 1, landed = true) => (code >= 4 || !landed ? C.tm : since == null || since >= 7 ? '#DE4E3B' : since >= LIFT_DUE_DAYS ? 'var(--bhbc-amber-text, #E0A73A)' : C.tx);   // a recent lift is the normal state (#305 N-E6); amber = due (6), red = a week
   // 24, not 22 (29.9 #380): two-digit days at 10px are ~25px of ink and ran
@@ -4749,7 +4787,13 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', minHeight: 0, padding: '0 12px', boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: showSc ? C.tx : C.tm, background: showSc ? `color-mix(in srgb, ${SC_COLOR} 14%, transparent)` : 'transparent', border: `1px solid ${showSc ? SC_COLOR : C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>
             <span style={{ width: 8, height: 8, background: showSc ? SC_COLOR : 'transparent', border: `1px solid ${SC_COLOR}` }} />{tr('S&C')}
           </button>
-          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('A box is a lift he logged. S&C shows when its toggle is on.')}</span>
+          {/* A TOGGLE THAT SHOWS NOTHING SAYS WHY (5.10 #572, Ohad: "sc not
+              showing"): S&C was on and the week had no S&C logged, so the grid
+              looked broken. The sentence states what the range holds. */}
+          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>
+            {tr('A box is a lift he logged.')}
+            {showSc && <> {sort.rows.some((r) => r.cells.some((c) => c.sc)) ? tr('S&C in green.') : <span style={{ color: C.td }}>{he ? 'לא נרשם כוח קבוצתי בטווח הזה.' : 'No S&C logged in this range.'}</span>}</>}
+          </span>
         </div>
 
         {/* THE MONTH FITS THE CARD (29.9 #400, Ohad: "table doesnt fit"): at
@@ -4772,12 +4816,12 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
               ))}
               <SortHeader data-end-head="" k="last" sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px 6px' }}>
-              <span style={{ ...pinStart('var(--c-sf)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '4px 14px 5px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` /* the count row is part of the header band (5.10 #572) */ }}>
+              <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
               {liftedPerDay.map((n, i) => (
                 <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
               ))}
-              <span style={{ ...pinEnd('var(--c-sf)'), alignSelf: 'stretch' }} />
+              <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch' }} />
             </div>
             <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {sort.rows.map(({ t, cells, since, last, todayCode }) => (
@@ -4798,14 +4842,14 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                     const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
                     return (
                       <span key={c.iso} title={c.future ? monDay(c.iso) : title}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}`, background: c.future ? FUTURE_BG : 'transparent' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}`, background: 'transparent' }}>
                         <CellMarks bands={bands} label={title} />
                       </span>
                     );
                   })}
                   {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
-                  <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
+                  <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }}>
                     <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 80 /* room for its longest word (YESTERDAY, ~76px measured): at 46 the dates beside a long age stood further in than the rest (4.10 #550 sweep) - a phone sets it to 0 */, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? tr('yesterday') /* 'אתמול' is shorter than the '1 ימים' it replaced (#547) */ : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
@@ -5036,7 +5080,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   );
 }
 
-function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, onOpen, action = null }) {
+function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, fixtures = [], onOpen, action = null }) {
   const tr = useT();
   const settle = useSettleIn((rows || []).length > 0);
   // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
@@ -5047,7 +5091,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
   const startYr = nowS.getMonth() >= 7 ? nowS.getFullYear() : nowS.getFullYear() - 1;
   const leaguePast = !!league.season && String(league.season).replace(/\s+/g, '') !== `${startYr}/${String((startYr + 1) % 100).padStart(2, '0')}`;
   const ppgFor = (t) => {
-    const club = clubSeasonStats(t, loads);
+    const club = clubSeasonStats(t, loads, fixtures);
     // per field, like Player Stats: a club row with no box has no points (27.9 review)
     if (club && club.ppg != null) return club.ppg;
     const lp = leaguePast ? null : leaguePlayerFor(league, t);
@@ -5287,8 +5331,7 @@ function MicrocycleView({ fx, today }) {
   // A day that is BOTH keeps the orange wash and takes the navy ring,
   // so game-day-is-today reads as both rather than as neither.
             <div key={d.iso} style={{
-              border: `1px solid ${d.isToday ? TODAY_INK : d.isGame ? ORANGE : C.cardBd}`,
-              ...(d.isToday ? { boxShadow: `inset 0 0 0 1px ${TODAY_INK}` } : null),
+              border: `1px solid ${d.isToday ? TODAY_INK : d.isGame ? ORANGE : C.cardBd}`,   // one 1px line, no inset double (#567)
               borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`,
               padding: '10px 10px 12px',
               background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)`
@@ -5425,7 +5468,6 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   }, [loads, roster, past, medical]);
 
   if (!past.length) return null;
-  const names = (arr) => arr.map((t) => t.name).join(', ');
 
   return (
     <Card padding={14} leftStripe={NAVY} header={secTitle('Past practices')}
@@ -5497,31 +5539,27 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                 </svg>
               </div>
               {isOpen && (
-                <div style={{ padding: '2px 2px 12px 88px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.55 }}>
-                  {/* THE S&C BLOCK that ran with this practice: the team's
-                      minutes and the note written for it. Its own figure, never
-                      pooled with anyone's lift. */}
-                  <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('S&C session')}</span>
+                // THE OPEN ROW IS A SHEET, NOT A SENTENCE (5.10 #571, Ohad: "awful
+                // display of the players and info when expanding"): ten full
+                // names ran on as one comma list under an inline label. Now each
+                // fact is a labelled line, and the players are a NameRoll - jersey
+                // + name in equal columns, the way the roster lists them - so a
+                // coach counts who was there at a glance. The S&C block keeps its
+                // own line: the team's minutes and note, never pooled with a lift.
+                <div style={{ padding: '4px 0 12px', display: 'flex', flexDirection: 'column', gap: 10, fontFamily: FB, fontSize: 12, color: C.tx }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, flexShrink: 0 }}>{tr('S&C session')}</span>
                     {d.scMinutes > 0
-                      ? <span dir="auto"><span style={{ fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{d.scMinutes} {tr('min')}</span>{d.scNote ? ` · ${d.scNote}` : ''}</span>
+                      ? <span dir="auto"><span style={{ fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{d.scMinutes} {tr('min')}</span>{d.scNote ? <span style={{ color: C.tm }}> · {d.scNote}</span> : null}</span>
                       : <span style={{ color: C.td }}>{tr('no S&C session logged')}</span>}
+                    {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td, marginInlineStart: 'auto', fontFamily: FN, fontSize: 10 }}>{tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
                   </div>
-                  <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Trained')}</span>
-                    {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>{tr('nobody logged')}</span>}
-                    {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td }}> · {tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
-                  </div>
-                  {d.out.length > 0 && (
-                    <div style={{ marginBottom: 6 }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#DE4E3B', marginInlineEnd: 8 }}>{tr('Out')}</span>
-                      <span dir="auto">{names(d.out)}</span>
-                    </div>
-                  )}
+                  <NameRoll label={tr('Trained')} list={d.trained} color={C.tm} empty={tr('nobody logged')} />
+                  {d.out.length > 0 && <NameRoll label={tr('Out')} list={d.out} color="#DE4E3B" />}
                   {d.notes.length > 0 && (
-                    <div>
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Notes')} </span>
-                      {d.notes.map((n, i) => <div key={i} dir="auto" style={{ color: C.tm }}>{n.name}: {n.note}</div>)}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Notes')}</span>
+                      {d.notes.map((n, i) => <div key={i} dir="auto" style={{ color: C.tm }}><span style={{ fontFamily: FN, fontWeight: 700, color: C.tx }}>{n.name}</span> · {n.note}</div>)}
                     </div>
                   )}
                 </div>
@@ -5924,7 +5962,7 @@ function ScheduleWeek({ fixtures, today }) {
                       {Number(f.minutes) > 0 && <span style={{ fontFamily: FN, fontSize: 9.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes}′</span>}
                     </span>
                     <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: col, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>
-                      <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxLabelFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} />
+                      <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} />
                     </span>
                     {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{where}</span>}
                   </div>
@@ -5978,16 +6016,18 @@ function ScheduleMonth({ fixtures, today }) {
     const items = (byDate[di] || []).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));   // a slot with no start time must not take the card down (#305 N-F2)
     // WHERE YOU ARE IN THE MONTH (#305 L4): today outlined in the zone's navy
     // (an inset ring, so no cell moves; the theme-aware navy, which lifts to a
-    // light blue on the dark page), the days already gone dimmed.
+    // light blue on the dark page), the days already gone dimmed. ONE pixel:
+    // the 2px ring sat on the cell's own 1px grid lines and read as a 3px
+    // frame on the phone (Ohad 5.10 #567: "too thick and annoying").
     return (
-      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 2px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
+      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 1px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? TODAY_INK : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
           <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', flexWrap: 'wrap' /* the venue takes its own line (flexBasis 100%) - without wrap it squeezed the kind to a 19px stub (AUDIT-470) */, alignItems: 'center', gap: 5, rowGap: 1, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
             {/* one word, never broken: the full kind, or its short form when the
                 column is too narrow (SegWord measures) */}
-            <span className="bhbc-cal-kind" style={{ color: FX_COLOR[f.type] || NAVY, display: 'flex', minWidth: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxLabelFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
+            <span className="bhbc-cal-kind" style={{ color: FX_COLOR[f.type] || NAVY, display: 'flex', minWidth: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
             {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="ltr">{fxWhere(f)}</span> : null}
           </div>
         ))}
@@ -6150,13 +6190,24 @@ function StandingsTable({ standings }) {
 // full line; a scrimmage logged by hand carries minutes). GP and MPG count
 // every game; the box averages count the games that HAVE a box - stated under
 // the table. Falls back to the league feed for a player with no logged game.
-const clubSeasonStats = (t, loads) => {
+// THIS SEASON, EVERY OFFICIAL GAME (5.10 #578, Ohad: "ppg should only be of
+// this season (but all the games) and updated constantly everywhere it
+// appears"). Every competition counts - cup, league, Europe - and a pre-season
+// SCRIMMAGE does not: a friendly logged as minutes counted in GP and dragged
+// MPG down while it could never carry points. A row is a scrimmage when the
+// club calendar has a scrimmage that day and no game, and the row has no box.
+// The same function feeds the roster cards, the roster list, Player Stats and
+// the player popup, so the number is one number wherever it appears.
+const clubSeasonStats = (t, loads, fixtures = null) => {
   const now = new Date();
   const seasonStart = `${now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1}-08-01`;
+  const kindOn = {};
+  for (const f of fixtures || []) if (f && f.date && !(f.cancelled)) { const k = String(f.type || '').toLowerCase(); (kindOn[f.date] = kindOn[f.date] || new Set()).add(k); }
+  const scrimmageDay = (d) => !!kindOn[d] && kindOn[d].has('scrimmage') && !kindOn[d].has('game');
   const rows = [];
   for (const [d, list] of Object.entries(((loads || {})[t.id] || {}).sessions || {})) {
     if (d < seasonStart) continue;
-    for (const r of (list || [])) if (r && rowKind(r) === 'game') rows.push(r);
+    for (const r of (list || [])) if (r && rowKind(r) === 'game' && (r.box || !scrimmageDay(d))) rows.push(r);
   }
   if (!rows.length) return null;
   const withBox = rows.filter((r) => r.box);
@@ -6174,7 +6225,7 @@ const clubSeasonStats = (t, loads) => {
   };
 };
 
-function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
+function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = null }) {
   const he = useHe();
   const tr = useT();
   // Ohad: "it doesnt re-order the column based on up and down when i click on
@@ -6200,7 +6251,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null }) {
   // a box figure the logged games do not carry (no boxed game yet) falls back
   // to the official league feed instead of reading as a dash.
   const merged = (t) => {
-    const club = loads ? clubSeasonStats(t, loads) : null;
+    const club = loads ? clubSeasonStats(t, loads, fixtures) : null;
     const lg = leaguePlayerFor(league, t);
     if (!club) return lg;
     if (!lg) return club;
@@ -6473,8 +6524,8 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
           </>
         ) : (
           <>
-            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} loads={bhbcLoads} />
-            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>{tr('Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.')}</div>
+            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} loads={bhbcLoads} fixtures={fixtures} />
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>{tr('Every official game this season - cup, league and Europe; scrimmages do not count. Points, rebounds, assists and shooting come from the games with a box score. Tap an athlete for his games.')}</div>
           </>
         )}
       </Card>
@@ -7023,17 +7074,19 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
                   onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined}
-                  style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 4, padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
-                  <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                  // ONE ROW GRAMMAR (5.10 #573, Ohad: "bad design for each box"): a
+                  // flex-wrap row laid three rows out three ways - the injury
+                  // under the name on one, beside it on the next, the date and
+                  // CLEARED orphaned at the end of a second line. Now every row
+                  // is the same grid: jersey · name · date · status on the first
+                  // line, the injury on its own line under the name. Nothing
+                  // wraps, nothing floats.
+                  style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto auto', columnGap: 12, rowGap: 3, alignItems: 'center', padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
+                  <span style={{ textAlign: 'end', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
-                  <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                  {/* date + CLEARED are one unit pinned to the end: on a 360 phone the
-                      longest row ran 9px past the screen (box-fit, 1.10) - now the unit
-                      drops to a second line, still at the end, instead */}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginInlineStart: 'auto', flexShrink: 0 }}>
-                    {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{fmtNumericDate(inj.onsetDate)}</span>}
-                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C' }}>{tr('Cleared')}</span>
-                  </span>
+                  <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? fmtNumericDate(inj.onsetDate) : ''}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap' }}>{tr('Cleared')}</span>
+                  <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 </div>
               ))}
             </div>
@@ -7176,7 +7229,6 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
     });
   };
   const sel = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 34, boxSizing: 'border-box' };
-  const chipBtn = { fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', height: 28, boxSizing: 'border-box', padding: '0 10px', border: '1px solid', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1 };
   // Switching records drops unsaved edits - ask only when there are some.
   const snapshot = JSON.stringify([bodyPart, side, type, onsetDate, status, pain, mechanism, rtpTarget, notes, resolved, progress, pNote, pPain]);
   const [initialSnap] = useState(snapshot);
@@ -7197,21 +7249,8 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
     <BModal open guard onClose={onClose} wide title={<><span className="bm-lead">{tr(injury ? 'Update injury' : 'Report injury')} · </span>#{athlete.jersey ?? '—'} {athlete.name}</>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {onSwitch && (active.length > 0 || injury) && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-            {active.map((a) => {
-              const on = injury && a.id === injury.id;
-              return (
-                <button key={a.id} type="button" onClick={() => { if (!on) switchTo(a.id); }}
-                  style={{ ...chipBtn, color: on ? '#fff' : C.tx, background: on ? NAVY : 'transparent', borderColor: on ? NAVY : C.cardBd, cursor: on ? 'default' : 'pointer' }}>
-                  {tr(a.bodyPart) || '—'}{a.onsetDate ? <span dir="ltr" style={{ opacity: 0.75, fontWeight: 600, unicodeBidi: 'isolate' }}>{monDay(a.onsetDate)}</span> : null}
-                </button>
-              );
-            })}
-            <button type="button" onClick={() => { if (injury) switchTo(null); }}
-              style={{ ...chipBtn, color: !injury ? '#fff' : ORANGE, background: !injury ? ORANGE : 'transparent', borderColor: ORANGE, cursor: injury ? 'pointer' : 'default' }}>
-              + {he ? 'פציעה חדשה' : 'New injury'}
-            </button>
-          </div>
+          <KindChips value={injury ? injury.id : '__new'} onChange={(k) => { if (k === '__new') { if (injury) switchTo(null); } else if (!injury || k !== injury.id) switchTo(k); }}
+            items={[...active.map((a) => ({ k: a.id, label: <>{tr(a.bodyPart) || '—'}{a.onsetDate ? <span dir="ltr" style={{ opacity: 0.75, fontWeight: 600, unicodeBidi: 'isolate', marginInlineStart: 6 }}>{monDay(a.onsetDate)}</span> : null}</> })), { k: '__new', label: `+ ${he ? 'פציעה חדשה' : 'New injury'}` }]} />
         )}
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
           <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => pickBodyPart(e.target.value)} style={sel}><option value="">{tr('— select —')}</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>

@@ -89,6 +89,24 @@ function runGames() {
     if (/read-back OK/.test(out)) runLeague('a game was logged');
   });
 }
+// CHAMPIONS LEAGUE GAMES, THE SAME WAY (Ohad 5.10: "Ppg should only be of this
+// season (but all the games) and updated constantly everywhere it appears").
+// basket.co.il does not carry the BCL, so bhbc-log-game-bcl --auto reads the
+// official box score from championsleague.basketball. Same clock, same rules:
+// exits at once when no finished BCL game is unlogged; quiet when idle.
+let bclRunning = false;
+function runBclGames() {
+  if (bclRunning) return;
+  bclRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/bhbc-log-game-bcl.mjs', '--auto'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', (code) => {
+    bclRunning = false;
+    if (!/no finished BCL game waiting/.test(out)) say(`bcl games: exit ${code} ${out.trim().replace(/\s+/g, ' ').slice(0, 600)}`);
+  });
+}
 // OWED, from the roster sheet, every 20 minutes (#386). It fails soft and says
 // so in one line; a cycle with nothing new stays quiet.
 let owedRunning = false, owedLast = '';
@@ -106,11 +124,13 @@ function runOwed() {
     owedLast = line;
   });
 }
-say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + owed every 20 min`);
+say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + owed every 20 min`);
 tick();
 setInterval(tick, 60 * 1000);
 runGames();
 setInterval(runGames, 20 * 60 * 1000);
+runBclGames();
+setInterval(runBclGames, 20 * 60 * 1000);
 runOwed();
 setInterval(runOwed, 20 * 60 * 1000);
 // THE DATABASE NEVER STAYS DOWN UNNOTICED (4.10 #543): probe every minute, alert Ohad
