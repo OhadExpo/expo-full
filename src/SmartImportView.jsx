@@ -14,6 +14,7 @@
 //   5. Coach previews JSON
 //   6. Commit to Supabase (dedupe on commit)
 import React, { useState, useMemo, useRef } from 'react';
+import { mergeFilled } from './importMerge';
 import { useT, tr, readLang } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
@@ -416,7 +417,10 @@ export default function SmartImportView() {
           // A nameless trainee row crashes every roster filter/sort downstream.
           if (!(item.name || '').trim()) { skippedNameless++; continue; }
           const k = keyOf(item);
-          if (existing.has(k)) { Object.assign(existing.get(k), item); updated++; }
+          // A BLANK CELL NEVER ERASES (5.10 #554 audit): Object.assign wrote every
+          // empty column of the sheet over the athlete's existing phone / email /
+          // notes. Only a cell that HAS a value updates the athlete.
+          if (existing.has(k)) { mergeFilled(existing.get(k), item); updated++; }
           else {
             arr.push({ id: 'tr_' + uid(), status: 'Active', format: 'In-Person Private', package: '', ...item });
             added++;
@@ -452,10 +456,12 @@ export default function SmartImportView() {
               // Snapshot the name here — the coach never sees the bug (they resolve
               // via the library), the athlete gets a broken program. (audit #1)
               title: (ex.title || '').trim(),
-              sets: typeof ex.sets === 'number' ? ex.sets : (parseInt(ex.sets) || 3),
+              // blank stays blank (his rule: never invent training data) - a missing
+              // sets cell became 3 and a missing rest 90s (5.10 #554 audit)
+              sets: typeof ex.sets === 'number' ? ex.sets : (parseInt(ex.sets) || ''),
               reps: ex.reps || '',
               load: '', rpe: '', tempo: ex.tempo || '',
-              rest: ex.rest || '90',
+              rest: ex.rest || '',
               notes: ex.notes || '',
               order: i,
               superset: ex.superset || '',
