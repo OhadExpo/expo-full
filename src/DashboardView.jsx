@@ -575,7 +575,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           there is room. Two rows of two is order; three and a stray is not. */}
       <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
         {[
-          { label: tt('Active Athletes'), short: he ? null : 'Athletes', value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, sub: tt('Active / roster'), subColor: C.td, color: C.gn },
+          { label: tt('Active Athletes'), short: he ? null : 'Athletes', value: unknown(trainees) ? '—' : active, /* ONE NUMBER, like the other three tiles (4.10 #545, Ohad: "26/33 looks bad ... make it ocd design with the rest of the top 4 boxes") - the roster count is the caption */ sub: unknown(trainees) ? tt('Active / roster') : tt('of {n} on the roster').replace('{n}', trainees.filter(t=>t.status!=='Archived').length), subColor: C.td, color: C.gn },
           { label: tt('Low Sessions'), short: he ? 'מעט אימונים' : null, value: unknown(trainees) ? '—' : lowSessions, sub: tt('2 or fewer sessions left'), subShort: tt('≤2 sessions left'), subColor: C.td, color: lowSessions > 0 ? C.or : C.gn },
           // Money KPIs — owner-only.
           ...(isOwner ? [

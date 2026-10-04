@@ -324,7 +324,7 @@ function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac,
         </span>
       </div>
       {sub && (
-        <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{subShort ? <SegWord full={sub} short={subShort} /> : sub}</div>
+        <div style={{ display: 'flex', fontSize: 9, fontFamily: FN, color: subColor || C.td, marginTop: 2, letterSpacing: '0.1em', lineHeight: 1.2, whiteSpace: 'nowrap', textTransform: 'uppercase', justifyContent: 'flex-start' }}>{/* the REAL dashboard caption, exactly (#545 parity): one line, the short form where the full one does not fit */}<SegWord full={sub} short={subShort || sub} /></div>
       )}
     </div>
   );
@@ -447,7 +447,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         {/* every tile carries a caption, as the real dashboard's do (27.9 #300 O9) */}
         {/* the real tiles' words (DashboardView): short titles where a phone's
             half-width tile would wrap, the real captions in the real grey */}
-        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
+        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} sub={T('of {n} on the roster').replace('{n}', MOCK_TRAINEES.length)} accent={C.gn} />
         <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
         <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
         <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={`${deltaTxt} ${T('vs last month')}`} subShort={deltaTxt} subColor={deltaCol} accent={C.gn} />
