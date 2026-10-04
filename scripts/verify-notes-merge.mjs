@@ -21,22 +21,19 @@ ok('the edit and the reply both stand', out[0].text === 'new' && ids(out[0].repl
 // 4. both sides add a note at once
 out = mergeStoreValues([], [n('a1', 'mine')], [n('s1', 'theirs')]);
 ok('two new notes from two screens - both kept', ids(out).split(',').sort().join(',') === 'a1,s1', out);
-// 5. TWO QUICK EDITS (review of #524): stroke s2 is saved while s1's save is still
-// out; the server read for s2 does not have s1 yet. The base must be what the
-// server CONFIRMED ([]), not the screen's optimistic copy ([s1]).
-const s1 = { t: 1.2, path: 'M0 0L1 1' }, s2 = { t: 1.2, path: 'M2 2L3 3' };
+// 5. TWO QUICK EDITS (two reviews of #524). Side by side, stroke s2's server read
+// could miss s1 still in flight: base [s1] (the screen), server [] -> s1 dropped.
+// The writes are now one at a time per workout, so s2 reads AFTER s1 landed.
+const s1 = { t: 1.2, path: 'M0 0L1 1' }, s2 = { t: 1.2, path: 'M2 2L3 3' }, R = { t: 3.0, path: 'reply' };
 out = mergeStoreValues([s1], [s1, s2], []);
-ok('BREAK PROOF: the old base (optimistic [s1]) drops s1', JSON.stringify(out) === JSON.stringify([s2]), out);
-out = mergeStoreValues([], [s1, s2], []);
-ok('the confirmed base keeps both strokes', out.length === 2, out);
-// ...and when s1's save lands first, the serialized second write reads it back
+ok('BREAK PROOF: side by side (server read before s1 landed) drops s1', JSON.stringify(out) === JSON.stringify([s2]), out);
 out = mergeStoreValues([s1], [s1, s2], [s1]);
-ok('serialized: s1 confirmed, then s2 - both kept, no duplicate', out.length === 2, out);
-// 6. A SAVE QUEUED BEFORE THIS SCREEN LOADED (offline edit, reload): the screen's
-// own save folds into it instead of replacing it - mine onto the queued value,
-// base = what this screen loaded from the server.
-const serverAtLoad = { a: 1, b: 1 }, queuedValue = { a: 2, b: 1 }, screenValue = { a: 1, b: 3 };
-out = mergeStoreValues(serverAtLoad, screenValue, queuedValue);
-ok("the earlier offline edit (a=2) and this screen’s edit (b=3) both survive", out.a === 2 && out.b === 3, out);
+ok('one at a time: s2 reads after s1 landed - both kept, no duplicate', out.length === 2, out);
+// the athlete's reply R reached the server after the coach opened the clip: each
+// write's base is what THAT edit was built on (the screen, without R), so R stays
+out = mergeStoreValues([s1], [s1, s2], [s1, R]);
+ok("the athlete's reply that arrived meanwhile survives the second stroke", out.length === 3 && out.some((x) => x.path === 'reply'), out);
+out = mergeStoreValues([s1, R], [s1, s2], [s1, R]);
+ok('BREAK PROOF: a base that holds R (the server copy) deletes R', !out.some((x) => x.path === 'reply'), out);
 console.log(`NOTES MERGE: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

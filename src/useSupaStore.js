@@ -567,35 +567,12 @@ export function useSupaStore(key, initial) {
   const baseRef = useRef({ known: false, at: undefined, val: undefined });
   // QUEUED SAVES THIS SCREEN OWNS (4.10 review of #524). A save queued before
   // this screen loaded (an offline edit, then a reload) is NOT in the screen -
-  // the load shows the server value. So a successful direct save may only drop
-  // the queue entries this screen created, and a save this screen queues must
-  // fold into an older queued one instead of replacing it (the queue keeps one
-  // entry per key) - either way the earlier edit was lost.
+  // the load shows the server value. So a successful direct save drops only the
+  // queue entries THIS screen created; an older one replays and merges.
   const myQueuedRef = useRef(new Set());
-  const foreignQueuedRef = useRef(new Set());
   const queueMine = (v, b) => {
-    let value = v, baseAt = b.known ? b.at : undefined, baseVal = queueBase(b.val), carriesForeign = false;
-    try {
-      const prior = getEntries().find((q) => q.type === 'store.upsert' && q.dedupeKey === key);
-      if (prior && prior.payload && (!myQueuedRef.current.has(prior.id) || foreignQueuedRef.current.has(prior.id))) {
-        carriesForeign = true;
-        const P = prior.payload;
-        if (b.known && P.baseVal !== undefined) {
-          // rebase the earlier edit onto what this screen loaded, then put this
-          // screen's edit on top - one entry, on this screen's base
-          value = mergeStoreValues(b.val, v, mergeStoreValues(P.baseVal, P.value, b.val));
-        } else {
-          const foldBase = b.known ? b.val : P.baseVal;
-          if (foldBase !== undefined) value = mergeStoreValues(foldBase, v, P.value);
-          baseAt = P.baseAt; baseVal = P.baseVal;
-        }
-      }
-    } catch { /* the queue is best effort */ }
-    const r = enqueueEntry({ type: 'store.upsert', payload: { key, value, baseAt, baseVal }, dedupeKey: key, critical: true });
+    const r = enqueueEntry({ type: 'store.upsert', payload: { key, value: v, baseAt: b.known ? b.at : undefined, baseVal: queueBase(b.val) }, dedupeKey: key, critical: true });
     myQueuedRef.current.add(r.id);
-    // an entry carrying an edit this screen never had is never "already on screen":
-    // a direct save must not drop it (it replays and merges instead)
-    if (carriesForeign) foreignQueuedRef.current.add(r.id);
     return r.durable;
   };
   const saveGenRef = useRef(0);
@@ -816,7 +793,7 @@ export function useSupaStore(key, initial) {
           // its stale leaves ("mine wins") - x=1 came back over x=2, a deleted row
           // returned. Only entries THIS screen queued, BEFORE this write started, are
           // dropped - one queued before the screen loaded is not in it (it replays).
-          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && myQueuedRef.current.has(q.id) && !foreignQueuedRef.current.has(q.id) && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
+          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && myQueuedRef.current.has(q.id) && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
           baseRef.current = { known: true, at: r.at, val: r.val };
           persistBase(key, r.at, r.val);
           if (r.val !== toWrite && !deepEqual(r.val, toWrite)) {
@@ -1183,20 +1160,18 @@ export function useSupaClientWorkouts(initial = []) {
   // timestamped-comment feature and the client's reply-to-comment flow.
   // Optimistic: updates local state first, then writes to Supabase. Errors
   // surface via emitSaveError and get shown in the save-error toast.
-  // TWO QUICK NOTE EDITS MUST NOT ERASE EACH OTHER (4.10 review of #524): the
-  // base used to be this screen's optimistic copy, so a second stroke drawn
-  // while the first was still saving counted the first as "already saved"; a
-  // server read without it then looked like a deletion and the merge dropped
-  // it. Now: one write per workout at a time, and while one is in flight the
-  // next one's base is what the server CONFIRMED last, not the screen's guess.
-  const fvConfirmedRef = useRef(new Map());
+  // TWO QUICK NOTE EDITS MUST NOT ERASE EACH OTHER (4.10, two reviews of #524):
+  // the writes ran side by side, so a second stroke's server read could miss the
+  // first stroke still in flight, and the merge read that as a deletion. Now one
+  // write per workout at a time: each reads the server AFTER the previous one
+  // landed, with the base it was built on (the screen at that edit). A write that
+  // finishes while a later edit waits does not replace the screen (it would hide
+  // that stroke); the last one in the line reconciles.
   const fvBusyRef = useRef(new Map());
   const fvChainRef = useRef(new Map());
   const updateFormVideos = useCallback(async (id, formVideos) => {
     // the slots as this screen had them before this edit
-    const callBase = ((dataRef.current.find((w) => w.id === id) || {}).formVideos) || undefined;
-    // nothing in flight for this workout: the screen IS the confirmed state
-    if (!(fvBusyRef.current.get(id) > 0)) fvConfirmedRef.current.set(id, callBase);
+    const baseFormVideos = ((dataRef.current.find((w) => w.id === id) || {}).formVideos) || undefined;
     fvBusyRef.current.set(id, (fvBusyRef.current.get(id) || 0) + 1);
     // Optimistic local update for immediate UI.
     const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
@@ -1205,7 +1180,6 @@ export function useSupaClientWorkouts(initial = []) {
     dataRef.current = next;
     try { lsSnapshotRecent('expo-cw', next); } catch {}
     const run = async () => {
-    const baseFormVideos = fvConfirmedRef.current.get(id);
     try {
       // Server-authoritative READ-MODIFY-WRITE (audit CRITICAL). The coach's
       // clientWorkouts snapshot is frozen at page-load and never refreshes from
@@ -1234,7 +1208,6 @@ export function useSupaClientWorkouts(initial = []) {
       }
       const { error } = await withTimeout(() => supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id));
       if (error) throw error;
-      fvConfirmedRef.current.set(id, merged);
       // A LATER EDIT IS WAITING: the screen already shows it (optimistic) and
       // this result does not have it - replacing the screen here hid that stroke
       // and the next edit, built from the screen, then deleted it on the server
