@@ -15,14 +15,14 @@
 // scripts/verify-pose-overlay.mjs); pose bootstrap in usePose.js. This file is
 // capture + presentation. Measures + reports only — no load recommendations.
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, CTRL_H } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import {
   analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps,
   barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, buildPoseReport,
-  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, smoothFramesForDisplay, frameAt,
+  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, stabilizeWorldFrames, frameAt,
 } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift, getLastPoseEntryBefore, saveJumpMetric, getLastJumpBefore } from './poseMetricsStore';
@@ -190,7 +190,18 @@ async function measureVideoFps(v) {
 export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null } = {}) {
   let lm, v;
   try {
-    lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
+    // THE HEAVY MODEL ON A DESKTOP (5.10 #558, measured on a real squat clip,
+    // audit-out/_pose-score.mjs): frame-to-frame jitter 22 -> 7 mm/frame^2 and
+    // limb-length spread 7.4% -> 4.2% against 'full', for ~3x the time - the
+    // coach reviews at a desk and waits for a clip once. A phone (coarse pointer
+    // or < 8 cores) keeps 'full'; localStorage 'expo-pose-quality' overrides;
+    // a heavy model that fails to load falls back to full.
+    const wantHeavy = (() => {
+      try { const o = localStorage.getItem('expo-pose-quality'); if (o === 'heavy' || o === 'full') return o === 'heavy'; } catch { /* private mode */ }
+      try { return !window.matchMedia('(pointer: coarse)').matches && (navigator.hardwareConcurrency || 0) >= 8; } catch { return false; }
+    })();
+    try { lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: wantHeavy ? 'heavy' : 'full', numPoses: 5 }); }
+    catch (e) { if (!wantHeavy) throw e; lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 }); }
     v = document.createElement('video');
     if (crossOrigin) v.crossOrigin = 'anonymous';
     v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
@@ -476,7 +487,7 @@ export default function MovementLab({
   // One place turns captured frames into a result, for every capture path.
   const finishFrames = useCallback((frames) => {
     framesRef.current = frames;
-    setDisplayFrames(smoothFramesForDisplay(frames));
+    setDisplayFrames(stabilizeWorldFrames(frames, { plantFeet: false }));   // L/R continuity + steady limbs for the overlay too (5.10 #558); the 2D overlay keeps its image position
     if (mode === 'jump') {
       const j = computeJump(frames, jumpKind);
       setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
@@ -772,7 +783,7 @@ export default function MovementLab({
           <>
             {!romSpec && (
               <Section title={tt('3D SKELETON')}>
-                <Viewer3D frames={framesRef.current} playheadT={playheadRel} />
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} />
               </Section>
             )}
             <Section title={tt('JOINT ANGLES')}>
@@ -909,7 +920,9 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
     { k: 'threeD', label: '3D', on: true },
   ];
   const tabs = view === '3d' ? allTabs.filter(t => t.k === 'threeD')
-    : view === 'metrics' ? allTabs.filter(t => t.k !== 'threeD')
+    // the Review player's metrics keep the 3D tab too (5.10 #556): "a rotatable 3D replay of ANY clip" -
+    // the frames are already captured for the metrics, so it costs nothing more
+    : view === 'metrics' ? allTabs
       : allTabs;
   const neutral = movement === null || result.counted === false;
   return (
@@ -1102,7 +1115,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <Viewer3D frames={frames} playheadT={playheadT} />}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} />}
     </div>
   );
 }
@@ -2288,11 +2301,28 @@ function drawScene3D(canvas, scene) {
   }
 }
 
+// THE ROTATABLE 3D REPLAY (5.10 #556, idea #23): a lit body you can orbit, on
+// the stable skeleton (#558), with front/side/top/behind views, slow motion,
+// the hand and hip paths and true 3D joint angles. three.js is ~600KB, so it
+// loads only when a 3D view opens; until then - and on a device with no WebGL -
+// the light canvas Viewer3D below shows the same skeleton.
+const Replay3D = React.lazy(() => import('./Replay3D'));
+function ThreeDPanel({ frames, playheadT = null }) {
+  const [fallback, setFallback] = useState(false);
+  if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
+  return (
+    <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
+      <Replay3D frames={frames} playheadT={playheadT} onUnsupported={() => setFallback(true)} />
+    </Suspense>
+  );
+}
+
 const PRESET_DEFAULT = { yaw: 0.5, pitch: -0.05 };
 function Viewer3D({ frames, playheadT = null }) {
   const tt = useT();
   const canvasRef = useRef(null);
-  const poseFrames = useMemo(() => smoothFramesForDisplay((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
+  // the stable skeleton (5.10 #558): L/R continuity, one length per bone, feet on the floor
+  const poseFrames = useMemo(() => stabilizeWorldFrames((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
   const maxR = useMemo(() => computeFit(poseFrames), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);

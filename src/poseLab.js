@@ -1420,6 +1420,114 @@ export function smoothFramesForDisplay(frames) {
     worldLandmarks: f.worldLandmarks ? wld.smooth(withVis(f.worldLandmarks, f.landmarks), f.t) : null,
   }));
 }
+// ---------------------------------------------------------------------------
+// A STABLE 3D SKELETON (5.10 #558, Ohad: the 3D geometry "really works shitty.
+// Like 2/10"). MediaPipe estimates every frame's world skeleton on its own, so
+// across a clip (measured on two real athlete clips, audit-out/_pose-score.mjs):
+// limbs change length frame to frame (a shin 10-20% longer, then shorter), the
+// left and right sides trade labels for a frame when the body is side-on, and
+// the depth axis jumps. A person's bones do not change length. So, for DISPLAY:
+//   1. left/right continuity - when swapping every L/R label fits the previous
+//      frame far better than keeping them, the frame's labels were flipped:
+//      swap them back (both the image and the world landmarks, so they agree);
+//   2. one length per bone - the median over the frames where both ends are
+//      confident; each limb is rebuilt from the torso outward along its measured
+//      DIRECTION at that length, so a joint can bend but never stretch.
+// Angles from the analysis keep reading the raw landmarks; this feeds the
+// overlay and the 3D replay. Pure - node-tested by scripts/verify-pose-stable.mjs.
+// ---------------------------------------------------------------------------
+const LR_PAIRS = [[1, 4], [2, 5], [3, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16], [17, 18], [19, 20], [21, 22], [23, 24], [25, 26], [27, 28], [29, 30], [31, 32]];
+const LR_TEST = [[11, 12], [13, 14], [15, 16], [23, 24], [25, 26], [27, 28]];
+// parent -> child, torso outward (the torso itself is kept as measured)
+const LIMB_TREE = [[11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [27, 29], [27, 31], [24, 26], [26, 28], [28, 30], [28, 32]];
+const swapLR = (arr) => {
+  if (!arr) return arr;
+  const out = arr.slice();
+  for (const [l, r] of LR_PAIRS) { out[l] = arr[r]; out[r] = arr[l]; }
+  return out;
+};
+const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true } = {}) {
+  if (!frames || !frames.length) return [];
+  const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
+  // world points carry no visibility in every build - borrow the image landmark's
+  const withVis = (w, l) => (w && l ? w.map((p, i) => (p && p.visibility == null && l[i] && l[i].visibility != null ? { ...p, visibility: l[i].visibility } : p)) : w);
+  // 1. left/right continuity
+  const fixed = [];
+  let prev = null;
+  for (const f of frames) {
+    let lm = f.landmarks || null, wl = withVis(f.worldLandmarks || null, f.landmarks);
+    if (prev && wl) {
+      let keep = 0, swap = 0, used = 0;
+      for (const [l, r] of LR_TEST) {
+        const pl = prev[l], pr = prev[r], cl = wl[l], cr = wl[r];
+        if (!confident(pl) || !confident(pr) || !cl || !cr) continue;
+        keep += dist3(cl, pl) + dist3(cr, pr); swap += dist3(cl, pr) + dist3(cr, pl); used++;
+      }
+      if (used >= 3 && swap < keep * swapRatio) { wl = swapLR(wl); lm = swapLR(lm); }
+    }
+    if (wl) prev = wl;
+    fixed.push({ ...f, landmarks: lm, worldLandmarks: wl });
+  }
+  // smoothing next (One-Euro, the display smoother), so the bone rebuild below
+  // is the LAST step and no filter can stretch a limb again afterwards
+  const sm = smoothFramesForDisplay(fixed);
+  for (let i = 0; i < fixed.length; i++) fixed[i] = { ...fixed[i], landmarks: sm[i].landmarks, worldLandmarks: sm[i].worldLandmarks };
+  // 2. one length per bone (median over confident frames)
+  const lens = {};
+  for (const [a, b] of LIMB_TREE) {
+    const L = [];
+    for (const f of fixed) { const w = f.worldLandmarks; if (w && confident(w[a]) && confident(w[b])) L.push(dist3(w[a], w[b])); }
+    L.sort((x, y) => x - y);
+    lens[`${a}-${b}`] = L.length >= 5 ? L[L.length >> 1] : null;
+  }
+  const rebuilt = fixed.map((f) => {
+    const w = f.worldLandmarks;
+    if (!w) return f;
+    const out = w.slice();
+    for (const [a, b] of LIMB_TREE) {
+      const L = lens[`${a}-${b}`], pa = out[a], pb = w[b];
+      if (!L || !pa || !pb) continue;
+      const d = dist3(pb, pa);
+      if (!(d > 1e-6)) continue;
+      const k = L / d;
+      out[b] = { ...pb, x: pa.x + (pb.x - pa.x) * k, y: pa.y + (pb.y - pa.y) * k, z: (pa.z ?? 0) + ((pb.z ?? 0) - (pa.z ?? 0)) * k };
+    }
+    return { ...f, worldLandmarks: out };
+  });
+  if (!plantFeet) return rebuilt;
+  // 3. the feet stay on the floor. World landmarks are HIP-centred: in a squat
+  // the hips drop and travel back, so drawn from the hips the feet slid forward
+  // and floated up under a still pelvis. A lift is done standing on the floor:
+  // move each frame so the ankle midpoint keeps its median floor position (x/z)
+  // - the body moves over planted feet - and the lowest foot point sits at the
+  // floor height. Only when both ankles are confident; a frame without them is
+  // left where it was measured.
+  const ank = (w) => (w && confident(w[27]) && confident(w[28]) ? { x: (w[27].x + w[28].x) / 2, z: ((w[27].z ?? 0) + (w[28].z ?? 0)) / 2 } : null);
+  const footY = (w) => Math.max(...[27, 28, 29, 30, 31, 32].map((i) => (w[i] && isReal(w[i].y) ? w[i].y : -Infinity)));   // MediaPipe y is DOWN: the floor is the largest y
+  const A = rebuilt.map((f) => ank(f.worldLandmarks)).filter(Boolean);
+  if (A.length < 5) return rebuilt;
+  const med = (arr) => { const s2 = arr.slice().sort((x, y) => x - y); return s2[s2.length >> 1]; };
+  const ax = med(A.map((p) => p.x)), az = med(A.map((p) => p.z));
+  const floor = med(rebuilt.map((f) => (f.worldLandmarks ? footY(f.worldLandmarks) : null)).filter((v) => isReal(v)));
+  // the per-frame correction is itself smoothed (a centred 9-frame mean over the
+  // frames that have one): applied raw, the ankles' own frame-to-frame noise was
+  // copied onto the WHOLE body - measured on a real squat, jitter 7 -> 23 mm/frame^2
+  const off = rebuilt.map((f) => { const w = f.worldLandmarks; const a = ank(w); return a ? { x: ax - a.x, y: floor - footY(w), z: az - a.z } : null; });
+  const R = 4;
+  const sm2 = off.map((o, i) => {
+    if (!o) return null;
+    let n = 0, x = 0, y = 0, z = 0;
+    for (let k = Math.max(0, i - R); k <= Math.min(off.length - 1, i + R); k++) if (off[k]) { n++; x += off[k].x; y += off[k].y; z += off[k].z; }
+    return { x: x / n, y: y / n, z: z / n };
+  });
+  return rebuilt.map((f, i) => {
+    const w = f.worldLandmarks; const d = sm2[i];
+    if (!w || !d) return f;
+    return { ...f, worldLandmarks: w.map((p) => (p ? { ...p, x: p.x + d.x, y: p.y + d.y, z: (p.z ?? 0) + d.z } : p)) };
+  });
+}
+
 // Nearest captured frame to tMs (frames sorted by t). Returns null when the
 // closest one is further than maxGapMs — no pose there, so draw nothing rather
 // than freeze a stale skeleton over a moving body.
