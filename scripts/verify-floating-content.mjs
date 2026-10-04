@@ -70,7 +70,15 @@ function measureFloat() {
     // visible edge by design - its row is wider than the screen
     let pinned = false; for (let a = el; a && a !== row; a = a.parentElement) if (getComputedStyle(a).position === 'sticky') { pinned = true; break; }
     if (pinned) continue;
-    let nx = el.nextElementSibling; while (nx && !shown(nx)) nx = nx.nextElementSibling;
+    // the next thing may be one level up: climb the wrappers this box ends flush with
+    let host = el, nx = null;
+    for (;;) {
+      nx = host.nextElementSibling; while (nx && !shown(nx)) nx = nx.nextElementSibling;
+      if (nx || !host.parentElement || host.parentElement === row) break;
+      const pr = host.parentElement.getBoundingClientRect();
+      if (Math.abs((side === 'right' ? pr.right : pr.left) - (side === 'right' ? r.right : r.left)) > 2) break;
+      host = host.parentElement;
+    }
     if (nx) { const q = nx.getBoundingClientRect(); const gap = side === 'right' ? q.left - inkR : inkL - q.right; if (gap >= -1 && gap <= 16 && q.bottom > r.top && q.top < r.bottom) continue; }
     const chain = []; for (let a = el; a && chain.length < 7; a = a.parentElement) { const q = a.getBoundingClientRect(), qs = getComputedStyle(a); chain.push(`${a.tagName.toLowerCase()}.${(typeof a.className === 'string' ? a.className.split(' ')[0] : '')} end${Math.round(rtl ? q.left : q.right)} pad${parseFloat(rtl ? qs.paddingLeft : qs.paddingRight) || 0} w${Math.round(q.width)}${a === row ? ' =ROW' : ''}`); if (a === row) break; }
     out.push({ chain: chain.join(' > '), measured: 0, text: el.innerText.trim().replace(/\s+/g, ' ').slice(0, 30), empty: Math.round(empty), offEdge: Math.round(offEdge), cls: (el.className && typeof el.className === 'string' ? el.className.split(' ')[0] : el.tagName.toLowerCase()) });
