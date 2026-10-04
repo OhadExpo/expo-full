@@ -465,7 +465,6 @@ export const HE = {
   'back': 'חזר לפני',
   'days': 'ימים',
   'Landed': 'נחת',
-  'day': 'יום',   // the countdown's '1 day' read DAY in a Hebrew zone (#547)
   'this week': 'השבוע',
   'of his own pre-injury week': 'מהשבוע שלו לפני הפציעה',
   'guide': 'המלצה',
