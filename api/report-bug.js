@@ -113,7 +113,11 @@ export default async function handler(req, res) {
   };
 
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/bug_reports`, {
+    // the partner's seat files into HIS sandbox copy, the one his Bugs tab reads -
+    // never into the owner's triage queue (4.10 #542 audit). Same list as
+    // src/authRoles.js PARTNER_EMAILS.
+    const table = ['eladeluz24@gmail.com'].includes(verifiedEmail) ? 'sbx_bug_reports' : 'bug_reports';
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
       method: 'POST',
       headers: {
         'apikey': SUPA_PUBLISHABLE_KEY,

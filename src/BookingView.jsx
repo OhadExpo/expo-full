@@ -10,6 +10,7 @@
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { sandboxLink } from './sandboxLink';
 import { useT, useTB, tr, readLang } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
@@ -28,9 +29,11 @@ function fmtSlot(iso, duration) {
   } catch { return iso; }
 }
 
+// made in the partner's sandbox it says so (sbx=1): his copied settings carry the
+// owner's slug, and a stranger following it would book a real slot (4.10 #542)
 function bookingPublicUrl(slug) {
   if (typeof window === 'undefined') return '';
-  return `${window.location.origin}/book/${slug || 'YOUR-SLUG'}`;
+  return sandboxLink(`${window.location.origin}/book/${slug || 'YOUR-SLUG'}`);
 }
 
 // A SETTING A COACH CAN TYPE MUST NOT BE ABLE TO HANG A STRANGER'S BROWSER.
