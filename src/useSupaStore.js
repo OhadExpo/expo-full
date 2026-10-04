@@ -535,7 +535,9 @@ function readStoreOnMount(key) {
     const done = () => { if (mountReads.get(key) === p) mountReads.delete(key); };
     p.then(done, done);
   }
-  return p.then((res) => ({ data: res.data ? structuredClone(res.data) : res.data, error: res.error }));
+  // structuredClone is missing on iOS < 15.4 - a JSON copy there (store values are JSON)
+  const copy = (v) => (typeof structuredClone === 'function' ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
+  return p.then((res) => ({ data: res.data ? copy(res.data) : res.data, error: res.error }));
 }
 
 export function useSupaStore(key, initial) {
@@ -886,6 +888,8 @@ export function useSupaStore(key, initial) {
     // -------------------------------------------------------------------
 
     mutatedRef.current = true;
+    // a screen mounting from here on must not join a read from before this save
+    mountReads.delete(key);
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {

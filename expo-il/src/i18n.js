@@ -167,10 +167,11 @@ const STRINGS = {
   'inside.cmp.foot':     { en: 'ROM +6° · TEMPO MATCH', he: 'ROM עלה ב-6 מעלות · טמפו תואם' },
 
   // Footer line
-  // Counts the cards in WhatsInside — keep it in step when a card is added.
+  // Counts the cards in WhatsInside — keep it in step when a card is added or
+  // removed (it said 'four' for ten days after the shot card left, 24.9 -> 4.10).
   'inside.note': {
-    en: 'All four are included in every program — no separate add-on, no extra charge.',
-    he: 'כל הארבעה כלולים בכל תוכנית. בלי תוספת נפרדת, בלי תשלום נוסף.',
+    en: 'All three are included in every program — no separate add-on, no extra charge.',
+    he: 'כל השלושה כלולים בכל תוכנית. בלי תוספת נפרדת, בלי תשלום נוסף.',
   },
 
   // CTA from WhatsInside section to the public sandbox at expo-app.co.il/demo/trainee.
