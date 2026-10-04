@@ -4871,7 +4871,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
     if (w) el.style.setProperty('--pos-w', `${Math.ceil(w)}px`);
   });
   return (
-    <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
+    <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE} padX={14} /* the zone Card's 14: its title sat 4px in from every other card's (#547, measured 157 vs 153) */>
       <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
 
         <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
@@ -5063,7 +5063,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
       </div>
     );
     return (
-      <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
+      <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action} padX={14}>
         <div className={`hl-rows ${settle}`} style={{ display: 'grid' }}>
           {rows.map(({ t, acwr, att }) => {
             const inj = worstInjury(medical, t.id);
@@ -5093,7 +5093,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     );
   }
   return (
-    <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
+    <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action} padX={14}>
       {/* 264, not 232 (29.9 #380): a card's footer - height · nation · PPG ...
           sessions · hours - needs ~260px; at 820 three 240px cards clipped
           "23 SESSIONS · 5H" by 20px. 264 gives two columns there, three from
@@ -5623,7 +5623,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   return (
     // ONE ROW (26.9): the counts are a caption beside the title, not part of
     // it — appended to the title they wrapped it to two lines at 390.
-    <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}
+    <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE} padX={14}
       right={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' }}>{he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`}</span>{action}</span>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" aria-label={tr('Previous week')} style={navArrow(false)}>{he ? '›' : '‹'}</button>
