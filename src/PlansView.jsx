@@ -4698,8 +4698,6 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
              the whole first line and the meta always takes the second. Every
              strip 82.8px, every ANALYSIS button on the same y. */
           .prog-striphdr > :first-child{ flex: 1 1 100%; }
-          /* wrapped under the name, the status follows ANALYSIS like any word (4.10 #550) */
-          .prog-striphdr .prog-recency{ min-width: 0 !important; }
           /* ...and the name line gets an explicit line-height, or the two
              scripts disagree: with the metrics left to the font, a Hebrew name
              produced a 78px strip and a Latin one 82.8. Same rule as his
@@ -4859,15 +4857,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const isVis = vk ? portalVis?.[vk] !== false : null;
             return (
               <div key={row.tid} style={{ borderTop: top, gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid' }}>
-                <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
+                <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; /* Enter on the +N chip or the switch is THEIRS (it opened the plan) */ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
                   style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', columnGap: 14, rowGap: 5, alignItems: 'center', minHeight: 56, paddingBlock: 10, paddingInlineStart: 12, paddingInlineEnd: 4, boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
                   {/* the whole name, always: a word is never cut (his rule) - a long one takes a second line */}
                   <span style={{ gridColumn: 1, gridRow: 1, display: 'block', minWidth: 0, minHeight: 18, lineHeight: '18px' }}>
                     <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi>
                     {/* inline after the LAST word: in a flex row it sat at the far end once a long name wrapped */}
-                    <span style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
+                    <span className="prog-badge-slot" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                   </span>
-                  <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull))} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
+                  <span title={row.daysSince == null ? (he ? 'עוד לא רשם אימון' : 'No session logged yet') : tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull).toLowerCase())} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                   </span>
                   <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>

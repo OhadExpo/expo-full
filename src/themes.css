@@ -2288,3 +2288,9 @@ select.avail-select:dir(rtl) {
   .bhbc-team-sum > :nth-child(odd) { border-inline-start: none; }
   .bhbc-team-sum > :nth-child(n+3) { border-top: 1px solid var(--c-cardBd); }
 }
+
+/* PROGRAMS (4.10 #550/#551): a card strip that WRAPS on a phone puts the status
+   right after ANALYSIS (no reserved box), real and demo alike; an athlete without
+   a club badge has no empty badge slot to push a blank second line */
+@media (max-width: 620px) { .prog-striphdr .prog-recency { min-width: 0 !important; } }
+.prog-badge-slot:empty { display: none; }

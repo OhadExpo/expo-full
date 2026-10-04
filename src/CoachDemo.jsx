@@ -2646,7 +2646,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     const vis = portalVis['pv_' + cur.id] !== false;
                     const heL = readLang() === 'he';
                     return (
-                      <div key={row.tid} role="button" tabIndex={0} onClick={() => setSelectedProgramId(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedProgramId(cur.id); } }}
+                      <div key={row.tid} role="button" tabIndex={0} onClick={() => setSelectedProgramId(cur.id)} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedProgramId(cur.id); } }}
                         style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', columnGap: 14, rowGap: 5, alignItems: 'center', minHeight: 56, paddingBlock: 10, paddingInlineStart: 12, paddingInlineEnd: 4, boxSizing: 'border-box', cursor: 'pointer', borderTop: ri === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
                         <span style={{ gridColumn: 1, gridRow: 1, display: 'flex', alignItems: 'center', minWidth: 0, minHeight: 18 }}><bdi style={{ fontWeight: 700, fontSize: 14, lineHeight: '18px', color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>{row.name}</bdi></span>
                         <span style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
