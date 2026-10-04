@@ -300,3 +300,49 @@ export function hasVault(clientId) {
   const c = readAll()[clientId];
   return !!c && Object.keys(c).length > 0;
 }
+
+// "VS LAST TIME" (4.10 #530, Ohad: "the tools in expo can be 10x better"): the
+// most recent saved set of this lift for this athlete on an EARLIER day than
+// `date` - what a coach compares today's film against. null = nothing earlier.
+export function getLastPoseEntryBefore(clientId, exercise, date) {
+  if (!clientId || !exercise) return null;
+  const lift = (readAll()[clientId] || {})[exKey(exercise)];
+  if (!lift || !Array.isArray(lift.entries)) return null;
+  const d0 = String(date || new Date().toISOString()).slice(0, 10);
+  const prior = lift.entries.filter((e) => String(e.date || '').slice(0, 10) < d0);
+  return prior.length ? prior[prior.length - 1] : null;
+}
+
+// THE JUMP TREND (4.10 #530): jumps had no trend at all - a height or an RSI was
+// read and forgotten. Same rules as the Bar-Speed Vault: this device only, never
+// athlete-visible, one entry per clip per day.
+const JUMP_KEY = 'expo-jump-metrics';
+function readJumps() { try { return JSON.parse(localStorage.getItem(JUMP_KEY) || '{}') || {}; } catch { return {}; } }
+export function saveJumpMetric({ clientId, jumpType, date, jump, clipKey }) {
+  if (!clientId || !jump) return null;
+  const entry = {
+    date: date || new Date().toISOString(),
+    heightCm: typeof jump.heightCm === 'number' ? jump.heightCm : null,
+    rsi: typeof jump.rsi === 'number' ? jump.rsi : null,
+    contactMs: typeof jump.contactMs === 'number' ? jump.contactMs : null,
+    distanceCm: typeof jump.distanceCm === 'number' ? jump.distanceCm : null,
+    clip: clipKey || null,
+  };
+  if (entry.heightCm == null && entry.rsi == null && entry.distanceCm == null) return null;
+  const all = readJumps();
+  const k = jumpType || 'jump';
+  const list = ((all[clientId] || (all[clientId] = {}))[k] || (all[clientId][k] = []));
+  const d0 = entry.date.slice(0, 10);
+  const kept = list.filter((e) => String(e.date || '').slice(0, 10) !== d0 || (entry.clip && e.clip !== entry.clip));
+  kept.push(entry);
+  kept.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  all[clientId][k] = kept.slice(-60);
+  try { localStorage.setItem(JUMP_KEY, JSON.stringify(all)); return entry; } catch { return null; }
+}
+export function getLastJumpBefore(clientId, jumpType, date) {
+  if (!clientId) return null;
+  const list = (readJumps()[clientId] || {})[jumpType || 'jump'] || [];
+  const d0 = String(date || new Date().toISOString()).slice(0, 10);
+  const prior = list.filter((e) => String(e.date || '').slice(0, 10) < d0);
+  return prior.length ? prior[prior.length - 1] : null;
+}

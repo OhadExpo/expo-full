@@ -45,6 +45,7 @@ const NEVER_EVICT = new Set([
   'expo-shot-analyses',    // 50 analyses with their checkpoints - the biggest key here
   'expo-sensor-readings',  // lab readings filed against an athlete
   'expo-pose-metrics',     // the Bar-Speed Vault: his velocity/ROM trends, local BY DESIGN
+  'expo-jump-metrics',     // the jump trend (#530): same rules as the vault
   'expo-offline-queue',    // WRITES THAT HAVE NOT REACHED THE SERVER YET. Evicting this
                            // does not lose a cache, it loses what someone typed offline.
   'expo-lead-notes',       // notes he typed on a lead

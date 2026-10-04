@@ -2250,3 +2250,6 @@ select.avail-select:dir(rtl) {
   .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
   .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 76px 92px !important; }
 }
+
+/* #530 analysis note composer: its cyan frame is the focus cue - the global ring spilled past it */
+.analysis-note-text:focus, .analysis-note-text:focus-visible { outline: none !important; box-shadow: none !important; }
