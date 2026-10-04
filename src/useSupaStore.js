@@ -572,18 +572,30 @@ export function useSupaStore(key, initial) {
   // fold into an older queued one instead of replacing it (the queue keeps one
   // entry per key) - either way the earlier edit was lost.
   const myQueuedRef = useRef(new Set());
+  const foreignQueuedRef = useRef(new Set());
   const queueMine = (v, b) => {
-    let value = v, baseAt = b.known ? b.at : undefined, baseVal = queueBase(b.val);
+    let value = v, baseAt = b.known ? b.at : undefined, baseVal = queueBase(b.val), carriesForeign = false;
     try {
       const prior = getEntries().find((q) => q.type === 'store.upsert' && q.dedupeKey === key);
-      if (prior && prior.payload && !myQueuedRef.current.has(prior.id)) {
-        const foldBase = b.known ? b.val : prior.payload.baseVal;
-        if (foldBase !== undefined) value = mergeStoreValues(foldBase, v, prior.payload.value);
-        baseAt = prior.payload.baseAt; baseVal = prior.payload.baseVal;
+      if (prior && prior.payload && (!myQueuedRef.current.has(prior.id) || foreignQueuedRef.current.has(prior.id))) {
+        carriesForeign = true;
+        const P = prior.payload;
+        if (b.known && P.baseVal !== undefined) {
+          // rebase the earlier edit onto what this screen loaded, then put this
+          // screen's edit on top - one entry, on this screen's base
+          value = mergeStoreValues(b.val, v, mergeStoreValues(P.baseVal, P.value, b.val));
+        } else {
+          const foldBase = b.known ? b.val : P.baseVal;
+          if (foldBase !== undefined) value = mergeStoreValues(foldBase, v, P.value);
+          baseAt = P.baseAt; baseVal = P.baseVal;
+        }
       }
     } catch { /* the queue is best effort */ }
     const r = enqueueEntry({ type: 'store.upsert', payload: { key, value, baseAt, baseVal }, dedupeKey: key, critical: true });
     myQueuedRef.current.add(r.id);
+    // an entry carrying an edit this screen never had is never "already on screen":
+    // a direct save must not drop it (it replays and merges instead)
+    if (carriesForeign) foreignQueuedRef.current.add(r.id);
     return r.durable;
   };
   const saveGenRef = useRef(0);
@@ -804,7 +816,7 @@ export function useSupaStore(key, initial) {
           // its stale leaves ("mine wins") - x=1 came back over x=2, a deleted row
           // returned. Only entries THIS screen queued, BEFORE this write started, are
           // dropped - one queued before the screen loaded is not in it (it replays).
-          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && myQueuedRef.current.has(q.id) && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
+          try { getEntries().filter((q) => q.type === 'store.upsert' && q.dedupeKey === key && myQueuedRef.current.has(q.id) && !foreignQueuedRef.current.has(q.id) && (q.createdAt || 0) < startedAt).forEach((q) => removeEntry(q.id)); } catch { /* the queue is best effort */ }
           baseRef.current = { known: true, at: r.at, val: r.val };
           persistBase(key, r.at, r.val);
           if (r.val !== toWrite && !deepEqual(r.val, toWrite)) {
@@ -1202,8 +1214,10 @@ export function useSupaClientWorkouts(initial = []) {
       // the blobQueue.attachUrl per-slot fix). Re-read the row and keep the
       // SERVER's upload/media fields per slot (cloudUrl / pendingBlobId / has /
       // uploadFailed / fileName …), applying only the local reviewNotes.
-      const { data: row, error: readErr } = await supabase
-        .from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
+      // timed: these writes run one at a time per workout, so a request that
+      // never answers must not hold every later note behind it (review of ae569e50)
+      const { data: row, error: readErr } = await withTimeout(() => supabase
+        .from('client_workouts').select('form_videos').eq('id', id).maybeSingle());
       if (readErr) throw readErr;
       const serverFv = Array.isArray(row?.form_videos) ? row.form_videos : [];
       const inc = Array.isArray(formVideos) ? formVideos : [];
@@ -1218,9 +1232,14 @@ export function useSupaClientWorkouts(initial = []) {
         if (s && c) merged.push({ ...s, reviewNotes: mergeSlotNotes(b ? (b.reviewNotes || []) : undefined, c.reviewNotes, s.reviewNotes) });
         else merged.push(s || c);
       }
-      const { error } = await supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id);
+      const { error } = await withTimeout(() => supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id));
       if (error) throw error;
       fvConfirmedRef.current.set(id, merged);
+      // A LATER EDIT IS WAITING: the screen already shows it (optimistic) and
+      // this result does not have it - replacing the screen here hid that stroke
+      // and the next edit, built from the screen, then deleted it on the server
+      // (review of ae569e50). The last write in the line reconciles.
+      if ((fvBusyRef.current.get(id) || 0) > 1) return;
       // Reconcile local state to the merged truth (may now include an athlete
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
