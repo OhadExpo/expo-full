@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'rea
 import { useT, tr, readLang } from './i18n';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
-import { RefinedHeaderStrip, SectionLabel } from './ui';
+import { RefinedHeaderStrip, SectionLabel, ChipGrid } from './ui';
 import { FormVideoPlayer } from './WorkoutReview';
 import ErrorBoundary from './ErrorBoundary';
 import { useAthletePlans } from './usePlansStore';
@@ -409,15 +409,9 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
               <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')}</label>
               <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('The name it was logged under. The movement is picked inside the tool.')}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                {QUICK_LIFTS.map(l => {
-                  const on = title.trim().toLowerCase() === l.toLowerCase();
-                  return (
-                    <button key={l} onClick={() => setTitle(l)} type="button"
-                      style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
-                  );
-                })}
-              </div>
+              {/* six lifts, equal cells, 3 to a desktop row of this 300px column (5.10 #574) */}
+              <ChipGrid ariaLabel={tt('Lift being analysed')} value={title.trim().toLowerCase()} onChange={(k) => setTitle(QUICK_LIFTS.find(l => l.toLowerCase() === k))} cols={3} phoneCols={2} style={{ marginBottom: 10 }}
+                items={QUICK_LIFTS.map(l => ({ k: l.toLowerCase(), label: l }))} />
               <input value={title} onChange={e => setTitle(e.target.value)} placeholder={tt('…or type any lift')}
                 style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
             </div>

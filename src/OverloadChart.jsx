@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB } from './theme';
 import { useT, tr, readLang } from './i18n';
+import { ChipGrid } from './ui';
 
 // Progressive Overload — one searchable/sortable table of every lift the
 // athlete has logged loads on. Each row collapses to a one-line trend summary;
@@ -246,19 +247,11 @@ export default function OverloadChart({ workouts, exercises }) {
   const setSortKey = (key) => setSort(s => s.key === key ? { key, dir: -s.dir } : { key, dir: key === 'name' ? 1 : -1 });
   const arrow = (key) => sort.key === key ? (sort.dir < 0 ? ' ↓' : ' ↑') : '';
 
-  const chip = (key, label) => {
-    const on = trendFilter === key;
-    const col = key === 'all' ? C.ac : TREND_COLOR[key];
-    return (
-      <button onClick={() => setTrendFilter(key)} style={{
-        background: 'var(--c-sf)', border: `${on ? '1px' : '0.25px'} solid ${on ? col : C.cardBd}`,
-        // Same box height as the search input in the same row (Ohad: "search box
-        // must not be bigger than the ALL box"). height + border-box → exactly equal.
-        borderRadius: 0, height: 30, boxSizing: 'border-box', padding: '0 10px', color: on ? col : C.tm, cursor: 'pointer',
-        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', whiteSpace: 'nowrap',
-      }}>{label} {counts[key]}</button>
-    );
-  };
+  // ALL / ↑ / → / ↓ with their counts in one equal-cell grid, the trend colour
+  // as the active fill (5.10 #574). Same box height as the search input in the
+  // same row (Ohad: "search box must not be bigger than the ALL box") - both
+  // stand at --btn-h now. CoachDemo's DemoOverload mirrors this row.
+  const trendItems = [['all', tt('ALL')], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([key, label]) => ({ k: key, label, n: counts[key], color: key === 'all' ? undefined : TREND_COLOR[key] }));
 
   const th = (key, label, align = 'start', cls) => (
     <th className={cls} onClick={() => setSortKey(key)} style={{
@@ -273,10 +266,8 @@ export default function OverloadChart({ workouts, exercises }) {
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder={tt('search exercise')}
-          style={{ flex: '1 1 200px', minWidth: 160, height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
-        <div style={{ display: 'flex', gap: 5 }}>
-          {chip('all', tt('ALL'))}{chip('up', '↑')}{chip('flat', '→')}{chip('down', '↓')}
-        </div>
+          style={{ flex: '1 1 200px', minWidth: 160, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
+        <ChipGrid ariaLabel={tt('ALL')} value={trendFilter} onChange={setTrendFilter} items={trendItems} style={{ flex: '1 1 auto' }} />
       </div>
 
       {/* On a phone (29.9 #444) the table was 480px wide in a 330px card: it

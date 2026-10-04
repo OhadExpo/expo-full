@@ -11,7 +11,7 @@ import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { useT } from './i18n';
-import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog } from './ui';
+import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog, ChipGrid } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 import { todayLocalISO } from './dates';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
@@ -49,14 +49,10 @@ function TestButtons({ test, onTest }) {
   };
   if (soon) return <div style={{ marginTop: 5 }}><span style={base}>{tt('◉ TEST · soon')}</span></div>;
   const sides = map.side ? ['L', 'R'] : [null];
+  // L / R as two equal cells (5.10 #574); an action, so nothing is "active" and the cyan stays
   return (
-    <div style={{ marginTop: 5, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {sides.map(s => (
-        <button key={s || 'x'} type="button" onClick={() => onTest(test, map, s)} style={base}>
-          {tt('◉ TEST')}{s ? ` · ${s}` : ''}
-        </button>
-      ))}
-    </div>
+    <ChipGrid value={null} style={{ marginTop: 5 }}
+      items={sides.map(s => ({ k: s || 'x', label: `${tt('◉ TEST')}${s ? ` · ${s}` : ''}`, tone: 'var(--c-ac)', onClick: () => onTest(test, map, s) }))} />
   );
 }
 

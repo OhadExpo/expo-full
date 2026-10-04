@@ -1750,6 +1750,8 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 620px) {
   .bhbc-hist-chips { grid-template-columns: repeat(var(--hc-phone, 2), minmax(0, 1fr)) !important; }
   .bhbc-hist-chips[data-allspan] > :first-child { grid-column: 1 / -1; }
+  /* a history entry's edit form on a phone: date + minutes, then Save + Cancel under them (5.10 #576) */
+  .bhbc-edit-form { grid-template-columns: minmax(0, 1fr) 88px !important; }
 }
 
 /* BHBC player stats: a real table at every width, the name column pinned (27.9) */
@@ -1817,6 +1819,22 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .hl-grid > * { border-top: 1px solid var(--c-cardBd) !important; border-inline-start: 1px solid var(--c-cardBd) !important; margin-top: -1px; margin-inline-start: -1px; }
 .hl-rows { gap: 0 !important; }
 .hl-rows > * + * { border-top: 1px solid var(--c-cardBd); }
+
+/* ONE CHIP GRID (5.10 #574, ui.jsx ChipGrid): the EXPO twin of the BHBC
+   history filter above. Desktop keeps the caller's columns; with a count one
+   short of full rows the first chip spans the first row. On a phone the grid
+   re-flows to 2 or 3 equal columns (--cg-phone) and the desktop span is
+   dropped first, so a 9-chip grid asked for 2 desktop columns does not keep
+   its spanning first cell over 3 phone columns. The inline background is
+   `transparent`, so the hover wash needs !important to land. */
+.chip-grid[data-deskspan] > :first-child { grid-column: 1 / -1; }
+.chip-grid > button:not([aria-pressed="true"]):not(:disabled):hover { background: color-mix(in srgb, currentColor 10%, transparent) !important; }
+@media (max-width: 620px) {
+  .chip-grid { grid-template-columns: repeat(var(--cg-phone, 2), minmax(0, 1fr)) !important; }
+  /* same specificity as the desktop span rule above, so the later one wins here */
+  .chip-grid[data-deskspan] > :first-child { grid-column: auto; }
+  .chip-grid[data-allspan] > :first-child { grid-column: 1 / -1; }
+}
 
 /* A trip leg on a phone: direction + when on one row, where on the row under
    it, starting under the date (27.9 #300). */
@@ -2062,18 +2080,8 @@ select.avail-select:dir(rtl) {
   .cal-sync-row > .cal-sync-msg { order: 3; flex-basis: 100%; }
 }
 
-/* FORM-VIDEO TOOLBAR when it is narrow (#358): the left group takes the first
-   line whole (the speeds as equal segments), the middle and right groups drop
-   to the next line in their own columns - the middle stays centred, the right
-   stays on the edge. By the BAR's width (.fv-bar is the container): a phone and
-   a desktop portrait clip (the bar capped to the video's 380) read the same. */
-@container (max-width: 500px) {
-  .fv-toolbar > .fv-left { grid-column: 1 / -1; }
-  .fv-toolbar > .fv-mid { grid-column: 2; }
-  .fv-toolbar > .fv-right { grid-column: 3; }
-  .fv-toolbar > .fv-speeds { width: 100%; }
-  .fv-toolbar > .fv-speeds > button { flex: 1 1 0; padding: 0 !important; }
-}
+/* the form-video toolbar's narrow-width rules went with the toolbar: the #563
+   control deck is equal cells at every width (5.10). */
 
 /* the athlete page's club log (#453): date | type | minutes | note on a wide screen;
    on a phone the note takes the whole second line, words never split */
@@ -2179,7 +2187,7 @@ select.avail-select:dir(rtl) {
    ~330px of a 250px chip. */
 .bhbc-cancel-btn .cx-icon { display: none; }
 @media (max-width: 480px) {
-  .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none; }
+  .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none !important; } /* !important: the kind span carries an inline display for its SegWord measure (5.10 #568) */
   .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn { width: var(--btn-h) !important; font-size: 13px !important; letter-spacing: 0 !important; }
   .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn .cx-full { display: none; }
   .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn .cx-icon { display: inline; }

@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn, ChipGrid } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -753,7 +753,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
           {athleteName ? <span className="pp-athlete"><bdi>{athleteName}</bdi></span> : null}
           <span>{days.length} {days.length === 1 ? 'day' : 'days'}</span>
           <span>{weeks} {weeks === 1 ? 'week' : 'weeks'}</span>
-          <span>{tt('Printed')}{printedOn}</span>
+          <span>{tt('Printed')} {printedOn}</span>
         </div>
       </header>
 
@@ -5092,9 +5092,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,lineHeight:'20px',color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   <div style={{flex:1}} />
                   {row.coupleMembers
-                    ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (
-                        <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ {String(m.name).toUpperCase()}</button>
-                      ))}</div>
+                    // one + NAME per member, equal cells, the orange of the orphan card (5.10 #574)
+                    ? <ChipGrid value={null} items={row.coupleMembers.map(m => ({ k: m.id, label: `+ ${String(m.name).toUpperCase()}`, tone: C.or, onClick: ()=>handleNewPlan(m.id) }))} />
                     : <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tb('+ ASSIGN PROGRAM')}</button>}
                 </div>
               );

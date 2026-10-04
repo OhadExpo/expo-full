@@ -29,7 +29,7 @@ import { localiseAutoBody } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn, ChipGrid } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase, isSandboxSeat } from './supabase';
@@ -873,25 +873,23 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           </div>
           {/* Row 2 — Urgency */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <span style={cmpGroup}>
+            <span style={{ ...cmpGroup, flex: '1 1 auto', minWidth: 0 }}>
               <span style={cmpLabel}>{tt('Urgency')}</span>
-              {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
-                <button key={id}
-                  onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
-                  title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`}
-                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 'var(--btn-h)', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
-              ))}
+              {/* equal cells, each urgency filled in its own colour when picked (5.10 #574);
+                  mousedown keeps the composer's focus, as before */}
+              <ChipGrid ariaLabel={tt('Urgency')} value={priority} style={{ flex: '1 1 auto' }}
+                items={[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => ({
+                  k: id, label, color, tone: color, title: `${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`,
+                  onMouseDown: (e) => { e.preventDefault(); setPriority(id); },
+                }))} />
             </span>
           </div>
           {/* Row 3 — List + Athlete */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
               <span style={cmpLabel}>{tr(readLang(), 'List')}</span>
-              {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
-                <button key={id}
-                  onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
-                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 'var(--btn-h)', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
-              ))}
+              <ChipGrid ariaLabel={tr(readLang(), 'List')} value={source} phoneCols={1}
+                items={[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => ({ k: id, label, onMouseDown: (e) => { e.preventDefault(); setSource(id); } }))} />
             </span>
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
@@ -3027,10 +3025,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} {tt('SELECTED')}</span>
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{tt('SET')}</span>
-          {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (
-            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`${tt('SET')} ${tt(o.label)}`}
-              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{tt(o.label)}</button>
-          ))}
+          {/* the five statuses as one equal-cell grid (5.10 #574); nothing is "active" - each is an action */}
+          <ChipGrid ariaLabel={tt('SET')} value={null}
+            items={STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => ({ k: o.id, label: tt(o.label), tone: 'var(--c-tx)', title: `${tt('SET')} ${tt(o.label)}`, onClick: () => bulkStatus(o.id) }))} />
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>{tr(readLang(), 'Delete')}</button>
           <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>{tr(readLang(), 'Clear')}</button>

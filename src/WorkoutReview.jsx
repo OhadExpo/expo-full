@@ -1557,126 +1557,115 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           })}
         </div>
       )}
-      {/* THE FORM-VIDEO TOOLBAR (29.9 #358, Ohad: "buttons designs, location,
-          can be way better looking make it 10x better. ocd order and perfect
-          design"). One control system: every control is the same 36px chip
-          (--btn-h), one border weight, one type size. Two rows with the SAME
-          three-column structure - a group on the video's left edge, one in
-          the true centre, one on its right edge:
-            analysis:  SKELETON · REPS · METRICS  |  COMMENT  |  FULL
-            playback:  0.125x … 2x (one segmented group)  |  ◀ ▶  |  LOOP
-          Kept from his earlier rules: SKELETON is never highlighted ("no
-          highlight since it's not related") - only its label says ON; the
-          joint picker hangs under REPS so it never pushes METRICS off the
-          row; the speed order is 0.125x .. 2x, then frame-step, then LOOP. */}
+      {/* THE FORM-VIDEO CONTROL DECK (5.10 #563, Ohad: "make sure the review
+          video screen is perfect (buttons, design)"). The #358 toolbar laid
+          four rows out four ways - a left group, a centred button with a hole
+          beside it, a right-pinned one - so nothing lined up with anything.
+          Now it is ONE block as wide as the video, every row made of equal
+          cells joined by hairlines, 36 tall:
+            analysis:  SKELETON · REPS · METRICS
+            speed:     0.125x · 0.25x · 0.5x · 1x · 2x
+            transport: ◀ · ▶ · LOOP · FULL
+          and COMMENT - the coach's one action on a clip - a full-width button
+          of its own under the block. Kept from his earlier rules: SKELETON is
+          never highlighted (only its label says ON); the joint picker hangs
+          under the analysis row so it never pushes a cell off it; the speed
+          order is 0.125x .. 2x; frame-step reads left to right in both
+          languages. */}
       {(() => {
-        const chip = (on, tone, toneD) => ({
-          height: 'var(--btn-h)', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,
-          border: `1px solid ${on ? tone : C.bd}`, background: on ? toneD : 'transparent', color: on ? tone : C.tm,
-          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer',
-        });
-        // a segmented group: one outer border, hairline dividers, no gaps
-        const seg = { display: 'inline-flex', border: `1px solid ${C.bd}`, boxSizing: 'border-box', height: 'var(--btn-h)' };
-        const segBtn = (on, first) => ({
-          height: '100%', minHeight: 0, boxSizing: 'border-box', padding: '0 8px', borderRadius: 0, border: 'none',
-          borderInlineStart: first ? 'none' : `1px solid ${C.bd}`,
-          background: on ? C.acD : 'transparent', color: on ? C.ac : C.tm,
-          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', cursor: 'pointer',
+        const cell = (on = false, tone = C.ac, toneD = C.acD) => ({
+          height: 'var(--btn-h)', minHeight: 0, minWidth: 0, boxSizing: 'border-box', padding: '0 6px', borderRadius: 0, border: 'none',
+          background: on ? toneD : 'var(--c-sf)', color: on ? tone : C.tm,
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', lineHeight: 1, textTransform: 'uppercase',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', cursor: 'pointer',
           fontVariantNumeric: 'tabular-nums',
         });
-        const row = { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'start', gap: 8 };
+        // the block: hairlines are the 1px gaps showing the border colour through
+        const block = { display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}`, boxSizing: 'border-box' };
+        const row = (n) => ({ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, gap: 1 });
+        const analysis = [
+          <button key="sk" onClick={togglePose} disabled={poseLoading} data-fv="skeleton"
+            style={{ ...cell(false), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+            {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
+          </button>,
+          <button key="rp" onClick={toggleReps} disabled={poseLoading} data-fv="reps"
+            title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
+            style={{ ...cell(repsOn, C.gn, C.gnD), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+            {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
+          </button>,
+          // LIFT METRICS (coach only) - analyses THIS clip in place, VBT / ROM / tempo inline under the video
+          role === 'trainer' && !compare ? (
+            <button key="mx" onClick={runMetrics} disabled={metricsState === 'busy'} data-fv="metrics"
+              title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
+              style={{ ...cell(metricsState === 'done', C.pu || C.ac, C.puD || C.acD), cursor: metricsState === 'busy' ? 'wait' : 'pointer', opacity: metricsState === 'busy' ? 0.6 : 1 }}>
+              {metricsState === 'busy' ? `${metricsPct}%` : metricsState === 'done' ? `${tt('METRICS')} ✓` : tt('METRICS')}
+            </button>
+          ) : null,
+          // the athlete's auto-pause-at-comments toggle (the coach always sees comments)
+          notes.length > 0 && role !== 'trainer' ? (
+            <button key="cm" onClick={toggleComments} data-fv="comments"
+              title={tr(readLang(), commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
+              style={cell(commentsEnabled)}>
+              {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
+            </button>
+          ) : null,
+          // side by side, the transport row is hidden: FULL rides here instead
+          compare ? <button key="fs" onClick={fullscreen} data-fv="full" style={cell(false)}>⛶ {tt('FULL')}</button> : null,
+        ].filter(Boolean);
         // the bar is as wide as the VIDEO (29.9: at 1440 a 380px portrait clip had
-        // its controls 370px out on the card's edges) and lays itself out by its
-        // OWN width - a container query, so a narrow bar reads the same on a
-        // phone and beside a portrait clip on a desktop
-        return (<div className="fv-bar" style={{ containerType: 'inline-size', ...(vidAspect?.portrait ? { maxWidth: 380, marginInline: 'auto' } : null) }}>
-          <div className="fv-toolbar" data-fv-row="analysis" style={{ ...row, marginBottom: 8 }}>
-            <div className="fv-left" style={{ justifySelf: 'start', display: 'flex', gap: 6, alignItems: 'flex-start', flexWrap: 'wrap', minWidth: 0 }}>
-              <button onClick={togglePose} disabled={poseLoading} data-fv="skeleton"
-                style={{ ...chip(false), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
-                {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
-              </button>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button onClick={toggleReps} disabled={poseLoading} data-fv="reps"
-                  title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-                  style={{ ...chip(repsOn, C.gn, C.gnD), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
-                  {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
-                </button>
-                {repsOn && (
-                  <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-                    title={trackOverride === 'auto' ? `${autoPick.why || 'no signal'} (confidence ${(autoPick.confidence * 100).toFixed(0)}%)` : 'Which joint pair to count peaks on'}
-                    style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 8px', borderRadius: 0, border: `1px solid ${C.bd}`,
-                      background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer' }}>
-                    {/* Show WHERE the pick came from, so a wrong auto-detect is
-                        diagnosable rather than mysterious. '?' = the title matched
-                        nothing and no motion read yet — previously this silently
-                        became KNEE (24% of the library). */}
-                    <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
-                      {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
-                    </option>
-                    <option value="hip">{tt('HIP')}</option>
-                    <option value="knee">{tt("KNEE")}</option>
-                    <option value="elbow">{tt("ELBOW")}</option>
-                    <option value="sho">{tt('SHOULDER')}</option>
-                    <option value="none">{tt('SKIP')}</option>
-                  </select>
-                )}
+        // its controls 370px out on the card's edges)
+        return (<div className="fv-bar" style={{ display: 'flex', flexDirection: 'column', gap: 8, ...(vidAspect?.portrait ? { maxWidth: 380, marginInline: 'auto' } : null) }}>
+          <div className="fv-deck" style={block}>
+            <div data-fv-row="analysis" style={row(analysis.length)}>{analysis}</div>
+            {repsOn && (
+              <div data-fv-row="joint" style={row(motionSuggestion ? 2 : 1)}>
+                <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
+                  title={trackOverride === 'auto' ? `${autoPick.why || 'no signal'} (confidence ${(autoPick.confidence * 100).toFixed(0)}%)` : 'Which joint pair to count peaks on'}
+                  style={{ ...cell(false), textAlignLast: 'center', appearance: 'auto' }}>
+                  {/* Show WHERE the pick came from, so a wrong auto-detect is
+                      diagnosable rather than mysterious. '?' = the title matched
+                      nothing and no motion read yet — previously this silently
+                      became KNEE (24% of the library). */}
+                  <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
+                    {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
+                  </option>
+                  <option value="hip">{tt('HIP')}</option>
+                  <option value="knee">{tt("KNEE")}</option>
+                  <option value="elbow">{tt("ELBOW")}</option>
+                  <option value="sho">{tt('SHOULDER')}</option>
+                  <option value="none">{tt('SKIP')}</option>
+                </select>
                 {/* Motion disagrees with the title. Never switched silently — a
                     mid-clip change would move the rep count under the coach's
                     eyes — so it is offered as one click. */}
-                {repsOn && motionSuggestion && (
+                {motionSuggestion && (
                   <button onClick={() => setTrackOverride(motionSuggestion.kind)} title={motionSuggestion.why}
-                    style={chip(true, C.ac, 'transparent')}>{tt('MOTION SEES')}{motionSuggestion.kind.toUpperCase()} →</button>
+                    style={cell(true)}>{tt('MOTION SEES')} {motionSuggestion.kind.toUpperCase()} →</button>
                 )}
               </div>
-              {/* LIFT METRICS (coach only) — analyses THIS clip in place and
-                  shows VBT / ROM / tempo inline under the video. */}
-              {role === 'trainer' && !compare && (
-                <button onClick={runMetrics} disabled={metricsState === 'busy'} data-fv="metrics"
-                  title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
-                  style={{ ...chip(metricsState === 'done', C.pu || C.ac, C.puD || C.acD), cursor: metricsState === 'busy' ? 'wait' : 'pointer', opacity: metricsState === 'busy' ? 0.6 : 1 }}>
-                  {metricsState === 'busy' ? `${metricsPct}%` : metricsState === 'done' ? `${tt('METRICS')} ✓` : tt('METRICS')}
-                </button>
-              )}
-              {poseError && <span style={{ alignSelf: 'center', fontSize: 9, color: C.rd }}>{poseError}</span>}
-            </div>
-            <div className="fv-mid" style={{ justifySelf: 'center', display: 'flex', gap: 6 }}>
-              {/* Auto-pause-at-comment toggle. Trainee-only: the trainer always
-                  wants comments visible (drawing is part of commenting). */}
-              {notes.length > 0 && role !== 'trainer' && (
-                <button onClick={toggleComments} data-fv="comments"
-                  title={tr(readLang(), commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
-                  style={chip(commentsEnabled, C.ac, C.acD)}>
-                  {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
-                </button>
-              )}
-              {onReviewNotesChange && role === 'trainer' && (
-                <button onClick={addComment} data-fv="comment" title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
-                  style={chip(true, C.ac, C.acD)}>{tt("COMMENT")}</button>
-              )}
-            </div>
-            <div className="fv-right" style={{ justifySelf: 'end', display: 'flex', gap: 6 }}>
-              <button onClick={fullscreen} data-fv="full" style={chip(false)}>⛶ {tt('FULL')}</button>
-            </div>
+            )}
+            {!compare && (
+              <div data-fv-row="speed" className="fv-speeds" role="group" aria-label={tt('Playback speed')} style={row(speeds.length)}>
+                {speeds.map((sp) => (
+                  <button key={sp} onClick={() => setSpeed(sp)} data-fv="speed" aria-pressed={speed === sp}
+                    title={tt('Playback speed {n}x').replace('{n}', sp)} style={cell(speed === sp)}>{sp}x</button>
+                ))}
+              </div>
+            )}
+            {!compare && (
+              <div data-fv-row="transport" style={row(4)}>
+                <button onClick={() => stepFrame(-1)} data-fv="prev" title={tt('Previous frame')} aria-label={tt('Previous frame')} dir="ltr" style={cell(false)}>◀</button>
+                <button onClick={() => stepFrame(1)} data-fv="next" title={tt('Next frame')} aria-label={tt('Next frame')} dir="ltr" style={cell(false)}>▶</button>
+                <button onClick={() => setLoop(v => !v)} data-fv="loop" aria-pressed={loop} title={tt('Loop the video')} style={cell(loop)}>↻ {tr(readLang(), 'LOOP')}</button>
+                <button onClick={fullscreen} data-fv="full" style={cell(false)}>⛶ {tt('FULL')}</button>
+              </div>
+            )}
           </div>
-          {/* playback: the same three columns, so the two rows line up */}
-          <div className="fv-toolbar" data-fv-row="playback" style={{ ...row, display: compare ? 'none' : 'grid' }}>
-            <div className="fv-left fv-speeds" role="group" aria-label={tt('Playback speed')} style={{ ...seg, justifySelf: 'start', minWidth: 0 }}>
-              {speeds.map((sp, i) => (
-                <button key={sp} onClick={() => setSpeed(sp)} data-fv="speed" aria-pressed={speed === sp}
-                  title={tt('Playback speed {n}x').replace('{n}', sp)} style={segBtn(speed === sp, i === 0)}>{sp}x</button>
-              ))}
-            </div>
-            <div className="fv-mid" role="group" aria-label={tt('Frame step')} dir="ltr" /* a timeline runs left to right in both languages: back on the left */ style={{ ...seg, justifySelf: 'center' }}>
-              <button onClick={() => stepFrame(-1)} data-fv="prev" title={tt('Previous frame')} style={{ ...segBtn(false, true), width: 36, padding: 0 }}>◀</button>
-              <button onClick={() => stepFrame(1)} data-fv="next" title={tt('Next frame')} style={{ ...segBtn(false, false), width: 36, padding: 0 }}>▶</button>
-            </div>
-            <div className="fv-right" style={{ justifySelf: 'end', display: 'flex' }}>
-              <button onClick={() => setLoop(v => !v)} data-fv="loop" title={tt('Loop the video')} style={chip(loop, C.ac, C.acD)}>↻ {tr(readLang(), 'LOOP')}</button>
-            </div>
-          </div>
+          {poseError && <span style={{ fontSize: 10, fontFamily: FN, color: C.rd }}>{poseError}</span>}
+          {onReviewNotesChange && role === 'trainer' && (
+            <button onClick={addComment} data-fv="comment" title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
+              style={{ ...cell(true), width: '100%', border: `1px solid ${C.ac}`, fontSize: 11, letterSpacing: '0.1em' }}>＋ {tt("COMMENT")}</button>
+          )}
         </div>);
       })()}
       </div>
@@ -2372,7 +2361,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
                   {/* Client's form video */}
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
-                    <div style={{background:C.gnD,border:`1px solid rgba(46,213,115,0.188)`,borderRadius:0,padding:12,marginBottom:10}}>
+                    <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:10 /* neutral: the green is in the label, not the fill (5.10 #563) */}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                         <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>{tt("FORM VIDEO SUBMITTED")}</div>
                         <div style={{display:'flex',gap:6,alignItems:'center'}}>
@@ -2464,22 +2453,23 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         actual block length. Caps the visible columns at 8 to
                         keep the row readable on long blocks (16w shows 8 then
                         wraps via flex). */}
-                    <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(planWeeks, 8)},1fr)`,gap:3,marginTop:6}}>
+                    {/* THE BLOCK'S WEEKS (5.10 #563): one joined strip of equal cells
+                        at the house height, the week in readable type (it was 7px),
+                        colour in the TEXT only - the current week green, the next
+                        cyan - never a tinted fill. A week with a focus note shows
+                        it under the week; hover reads it whole. */}
+                    <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(planWeeks, 8)},minmax(0,1fr))`,gap:1,marginTop:8,background:C.bd,border:`1px solid ${C.bd}`}}>
                       {Array.from({length: planWeeks}, (_, i) => i + 1).map(w => {
                         const f = getFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, w);
                         const isCurrent = w === currentWeek;
                         const isNext = !isLastWeekOfBlock && w === nextWeek;
                         return (
-                          <div key={w} style={{padding:"3px 4px",borderRadius:0,
-                            background:isNext?'rgba(57,189,255,0.082)':isCurrent?'rgba(46,213,115,0.063)':C.sf2,
-                            border:`1px solid ${isNext?'rgba(57,189,255,0.251)':isCurrent?'rgba(46,213,115,0.125)':f?'rgba(57,189,255,0.082)':C.bd}`,
-                            textAlign:"center"}}>
-                            <div style={{fontSize:7,fontFamily:FN,color:isNext?C.ac:isCurrent?C.gn:C.td}}>
+                          <div key={w} title={f || undefined} style={{minHeight:'var(--btn-h)',boxSizing:'border-box',padding:"5px 6px",background:'var(--c-sf)',
+                            display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,minWidth:0}}>
+                            <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.06em',fontFamily:FN,color:isNext?C.ac:isCurrent?C.gn:C.tm,whiteSpace:'nowrap'}}>
                               W{w}{isCurrent?' ✓':''}{isNext?' →':''}
                             </div>
-                            <div style={{fontSize:9,color:f?C.tx:C.td,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                              {f||'—'}
-                            </div>
+                            {f && <div style={{fontSize:10,color:C.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:'100%'}}>{f}</div>}
                           </div>
                         );
                       })}
@@ -2491,7 +2481,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       auto-save on change so this is purely a navigation
                       shortcut for working through a workout exercise-by-
                       exercise without scrolling. */}
-                  <div style={{display:'flex',justifyContent:'center',marginTop:10}}>
+                  <div style={{display:'flex',marginTop:10}}>
                     <button onClick={() => {
                       const nextIdx = i + 1;
                       if (nextIdx < wo.exercises.length) {
@@ -2505,9 +2495,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
                       }
                     }}
-                      style={{padding:'8px 18px',borderRadius:0,border:`1px solid ${C.ac}`,
+                      // full width at the house height, like COMMENT above it: the two
+                      // actions on a clip read as one column (5.10 #563)
+                      style={{width:'100%',height:'var(--btn-h)',boxSizing:'border-box',padding:'0 18px',borderRadius:0,border:`1px solid ${C.ac}`,
                         background:C.acD,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,
-                        letterSpacing:0.5,cursor:'pointer'}}>
+                        letterSpacing:'0.1em',cursor:'pointer'}}>
                       {i < wo.exercises.length - 1 ? '✓ NEXT EXERCISE →' : '✓ DONE — FINISH REVIEW ↓'}
                     </button>
                   </div>

@@ -1098,7 +1098,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               onMouseEnter={e=>e.currentTarget.style.background='rgba(57,189,255,0.094)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
               <div style={{fontWeight:700,color:C.ac,fontSize:13,fontFamily:FN,letterSpacing:'0.04em'}}>+ {tr(readLang(), 'START BLANK PROGRAM')}</div>
-              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{td.name} — {t('pick name, days, exercises.')}</div>
+              {/* English needs the space ("Empty editor forDana"); Hebrew's ל prefix stays attached to the name (5.10 #574) */}
+              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{readLang() === 'he' ? '' : ' '}{td.name} — {t('pick name, days, exercises.')}</div>
             </div>
             {(unassigned.length>0 || others.length>0) && (
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>{t('OR ASSIGN EXISTING')}</div>

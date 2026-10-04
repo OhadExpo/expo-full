@@ -28,6 +28,7 @@ import React, { useState, useMemo } from 'react';
 import { C, FN } from './theme';
 import { isVelocityLossLift } from './poseMetricsStore';
 import { useHe } from './i18n';
+import { ChipGrid } from './ui';
 
 // Hebrew composed inline (labels carry joint names and numbers). Charts and the
 // L/R bars stay dir=ltr: time and the body's left/right are physical.
@@ -109,12 +110,6 @@ function MiniKpi({ label, value, tone }) {
     </div>
   );
 }
-const pillStyle = (sel, col) => ({
-  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
-  borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
-  border: `1px solid ${sel ? col : C.bd}`, background: sel ? `${col}22` : 'transparent',
-  color: sel ? col : C.tm,
-});
 function Th({ children, right }) {
   return <th style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: C.tm, padding: '6px 4px', borderBottom: `1px solid ${C.bd}`, textAlign: right ? 'end' : 'start', fontWeight: 700 }}>{children}</th>;
 }
@@ -134,10 +129,9 @@ export function VelocityReport({ report, title }) {
   const hasTable = perRep.some(Boolean);
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, margin: '2px 0 8px', flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setGraph('speed')} style={pillStyle(graph === 'speed', CY)}>{L(he, 'Speed', 'מהירות')}</button>
-        <button type="button" onClick={() => setGraph('accel')} style={pillStyle(graph === 'accel', C.pu)}>{L(he, 'Acceleration', 'תאוצה')}</button>
-      </div>
+      {/* two equal cells, each filled in its graph's colour (5.10 #574) */}
+      <ChipGrid value={graph} onChange={setGraph} style={{ margin: '2px 0 8px' }}
+        items={[{ k: 'speed', label: L(he, 'Speed', 'מהירות'), color: CY }, { k: 'accel', label: L(he, 'Acceleration', 'תאוצה'), color: C.pu }]} />
       {graph === 'speed' && (
         <SeriesChart pts={speedPts} color={CY} symmetric fmtY={(v) => v.toFixed(1)}
           header={he
@@ -280,14 +274,13 @@ export function RomReport({ report }) {
           ? `זווית ${JOINT_HE[jointLabel] || jointLabel} ${SIDE_HE[side]} · מעלות לאורך זמן · כל שקע = חזרה${chan ? ` · שיא ${Math.round(chan.peak)}°` : ''}`
           : `${side} ${jointLabel} angle · degrees over time · reps = the dips${chan ? ` · peak ${Math.round(chan.peak)}°` : ''}`} />
       {availJoints.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          {availJoints.map((j) => (
-            <button key={j.abbr} type="button" onClick={() => setJointAbbr(j.abbr)} style={pillStyle(jointAbbr === j.abbr, C.gn)}>{he ? (JOINT_HE[j.label] || j.label) : j.label}</button>
-          ))}
-          <span style={{ width: 1, height: 16, background: C.bd, margin: '0 4px' }} />
-          {['L', 'R'].map((s) => (
-            <button key={s} type="button" onClick={() => setSide(s)} style={pillStyle(side === s, C.gn)}>{he ? SIDE_HE[s] : s}</button>
-          ))}
+        // joints and sides: two equal-cell grids side by side (5.10 #574); their own
+        // borders separate them, so the hairline divider is gone
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <ChipGrid value={jointAbbr} onChange={setJointAbbr} style={{ flex: '1 1 auto' }}
+            items={availJoints.map((j) => ({ k: j.abbr, label: he ? (JOINT_HE[j.label] || j.label) : j.label, color: C.gn }))} />
+          <ChipGrid value={side} onChange={setSide}
+            items={['L', 'R'].map((s) => ({ k: s, label: he ? SIDE_HE[s] : s, color: C.gn }))} />
         </div>
       )}
       {report.jointRom && report.jointRom.length > 0 && <JointRomBars jointRom={report.jointRom} />}

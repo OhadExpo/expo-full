@@ -21,7 +21,7 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState, stripBtnBase, StripCaret } from './ui';
+import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState, stripBtnBase, StripCaret, ChipGrid } from './ui';
 import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
@@ -265,18 +265,10 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
         <div style={{ fontSize: 11, fontFamily: FN, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>
           {tt('+ LOG WHAT HAPPENED')}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-          {ACT_KINDS.map(k => (
-            <button key={k} onClick={() => setKind(k)}
-              style={{
-                padding: '6px 10px', borderRadius: 0,
-                border: `1px solid ${kind === k ? C.ac : C.cardBd}`,
-                background: 'transparent', color: kind === k ? C.ac : C.tm,
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-                cursor: 'pointer',
-              }}>{tt(KIND_LABEL[k])}</button>
-          ))}
-        </div>
+        {/* seven kinds in one equal-cell grid (5.10 #574): three to a row in this 480px
+            modal (seven in one row cut "הודעה באינסטגרם"), the first across the top */}
+        <ChipGrid ariaLabel={tt('+ LOG WHAT HAPPENED')} value={kind} onChange={setKind} cols={3} style={{ marginBottom: 12 }}
+          items={ACT_KINDS.map(k => ({ k, label: tt(KIND_LABEL[k]) }))} />
         <textarea value={summary} onChange={e => setSummary(e.target.value)} dir="auto"
           placeholder={tt('What happened?')}
           rows={4}

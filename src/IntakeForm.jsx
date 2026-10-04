@@ -11,6 +11,7 @@ import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
 import { sandboxLinkNote } from './sandboxLink';
 import { getForm } from './intakeFormSchemas';
+import { ChipGrid } from './ui';
 
 function deriveLocale() {
   const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/intake\/(he|en)\b/);
@@ -76,22 +77,12 @@ function Field({ q, value, onChange, dir }) {
     return (
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>{q.label}{required}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, direction: dir }}>
-          {(q.choices || []).map(c => {
-            const isSel = selected.includes(c);
-            return (
-              <button key={c} type="button" onClick={() => toggle(c)}
-                style={{
-                  padding: '6px 12px', borderRadius: 0,
-                  border: `1px solid ${isSel ? C.ac : C.cardBd}`,
-                  background: isSel ? 'rgba(57,189,255,0.094)' : 'transparent',
-                  color: isSel ? C.ac : C.tm,
-                  fontFamily: dir === 'rtl' ? FH : FN, fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer',
-                }}>{c}</button>
-            );
-          })}
-        </div>
+        {/* the choices as equal cells, two to a row (5.10 #574) - the look stays:
+            the picked ones carry the cyan wash and cyan text, the words keep their case */}
+        <ChipGrid prose soft value={selected} onChange={toggle} style={{ direction: dir }}
+          cols={(q.choices || []).length <= 3 ? (q.choices || []).length : 2}
+          cellStyle={{ fontFamily: dir === 'rtl' ? FH : FN, fontWeight: 600 }}
+          items={(q.choices || []).map(c => ({ k: c, label: c }))} />
       </div>
     );
   }

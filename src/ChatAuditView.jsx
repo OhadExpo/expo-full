@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useT, agoLabel, readLang } from './i18n';
 import { C, FN, FB } from './theme';
-import { isRefined5b, CollapsibleSection } from './ui';
+import { isRefined5b, CollapsibleSection, ChipGrid } from './ui';
 import { supabase } from './supabase';
 
 // Inline `**bold**` renderer for bot messages. The marketing chat model
@@ -154,29 +154,19 @@ export default function ChatAuditView() {
 
       {/* Filter row */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-        {['all', 'expo-app', 'expo-il'].map(s => (
-          <button key={s} aria-pressed={siteFilter === s} onClick={() => setSiteFilter(s)}
-            style={{
-              background: 'var(--c-sf)',
-              border: `1px solid ${siteFilter === s ? C.ac : C.cardBd}`,
-              color: siteFilter === s ? C.ac : C.tm,
-              borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
-              fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
-            }}>{s === 'all' ? tt('ALL SITES') : s.toUpperCase()}</button>
-        ))}
-        <button onClick={() => setShowErrorsOnly(v => !v)}
-          style={{
-            background: 'var(--c-sf)',
-            border: `1px solid ${showErrorsOnly ? C.rd : C.cardBd}`,
-            color: showErrorsOnly ? C.rd : C.tm,
-            borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
-            fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em', display: 'inline-flex', alignItems: 'center',
-          }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginInlineEnd: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{tt('ERRORS ONLY')}</button>
+        {/* the three site filters and the ERRORS ONLY toggle share one equal-cell
+            grid (5.10 #574); the toggle keeps its own red fill and its own click */}
+        <ChipGrid ariaLabel={tt('CHAT AUDIT')} value={siteFilter} onChange={setSiteFilter} style={{ flex: '1 1 auto' }}
+          items={[
+            ...['all', 'expo-app', 'expo-il'].map(s => ({ k: s, label: s === 'all' ? tt('ALL SITES') : s.toUpperCase() })),
+            { k: 'errors', color: C.rd, active: showErrorsOnly, onClick: () => setShowErrorsOnly(v => !v),
+              label: <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{tt('ERRORS ONLY')}</> },
+          ]} />
         <input type="text" value={filter} onChange={e => setFilter(e.target.value)} placeholder={tt('Filter by message text…')}
           style={{
             textAlign: 'start',
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-            height: 34, boxSizing: 'border-box', padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+            height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', minWidth: 220, marginInlineStart: 'auto',
           }} />
       </div>

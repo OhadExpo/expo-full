@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { findAlternates } from './exerciseSimilarity';
+import { ChipGrid } from './ui';
 
 // F-25 — equipment chips the trainee can toggle on/off. Only alternates
 // matching at least one selected chip will surface. The TRAVELING
@@ -154,7 +155,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             TRAVELING preset is a one-tap shortcut for hotel-room workouts. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           <button onClick={toggleTraveling} style={{
-            padding: '4px 10px', borderRadius: 0,
+            padding: '0 10px', borderRadius: 0, height: 'var(--btn-h)', boxSizing: 'border-box',
             background: traveling ? C.ac : 'transparent',
             color: traveling ? '#FFFFFF' : C.ac,
             border: `1px solid ${C.ac}`,
@@ -163,19 +164,9 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{traveling ? '✓ TRAVELING' : '✈ TRAVELING'}</button>
           <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginInlineStart: 4 }}>HAVE:</span>
-          {EQUIP_CHIPS.map(chip => {
-            const active = activeEquip.has(chip.id);
-            return (
-              <button key={chip.id} onClick={() => toggleEquip(chip.id)} style={{
-                padding: '4px 8px', borderRadius: 0,
-                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                color: active ? C.ac : C.tm,
-                border: `1px solid ${active ? C.ac : C.cardBd}`,
-                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                cursor: 'pointer',
-              }}>{chip.label}</button>
-            );
-          })}
+          {/* the seven equipment toggles as one equal-cell grid (5.10 #574); a multi-select, so `value` is the Set */}
+          <ChipGrid value={activeEquip} onChange={toggleEquip} style={{ flex: '1 1 auto' }}
+            items={EQUIP_CHIPS.map(chip => ({ k: chip.id, label: chip.label }))} />
         </div>
 
         {alternates.length === 0 && (

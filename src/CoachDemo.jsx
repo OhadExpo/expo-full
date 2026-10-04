@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -657,8 +657,26 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {/* THE ALERT RAIL - the real cards (a full border in their colour, rows one
           36px height, the rail's shared widths); ONLINE NOW sits above. */}
       <div className="alert-rail" style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 4 }}>
+        {/* BLOCK ENDING - the real card's first slot (5.10 #565): who is in the
+            last week of a block with no next block written, the block's
+            completion and its main lift's best set. Demo athletes, demo numbers. */}
+        <Panel title={`${T('Block ending')} (2)`} tint={C.ac} icon="alert" edge={C.ac}>
+          {[{ t: MOCK_TRAINEES[3], wk: 'W4/4 · 7/8', ink: C.gn, lift: 'Back Squat', best: '100 → 115×4' }, { t: MOCK_TRAINEES[0], wk: 'W4/4 · 5/12', ink: C.rd, lift: 'Trap Bar Deadlift', best: '90 → 100×5' }].map(({ t, wk, ink, lift, best }) => (
+            <div key={t.id} role="button" tabIndex={0} onClick={() => onJumpToTrainee(t.id, 'dashboard')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpToTrainee(t.id, 'dashboard'); } }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 3, minHeight: 36, padding: '7px 0', boxSizing: 'border-box', cursor: 'pointer', fontSize: 13 }}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <span dir="auto" style={{ color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: ink, flexShrink: 0, unicodeBidi: 'isolate' }}>{wk}</span>
+              </span>
+              <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: C.tm }}>
+                <span style={{ flex: 1, minWidth: 0 }}>{lift}</span>
+                <span dir="ltr" style={{ fontFamily: FN, flexShrink: 0, unicodeBidi: 'isolate' }}>{best}</span>
+              </span>
+            </div>
+          ))}
+        </Panel>
         {expiring.length > 0 && (
-          <Panel title={`${T('Expiring Packages')} (${expiring.length})`} tint={C.or} icon="alert">
+          <Panel title={`${T('Expiring Packages')} (${expiring.length})`} tint={C.or} icon="alert" edge={C.ac} /* cyan frame like the real alert cards (5.10 #579) */>
             {expiring.map(t => (
               <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
                 <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -667,7 +685,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
             ))}
           </Panel>
         )}
-        <Panel title={`${T('Overdue Payment')} (${overdue.length})`} tint={C.rd} icon="dollar">
+        <Panel title={`${T('Overdue Payment')} (${overdue.length})`} tint={C.rd} icon="dollar" edge={C.ac} /* cyan frame like the real alert cards (5.10 #579) */>
           {overdue.map((t) => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -675,7 +693,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
             </Row>
           ))}
         </Panel>
-        <Panel title={`${T('Dormant')} (${dormant.length})`} tint={C.or} icon="moon">
+        <Panel title={`${T('Dormant')} (${dormant.length})`} tint={C.or} icon="moon" edge={C.ac} /* cyan frame like the real alert cards (5.10 #579) */>
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -765,13 +783,13 @@ function DemoSectionIcon({ kind }) {
 
 // Alert card = real DashboardView grammar: 3px colored LEFT border (or full
 // cyan border for Leads), cyan RefinedHeaderStrip with a white icon + label.
-function Panel({ title, tint, icon, children, cyanBorder }) {
+function Panel({ title, tint, icon, children, cyanBorder, edge = null }) {
   return (
     <div className={cyanBorder ? undefined : 'alert-sev'} style={{
       background: C.sf,
       // the real alert card: a full 1px border in its colour (was a 3px side bar)
       // and the rail's own widths (.alert-rail > *) - a fixed 300 overrode them
-      border: `1px solid ${cyanBorder ? C.ac : tint}`,
+      border: `1px solid ${edge || (cyanBorder ? C.ac : tint)}`,
       borderRadius: 0, padding: '14px 18px',
       boxShadow: cyanBorder ? undefined : C.cardShadow,
       boxSizing: 'border-box',
@@ -1744,10 +1762,10 @@ function DemoOverload({ trainee }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={T('search exercise')} style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, height: 30, boxSizing: 'border-box', padding: '0 10px', fontSize: 12 }} />
-        {[['all', T('ALL')], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([id, lbl]) => (
-          <button key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'transparent' : 'transparent', border: `1px solid ${filter === id ? OV_COLOR[id] : C.cardBd}`, color: filter === id ? OV_COLOR[id] : C.tm, borderRadius: 0, minHeight: CTRL_H, boxSizing: 'border-box', cursor: 'pointer', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>{lbl} {counts[id]}</button>
-        ))}
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={T('search exercise')} style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, height: CTRL_H, boxSizing: 'border-box', padding: '0 10px', fontSize: 12 }} />
+        {/* the real OverloadChart's trend grid (5.10 #574): equal cells, count beside the arrow, trend colour as the fill */}
+        <ChipGrid ariaLabel={T('ALL')} value={filter} onChange={setFilter} style={{ flex: '1 1 auto' }}
+          items={[['all', T('ALL')], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([id, lbl]) => ({ k: id, label: lbl, n: counts[id], color: id === 'all' ? undefined : OV_COLOR[id] }))} />
       </div>
       <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
         <table className="ov-table" style={{ width: '100%', minWidth: 460, borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
@@ -1957,7 +1975,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ))}
           </Panel>
 
-          <Panel title={<span>{T('SHARED · PAYMENTS (3)')} <span style={{ color: C.gn, marginInlineStart: 8 }}>₪{(trainee.monthly * 3).toLocaleString()}{T('TOTAL')}</span></span>} tint={C.ac}>
+          <Panel title={<span>{T('SHARED · PAYMENTS (3)')} <span style={{ color: C.gn, marginInlineStart: 8 }}>₪{(trainee.monthly * 3).toLocaleString()} {T('TOTAL')}</span></span>} tint={C.ac}>
             {[
               { date: dAgo(paidAgo), method: 'Bank Transfer' },
               { date: dAgo(paidAgo + 30), method: 'Bank Transfer' },
@@ -2962,17 +2980,9 @@ function DemoPrograms({ resetToken = 0 }) {
           </div>
         )}
         {!overview && (<>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {block.days.map((d, i) => (
-            <button key={i} onClick={() => { setSelectedDayIdx(i); setOpenExIdx(null); }} style={{
-              ...baseBtn,
-              background: i === dayIdx ? C.acD : 'transparent',
-              color: i === dayIdx ? C.ac : C.tm,
-              border: `1px solid ${i === dayIdx ? C.ac : C.bd}`,
-              padding: '6px 14px', fontSize: 11,
-            }}>{d.name}</button>
-          ))}
-        </div>
+        {/* the day tabs as one equal-cell grid (5.10 #574) */}
+        <ChipGrid value={dayIdx} onChange={(i) => { setSelectedDayIdx(i); setOpenExIdx(null); }} style={{ marginBottom: 12 }}
+          items={block.days.map((d, i) => ({ k: i, label: d.name }))} />
 
         {/* Day-summary chips: ex count, superset count, est duration. The
             duration estimate is rough — sum of (sets × ~45s working set + 90s
@@ -2988,9 +2998,10 @@ function DemoPrograms({ resetToken = 0 }) {
           const estMin = Math.round(estSec / 60);
           return (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-              <DayChip>{exCount}{T('EXERCISES')}</DayChip>
-              <DayChip>{ssCount}{T('SUPERSET')}{ssCount === 1 ? '' : 'S'}</DayChip>
-              <DayChip>~{estMin}{T('MIN')}</DayChip>
+              {/* a space between the number and its word: "6EXERCISES" read as one token (5.10 #574) */}
+              <DayChip>{exCount} {T('EXERCISES')}</DayChip>
+              <DayChip>{ssCount} {T('SUPERSET')}{ssCount === 1 ? '' : 'S'}</DayChip>
+              <DayChip>~{estMin} {T('MIN')}</DayChip>
               <DayChip muted>{T('EST · BASED ON 90s REST')}</DayChip>
             </div>
           );
@@ -3409,7 +3420,8 @@ function DemoExercises() {
   const EX_NOTE = {
     add: 'Demo only — in the full app this opens the new-exercise form.',
     edit: 'Demo only — in the full app this opens the exercise to edit, or delete.',
-    tools: 'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates.',
+    // + filling video gaps: the real hub's VIDEOS tab (5.10 #559)
+    tools: 'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates, filling missing videos.',
   };
   useEffect(() => { if (!exNoteState) return undefined; const id = setTimeout(() => setExNoteState(null), 3600); return () => clearTimeout(id); }, [exNoteState]);
 
@@ -3514,7 +3526,7 @@ function DemoExercises() {
     <section>
       {/* The real Exercises hub's sub-tabs (App.jsx): LIBRARY + the three tools. */}
       <div className="subtab-scroll" style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 16, flexWrap: 'wrap' }}>
-        {[['library', 'Library'], ['matching', 'Matching'], ['classify', 'Classify'], ['cleanup', 'Cleanup']].map(([r, l]) => {
+        {[['library', 'Library'], ['matching', 'Matching'], ['classify', 'Classify'], ['cleanup', 'Cleanup'], ['videos', 'Videos']].map(([r, l]) => {
           const on = r === 'library';
           return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : 'tools')} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
         })}
@@ -3954,6 +3966,22 @@ function DemoReview() {
                   </div>
                 </div>
               </div>
+              {/* THE REAL PLAYER'S CONTROL DECK (5.10 #563 parity): one block, equal
+                  cells joined by hairlines - analysis, speed, transport - and COMMENT
+                  as its own full-width action. Inert in the demo. */}
+              <div style={{ padding: '0 14px 14px', maxWidth: 380, boxSizing: 'content-box' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}` }}>
+                  {[[T('SKELETON'), T('REPS'), T('METRICS')], ['0.125x', '0.25x', '0.5x', '1x', '2x'], ['◀', '▶', `↻ ${T('LOOP')}`, `⛶ ${T('FULL')}`]].map((row, ri) => (
+                    <div key={ri} style={{ display: 'grid', gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`, gap: 1 }}>
+                      {row.map((l) => {
+                        const on = l === '1x';
+                        return <span key={l} dir={l === '◀' || l === '▶' ? 'ltr' : undefined} style={{ height: 'var(--btn-h)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? C.acD : 'var(--c-sf)', color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>{l}</span>;
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8, height: 'var(--btn-h)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.ac}`, background: C.acD, color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>＋ {T('COMMENT')}</div>
+              </div>
             </div>
           );
         })()}
@@ -4265,14 +4293,8 @@ function DemoWorkouts() {
             <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx, marginBottom: 8 }}>
               {p.name} <span style={{ fontWeight: 400, color: C.tm }}>— {traineeName(p.traineeId)}</span>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {p.dayNames.map((dn, i) => (
-                <button key={i} onClick={e => e.stopPropagation()} style={{
-                  ...baseBtn, background: 'transparent', color: C.tm,
-                  border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 12, fontWeight: 600,
-                }}>▶ {dn}</button>
-              ))}
-            </div>
+            {/* the day buttons as one equal-cell grid, like WorkoutsView (5.10 #574) */}
+            <ChipGrid ariaLabel={p.name} value={null} items={p.dayNames.map((dn, i) => ({ k: i, label: `▶ ${dn}`, onClick: (e) => e.stopPropagation() }))} />
           </div>
         ))}
       </div>
@@ -4568,15 +4590,15 @@ function DemoSingle() {
                     const autoWeek = 1 + (seed % 4);
                     const autoDay = seed % dayNames.length;
                     return (<>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginInlineEnd: 2 }}>{T('LOG INTO')}</span>
-                        {[1, 2, 3, 4].map(wn => <span key={wn} dir="ltr" style={{ minWidth: 40, minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px', border: `1px solid ${wn === autoWeek ? C.ac : C.bd}`, background: wn === autoWeek ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === autoWeek ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>W{wn}</span>)}
+                      {/* the week and day pickers as equal-cell grids, exactly as WorkoutsView draws them (5.10 #574);
+                          the auto-picked week/day keep the soft wash, the NEXT workout is never a loud box */}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, flexShrink: 0 }}>{T('LOG INTO')}</span>
+                        <ChipGrid ariaLabel={T('LOG INTO')} soft value={autoWeek} style={{ flex: '1 1 auto' }}
+                          items={[1, 2, 3, 4].map(wn => ({ k: wn, label: `W${wn}`, onClick: () => {} }))} />
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {dayNames.map((dn, di) => (
-                          <button key={di} onClick={() => setActive({ name: t.name, day: dn, week: autoWeek })} style={{ ...baseBtn, background: di === autoDay ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === autoDay ? C.ac : C.tm, border: `1px solid ${di === autoDay ? C.ac : C.bd}`, padding: '0 12px', fontSize: 12 }}>▶ {dn}</button>
-                        ))}
-                      </div>
+                      <ChipGrid ariaLabel={t.name} soft value={autoDay} onChange={(di) => setActive({ name: t.name, day: dayNames[di], week: autoWeek })}
+                        items={dayNames.map((dn, di) => ({ k: di, label: `▶ ${dn}` }))} />
                     </>);
                   })()}
                 </div>
@@ -4743,7 +4765,9 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
       <style>{`
         .dtl-row { display: grid; grid-template-columns: 96px minmax(0, 230px) minmax(0, 1fr) 128px; grid-template-areas: "prio meta title status"; align-items: center; column-gap: 16px; padding: 8px 12px; }
         .dtl-prio { grid-area: prio; } .dtl-meta { grid-area: meta; } .dtl-title { grid-area: title; } .dtl-status { grid-area: status; }
-        @media (max-width: 700px) {
+        /* stacks up to 900, not 700 (5.10 #568, text-overlap gate): at a 768 tablet the
+           four fixed columns left the title 0px and it painted over IN PROGRESS */
+        @media (max-width: 900px) {
           .dtl-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title status" "prio meta"; row-gap: 8px; column-gap: 12px; }
           .dtl-meta { justify-self: start; }
           .dtl-prio { justify-self: start; }

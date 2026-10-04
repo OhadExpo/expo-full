@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord, StripCaret } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord, StripCaret, ChipGrid } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -802,46 +802,25 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {/* Tag cloud — quick-click any known tag to filter. Hidden in
           compact mode, and hidden when there are no tags yet so the
           surface doesn't look empty/broken. */}
-      {!compact && allTags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-          {allTags.slice(0, 16).map(t => {
-            const active = search.trim().toLowerCase().replace(/^#/, '') === t;
-            return (
-              <button key={t} onClick={() => setSearch(active ? '' : `#${t}`)}
-                style={{
-                  padding: '2px 8px', borderRadius: 0,
-                  border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-                  background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                  color: active ? 'var(--c-ac)' : 'var(--c-tm)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                  cursor: 'pointer',
-                }}>#{t}</button>
-            );
-          })}
-        </div>
-      )}
+      {!compact && allTags.length > 0 && (() => {
+        // equal cells, 4 to a desktop row (a tag cloud of up to 16 never fits one
+        // row), 2 when a tag is long - tags are data (#gevent:817pmg…) - 5.10 #574
+        const cur = search.trim().toLowerCase().replace(/^#/, '');
+        const tags = allTags.slice(0, 16);
+        const longest = Math.max(...tags.map(t => t.length));
+        return (
+          <ChipGrid value={cur} cols={Math.min(tags.length, longest > 14 ? 2 : 4)} style={{ marginBottom: 10 }}
+            onChange={(t) => setSearch(cur === t ? '' : `#${t}`)}
+            items={tags.map(t => ({ k: t, label: `#${t}` }))} />
+        );
+      })()}
 
       {/* Context filter pills — full view only; the compact Dashboard
           surface stays summary-only and routes to the full view via the
           OPEN FULL TASKS button at the bottom. */}
       {!compact && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-          {FILTER_OPTIONS.map(opt => {
-            const active = filter === opt.id;
-            const n = counts[opt.id] ?? 0;
-            return (
-              <button key={opt.id} onClick={() => setFilter(opt.id)}
-                style={{
-                  padding: '3px 8px', borderRadius: 0,
-                  border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-                  background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                  color: active ? 'var(--c-ac)' : 'var(--c-tm)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                  cursor: 'pointer',
-                }}>{opt.label} {n > 0 ? `· ${n}` : ''}</button>
-            );
-          })}
-        </div>
+        <ChipGrid value={filter} onChange={setFilter} style={{ marginBottom: 10 }}
+          items={FILTER_OPTIONS.map(opt => { const n = counts[opt.id] ?? 0; return { k: opt.id, label: opt.label, n: n > 0 ? n : undefined }; })} />
       )}
 
       {adding && (
