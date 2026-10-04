@@ -11,7 +11,8 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
-import { supabase } from './supabase';
+import { supabase, isSandboxSeat } from './supabase';
+import { sandboxLinkNote } from './sandboxLink';
 import { EXPOMark } from './expoMark';
 import { toast } from './ui';
 
@@ -244,6 +245,11 @@ export default function BookingPublic() {
     let alive = true;
     (async () => {
       setLoading(true);
+      // A SANDBOX LINK OPENED BY ANYONE BUT ITS SEAT (4.10 #542): without this the
+      // anon read found the OWNER's real page by the copied slug and took a real
+      // booking. Only the partner's own signed-in seat reads (and writes) his copy.
+      const sbxNote = sandboxLinkNote();
+      if (sbxNote && !isSandboxSeat()) { setError(sbxNote); setLoading(false); return; }
       // NAME THE COLUMNS. This runs on the anon seat, on a page anyone with the
       // link can open: `*` publishes whatever the table happens to hold today AND
       // whatever is added to it tomorrow. These eight are every field the page

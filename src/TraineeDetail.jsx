@@ -758,8 +758,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       {/* === VITALS · INJURIES · GOALS — slot #2, solo only (couples
           render this inside the member columns above). */}
       {!couple && (
-        <Card style={{marginBottom:16, display: showSec('vitals') ? undefined : 'none'}}
-          header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t('Vitals · Injuries · Goals')}</span>}>
+        <CollapsibleSection title={t('Vitals · Injuries · Goals')} storageKey={`td-vitals-${trainee}`} style={{marginBottom:16, display: showSec('vitals') ? undefined : 'none'}}>
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
           <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto",textAlign:"center"}}>
@@ -775,7 +774,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>{t('Injuries / Conditions')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
           {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>{t('Goals')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
           {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>{tr(readLang(), 'Notes')}</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
-        </Card>
+        </CollapsibleSection>
       )}
 
       {/* === BILLING — slot #3, wrapped in a Card like Vitals / Messages

@@ -880,6 +880,26 @@ html {
 @media (prefers-reduced-motion: no-preference) {
   :where(body > div:not(#root):not([data-no-motion])) { animation: expoFadeIn var(--m-base) ease backwards; }
 }
+/* A LIST SETTLES IN (4.10 #539): rows fade in one after another on a list's first
+   paint. OPACITY ONLY (the fixed-overlay trap), capped at 200ms of delay so a long
+   list is never waiting; the reduced-motion kill below/above turns it off. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-stagger > * { animation: expoFadeIn var(--m-base) var(--m-ease) both; }
+  .motion-stagger > :nth-child(2) { animation-delay: 25ms; }
+  .motion-stagger > :nth-child(3) { animation-delay: 50ms; }
+  .motion-stagger > :nth-child(4) { animation-delay: 75ms; }
+  .motion-stagger > :nth-child(5) { animation-delay: 100ms; }
+  .motion-stagger > :nth-child(6) { animation-delay: 125ms; }
+  .motion-stagger > :nth-child(7) { animation-delay: 150ms; }
+  .motion-stagger > :nth-child(8) { animation-delay: 175ms; }
+  .motion-stagger > :nth-child(n+9) { animation-delay: 200ms; }
+  /* a row DIMMED by its own inline opacity (archived card, ghost roster row) keeps
+     it: a fill-both animation outranks inline style and would hold it at 1 */
+  .motion-stagger > [style*="opacity"] { animation: none; }
+}
+/* a STACKED strip button is a control like any other once it leaves the strip:
+   36px (verify-control-heights, 1.10) */
+[data-strip-actions] .strip-btn-stacks { height: var(--btn-h) !important; }
 @keyframes expoPop { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 @keyframes expoMenu { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 @keyframes expoFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1706,6 +1726,11 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   min-height: var(--btn-h-in) !important; height: var(--btn-h-in) !important;
   padding-block: 0 !important; box-sizing: border-box;
 }
+/* ...except a dropdown's ITEMS opened from a strip control: a menu row is a
+   36px control, not a strip button (4.10 review: the demo status menu shrank to 26) */
+.title-strip .motion-menu button { min-height: 36px !important; height: auto !important; }
+/* the demo's Online Now, shut: the strip IS the card (no 12px band under it) */
+.cd-online.alert-sev .title-strip[aria-expanded="false"] { margin-bottom: -1px !important; }
 
 /* A popup title is ONE row (26.9): its lead words step aside on a phone. */
 @media (max-width: 520px) { .bm-lead { display: none; } }
@@ -2249,4 +2274,17 @@ select.avail-select:dir(rtl) {
   .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 9px 0 11px !important; } /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
   .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
   .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 76px 92px !important; }
+}
+
+/* #530 analysis note composer: its cyan frame is the focus cue - the global ring spilled past it */
+.analysis-note-text:focus, .analysis-note-text:focus-visible { outline: none !important; box-shadow: none !important; }
+
+/* CLUB TEAM STATS (4.10 #547): four tiles across, two by two on a phone; the
+   dividers sit only BETWEEN tiles in both layouts */
+.bhbc-team-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.bhbc-team-sum > * + * { border-inline-start: 1px solid var(--c-cardBd); }
+@media (max-width: 600px) {
+  .bhbc-team-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bhbc-team-sum > :nth-child(odd) { border-inline-start: none; }
+  .bhbc-team-sum > :nth-child(n+3) { border-top: 1px solid var(--c-cardBd); }
 }

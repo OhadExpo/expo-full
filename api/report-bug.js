@@ -113,14 +113,23 @@ export default async function handler(req, res) {
   };
 
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/bug_reports`, {
+    // the partner's seat files into HIS sandbox copy, the one his Bugs tab reads -
+    // never into the owner's triage queue (4.10 #542 audit). Same list as
+    // src/authRoles.js PARTNER_EMAILS.
+    // A CLAIMED partner email counts too: when the 1.5 s token check times out his
+    // report must still not reach the owner's queue - it goes to his copy with his
+    // own token, and without one the sandbox table refuses it (RLS: partner only).
+    const partnerSeat = ['eladeluz24@gmail.com'].includes(verifiedEmail || claimed);
+    const table = partnerSeat ? 'sbx_bug_reports' : 'bug_reports';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length).trim() : '';
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
       method: 'POST',
       headers: {
         'apikey': SUPA_PUBLISHABLE_KEY,
         // a verified reporter's report is written AS him (3.10 #524): the table's
         // trigger takes the reporter from the token, so a direct anon insert can
         // no longer pose as the owner or an athlete
-        'Authorization': `Bearer ${verifiedEmail ? authHeader.slice('Bearer '.length).trim() : SUPA_PUBLISHABLE_KEY}`,
+        'Authorization': `Bearer ${(verifiedEmail || partnerSeat) && bearer ? bearer : SUPA_PUBLISHABLE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal',
       },

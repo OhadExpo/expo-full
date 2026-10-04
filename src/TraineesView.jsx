@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, todayLocalISO } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast, CaretGlyph } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast, CaretGlyph, useSettleIn } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -526,6 +526,7 @@ const saveSortPrefs = (prefs) => {
 
 export default function TraineesView({ dataIncomplete = false, trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
   const tt = useT();
+  const settle = useSettleIn((trainees || []).length > 0);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -924,7 +925,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
         // cards are the same height (the action row's marginTop:auto absorbs the
         // slack consistently, keeping internal dividers aligned across the row).
-        <div className="tv-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
+        <div className={`tv-cards-grid ${settle}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
           {filtered.map(t => {
             const couple = isCouple(t);
             const mpc = getMemberPlanCounts(t, planCounts);

@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startDbWatch } from './db-watchdog.mjs';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const STATE = path.join(REPO, 'audit-out/sheets/daemon.json');
 const LOG = path.join(REPO, 'audit-out/sheets/daemon.log');
@@ -112,3 +113,5 @@ runGames();
 setInterval(runGames, 20 * 60 * 1000);
 runOwed();
 setInterval(runOwed, 20 * 60 * 1000);
+// THE DATABASE NEVER STAYS DOWN UNNOTICED (4.10 #543): probe every minute, alert Ohad
+startDbWatch(say, path.join(REPO, 'audit-out/sheets/db-watchdog.json'));

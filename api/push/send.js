@@ -152,6 +152,14 @@ export default async function handler(req, res) {
     return;
   }
 
+  // THE SANDBOX SEAT PUSHES NOBODY (4.10 #542 audit): the client already stays
+  // quiet there, but a token from that seat could still reach the owner's phone
+  // from a console. Same list as src/authRoles.js PARTNER_EMAILS and subscribe.js.
+  if (['eladeluz24@gmail.com'].includes(String(callerEmail || '').toLowerCase())) {
+    res.status(403).json({ error: 'Notifications are off in the sandbox.' });
+    return;
+  }
+
   // Rate limit AFTER identity is established, so the bucket is per person rather
   // than per IP.
   if (!checkPushRate(callerEmail, callerEmail === 'ohadyproductions@gmail.com')) {

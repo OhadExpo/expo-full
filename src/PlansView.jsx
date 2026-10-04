@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -3857,14 +3857,20 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
       {/* BUILD THE NEXT BLOCK — the lineage as a forward-looking tool: the next
           phase (potentiation), a volume target (ramp toward MRV & ACWR-capped, or
           a deload when fatigue is due), the rep/%1RM band, and coverage/balance. */}
-      <div style={{ margin: '4px 12px 12px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
-        <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <span>{tt('Build the next block')}{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <button onClick={() => setReportOpen(true)} title={tt('Open the full next-block report — goals, parameters, weekly progression, per-movement targets')} style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ {tr(readLang(), 'Full report →')}</button>
-            <button onClick={copyBrief} title={tt('Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)')} style={{ height:24, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
-          </div>
-        </div>
+      {/* collapsible like every other titled card (the strip is the handle; the two
+          buttons ride `right` and never toggle it). Same frame as before: sf2 body,
+          no shadow, inset 12px; padX 12 keeps the strip's 12px inset and the -12
+          wrapper cancels the section's body padding so the deload banner still
+          runs edge to edge, flush under the strip. */}
+      <CollapsibleSection title={`${tt('Build the next block')}${nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}`} storageKey="plans-next-block" padX={12} padY={0}
+        style={{ marginTop: 4, marginInline: 12, marginBottom: 12, background: 'var(--c-sf2)', boxShadow: 'none' }}
+        right={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <button onClick={() => setReportOpen(true)} title={tt('Open the full next-block report — goals, parameters, weekly progression, per-movement targets')} style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ {tr(readLang(), 'Full report →')}</button>
+              <button onClick={copyBrief} title={tt('Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)')} style={{ height:24, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
+            </div>
+        }>
+        <div style={{ margin: '-12px -12px 0' }}>
         {nextPlan.deloadDue && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}`, background: 'color-mix(in srgb, #f0b429 12%, transparent)', fontFamily: FB, fontSize: 12 }}>
             <span style={{ color: '#f0b429', fontSize: 13, flexShrink: 0 }}>⚠</span>
@@ -3910,7 +3916,8 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
             )}
           </div>
         </div>
-      </div>
+        </div>
+      </CollapsibleSection>
       {reportOpen && <NextBlockReport model={model} plans={plans} exercises={exercises} traineeName={traineeName} onClose={() => setReportOpen(false)} />}
       <div style={{ padding: '2px 12px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', color: C.tm }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("Volume (sets)")}</span>
@@ -3939,6 +3946,7 @@ function BhbcBadge({ tid, trainees }) {
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const tt = useAppT();
+  const settle = useSettleIn(!!(planIndex && planIndex.length));
   const tb = useTB();
   const he = useHe();
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
@@ -4820,7 +4828,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
       {displayGrouped && displayGrouped.length > 0 && progView === 'table' && phoneList && (
-        <div className="prog-phone-list" style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+        <div className={`prog-phone-list ${settle}`} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
           {displayGrouped.map((row, ri) => {
             const top = ri === 0 ? 'none' : `1px solid ${C.cardBd}`;
             if (row.orphan) {

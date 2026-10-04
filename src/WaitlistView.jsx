@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection, Card } from './ui';
+import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { storeWriteFenced } from './useSupaStore';
 import { useT as useAppT, tr, readLang, agoLabel } from './i18n';
@@ -303,7 +303,7 @@ export default function WaitlistView({ trainees }) {
           is messy"): the house card - a strip title, then THREE equal fact cells
           on one row at every width, the gate bar under them and one sentence.
           Was a sentence of four facts wrapping ragged beside a second boxed card. */}
-      <Card header={tt('COACH WAITLIST')} style={{ marginBottom: 18 }}>
+      <CollapsibleSection title={tt('COACH WAITLIST')} storageKey="waitlist-header" style={{ marginBottom: 18 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
           <StatTile center label={tt('Total')} value={total} />
           <StatTile center label={tt('Uncontacted')} value={active} color={active ? C.or : undefined} />
@@ -316,7 +316,7 @@ export default function WaitlistView({ trainees }) {
           {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.'
             : (readLang() === 'he' ? `המעבר לכמה מאמנים נפתח ב-${COACH_GATE} הרשמות רציניות ומעלה` : `Multi-tenant opens at ${COACH_GATE}+ serious signups`)}
         </div>
-      </Card>
+      </CollapsibleSection>
 
       {/* Funnel conversion strip — six tiles covering volume, contact rate,
           time-to-contact, source split, signup conversion, and avg intent.
@@ -370,15 +370,17 @@ export default function WaitlistView({ trainees }) {
         const refined = isRefined5b();
         const headBorder = refined ? `rgba(0,0,0,0.10)` : C.cardBd;
         return (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+        // collapsible like Funnel above it. padX 14 keeps the strip's 14px inset;
+        // the -12/-14 wrapper cancels the section's body padding so the table
+        // still runs edge to edge, flush under the strip, as it did.
+        <CollapsibleSection storageKey="waitlist-leads" padX={14} padY={0} style={{ marginBottom: 0 }}
+          titleNode={<SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tr(readLang(), 'Leads —')} {sorted.length}</SectionLabel>}>
+          <div style={{ margin: '-12px -14px 0' }}>
           {/* The title and the table's first column start on one x (26.9): the
               strip was 14 and the cells 12 — and 6 on a phone, where index.html
               forces every cell to 8px 6px. .wl-table pins the first column to 14
               at every width; the strip takes the one 41px height, centred. */}
           <style>{`.wl-table th:first-child, .wl-table td:first-child { padding-inline-start: 14px !important; }`}</style>
-          <div className="title-strip" style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
-            <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tr(readLang(), 'Leads —')} {sorted.length}</SectionLabel>
-          </div>
           <div style={{ overflowX: 'auto' }}>
           <table className="wl-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
@@ -478,7 +480,8 @@ export default function WaitlistView({ trainees }) {
             </tbody>
           </table>
           </div>
-        </div>
+          </div>
+        </CollapsibleSection>
         );
       })()}
     </div>

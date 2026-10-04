@@ -25,7 +25,8 @@ import {
   MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, smoothFramesForDisplay, frameAt,
 } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
-import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift } from './poseMetricsStore';
+import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift, getLastPoseEntryBefore, saveJumpMetric, getLastJumpBefore } from './poseMetricsStore';
+import { VsLastTime, SendToAthlete } from './AnalysisShare';
 import { romReadingFor } from './romGoniometer';
 import { resolveStoredUrl } from './storageUrl';
 import { useT, HE } from './i18n';
@@ -405,6 +406,7 @@ export default function MovementLab({
   vaultDate = null,             // date of the picked clip → vault entry key
   recordedReps = [],            // the filmed exercise's LOGGED set reps → cross-check the camera count
   targetReps = null,            // the exercise's PRESCRIBED reps (e.g. "8-10") from the plan
+  onSendNote = null,            // async (text) => true once saved - SEND TO ATHLETE: a note on the picked clip (#530)
 }) {
   const tt = useT();
   const isMobile = useIsMobile(760);
@@ -434,6 +436,11 @@ export default function MovementLab({
   const [progress, setProgress] = useState(0);
   const [displayFrames, setDisplayFrames] = useState([]);
   const [srcUrl, setSrcUrl] = useState(null);
+  // IS THE VIDEO ON SCREEN THE PICKED CLIP? (review of #530): after picking athlete A's
+  // clip the coach can still RECORD or UPLOAD another set here - its numbers must never be
+  // sent to A's clip or saved to A's jump trend. (srcUrl is the SIGNED url, so it cannot
+  // be compared with initialClipUrl.)
+  const [onPickedClip, setOnPickedClip] = useState(false);
   const [videoTime, setVideoTime] = useState(0);
   // The coach PICKS the movement. '' = none → neutral read, no rep counting.
   // Nothing in this tool infers it (Ohad: "auto detection doesn't work and
@@ -565,13 +572,15 @@ export default function MovementLab({
     // Frames are captured — release the camera (battery / privacy).
     stopStream(streamRef.current); streamRef.current = null;
     setSource(null);
+    setOnPickedClip(false);   // a recorded set is never the picked clip
     setPhase('analyzing');
     setTimeout(() => finishFrames(frames), 30);
   }, [finishFrames, setSource]);
 
   // Offline read of a clip (upload or a picked reviewed clip): the 'full' model,
   // seek-stepped at the clip's real frame rate — see captureClipFrames.
-  const analyzeSource = useCallback(async (url, { crossOrigin = false } = {}) => {
+  const analyzeSource = useCallback(async (url, { crossOrigin = false, picked = false } = {}) => {
+    setOnPickedClip(!!picked);
     setError(null); setResult(null); setJump(null); setDisplayFrames([]); setProgress(0); setPhase('analyzing');
     // a stored clip plays and is read from its SIGNED url - the raw public one
     // fails once the bucket is private (#510-S4); a blob: or other url passes through
@@ -591,7 +600,7 @@ export default function MovementLab({
   useEffect(() => {
     if (!initialClipUrl || initialDoneRef.current) return;
     initialDoneRef.current = true;
-    analyzeSource(initialClipUrl, { crossOrigin: true });
+    analyzeSource(initialClipUrl, { crossOrigin: true, picked: true });
   }, [initialClipUrl, analyzeSource]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
@@ -752,7 +761,7 @@ export default function MovementLab({
       <Section title={tt('RESULT')}>
         {(jump?.jumpType || jumpKind) === 'broad'
           ? <BroadJumpResult jump={jump} onSave={onSaveJump} onClose={onClose} />
-          : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />}
+          : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} vaultClientId={onPickedClip ? vaultClientId : null} vaultDate={vaultDate} clipKey={initialClipUrl} onSendNote={onPickedClip ? onSendNote : null} noteTitle={exerciseTitle} />}
       </Section>
     ) : (
       <>
@@ -776,7 +785,7 @@ export default function MovementLab({
           <Section title={tt(initialView === 'metrics' ? 'LIFT METRICS' : 'ANALYSIS')}>
             <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} movement={movement}
               tab={tab} setTab={setTab} view={initialView}
-              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps}
+              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps} onSendNote={onPickedClip ? onSendNote : null} pickedClip={onPickedClip}
               playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
           </Section>
         )}
@@ -842,7 +851,7 @@ function ReadSummary({ result, movement }) {
 // movement: the coach's explicit pick from MovementLab (a MOVEMENTS entry, or
 // null = neutral). Left undefined by callers that only know the LOGGED exercise
 // (Workout Review) — then the logged title decides the joint channel.
-export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
+export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, onSendNote = null, pickedClip = false, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
   // First/last-rep trim (Ohad: "I want to be able to set where is the first
   // and last rep, to avoid random movement analyzed into the means") — 1-
   // indexed, inclusive, defaults to the full detected set. Only the MEAN
@@ -883,6 +892,9 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
     const { angle } = channelSignal(frames, exerciseTitle, movement);
     return romTempoMetrics(frames, angle, slice);
   }, [result, trimmed, effFrom, effTo, frames, exerciseTitle, movement]);
+  // the last saved set of this lift on an earlier day (#530) - re-read after a save
+  // only against the picked clip: a set recorded here may be someone else
+  const prevEntry = useMemo(() => (vaultClientId && pickedClip ? getLastPoseEntryBefore(vaultClientId, exerciseTitle, vaultDate) : null), [vaultClientId, pickedClip, exerciseTitle, vaultDate, vaultSaved]);
   if (!result?.ok) return <Empty msg={tt("Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame.")} />;
   // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
@@ -1037,6 +1049,36 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
           )}
         </div>
       )}
+      {(() => {
+        // VS LAST TIME + SEND TO ATHLETE (#530): the numbers of the reps in the trim
+        const velOk = isVelocityLossLift(exerciseTitle) && result?.captureQuality?.grade !== 'poor';
+        const v = velOk ? trimmedVelocity?.bestMean : null;
+        const loss = velOk ? trimmedVelocity?.finalLossPct : null;
+        const rom = trimmedRomTempo?.maxRom;
+        const nReps = trimmed ? Math.max(0, effTo - effFrom + 1) : repCount;
+        const parts = [String(exerciseTitle || '').trim()].filter(Boolean);
+        if (nReps) parts.push(nReps === 1 ? tt('1 rep') : tt('{n} reps').replace('{n}', nReps));
+        if (typeof v === 'number') parts.push(`${tt('best bar speed')} ${v.toFixed(2)} m/s`);
+        if (typeof loss === 'number' && nReps > 1) parts.push(`${tt('speed loss')} ${Math.round(loss)}%`);   // a loss needs two reps
+        if (typeof rom === 'number') parts.push(`${tt('range of motion')} ${Math.round(rom)}°`);
+        if (prevEntry && typeof v === 'number' && typeof prevEntry.bestMean === 'number') {
+          const dv = Math.round((v - prevEntry.bestMean) * 100) / 100;
+          const m = String(prevEntry.date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+          parts.push(`${tt('vs {d}').replace('{d}', m ? `${m[3]}/${m[2]}` : '')}: ${dv > 0 ? '+' : ''}${dv.toFixed(2)} m/s`);
+        }
+        return (
+          <>
+            {prevEntry && (
+              <VsLastTime date={prevEntry.date} rows={[
+                { label: tt('BAR SPEED'), now: v, before: prevEntry.bestMean, unit: 'm/s', digits: 2 },
+                { label: tt('SPEED LOSS'), now: loss, before: prevEntry.lossPct, unit: '%', digits: 0, higherIsBetter: false },
+                { label: tt('RANGE OF MOTION'), now: rom, before: prevEntry.maxRom, unit: '°', digits: 0 },
+              ]} />
+            )}
+            {onSendNote && parts.length > 1 && <SendToAthlete defaultText={parts.join(' · ')} onSend={onSendNote} />}
+          </>
+        );
+      })()}
       {(tab === 'velocity' || tab === 'rom') && repCount > 1 && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', flexWrap: 'wrap' }}>
           <span>{tt('ANALYZE REPS')}</span>
@@ -2084,12 +2126,50 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
   );
 }
 
-function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
+function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg, vaultClientId = null, vaultDate = null, clipKey = null, onSendNote = null, noteTitle = '' }) {
   const [saved, setSaved] = useState(false);
+  const [trendSaved, setTrendSaved] = useState(false); // the jump trend (#530), this device
   const tt = useT();
   const [bw, setBw] = useState(defaultBodyweightKg != null ? String(defaultBodyweightKg) : '');
   if (!jump) return <Empty msg={tt("Couldn't read a clean jump. Film side-on, full body in frame — stand still, then jump. For a drop jump / POGO, land and rebound immediately (minimise ground contact).")} />;
   const title = JUMP_TITLE[jump.jumpType] || 'VERTICAL JUMP';
+  // JUMPS GET A TREND (4.10 #530): a picked athlete's clip (not an eval test,
+  // which saves to its own field) can be saved, compared with his last saved
+  // jump of this type, and sent to him as a note on the clip.
+  const prevJ = vaultClientId && !onSave ? getLastJumpBefore(vaultClientId, jump.jumpType, vaultDate) : null;
+  const jumpShare = vaultClientId && !onSave ? (() => {
+    // the note names the jump as it was LOGGED (he knows it by that name; the tool's
+    // titles are English capitals and the reactive ones already end in RSI)
+    const parts = [String(noteTitle || '').trim() || tt(title)];
+    if (jump.reactive && typeof jump.rsi === 'number') parts.push(`RSI ${jump.rsi}`);
+    if (jump.reactive && typeof jump.contactMs === 'number') parts.push(`${tt('contact')} ${jump.contactMs} ms`);
+    if (typeof jump.heightCm === 'number') parts.push(`${tt('height')} ${jump.heightCm} cm`);
+    const key = jump.reactive ? 'rsi' : 'heightCm';
+    if (prevJ && typeof prevJ[key] === 'number' && typeof jump[key] === 'number') {
+      const dd = jump.reactive ? Math.round((jump[key] - prevJ[key]) * 100) / 100 : Math.round((jump[key] - prevJ[key]) * 10) / 10;
+      const m = String(prevJ.date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+      parts.push(`${tt('vs {d}').replace('{d}', m ? `${m[3]}/${m[2]}` : '')}: ${dd > 0 ? '+' : ''}${dd}${jump.reactive ? ' RSI' : ' cm'}`);
+    }
+    const box = { marginTop: 14, height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', borderRadius: 0 };
+    return (
+      <div style={{ marginTop: 18 }}>
+        {prevJ && (
+          <VsLastTime date={prevJ.date} rows={jump.reactive ? [
+            { label: 'RSI', now: jump.rsi, before: prevJ.rsi, digits: 2 },
+            { label: tt('CONTACT'), now: jump.contactMs, before: prevJ.contactMs, unit: 'ms', digits: 0, higherIsBetter: false },
+            { label: tt('HEIGHT'), now: jump.heightCm, before: prevJ.heightCm, unit: 'cm', digits: 1 },
+          ] : [
+            { label: tt('HEIGHT'), now: jump.heightCm, before: prevJ.heightCm, unit: 'cm', digits: 1 },
+          ]} />
+        )}
+        {trendSaved
+          ? <div style={{ ...box, marginTop: 0, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.gn}`, color: C.gn }}>✓ {tt('SAVED TO HIS JUMP TREND')}</div>
+          : <button type="button" onClick={() => { if (saveJumpMetric({ clientId: vaultClientId, jumpType: jump.jumpType, date: vaultDate, jump, clipKey })) setTrendSaved(true); }}
+              style={{ ...box, marginTop: 0, marginBottom: 14, background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>↑ {tt('SAVE TO TREND')}</button>}
+        {onSendNote && <SendToAthlete defaultText={parts.join(' · ')} onSend={onSendNote} />}
+      </div>
+    );
+  })() : null;
   const saveBtn = (s) => ({ marginTop: 18, padding: '0 20px', height: CTRL_H, minHeight: CTRL_H, boxSizing: 'border-box', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
 
   // Reactive jumps (drop jump / POGO): RSI is the headline, not height.
@@ -2111,6 +2191,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
           </div>
         )}
         <FpsBadge fps={result?.fps} />
+        {jumpShare}
         {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>}
         {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%' }}>{tt('DONE')}</button>}
       </div>
@@ -2142,6 +2223,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
             </div>
           : <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em' }}>{tt('Enter bodyweight to estimate peak power.')}</div>}
       </div>
+      {jumpShare}
 
       {onSave && (
         <button disabled={saved} onClick={() => { onSave({ ...jump, bodyweightKg: power ? massKg : null, powerW: power?.watts ?? null, powerWkg: power?.perKg ?? null }); setSaved(true); }} style={{

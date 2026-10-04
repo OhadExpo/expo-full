@@ -206,6 +206,10 @@ const ViewFallback = () => (
   <div className="expo-loading" style={{textAlign:'center',padding:40,color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.2em'}}>{trFn(readLang(), 'LOADING…')}</div>
 );
 
+// EVERY CLUB PAGE, ONE LIST (4.10 #547): two copies of this pattern had no
+// 'practices', so a reload or a link to /bhbc/practices landed on OVERVIEW.
+// BhbcView's ZONE_PAGES is the same list.
+const BHBC_ZONE_PATH = /^\/bhbc(\/(login|overview|roster|schedule|practices|lifts|medical|games|activity))?\/?$/;
 const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", cw:"expo-cw", bw:"expo-bw" };
 
 // Root. Wraps in Supabase auth context; AuthGate shows LoginScreen until
@@ -1056,7 +1060,7 @@ function AuthedApp() {
       const p = window.location.pathname || '';
       // /bhbc is a coach-side door too — a dual-role user opening the club URL
       // must land in the zone, not on the portal chooser.
-      if (p === '/coach' || p.startsWith('/coach/') || /^\/bhbc\/?(login\/?)?$/.test(p)) {
+      if (p === '/coach' || p.startsWith('/coach/') || BHBC_ZONE_PATH.test(p)) {   // every club page (4.10 review: /bhbc/practices opened in a fresh tab got the chooser)
         sessionStorage.setItem(PORTAL_CHOICE_KEY, 'trainer');
         return 'trainer';
       }
@@ -1125,7 +1129,7 @@ function AuthedApp() {
     // Short club URL: /bhbc (and /bhbc/login) are the Bnei Herzliya door and
     // resolve to the same zone tab as /coach/bhbc.
     // …and /bhbc/<tab> (27.9: every club page has its own URL, like EXPO's).
-    if (/^\/bhbc(\/(login|overview|roster|schedule|lifts|medical|games|activity))?\/?$/.test(p)) {
+    if (BHBC_ZONE_PATH.test(p)) {
       // Already signed in? /bhbc/login is not a page any more — normalise the
       // URL to the zone so a bookmarked login link just opens the app.
       if (/login\/?$/.test(p) && !hasAuthPayload() && !CAME_BACK_FROM_OAUTH) { try { window.history.replaceState(null, '', '/bhbc'); } catch { /* noop */ } }
@@ -1219,7 +1223,7 @@ function AuthedApp() {
     // every club URL, the per-tab ones included (27.9 #375: a coach who
     // refreshed on /bhbc/roster was rewritten to /coach/dashboard and landed
     // on Overview - the tab URLs were missing from this list)
-    const onCoach = p === '/coach' || p.startsWith('/coach/') || /^\/bhbc(\/(login|overview|roster|schedule|lifts|medical|games|activity))?\/?$/.test(p);
+    const onCoach = p === '/coach' || p.startsWith('/coach/') || BHBC_ZONE_PATH.test(p);
     const onAthlete = p === '/athlete' || p.startsWith('/athlete/');
     const onLogin = p.startsWith('/login');
     if (isClient && !onAthlete) window.history.replaceState(null, '', keepHash('/athlete'));
@@ -2040,7 +2044,7 @@ function AuthedApp() {
             </div>
           )}
           {viewTab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}
-          {viewTab==="reviewTools"&&isOwner&&<ReviewToolsView clientWorkouts={clientWorkouts} trainees={trainees}/>}
+          {viewTab==="reviewTools"&&isOwner&&<ReviewToolsView clientWorkouts={clientWorkouts} trainees={trainees} updateFormVideos={updateFormVideos}/>}
           {viewTab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
           {viewTab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVisSynced} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {viewTab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts}/>}

@@ -14,10 +14,11 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
+import { supabase } from './supabase';
 import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, countWord, daysFor, overdueFor, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
@@ -161,10 +162,14 @@ const BModal = ({ children, title, ...rest }) => {
 // uses, and the state is remembered per box so a physio who keeps Medical open
 // and the rest shut finds it that way tomorrow. A card with no header strip has
 // no handle, so it is left alone.
+// A title that carries today's date ("Today · Sun 4 Oct", "Today's sessions ·
+// …") keys on the words before the date, or the key - and the box's remembered
+// state - changed every day.
+const DATED_TITLE = /^(Today(?:'s sessions)?) · .*$/;
 const cardKey = (header) => {
-  if (typeof header === 'string') return header;
+  if (typeof header === 'string') return header.replace(DATED_TITLE, '$1');
   const s = header && header.props && header.props.s;
-  return typeof s === 'string' ? s : '';
+  return typeof s === 'string' ? s.replace(DATED_TITLE, '$1') : '';
 };
 // AN ACTION IN ITS OWN CARD'S STRIP (29.9 #396, Ohad: "i don't need the manage
 // roster, log lift, log sc session to be appearing on all the screens. they
@@ -741,7 +746,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [bhbcTheme, setBhbcTheme] = usePersistentState('bhbc-theme', 'light');
   // The activity trail is read and written HERE, not in App: this component
   // only ever mounts inside the club zone, so no athlete seat carries the read.
-  const [activity, setActivity] = useSupaStore('expo-bhbc-activity', []);
+  const [activity, setActivity, activityLoaded] = useSupaStore('expo-bhbc-activity', []);
   const zoneDark = bhbcTheme === 'dark';
   const he = bhbcLang === 'he';
   setBhbcDateLang(bhbcLang);
@@ -759,12 +764,25 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // WHO WORKS IN HERE, AND WHAT THEY TOUCHED. Ohad's owner-only ACTIVITY tab.
   // One line per action, stamped with the moment it happened (not with the date
   // of the session being typed up) and with the person who did it.
+  // A CLUB COACH'S SEAT can neither read nor write the trail (it is the owner's),
+  // so every line he made was refused and the tab showed only the owner (#547,
+  // measured: 51 of 51). His lines go through the append-only door instead
+  // (bhbc_activity_append: who + when from his token, same duplicate rule + cap).
   const track = useCallback((kind, what) => {
+    if (coach) { supabase.rpc('bhbc_activity_append', { p_kind: kind, p_what: what }).then(() => {}, () => {}); return; }
     if (!setActivity) return;
     setActivity((prev) => appendActivity(prev, { by: currentUser || null, kind, what }));
-  }, [setActivity, currentUser]);
+  }, [setActivity, currentUser, coach]);
   const trackRef = React.useRef(track); trackRef.current = track;
-  useEffect(() => { trackRef.current('open', 'opened the club zone'); }, []);
+  // logged once the feed has LOADED (#547): on mount it raced the read, the write
+  // guard refused it (rightly - it would have replaced the feed with one line), and
+  // a coach opening the zone from a cold start never reached the ACTIVITY tab
+  const openLoggedRef = React.useRef(false);
+  useEffect(() => {
+    if (!activityLoaded || openLoggedRef.current) return;
+    openLoggedRef.current = true;
+    trackRef.current('open', 'opened the club zone');
+  }, [activityLoaded]);
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   // Which already-landed athlete has had their date re-opened for editing in
@@ -3273,7 +3291,7 @@ function TravelStrip({ travel }) {
       {/* the plane is centred on the block of legs beside it, not on a baseline */}
       <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}><Plane size={12} color={ORANGE_DEEP} /></span>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr)', columnGap: 10, rowGap: 6, alignItems: 'center', flex: 1, minWidth: 0 }}>
-        {leg(travel.out, 'Out')}
+        {leg(travel.out, 'Outbound') /* its own word: 'Out' is the injury status ('בחוץ'), and the outbound flight read as one (#547) */}
         {leg(travel.back, 'Back')}
       </div>
     </div>
@@ -3288,6 +3306,7 @@ function TravelStrip({ travel }) {
 // the actions themselves. Nothing is derived from session dates — every line is
 // stamped with the moment the action happened (see bhbcActivity.js).
 function ActivityView({ activity = [], tr, he }) {
+  const settle = useSettleIn(activity.length > 0);
   // THE TRAIL, REDESIGNED (4.10 #531, Ohad: "activity page on bhbc awfully
   // designed redo it all perfectly"). Measured at 390 before: every entry was
   // two lines and a label column (~70px), the date written twice in two forms
@@ -3401,7 +3420,7 @@ function ActivityView({ activity = [], tr, he }) {
             {days.map((day) => (
               <div key={day.d || 'x'}>
                 <div style={band}><span dir="auto" style={{ ...lbl, color: C.tx }}>{day.d ? dayHead(day.d) : '—'}</span></div>
-                <div className="hl-rows">
+                <div className={`hl-rows ${settle}`}>
                   {day.rows.map((e, i) => (
                     <div key={i} className="bhbc-act-row" style={{ display: 'grid', gridTemplateColumns: '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 40, padding: '10px 0', boxSizing: 'border-box' }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
@@ -4789,7 +4808,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
                     <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
-                      {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? `1 ${tr('days')}` : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
+                      {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? tr('yesterday') /* 'אתמול' is shorter than the '1 ימים' it replaced (#547) */ : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
                     </span>
                   </span>
                 </div>
@@ -4858,7 +4877,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
     if (w) el.style.setProperty('--pos-w', `${Math.ceil(w)}px`);
   });
   return (
-    <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
+    <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE} padX={14} /* the zone Card's 14: its title sat 4px in from every other card's (#547, measured 157 vs 153) */>
       <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
 
         <div ref={loadInnerRef} className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
@@ -5019,6 +5038,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
 
 function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, onOpen, action = null }) {
   const tr = useT();
+  const settle = useSettleIn((rows || []).length > 0);
   // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
   // first, the league feed only for a player with none - and never a league
   // number from a season that is over (the Games tab shows those as last
@@ -5049,8 +5069,8 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
       </div>
     );
     return (
-      <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
-        <div className="hl-rows" style={{ display: 'grid' }}>
+      <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action} padX={14}>
+        <div className={`hl-rows ${settle}`} style={{ display: 'grid' }}>
           {rows.map(({ t, acwr, att }) => {
             const inj = worstInjury(medical, t.id);
             const injShort = !inj ? null : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
@@ -5079,7 +5099,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     );
   }
   return (
-    <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action}>
+    <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY} right={action} padX={14}>
       {/* 264, not 232 (29.9 #380): a card's footer - height · nation · PPG ...
           sessions · hours - needs ~260px; at 820 three 240px cards clipped
           "23 SESSIONS · 5H" by 20px. 264 gives two columns there, three from
@@ -5609,7 +5629,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   return (
     // ONE ROW (26.9): the counts are a caption beside the title, not part of
     // it — appended to the title they wrapped it to two lines at 390.
-    <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}
+    <CollapsibleSection title={tr("Week Planner")} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE} padX={14}
       right={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' }}>{he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${gameCount === 1 ? 'משחק אחד' : `${gameCount} משחקים`}` : `${weekCount} sessions · ${gameCount} games`}</span>{action}</span>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" aria-label={tr('Previous week')} style={navArrow(false)}>{he ? '›' : '‹'}</button>
@@ -6413,11 +6433,11 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? tr('Last season') : tr('Live')}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt, heL)}` : ''}</span>
       }>
         {showCurrent ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+          <div className="bhbc-team-sum" /* 4 across, or 2 x 2 on a phone - dividers only BETWEEN tiles (#547: auto-fit gave a 3+1 wrap and a stray line on the row-2 tile) */>
             {summary.map((s, i) => (
-              <div key={s.k} style={{ padding: '14px 18px', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div key={s.k} style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
-                <div dir="ltr" style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{s.v}</div>
+                <div dir="ltr" style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', alignSelf: 'flex-start' /* under its label in Hebrew too (text-align:start of an LTR box is LEFT) */ }}>{s.v}</div>
                 {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
               </div>
             ))}
@@ -6426,11 +6446,11 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
           <>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '2px 2px 14px' }}>{tr('The {season} season has not started yet.').replace('{season}', currentSeason)}</div>
             <CollapsibleSection domId="bhbc-lastseason-team" storageKey="bhbc-lastseason-team" defaultOpen={false} title={`${league.season} · ${tr('Last season')}`} bare padX={0}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+              <div className="bhbc-team-sum" /* 4 across, or 2 x 2 on a phone - dividers only BETWEEN tiles (#547: auto-fit gave a 3+1 wrap and a stray line on the row-2 tile) */>
                 {summary.map((s, i) => (
-                  <div key={s.k} style={{ padding: '14px 18px', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div key={s.k} style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
-                    <div dir="ltr" style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{s.v}</div>
+                    <div dir="ltr" style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', alignSelf: 'flex-start' /* under its label in Hebrew too (text-align:start of an LTR box is LEFT) */ }}>{s.v}</div>
                     {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
                   </div>
                 ))}
@@ -6665,7 +6685,7 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
             <span style={{ minWidth: 0 }}>
               <span style={{ fontWeight: 700 }}>{f.name}</span>
               <span style={{ color: C.td }}>
-                {' \u00B7 '}{tr('back')} {f.daysBack} {tr('days')}
+                {' \u00B7 '}{tr('back')} {f.daysBack} {tr(f.daysBack === 1 ? 'day' : 'days')}
                 {f.bodyPart ? ' \u00B7 ' + tr(f.bodyPart) : ''}
               </span>
               <div dir="ltr" style={{ fontFamily: FN, fontSize: 11.5, color: C.td, marginTop: 2, unicodeBidi: 'isolate' }}>

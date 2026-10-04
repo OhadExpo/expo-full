@@ -345,7 +345,8 @@ const LOGIN_BRANDS = {
     // well as the S&C team, and the old label read as if it were S&C-only (Ohad).
     eyebrow: 'Bnei Herzliya · Coaches & Staff',
     sub: 'Coach sign-in',
-    foot: 'Staff access is provisioned by the S&C team.',
+    // one line at 390 (#547: 'TEAM.' wrapped alone under the rest)
+    foot: 'Access is set up by the S&C team.',
     home: '/bhbc',
   },
 };

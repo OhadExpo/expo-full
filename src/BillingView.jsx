@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase, useStripFit } from './ui';
+import { isRefined5b, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase, CollapsibleSection } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
 import { tr, readLang, useT, useTB } from './i18n';
@@ -39,14 +39,13 @@ export default function BillingView({ trainees, onSelectTrainee }) {
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
   const refined = isRefined5b();
-  // PAYMENT REQUESTS keeps its title on one line (#452): + NEW REQUEST steps
-  // under the strip when the two do not fit side by side
-  const reqRowRef = React.useRef(null), reqTitleRef = React.useRef(null), reqBtnRef = React.useRef(null);
+  // PAYMENT REQUESTS keeps its title on one line (#452): + NEW REQUEST rides the
+  // CollapsibleSection's `right`, which steps it under the strip itself when the
+  // two do not fit side by side (the section runs the same useStripFit)
   const reqPending = requests.filter(r => r.status === 'pending').length;
-  const reqStacked = useStripFit(true, reqRowRef, reqTitleRef, reqBtnRef, 0, [reqPending]);
   const newReqBtn = (
-    <button ref={reqStacked ? undefined : reqBtnRef} onClick={() => setShowRequest(true)}
-      style={{ ...stripBtnBase, ...(reqStacked ? { height: 'var(--btn-h)' } : null) /* out of the strip it is a control like any other: 36 (verify-control-heights, 1.10) */, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+    <button onClick={() => setShowRequest(true)} className="strip-btn-stacks"
+      style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
   );
   const PAD = 14;
 
@@ -198,20 +197,17 @@ export default function BillingView({ trainees, onSelectTrainee }) {
       {/* OWED, expanded: every client, every detail (#386). */}
       <OwedCard trainees={trainees} onSelectTrainee={onSelectTrainee} expanded />
       {/* REQUESTS */}
-      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          {/* ONE ROW. flexWrap put + NEW REQUEST on a second line at 390, so the
-              title sat 22px above the strip's centre (26.9). The title may wrap
-              inside its own column; the button never moves under it. */}
-          <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
-              {/* one line on a phone: the count stays, its word steps aside */}
-              {tt('PAYMENT REQUESTS')} · {requests.filter(r => r.status === 'pending').length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
-            </span>
-            {!reqStacked && newReqBtn}
-          </div>
-        </RefinedHeaderStrip>
-        {reqStacked && <div data-strip-actions="" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>{newReqBtn}</div>}
+      {/* collapsible like OWED above it (same chrome, same 0 margin: the page
+          stacks its cards with a 14px gap). ONE ROW: + NEW REQUEST rides `right`
+          and the section steps it under the strip when the two do not fit. */}
+      <CollapsibleSection storageKey="billing-requests" padX={PAD} padY={PAD} style={{ marginBottom: 0 }} count={reqPending /* not rendered beside a titleNode; it re-measures the strip when the count changes */}
+        right={newReqBtn}
+        titleNode={
+          <span style={{ display: 'block', width: 'fit-content', maxWidth: '100%', minWidth: 0 /* a block (its own 13px line - inline sat 2px low, box-centring 4.10) that is only as wide as its words: full-width, the strip-fit check read it as the whole strip and + NEW REQUEST stacked under it at every width (4.10 audit) */, overflowWrap: 'break-word', fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
+            {/* one line on a phone: the count stays, its word steps aside */}
+            {tt('PAYMENT REQUESTS')} · {reqPending}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
+          </span>
+        }>
         {loadError ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>{tt('Couldn’t load billing data:')}{loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
           </div>
@@ -258,19 +254,18 @@ export default function BillingView({ trainees, onSelectTrainee }) {
             </div>
           );
         })}
-      </div>
+      </CollapsibleSection>
 
       {/* ROSTER STATUS */}
-      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
-            {tt('ROSTER STATUS')}
-          </span>
-        </RefinedHeaderStrip>
+      <CollapsibleSection title={tt('ROSTER STATUS')} storageKey="billing-roster" padX={PAD} padY={PAD} style={{ marginBottom: 0 }}>
         {/* Club athletes are not billed by EXPO - the club pays - so they do
             not belong on a roster-payment list. Ohad, 21.9: "remove the payments
             and billing from all their names". Listing them with NO REQUEST
             beside their name reads as a debt that does not exist. */}
+        {/* the section body opens with 12px; a row list starts at the strip so the
+            first name sits centred between the strip and its rule, like every
+            other row (verify-rule-rhythm FIRSTGAP: 22 above / 10 below, 4.10) */}
+        <div style={{ marginTop: -12 }}>
         {(trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t)).map((t, i, arr) => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
@@ -288,7 +283,8 @@ export default function BillingView({ trainees, onSelectTrainee }) {
             </div>
           );
         })}
-      </div>
+        </div>
+      </CollapsibleSection>
 
       {/* FROM THE SHEETS LAST (29.9 #448 audit): ~1,900px of history sat between
           OWED and the two sections a coach acts on, pushing them to y 3300 */}

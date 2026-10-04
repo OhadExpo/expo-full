@@ -21,7 +21,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge } from './ui';
+import { SegWord, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -324,7 +324,7 @@ function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac,
         </span>
       </div>
       {sub && (
-        <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{subShort ? <SegWord full={sub} short={subShort} /> : sub}</div>
+        <div style={{ display: 'flex', fontSize: 9, fontFamily: FN, color: subColor || C.td, marginTop: 2, letterSpacing: '0.1em', lineHeight: 1.2, whiteSpace: 'nowrap', textTransform: 'uppercase', justifyContent: 'flex-start' }}>{/* the REAL dashboard caption, exactly (#545 parity): one line, the short form where the full one does not fit */}<SegWord full={sub} short={subShort || sub} /></div>
       )}
     </div>
   );
@@ -394,6 +394,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
   // the real cards' collapse carets + expanders (29.9 #448)
   const [tasksOpen, setTasksOpen] = useState(true);
   const [msgsOpen, setMsgsOpen] = useState(true);
+  const [onlineOpen, setOnlineOpen] = useState(true);
   const [answeredOpen, setAnsweredOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(true);
   const [rosterFilter, setRosterFilter] = useState('');
@@ -447,7 +448,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
         {/* every tile carries a caption, as the real dashboard's do (27.9 #300 O9) */}
         {/* the real tiles' words (DashboardView): short titles where a phone's
             half-width tile would wrap, the real captions in the real grey */}
-        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} total={String(MOCK_TRAINEES.length)} sub={T('Active / roster')} accent={C.gn} />
+        <StatCard label={T('Active Athletes')} short={readLang() === 'he' ? null : 'Athletes'} value={String(active.length)} sub={T('of {n} on the roster').replace('{n}', MOCK_TRAINEES.length)} subShort={T('of {n}').replace('{n}', MOCK_TRAINEES.length)} accent={C.gn} />
         <StatCard label={T('Low Sessions')} short={readLang() === 'he' ? 'מעט אימונים' : null} value={String(lowSessions.length)} sub={T('2 or fewer sessions left')} subShort={T('≤2 sessions left')} accent={lowSessions.length ? C.or : C.gn} />
         <StatCard label={T('Estimated Monthly')} short={readLang() === 'he' ? null : 'Est. Monthly'} value={nis(mrr)} sub={T('Recurring committed')} subShort={T('Recurring')} accent={C.ac} />
         <StatCard label={T('Collected MTD')} short={readLang() === 'he' ? null : 'Collected'} value={nis(collected30)} sub={`${deltaTxt} ${T('vs last month')}`} subShort={deltaTxt} subColor={deltaCol} accent={C.gn} />
@@ -593,11 +594,13 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {/* ONLINE NOW - the real dashboard lifts it out of the alert rail: its own
           full-width card above Messages */}
       {onlineNow.length > 0 && (
-        <div className="alert-card alert-sev" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
-          <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 8px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
+        <div className="alert-card alert-sev cd-online" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: onlineOpen ? '14px 18px' : '14px 18px 0', marginBottom: 14 }}>
+          {/* collapsible like the real card (4.10 #540): the strip is the handle */}
+          <div className="title-strip" onClick={() => setOnlineOpen((o) => !o)} {...stripToggleProps(onlineOpen, () => setOnlineOpen((o) => !o))} style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: onlineOpen ? '-14px -18px 8px' : '-14px -18px -14px', padding: '0 18px', borderBottom: onlineOpen ? `1px solid ${C.cardBd}` : 'none' /* shut: no grey line doubled on the green edge */, ...DEMO_STRIP_H, justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>
+            <StripCaret open={onlineOpen} />
           </div>
-          {onlineNow.map(t => (
+          {onlineOpen && onlineNow.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.gn, boxShadow: `0 0 4px ${C.gn}`, flexShrink: 0 }} />
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -817,6 +820,7 @@ function FakeWaButton({ edge = false }) {
 // ─── Tab: Trainees ────────────────────────────────────────────────────────
 function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   const rail = useNarrowRail();
+  const settle = useSettleIn();   // the real grid's first-paint fade (4.10 #539 parity)
   // + ADD ATHLETE LEADS THE LIST BELOW 1200 (29.9 #393 parity with the real
   // roster): at the foot of the rail it sat under every filter group, and on a
   // phone behind the collapsed FILTERS toggle.
@@ -952,7 +956,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('No athlete matches your filters. Clear them to see the full roster.')}</div>
             </div>
           ) : (
-            <div className="cd-cards-grid" style={{
+            <div className={`cd-cards-grid ${settle}`} style={{
               display: 'grid', gap: 12,
               gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gridAutoRows: '1fr',
             }}>
@@ -1340,15 +1344,38 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
 // cyan strip header (white title, cyan hairline bottom) over an sf body, so
 // the demo athlete-detail reads like the real TraineeDetail instead of the
 // old two-column key/value panels.
-function DemoDetailCard({ header, headerRight, children, padding = 18, style }) {
+// A demo strip that toggles its card is a button to the keyboard too, as the real
+// CollapsibleSection's strip (role, focus, Enter/Space) - 4.10 #540 review
+function stripToggleProps(open, flip) {
+  return {
+    role: 'button', tabIndex: 0, 'aria-expanded': open,
+    onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } },
+  };
+}
+
+function DemoDetailCard({ header, headerRight, children, padding = 18, style, collapsible = true }) {
   const pad = padding;
+  // The strip is the expand/collapse handle, as the real TraineeDetail's
+  // CollapsibleSection sections (local state, like the demo's Owed / Revenue /
+  // Roster cards). A control in the strip does its own job and never toggles.
+  const [open, setOpen] = useState(true);
+  const canToggle = collapsible && !!header;
+  const shown = !canToggle || open;
+  const onStripClick = canToggle ? (e) => {
+    const hit = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, label, [role="button"], [role="switch"], [role="checkbox"], [role="tab"]');
+    // the strip itself is role=button now (keyboard) - only a control INSIDE it stops the toggle
+    if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return;
+    setOpen((o) => !o);
+  } : undefined;
+  const caret = canToggle ? <StripCaret open={open} /> : null;
   return (
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: pad, ...style }}>
       {header && (
-        <div style={{
+        <div className="title-strip" /* a strip, as the real card's - not a 41px 'button' to the box-height gate */ onClick={onStripClick} {...(canToggle ? stripToggleProps(open, () => setOpen((o) => !o)) : {})} style={{
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
           // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
-          margin: `-${pad}px -${pad}px ${children ? 12 : -pad}px`,
+          // A collapsed card is header-only, so it closes up the same way.
+          margin: `-${pad}px -${pad}px ${shown && children ? 12 : -pad}px`,
           // The real strip's box (RefinedHeaderStrip): one 41px height, the
           // title centred in it. 8px padding made these 36px and their titles
           // rode 1-2px low (26.9, #215).
@@ -1357,16 +1384,17 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
           borderBottom: '1px solid var(--c-cardBd)',
           color: '#FFFFFF',
+          cursor: canToggle ? 'pointer' : undefined, userSelect: canToggle ? 'none' : undefined,
         }}>
-          {headerRight ? (
+          {headerRight || caret ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ minWidth: 0, flex: '1 1 auto', display: 'flex', alignItems: 'center', color: '#FFFFFF' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}{caret}</div>
             </div>
           ) : <div style={{ display: 'flex', alignItems: 'center' /* no 16px strut line under a 13px title: it sat 1-2px low (#460 rhythm) */, color: '#FFFFFF' }}>{header}</div>}
         </div>
       )}
-      {children}
+      {children != null && <div hidden={!shown} style={shown ? { display: 'contents' } : undefined /* no box: the card lays its children out as before */}>{children}</div>}
     </div>
   );
 }
@@ -1859,7 +1887,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         {/* Identity header strip — same grammar as the solo detail (cyan glow
             name + status dropdown) so couples don't look like a stale build. */}
         {(() => { const heb = isHeb(trainee.name); return (
-          <DemoDetailCard style={{ marginBottom: 14 }}
+          <DemoDetailCard style={{ marginBottom: 14 }} collapsible={false /* the couple's identity header, a plain Card in the real app */}
             headerRight={<DemoStatusMenu />}
             header={<span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, minWidth: 0, fontWeight: 700, fontSize: heb ? 16 : 14, fontFamily: heb ? FH : undefined, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase' }}>
               <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
@@ -2069,6 +2097,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
           {/* RECENT WORKOUTS */}
           {showSec('workouts') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Recent Workouts')}>
+            {/* a row list starts AT the strip: the first row centred between the strip
+                and its rule like the rest (rule-rhythm FIRSTGAP 22/10, 4.10) */}
+            <div style={{ marginTop: -12 }}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
@@ -2080,10 +2111,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.vol}</span>
               </div>
             ))}
+            </div>
           </DemoDetailCard>}
 
           {/* PROGRAMS */}
           {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
+            <div style={{ marginTop: -12 }}>{/* rule-rhythm FIRSTGAP 20/8 (4.10) */}
             {trainee.plans.map((name, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
                 {/* Was nowrap + ellipsis, so at 360 "Block #4 — Pull
@@ -2094,6 +2127,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 <Badge color={i === 0 ? C.gn : C.td}>{tr(readLang(), i === 0 ? 'ACTIVE' : 'ARCHIVED')}</Badge>
               </div>
             ))}
+            </div>
           </DemoDetailCard>}
 
           {/* EVALUATION · INTAKE (context — shown in View All) */}
@@ -2273,6 +2307,7 @@ function DemoLineage({ athleteName }) {
 }
 
 function DemoPrograms({ resetToken = 0 }) {
+  const settle = useSettleIn();   // the real phone list's first-paint fade (4.10 #539 parity)
   const rail = useNarrowRail();
   // List view first (mirrors PlansView root) — clicking a card opens the
   // existing block-detail panel as the editor view, with a back-link to
@@ -2601,7 +2636,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   PlansView does (repeat(auto-fill, minmax(...))). */}
               {progView === 'table' && phoneList ? (
                 /* PARITY with the real phone TABLE (4.10 #532): two lines an athlete */
-                <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+                <div className={settle} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
                   {rows.map((row, ri) => {
                     const cur = row.current;
                     const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
@@ -3792,6 +3827,9 @@ function DemoReview() {
   // The real queue (WorkoutReview): pending athletes first; the reviewed
   // archive stays behind a SHOW REVIEWED (n) toggle under the last of them.
   const [showReviewed, setShowReviewed] = useState(false);
+  // each athlete group's strip toggles its day cards, as the real queue's
+  // CollapsibleSection does (the caret used to be drawn and never turn)
+  const [closedGroups, setClosedGroups] = useState({});
   const groupOf = (list) => {
     const by = {};
     for (const wo of list) {
@@ -3998,7 +4036,7 @@ function DemoReview() {
       {weeklyFocus}
 
       {(() => {
-        const renderGroup = ([cid, data]) => (
+        const renderGroup = (ns) => ([cid, data]) => { const gk = `${ns}:${cid}`; const gOpen = !closedGroups[gk]; return (
         <div key={cid} style={{ marginBottom: 20 }}>
           {/* Athlete group header — solid cyan strip: name + (n) pending +
               · planName (cyan) + current-stage week boxes + Athlete page →.
@@ -4009,7 +4047,7 @@ function DemoReview() {
               real strip (#376): at 760 and under the plan name + week boxes -
               said again in the cards below - step aside, exactly as
               WorkoutReview's .wr-strip-repeat does. */}
-          <div className="cd-rv-strip title-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
+          <div className="cd-rv-strip title-strip" onClick={() => setClosedGroups((m) => ({ ...m, [gk]: gOpen }))} {...stripToggleProps(gOpen, () => setClosedGroups((m) => ({ ...m, [gk]: gOpen })))} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'nowrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 14px', minHeight: 41, boxSizing: 'border-box', marginBottom: 12 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'nowrap', gap: 8, minWidth: 0, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: 'var(--c-stripTx)', fontWeight: 700 }}>
               <span style={{ lineHeight: 1, transform: isHeb(data.name) ? 'translateY(1.3px)' /* Heebo's Hebrew rides 1.3px high in a 1.0 line box — measured on the ink, 26.9 */ : undefined }}><bdi>{isHeb(data.name) ? data.name : data.name.toUpperCase()}</bdi> ({data.workouts.length})</span>
               <span className="cd-rv-repeat" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
@@ -4021,10 +4059,10 @@ function DemoReview() {
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
               <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, height: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' }}><span>{T('Athlete page')} {readLang() === 'he' ? '←' : '→'}</span></button>
-              <StripCaret open />
+              <StripCaret open={gOpen} />
             </span>
           </div>
-          {data.workouts.map((wo, wi) => {
+          {gOpen && data.workouts.map((wo, wi) => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
             // the real page's quiet BLOCK · WEEK divider over each week's day
             // cards (#376 parity) - once per block + week
@@ -4074,10 +4112,10 @@ function DemoReview() {
             );
           })}
         </div>
-        );
+        ); };
         const reviewedCount = reviewedList.length;
         return (<>
-          {Object.entries(byClient).map(renderGroup)}
+          {Object.entries(byClient).map(renderGroup('pending'))}
           {/* Queue divider, as on the real queue: under the last pending
               athlete, the reviewed archive behind a toggle. */}
           {reviewedCount > 0 && (
@@ -4088,7 +4126,7 @@ function DemoReview() {
               </button>
             </div>
           )}
-          {showReviewed && Object.entries(byClientReviewed).map(renderGroup)}
+          {showReviewed && Object.entries(byClientReviewed).map(renderGroup('reviewed'))}
         </>);
       })()}
     </section>
@@ -4586,7 +4624,7 @@ function DemoReviewTools() {
             Every dotted key in this codebase needs its English side written out. */}
         {readLang() === 'he'
           ? T('tools.blurb')
-          : 'Camera and pose tools that read a set — bar speed, range of motion, jump power, jump-shot mechanics, live coaching. Nothing is saved in the demo.'}
+          : 'Camera and pose tools that read a set — bar speed, range of motion, jump power, live coaching. In the full app SEND TO ATHLETE puts the result on his clip as a note; nothing is saved in the demo.' /* the real blurb (#530), less the shot tool the demo dropped 24.9 */}
       </div>
       <div style={{ marginBottom: 20, maxWidth: 380 }}>
         <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>{T('Exercise · for Lab / Metrics / Live')}</label>
@@ -4930,6 +4968,11 @@ function DemoBilling({ onJumpToTrainee }) {
   // to show a client.
   const { narrow } = useNarrowRail();
   const [showReq, setShowReq] = useState(false);
+  // both cards collapse like the real Billing's (4.10 #540): the strip is the
+  // handle, + NEW REQUEST does its own job and never toggles
+  const [reqOpen, setReqOpen] = useState(true);
+  const [rosterOpen, setRosterOpen] = useState(true);
+  const stripFlip = (flip) => (e) => { const hit = e.target && e.target.closest && e.target.closest('button'); if (hit && e.currentTarget.contains(hit)) return; flip(); };
   const [amount, setAmount] = useState('600');
   const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
   // the real Billing strip's rule (useStripFit, #452): + NEW REQUEST leaves the strip when the title
@@ -4976,12 +5019,13 @@ function DemoBilling({ onJumpToTrainee }) {
       {/* OWED, expanded - the real billing page's second section */}
       <DemoOwedCard onJumpToTrainee={onJumpToTrainee || (() => {})} expanded />
       {panel(<>
-        <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} className="title-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}>
+        <div ref={reqRowRef} data-strip-stacked={reqStacked ? '1' : undefined} className="title-strip" onClick={stripFlip(() => setReqOpen((o) => !o))} {...stripToggleProps(reqOpen, () => setReqOpen((o) => !o))} style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: reqOpen ? `1px solid ${C.cardBd}` : 'none' /* no doubled line on the panel's own border when shut */, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}>
           <span ref={reqTitleRef} style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('PAYMENT REQUESTS')} · {pending.length}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : T('Waiting')}</span></span>
           {!reqStacked && <button ref={reqStacked ? undefined : reqBtnRef} onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-stripTx)', border: '1px solid var(--c-stripTx)', height: 'var(--btn-h-in)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', fontSize: 10, whiteSpace: 'nowrap' }}>+ {T('NEW REQUEST')}</button>}
+          <StripCaret open={reqOpen} />
         </div>
         {reqStacked && <div data-strip-actions="" style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 14px 0' }}><button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: 'var(--c-stripTx)', border: '1px solid var(--c-stripTx)', height: 'var(--btn-h)', minHeight: 0, boxSizing: 'border-box', padding: '0 10px', fontSize: 10, whiteSpace: 'nowrap' }}>+ {T('NEW REQUEST')}</button></div>}
-        <div>
+        <div hidden={!reqOpen}>
           {DEMO_PAYMENTS.map(p => {
             const st = PAY_STATUS[p.status];
             return (
@@ -5011,8 +5055,8 @@ function DemoBilling({ onJumpToTrainee }) {
         </div>
       </>)}
       {panel(<>
-        <div className="title-strip" style={{ display: 'flex', alignItems: 'center', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}><span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('ROSTER STATUS')}</span></div>
-        <div style={{ padding: '0 14px' }}>
+        <div className="title-strip" onClick={() => setRosterOpen((o) => !o)} {...stripToggleProps(rosterOpen, () => setRosterOpen((o) => !o))} style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: rosterOpen ? `1px solid ${C.cardBd}` : 'none', padding: '0 14px', minHeight: 41, boxSizing: 'border-box' }}><span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip (13 / 700 / 0.08em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{T('ROSTER STATUS')}</span><StripCaret open={rosterOpen} /></div>
+        <div hidden={!rosterOpen} style={{ padding: '0 14px' }}>
           {/* ALL of them. It showed the first five of eight under a heading
               that says ROSTER STATUS, so three paying athletes were simply
               missing from the only panel that claims to list the roster. */}

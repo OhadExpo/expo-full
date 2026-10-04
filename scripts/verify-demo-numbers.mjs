@@ -102,12 +102,13 @@ for (const [lang, L] of LANGS) {
   cmp('collected this month (dashboard vs billing)',
     near(dash, L.collected), near(billing, L.billCollected));
 
-  // 3. Roster size: the dashboard's "5 / 8" total vs the rail's "All".
+  // 3. Roster size: the dashboard tile's caption ("OF 8 ON THE ROSTER" / "מתוך 8
+  // בסגל", short "OF 8" - 4.10 #545 made the tile one number) vs the rail's "All".
   const activeTile = (() => {
     const i = dash.indexOf(L.active);
     if (i < 0) return null;
-    const m = dash.slice(i + L.active.length, i + L.active.length + 40).match(/(\d+)\s*\/\s*(\d+)/);
-    return m ? Number(m[2]) : null;
+    const m = dash.slice(i + L.active.length, i + L.active.length + 80).match(/(?:of|מתוך)\s*(\d+)/i);
+    return m ? Number(m[1]) : null;
   })();
   cmp('roster size (dashboard total vs athletes rail "all")', activeTile, near(trainees, L.all));
 }

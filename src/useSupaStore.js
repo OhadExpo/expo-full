@@ -521,6 +521,30 @@ registerHandler('weekly_focus.upsert', async ({ k, v }) => {
 
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
 // on network failure so the UI isn't stuck empty when Supabase is unreachable.
+// ONE MOUNT READ PER KEY AT A TIME (4.10, measured on the head coach's cold load:
+// league x3, loads x3, medical x3, roster x2, fixtures x2 - ~45 KB of the same rows,
+// one read per screen that uses the key). Screens that mount together share the read
+// that is already on the wire; nothing is kept after it lands, so a later mount
+// still reads fresh. Each caller gets its OWN copy of the row.
+const mountReads = new Map();
+function readStoreOnMount(key) {
+  let p = mountReads.get(key);
+  if (!p) {
+    // 20 s at most: a read that never answers would otherwise hold the entry -
+    // and every refresh of this key skips while it is held (4.10 review)
+    p = Promise.race([
+      Promise.resolve(supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle()),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('store read timed out')), 20000)),
+    ]);
+    mountReads.set(key, p);
+    const done = () => { if (mountReads.get(key) === p) mountReads.delete(key); };
+    p.then(done, done);
+  }
+  // structuredClone is missing on iOS < 15.4 - a JSON copy there (store values are JSON)
+  const copy = (v) => (typeof structuredClone === 'function' ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
+  return p.then((res) => ({ data: res.data ? copy(res.data) : res.data, error: res.error }));
+}
+
 export function useSupaStore(key, initial) {
   const [data, setData] = useState(() => {
     // Skip synchronous localStorage parse for auth/exercise stores — Supabase is
@@ -580,14 +604,23 @@ export function useSupaStore(key, initial) {
   // the guarded refetch below, for callers that learn of a change another way
   // (the club zone's broadcast + fallback poll, #510-R2 M7)
   const refetchRef = useRef(null);
+  const missedRef = useRef(false);
 
   // Load from Supabase on mount. On failure, fall back to any localStorage
   // snapshot and surface the error so the caller can show a banner.
   useEffect(() => {
     (async () => {
       try {
-        const { data: row, error } = await supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle();
+        const { data: row, error } = await readStoreOnMount(key);
         if (error) throw error;
+        // a refresh already brought a NEWER row while this read was out (a save
+        // elsewhere dropped the shared read): the older answer must not land on it
+        if (baseRef.current.known) {
+          serverLoadedRef.current = true;
+          serverLenRef.current = storeSize(baseRef.current.val);
+          setLoaded(true);
+          return;
+        }
         // the base every write from here is built on (#510-B1)
         baseRef.current = { known: true, at: atOf(row), val: row ? row.value : undefined };
         if (row) persistBase(key, atOf(row), row.value, { withSnapshot: key !== 'expo-trainees' || (Array.isArray(row.value) && row.value.length > 0) });
@@ -678,6 +711,9 @@ export function useSupaStore(key, initial) {
         console.warn(`useSupaStore[${key}] load failed:`, e?.message || e);
       }
       setLoaded(true);
+      // a change that arrived while the first read was out was skipped (below):
+      // one refresh now, so it is not lost until the next one
+      if (missedRef.current) { missedRef.current = false; const f = refetchRef.current; if (f) f(); }
     })();
   }, [key]);
 
@@ -698,6 +734,10 @@ export function useSupaStore(key, initial) {
     // copy until the next server change - and build its next write on it.
     const refetch = async () => {
       if (disposed || savingRef.current) return;
+      // the first read is still on the wire: it IS the fresh copy (4.10, the club
+      // zone's refresh on entry fired beside the mount reads and read every key
+      // again - measured on the head coach's cold load)
+      if (!baseRef.current.known && mountReads.has(key)) { missedRef.current = true; return; }
       const gen = saveGenRef.current;
       try {
         // the version first: a focus on a tab whose stores did not move costs one
@@ -869,6 +909,8 @@ export function useSupaStore(key, initial) {
     // -------------------------------------------------------------------
 
     mutatedRef.current = true;
+    // a screen mounting from here on must not join a read from before this save
+    mountReads.delete(key);
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
@@ -1212,12 +1254,13 @@ export function useSupaClientWorkouts(initial = []) {
       // this result does not have it - replacing the screen here hid that stroke
       // and the next edit, built from the screen, then deleted it on the server
       // (review of ae569e50). The last write in the line reconciles.
-      if ((fvBusyRef.current.get(id) || 0) > 1) return;
+      if ((fvBusyRef.current.get(id) || 0) > 1) return 'saved';
       // Reconcile local state to the merged truth (may now include an athlete
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
       setData(reconciled); dataRef.current = reconciled;
       try { lsSnapshotRecent('expo-cw', reconciled); } catch {}
+      return 'saved';
     } catch (e) {
       // Offline / DB flap: keep the optimistic local update and durably enqueue.
       // Drains via the reviewNotes-merge handler (server-authoritative on upload
@@ -1230,8 +1273,12 @@ export function useSupaClientWorkouts(initial = []) {
         const prior = getEntries().find((q) => q.type === 'client_workouts.mergeReviewNotes' && q.dedupeKey === 'fvnotes:' + id);
         const base = prior && prior.payload && prior.payload.baseFormVideos !== undefined ? prior.payload.baseFormVideos : (prior ? undefined : baseFormVideos);
         enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos, baseFormVideos: base }, dedupeKey: 'fvnotes:' + id, critical: true });
+        return 'queued';
       }
-      else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
+      emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
+      // the outcome, for a caller that tells the user (SEND TO ATHLETE, #530): 'saved' |
+      // 'queued' (offline - it lands when back online) | 'failed'. Nobody else awaits it.
+      return 'failed';
     }
     };
     const prev = fvChainRef.current.get(id) || Promise.resolve();

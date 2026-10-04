@@ -24,14 +24,25 @@ const ctx = await b.createBrowserContext();
 const pg = await ctx.newPage();
 await pg.setViewport({ width: 1366, height: 900 });
 const writes = [];
+let probePlan = null, probeBefore = null, probeAt = null;
 pg.on('request', (rq) => { if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(rq.method())) { const m = rq.url().match(/\/rest\/v1\/(rpc\/)?([a-z_0-9]+)/); if (m) writes.push(rq.method() + ' ' + (m[1] ? 'rpc:' : '') + m[2]); } });
 try {
   await db.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });
-  const { data: pl } = await db.from('plan_index').select('id,name,updated_at').order('updated_at', { ascending: false }).limit(1);
+  // the newest plan IN HIS COPY (4.10): the owner's newest real plan is, by design,
+  // not in the sandbox once it was made after the copy - the gate opened a plan his
+  // seat cannot see and failed on "no editable number"
+  // ...and one that HAS a real twin, so "your real program is unchanged" proves
+  // something (a plan of his own has none, and [] === [] passed vacuously)
+  const { data: recent } = await db.from('sbx_plans').select('id,name,updated_at').order('updated_at', { ascending: false }).limit(25);
+  const { data: twins } = await db.from('plans').select('id').in('id', (recent || []).map((r) => r.id));
+  const twinIds = new Set((twins || []).map((r) => r.id));
+  const pl = (recent || []).filter((r) => twinIds.has(r.id)).slice(0, 1);
   const plan = pl && pl[0];
+  probePlan = plan;
   if (!plan) throw new Error('no plan to edit');
   const { data: realBefore } = await db.from('plans').select('updated_at,data').eq('id', plan.id);
   const { data: sbxBefore } = await db.from('sbx_plans').select('updated_at,data').eq('id', plan.id);
+  probeBefore = sbxBefore && sbxBefore[0];
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
   let authed = false; for (let k = 0; k < 3 && !authed; k++) { await signIn(pg, BASE); authed = await assertAuthed(pg, BASE); }
   if (!authed) throw new Error('could not sign in as the partner');
@@ -47,7 +58,7 @@ try {
     await field.type(next);
     await pg.keyboard.press('Tab');
     let moved = false;
-    for (let k = 0; k < 25 && !moved; k++) { await wait(1000); const { data } = await db.from('sbx_plans').select('updated_at,data').eq('id', plan.id); moved = !!(data && data[0] && JSON.stringify(data[0].data) !== JSON.stringify(sbxBefore[0].data)); }
+    for (let k = 0; k < 25 && !moved; k++) { await wait(1000); const { data } = await db.from('sbx_plans').select('updated_at,data').eq('id', plan.id); moved = !!(data && data[0] && JSON.stringify(data[0].data) !== JSON.stringify(sbxBefore[0].data)); if (moved) probeAt = data[0].updated_at; }
     ok(moved, `his copy of the program saved the edit (${before} -> ${next})`);
     const { data: realAfter } = await db.from('plans').select('updated_at,data').eq('id', plan.id);
     ok(JSON.stringify(realAfter) === JSON.stringify(realBefore), 'your real program is unchanged');
@@ -57,14 +68,22 @@ try {
   ok(!(await pg.evaluate(() => /SAVE FAILED|השמירה נכשלה/i.test(document.body.innerText))), 'no save error on screen');
 } catch (e) { fail++; console.log('FAIL: ' + e.message); }
 finally {
-  // put HIS program back exactly as the real one: he may be using the sandbox
-  // while this runs, and a probe edit in his copy is a visible change to him
+  // put HIS program back as it was BEFORE the probe (4.10 #542: the sandbox is his
+  // to fill - copying the owner's real plan over it erased his own edits). Stamped
+  // now, so an editor he has open reloads it instead of writing over it.
+  // The page closes FIRST (an autosave still on the wire could land after the
+  // restore and put the probe back), and the restore runs only while the row is
+  // still the probe's own save - anything newer is his and is left alone.
+  await ctx.close().catch(() => {}); b.disconnect();
+  await wait(1500);
   try {
-    const { data: pl } = await db.from('plan_index').select('id').order('updated_at', { ascending: false }).limit(1);
-    const id = pl && pl[0] && pl[0].id;
-    if (id) { const { data: real } = await db.from('plans').select('data,updated_at,name').eq('id', id); if (real && real[0]) await db.from('sbx_plans').update(real[0]).eq('id', id); }
+    if (probePlan && probeBefore && probeAt) {
+      const { data: now } = await db.from('sbx_plans').select('updated_at').eq('id', probePlan.id);
+      if (now && now[0] && now[0].updated_at === probeAt) await db.from('sbx_plans').update({ data: probeBefore.data, updated_at: new Date().toISOString() }).eq('id', probePlan.id).eq('updated_at', probeAt);
+      else console.log('  (restore skipped: his copy changed after the probe - left as he has it)');
+    }
   } catch { /* reported by the next run's walk */ }
-  await ctx.close(); b.disconnect(); await db.auth.signOut({ scope: 'local' });
+  await db.auth.signOut({ scope: 'local' });
 }
 console.log(`\nPARTNER PROGRAM EDIT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

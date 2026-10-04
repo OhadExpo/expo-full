@@ -182,6 +182,7 @@ export const HE = {
   'Preview as coach': 'תצוגת מאמן',
   'Preview': 'כמאמן',
   'Back': 'חזרה',
+  'Outbound': 'הלוך',
   'Coach view': 'תצוגת מאמן',
   'Back to EXPO coach': 'חזרה ל-EXPO',
 
@@ -463,6 +464,7 @@ export const HE = {
   'Back from injury, loading too fast': 'חזר מפציעה ועולה בעומס מהר מדי',
   'back': 'חזר לפני',
   'days': 'ימים',
+  'Landed': 'נחת',
   'this week': 'השבוע',
   'of his own pre-injury week': 'מהשבוע שלו לפני הפציעה',
   'guide': 'המלצה',

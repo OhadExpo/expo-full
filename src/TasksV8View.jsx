@@ -29,7 +29,7 @@ import { localiseAutoBody } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase, isSandboxSeat } from './supabase';
@@ -1856,6 +1856,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const tt = useT();
   const { rows, loading, connected, update, create, remove } = useCoachNotes({ limit: 200 });
+  const settle = useSettleIn(!loading);
   // Subscribe to theme changes so StatusPill colors update live on a dark/light
   // toggle (was read once via getAttribute → went stale until next re-render).
   const { theme: liveTheme } = useTheme();
@@ -2888,7 +2889,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 </span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-tm)' }}>{section.rows.length}</span>
               </div>
-              <div style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
+              <div className={settle} style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (
                   <div key={row.id} className="tv8-board-card"
                     draggable={!isReadOnly(row)}
