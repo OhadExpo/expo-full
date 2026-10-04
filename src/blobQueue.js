@@ -24,6 +24,7 @@
 
 import { supabase } from './supabase';
 import { enqueue as enqueueOp } from './offlineQueue';
+import { getState as netState, subscribe as subscribeNet } from './connectivity';
 
 const DB_NAME = 'expo-blob-queue';
 const STORE = 'blobs';
@@ -296,6 +297,8 @@ async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
 export async function drainBlobs() {
   if (draining) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  // the probe's word (5.10 #560): on a dead wifi an upload only burns an attempt
+  if (netState() === 'offline') return;
   draining = true;
   try {
     const queue = await readAll();
@@ -464,6 +467,13 @@ export async function drainBlobs() {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => { drainBlobs(); });
+  // ...and when the PROBE says the server is back (5.10 #560) - transitions only
+  let lastNet = netState();
+  subscribeNet((st) => {
+    const was = lastNet;
+    lastNet = st;
+    if (st === 'online' && was !== 'online') drainBlobs();
+  });
   // Skip the wake-up while the tab is backgrounded; the visibilitychange
   // handler picks up any pending uploads as soon as it returns to
   // foreground. Saves battery on long PWA sessions.

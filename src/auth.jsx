@@ -2,8 +2,9 @@
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase, AUTH_TOKEN_KEY, reviveSession } from './supabase';
+import { supabase, AUTH_TOKEN_KEY, reviveSession, readStoredSession } from './supabase';
 import { setQueueUser } from './offlineQueue';
+import { getState as netState, subscribe as subscribeNet, probeNow } from './connectivity';
 import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
 
 // Shared-device hygiene (audit 08-22): the next account must not boot into the
@@ -98,7 +99,44 @@ export function AuthProvider({ children, clientList }) {
     // idempotent finishBoot) AND a hard 8s watchdog that forces the login screen.
     let booted = false;
     const finishBoot = () => { if (!booted) { booted = true; setLoading(false); } };
+    // THE LAST KNOWN PERSON STAYS SIGNED IN WHILE THE SERVER IS OUT OF REACH
+    // (5.10 #560). An access token lasts an hour; a phone that slept through it
+    // boots with an EXPIRED token and a good refresh token, and supabase-js will
+    // not hand that session out until the server has refreshed it. Offline that
+    // refresh fails, the session comes back null, and the athlete was shown the
+    // login screen - with a programme cached for exactly this moment and a door
+    // he cannot pass without the network. A null session while this device
+    // holds a refresh token is only "signed out" if the server can be reached
+    // and said so: ask the probe, and while it says offline keep the stored
+    // person (user, email, id - everything the app needs to route and read its
+    // caches) marked `offline`. The real refresh lands as TOKEN_REFRESHED the
+    // moment connectivity returns and replaces it. A sign-out removes the stored
+    // token first, so it can never resurrect someone who left.
+    let realSession = false;
+    const offlineSessionOrNull = async () => {
+      const stored = readStoredSession();
+      if (!stored) return null;
+      let st = netState();
+      if (st === 'online') st = await probeNow();   // the radio is on - ask the server
+      if (st === 'online') return null;             // reachable: a null session is real
+      return { ...stored, offline: true };
+    };
+    let settling = false;
+    const settleWithoutSession = () => {
+      if (settling) return;
+      settling = true;
+      offlineSessionOrNull().then((os) => {
+        settling = false;
+        if (realSession) return;
+        if (os) apply(os);
+        // reachable after all: the refresh that failed is worth one more try
+        // (a success arrives as TOKEN_REFRESHED through the listener)
+        else if (readStoredSession()) supabase.auth.getSession().catch(() => {});
+        finishBoot();
+      }).catch(() => { settling = false; finishBoot(); });
+    };
     const apply = (s) => {
+      realSession = !!(s && !s.offline);
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.
@@ -228,7 +266,20 @@ export function AuthProvider({ children, clientList }) {
     });
     // 8s for a visitor with nothing stored; a returning user (or one mid-OAuth)
     // gets 12 before we are willing to call them signed out.
-    const bootWatchdog = setTimeout(finishBoot, stillArriving() ? 12000 : 8000);
+    // ...and a returning user whose server cannot be reached is not signed out
+    // at all: the watchdog settles on the stored person (5.10 #560).
+    const bootWatchdog = setTimeout(() => {
+      if (booted) return;
+      if (!realSession && readStoredSession() && !codeInUrl()) settleWithoutSession();
+      else finishBoot();
+    }, stillArriving() ? 12000 : 8000);
+    // Do not wait the twelve seconds when the probe already knows: with the
+    // network truly off the probe fails in milliseconds, on a dead wifi in four
+    // seconds, and the portal opens from cache then.
+    const unsubNet = subscribeNet((st) => {
+      if (st !== 'offline' || booted || realSession) return;
+      if (readStoredSession() && !codeInUrl()) settleWithoutSession();
+    });
 
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -241,7 +292,12 @@ export function AuthProvider({ children, clientList }) {
       // not "signed out" yet: spend the copy first (#346).
       if (s) dropHashCopy();
       else if (spendTokenHash()) return;
+      // No session, but this device still holds a refresh token: supabase-js
+      // kept it because the refresh failed on the NETWORK (a refused token is
+      // removed from storage first). The probe decides (5.10 #560).
+      if (!s && !exchanging && readStoredSession()) { settleWithoutSession(); return; }
       if (!exchanging) finishBoot();
+      realSession = !!s;
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.
@@ -274,9 +330,24 @@ export function AuthProvider({ children, clientList }) {
     };
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible);
     if (typeof window !== 'undefined') window.addEventListener('focus', onVisible);
+    // The server is back: refresh the token NOW (5.10 #560), so the offline
+    // session above is replaced the moment it can be and the queue's first
+    // retry carries a live JWT instead of an expired one. One call, same as
+    // onVisible - never a poll (the lock trap this file documents).
+    let wasOnline = netState() === 'online';
+    const unsubNetRefresh = subscribeNet((st) => {
+      const nowOnline = st === 'online';
+      if (nowOnline && !wasOnline) {
+        try { supabase.auth.startAutoRefresh(); } catch { /* older sdk */ }
+        supabase.auth.getSession().catch(() => {});
+      }
+      wasOnline = nowOnline;
+    });
 
     return () => {
       clearTimeout(bootWatchdog);
+      unsubNet();
+      unsubNetRefresh();
       subscription.unsubscribe();
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
       if (typeof window !== 'undefined') window.removeEventListener('focus', onVisible);
@@ -771,43 +842,52 @@ export function SaveErrorToast() {
 // Connectivity + queue indicator. Sits bottom-left so it doesn't fight with
 // the SaveErrorToast (bottom-right). Hidden completely when online and the
 // queue is empty — no chrome unless something is actually pending or off.
+//
+// THE STATE IS THE PROBE'S, NOT THE RADIO'S (5.10 #560): navigator.onLine said
+// "online" on a dead gym wifi, so this read SYNCING while nothing could move.
+// Three calm lines now - "Offline · N saved on phone" (the sets are safe, here),
+// "Syncing…" while the queue drains, and "Synced ✓" for a few seconds once
+// everything landed, so the athlete sees the moment his session reached the
+// coach. Fixed position, so it never shifts the page; 36px tall like every
+// bordered control; in Hebrew when the app is.
 export function OfflineStatusPill() {
-  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [net, setNet] = useState(() => netState());
   const [opCount, setOpCount] = useState(() => { try { return getQueueCount(); } catch { return 0; } });
   const [blobCount, setBlobCount] = useState(0);
+  const [synced, setSynced] = useState(false);
+  const hadPending = useRef(false);
   useEffect(() => {
-    const onUp = () => { setOnline(true); drainQueue(); drainBlobs(); };
-    const onDown = () => setOnline(false);
-    window.addEventListener('online', onUp);
-    window.addEventListener('offline', onDown);
+    // the queues drain themselves on every change to 'online'; this only mirrors
+    const unsub0 = subscribeNet(setNet);
     const unsub1 = subscribeQueue(setOpCount);
     const unsub2 = subscribeBlobs(setBlobCount);
-    return () => {
-      window.removeEventListener('online', onUp);
-      window.removeEventListener('offline', onDown);
-      unsub1(); unsub2();
-    };
+    return () => { unsub0(); unsub1(); unsub2(); };
   }, []);
   const total = opCount + blobCount;
-  if (online && total === 0) return null;
-  const offline = !online;
-  const bg = offline ? (C.rdD || '#3a1a1a') : (C.acD || '#0d2438');
-  const fg = offline ? (C.rd || '#ff6b6b') : (C.ac || '#3BA0FF');
-  const dotBg = offline ? (C.rd || '#ff6b6b') : (C.ac || '#3BA0FF');
-  const detail = blobCount > 0
-    ? `${total} pending (${blobCount} video${blobCount === 1 ? '' : 's'})`
-    : `${total} pending`;
+  const offline = net === 'offline';
+  useEffect(() => {
+    if (total > 0) { hadPending.current = true; setSynced(false); return undefined; }
+    if (!hadPending.current || offline) return undefined;
+    hadPending.current = false;
+    setSynced(true);
+    const t = setTimeout(() => setSynced(false), 4000);
+    return () => clearTimeout(t);
+  }, [total, offline]);
+  if (!offline && total === 0 && !synced) return null;
+  const lang = readLang();
+  const fg = offline ? (C.rd || '#ff6b6b') : total > 0 ? (C.ac || '#3BA0FF') : (C.gn || '#2ED573');
   const text = offline
-    ? (total > 0 ? `OFFLINE · ${detail}` : 'OFFLINE')
-    : `SYNCING · ${detail}`;
+    ? (total > 0 ? tr(lang, 'Offline · {n} saved on phone').replace('{n}', String(total)) : tr(lang, 'Offline'))
+    : total > 0 ? tr(lang, 'Syncing…') : tr(lang, 'Synced ✓');
+  const state = offline ? 'offline' : total > 0 ? 'syncing' : 'synced';
   return (
-    <div onClick={() => { if (online) { drainQueue(); drainBlobs(); } }}
-      title={offline ? "You're offline. Changes are saved locally and will sync when connection returns." : 'Replaying queued changes…'}
+    <div onClick={() => { if (!offline) { drainQueue({ now: true }); drainBlobs(); } }} data-net-pill={state} data-net-pending={total} dir="auto"
+      title={offline ? tr(lang, "You're offline. Changes are saved locally and will sync when connection returns.") : total > 0 ? tr(lang, 'Replaying queued changes…') : tr(lang, 'Everything reached the server.')}
       style={{ position: 'fixed', bottom: 20, left: 20, display: 'flex', alignItems: 'center', gap: 8,
         background: 'var(--c-sf)', border: `1px solid ${fg}`, color: fg, borderRadius: 0,
-        padding: '6px 12px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-        cursor: online ? 'pointer' : 'default', zIndex: 1500, userSelect: 'none' }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotBg }} />
+        height: 36, boxSizing: 'border-box', padding: '0 12px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1,
+        cursor: offline ? 'default' : 'pointer', zIndex: 1500, userSelect: 'none' }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: fg, flexShrink: 0 }} />
       {text}
     </div>
   );

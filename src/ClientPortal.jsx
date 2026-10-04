@@ -13,7 +13,8 @@ import PushToggle from './PushToggle';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
-import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
+import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY, readStoredSession } from './supabase';
+import { subscribe as subscribeNet } from './connectivity';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
 // LAZY, because this is the athlete's phone. A static import of one component
@@ -390,7 +391,7 @@ function UnsavedWorkoutsBanner({ clientId }) {
   const retry = async () => {
     if (retrying) return;
     setRetrying(true);
-    try { await drainQueue(); } catch { /* stays parked; the banner stays */ }
+    try { await drainQueue({ now: true }); } catch { /* stays parked; the banner stays */ }
     setRetrying(false);
   };
   return (
@@ -507,6 +508,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [liveCountForEid, setLiveCountForEid] = useState(null);
   const [fbOpenForEid, setFbOpenForEid] = useState(null);   // last-week coach video feedback, per exercise
   const submittingRef = useRef(false);   // guards Complete-Workout against a double-tap minting two workout rows
+  // THE UPLOADS IN FLIGHT, BY SLOT (5.10 #560): { blob, contentType, ext, path,
+  // abort, handedOff }. Complete reads this to hand a clip that is still
+  // uploading (or still compressing) to the blob queue, so the workout row never
+  // waits on a video. See finish().
+  const inflightRef = useRef({});
 
   // Group consecutive exercises sharing the same superset letter.
   // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
@@ -1093,8 +1099,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Supabase Storage REST API: POST raw body with Content-Type header.
   // URL/key sourced from src/supabase.js so there's a single
   // change-once point if/when the project is rotated.
-  const uploadWithProgress = (blob, path, contentType, onProgress) => new Promise(async (resolve, reject) => {
+  const uploadWithProgress = (blob, path, contentType, onProgress, inflight = null) => new Promise(async (resolve, reject) => {
     const url = `${SUPA_URL}/storage/v1/object/form-videos/${path}`;
+    // THE SESSION READ IS BOUNDED (5.10 #560): supabase-js guards getSession with
+    // the navigator lock, which this codebase has measured hanging across PWA
+    // tabs - and an upload that never starts looks exactly like one that hangs.
+    // After 3 s the session this device holds in storage is used as is.
+    const readSession = () => Promise.race([
+      supabase.auth.getSession().then((r) => (r && r.data && r.data.session) || null).catch(() => null),
+      new Promise((res) => setTimeout(() => res(readStoredSession()), 3000)),
+    ]);
     // Authenticate as the SIGNED-IN ATHLETE, not with the bundled anon key.
     // The anon key is public (it ships in the bundle), so an anon-authenticated
     // upload let anyone on the internet write to any folder — the source of the
@@ -1108,8 +1122,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // rather than fire an unauthenticated request that's guaranteed to 403.
     let bearer;
     try {
-      let { data } = await supabase.auth.getSession();
-      let s = data?.session;
+      let s = await readSession();
       const expSoon = !s?.expires_at || (s.expires_at * 1000 - Date.now() < 120000);
       if (expSoon) {
         // Try to refresh, then RE-READ the session — a failed refresh (e.g.
@@ -1117,8 +1130,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // before. Reading getSession again gives us the actually-current token
         // and its real expiry to validate below.
         try { await supabase.auth.refreshSession(); } catch { /* offline / refresh failed */ }
-        ({ data } = await supabase.auth.getSession());
-        s = data?.session;
+        s = await readSession();
       }
       // Refuse if the token is missing OR already past its expiry: firing it
       // would 403 server-side, and a generic 403 risks being misclassified
@@ -1165,6 +1177,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (now - lastTick > STALL_MS) fail408('Upload stalled — no progress');
       else if (now - startedAt > ABS_MAX_MS) fail408('Upload timed out');
     }, 3000);
+    // Complete can take this clip over (5.10 #560): the request is cut, and the
+    // blob queue - which already holds the bytes by then - finishes the job.
+    if (inflight) inflight.abort = () => fail408('handed to the offline queue');
 
     xhr.upload.onprogress = (e) => {
       lastTick = Date.now();
@@ -1285,6 +1300,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     let ext = file.name.match(/\.[^.]+$/)?.[0] || '.mp4';
     let contentType = file.type || 'video/mp4';
     let path = null;
+    // Registered BEFORE compression (5.10 #560): a Complete tapped while the
+    // encoder is still running hands the ORIGINAL file to the blob queue (under
+    // the 50 MB cap it uploads as is; over it the queue says so) rather than
+    // waiting a clip's length for the encode. Kept current below as the blob,
+    // extension and path are decided.
+    const inflight = { blob: file, contentType, ext, path: null, abort: null, handedOff: null };
+    inflightRef.current[exIdx] = inflight;
+    const handedToQueue = () => Object.assign(new Error('handed to the offline queue'), { handedOff: inflight.handedOff });
 
     try {
       // iPhone hands us .MOV / video/quicktime. Chrome/Edge on desktop refuse
@@ -1296,6 +1319,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         ext = '.mp4';
         contentType = 'video/mp4';
       }
+      inflight.ext = ext; inflight.contentType = contentType;
 
       // Compress if the browser exposes MediaRecorder + captureStream and the
       // file is large enough to be worth re-encoding. Failure here is non-fatal
@@ -1314,6 +1338,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // long-but-progressing encode is allowed to finish.
         const runCompress = async (cOpts) => {
           const ctrl = new AbortController();
+          inflight.abort = () => ctrl.abort();   // Complete can stop the encode (5.10 #560)
           let lastTick = Date.now(); const startedAt = lastTick; let watchdog;
           const STALL_MS = 30_000;       // no progress for 30s ⇒ encoder hung
           const ABS_MAX_MS = 240_000;    // absolute backstop (~120s clip + margin)
@@ -1348,10 +1373,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           ext = result.ext;
           contentType = result.blob.type;
         } catch (compressErr) {
+          if (inflight.handedOff) throw handedToQueue();   // Complete took the clip mid-encode
           console.warn('Compression failed/timed out, uploading original:', compressErr);
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
         }
       }
+      if (inflight.handedOff) throw handedToQueue();
+      inflight.blob = uploadBlob; inflight.ext = ext; inflight.contentType = contentType; inflight.abort = null;
 
       // FINAL size gate — whatever we're about to ship (compressed or original
       // after a compression failure/timeout) must clear the 50MB server cap,
@@ -1382,6 +1410,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const ts = Date.now();
       const rand = Math.floor(Math.random() * 1e6).toString(36);
       path = `${clientId}/${ts}-${rand}-form${ext}`;
+      inflight.path = path;
 
       let publicUrl;
       // Tell SwUpdateBanner an upload is in flight so its idle timer doesn't
@@ -1392,9 +1421,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       try {
         const result = await uploadWithProgress(uploadBlob, path, contentType, pct => {
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploadProgress:pct}; return n; });
-        });
+        }, inflight);
         publicUrl = result.publicUrl;
       } catch (xhrErr) {
+        if (inflight.handedOff) throw handedToQueue();   // Complete took the clip mid-upload
         // A definite client-error status (4xx) is PERMANENT — re-throw without
         // attempting the fallback, so the outer catch surfaces it instead of
         // burning a second upload and then queueing a doomed retry.
@@ -1419,6 +1449,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, videoUrl:publicUrl, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null, pendingBlobId:null}; return n; });
       URL.revokeObjectURL(previewUrl);
     } catch(err) {
+      // Complete already handed this clip to the blob queue (5.10 #560): the
+      // bytes are in IndexedDB under that id and the saved row points at it.
+      // Nothing to classify, nothing to queue twice - keep the preview playable.
+      if (inflight.handedOff) {
+        const handed = inflight.handedOff;
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:handed, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
+        return;
+      }
       console.error('Video upload error:', err);
       // If we appear to be offline (or this is a network-shaped error), persist
       // the blob to IndexedDB and let the blob queue replay it once connectivity
@@ -1482,6 +1520,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       URL.revokeObjectURL(previewUrl);
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
       toast(`Video upload failed: ${msg}\nTry again or pick a shorter clip.`, 'error', { ttl: 7000 });
+    } finally {
+      if (inflightRef.current[exIdx] === inflight) delete inflightRef.current[exIdx];
     }
   };
 
@@ -1523,25 +1563,49 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const existingLog = editOf || findExistingLog(priorWorkouts, { emptyOnly: true });
     const workoutId = workoutIdRef.current || existingLog?.id || uid();
     workoutIdRef.current = workoutId;
+    // THE ROW GOES FIRST, THE VIDEO FOLLOWS (5.10 #560). Complete used to be
+    // replaced by "Video uploading..." for as long as a clip was in flight - on
+    // a dead wifi that is the upload's whole stall budget, with the athlete's
+    // sets waiting behind a 40 MB request. A clip still uploading (or still
+    // being encoded) is handed to the blob queue now - the bytes go to
+    // IndexedDB under a pendingBlobId, the in-flight request is cut - and the
+    // workout row is saved at once with that pointer; the queue uploads the
+    // clip when it can and patches the row. Only a device that cannot keep the
+    // blob (IndexedDB refused) lets the upload run on.
+    const handed = {};
+    for (const [k, inf] of Object.entries(inflightRef.current)) {
+      const i = Number(k);
+      if (!inf || inf.handedOff || !inf.blob) continue;
+      try {
+        const blobId = newBlobId();
+        const storagePath = inf.path || `${clientId}/${Date.now()}-${Math.floor(Math.random() * 1e6).toString(36)}-form${inf.ext || '.mp4'}`;
+        await enqueueBlob({ id: blobId, blob: inf.blob, contentType: inf.contentType || 'video/mp4', storagePath });
+        inf.handedOff = blobId;
+        handed[i] = blobId;
+        try { if (inf.abort) inf.abort(); } catch { /* already settled */ }
+      } catch (e) {
+        try { console.warn('[logger] could not hand the clip to the queue - the upload runs on:', e?.message || e); } catch { /* no console */ }
+      }
+    }
     // Carry pendingBlobId on each form_video entry so the blob queue can find
     // and patch this workout once the upload eventually succeeds. Only the
     // athlete's own fields: the coach's (reviewNotes…) are merged from the
     // SERVER copy at write time (upsertWorkoutRow), never from this device's.
-    const formVideos = fv.map((f) => ({
-      has: f.has,
+    const formVideos = fv.map((f, i) => ({
+      has: f.has || !!handed[i],
       note: f.note,
       fileName: f.fileName || null,
       cloudUrl: f.cloudUrl || null,
-      pendingBlobId: f.pendingBlobId || null,
+      pendingBlobId: handed[i] || f.pendingBlobId || null,
     }));
     // Attach the now-known workout id to each queued blob, then poke the
     // drainer in case we're online.
-    fv.forEach((f, i) => {
+    formVideos.forEach((f, i) => {
       if (f.pendingBlobId) {
         attachWorkout(f.pendingBlobId, workoutId, i).catch(() => {});
       }
     });
-    if (fv.some(f => f.pendingBlobId)) drainBlobs();
+    if (formVideos.some(f => f.pendingBlobId)) drainBlobs();
     // Capture per-session exercise substitutions so trainer review shows
     // what the trainee actually did, not just what was prescribed. The
     // workout exercise.title reflects the swap when one happened, and
@@ -1916,9 +1980,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           placeholder's question marks - empty follows the language, typed text
           follows itself */}
       <textarea dir={notes ? 'auto' : (readLang() === 'he' ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
-      {fv.some(f => f.uploading) ? (
-        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ {tt('Video uploading...')}</button>
-      ) : (
+      {/* Complete is never replaced by "Video uploading..." any more (5.10 #560):
+          a clip still in flight is handed to the blob queue by finish() and the
+          row saves at once. The athlete is told the clip follows on its own. */}
+      {fv.some(f => f.uploading) && (
+        <div dir="auto" data-upload-background style={{marginBottom:12,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{tt('Video uploading in the background — you can keep going.')}</div>
+      )}
+      {(
         <>
           {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && countFilledUnticked(allSets) === 0 && !hasAttachedVideo() && (
             <div role="alert" dir="auto" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
@@ -2336,10 +2404,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       {groupExs.map(renderExerciseBlock)}
 
-      <div style={{display:'flex',gap:8,marginTop:20}}>
+      {/* The step is never held by a clip (5.10 #560): the upload's state lives
+          in the logger, not in this step, so it carries on in the background. */}
+      {anyUploading && (
+        <div dir="auto" data-upload-background style={{marginTop:20,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{tt('Video uploading in the background — you can keep going.')}</div>
+      )}
+      <div style={{display:'flex',gap:8,marginTop:anyUploading?10:20}}>
         {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-        <button data-step-next onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
-          {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
+        <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
+          {step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
     </div></div>;
 }
 
@@ -2469,6 +2542,23 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     }
     let alive = true;
     setPlansLoadError(null);
+    // THE SNAPSHOT DOES NOT WAIT FOR THE SERVER TO GIVE UP (5.10 #560). On a dead
+    // wifi the read neither failed nor answered, and the athlete read "Loading
+    // your program…" for its whole timeout. The last programme this phone saw
+    // is shown after 5 s, or at once when the probe says the server is out of
+    // reach; a live answer still replaces it when it lands.
+    let shown = false;
+    const showSnapshot = () => {
+      if (!alive || shown) return;
+      const cached = readPlansSnapshot(ci);
+      if (!cached || !cached.length) return;
+      shown = true;
+      setClientPlans(cached);
+      setPlansFromSnapshot(true);
+      setPlansLoadError(null);
+    };
+    const snapTimer = setTimeout(showSnapshot, 5000);
+    const unsubNet = subscribeNet((st) => { if (st === 'offline') showSnapshot(); });
     (async () => {
       try {
         const { supabase: sb } = await import('./supabase');
@@ -2477,6 +2567,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         const ids = traineeIdsFor(ci);
         const { data, error } = await sb.from('plans').select('*').in('trainee_id', ids);
         if (!alive) return;
+        clearTimeout(snapTimer);
         if (error) throw error;
         if (data) {
           const mapped = data.map(p => ({
@@ -2517,7 +2608,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         }
       }
     })();
-    return () => { alive = false; };
+    return () => { alive = false; clearTimeout(snapTimer); unsubNet(); };
   }, [ci, plansReloadKey, demoMode, demoPlans]);
 
   // Presence heartbeat — let the coach know this client is online.

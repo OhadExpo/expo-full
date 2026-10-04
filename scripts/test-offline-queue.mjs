@@ -92,12 +92,16 @@ await oq.drain();
 truthy(oq.getCount() === 1, 'failed entry stays queued');
 const q3a = JSON.parse(lsStore.get('expo-offline-queue'));
 eq(q3a[0].attempts, 1, 'attempts bumped to 1 on first failure');
-
+// A failed entry RESTS (backoff with jitter, 5.10 #560): a plain drain leaves it alone...
+truthy(q3a[0].nextTryAt > Date.now(), 'failed entry carries a rest period (nextTryAt in the future)');
 await oq.drain();
+eq(JSON.parse(lsStore.get('expo-offline-queue'))[0].attempts, 1, 'a drain during the rest period does not retry it');
+// ...and { now: true } (the RETRY button) is what tries it again at once.
+await oq.drain({ now: true });
 const q3b = JSON.parse(lsStore.get('expo-offline-queue'));
 eq(q3b[0].attempts, 2, 'attempts bumped to 2 on second failure');
 
-await oq.drain();
+await oq.drain({ now: true });
 eq(oq.getCount(), 0, 'entry drained successfully on third attempt');
 
 // ─── Scenario 4: max attempts → drop + emit ─────────────────────────
@@ -106,7 +110,7 @@ const droppedErrors = [];
 oq.setOnError((e) => droppedErrors.push(e));
 oq.registerHandler('test.dead', async () => { throw new Error('permafail'); });
 oq.enqueue({ type: 'test.dead', payload: { id: 'd1' } });
-for (let i = 0; i < 6; i++) await oq.drain();
+for (let i = 0; i < 6; i++) await oq.drain({ now: true });
 eq(oq.getCount(), 0, 'permafail entry dropped after MAX_ATTEMPTS');
 eq(droppedErrors.length, 1, 'onError fired once for the dropped entry');
 eq(droppedErrors[0].type, 'test.dead', 'dropped error has the right type');

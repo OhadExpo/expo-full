@@ -15,9 +15,19 @@
 //     in arrival order, last-write-wins; fine for one coach + one client
 //     device at this scale)
 
+import { getState as netState, subscribe as subscribeNet } from './connectivity.js';   // extension: the node tests import this file directly
+
 const KEY = 'expo-offline-queue';
 const MAX_ATTEMPTS = 5;
 const DRAIN_INTERVAL_MS = 30000;
+// A handler that never settles (a hung request behind the client's own
+// timeouts, a lock that is never released) must not hold the whole queue: past
+// this it counts as a transient failure and the pass moves on (5.10 #560).
+const HANDLER_TIMEOUT_MS = 60000;
+// After a failure an entry RESTS before it is tried again: 1 s, 2 s, 4 s ...
+// capped at 60 s, with ±25% jitter so a hundred phones coming back on the same
+// wifi do not retry in lockstep. Other entries are not held behind it.
+const backoffMs = (attempts) => Math.min(60000, 1000 * 2 ** Math.max(0, (attempts || 1) - 1)) * (0.75 + Math.random() * 0.5);
 
 const listeners = new Set();
 const handlers = {};
@@ -199,9 +209,25 @@ function isPermanent(err) {
          msg.includes('check constraint') || msg.includes('foreign key');
 }
 
-export async function drain() {
+// One timer for "the earliest resting entry is due": a failed pass books the
+// next one itself instead of waiting for the 30 s tick (5.10 #560).
+let retryTimer = null;
+function scheduleRetry(ms) {
+  if (typeof setTimeout !== 'function') return;
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => { retryTimer = null; drain(); }, Math.max(250, ms));
+  if (retryTimer && typeof retryTimer.unref === 'function') retryTimer.unref();   // node tests
+}
+
+// drain({ now: true }) ignores the rest periods - the athlete's RETRY button and
+// the pill's tap mean "try it again, now", not "when the backoff says".
+export async function drain(opts) {
+  const force = !!(opts && opts.now);
   if (draining) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  // the probe's word, not the radio's: on a dead wifi every attempt would hang
+  // to its timeout and count against the entry (5.10 #560)
+  if (netState() === 'offline') return;
   draining = true;
   // Track critical unknown-type entries we've already rotated this pass, so a
   // parked-to-tail entry can't spin the loop forever within one drain.
@@ -211,13 +237,20 @@ export async function drain() {
     while (true) {
       const q = read();
       if (q.length === 0) break;
-      const next = q[0];
+      // FIFO among the entries that are not resting after a failure; an entry
+      // whose backoff has not elapsed is left in place and the rest go on.
+      const now = Date.now();
+      const next = q.find((e) => force || !(e.nextTryAt && e.nextTryAt > now));
+      if (!next) {
+        scheduleRetry(Math.min(...q.map((e) => e.nextTryAt)) - now);
+        break;
+      }
       // Foreign-user entry (or signed-out): keep it, rotate to tail, never
       // attempt it under the wrong (or no) JWT.
       if (next.uid && next.uid !== currentUid) {
         if (cycledForeign.has(next.id)) break; // full pass done — everything left is foreign
         cycledForeign.add(next.id);
-        write([...q.slice(1), next]);
+        write([...q.filter((e) => e.id !== next.id), next]);
         continue;
       }
       const handler = handlers[next.type];
@@ -232,19 +265,27 @@ export async function drain() {
           if (cycledUnknown.has(next.id)) break; // already rotated this pass — stop
           cycledUnknown.add(next.id);
           const wasParked = next.parked;
-          write([...q.slice(1), { ...next, parked: true }]);
+          write([...q.filter((e) => e.id !== next.id), { ...next, parked: true }]);
           if (!wasParked && onErrorHook) {
             try { onErrorHook({ type: next.type, payload: next.payload, msg: 'Still saving — will retry when the app updates.' }); } catch {}
           }
           continue;
         }
-        write(q.slice(1));
+        write(q.filter((e) => e.id !== next.id));
         continue;
       }
       try {
         // The entry is passed too, so a handler can tell whether it is still the
         // current version of its row when its turn on the row's chain comes.
-        await handler(next.payload, next);
+        // Bounded: a handler that never settles is a transient failure, not a
+        // frozen queue.
+        let hung = null;
+        try {
+          await Promise.race([
+            handler(next.payload, next),
+            new Promise((_, rej) => { hung = setTimeout(() => rej(new Error('handler timeout - network wait, retrying')), HANDLER_TIMEOUT_MS); }),
+          ]);
+        } finally { if (hung) clearTimeout(hung); }
         // Re-read to avoid clobbering newer enqueues that landed during
         // the await.
         const cur = read();
@@ -266,7 +307,7 @@ export async function drain() {
           if (NEVER_DROP_TYPES.has(next.type) && isPermanent(e)) {
             const wasParked = target.parked;
             const rest = cur.filter(x => x.id !== next.id);
-            write([...rest, { ...target, parked: true, stuck: true }]);
+            write([...rest, { ...target, parked: true, stuck: true, nextTryAt: Date.now() + backoffMs(target.attempts) }]);
             // Surface ONCE when it first parks (a coach-side save has no banner).
             if (!wasParked && onErrorHook) {
               try { onErrorHook({ type: next.type, payload: next.payload, msg: 'Workout not saved yet — kept on this device and retrying.' }); } catch {}
@@ -289,12 +330,13 @@ export async function drain() {
             // row lives in the payload, so nothing is lost even across a reload.
             const wasParked = target.parked;
             const rest = cur.filter(x => x.id !== next.id);
-            write([...rest, { ...target, parked: true }]);
+            write([...rest, { ...target, parked: true, nextTryAt: Date.now() + backoffMs(target.attempts) }]);
             if (!wasParked && onErrorHook) {
               try { onErrorHook({ type: next.type, payload: next.payload, msg: 'Still saving — will retry when the connection is back. (' + target.lastError + ')' }); } catch {}
             }
             break; // stop this pass; the parked op retries on the next trigger
           }
+          target.nextTryAt = Date.now() + backoffMs(target.attempts);
           write(cur);
         }
         break; // stop the drain; reschedule by online/interval
@@ -302,11 +344,44 @@ export async function drain() {
     }
   } finally {
     draining = false;
+    // whatever is resting gets its own wake-up, until the server confirms it
+    try {
+      const left = read().filter((e) => e.nextTryAt && (!e.uid || e.uid === currentUid));
+      if (left.length) scheduleRetry(Math.min(...left.map((e) => e.nextTryAt)) - Date.now());
+    } catch { /* the interval still runs */ }
   }
+}
+
+// PERSISTENT STORAGE, ASKED FOR ONCE (5.10 #560). Without it the browser may
+// evict this origin's storage - the queue, the drafts, the cached programme -
+// under pressure, silently. Chrome grants it to an installed PWA or an engaged
+// site; asked after the first save landed, when there is something to protect.
+let persistAsked = false;
+export function ensurePersistentStorage() {
+  if (persistAsked) return;
+  persistAsked = true;
+  try {
+    if (typeof navigator === 'undefined' || !navigator.storage || typeof navigator.storage.persist !== 'function') return;
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('expo-storage-persisted') === '1') return;
+    navigator.storage.persist().then((granted) => {
+      if (granted) { try { localStorage.setItem('expo-storage-persisted', '1'); } catch { /* fine */ } }
+    }).catch(() => {});
+  } catch { /* not available */ }
 }
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => { drain(); });
+  // THE PROBE'S 'online', not the radio's (5.10 #560): a dead wifi fires no
+  // 'online' event when it comes back to life; the probe notices within 30 s
+  // (or at once, after the next request the app makes) and the queue drains
+  // then. Transitions only - the first notification is just the current state,
+  // and at import time no handler is registered yet.
+  let lastNet = netState();
+  subscribeNet((st) => {
+    const was = lastNet;
+    lastNet = st;
+    if (st === 'online' && was !== 'online') drain();
+  });
   // Skip the periodic wake-up while the tab is backgrounded — battery
   // friendly, especially on mobile PWAs where this can otherwise wake
   // every 30s for hours. The visibilitychange handler below catches up

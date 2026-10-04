@@ -21,6 +21,7 @@ const NEEDS_WORLD = [
   'verify-shot-figure',       // needs an expo-il preview + debug Chrome
   'verify-prod-current',      // hits production
   'verify-bhbc-write-scope',  // signs in to Supabase
+  'verify-offline-sync',      // needs a built preview + headless Chrome, signs in as the fixture athlete (5.10 #560)
 ];
 
 const filter = process.argv[2] || '';

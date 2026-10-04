@@ -3,6 +3,7 @@
 // CoachLanding, ClientPortal) don't have to redeclare them inline.
 import { createClient } from '@supabase/supabase-js';
 import { PARTNER_EMAILS } from './authRoles';
+import { setProbeUrl, noteSuccess, noteFailure } from './connectivity';
 
 export const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 export const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -50,6 +51,11 @@ const NEVER_EVICT = new Set([
                            // does not lose a cache, it loses what someone typed offline.
   'expo-lead-notes',       // notes he typed on a lead
 ]);
+// ...and the logger's in-progress drafts (5.10 #560): `expo-stepLogger-<athlete>-
+// <plan>-<day>-...` is the only copy of the sets an athlete is logging RIGHT
+// NOW, mid-workout, on a phone whose session just needed room. Keyed per
+// session so it cannot be listed above; matched by prefix instead.
+const NEVER_EVICT_PREFIXES = ['expo-stepLogger-'];
 const evictSnapshots = () => {
   let freed = 0;
   try {
@@ -57,7 +63,7 @@ const evictSnapshots = () => {
     // Biggest first: one large snapshot usually frees more than a dozen small
     // ones, and the fewer we drop the less the user has to refetch.
     const sized = keys
-      .filter((k) => SNAPSHOT_PREFIXES.some((p) => k.startsWith(p)) && !/auth-token/.test(k) && !NEVER_EVICT.has(k))
+      .filter((k) => SNAPSHOT_PREFIXES.some((p) => k.startsWith(p)) && !/auth-token/.test(k) && !NEVER_EVICT.has(k) && !NEVER_EVICT_PREFIXES.some((p) => k.startsWith(p)))
       .map((k) => ({ k, n: (window.localStorage.getItem(k) || '').length }))
       .sort((a, b) => b.n - a.n);
     for (const { k, n } of sized) {
@@ -243,6 +249,52 @@ if (typeof window !== 'undefined' && window.sessionStorage && window.localStorag
   } catch { /* private mode / quota — ignore */ }
 }
 
+// NO REQUEST HANGS FOREVER (5.10 #560). On a gym's dead wifi a request neither
+// fails nor answers: the socket sits open, supabase-js waits on it, and whatever
+// awaited that call - the identity read at boot, a queue handler, the auth
+// refresh - waits with it. Every request the client makes now carries a budget:
+// a read may take 20 s (a big plan list on 3G), a write 10 s, and a storage
+// upload 60 s (a 40 MB clip on a weak signal must not be cut off while it is
+// still making progress - the uploader's own stall watchdog guards that path).
+// An abort reads as 'aborted' / 'AbortError', which the queue already treats as
+// transient, so a cut-off write stays queued and is retried.
+//
+// The same wrapper is where the client REPORTS: an answer of any kind means the
+// server is reachable (connectivity goes 'online' with no probe spent); a
+// network failure asks the probe at once, so the app knows it is offline
+// within seconds instead of at the next 30 s tick.
+const FETCH_TIMEOUT_READ_MS = 20000;
+const FETCH_TIMEOUT_WRITE_MS = 10000;
+const FETCH_TIMEOUT_UPLOAD_MS = 60000;
+const fetchBudgetFor = (url, init) => {
+  const method = String((init && init.method) || 'GET').toUpperCase();
+  if (/\/storage\/v1\/(object|upload)\//.test(url) && method !== 'GET' && method !== 'HEAD') return FETCH_TIMEOUT_UPLOAD_MS;
+  if (/\/rest\/v1\//.test(url) && (method === 'GET' || method === 'HEAD')) return FETCH_TIMEOUT_READ_MS;
+  return FETCH_TIMEOUT_WRITE_MS;
+};
+const timedFetch = (input, init) => {
+  const url = typeof input === 'string' ? input : (input && input.url) || '';
+  const opts = init || {};
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  if (!ctl) return fetch(input, opts);
+  const outer = opts.signal;
+  // a caller's own signal (withTimeout in useSupaStore) still aborts this one
+  if (outer) {
+    if (outer.aborted) ctl.abort();
+    else { try { outer.addEventListener('abort', () => ctl.abort(), { once: true }); } catch { /* not a signal */ } }
+  }
+  const t = setTimeout(() => ctl.abort(), fetchBudgetFor(url, opts));
+  return fetch(input, { ...opts, signal: ctl.signal }).then(
+    (r) => { clearTimeout(t); noteSuccess(); return r; },
+    (e) => { clearTimeout(t); noteFailure(); throw e; },   // a caller's own timeout is a failure too
+  );
+};
+// The probe carries no key on purpose: a key in the URL trips the S25 gate (no
+// token in a URL, ever) and a key header costs a CORS preflight. Without one
+// the gateway answers 401 - and an answer from sb-gateway IS the proof that
+// Supabase can be reached (measured: 401 in ~40 ms with sb-gateway-version).
+setProbeUrl(`${SUPA_URL}/auth/v1/health`);
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
@@ -250,7 +302,22 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     detectSessionInUrl: true,
     storage: authStorage,
   },
+  global: { fetch: typeof fetch === 'function' ? timedFetch : undefined },
 });
+
+// THE SESSION THIS DEVICE HOLDS, READ WITHOUT ASKING THE SERVER (5.10 #560).
+// supabase-js refuses to hand out an expired session until it has refreshed it,
+// and offline that refresh cannot happen - so a phone that slept through the
+// token's hour booted into the login screen with a perfectly good refresh token
+// in storage. auth.jsx uses this to keep the last known person signed in while
+// the server cannot be reached; the real refresh lands the moment it can.
+export function readStoredSession() {
+  try {
+    const raw = authStorage ? authStorage.getItem(AUTH_TOKEN_KEY) : null;
+    const j = raw ? JSON.parse(raw) : null;
+    return j && j.refresh_token && j.user && j.user.id ? j : null;
+  } catch { return null; }
+}
 
 // THE PARTNER SEAT IS A SANDBOX (#476, 30.9). Ohad: "fake money but everything
 // ... the ability to actually touch or change it (sandbox) - his own version".
@@ -332,6 +399,9 @@ export function reviveSession() {
       const rt = cookieGet(REFRESH_COOKIE);
       if (!rt) return false;
       const { data: out, error } = await supabase.auth.refreshSession({ refresh_token: rt });
+      // a refresh that never reached the server (offline, timed out: status 0)
+      // has not refused anything - the cookie stays for the next visit (5.10 #560)
+      if (error && (error.status === 0 || /fetch|network|abort/i.test(String(error.message || '')))) return false;
       if (error || !out || !out.session) { cookieDel(REFRESH_COOKIE); return false; }
       return true;
     } catch { return false; }
