@@ -105,12 +105,12 @@ function supaHeaders(authToken) {
   };
 }
 
-async function execTool(name, input, authToken) {
+async function execTool(name, input, authToken, pfx = '') {
   try {
     if (name === 'lookup_exercise') {
       const q = String(input?.query || '').trim().toLowerCase();
       const limit = Math.min(Math.max(parseInt(input?.limit) || 5, 1), 15);
-      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-exercises&select=value`, { headers: supaHeaders(authToken) });
+      const r = await fetch(`${SUPA_URL}/rest/v1/${pfx}store?key=eq.expo-exercises&select=value`, { headers: supaHeaders(authToken) });
       const rows = await r.json();
       const lib = rows?.[0]?.value || [];
       const scored = lib
@@ -124,7 +124,7 @@ async function execTool(name, input, authToken) {
     if (name === 'lookup_athlete') {
       const q = String(input?.query || '').trim().toLowerCase();
       const limit = Math.min(Math.max(parseInt(input?.limit) || 5, 1), 15);
-      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-trainees&select=value`, { headers: supaHeaders(authToken) });
+      const r = await fetch(`${SUPA_URL}/rest/v1/${pfx}store?key=eq.expo-trainees&select=value`, { headers: supaHeaders(authToken) });
       const rows = await r.json();
       const arr = rows?.[0]?.value || [];
       const phoneQ = q.replace(/\D/g, '');
@@ -143,7 +143,7 @@ async function execTool(name, input, authToken) {
     }
     if (name === 'peek_recent_plans') {
       const limit = Math.min(Math.max(parseInt(input?.limit) || 6, 1), 15);
-      const r = await fetch(`${SUPA_URL}/rest/v1/plans?select=name,trainee_id,data&order=created_at.desc&limit=${limit}`, { headers: supaHeaders(authToken) });
+      const r = await fetch(`${SUPA_URL}/rest/v1/${pfx}plans?select=name,trainee_id,data&order=created_at.desc&limit=${limit}`, { headers: supaHeaders(authToken) });
       const plans = await r.json();
       return {
         plans: (plans || []).map(p => ({
@@ -502,6 +502,7 @@ export default async function handler(req, res) {
   // VALIDATE the token — not just its presence. A bogus Bearer would otherwise
   // still burn Opus dollars on the vision-extract / plan paths (which make no
   // Supabase call to fail on). Mirrors api/meal-macros.js + api/push/*.
+  let pfx = '';
   try {
     const userR = await fetch(`${SUPA_URL}/auth/v1/user`, {
       headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${authToken}` },
@@ -512,8 +513,15 @@ export default async function handler(req, res) {
     // could lift their JWT and burn the Anthropic key — cost-DoS. Restrict to
     // coaches (owner + staff). Mirror src/auth.jsx TRAINER_EMAILS. (security)
     const TRAINER_EMAILS = ['ohadyproductions@gmail.com', 'yuvalberkovitch@gmail.com'];
+    // THE PARTNER'S SANDBOX IS A REAL SHELL (4.10 #542, Ohad: "elad can fill his
+    // sandbox it needs to be a real shell"): his seat imports too, and every
+    // lookup reads HIS sbx_ copies - never the real library, roster or plans.
+    // Same list as src/authRoles.js PARTNER_EMAILS.
+    const PARTNER_EMAILS = ['eladeluz24@gmail.com'];
     const u = await userR.json().catch(() => null);
-    if (!TRAINER_EMAILS.includes((u?.email || '').toLowerCase())) {
+    const em = (u?.email || '').toLowerCase();
+    if (PARTNER_EMAILS.includes(em)) pfx = 'sbx_';
+    else if (!TRAINER_EMAILS.includes(em)) {
       res.status(403).json({ error: 'Not authorized.' }); return;
     }
   } catch { res.status(500).json({ error: 'Auth lookup failed.' }); return; }
@@ -582,7 +590,7 @@ SAMPLE ROWS (each row is an array aligned to HEADERS):
 ${JSON.stringify(sampleRows, null, 2)}
 ${existingContext ? `\nEXISTING DATA SNAPSHOT (use to avoid duplicates / cross-reference):\n${existingContext}\n` : ''}
 Propose the mapping + structure + enumNormalizations per the rules. Strict JSON only.`;
-      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_ANALYZE, userPrompt, maxTokens: 2500, useTools: true, authToken });
+      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_ANALYZE, userPrompt, maxTokens: 2500, useTools: true, authToken, pfx });
       res.status(200).json(result);
       return;
     }
@@ -608,7 +616,7 @@ ROWS (each row is { headerName: cellValue }):
 ${JSON.stringify(rows, null, 2)}
 ${existingContext ? `\nEXISTING DATA SNAPSHOT (use for cross-reference; frontend dedupes on commit):\n${existingContext}\n` : ''}
 Produce normalized items. Strict JSON only.`;
-      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_TRANSFORM, userPrompt, maxTokens: 6000, useTools: true, authToken });
+      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_TRANSFORM, userPrompt, maxTokens: 6000, useTools: true, authToken, pfx });
 
       // Server-side schema validation. If anything is broken, run a repair pass.
       const items = Array.isArray(result?.items) ? result.items : [];
@@ -731,12 +739,12 @@ function validateAgainstSchema(item, target, schema) {
   return errs;
 }
 
-async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools = false, authToken = null }) {
+async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools = false, authToken = null, pfx = '' }) {
   // Single-shot Opus 4.7 with prompt caching. When useTools=true we wrap the
   // call in a tool-use loop that lets the model query the coach's live data
   // (lookup_exercise, lookup_athlete, etc.) before producing final JSON.
   if (useTools) {
-    return await runWithTools({ apiKey, system, userPrompt, maxTokens, authToken });
+    return await runWithTools({ apiKey, system, userPrompt, maxTokens, authToken, pfx });
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -766,7 +774,7 @@ async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools =
 // Tool-use loop. The model can call any of our TOOLS up to MAX_HOPS times
 // before it must produce its final JSON answer. We feed each tool_use back
 // in as a tool_result on the next turn.
-async function runWithTools({ apiKey, system, userPrompt, maxTokens, authToken = null, MAX_HOPS = 8 }) {
+async function runWithTools({ apiKey, system, userPrompt, maxTokens, authToken = null, pfx = '', MAX_HOPS = 8 }) {
   const messages = [{ role: 'user', content: userPrompt }];
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -804,7 +812,7 @@ async function runWithTools({ apiKey, system, userPrompt, maxTokens, authToken =
     messages.push({ role: 'assistant', content: blocks });
     const results = [];
     for (const tu of toolUses) {
-      const out = await execTool(tu.name, tu.input || {}, authToken);
+      const out = await execTool(tu.name, tu.input || {}, authToken, pfx);
       results.push({ type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(out).slice(0, 4000) });
     }
     messages.push({ role: 'user', content: results });
