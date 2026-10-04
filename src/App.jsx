@@ -1060,7 +1060,7 @@ function AuthedApp() {
       const p = window.location.pathname || '';
       // /bhbc is a coach-side door too — a dual-role user opening the club URL
       // must land in the zone, not on the portal chooser.
-      if (p === '/coach' || p.startsWith('/coach/') || /^\/bhbc\/?(login\/?)?$/.test(p)) {
+      if (p === '/coach' || p.startsWith('/coach/') || BHBC_ZONE_PATH.test(p)) {   // every club page (4.10 review: /bhbc/practices opened in a fresh tab got the chooser)
         sessionStorage.setItem(PORTAL_CHOICE_KEY, 'trainer');
         return 'trainer';
       }

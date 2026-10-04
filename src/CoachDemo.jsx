@@ -594,7 +594,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {/* ONLINE NOW - the real dashboard lifts it out of the alert rail: its own
           full-width card above Messages */}
       {onlineNow.length > 0 && (
-        <div className="alert-card alert-sev" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: '14px 18px', marginBottom: 14 }}>
+        <div className="alert-card alert-sev cd-online" style={{ background: C.sf, border: `1px solid ${C.gn}`, padding: onlineOpen ? '14px 18px' : '14px 18px 0', marginBottom: 14 }}>
           {/* collapsible like the real card (4.10 #540): the strip is the handle */}
           <div className="title-strip" onClick={() => setOnlineOpen((o) => !o)} {...stripToggleProps(onlineOpen, () => setOnlineOpen((o) => !o))} style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: onlineOpen ? '-14px -18px 8px' : '-14px -18px -14px', padding: '0 18px', borderBottom: onlineOpen ? `1px solid ${C.cardBd}` : 'none' /* shut: no grey line doubled on the green edge */, ...DEMO_STRIP_H, justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Online Now')} ({onlineNow.length})</span>

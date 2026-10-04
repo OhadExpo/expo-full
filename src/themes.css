@@ -1726,6 +1726,11 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   min-height: var(--btn-h-in) !important; height: var(--btn-h-in) !important;
   padding-block: 0 !important; box-sizing: border-box;
 }
+/* ...except a dropdown's ITEMS opened from a strip control: a menu row is a
+   36px control, not a strip button (4.10 review: the demo status menu shrank to 26) */
+.title-strip .motion-menu button { min-height: 36px !important; height: auto !important; }
+/* the demo's Online Now, shut: the strip IS the card (no 12px band under it) */
+.cd-online.alert-sev .title-strip[aria-expanded="false"] { margin-bottom: -1px !important; }
 
 /* A popup title is ONE row (26.9): its lead words step aside on a phone. */
 @media (max-width: 520px) { .bm-lead { display: none; } }

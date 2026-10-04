@@ -530,7 +530,12 @@ const mountReads = new Map();
 function readStoreOnMount(key) {
   let p = mountReads.get(key);
   if (!p) {
-    p = Promise.resolve(supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle());
+    // 20 s at most: a read that never answers would otherwise hold the entry -
+    // and every refresh of this key skips while it is held (4.10 review)
+    p = Promise.race([
+      Promise.resolve(supabase.from('store').select('value, updated_at').eq('key', key).maybeSingle()),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('store read timed out')), 20000)),
+    ]);
     mountReads.set(key, p);
     const done = () => { if (mountReads.get(key) === p) mountReads.delete(key); };
     p.then(done, done);
@@ -599,6 +604,7 @@ export function useSupaStore(key, initial) {
   // the guarded refetch below, for callers that learn of a change another way
   // (the club zone's broadcast + fallback poll, #510-R2 M7)
   const refetchRef = useRef(null);
+  const missedRef = useRef(false);
 
   // Load from Supabase on mount. On failure, fall back to any localStorage
   // snapshot and surface the error so the caller can show a banner.
@@ -607,6 +613,14 @@ export function useSupaStore(key, initial) {
       try {
         const { data: row, error } = await readStoreOnMount(key);
         if (error) throw error;
+        // a refresh already brought a NEWER row while this read was out (a save
+        // elsewhere dropped the shared read): the older answer must not land on it
+        if (baseRef.current.known) {
+          serverLoadedRef.current = true;
+          serverLenRef.current = storeSize(baseRef.current.val);
+          setLoaded(true);
+          return;
+        }
         // the base every write from here is built on (#510-B1)
         baseRef.current = { known: true, at: atOf(row), val: row ? row.value : undefined };
         if (row) persistBase(key, atOf(row), row.value, { withSnapshot: key !== 'expo-trainees' || (Array.isArray(row.value) && row.value.length > 0) });
@@ -697,6 +711,9 @@ export function useSupaStore(key, initial) {
         console.warn(`useSupaStore[${key}] load failed:`, e?.message || e);
       }
       setLoaded(true);
+      // a change that arrived while the first read was out was skipped (below):
+      // one refresh now, so it is not lost until the next one
+      if (missedRef.current) { missedRef.current = false; const f = refetchRef.current; if (f) f(); }
     })();
   }, [key]);
 
@@ -720,7 +737,7 @@ export function useSupaStore(key, initial) {
       // the first read is still on the wire: it IS the fresh copy (4.10, the club
       // zone's refresh on entry fired beside the mount reads and read every key
       // again - measured on the head coach's cold load)
-      if (!baseRef.current.known && mountReads.has(key)) return;
+      if (!baseRef.current.known && mountReads.has(key)) { missedRef.current = true; return; }
       const gen = saveGenRef.current;
       try {
         // the version first: a focus on a tab whose stores did not move costs one
