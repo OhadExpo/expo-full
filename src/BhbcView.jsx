@@ -4807,7 +4807,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
                   <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch' }}>
                     <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 80 /* room for its longest word (YESTERDAY, ~76px measured): at 46 the dates beside a long age stood further in than the rest (4.10 #550 sweep) - a phone sets it to 0 */, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? tr('yesterday') /* 'אתמול' is shorter than the '1 ימים' it replaced (#547) */ : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
                     </span>
                   </span>

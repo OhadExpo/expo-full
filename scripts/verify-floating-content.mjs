@@ -64,6 +64,14 @@ function measureFloat() {
       inset += (parseFloat(rtl ? acs.paddingLeft : acs.paddingRight) || 0) + (parseFloat(rtl ? acs.borderLeftWidth : acs.borderRightWidth) || 0);
     }
     if (offEdge - inset <= 6) continue;                // the box ends on its row's edge (padding aside): right where it is
+    // ...or its content HUGS the next thing in the row (a reserved date slot whose chip
+    // sits against its task title, #207): aligned to that, not floating
+    // a column PINNED (sticky) to the end of a sideways-scrolling table is at the
+    // visible edge by design - its row is wider than the screen
+    let pinned = false; for (let a = el; a && a !== row; a = a.parentElement) if (getComputedStyle(a).position === 'sticky') { pinned = true; break; }
+    if (pinned) continue;
+    let nx = el.nextElementSibling; while (nx && !shown(nx)) nx = nx.nextElementSibling;
+    if (nx) { const q = nx.getBoundingClientRect(); const gap = side === 'right' ? q.left - inkR : inkL - q.right; if (gap >= -1 && gap <= 16 && q.bottom > r.top && q.top < r.bottom) continue; }
     const chain = []; for (let a = el; a && chain.length < 7; a = a.parentElement) { const q = a.getBoundingClientRect(), qs = getComputedStyle(a); chain.push(`${a.tagName.toLowerCase()}.${(typeof a.className === 'string' ? a.className.split(' ')[0] : '')} end${Math.round(rtl ? q.left : q.right)} pad${parseFloat(rtl ? qs.paddingLeft : qs.paddingRight) || 0} w${Math.round(q.width)}${a === row ? ' =ROW' : ''}`); if (a === row) break; }
     out.push({ chain: chain.join(' > '), measured: 0, text: el.innerText.trim().replace(/\s+/g, ' ').slice(0, 30), empty: Math.round(empty), offEdge: Math.round(offEdge), cls: (el.className && typeof el.className === 'string' ? el.className.split(' ')[0] : el.tagName.toLowerCase()) });
   }
