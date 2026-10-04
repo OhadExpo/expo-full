@@ -82,19 +82,51 @@ const { error: se } = await db.auth.signInWithPassword({ email: 'ohadyproduction
 if (se) { console.log('FAIL: owner sign-in - ' + se.message); process.exit(1); }
 try {
   console.log('1. no real money left in ANY text/json column of the sandbox');
+  let unpairedChecked = 0;
   let scanned = 0, withMoney = 0, leaks = 0; const examples = []; const unpairedMoney = [];
   const cache = {};
   for (const t of TABLES) {
     const [real, mine] = await Promise.all([all(t), all('sbx_' + t)]);
+    // BREAK=1 proves the unpaired check bites: a copy of a real money row under a
+    // new id is planted in memory (nothing is written) - the gate must fail
+    if (process.env.BREAK && MONEY_TABLES.has(t) && real.length) { const k0 = PK[t] || 'id'; mine.push({ ...real[0], [k0]: typeof real[0][k0] === 'number' ? -1 : 'break-probe' }); if (NK[t]) for (const c of NK[t]) mine[mine.length - 1][c] = 'break-probe'; }
     cache[t] = { real, mine };
     const key = PK[t] || 'id';
     const byId = new Map(real.map((r) => [String(r[key]), r]));
     const nk = NK[t] && ((r) => NK[t].map((c) => String(r[c])).join('|'));
     const byNk = nk && new Map(real.map((r) => [nk(r), r]));
     let unpaired = 0;
+    // A ROW WITH NO REAL TWIN IS STILL CHECKED (4.10 #542): his own new rows and
+    // rows the daemon's re-sync orphaned have nothing to pair with, so every money
+    // figure in them is held against EVERY real figure of the same column - one
+    // match fails (a coincidence fails safe), none passes.
+    let realTokByCol = null;
+    const tokOpts = (col, row) => ({ price: PRICE_FIELDS.has(`${t}.${col}`) || (t === 'revenue_cell_history' && col === 'value' && ['price_month', 'price_session'].includes(row.field)), times: TIMES_FIELDS.has(`${t}.${col}`) });
+    const asText = (v) => (typeof v === 'string' ? v : JSON.stringify(v));
     for (const x of mine) {
       const y = byId.get(String(x[key])) || (byNk && byNk.get(nk(x)));
-      if (!y) { unpaired++; continue; }
+      if (!y) {
+        if (!realTokByCol) {
+          realTokByCol = new Map();
+          for (const r of real) for (const col of Object.keys(r)) {
+            const rv = r[col];
+            if (rv == null || typeof rv === 'number' || typeof rv === 'boolean') continue;
+            const set = realTokByCol.get(col) || new Set();
+            for (const v of moneyTokens(asText(rv), tokOpts(col, r))) if (v !== 0) set.add(v);
+            realTokByCol.set(col, set);
+          }
+        }
+        let clean = true; unpairedChecked++;
+        for (const col of Object.keys(x)) {
+          const xv = x[col];
+          if (xv == null || typeof xv === 'number' || typeof xv === 'boolean') continue;
+          const set = realTokByCol.get(col); if (!set || !set.size) continue;
+          const hit = moneyTokens(asText(xv), tokOpts(col, x)).filter((v) => v !== 0 && set.has(v));
+          if (hit.length) { clean = false; leaks++; if (examples.length < 6) examples.push(`${t}.${col} [${x[key]}] unpaired row shows ${hit.join('/')} - a real figure of that column`); }
+        }
+        if (!clean) unpaired++;
+        continue;
+      }
       for (const col of Object.keys(y)) {
         const rv = y[col];
         if (rv == null || typeof rv === 'number' || typeof rv === 'boolean') continue;
@@ -115,9 +147,9 @@ try {
       }
     }
     cache[t].unpaired = unpaired;
-    if (MONEY_TABLES.has(t) && unpaired) unpairedMoney.push(`${t}: ${unpaired} of ${mine.length} sandbox rows have no real row by id${nk ? ' or natural key' : ''}`);
+    if (MONEY_TABLES.has(t) && unpaired) unpairedMoney.push(`${t}: ${unpaired} of ${mine.length} sandbox rows have no real twin AND show a real figure of their column`);
   }
-  ok(!unpairedMoney.length, `every sandbox row of the ${MONEY_TABLES.size} money tables was paired with its real row and checked${unpairedMoney.length ? '\n      ' + unpairedMoney.join('\n      ') : ''}`);
+  ok(!unpairedMoney.length, `every sandbox row of the ${MONEY_TABLES.size} money tables was paired with its real row and checked, or (${unpairedChecked} with no real twin) checked against every real figure of its column${unpairedMoney.length ? '\n      ' + unpairedMoney.join('\n      ') : ''}`);
   ok(withMoney > 0 && leaks === 0, `${scanned} text/json values scanned, ${withMoney} hold money, ${leaks} still show a real amount${examples.length ? '\n      ' + examples.join('\n      ') : ''}`);
 
   console.log('2. one multiplier per athlete, across every table and every name variant');

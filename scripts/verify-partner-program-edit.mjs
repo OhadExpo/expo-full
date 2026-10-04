@@ -24,14 +24,20 @@ const ctx = await b.createBrowserContext();
 const pg = await ctx.newPage();
 await pg.setViewport({ width: 1366, height: 900 });
 const writes = [];
+let probePlan = null, probeBefore = null;
 pg.on('request', (rq) => { if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(rq.method())) { const m = rq.url().match(/\/rest\/v1\/(rpc\/)?([a-z_0-9]+)/); if (m) writes.push(rq.method() + ' ' + (m[1] ? 'rpc:' : '') + m[2]); } });
 try {
   await db.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });
-  const { data: pl } = await db.from('plan_index').select('id,name,updated_at').order('updated_at', { ascending: false }).limit(1);
+  // the newest plan IN HIS COPY (4.10): the owner's newest real plan is, by design,
+  // not in the sandbox once it was made after the copy - the gate opened a plan his
+  // seat cannot see and failed on "no editable number"
+  const { data: pl } = await db.from('sbx_plans').select('id,name,updated_at').order('updated_at', { ascending: false }).limit(1);
   const plan = pl && pl[0];
+  probePlan = plan;
   if (!plan) throw new Error('no plan to edit');
   const { data: realBefore } = await db.from('plans').select('updated_at,data').eq('id', plan.id);
   const { data: sbxBefore } = await db.from('sbx_plans').select('updated_at,data').eq('id', plan.id);
+  probeBefore = sbxBefore && sbxBefore[0];
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
   let authed = false; for (let k = 0; k < 3 && !authed; k++) { await signIn(pg, BASE); authed = await assertAuthed(pg, BASE); }
   if (!authed) throw new Error('could not sign in as the partner');
@@ -57,12 +63,11 @@ try {
   ok(!(await pg.evaluate(() => /SAVE FAILED|השמירה נכשלה/i.test(document.body.innerText))), 'no save error on screen');
 } catch (e) { fail++; console.log('FAIL: ' + e.message); }
 finally {
-  // put HIS program back exactly as the real one: he may be using the sandbox
-  // while this runs, and a probe edit in his copy is a visible change to him
+  // put HIS program back as it was BEFORE the probe (4.10 #542: the sandbox is his
+  // to fill - copying the owner's real plan over it erased his own edits). Stamped
+  // now, so an editor he has open reloads it instead of writing over it.
   try {
-    const { data: pl } = await db.from('plan_index').select('id').order('updated_at', { ascending: false }).limit(1);
-    const id = pl && pl[0] && pl[0].id;
-    if (id) { const { data: real } = await db.from('plans').select('data,updated_at,name').eq('id', id); if (real && real[0]) await db.from('sbx_plans').update(real[0]).eq('id', id); }
+    if (probePlan && probeBefore) await db.from('sbx_plans').update({ data: probeBefore.data, updated_at: new Date().toISOString() }).eq('id', probePlan.id);
   } catch { /* reported by the next run's walk */ }
   await ctx.close(); b.disconnect(); await db.auth.signOut({ scope: 'local' });
 }
