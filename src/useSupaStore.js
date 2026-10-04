@@ -321,7 +321,9 @@ async function withTimeout(build) {
 // Fields the ATHLETE owns on a form-video slot. Everything else on a slot
 // (reviewNotes, coach comments, replies, review marks) belongs to the coach,
 // and the server's copy of it always wins over a re-save's (possibly stale) one.
-const ATHLETE_FV_FIELDS = ['has', 'note', 'fileName', 'cloudUrl', 'pendingBlobId'];
+// 'analysis' (5.10 #552): the athlete's own read of the set - reps, tempo, range -
+// made on the phone; a re-save keeps it like the note (it was dropped as unknown)
+const ATHLETE_FV_FIELDS = ['has', 'note', 'fileName', 'cloudUrl', 'pendingBlobId', 'analysis'];
 const isEmptyVal = (v) => v === undefined || v === null || v === '' || v === false;
 function mergeFormVideoSlot(sv, mine) {
   if (!sv || typeof sv !== 'object') return mine;
@@ -429,7 +431,7 @@ registerHandler('client_workouts.fvSlot', async ({ id, index, slot }) => {
   // go); the athlete's words (note, fileName) are set when given, never blanked
   for (const k of UPLOAD_FV_FIELDS) {
     if (slot && Object.prototype.hasOwnProperty.call(slot, k)) next[k] = slot[k];
-    else if (k !== 'note' && k !== 'fileName') delete next[k];
+    else if (k !== 'note' && k !== 'fileName' && k !== 'analysis') delete next[k];   // the athlete's words and read stay
   }
   fv[index] = next;
   const { error: e2 } = await supabase.from('client_workouts').update({ form_videos: fv }).eq('id', id);
