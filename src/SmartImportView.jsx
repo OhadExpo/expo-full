@@ -25,6 +25,7 @@
 // stays blank), every title is ranked against the library on suggestMatches'
 // scale (auto-linked only at same-meaning or better, else the coach picks or
 // creates), and the plan is committed to the athlete the coach picks.
+import { safeUrl } from './VideoEmbed';   // a link read from a sheet cell is http(s) or nothing (5.10, security gate S10/S14)
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { mergeFilled } from './importMerge';
 import { useT, tr, readLang } from './i18n';
@@ -253,7 +254,7 @@ function ProgramDayTable({ day, resOf, libById }) {
                 <td style={{ ...tdStyle, fontFamily: FN }}>{reps}</td>
                 <td style={{ ...tdStyle, fontFamily: FN }}>{ex.tempo || ''}</td>
                 <td style={{ ...tdStyle, fontFamily: FN }}>{ex.rest || ''}</td>
-                <td style={tdStyle}>{ex.videoUrl ? <a href={ex.videoUrl} target="_blank" rel="noreferrer" style={{ color: C.ac, fontFamily: FN, fontSize: 11 }}>{hostOf(ex.videoUrl)}</a> : ''}</td>
+                <td style={tdStyle}>{safeUrl(ex.videoUrl) ? <a href={safeUrl(ex.videoUrl)} target="_blank" rel="noopener noreferrer" style={{ color: C.ac, fontFamily: FN, fontSize: 11 }}>{hostOf(ex.videoUrl)}</a> : ''}</td>
               </tr>
             );
           })}</tbody>
@@ -304,7 +305,7 @@ function WarmupTable({ warmup }) {
             <tr key={i}>
               <td style={tdStyle}>{w.t}</td>
               <td style={{ ...tdStyle, fontFamily: FN }}>{w.rx || ''}</td>
-              <td style={tdStyle}>{w.vid ? <a href={w.vid} target="_blank" rel="noreferrer" style={{ color: C.ac, fontFamily: FN, fontSize: 11 }}>{hostOf(w.vid)}</a> : ''}</td>
+              <td style={tdStyle}>{safeUrl(w.vid) ? <a href={safeUrl(w.vid)} target="_blank" rel="noopener noreferrer" style={{ color: C.ac, fontFamily: FN, fontSize: 11 }}>{hostOf(w.vid)}</a> : ''}</td>
             </tr>
           ))}</tbody>
         </table>
