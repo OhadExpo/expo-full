@@ -35,8 +35,10 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
-import { useT as useAppT, tr, readLang } from './i18n';
+import { useT as useAppT, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
+import { resolveStoredUrl } from './storageUrl';
+import { summarize as summarizeSet, isUsable as isUsableSetRead } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
@@ -401,6 +403,126 @@ function UnsavedWorkoutsBanner({ clientId }) {
       <button data-unsaved-retry onClick={retry} disabled={retrying} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:retrying?'wait':'pointer',opacity:retrying?0.6:1}}>{tt('RETRY')}</button>
     </div>
   );
+}
+
+// ANALYSE MY SET (5.10 #552): the athlete reads his own set on the phone - reps,
+// seconds per rep, range - and the read rides on the form-video slot as
+// `analysis`, saved with the workout (finish() carries it; useSupaStore's
+// ATHLETE_FV_FIELDS merges it, so a re-save of an open log keeps it too).
+//  - The pose engine (MovementLab + poseLab, ~75 KB, and the MediaPipe model)
+//    is imported on TAP, never in the portal's first load.
+//  - The 'lite' model: 173 ms a frame on a phone-class CPU against full's 410.
+//    The pass SEEKS frame by frame (captureClipFrames), so the frame budget is
+//    sized from the clip: ~12 samples a second (a rep is never shorter than
+//    ~0.7 s, so 8+ samples per rep), at least 120, at most 900 - a 20 s set is
+//    240 frames, ~45 s of lite on a phone CPU instead of 600 at the clip's own rate.
+//  - Offline: the MediaPipe WASM and model come from CDNs. The service worker
+//    keeps them (CacheFirst 'mediapipe-v1', src/sw.js) once fetched, so only a
+//    device that never ran pose needs the network - it is told so, up front.
+//  - Never holds Complete or Next: it runs beside the logger, and closing the
+//    logger stops it (aliveRef -> shouldStop).
+//  - Blank > wrong: summarize() keeps every number null on a poor capture and
+//    the card says what to film instead.
+const SET_READ_REASON = {
+  capture: "The camera didn't catch the movement. Film side-on, whole body in frame.",
+  'too-few-frames': "The camera didn't catch the movement. Film side-on, whole body in frame.",
+  unreadable: "The camera didn't catch the movement. Film side-on, whole body in frame.",
+  'no-reps': 'No reps found in the clip. Film side-on, whole body in frame.',
+  'not-counted': "The camera can't count this exercise yet.",
+  inconsistent: "The reps didn't look like one set - film only the set, side-on, whole body in frame.",
+};
+// The clip's length, read from its metadata only (null when the browser cannot
+// say - a MediaRecorder WebM reports Infinity until a full seek).
+function clipSeconds(url, crossOrigin) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    let done = false;
+    const end = (x) => { if (done) return; done = true; clearTimeout(to); try { v.removeAttribute('src'); v.load(); } catch { /* noop */ } resolve(x); };
+    const to = setTimeout(() => end(null), 8000);
+    if (crossOrigin) v.crossOrigin = 'anonymous';
+    v.preload = 'metadata'; v.muted = true;
+    v.onloadedmetadata = () => end(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : null);
+    v.onerror = () => end(null);
+    v.src = url;
+  });
+}
+async function poseFilesCached() {
+  try {
+    if (typeof caches === 'undefined') return false;
+    const urls = (await (await caches.open('mediapipe-v1')).keys()).map((r) => r.url);
+    return urls.some((u) => /pose_landmarker_lite/.test(u)) && urls.some((u) => /@mediapipe\/tasks-vision/.test(u));
+  } catch { return false; }
+}
+function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
+  const tt = useAppT();
+  const lang = React.useContext(LangCtx);
+  const [running, setRunning] = useState(false);
+  const [pct, setPct] = useState(0);
+  const [msg, setMsg] = useState(null);
+  const stopRef = useRef(false);
+  const aliveRef = useRef(true);
+  useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
+  const offline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+  const run = async () => {
+    if (!src || running) return;
+    setMsg(null);
+    if (offline() && !(await poseFilesCached())) { setMsg('The first analysis needs internet.'); return; }
+    stopRef.current = false; setPct(0); setRunning(true);
+    const t0 = Date.now();
+    try {
+      const [{ captureClipFrames }, { analyzeClip }] = await Promise.all([import('./MovementLab'), import('./poseLab')]);
+      // the local preview (blob:) reads as is; a stored clip reads through its signed URL, CORS on
+      const remote = !/^(blob:|data:)/.test(src);
+      const url = remote ? ((await resolveStoredUrl(src).catch(() => null)) || src) : src;
+      const secs = await clipSeconds(url, remote);
+      const maxFrames = secs ? Math.min(900, Math.max(120, Math.ceil(secs * 12))) : 600;
+      const frames = await captureClipFrames(url, {
+        crossOrigin: remote, quality: 'lite', maxFrames,
+        onProgress: (p) => { if (aliveRef.current) setPct(p); },
+        shouldStop: () => stopRef.current || !aliveRef.current,
+      });
+      const a = summarizeSet(analyzeClip(frames, title || ''), { title: title || null, fileName: fileName || null, model: 'lite' });
+      if (!aliveRef.current) return;
+      setRunning(false);
+      if (a) onResult({ ...a, ms: Date.now() - t0 });
+    } catch (e) {
+      if (!aliveRef.current) return;
+      setRunning(false);
+      if (e && e.code === 'aborted') return;
+      const m = String((e && e.message) || '');
+      setMsg(offline() ? 'The first analysis needs internet.' : /read that video|no duration/i.test(m) ? "Couldn't open the clip." : 'The analysis failed. Try again.');
+    }
+  };
+  const btn = { height: 36, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const usable = isUsableSetRead(analysis);
+  return <div data-set-analysis style={{ marginTop: 8 }}>
+    {running ? (
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div data-set-analysis-progress style={{ ...btn, flex: 1, cursor: 'default', color: C.tm }}>{tt('ANALYSING… {p}%').replace('{p}', pct)}</div>
+        <button data-set-analysis-stop onClick={() => { stopRef.current = true; }} style={{ ...btn, color: C.tm }}>{tt('STOP')}</button>
+      </div>
+    ) : (
+      <button data-set-analysis-run onClick={run} disabled={!src} style={{ ...btn, width: '100%', opacity: src ? 1 : 0.4 }}>{tt(analysis ? 'ANALYSE AGAIN' : 'ANALYSE MY SET')}</button>
+    )}
+    {msg && <div dir="auto" style={{ marginTop: 6, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'start' }}>{tt(msg)}</div>}
+    {analysis && !running && (
+      <div data-set-analysis-card dir="auto" style={{ marginTop: 8, border: `1px solid ${C.cardBd}`, padding: '10px 12px', textAlign: 'start' }}>
+        <div style={{ fontSize: 11, fontFamily: FN, color: C.tm, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{tt('YOUR SET')}</div>
+        {usable ? (
+          <div data-set-analysis-numbers dir="auto" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 10px', fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>
+            {/* the dot rides with the item after it, so a wrap never leaves one hanging */}
+            <span style={{ whiteSpace: 'nowrap' }}>{countIn(lang, analysis.reps, 'rep')}</span>
+            {analysis.tempoS != null && <span style={{ whiteSpace: 'nowrap' }}><span style={{ color: C.td }}>· </span>{tt('{t} s/rep').replace('{t}', analysis.tempoS)}</span>}
+            {analysis.romDeg != null && <span style={{ whiteSpace: 'nowrap' }}><span style={{ color: C.td }}>· </span>{tt('Range')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{analysis.romDeg}°</span></span>}
+          </div>
+        ) : (
+          <div dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{tt(SET_READ_REASON[analysis.reason] || SET_READ_REASON.capture)}</div>
+        )}
+        {usable && analysis.quality === 'ok' && <div dir="auto" style={{ marginTop: 4, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>{tt('Rough measure. Film steadier, whole body in frame.')}</div>}
+        <div dir="auto" style={{ marginTop: 6, fontFamily: FB, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{tt('Goes to your coach with the workout.')}</div>
+      </div>
+    )}
+  </div>;
 }
 
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
@@ -1231,7 +1353,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // object URL lives and dies with the tab and nothing is uploaded.
       if (localWrites) {
         const localUrl = URL.createObjectURL(file);
-        setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, pendingBlobId: null, videoError: false }; return n; });
+        setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, pendingBlobId: null, videoError: false, analysis: null }; return n; });   // a new clip drops the old clip's read (5.10 #552)
         return;
       }
       toast(tt('Demo mode — uploads disabled'), 'info');
@@ -1290,7 +1412,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null, videoError:false}; return n; });
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null, videoError:false, analysis:null}; return n; });   // a new clip drops the old clip's read (5.10 #552)
 
     // Hoist these so the catch handler (offline-queue path) can read them.
     // Inside-try-only declarations made the enqueueBlob() call silently
@@ -1627,6 +1749,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       fileName: f.fileName || null,
       cloudUrl: f.cloudUrl || landed[i] || null,
       pendingBlobId: landed[i] ? null : (handed[i] || f.pendingBlobId || null),
+      // the athlete's own set read (5.10 #552) - null = none, and an empty field
+      // never blanks the server's (mergeFormVideoSlot)
+      analysis: f.analysis || null,
     }));
     // Attach the now-known workout id to each queued blob, then poke the
     // drainer in case we're online.
@@ -2397,12 +2522,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   if (f.pendingBlobId) {
                     removeBlob(f.pendingBlobId).catch(() => {});
                   }
-                  setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null}; return n; });
+                  setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null,analysis:null}; return n; });
                 }}
                 style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
                 Remove
               </button>
             </div>
+            {/* ANALYSE MY SET (5.10 #552). The title is the plan row's (the swap's
+                when he swapped) - athletes cannot read the library. Keyed by the clip: a
+                new clip remounts it, which stops a read still running on the old one. */}
+            <SetAnalysisPanel key={f.videoUrl} src={f.videoUrl} title={sub ? sub.title : (d.t || '')} fileName={f.fileName || null} analysis={f.analysis || null}
+              onResult={(a) => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], analysis:a}; return n; })} />
           </div>
         ) : (
           <div style={{display:'flex',gap:8}}>

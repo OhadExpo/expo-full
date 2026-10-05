@@ -25,7 +25,8 @@ import {
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 import { resolveStoredUrl } from './storageUrl';
-import { useT as useAppT, useTB, tr, readLang } from './i18n';
+import { useT as useAppT, useTB, tr, readLang, LangCtx, countIn } from './i18n';
+import { trend as setReadTrend, isUsable as isUsableSetRead, signed as signedDelta } from './setAnalysis';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -1897,6 +1898,43 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   ), document.body);
 }
 
+// The athlete's own set read under his clip (5.10 #552): one line - what the
+// phone measured (reps · s/rep · range) or the honest "the camera didn't catch
+// the movement" - and, when he has read the same exercise before, the change
+// against the read before it. `history` = his reads of this exercise, oldest
+// first, this one last (each `at` = that workout's date). Numbers only from
+// setAnalysis (blank > wrong): a poor read never shows one, and is never trended.
+const SET_READ_COACH_REASON = {
+  'not-counted': "The camera can't count this exercise",
+  inconsistent: "The reps didn't look like one set - no count",
+};
+function AthleteSetRead({ analysis, history }) {
+  const tt = useAppT();
+  const lang = React.useContext(LangCtx);
+  if (!analysis) return null;
+  const usable = isUsableSetRead(analysis);
+  const ltr = (s) => <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{s}</span>;
+  const tr8 = usable ? setReadTrend(history) : null;
+  const parts = [];
+  if (tr8) {
+    if (tr8.romDeg != null) parts.push(<span key="r" style={{ whiteSpace: 'nowrap' }}>{tt('Range')} {ltr(signedDelta(tr8.romDeg) + '°')}</span>);
+    if (tr8.tempoS != null) { const [pre, post] = tt('{t} s').split('{t}'); parts.push(<span key="t" style={{ whiteSpace: 'nowrap' }}>{tt('Tempo')} {pre}{ltr(signedDelta(tr8.tempoS))}{post}</span>); }
+    if (tr8.reps != null) parts.push(<span key="n" style={{ whiteSpace: 'nowrap' }}>{tt('Reps')} {ltr(signedDelta(tr8.reps))}</span>);
+  }
+  return <div data-athlete-set-read dir="auto" style={{ marginTop: 6, fontSize: 12, color: C.tx, lineHeight: 1.6, textAlign: 'start' }}>
+    <span style={{ color: C.tm }}>{tt("Athlete's measure:")}</span>{' '}
+    {usable ? <>
+      <b style={{ fontFamily: FN, whiteSpace: 'nowrap' }}>{countIn(lang, analysis.reps, 'rep')}</b>
+      {analysis.tempoS != null && <> · <b style={{ fontFamily: FN, whiteSpace: 'nowrap' }}>{tt('{t} s/rep').replace('{t}', analysis.tempoS)}</b></>}
+      {analysis.romDeg != null && <> · <b style={{ fontFamily: FN, whiteSpace: 'nowrap' }}>{tt('Range')} {ltr(analysis.romDeg + '°')}</b></>}
+      {analysis.quality === 'ok' && <span style={{ color: C.tm }}> ({tt('rough measure')})</span>}
+    </> : <span style={{ color: C.tm }}>{tt(SET_READ_COACH_REASON[analysis.reason] || "The camera didn't catch the movement")}</span>}
+    {parts.length > 0 && <div data-athlete-set-trend style={{ color: C.tm }}>
+      {tt('vs {d}').replace('{d}', fmtNumericDate(tr8.since))}: {parts.map((p, k) => <React.Fragment key={k}>{k ? ' · ' : ''}{p}</React.Fragment>)}
+    </div>}
+  </div>;
+}
+
 export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout, onOpenTrainee }) {
   const tt = useAppT();
   const tb = useTB();
@@ -2417,6 +2455,24 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       ) : formVideo.fileName ? (
                         <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{tt('File:')}{formVideo.fileName} (upload pending)</div>
                       ) : null}
+                      {formVideo.analysis && (() => {
+                        // The athlete's own read (5.10 #552). A read whose clip was
+                        // since replaced (another file name) is not this clip's.
+                        const readOf = (fv) => (fv && fv.analysis && !(fv.analysis.fileName && fv.fileName && fv.analysis.fileName !== fv.fileName)) ? fv.analysis : null;
+                        const cur = readOf(formVideo);
+                        if (!cur) return null;
+                        const key = (s) => (s || '').trim().toLowerCase();
+                        const curTitle = key(ex.title || exName);
+                        const history = clientWorkouts
+                          .filter(w => w && w.clientId === wo.clientId && w.id !== wo.id && new Date(w.date) <= new Date(wo.date))
+                          .flatMap(w => (w.formVideos || []).map((fv, fi) => {
+                            const a = key(w.exercises?.[fi]?.title) === curTitle ? readOf(fv) : null;
+                            return a ? { ...a, at: w.date } : null;
+                          }))
+                          .filter(Boolean)
+                          .sort((a, b) => new Date(a.at) - new Date(b.at));
+                        return <AthleteSetRead analysis={cur} history={[...history, { ...cur, at: wo.date }]} />;
+                      })()}
                       {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>{tt('Client note:')}{formVideo.note}</div>}
                     </div>
                   ) : (

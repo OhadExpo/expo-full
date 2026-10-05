@@ -187,20 +187,24 @@ async function measureVideoFps(v) {
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
-export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null } = {}) {
+export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null, quality = null } = {}) {
   let lm, v;
   try {
+    // An explicit `quality` ('lite' | 'full' | 'heavy') overrides the pick below
+    // (5.10 #552): the athlete's own set read runs 'lite' on the phone - 173 ms
+    // a frame against full's 410 on a phone-class CPU. Absent = unchanged.
+    const forced = quality === 'lite' || quality === 'full' || quality === 'heavy' ? quality : null;
     // THE HEAVY MODEL ON A DESKTOP (5.10 #558, measured on a real squat clip,
     // audit-out/_pose-score.mjs): frame-to-frame jitter 22 -> 7 mm/frame^2 and
     // limb-length spread 7.4% -> 4.2% against 'full', for ~3x the time - the
     // coach reviews at a desk and waits for a clip once. A phone (coarse pointer
     // or < 8 cores) keeps 'full'; localStorage 'expo-pose-quality' overrides;
     // a heavy model that fails to load falls back to full.
-    const wantHeavy = (() => {
+    const wantHeavy = forced ? forced === 'heavy' : (() => {
       try { const o = localStorage.getItem('expo-pose-quality'); if (o === 'heavy' || o === 'full') return o === 'heavy'; } catch { /* private mode */ }
       try { return !window.matchMedia('(pointer: coarse)').matches && (navigator.hardwareConcurrency || 0) >= 8; } catch { return false; }
     })();
-    try { lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: wantHeavy ? 'heavy' : 'full', numPoses: 5 }); }
+    try { lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: forced || (wantHeavy ? 'heavy' : 'full'), numPoses: 5 }); }
     catch (e) { if (!wantHeavy) throw e; lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 }); }
     v = document.createElement('video');
     if (crossOrigin) v.crossOrigin = 'anonymous';
