@@ -264,10 +264,10 @@ export default function OverloadChart({ workouts, exercises }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', columnGap: 8, rowGap: 12 /* wrapped on a phone: the chips sit centred between the search box and the table's rule (measured 9 / 11.5 at a 10 gap) */, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder={tt('search exercise')}
           style={{ flex: '1 1 200px', minWidth: 160, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
-        <ChipGrid ariaLabel={tt('ALL')} value={trendFilter} onChange={setTrendFilter} items={trendItems} style={{ flex: '1 1 auto' }} />
+        <ChipGrid phoneCols={4} /* four short cells fit one row at 390: one geometry at every width (rule rhythm) */ ariaLabel={tt('ALL')} value={trendFilter} onChange={setTrendFilter} items={trendItems} style={{ flex: '1 1 auto' }} />
       </div>
 
       {/* On a phone (29.9 #444) the table was 480px wide in a 330px card: it

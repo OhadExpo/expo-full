@@ -1761,10 +1761,10 @@ function DemoOverload({ trainee }) {
   table.forEach(ex => { counts[ovStats(ex).trend]++; });
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+      <div style={{ display: 'flex', columnGap: 8, rowGap: 12 /* wrapped on a phone: the chips sit centred between the search box and the table's rule (measured 9 / 11.5 at a 10 gap) */, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={T('search exercise')} style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, height: CTRL_H, boxSizing: 'border-box', padding: '0 10px', fontSize: 12 }} />
         {/* the real OverloadChart's trend grid (5.10 #574): equal cells, count beside the arrow, trend colour as the fill */}
-        <ChipGrid ariaLabel={T('ALL')} value={filter} onChange={setFilter} style={{ flex: '1 1 auto' }}
+        <ChipGrid phoneCols={4} /* four short cells fit one row at 390: one geometry at every width (rule rhythm) */ ariaLabel={T('ALL')} value={filter} onChange={setFilter} style={{ flex: '1 1 auto' }}
           items={[['all', T('ALL')], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([id, lbl]) => ({ k: id, label: lbl, n: counts[id], color: id === 'all' ? undefined : OV_COLOR[id] }))} />
       </div>
       <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>

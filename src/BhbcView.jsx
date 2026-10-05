@@ -3482,10 +3482,10 @@ function ActivityView({ activity = [], tr, he }) {
                     // ONE LINE A CHANGE (5.10 #575). The "by" column only when more than
                     // one person has been in: with one coach it said OHAD under every
                     // row and doubled the height of the whole trail for nothing.
-                    <div key={i} className="bhbc-act-row" data-solo={people.length < 2 ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: people.length < 2 ? '44px 8px minmax(0, 1fr)' : '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'baseline', minHeight: 36, padding: '8px 0', boxSizing: 'border-box' }}>
+                    <div key={i} className="bhbc-act-row" data-solo={people.length < 2 ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: people.length < 2 ? '44px 8px minmax(0, 1fr)' : '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'center' /* centred, not baseline: baseline sat the ink 1px high on two lines and 1px low on one (rule rhythm, measured 11/13 and 13/11) */, minHeight: 40, padding: '8px 0', boxSizing: 'border-box' }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
-                      <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'baseline' }} />
-                      <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
+                      <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'center' }} />
+                      <span style={{ fontFamily: FB, fontSize: 13, lineHeight: '18px' /* even leading: a wrapped line sat 11 / 13 in its row */, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
                         {say(e.what)}
                         {e.n > 1 && <span dir="ltr" style={{ ...lbl, display: 'inline-block', margin: '0 8px' /* both sides: in Hebrew the run sits at the line's left end, where an inline-START margin is on the wrong side (5.10) */, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
                       </span>
@@ -7085,7 +7085,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   // is the same grid: jersey · name · date · status on the first
                   // line, the injury on its own line under the name. Nothing
                   // wraps, nothing floats.
-                  style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto auto', columnGap: 12, rowGap: 3, alignItems: 'center', padding: '10px 2px', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
+                  style={{ display: 'grid', gridTemplateColumns: '22px minmax(0, 1fr) auto auto', columnGap: 12, rowGap: 3, alignItems: 'center', padding: '13px 2px 10px' /* the name line sits 12 under the strip, as the injury line sits 12 over the rule (rule rhythm) */, borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <span style={{ textAlign: 'end', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? fmtNumericDate(inj.onsetDate) : ''}</span>
