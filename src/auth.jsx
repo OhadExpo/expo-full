@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { createPortal } from 'react-dom';
 import { supabase, AUTH_TOKEN_KEY, reviveSession, readStoredSession, forgetStoredSession } from './supabase';
 import { setQueueUser } from './offlineQueue';
-import { getState as netState, subscribe as subscribeNet, probeNow } from './connectivity';
+import { getState as netState, subscribe as subscribeNet, probeNow, setProbeActive } from './connectivity';
 import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
 
 // Shared-device hygiene (audit 08-22): the next account must not boot into the
@@ -116,6 +116,7 @@ export function AuthProvider({ children, clientList }) {
     const offlineSessionOrNull = async () => {
       const stored = readStoredSession();
       if (!stored) return null;
+      setProbeActive(true);   // a stored seat: the probe must answer (it is off for anonymous visitors)
       let st = netState();
       if (st === 'online') st = await probeNow();   // the radio is on - ask the server
       if (st === 'online') return null;             // reachable: a null session is real
@@ -137,6 +138,7 @@ export function AuthProvider({ children, clientList }) {
     };
     const apply = (s) => {
       realSession = !!(s && !s.offline);
+      try { setProbeActive(!!s); } catch { /* ignore */ }
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.
@@ -389,6 +391,7 @@ export function AuthProvider({ children, clientList }) {
     // offline boot signed the same person back in)
     try { await Promise.race([supabase.auth.signOut({ scope: 'local' }), new Promise((r) => setTimeout(r, 5000))]); } catch { /* the phone is cleaned below */ }
     forgetStoredSession();
+    try { setProbeActive(false); } catch { /* ignore */ }
     purgeLocalCaches();
     try { setQueueUser(null); } catch {}
   };

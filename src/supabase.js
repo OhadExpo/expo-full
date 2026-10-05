@@ -4,7 +4,7 @@
 import { fetchBudgetFor } from './fetchBudget.js';
 import { createClient } from '@supabase/supabase-js';
 import { PARTNER_EMAILS } from './authRoles';
-import { setProbeUrl, noteSuccess, noteFailure } from './connectivity';
+import { setProbeUrl, setProbeActive, noteSuccess, noteFailure } from './connectivity';
 
 export const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 export const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -288,6 +288,9 @@ const timedFetch = (input, init) => {
 // console-clean sweeps read as an error (5.10 review N3). Keyed it answers 200;
 // the CORS preflight the header costs is cached for an hour (max-age 3600).
 setProbeUrl(`${SUPA_URL}/auth/v1/health`, { apikey: SUPABASE_ANON_KEY });
+// a device that holds a seat probes from its first tick: on a dead wifi the
+// session read itself hangs, and the pill must still say offline (5.10 recheck)
+try { if (readStoredSession()) setProbeActive(true); } catch { /* storage blocked */ }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

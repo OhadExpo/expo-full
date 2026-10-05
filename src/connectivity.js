@@ -39,6 +39,17 @@ let inflight = null;
 const listeners = new Set();
 
 export function setProbeUrl(url, headers = null) { probeUrl = url; probeHeaders = headers; }
+// THE PROBE RUNS ONLY FOR A SIGNED-IN SEAT (5.10, the demo gate): a visitor on
+// the public demo or the landing page has no queue to sync, and a request every
+// 30 s per visitor was load for nothing - and an aborted one read as a failed
+// request on the demo pages. auth.jsx turns it on with a session (a real one or
+// the offline boot's stored one) and off at sign-out. Off: the state follows
+// the browser's own online / offline events only.
+let probeActive = false;
+export function setProbeActive(on) {
+  const was = probeActive; probeActive = !!on;
+  if (probeActive && !was) setTimeout(() => { probeNow(); }, 0);
+}
 
 export function getState() { return state; }
 
@@ -73,7 +84,7 @@ export function noteFailure() {
 export function probeNow() {
   if (inflight) return inflight;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) { setState('offline'); return Promise.resolve(state); }
-  if (!probeUrl || typeof fetch !== 'function') return Promise.resolve(state);
+  if (!probeActive || !probeUrl || typeof fetch !== 'function') return Promise.resolve(state);
   const started = Date.now();
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = setTimeout(() => { try { ctl && ctl.abort(); } catch { /* noop */ } }, PROBE_TIMEOUT_MS);
