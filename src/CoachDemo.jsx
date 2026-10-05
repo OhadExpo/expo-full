@@ -661,12 +661,12 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
             last week of a block with no next block written, the block's
             completion and its main lift's best set. Demo athletes, demo numbers. */}
         <Panel title={`${T('Block ending')} (2)`} tint={C.ac} icon="alert" edge={C.ac}>
-          {[{ t: MOCK_TRAINEES[3], wk: 'W4/4 · 7/8', ink: C.gn, lift: 'Back Squat', best: '100 → 115×4' }, { t: MOCK_TRAINEES[0], wk: 'W4/4 · 5/12', ink: C.rd, lift: 'Trap Bar Deadlift', best: '90 → 100×5' }].map(({ t, wk, ink, lift, best }) => (
+          {[{ t: MOCK_TRAINEES[3], wk: [4, 4, 7, 8], ink: C.gn, title: 'Back Squat', best: '100 → 115×4' }, { t: MOCK_TRAINEES[0], wk: [4, 4, 5, 12], ink: C.rd, title: 'Trap Bar Deadlift', best: '90 → 100×5' }].map(({ t, wk, ink, title: lift, best }) => (
             <div key={t.id} role="button" tabIndex={0} onClick={() => onJumpToTrainee(t.id, 'dashboard')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpToTrainee(t.id, 'dashboard'); } }}
               style={{ display: 'flex', flexDirection: 'column', gap: 3, minHeight: 36, padding: '7px 0', boxSizing: 'border-box', cursor: 'pointer', fontSize: 13 }}>
               <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                 <span dir="auto" style={{ color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</span>
-                <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: ink, flexShrink: 0, unicodeBidi: 'isolate' }}>{wk}</span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: ink, flexShrink: 0, unicodeBidi: 'isolate' }}>{readLang() === 'he' ? `שבוע ${wk[0]}/${wk[1]} · ${wk[2]}/${wk[3]}` : `W${wk[0]}/${wk[1]} · ${wk[2]}/${wk[3]}`}</span>
               </span>
               <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11, color: C.tm }}>
                 <span style={{ flex: 1, minWidth: 0 }}>{lift}</span>

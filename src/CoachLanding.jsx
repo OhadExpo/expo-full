@@ -109,7 +109,7 @@ const STRINGS = {
   'feat.review.body': {
     // 5.10 parity: the review player's speeds (0.125x .. 2x) and frame step
     en: 'Pause on any frame, step frame by frame, slow it down to 0.125x, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
-    he: 'עצירה על כל פריים, מעבר פריים אחרי פריים, האטה עד פי 8, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבקרה באותו פורטל — בלי הלוך ושוב במיילים.',
+    he: 'עצירה על כל פריים, מעבר פריים אחרי פריים, האטה עד פי שמונה, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבקרה באותו פורטל — בלי הלוך ושוב במיילים.',
   },
   'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי נעילה' },
   'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך — אתה מחליט' },

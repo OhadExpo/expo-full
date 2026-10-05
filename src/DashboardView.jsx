@@ -845,7 +845,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                       style={{ ...ALERT_ROW, flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 3, padding: '7px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 0 }}>
                         <span style={{ color: C.tx, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                        <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: r.pct >= 80 ? C.gn : r.pct >= 50 ? C.or : C.rd, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>W{r.week}/{r.weeks} · {r.logged}/{r.planned}</span>
+                        <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: r.pct >= 80 ? C.gn : r.pct >= 50 ? C.or : C.rd, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{he ? `שבוע ${r.week}/${r.weeks}` : `W${r.week}/${r.weeks}`} · {r.logged}/{r.planned}</span>
                       </span>
                       {r.best && (
                         <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 0, fontSize: 11, color: C.tm }}>
