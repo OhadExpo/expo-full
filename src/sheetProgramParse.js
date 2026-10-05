@@ -103,7 +103,6 @@ const findCol = (hdr, rx) => { for (let c = 2; c < hdr.length; c++) if (rx.test(
 // sets: a whole number is a number; anything else the coach wrote is kept as
 // written ("3-4", "AMRAP"); a blank cell is '' - never 3.
 const setsValue = (raw) => (raw === '' ? '' : /^\d+$/.test(raw) ? Number(raw) : raw);
-const wave = (raw) => (raw.includes('>') ? raw.split('>').map((v) => v.trim()) : null);
 
 export function parseSheetProgram(ws, sheetName = '') {
   const { rows, links } = sheetGrid(ws);
@@ -174,14 +173,15 @@ export function parseSheetProgram(ws, sheetName = '') {
     const vidText = at(r, col.vid);
     const videoUrl = linkAt(r, col.vid) || linkAt(r, 1) || (URL_RE.test(vidText) ? vidText : '');
     if (videoUrl) ex.videoUrl = videoUrl;
-    const wk = wave(repsRaw); if (wk) ex.wk = wk;
-    const wkS = wave(setsRaw); if (wkS) ex.wkS = wkS;
+    // A '>' cell ("10>8>6") stays EXACTLY as written (5.10 review 1005d #2): it
+    // may mean per-week reps or a pyramid inside one session - split into wk it
+    // showed the athlete "10" for every set and stretched the block to 5 weeks.
+    // Until the notation is confirmed, the athlete reads what the coach wrote.
     const ss = /^(\d+)\s*([a-h])\b/i.exec(a);
     day.exercises.push(ex); day._groups.push(ss ? ss[1] : '');
   }
   closeDay();
-  let weeks = 4;
-  for (const d of days) for (const ex of d.exercises) weeks = Math.max(weeks, (ex.wk || []).length, (ex.wkS || []).length);
+  const weeks = 4;
   // The tab name is the block name (CLI: cell A1 is often a stale copy-paste).
   const name = String(sheetName || '').trim() || at(0, 0) || at(0, 1);
   return { name, days, warmup, weeks, warnings };
@@ -258,9 +258,11 @@ export function guessAthleteId(trainees, text) {
     if (hay.includes(` ${n} `)) { full.push(t.id); continue; }
     if (n.split(' ').some((w) => w.length >= 3 && hay.includes(` ${w} `))) part.push(t.id);
   }
-  if (full.length === 1) return full[0];
-  if (full.length > 1) return '';
-  return part.length === 1 ? part[0] : '';
+  // only a FULL name prefills (5.10 review 1005d #3): a plan commits straight
+  // into that athlete's portal, and one shared word ("Day" in "Day A program")
+  // is not enough to send it there - the coach picks
+  void part;
+  return full.length === 1 ? full[0] : '';
 }
 
 // ── the plan row the commit writes ────────────────────────────────────────

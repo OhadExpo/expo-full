@@ -205,7 +205,8 @@ function aiItemToDraft(prog, sheetName) {
     name: d.name || '',
     exercises: (d.exercises || []).map(ex => ({
       title: String(ex.title || '').trim(),
-      sets: typeof ex.sets === 'number' ? ex.sets : (parseInt(ex.sets) || ''),
+      // what the coach wrote: "3-4" stays "3-4", never parsed down to 3 (5.10 review 1005d #8)
+      sets: typeof ex.sets === 'number' ? ex.sets : (/^\d+$/.test(String(ex.sets ?? '').trim()) ? Number(String(ex.sets).trim()) : String(ex.sets ?? '').trim()),
       reps: ex.reps || '', tempo: ex.tempo || '', rest: ex.rest || '', notes: ex.notes || '',
       superset: ex.superset || '',
       ...(Array.isArray(ex.wk) && ex.wk.length ? { wk: ex.wk } : {}),

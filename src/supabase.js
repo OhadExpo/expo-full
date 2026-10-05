@@ -1,6 +1,7 @@
 // src/supabase.js — Supabase client for EXPO. Also the canonical export
 // point for SUPA_URL + SUPA_PUBLISHABLE_KEY so other modules (CoachChat,
 // CoachLanding, ClientPortal) don't have to redeclare them inline.
+import { fetchBudgetFor } from './fetchBudget.js';
 import { createClient } from '@supabase/supabase-js';
 import { PARTNER_EMAILS } from './authRoles';
 import { setProbeUrl, noteSuccess, noteFailure } from './connectivity';
@@ -263,30 +264,7 @@ if (typeof window !== 'undefined' && window.sessionStorage && window.localStorag
 // server is reachable (connectivity goes 'online' with no probe spent); a
 // network failure asks the probe at once, so the app knows it is offline
 // within seconds instead of at the next 30 s tick.
-const FETCH_TIMEOUT_READ_MS = 20000;
-const FETCH_TIMEOUT_WRITE_MS = 10000;
-const FETCH_TIMEOUT_UPLOAD_MS = 60000;
-// A BUDGET THAT GROWS WITH THE BODY (5.10 review B1/S2): a flat 60 s cut every
-// 34 MB clip on weak gym LTE (it needs ~4.5 Mbps to finish in 60 s) and the
-// queue retried it forever, each try cut at 60 s again; a flat 10 s did the same
-// to a 1-2 MB store write on a 3G uplink. Now the budget is the flat floor OR
-// the time the body needs at 25 KB/s (~200 kbps, a poor uplink), whichever is
-// longer - a slow upload that is moving finishes, a dead socket still ends.
-const UPLINK_FLOOR_BPS = 25 * 1024;
-const bodyBytes = (b) => {
-  if (!b) return 0;
-  if (typeof b === 'string') return b.length;
-  if (typeof b.size === 'number') return b.size;          // Blob / File
-  if (typeof b.byteLength === 'number') return b.byteLength;  // ArrayBuffer / typed array
-  return 0;
-};
-const fetchBudgetFor = (url, init) => {
-  const method = String((init && init.method) || 'GET').toUpperCase();
-  const need = Math.ceil((bodyBytes(init && init.body) / UPLINK_FLOOR_BPS) * 1000);
-  if (/\/storage\/v1\/(object|upload)\//.test(url) && method !== 'GET' && method !== 'HEAD') return Math.max(FETCH_TIMEOUT_UPLOAD_MS, need);
-  if (/\/rest\/v1\//.test(url) && (method === 'GET' || method === 'HEAD')) return FETCH_TIMEOUT_READ_MS;
-  return Math.max(FETCH_TIMEOUT_WRITE_MS, need);
-};
+// the budget itself lives in fetchBudget.js (node-tested: scripts/verify-fetch-budget.mjs)
 const timedFetch = (input, init) => {
   const url = typeof input === 'string' ? input : (input && input.url) || '';
   const opts = init || {};

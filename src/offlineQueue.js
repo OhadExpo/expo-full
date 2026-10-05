@@ -213,6 +213,7 @@ function isPermanent(err) {
 // next one itself instead of waiting for the 30 s tick (5.10 #560).
 let retryTimer = null;
 function scheduleRetry(ms) {
+  if (!Number.isFinite(ms)) return;   // never a NaN timer (fires at once)
   if (typeof setTimeout !== 'function') return;
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = setTimeout(() => { retryTimer = null; drain(); }, Math.max(250, ms));
@@ -246,7 +247,10 @@ export async function drain(opts) {
       // row (or store key / body-weight filter) = keep their order.
       const rowOf = (e) => {
         const p = (e && e.payload) || {};
-        const id = p.id || (p.row && (p.row.id || (p.row.client_id && p.row.date && `${p.row.client_id}|${p.row.date}`))) || p.key || p.k || (p.filter && JSON.stringify(p.filter));
+        // body weight: an upsert carries a row, a delete a filter - both keyed on
+        // client|block|week so they can match (5.10 review 1005d #4b)
+        const bw = String(e.type || '').startsWith('bw_logs') ? (p.row || p.filter) : null;
+        const id = bw ? `${bw.client_id}|${bw.block_name}|${bw.week}` : (p.id || (p.row && p.row.id) || p.key || p.k || (p.filter && JSON.stringify(p.filter)));
         return id ? `${String(e.type || '').split('.')[0]}:${id}` : null;
       };
       const blocked = new Set();
@@ -257,7 +261,10 @@ export async function drain(opts) {
         return !(rk && blocked.has(rk));
       });
       if (!next) {
-        scheduleRetry(Math.min(...q.map((e) => e.nextTryAt)) - now);
+        // only entries that HAVE a rest time (5.10 review 1005d #4a: an entry blocked
+        // behind a resting one has none -> NaN -> a timer that fired at once, a spin)
+        const rests = q.map((e) => e.nextTryAt).filter((t) => Number.isFinite(t));
+        if (rests.length) scheduleRetry(Math.min(...rests) - now);
         break;
       }
       // Foreign-user entry (or signed-out): keep it, rotate to tail, never

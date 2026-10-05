@@ -91,8 +91,8 @@ for (const [label, ws] of [['in memory', buildProgramSheet()], ['after .xlsx wri
   ok(ex(A, 'Side Plank Hold').sets === 3, 'a sets value MERGED down over the superset reaches the second row');
   ok(ex(A, 'DB RDL').superset === 'A' && ex(A, 'Side Plank Hold').superset === 'A', '"2a" and "2b" are ONE superset group (same letter)');
   ok(!ex(A, 'Goblet Squats').superset && !ex(A, 'Walking Lunge').superset, 'unlettered rows are in no superset');
-  ok(JSON.stringify(ex(A, 'DB RDL').wk) === JSON.stringify(['10', '8', '6', '5', '4']), 'a "10>8>6>5>4" reps wave becomes the per-week reps');
-  ok(p.weeks === 5, 'weeks cover the longest wave (5)');
+  ok(ex(A, 'DB RDL').reps === '10>8>6>5>4' && !ex(A, 'DB RDL').wk, 'a "10>8>6>5>4" reps cell stays exactly as written (no per-week split until the notation is confirmed)');
+  ok(p.weeks === 4, 'the block keeps 4 weeks (a > cell does not stretch it)');
   ok(p.warmup.length === 2 && p.warmup[0].t === 'Band Pull Apart' && p.warmup[0].rx === '2x15', 'the warm-up grid above the first day is read (name + prescription)');
   ok(p.warmup[0].vid === VW && !p.warmup[1].vid, 'a hyperlinked warm-up cell keeps its video; the other has none');
 }
@@ -140,7 +140,7 @@ ok(autoLinkId(rankMatches('Pull Up', idx)) === '', 'no match at all is never aut
 console.log('\n-- athlete guess');
 const roster = [{ id: 't1', name: 'Avi Synthetic' }, { id: 't2', name: 'Avi Testman' }, { id: 't3', name: 'Noa Example' }];
 ok(guessAthleteId(roster, 'Noa Example - Block 3.xlsx Block 3') === 't3', 'a full name in the file name picks that athlete');
-ok(guessAthleteId(roster, 'Testman program.xlsx') === 't2', 'a surname only one athlete has picks that athlete');
+ok(guessAthleteId(roster, 'Testman program.xlsx') === '', 'a surname alone prefills nobody - the coach picks (a plan goes straight to that portal)');
 ok(guessAthleteId(roster, 'Avi block 2.xlsx') === '', 'a first name two athletes share picks nobody');
 ok(guessAthleteId(roster, 'Block 9.xlsx') === '', 'no name -> nobody');
 
@@ -158,7 +158,7 @@ console.log('\n-- the plan row');
   ok(r('Goblet Squat').videoUrl === V1, 'the sheet\'s own video wins over the library video');
   ok(r('Walking Lunge').sets === '' && r('Walking Lunge').rest === '', 'blank sets / rest stay blank in the row written');
   ok(rows.every((x) => x.sets !== 3 || ['Goblet Squat', 'Dumbbell RDL', 'Side Plank Hold', 'Pull Up'].includes(x.title)), 'no row gets a 3 the sheet did not have');
-  ok(row.data.weeks === 5 && row.data.warmup.length === 2, 'weeks and warm-up are written with the plan');
+  ok(row.data.weeks === 4 && row.data.warmup.length === 2, 'weeks and warm-up are written with the plan');
 }
 
 console.log(`\n${pass} passed, ${fail} failed${process.env.BREAK ? ' (BREAK=1: the old CLI parser)' : ''}`);
