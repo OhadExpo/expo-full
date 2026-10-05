@@ -423,6 +423,7 @@ function UnsavedWorkoutsBanner({ clientId }) {
 //    logger stops it (aliveRef -> shouldStop).
 //  - Blank > wrong: summarize() keeps every number null on a poor capture and
 //    the card says what to film instead.
+const SET_ANALYSIS_ON = (() => { try { return localStorage.getItem('expo-set-analysis') === '1'; } catch { return false; } })();
 const SET_READ_REASON = {
   capture: "The camera didn't catch the movement. Film side-on, whole body in frame.",
   'too-few-frames': "The camera didn't catch the movement. Film side-on, whole body in frame.",
@@ -2531,8 +2532,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             {/* ANALYSE MY SET (5.10 #552). The title is the plan row's (the swap's
                 when he swapped) - athletes cannot read the library. Keyed by the clip: a
                 new clip remounts it, which stops a read still running on the old one. */}
-            <SetAnalysisPanel key={f.videoUrl} src={f.videoUrl} title={sub ? sub.title : (d.t || '')} fileName={f.fileName || null} analysis={f.analysis || null}
-              onResult={(a) => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], analysis:a}; return n; })} />
+            {/* OPT-IN until the rep count is proven on real phones (5.10 #552: the
+                same set read 3 and 20 reps on two captures). A test device turns it
+                on with localStorage 'expo-set-analysis' = '1'; athletes don't see it. */}
+            {SET_ANALYSIS_ON && <SetAnalysisPanel key={f.videoUrl} src={f.videoUrl} title={sub ? sub.title : (d.t || '')} fileName={f.fileName || null} analysis={f.analysis || null}
+              onResult={(a) => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], analysis:a}; return n; })} />}
           </div>
         ) : (
           <div style={{display:'flex',gap:8}}>
