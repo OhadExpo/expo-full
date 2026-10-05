@@ -3422,6 +3422,8 @@ function DemoExercises() {
     edit: 'Demo only — in the full app this opens the exercise to edit, or delete.',
     // + filling video gaps: the real hub's VIDEOS tab (5.10 #559)
     tools: 'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates, filling missing videos.',
+    // VIDEOS says what the real tab does, not the generic line (5.10 parity, VideoGapsView)
+    videos: 'Demo only — in the full app this opens VIDEOS: the exercises missing a video, ranked by how many athletes miss it, only safe matches suggested, a dry run before anything is written, and a check for dead links.',
   };
   useEffect(() => { if (!exNoteState) return undefined; const id = setTimeout(() => setExNoteState(null), 3600); return () => clearTimeout(id); }, [exNoteState]);
 
@@ -3524,11 +3526,11 @@ function DemoExercises() {
 
   return (
     <section>
-      {/* The real Exercises hub's sub-tabs (App.jsx): LIBRARY + the three tools. */}
+      {/* The real Exercises hub's sub-tabs (App.jsx): LIBRARY + the four tools (5.10 parity: VIDEOS). */}
       <div className="subtab-scroll" style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 16, flexWrap: 'wrap' }}>
         {[['library', 'Library'], ['matching', 'Matching'], ['classify', 'Classify'], ['cleanup', 'Cleanup'], ['videos', 'Videos']].map(([r, l]) => {
           const on = r === 'library';
-          return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : 'tools')} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
+          return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : (r === 'videos' ? 'videos' : 'tools'))} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
         })}
       </div>
       {exNote && createPortal(
@@ -3981,6 +3983,28 @@ function DemoReview() {
                   ))}
                 </div>
                 <div style={{ marginTop: 8, height: 'var(--btn-h)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.ac}`, background: C.acD, color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>＋ {T('COMMENT')}</div>
+                {/* 5.10 parity (#563): the block's weeks as the real review draws them -
+                    one joined strip of equal cells at the house height, colour in the
+                    TEXT only (this week green, the next cyan, never a fill) - then the
+                    full-width NEXT EXERCISE under it, the same 36px cyan cell as the
+                    real one (WorkoutReview). Inert in the demo. */}
+                {(() => {
+                  const weeks = 4;
+                  const cur = Math.min(Math.max(Number(selected.week) || 1, 1), weeks);
+                  const last = cur === weeks;
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gap: 1, marginTop: 8, background: C.bd, border: `1px solid ${C.bd}` }}>
+                      {Array.from({ length: weeks }, (_, k) => k + 1).map((w) => {
+                        const isCur = w === cur;
+                        const isNext = !last && w === cur + 1;
+                        return <div key={w} style={{ height: 'var(--btn-h)', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--c-sf)', minWidth: 0 }}>
+                          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: isNext ? C.ac : isCur ? C.gn : C.tm, whiteSpace: 'nowrap' }}>W{w}{isCur ? ' ✓' : ''}{isNext ? ' →' : ''}</span>
+                        </div>;
+                      })}
+                    </div>
+                  );
+                })()}
+                <div style={{ marginTop: 10, height: 'var(--btn-h)', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.ac}`, background: C.acD, color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('✓ NEXT EXERCISE →')}</div>
               </div>
             </div>
           );

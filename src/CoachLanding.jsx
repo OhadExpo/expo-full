@@ -78,39 +78,45 @@ const STRINGS = {
   'features.h2':         { en: 'The whole stack — not just video review.', he: 'הכל בפנים — לא רק בקרת וידאו.' },
   'feat.video.tag':      { en: 'VIDEO ENGINE',         he: 'מנוע וידאו' },
   'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
+  // 5.10 parity: + Movement Lab's 3D replay (Replay3D: front / side / top / behind, slow motion, hand + hip trails)
   'feat.video.body': {
-    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side.',
-    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני.',
+    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side. Movement Lab rebuilds the lift as a 3D skeleton you can rotate — front, side, top, behind, slow motion, hand and hip paths.',
+    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני. במעבדת התנועה ההרמה נבנית כשלד בתלת-ממד שאפשר לסובב — מלפנים, מהצד, מלמעלה, מאחור, בהילוך איטי, עם המסלול של הידיים והאגן.',
   },
   'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
   'feat.prog.title':     { en: 'Block-based plans', he: 'בניית תוכניות בבלוקים' },
   'feat.prog.body': {
-    en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx.',
-    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. ייבוא של הכל מ-xlsx בלחיצה.',
+    // 5.10 parity: Smart Import (#554) reads his own sheet layout directly - no longer "bulk import from xlsx"
+    en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Import a program sheet in your own layout — read directly, every exercise matched to your library (you pick when unsure), a day-by-day preview, then assigned to the athlete you choose.',
+    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. תייבא גיליון תוכנית במבנה שלך — הוא נקרא ישר מהקובץ, כל תרגיל מותאם לספרייה שלך (כשיש ספק, אתה בוחר), תצוגה יום אחרי יום, ואז התוכנית עוברת למתאמן שבחרת.',
   },
   'feat.portal.tag':     { en: 'ATHLETE PORTAL',       he: 'פורטל מתאמנים' },
   'feat.portal.title':   { en: 'Branded portals', he: 'פורטל אישי לכל מתאמן' },
   'feat.portal.body': {
-    en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in.',
-    he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים.',
+    // 5.10 parity: the offline queue (#560) - sets logged without signal sync when it returns
+    en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in. No signal at the gym? Sets are saved on the phone and sync on their own when the connection returns.',
+    he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים. אין קליטה בחדר כושר? הסטים נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
   },
   'feat.ops.tag':        { en: 'OPS',                  he: 'תפעול' },
   'feat.ops.title':      { en: 'WhatsApp nudges', he: 'תזכורות בוואטסאפ' },
   'feat.ops.body': {
-    en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record.",
-    he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן.',
+    // 5.10 parity: the dashboard's block-ending card (#565, blockEnding.js)
+    en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record. It also lists athletes in the last week of a block with no next block written yet — with how much of the block they completed and the best set of their main lift.",
+    he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן. הוא גם מציג מתאמנים בשבוע האחרון של הבלוק שעוד אין להם בלוק הבא — עם כמה מהבלוק הם השלימו והסט הכי טוב בתרגיל המרכזי שלהם.',
   },
   'feat.review.tag':     { en: 'REVIEW',               he: 'בקרה' },
   'feat.review.title':   { en: 'Per-rep video review', he: 'בקרת וידאו לכל חזרה' },
   'feat.review.body': {
-    en: 'Pause on any frame, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
-    he: 'עצירה על כל פריים, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבקרה באותו פורטל — בלי הלוך ושוב במיילים.',
+    // 5.10 parity: the review player's speeds (0.125x .. 2x) and frame step
+    en: 'Pause on any frame, step frame by frame, slow it down to 0.125x, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
+    he: 'עצירה על כל פריים, מעבר פריים אחרי פריים, האטה עד פי 8, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבקרה באותו פורטל — בלי הלוך ושוב במיילים.',
   },
   'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי נעילה' },
   'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך — אתה מחליט' },
   'feat.export.body': {
-    en: 'Export everything in one file, anytime — every plan, exercise and workout log. Bring your existing exercise library in: xlsx, sheets, or whatever export your previous app gave you. Bulk import is part of onboarding.',
-    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף.',
+    // 5.10 parity: + the library's VIDEOS tool (#559, videoGaps.js)
+    en: 'Export everything in one file, anytime — every plan, exercise and workout log. Bring your existing exercise library in: xlsx, sheets, or whatever export your previous app gave you. Bulk import is part of onboarding. The Videos tool ranks the exercises missing a video by how many athletes miss it, suggests only safe matches, shows a dry run before it writes, and checks your links for dead videos.',
+    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים בלי סרטון לפי כמה מתאמנים חסר להם, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר מתים.',
   },
 
   // About
@@ -134,7 +140,7 @@ const STRINGS = {
   'tier.starter.name':   { en: 'STARTER',              he: 'מתחיל' },
   'tier.starter.slots':  { en: 'Up to 10 active clients', he: 'עד 10 מתאמנים פעילים' },
   'tier.starter.f1':     { en: 'Full video review engine', he: 'מנוע בקרת וידאו מלא' },
-  'tier.starter.f2':     { en: 'Plan authoring + xlsx import', he: 'בניית תוכניות + ייבוא מ-xlsx' },
+  'tier.starter.f2':     { en: 'Plan authoring + program-sheet import', he: 'בניית תוכניות + ייבוא גיליון תוכנית' }, // 5.10 parity: Smart Import
   'tier.starter.f3':     { en: 'Athlete portals + couple cards', he: 'פורטל מתאמנים + כרטיסי זוגות' },
   'tier.starter.f4':     { en: 'Dormant-WhatsApp nudges', he: 'תזכורות וואטסאפ למתאמנים ששקטו' },
 
@@ -469,7 +475,7 @@ function ComparisonSection({ isHe }) {
       ['הסרטונים נתקעים בגלריה בטלפון', 'בקרה לפי חזרה, עם חותמת זמן — בתוך האפליקציה'],
       ['ספירת חזרות בעין', 'ספירה אוטומטית — זיהוי תנוחה'],
       ['אין פורטל — שולחים צילומי מסך', 'פורטל ממותג לכל מתאמן'],
-      ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא מ-xlsx'],
+      ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא הגיליון שלך כמו שהוא'], // 5.10 parity: Smart Import
       ['מנסים לזכור מי שקט (ולא תמיד מצליחים)', 'תזכורות וואטסאפ אוטומטיות'],
       ['נתונים מפוזרים בין קבצים', 'מנוע אחד · ייצוא בכל רגע'],
     ],
@@ -480,7 +486,7 @@ function ComparisonSection({ isHe }) {
       ['Clips stuck in your camera roll', 'Per-rep, timestamped — in the app'],
       ['Reps counted by eye', 'Automatic — pose detection'],
       ['No portal — you send screenshots', 'Branded portal per athlete'],
-      ['Copy-paste between tabs', 'Block-based authoring + xlsx import'],
+      ['Copy-paste between tabs', 'Blocks + your own sheet imported as it is'], // 5.10 parity: Smart Import
       ['Follow-ups tracked by memory', 'Dormant-WhatsApp nudges, automatic'],
       ['Data scattered across files', 'One engine · export anytime'],
     ],

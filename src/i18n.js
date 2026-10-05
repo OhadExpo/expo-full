@@ -2854,6 +2854,11 @@ export const HE = {
   "Couldn't load programs:": 'לא הצלחנו לטעון תוכניות:',
   'Demo only — in the full app this opens the library tool: matching unmatched titles, classifying at scale, cleaning duplicates, filling missing videos.':
     'דמו בלבד — באפליקציה המלאה זה פותח את כלי הספרייה: התאמת כותרות שלא זוהו, סיווג מרוכז, ניקוי כפילויות והשלמת סרטונים חסרים.',
+  // 5.10 parity: the demo's VIDEOS tab + the review mock's NEXT EXERCISE cell
+  'Demo only — in the full app this opens VIDEOS: the exercises missing a video, ranked by how many athletes miss it, only safe matches suggested, a dry run before anything is written, and a check for dead links.':
+    'דמו בלבד — באפליקציה המלאה זה פותח את הסרטונים: התרגילים בלי סרטון, מסודרים לפי כמה מתאמנים חסר להם, רק הצעות בטוחות, תצוגה של מה ישתנה לפני ששומרים, ובדיקת קישורים מתים.',
+  '✓ NEXT EXERCISE →': '✓ לתרגיל הבא ←',
+  '✓ DONE — FINISH REVIEW ↓': '✓ סיימתי — לסיום הסקירה ↓',
   // 5.10 #554 Smart Import: a program sheet read directly, matched, sent to an athlete
   'Read directly - no AI': 'ישר מהגיליון, בלי AI',
   'Read by AI': 'דרך AI',

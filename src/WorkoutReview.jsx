@@ -2556,7 +2556,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       style={{width:'100%',height:'var(--btn-h)',boxSizing:'border-box',padding:'0 18px',borderRadius:0,border:`1px solid ${C.ac}`,
                         background:C.acD,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,
                         letterSpacing:'0.1em',cursor:'pointer'}}>
-                      {i < wo.exercises.length - 1 ? '✓ NEXT EXERCISE →' : '✓ DONE — FINISH REVIEW ↓'}
+                      {tt(i < wo.exercises.length - 1 ? '✓ NEXT EXERCISE →' : '✓ DONE — FINISH REVIEW ↓')}
                     </button>
                   </div>
                 </div>
