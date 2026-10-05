@@ -87,8 +87,8 @@ const STRINGS = {
   'feat.prog.title':     { en: 'Block-based plans', he: 'בניית תוכניות בבלוקים' },
   'feat.prog.body': {
     // 5.10 parity: Smart Import (#554) reads his own sheet layout directly - no longer "bulk import from xlsx"
-    en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Import a program sheet in your own layout — read directly, every exercise matched to your library (you pick when unsure), a day-by-day preview, then assigned to the athlete you choose.',
-    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. תייבא גיליון תוכנית במבנה שלך — הוא נקרא ישר מהקובץ, כל תרגיל מותאם לספרייה שלך (כשיש ספק, אתה בוחר), תצוגה יום אחרי יום, ואז התוכנית עוברת למתאמן שבחרת.',
+    en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Import a program sheet — every exercise matched to your library (you pick when unsure), a day-by-day preview, then assigned to the athlete you choose.',
+    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. תייבא גיליון תוכנית — כל תרגיל מותאם לספרייה שלך (כשיש ספק, אתה בוחר), תצוגה יום אחרי יום, ואז התוכנית עוברת למתאמן שבחרת.',
   },
   'feat.portal.tag':     { en: 'ATHLETE PORTAL',       he: 'פורטל מתאמנים' },
   'feat.portal.title':   { en: 'Branded portals', he: 'פורטל אישי לכל מתאמן' },
@@ -475,7 +475,7 @@ function ComparisonSection({ isHe }) {
       ['הסרטונים נתקעים בגלריה בטלפון', 'בקרה לפי חזרה, עם חותמת זמן — בתוך האפליקציה'],
       ['ספירת חזרות בעין', 'ספירה אוטומטית — זיהוי תנוחה'],
       ['אין פורטל — שולחים צילומי מסך', 'פורטל ממותג לכל מתאמן'],
-      ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא הגיליון שלך כמו שהוא'], // 5.10 parity: Smart Import
+      ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא גיליון תוכנית'], // 5.10 parity: Smart Import
       ['מנסים לזכור מי שקט (ולא תמיד מצליחים)', 'תזכורות וואטסאפ אוטומטיות'],
       ['נתונים מפוזרים בין קבצים', 'מנוע אחד · ייצוא בכל רגע'],
     ],
@@ -486,7 +486,7 @@ function ComparisonSection({ isHe }) {
       ['Clips stuck in your camera roll', 'Per-rep, timestamped — in the app'],
       ['Reps counted by eye', 'Automatic — pose detection'],
       ['No portal — you send screenshots', 'Branded portal per athlete'],
-      ['Copy-paste between tabs', 'Blocks + your own sheet imported as it is'], // 5.10 parity: Smart Import
+      ['Copy-paste between tabs', 'Blocks + program-sheet import'], // 5.10 parity: Smart Import
       ['Follow-ups tracked by memory', 'Dormant-WhatsApp nudges, automatic'],
       ['Data scattered across files', 'One engine · export anytime'],
     ],

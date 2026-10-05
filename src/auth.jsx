@@ -300,6 +300,9 @@ export function AuthProvider({ children, clientList }) {
       if (!s && !exchanging && readStoredSession()) { settleWithoutSession(); return; }
       if (!exchanging) finishBoot();
       realSession = !!s;
+      // a sign-in in THIS tab (password, cookie revive) arrives here, not through
+      // apply(): the probe must come on for it too (5.10 review 1005f SF1)
+      if (s) { try { setProbeActive(true); } catch { /* ignore */ } }
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.

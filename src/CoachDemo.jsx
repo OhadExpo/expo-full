@@ -3425,7 +3425,7 @@ function DemoExercises() {
     // VIDEOS says what the real tab does, not the generic line (5.10 parity, VideoGapsView)
     videos: 'Demo only — in the full app this opens VIDEOS: the exercises missing a video, ranked by how many athletes miss it, only safe matches suggested, a dry run before anything is written, and a check for dead links.',
   };
-  useEffect(() => { if (!exNoteState) return undefined; const id = setTimeout(() => setExNoteState(null), 3600); return () => clearTimeout(id); }, [exNoteState]);
+  useEffect(() => { if (!exNoteState) return undefined; const id = setTimeout(() => setExNoteState(null), exNoteState.k === 'videos' ? 8000 : 3600);   /* the VIDEOS note is ~40 words (5.10 review) */ return () => clearTimeout(id); }, [exNoteState]);
 
   // Close the open filter menu on Escape (a click-catcher backdrop handles outside
   // clicks) — same affordance as the real ExercisesView.

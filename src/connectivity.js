@@ -84,7 +84,7 @@ export function noteFailure() {
 export function probeNow() {
   if (inflight) return inflight;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) { setState('offline'); return Promise.resolve(state); }
-  if (!probeActive || !probeUrl || typeof fetch !== 'function') return Promise.resolve(state);
+  if (!probeActive || !probeUrl || typeof fetch !== 'function') { if (state === 'offline') setState('online'); return Promise.resolve(state); }   // off: the browser's word (it said online above)
   const started = Date.now();
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = setTimeout(() => { try { ctl && ctl.abort(); } catch { /* noop */ } }, PROBE_TIMEOUT_MS);
