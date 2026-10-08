@@ -1919,7 +1919,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
-        {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
         {/* #472 (AUDIT-470): EXIT during a form-video upload orphaned the clip - the
@@ -1939,6 +1938,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
     <div style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
+      {/* RESUMED sat in the right cluster, beside the crest and EXIT. The day
+          label is absolutely centred on the bar (not in the flow), so the wider
+          cluster printed over it: "DAY A · W1" under "RESUMED" at 390 (9.10 #585,
+          the same collision as SAVE FAILED above). It lives on this full-width
+          centred line now, ahead of the step it resumed at. */}
+      {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap'}}>↻ {tt('RESUMED')} · </span>}
       {typeof step==='string'&&step.startsWith('wu') ? `${tt('Warm-Up')} ${parseInt(step.slice(2))+1}/${wuCount}` :
        step==='checkin' ? tt('Check-In') :
        step==='end' ? tt('Complete') :
