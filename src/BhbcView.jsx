@@ -840,6 +840,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   useEffect(() => {
     if (!activityLoaded || openLoggedRef.current) return;
     openLoggedRef.current = true;
+    // a browser a gate signed in (scripts/lib/authed-page.mjs) is not a visit:
+    // 85 of these in one day were gate runs under his name (9.10 #604). Only the
+    // visit line is skipped - anything a gate actually changes is still trailed.
+    try { if (localStorage.getItem('expo-gate-run') === '1') return; } catch { /* storage blocked: a real visit */ }
     trackRef.current('open', 'opened the club zone');
   }, [activityLoaded]);
   const [manageOpen, setManageOpen] = useState(false);
