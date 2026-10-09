@@ -61,7 +61,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB } from './i18n';
+import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB, exercisesCount } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -833,7 +833,8 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
           {/* Count and volume as plain coloured text, not badges: badge padding
               breaks tight alignment, and this is a reading surface. */}
           <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, flexShrink: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-            {list.length} {tt('EX')}{sets ? ` · ${sets} ${tt('SETS')}` : ''}
+            {/* Hebrew in words: '8 EX' in a Hebrew line drew as 'EX 8' (audit #612 C2) */}
+            {readLang() === 'he' ? exercisesCount(list.length, 'he') : `${list.length} ${tt('EX')}`}{sets ? ` · ${sets} ${tt('SETS')}` : ''}
           </span>
         </div>
         <div>
@@ -914,7 +915,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
             boxShadow: 'inset 0 -1px 0 var(--c-cardBd)',
           }}>
             <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.or }}>{tt("Warm-up")}</span>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{warmRows.length} EX</span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{readLang() === 'he' ? exercisesCount(warmRows.length, 'he') : `${warmRows.length} EX`}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
             {warmRows.map((w, i) => {
