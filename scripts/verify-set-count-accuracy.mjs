@@ -42,7 +42,9 @@ const RUNS = Math.max(1, parseInt(process.env.RUNS || '1', 10));
 const OFFLINE = process.env.OFFLINE || '';
 const SAVE = process.env.SAVE_FRAMES || '';
 const ONLY = (process.env.ONLY || '').split(',').map((s) => s.trim()).filter(Boolean);
-const HARNESS_BUILD = 'set-2';
+const HARNESS_BUILD = 'set-3';
+// QUALITY=full|heavy measures a bigger pose model on the same clips (the athlete's pipeline is lite)
+const QUALITY = ['full', 'heavy'].includes(process.env.QUALITY) ? process.env.QUALITY : 'lite';
 
 const nothing = (why) => { console.log(`verify-set-count-accuracy: NOTHING MEASURED - ${why}`); process.exit(1); };
 
@@ -128,7 +130,7 @@ for (const c of present) {
       raw = result && result.ok !== false ? { repCount: result.repCount, jointRepCount: result.jointRepCount, countMethod: result.countMethod, grade: result.captureQuality && result.captureQuality.grade, bottomsT: (result.reps || []).map((r) => Math.round(fr[r.bottomIdx].t)), rejected: result.rejectedReps } : result;
       frames = fr.length;
     } else {
-      const r = await page.evaluate((u, title, keep) => window.runSet(u, title, { keepFrames: keep }), `${clipOrigin}/${encodeURIComponent(c.file)}`, c.title || '', !!SAVE);
+      const r = await page.evaluate((u, title, keep, q) => window.runSet(u, title, { keepFrames: keep, quality: q }), `${clipOrigin}/${encodeURIComponent(c.file)}`, c.title || '', !!SAVE, QUALITY);
       if (!r || r.harnessBuild !== HARNESS_BUILD) { console.log(`harness build mismatch (got ${r && r.harnessBuild}, want ${HARNESS_BUILD}) - a stale page would test old code`); process.exit(1); }
       read = r.read; raw = r.raw; ms = r.ms; frames = r.frameCount; countedT = r.countedT;
       if (SAVE) { fs.mkdirSync(SAVE, { recursive: true }); fs.writeFileSync(path.join(SAVE, `${c.file}-run${k}.json`), JSON.stringify({ file: c.file, title: c.title, secs: r.secs, maxFrames: r.maxFrames, dims: r.dims, frames: r.frames })); }
@@ -166,7 +168,7 @@ const within1 = scored.filter((r) => r.kind === 'exact' || (r.kind === 'wrong' &
 const wrong = scored.filter((r) => r.kind === 'wrong').length;
 const blank = scored.filter((r) => r.kind === 'blank').length;
 console.log('');
-console.log(`scored runs ${n} (${scorable.length} clips x ${RUNS}${OFFLINE ? ', OFFLINE re-score of saved captures' : ''}): exact ${exact}, within 1 ${within1}, WRONG NUMBER SHOWN ${wrong}, blank ${blank}   (${Math.round((Date.now() - t0) / 1000)}s)`);
+console.log(`scored runs ${n} (${scorable.length} clips x ${RUNS}${OFFLINE ? ', OFFLINE re-score of saved captures' : `, model ${QUALITY}`}): exact ${exact}, within 1 ${within1}, WRONG NUMBER SHOWN ${wrong}, blank ${blank}   (${Math.round((Date.now() - t0) / 1000)}s)`);
 if (!n) nothing('no run produced a read');
 if (wrong) { console.log(`verify-set-count-accuracy: FAIL - ${wrong} run(s) showed the athlete a wrong rep count`); process.exit(1); }
 console.log(`verify-set-count-accuracy: PASS - no wrong number shown (${exact}/${n} exact, ${blank} blank)`);

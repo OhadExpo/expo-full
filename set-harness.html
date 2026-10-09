@@ -38,14 +38,17 @@
     const t0 = performance.now();
     const secs = await clipSeconds(url, true);
     const maxFrames = setFrameBudget(secs);
-    const frames = await captureClipFrames(url, { crossOrigin: true, quality: 'lite', maxFrames, onProgress: (p) => say(p + '%') });
+    // opts.quality (10.10 #552/#639): the athlete's pipeline is 'lite'; 'full' / 'heavy' are
+    // here only to MEASURE whether a bigger model counts the hand-counted sets better
+    const quality = ['full', 'heavy'].includes(opts.quality) ? opts.quality : 'lite';
+    const frames = await captureClipFrames(url, { crossOrigin: true, quality, maxFrames, onProgress: (p) => say(p + '%') });
     const result = analyzeClip(frames, title || '');
-    const read = summarize(result, { title: title || null, fileName: null, model: 'lite' });
+    const read = summarize(result, { title: title || null, fileName: null, model: quality });
     const set = readSet(result);
     const ms = Math.round(performance.now() - t0);
     say('done ' + ms + 'ms');
     return {
-      harnessBuild: 'set-2',
+      harnessBuild: 'set-3', quality,
       secs, maxFrames, ms,
       frameCount: frames.length,
       read,
