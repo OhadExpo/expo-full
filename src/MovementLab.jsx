@@ -47,6 +47,10 @@ Object.assign(HE, {
   '3D SKELETON': 'שלד 3D',
   'JOINT ANGLES': 'זוויות מפרקים',
   'Body tracked in {n}% of frames.': 'הגוף זוהה ב-{n}% מהפריימים.',
+  // the camera read (10.10 #639) - native-checked
+  'Camera: side view.': 'מצלמה: מהצד.',
+  'Camera: front or back view.': 'מצלמה: מלפנים או מאחור.',
+  'Camera: about {n}° off a side view - joint angles read best side-on.': 'מצלמה: בערך {n}° מהצד - הזוויות נמדדות הכי טוב מהצד.',
   'Body tracked in {n}% of frames — usable, but film fuller and steadier for sharper numbers.': 'הגוף זוהה ב-{n}% מהפריימים — אפשר לעבוד עם זה, אבל צילום מלא ויציב יותר ייתן מספרים חדים יותר.',
   'Body tracked in only {n}% of frames — treat the numbers as rough. Film the whole body, steady camera, decent light.': 'הגוף זוהה רק ב-{n}% מהפריימים — תתייחס למספרים כהערכה גסה. צלם את כל הגוף, מצלמה יציבה ותאורה סבירה.',
   'Neutral read': 'מדידה ניטרלית',
@@ -858,6 +862,7 @@ function ReadSummary({ result, movement }) {
         ? <div>{result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount)} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>
         : <div>{tt('Neutral read')} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>}
       {cqLine && <div style={{ color: cq.grade === 'poor' ? C.or : C.tm }}>{cqLine}</div>}
+      {cq && cq.camera && <div style={{ color: cq.camera.view === 'angled' ? C.or : C.tm }}>{cq.camera.view === 'side' ? tt('Camera: side view.') : cq.camera.view === 'front' ? tt('Camera: front or back view.') : tt('Camera: about {n}° off a side view - joint angles read best side-on.').replace('{n}', cq.camera.offSideDeg)}</div>}
     </div>
   );
 }

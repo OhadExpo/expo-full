@@ -2,7 +2,7 @@
 // rep segmentation, and the jump test. Synthetic pose frames with KNOWN ground
 // truth → assert metrics. Bundle + run:
 //   npx esbuild scripts/test-poselab.mjs --bundle --platform=node --format=esm --outfile=.t.mjs && node .t.mjs
-import { analyzeClip, jumpMetrics, segmentReps, channelSignal, estimateFps } from '../src/poseLab.js';
+import { analyzeClip, jumpMetrics, segmentReps, channelSignal, estimateFps, estimateView } from '../src/poseLab.js';
 
 let pass = 0, fail = 0;
 const ok = (name, cond, detail = '') => { if (cond) { pass++; console.log('  ✓', name); } else { fail++; console.error('  ✗', name, detail); } };
@@ -98,6 +98,16 @@ ok('peak-rise cross-check plausible (≥20cm)', j && j.peakRiseCm >= 20, `got ${
 
 const hold = analyzeClip(squatClip({ reps: 1, fps: 30, secPerRep: 1 }), 'Plank Hold');
 ok('hold/iso → 0 reps, still ok', hold.ok && hold.repCount === 0, `reps ${hold.repCount}`);
+
+// WHERE THE CAMERA STANDS (10.10 #639): the hip line rotated about the vertical reads as front /
+// angled / side, and a clip with no visible hips or shoulders reads as unknown (null), never a guess
+{
+  const at = (deg) => { const r = (deg * Math.PI) / 180; const fr = []; for (let i = 0; i < 12; i++) { const w = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: 0.1 })); w[23] = { x: -0.15 * Math.cos(r), y: 0, z: -0.15 * Math.sin(r), visibility: 0.9 }; w[24] = { x: 0.15 * Math.cos(r), y: 0, z: 0.15 * Math.sin(r), visibility: 0.9 }; fr.push({ t: i, worldLandmarks: w }); } return estimateView(fr); };
+  ok('camera: hips across the picture = front', at(5).view === 'front');
+  ok('camera: hips along the depth = side', at(88).view === 'side');
+  ok('camera: 45 deg = angled, 45 off side', at(45).view === 'angled' && at(45).offSideDeg === 45);
+  ok('camera: nothing visible = unknown', estimateView([{ t: 0, worldLandmarks: Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: 0.1 })) }]) === null);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

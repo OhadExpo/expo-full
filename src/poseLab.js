@@ -1587,6 +1587,27 @@ export function frameAt(frames, tMs, maxGapMs = 120) {
 // cropped, shaky, low-light or badly-angled clip yields confident-LOOKING but
 // garbage angles/velocities. Grade how well the body was actually tracked so the
 // UI can warn the coach when a read shouldn't be trusted. Honest by default.
+// WHERE THE CAMERA STANDS (10.10 #639 stage 2). captureQuality used to say it "can't tell if the
+// camera angle is off". The world landmarks can: the hip line (shoulders when the hips are not
+// seen) runs across the picture in a front or back view and along the depth in a side view. The
+// angle between it and the picture plane, median over the clip: 0 = front / back, 90 = side-on.
+// Depth is MediaPipe's weakest axis, so this is a coarse read (front / angled / side), not a protractor.
+export function estimateView(frames) {
+  const yaws = [];
+  for (const f of frames || []) {
+    const w = f && f.worldLandmarks; if (!w) continue;
+    const pair = lmVisible(w[23]) && lmVisible(w[24]) ? [w[23], w[24]] : lmVisible(w[11]) && lmVisible(w[12]) ? [w[11], w[12]] : null;
+    if (!pair) continue;
+    const dx = Math.abs(pair[1].x - pair[0].x), dz = Math.abs((pair[1].z ?? 0) - (pair[0].z ?? 0));
+    if (!(dx + dz > 1e-4)) continue;
+    yaws.push((Math.atan2(dz, dx) * 180) / Math.PI);
+  }
+  if (yaws.length < 5) return null;
+  yaws.sort((a, b) => a - b);
+  const yaw = yaws[yaws.length >> 1];
+  return { yawDeg: Math.round(yaw), view: yaw >= 65 ? 'side' : yaw <= 25 ? 'front' : 'angled', offSideDeg: Math.round(90 - yaw) };
+}
+
 export function captureQuality(frames, title, movement) {
   if (!frames || !frames.length) return { coverage: 0, meanVis: null, grade: 'poor', note: 'No frames captured.' };
   // Judge only the joints that matter for THIS lift — an upper-body clip framed
@@ -1636,7 +1657,7 @@ export function captureQuality(frames, title, movement) {
     : grade === 'fair'
       ? `Body tracked in ${pct}% of frames — usable, but reframe fuller and steadier for sharper numbers.`
       : `Body tracked in only ${pct}% of frames — treat the numbers below as unreliable. Refilm with the whole body in shot (straight-on or a clean side view), steady camera, decent light.`;
-  return { coverage: round2(coverage), meanVis: meanVis == null ? null : round2(meanVis), grade, note };
+  return { coverage: round2(coverage), meanVis: meanVis == null ? null : round2(meanVis), grade, note, camera: estimateView(frames) };
 }
 
 // Top-level: run the full battery on a captured clip.
