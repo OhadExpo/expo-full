@@ -55,6 +55,8 @@ for (const path of PATHS) {
     await page.evaluateOnNewDocument(HOOK);
     await page.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* private mode */ } });
+    for (const c of await page.cookies()) await page.deleteCookie(c);   // the session cookie too (9.10 #605): a leftover one revives the previous seat
+    await page.evaluate(() => { try { localStorage.setItem('expo-gate-run', '1'); } catch { /* storage blocked */ } });   // a gate, not a visit: no 'opened the club zone' under a real name (#604)
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     await page.goto(`${BASE}${path}?code=${CODE}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));

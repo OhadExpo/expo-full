@@ -74,6 +74,8 @@ try {
   // 1. COLD: no cache, lookup blocked. Must still refuse.
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
+  for (const c of await pg.cookies()) await pg.deleteCookie(c);   // the session cookie too (9.10 #605): a leftover one revives the previous seat
+  await pg.evaluate(() => { try { localStorage.setItem('expo-gate-run', '1'); } catch { /* storage blocked */ } });   // a gate, not a visit: no 'opened the club zone' under a real name (#604)
   await signIn();
   // Signing in already loads the app once, which runs the RPC successfully and
   // WARMS the cache - so clearing storage before sign-in does not give a cold
