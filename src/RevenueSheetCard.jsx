@@ -132,13 +132,24 @@ function groupClients(events) {
     .sort((a, b) => ((a.latest || '') < (b.latest || '') ? 1 : -1));
 }
 
+// THE SHEET'S RATE IN THE APP'S MONEY FORMAT: '200 ש"ח' / '200/175 ש"ח' -> '₪200' /
+// '₪200/175', the way every other amount on the page reads (9.10 audit #612 C6). Anything
+// else - a note, a word - is shown as the sheet wrote it.
+const SHEKEL_RE = /^\s*(?:ש["״]ח\s*)?([\d.,]+(?:\s*\/\s*[\d.,]+)*)\s*(?:ש["״]ח)?\s*$/;
+function fmtRate(text) {
+  const m = SHEKEL_RE.exec(text || '');
+  return m && /ש["״]ח/.test(text) ? <span dir="ltr">₪{m[1].replace(/\s+/g, '')}</span> : <bdi>{text || '—'}</bdi>;
+}
+
+// THE ESTIMATE SITS NEXT TO THE DATE (9.10 audit #612 C6): last of six columns it was
+// past the right edge of a phone, so the one number the table exists for was off-screen.
 function PaymentRows({ payments, tt, td }) {
   return payments.map((p) => (
     <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
       <td style={td} dir="ltr">{fmtNumericDate(p.event_date)}</td>
-      <td style={{ ...td, color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
-      <td style={{ ...td, color: C.tm }}><bdi>{p.counter_before || (p.event_kind === 'card_start' ? tt('card start') : '—')}</bdi></td>
       <td style={{ ...td, textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
+      <td style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(p.rate_text)}</td>
+      <td style={{ ...td, color: C.tm }}><bdi>{p.counter_before || (p.event_kind === 'card_start' ? tt('card start') : '—')}</bdi></td>
       <td style={{ ...td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
         <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} title={tt(p.confidence || 'low')} />
         {tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}
@@ -152,7 +163,7 @@ function PaymentRows({ payments, tt, td }) {
 
 // The same history, for ONE trainee — the billing section of the athlete page.
 // Renders nothing for anyone but the owner (the tables answer empty).
-export function SheetBillingHistory({ traineeId }) {
+export function SheetBillingHistory({ traineeId, onCount }) {
   const tt = useT();
   const [rows, setRows] = useState(null);
   useEffect(() => {
@@ -160,9 +171,9 @@ export function SheetBillingHistory({ traineeId }) {
     let alive = true;
     supabase.from('revenue_sheet_event').select('*').eq('trainee_id', traineeId).in('event_kind', ['payment', 'card_start', 'session'])
       .order('event_date', { ascending: false }).limit(1000)
-      .then(({ data }) => { if (alive) setRows(data || []); });
+      .then(({ data }) => { if (alive) { setRows(data || []); onCount?.((data || []).filter((r) => r.event_kind !== 'session').length); } });
     return () => { alive = false; };
-  }, [traineeId]);
+  }, [traineeId]); // eslint-disable-line react-hooks/exhaustive-deps -- onCount is a setter
   if (!rows || !rows.length) return null;
   const payments = rows.filter((r) => r.event_kind !== 'session');
   const sessions = rows.filter((r) => r.event_kind === 'session').reduce((a, r) => a + Number(r.sessions_count || 0), 0);
@@ -184,14 +195,14 @@ export function SheetBillingHistory({ traineeId }) {
       </div>
       {attendance.length > 0 && (
         <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em', marginBottom: 8 }}>
-          {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)} ${n}`).join(' · ')}
+          {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)}\u00A0${n}`).join(' · ')}
         </div>
       )}
       <ScrollFade>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
-            <th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
-            <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
+            <th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+            <th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
           </tr></thead>
           <tbody><PaymentRows payments={payments} tt={tt} td={td} /></tbody>
         </table>
@@ -261,8 +272,8 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                     <td colSpan={9} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead><tr>
-                          <th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
-                          <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
+                          <th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+                          <th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
                         </tr></thead>
                         <tbody><PaymentRows payments={c.payments} tt={tt} td={{ ...td, fontSize: 12, padding: '5px 10px' }} /></tbody>
                       </table>
@@ -424,17 +435,17 @@ export default function RevenueSheetCard({ trainees = [] }) {
                         ) : (
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead><tr>
-                              <th style={th}>{tt('Client')}</th><th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
-                              <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th>
+                              <th style={th}>{tt('Client')}</th><th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+                              <th style={th}>{tt('Method')}</th>
                             </tr></thead>
                             <tbody>
                               {monthPays.map((p) => (
                                 <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', fontWeight: 600 }}><bdi>{p.client_name}</bdi></td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px' }} dir="ltr">{fmtNumericDate(p.event_date)}</td>
-                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
-                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.counter_before || '—'}</bdi></td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(p.rate_text)}</td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.counter_before || '—'}</bdi></td>
                                   <td style={{ ...td, padding: '5px 10px', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                                     <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} />
                                     {tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}{p.unpaid ? <span style={{ color: C.rd }}> · {tt('marked unpaid')}</span> : null}

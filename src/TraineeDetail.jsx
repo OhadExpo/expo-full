@@ -196,6 +196,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
     .sort((a,b) => new Date(a.date) - new Date(b.date));
   const [showPayForm,setShowPayForm]=useState(false);
   const [showContract,setShowContract]=useState(false);
+  const [sheetPays,setSheetPays]=useState(0); // payments in the roster sheet's history (owner-only), counted in the Billing header
   const [showEdit,setShowEdit]=useState(false);
   const [showAssign,setShowAssign]=useState(false);
   const [pendingAssignPlan,setPendingAssignPlan]=useState(null); // for couple member picker
@@ -781,7 +782,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
+      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length + sheetPays} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
           <div style={{display:'flex',gap:0}}>
@@ -813,7 +814,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           return <div key={l} style={{whiteSpace:'nowrap'}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
         })}
       </div>
-      {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>{t('No payments recorded.')}</div>:(
+      {tPay.length===0?(sheetPays ? null /* the sheet's history below has them - 'No payments recorded.' above '33 payments' contradicted it (audit #612 C6) */ : <div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>{t('No payments recorded.')}</div>):(
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
@@ -835,7 +836,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               <button onClick={()=>handleDeletePay(p.id)} aria-label={t('Delete payment')} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
       {/* The roster sheet's history for this client (owner-only; empty for staff). */}
-      <SheetBillingHistory traineeId={trainee} />
+      <SheetBillingHistory traineeId={trainee} onCount={setSheetPays} />
       </CollapsibleSection>
       {showContract && (
         <CoachContractComposer
