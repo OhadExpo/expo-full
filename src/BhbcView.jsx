@@ -5808,7 +5808,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
           style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
           {wpLayout === 'columns' ? `▤ ${tr('Rows')}` : `▥ ${tr('Columns')}`}
         </button>
-        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע, מלוח המועדון. ‎+ חימום רושם 5 דקות חימום דינמי לכל מי שהיה באימון; ‎+ כוח רושם את אימון הכוח של הקבוצה.' : 'The week’s practices and games, from the club calendar. + Warm-up logs 5 minutes of dynamic warm-up for everyone at the practice; + S&C logs the team S&C session.'}</span>
+        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע, מלוח המועדון. ‎+ חימום רושם 5 דקות לכל מי שהיה באימון; ‎+ כוח רושם את אימון הכוח של הקבוצה.' : 'The week’s practices and games, from the club calendar. + Warm-up logs 5 minutes for everyone at the practice; + S&C logs the team S&C session.'}</span>
       </div>
 
       {/* SEVEN across, like a calendar week (Ohad: "all 7 days in one row, like
@@ -5843,11 +5843,14 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                   const court = ['practice', 'shootaround', 'scrimmage'].includes(String(f.type || '').toLowerCase());
                   // CANCEL / RESTORE: a quiet segment; a cancel asks first (the
                   // session drops out of every count), a restore does not.
+                  // in the phone stack (not the columns view) cancel is the ⊘ icon in one square, so
+                  // WARM-UP and S&C get the width (#643: 'WARM-UP 5′' touched both edges at 390)
+                  const iconCx = flexActs && !horizontalWeek && !off;
                   const cancelBtn = onCancel && court ? (
                     <button key="cx" type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className="bhbc-seg bhbc-cancel-btn" aria-label={tr(off ? 'Restore this session' : 'Cancel this session')}
                       onClick={async (e) => { const el = e.currentTarget; if (off) { onCancel(f, false); return; } if (await confirmToast(he ? `לבטל את האימון של ${f.start || ''}? הוא יישאר בלוח עם קו עליו ולא ייספר בשום מקום.` : `Cancel the ${f.start || ''} ${tr(FX_LABEL[f.type] || 'session').toLowerCase()}? It stays on the calendar, struck through, and counts nowhere.`, { okLabel: he ? 'ביטול האימון' : 'Cancel session', cancelLabel: he ? 'חזרה' : 'Back' })) onCancel(f, true); try { el.blur(); document.activeElement?.blur?.(); } catch { /* gone */ } }}
                       title={tr(off ? 'Restore this session' : 'Cancel this session')}
-                      style={segBtn(C.tm, { width: flexActs ? undefined : 'var(--cx-w)', flex: flexActs ? '1 1 0' : undefined, padding: 0 })}>{off || flexActs ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
+                      style={segBtn(C.tm, iconCx ? { width: 'var(--btn-h)', flex: '0 0 auto', padding: 0 } : { width: flexActs ? undefined : 'var(--cx-w)', flex: flexActs ? '1 1 0' : undefined, padding: 0 })}>{iconCx ? <span aria-hidden>⊘</span> : off || flexActs ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
                   ) : null;
                   const sc = !off && onAttachSc && court
                     ? (flexActs ? <button key="sc" type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)} style={segBtn(scInk(d, f), { flex: '1 1 0', padding: 0, ...(onWarmup ? null : { borderInlineStart: 'none' }), background: scBg(d, f) })}>{scLabel(d, f)}</button> : scBtn(d, f))
