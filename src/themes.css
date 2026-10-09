@@ -2236,7 +2236,7 @@ select.avail-select:dir(rtl) {
      it out of line; drop it and the label lands on the same edge as
      the icon. The set count stays inset because it is a COLUMN with
      the icon after it, not an edge. */
-  .wr-day-card > div:last-child > button:last-child{ padding-inline-end: 0 !important; }
+  /* (the actions are one joined pair since #649 - no trailing padding to trim) */
   /* Mobile: the meta takes its own full-width line and its items (week /
      date / sets / video icon) spread edge-to-edge with even spacing;
      the dot separators hide (the spacing is the separator now). */
@@ -2348,3 +2348,8 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
   .em-sugg-btn { flex-wrap: wrap !important; row-gap: 6px !important; justify-content: flex-start !important; padding-inline-start: 10px !important; }
   .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 24px) !important; }
 }
+
+/* THE REVIEW LIST'S RIGHT COLUMN (10.10 #649): REVIEW | DELETE and the strip's ATHLETE PAGE are one
+   width, so the eye reads one column down the page */
+:root { --wr-acts-w: 192px; }
+@media (max-width: 420px) { :root { --wr-acts-w: 168px; } }

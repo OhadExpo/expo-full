@@ -15,7 +15,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 import { isHebrew } from './script';
-import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue } from './ui';
+import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue, JoinedButtons } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -2718,11 +2718,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </span>;
           })()}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
-            <button onClick={() => onOpenTrainee(cid)}
+            <button onClick={() => onOpenTrainee(cid)} className="wr-athlete-btn"
               title={tt("Open this athlete's page")}
               style={{background:'transparent',border:'1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)',color:'var(--c-stripTx)',borderRadius:0,
-                padding:'3px 10px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',
-                textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
+                width:'var(--wr-acts-w)',height:28,boxSizing:'border-box',padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center',
+                fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',
+                textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1}}
               onMouseEnter={e=>e.currentTarget.style.borderColor='var(--c-stripTx)'}
               onMouseLeave={e=>e.currentTarget.style.borderColor='color-mix(in srgb, var(--c-stripTx) 55%, transparent)'}>
               {/* one inline run: in a flex button the pieces were separate items and the
@@ -2816,21 +2817,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 </div>
                   );
                 })()}
-                {/* Action group — Review/View + Delete together, off to the right */}
-                <div style={{display:'flex',alignItems:'center',gap:8,marginInlineStart:12,flexShrink:0}}>
-                  <button onClick={(e)=>{e.stopPropagation();setSelectedWo(wo.id);}}
-                    title={tr(readLang(), reviewed?'View this workout':'Review this workout')}
-                    style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
-                      borderRadius:0,padding:'5px 12px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',
-                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?tt('VIEW →'):tt('REVIEW →')}</button>
-                  {deleteWorkout && (
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-                      title={tt('Delete this workout')}
-                      style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
-                        borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
-                      {tb("DELETE")}
-                    </button>
-                  )}
+                {/* REVIEW | DELETE AS ONE JOINED PAIR (10.10 #649, Ohad: "something about the button
+                    locations doesnt feel good in the eyes on the right side"): a boxed REVIEW beside a
+                    bare red DELETE gave two shapes and a ragged edge. Equal cells, one frame, the colour
+                    in the words; the same width as ATHLETE PAGE in the strip, on the same right edge. */}
+                <div className="wr-day-acts" style={{marginInlineStart:12,flexShrink:0,width:'var(--wr-acts-w)'}} onClick={(e)=>e.stopPropagation()}>
+                  <JoinedButtons maxWidth={9999} items={[
+                    { label: reviewed ? tt('VIEW →') : tt('REVIEW →'), onClick: () => setSelectedWo(wo.id), tone: reviewed ? 'muted' : 'accent', title: tr(readLang(), reviewed ? 'View this workout' : 'Review this workout') },
+                    deleteWorkout && { label: tb('DELETE'), onClick: () => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }, tone: 'danger', title: tt('Delete this workout') },
+                  ]} />
                 </div>
               </div>
               </React.Fragment>
