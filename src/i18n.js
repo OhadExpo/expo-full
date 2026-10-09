@@ -1364,6 +1364,7 @@ export const HE = {
   "Start Workout →": 'לאימון ←',
   // athlete portal strings the English-literal gate never saw (9.10 #586)
   // coach-side toasts: the ToastHost looks up the head up to ": " (9.10 #590)
+  "Booking cancelled, but its Google Calendar event could not be removed:": "ההזמנה בוטלה, אבל לא הצלחנו להסיר את האירוע מיומן גוגל:",
   "Not marked paid - the request was not updated (no permission, or it no longer exists).": "לא סומן כשולם — הבקשה לא עודכנה (אין הרשאה, או שהיא כבר לא קיימת).",
   // athlete toasts: the ToastHost translates static ones by key; templates go through tt + .replace (9.10 #589)
   "That video is empty — try recording again.": "הסרטון ריק. צלם שוב.",
