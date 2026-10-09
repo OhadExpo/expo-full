@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { findAlternates } from './exerciseSimilarity';
 import { ChipGrid } from './ui';
-import { useT } from './i18n';
+import { useT, useHe } from './i18n';
 
 // F-25 — equipment chips the trainee can toggle on/off. Only alternates
 // matching at least one selected chip will surface. The TRAVELING
@@ -31,6 +31,10 @@ const EQUIP_CHIPS = [
   { id: 'BARBELL', label: 'BB' },
   { id: 'MACHINE', label: 'MACHINE' },
 ];
+// The chips' own Hebrew, by id (1008b review): tt('BW') hit the generic BW key,
+// 'משקל' - "weights", the opposite of "no equipment". BB/DB/KB stay in Latin
+// letters, the way he writes them.
+const EQUIP_HE = { BODYWEIGHT: 'משקל גוף', BAND: 'גומייה', CABLE: 'כבל', MACHINE: 'מכונה' };
 const TRAVELING_EQUIP = new Set(['BODYWEIGHT', 'BAND']);
 
 // Wrap a Supabase library exercise into the shape expected by the rest of
@@ -76,6 +80,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
   // The athlete opens this mid-workout; it was all English in the Hebrew
   // portal (9.10 #586 - the English-literal gate skipped this file).
   const tt = useT();
+  const he = useHe();
   const [traveling, setTraveling] = useState(false);
   const [activeEquip, setActiveEquip] = useState(() => new Set());
   const toggleEquip = (id) => setActiveEquip(prev => {
@@ -170,7 +175,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
           <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginInlineStart: 4 }}>{tt('HAVE:')}</span>
           {/* the seven equipment toggles as one equal-cell grid (5.10 #574); a multi-select, so `value` is the Set */}
           <ChipGrid value={activeEquip} onChange={toggleEquip} style={{ flex: '1 1 auto' }}
-            items={EQUIP_CHIPS.map(chip => ({ k: chip.id, label: tt(chip.label) }))} />
+            items={EQUIP_CHIPS.map(chip => ({ k: chip.id, label: (he && EQUIP_HE[chip.id]) || chip.label }))} />
         </div>
 
         {alternates.length === 0 && (

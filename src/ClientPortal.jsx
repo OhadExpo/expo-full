@@ -35,7 +35,7 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
-import { useT as useAppT, tr, readLang, LangCtx, countIn } from './i18n';
+import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 import { resolveStoredUrl } from './storageUrl';
 import { summarize as summarizeSet, isUsable as isUsableSetRead } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
@@ -528,6 +528,9 @@ function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
 
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
+  // the language the strings render in, from the same context as tt (1008b review:
+  // readLang() reads localStorage, written a render AFTER the portal toggle flips)
+  const heCtx = useHe();
   // A workout in progress: SwUpdateBanner neither shows nor reloads while this
   // is up (Ohad 2026-09-11 - the update notice must never meet a set).
   useEffect(() => { window.__expoWorkoutActive = (window.__expoWorkoutActive | 0) + 1; return () => { window.__expoWorkoutActive = Math.max(0, (window.__expoWorkoutActive | 0) - 1); }; }, []);
@@ -1903,11 +1906,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     <div style={{display:'grid',gridTemplateColumns:'1fr minmax(0,max-content) 1fr',alignItems:'center',columnGap:8,marginBottom:6,minHeight:40}}>
       <EXPOMark theme="dark" height={36} style={{flexShrink:0,justifySelf:'start'}} />
       {/* Only the day's NAME gives way on a tight bar - the week always shows. */}
-      {/* dir="auto": in an RTL shell (the Hebrew coach preview) an English day
-          name read "W1 · Day A"; overflow:hidden: on a 320 bar with a crest and
-          many pending uploads the unshrinkable " · W12" clips rather than paint
-          over the logo or the cluster (1008a review). */}
-      <span dir="auto" style={{display:'flex',justifyContent:'center',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span style={{flexShrink:0}}>{' '}· W{weekNum+1}</span></span>
+      {/* Three flex items - name · week - so the ORDER follows the direction and no
+          inline bidi is involved: dir="auto" makes the row RTL for a Hebrew day
+          name ("יום א · W2", right to left) and LTR for an English one ("Day A ·
+          W2"). As one text run with a joined " · W2" the Hebrew row read
+          "· W2 יום א" (1008b review), and the leading space collapsed ("Day A·").
+          overflow:hidden: on a 320 bar with a crest and many pending uploads the
+          unshrinkable week clips rather than paint over the logo or the cluster. */}
+      <span dir="auto" style={{display:'flex',justifyContent:'center',alignItems:'baseline',columnGap:'0.4em',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><span style={{flexShrink:0}}>W{weekNum+1}</span></span>
       {/* Right cluster — anchored to the right edge of its column, so ← Exit
           sits on the RIGHT EDGE always (Ohad). */}
       <div style={{justifySelf:'end',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
@@ -1964,7 +1970,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
        // Hebrew athletes read "Exercise 1/4" in English on every exercise step
        // (9.10, measured on /demo/athlete?lang=he) - the warm-up line was the
        // only one translated.
-       groups[step]?.superset ? (readLang() === 'he' ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}`) :
+       groups[step]?.superset ? (heCtx ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}`) :
        `${tt('Exercise')} ${step+1}/${groupCount}`}
     </div></div>;
 
@@ -2028,7 +2034,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
           <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-            {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
+            {/* one arrow direction through the whole workout (1008b review): the check-in
+                and exercise steps say 'הבא ←', the warm-ups said '… →' */}
+            {`${wi === wuCount - 1 ? tt('Start Check-In') : tt('Next Warm-Up')} ${heCtx ? '←' : '→'}`}</button></div>
       </div></div>;
   }
 
@@ -2396,7 +2404,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           cells span the full width, flush with the video box below (Ohad). */}
       {hw && <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginTop:12,marginBottom:14}}>
         {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
-          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>{readLang() === 'he' ? `${tt('Week')} ${i+1}` : `WK ${i+1}`}</div>
+          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>{heCtx ? `${tt('Week')} ${i+1}` : `WK ${i+1}`}</div>
           <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div>}
 
       {/* Cyan-polish pass: every neutral border on this view is now 1px
@@ -2509,7 +2517,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>{tt('✓ UPLOADED')}</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `Compressing ${f.compressProgress||0}%` : `Uploading ${f.uploadProgress||0}%`}</span></div>}
+            <span dir="auto" style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? tt('Compressing {n}%').replace('{n}', () => f.compressProgress||0) : tt('Uploading {n}%').replace('{n}', () => f.uploadProgress||0)}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
@@ -2572,7 +2580,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </label>
           </div>
         )}
-        <button onClick={() => setLiveCountForEid(ex.eid)} title={tt('LIVE REP COUNTER')}
+        <button onClick={() => setLiveCountForEid(ex.eid)} title={tt('Live rep counter — camera + voice trigger')}
           style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
           {tt('LIVE REP COUNTER')}
         </button>
@@ -2584,7 +2592,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
       {isSuperset && <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
-        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>{tt('SUPERSET')} {group.superset} · {countIn(readLang(), groupExs.length, 'exercise').toUpperCase()}</div>
+        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>{tt('SUPERSET')} {group.superset} · {countIn(heCtx ? 'he' : 'en', groupExs.length, 'exercise').toUpperCase()}</div>
         <div style={{fontSize:11,color:C.tm,marginTop:3}}>{tt('Alternate between exercises each round')}</div>
       </div>}
 
@@ -3666,7 +3674,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label={tt('Delete bodyweight entry')} className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} className={bwDel.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
           <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>{tt("DELETE ENTRY")}</div>
-          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>{tt('Remove {kg}kg from {block} · W{week}?').replace('{kg}', bwDel.value.bw).replace('{block}', bwDel.value.blockName || '?').replace('{week}', bwDel.value.week || '?')}</div>
+          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>{tt('Remove {kg}kg from {block} · W{week}?').replace('{kg}', () => bwDel.value.bw).replace('{block}', () => bwDel.value.blockName || '?').replace('{week}', () => bwDel.value.week || '?')}</div>
           <div style={{display:'flex',gap:8}}>
             <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("CANCEL")}</button>
             <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week && b.date===d.date))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("DELETE")}</button>
@@ -3691,7 +3699,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>{tt('← HISTORY')}</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {readLang() === 'he' ? (checkinCount === 1 ? 'דיווח אחד' : `${checkinCount} דיווחים`) : `${checkinCount} CHECK-IN${checkinCount === 1 ? '' : 'S'}`}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {(lang || readLang()) === 'he' ? (checkinCount === 1 ? 'דיווח אחד' : `${checkinCount} דיווחים`) : `${checkinCount} CHECK-IN${checkinCount === 1 ? '' : 'S'}`}</div>
         </div>
         <CheckinTrends workouts={cw} />
       </div>

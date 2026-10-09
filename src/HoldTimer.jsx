@@ -125,7 +125,7 @@ export default function HoldTimer({
         {done && <>
           <button onClick={reset} style={btn('transparent', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.3)')}>↺ {tt('REDO')}</button>
           <button onClick={start} style={btn('transparent', C.gn, C.gn)}>▶ {tt('RESUME')}</button>
-          <button onClick={() => onSave && onSave(seconds)} style={btn(C.ac, '#fff', C.ac)}>✓ LOG {seconds}s</button>
+          <button onClick={() => onSave && onSave(seconds)} style={btn(C.ac, '#fff', C.ac)}>{tt('✓ LOG {s}s').replace('{s}', () => seconds)}</button>
         </>}
       </div>
     </div>

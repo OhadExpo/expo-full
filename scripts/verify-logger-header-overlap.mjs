@@ -41,18 +41,28 @@ const click = (page, src) => page.evaluate((s) => {
 
 // measured in the page: the label, its visible ink, and every other painted box in the bar
 const measure = (page) => page.evaluate(() => {
-  const label = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()) && s.children.length === 2);
-  if (!label) return { err: 'no day label (a span holding the name and " · W<n>") in the logger bar' };
+  // name · W<n> as three flex items (1008b review: a joined " · W2" text run read
+  // "· W2 יום א" for a Hebrew day name)
+  const label = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()) && s.children.length === 3);
+  if (!label) return { err: 'no day label (a span holding name, "·", "W<n>") in the logger bar' };
   const bar = label.parentElement;
   const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
   const ink = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); const rs = [...rg.getClientRects()].filter((x) => x.width > 0); if (!rs.length) return null; return { l: Math.min(...rs.map((x) => x.left)), r: Math.max(...rs.map((x) => x.right)), t: Math.min(...rs.map((x) => x.top)), b: Math.max(...rs.map((x) => x.bottom)) }; };
   const clip = (a, c) => a && { l: Math.max(a.l, c.l), r: Math.min(a.r, c.r), t: Math.max(a.t, c.t), b: Math.min(a.b, c.b) };
-  const [nameEl, weekEl] = label.children;
+  const [nameEl, sepEl, weekEl] = label.children;
   const LB = box(label);
   const nameInk = clip(clip(ink(nameEl), box(nameEl)), LB);
+  const sepInk = clip(ink(sepEl), LB);
   const weekRaw = ink(weekEl);
   const weekInk = clip(weekRaw, LB);
-  const parts = [nameInk, weekInk].filter((x) => x && x.r - x.l > 0.5);
+  const parts = [nameInk, sepInk, weekInk].filter((x) => x && x.r - x.l > 0.5);
+  // reading order: the separator sits BETWEEN the name and the week, on the
+  // side the label's direction puts it (rtl: name rightmost)
+  const rtl = getComputedStyle(label).direction === 'rtl';
+  const nB = box(nameEl), sB = box(sepEl), wB = box(weekEl);
+  const nameShown = nB.r - nB.l > 0.5;
+  const order = !nameShown || (rtl ? (nB.l >= sB.r - 0.5 && sB.l >= wB.r - 0.5) : (nB.r <= sB.l + 0.5 && sB.r <= wB.l + 0.5));
+  const gap = nameShown ? Math.round((rtl ? nB.l - sB.r : sB.l - nB.r) * 10) / 10 : null;
   const L = parts.length ? { l: Math.min(...parts.map((x) => x.l)), r: Math.max(...parts.map((x) => x.r)), t: Math.min(...parts.map((x) => x.t)), b: Math.max(...parts.map((x) => x.b)) } : null;
   const hits = [];
   if (L) for (const o of bar.querySelectorAll('span,img,button,svg')) {
@@ -67,6 +77,8 @@ const measure = (page) => page.evaluate(() => {
     L: L ? [Math.round(L.l), Math.round(L.r)] : null,
     hits: [...new Set(hits)],
     weekFull: !!(weekRaw && weekInk && weekInk.r - weekInk.l >= weekRaw.r - weekRaw.l - 1),
+    order, rtl, gap,
+    bundle: ([...document.scripts].map((x) => x.src).find((x) => /index-/.test(x)) || '').split('/').pop(),
     off: L ? Math.round(((L.l + L.r) / 2 - (BR.l + BR.r) / 2) * 10) / 10 : null,
     nameCut: nameEl.scrollWidth > nameEl.clientWidth + 1,
     barOverflow: bar.scrollWidth > bar.clientWidth + 1,
@@ -85,29 +97,46 @@ const judge = (tag, w, r, need) => {
   const fails = [];
   if (r.hits.length) fails.push(`"${r.label}" [${r.L}] is overlapped by ${r.hits.join(', ')}`);
   if (!r.weekFull) fails.push(`the week is not fully visible in "${r.label}"`);
+  if (!r.order) fails.push(`"${r.label}" is out of reading order (${r.rtl ? 'rtl' : 'ltr'}): the "·" is not between the name and the week`);
+  if (r.gap !== null && r.gap < 2) fails.push(`no space between the name and the "·" (${r.gap}px)`);
   if (r.barOverflow) fails.push('the bar overflows its width');
   if (r.exitOut) fails.push('EXIT is past the right edge of the screen');
   if (fails.length) { bad++; console.log(`FAIL ${tag} ${w}: ${fails.join('; ')}`); }
-  else console.log(`ok   ${tag} ${w}: "${r.label}" [${r.L}] clear, week visible, ${r.off}px from the bar centre${r.nameCut ? ', name truncated to fit' : ''}`);
+  else console.log(`ok   ${tag} ${w}: "${r.label}" [${r.L}] clear, in ${r.rtl ? 'rtl' : 'ltr'} order, week visible, ${r.off}px from the bar centre${r.nameCut ? ', name truncated to fit' : ''} (${r.bundle})`);
 };
 
-// A. demo athlete, resumed
+// A. demo athlete, resumed - in English AND Hebrew; in Hebrew also with a Hebrew
+// day name (SYNTHETIC: the demo's day names are English, so the name's text is
+// swapped in place - dir="auto" re-resolves the row's direction from it)
 {
   const b = await P.connect({ browserURL: CDP });
-  for (const w of WIDTHS) {
+  for (const lang of ['en', 'he']) for (const w of WIDTHS) {
+    const tag = `demo-${lang}`;
     expected++;
     const page = await b.newPage();
     await page.setViewport({ width: w, height: 860, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     try {
-      await page.goto(BASE + '/demo/athlete', { waitUntil: 'domcontentloaded' }); await wait(5000);
-      await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (/session|draft/i.test(k)) localStorage.removeItem(k); });
-      if (!(await click(page, '^(START|AGAIN)$'))) { bad++; console.log(`FAIL demo ${w}: no START/AGAIN on the demo athlete - nothing measured`); continue; }
-      await wait(2500); await click(page, '^NEXT'); await wait(2000);
+      await page.goto(`${BASE}/demo/athlete?lang=${lang}`, { waitUntil: 'domcontentloaded' }); await wait(5000);
+      await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k !== 'expo-lang') localStorage.removeItem(k); });
       await page.reload({ waitUntil: 'domcontentloaded' }); await wait(5000);
-      await click(page, '^(START|AGAIN|RESUME)'); await wait(2500);
+      if (!(await click(page, '^(START|AGAIN|התחל|שוב)$'))) { bad++; console.log(`FAIL ${tag} ${w}: no START/AGAIN on the demo athlete - nothing measured`); continue; }
+      await wait(2500); await click(page, '^(NEXT|הבא|החימום הבא)'); await wait(2000);
+      await page.reload({ waitUntil: 'domcontentloaded' }); await wait(5000);
+      await click(page, '^(START|AGAIN|RESUME|התחל|שוב)'); await wait(2500);
       const r = await measure(page);
-      if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/logger-demo-${w}.png`, clip: { x: 0, y: 0, width: w, height: 150 } });
-      judge('demo', w, r, [['resumed', 'the logger did not resume']]);
+      if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/logger-${tag}-${w}.png`, clip: { x: 0, y: 0, width: w, height: 150 } });
+      judge(tag, w, r, [['resumed', 'the logger did not resume']]);
+      if (lang === 'he') {
+        expected++;
+        const swapped = await page.evaluate(() => { const l = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()) && s.children.length === 3); if (!l) return false; l.children[0].textContent = 'יום א — דחיפה'; return true; });
+        await wait(300);
+        if (!swapped) { bad++; console.log(`FAIL demo-he-name ${w}: no label to swap - nothing measured`); }
+        else {
+          const r2 = await measure(page);
+          if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/logger-demo-he-name-${w}.png`, clip: { x: 0, y: 0, width: w, height: 150 } });
+          judge('demo-he-name', w, r2, [['rtl', 'a Hebrew day name did not make the label RTL']]);
+        }
+      }
     } finally { await page.close(); }
   }
   await b.disconnect();
@@ -139,5 +168,6 @@ if (PREVIEW_PLAN) {
   await b.disconnect();
 }
 
-console.log(`LOGGER HEADER OVERLAP: ${measured}/${expected} cases measured in their state, ${bad} failed`);
+if (!PREVIEW_PLAN) console.log('SKIPPED case B (BHBC crest + save tick): set PREVIEW_PLAN=<a BHBC athlete plan id> - the 360px crest case is NOT measured in this run');
+console.log(`LOGGER HEADER OVERLAP: ${measured}/${expected} cases measured in their state, ${bad} failed${PREVIEW_PLAN ? '' : ' (case B skipped)'}`);
 process.exit(bad || measured < expected ? 1 : 0);

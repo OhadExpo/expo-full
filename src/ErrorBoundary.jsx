@@ -69,18 +69,24 @@ export default class ErrorBoundary extends React.Component {
   }
 
   handleReload = () => {
+    // Soft-clear the SW cache so the refresh actually pulls a new bundle
+    // (otherwise PWA installs can loop on the broken cached bundle) - but ONLY
+    // when the server can refill it. Offline in the gym, wiping the precache and
+    // reloading leaves the athlete with no app at all (the splash Reload had the
+    // same bug, #560). The test is the one that matters - can THIS origin answer
+    // right now (uncached, 4 s)? - because dead gym wifi still says "online" and
+    // the connectivity probe is off for a signed-out or demo visitor (1008b
+    // review). Any doubt keeps the caches.
+    const reload = () => { try { window.location.reload(); } catch { /* noop */ } };
     try {
-      // Soft-clear the SW cache so the refresh actually pulls a new bundle
-      // (otherwise PWA installs can loop on the broken cached bundle) - but
-      // ONLY when the server can refill it. Offline in the gym, wiping the
-      // precache and reloading leaves the athlete with no app at all (the
-      // splash Reload had the same bug, #560; same guard, 9.10).
-      const canRefill = netState() !== 'offline' && navigator.onLine !== false;
-      if (canRefill && 'caches' in window) {
-        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-      }
-    } catch {}
-    window.location.reload();
+      if (netState() === 'offline' || navigator.onLine === false || !('caches' in window) || typeof fetch !== 'function') { reload(); return; }
+      const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = setTimeout(() => { try { ctl && ctl.abort(); } catch { /* noop */ } }, 4000);
+      fetch(`${window.location.origin}/?alive=${Date.now()}`, { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+        .then((r) => (r.ok ? caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))) : null))
+        .catch(() => null)
+        .then(() => { clearTimeout(timer); reload(); });
+    } catch { reload(); }
   };
 
   handleHardReset = () => {
@@ -117,7 +123,7 @@ export default class ErrorBoundary extends React.Component {
           <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--c-tm, #7a7a88)', lineHeight: 1.55 }}>
             {t("This section couldn't render. Switch away and back, or refresh — your other data is unaffected.")}
           </p>
-          <div style={{ background: 'var(--c-bg, #0a0a0c)', border: '1px solid var(--c-cardBd, #1F4A5C)', padding: '8px 10px', marginBottom: 14, fontSize: 11, fontFamily: 'monospace', color: 'var(--c-rd, #FF4757)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 100, overflow: 'auto' }}>{msg}</div>
+          <div dir="ltr" style={{ background: 'var(--c-bg, #0a0a0c)', border: '1px solid var(--c-cardBd, #1F4A5C)', padding: '8px 10px', marginBottom: 14, fontSize: 11, fontFamily: 'monospace', color: 'var(--c-rd, #FF4757)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 100, overflow: 'auto' }}>{msg}</div>
           <button onClick={this.handleReload} style={{
             padding: '10px 16px', background: 'transparent',
             border: '1px solid var(--c-ac, #39BDFF)', color: 'var(--c-ac, #39BDFF)',
@@ -162,7 +168,7 @@ export default class ErrorBoundary extends React.Component {
             color: 'var(--c-tm, #7a7a88)',
             lineHeight: 1.55,
           }}>{t(PAGE_MSG)}</p>
-          <div style={{
+          <div dir="ltr" style={{
             background: 'var(--c-bg, #0a0a0c)',
             border: '1px solid var(--c-cardBd, #1F4A5C)',
             padding: '10px 12px', marginBottom: 18, fontSize: 11,

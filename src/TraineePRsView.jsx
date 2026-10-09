@@ -15,7 +15,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { isRefined5b } from './ui';
 import { EX } from './exerciseData';
-import { useT as useAppT, readLang, countIn } from './i18n';
+import { useT as useAppT, useHe, countIn } from './i18n';
 
 function topSetOfWorkoutEx(ex) {
   // ex.sets[] from the trainee log — { reps, load, rpe, done }
@@ -195,12 +195,12 @@ function Sparkline({ series, overlay, height = 64, overlayUid }) {
   );
 }
 
-function fmtDate(iso) {
+function fmtDate(iso, he) {
   if (!iso) return '';
   const d = new Date(iso);
   // Hebrew athletes read "7 Oct" in English here (9.10 #586) - the app's one
   // date convention is he-IL when the UI is Hebrew.
-  return d.toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(he ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' });
 }
 
 // Picker-style Records view: athlete or coach picks a logged exercise from
@@ -210,6 +210,7 @@ function fmtDate(iso) {
 // numeric load — empty list ⇒ empty state, not a stub.
 export default function TraineePRsView({ clientWorkouts, traineeId, header, embedded = false }) {
   const tt = useAppT();
+  const he = useHe();   // the context tt reads (1008b review: readLang() lags the toggle a render)
   const rows = useMemo(() => aggregate(clientWorkouts, traineeId), [clientWorkouts, traineeId]);
   const options = useMemo(() => rows.slice().sort((a, b) => a.title.localeCompare(b.title)), [rows]);
   const [pickedId, setPickedId] = useState(null);
@@ -306,7 +307,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               />
               {!open && picked ? (
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, marginTop: 6 }}>
-                  {readLang() === 'he' && picked.sessionCount === 1 ? 'אימון אחד' : countIn(readLang(), picked.sessionCount, 'session')}
+                  {he && picked.sessionCount === 1 ? 'אימון אחד' : countIn(he ? 'he' : 'en', picked.sessionCount, 'session')}
                 </div>
               ) : null}
               {open && (
@@ -330,7 +331,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                       }}>
                       <span style={{ color: C.tx, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
                       <span style={{ fontFamily: FN, color: C.td, fontSize: 10, flexShrink: 0 }}>
-                        {readLang() === 'he' && o.sessionCount === 1 ? 'אימון אחד' : countIn(readLang(), o.sessionCount, 'session')}
+                        {he && o.sessionCount === 1 ? 'אימון אחד' : countIn(he ? 'he' : 'en', o.sessionCount, 'session')}
                       </span>
                     </div>
                   ))}
@@ -353,7 +354,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                     )}
                   </div>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, marginTop: 10 }}>
-                    {fmtDate(picked.allTimePRDate)}
+                    {fmtDate(picked.allTimePRDate, he)}
                   </div>
                   {picked.swappedAny && (
                     <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>{tt('Includes sessions from mid-session swaps.')}</div>
@@ -474,7 +475,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                         background: isPR ? `rgba(57,189,255,0.039)` : 'transparent',
                       }}>
                         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
-                          {fmtDate(s.date)}
+                          {fmtDate(s.date, he)}
                           {s.week ? <span style={{ color: C.td, marginInlineStart: 4 }}>W{s.week}</span> : null}
                         </div>
                         <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>

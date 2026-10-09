@@ -149,6 +149,14 @@ function scanFile(f, raw) {
     if (isAllowed(m[2]) && isAllowed(m[4])) continue;
     findings.push({ f, line: lineOf(m.index), text: m[0].replace(/^[>}]\s*|\s*<$/g, ''), kind: 'ternary-lbl' });
   }
+  // 9.10 (1008b review): a backtick template rendered straight into JSX -
+  // {f.phase==='compress' ? `Compressing ${n}%` : `Uploading ${n}%`} - is none of
+  // the shapes above. Each branch of a JSX ternary that is a template starting
+  // with an English word.
+  for (const m of src.matchAll(/[>}]\s*\{\s*[^{}?`]{1,80}\?\s*`([A-Z][a-z]+(?: [a-z]+)*) \$\{[^`]*`\s*:\s*`([A-Z][a-z]+(?: [a-z]+)*) \$\{[^`]*`\s*\}/g)) {
+    if (isAllowed(m[1]) && isAllowed(m[2])) continue;
+    findings.push({ f, line: lineOf(m.index), text: m[0].replace(/^[>}]\s*/, '').slice(0, 90), kind: 'template-tpl' });
+  }
 }
 if (process.argv.includes('--write-baseline')) {
   const out = Object.fromEntries(Object.entries(unwired).filter(([, n]) => n > 0).sort());

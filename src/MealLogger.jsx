@@ -347,7 +347,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                   }} />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>{tt('CANCEL')}</button>
-                  <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} →</button>
+                  <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} {he ? '←' : '→'}</button>
                 </div>
               </div>
             )}
@@ -409,7 +409,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         </span>
         {!isToday ? (
           <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() + 1); setDay(d.toISOString().slice(0, 10)); }}
-            style={navBtn}>{tt('NEXT')} →</button>
+            style={navBtn}>{tt('NEXT →')}</button>
         ) : <span style={{ width: 60 }} />}
       </div>
 
@@ -459,7 +459,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                 }} />
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>{tt('CANCEL')}</button>
-                <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} →</button>
+                <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} {he ? '←' : '→'}</button>
               </div>
             </div>
           )}
