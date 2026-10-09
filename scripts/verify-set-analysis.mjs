@@ -63,6 +63,15 @@ ok(rs6.reps && rs6.reps[0].t === 9000 && rs6.trimmed === 2, 'readSet names the r
 const holed = per(6, 95, 2.1, 3000); holed.splice(3, 1);
 const s7 = summarize({ ...good, romTempo: { perRep: holed } });
 ok(s7.reps === null && s7.reason === 'inconsistent', `a rep missing mid-set (a 4.2 s gap among 2.1 s) -> no number (got ${s7.reps})`);
+// the 2nd or the 2nd-to-last rep lost (9.10 review): the edge rep is a real rep
+// with one missed between - no number, not 4 for a set of 6
+for (const at of [1, 4]) {
+  const lost = per(6, 95, 2.1, 3000); lost.splice(at, 1);
+  const s = summarize({ ...good, romTempo: { perRep: lost } });
+  ok(s.reps === null, `rep ${at + 1} of 6 lost -> no number (got ${s.reps})`);
+}
+// v1 reads (the whole-clip counter, wrong on 14 of 28 real runs) never feed the trend
+ok(!isUsable({ ...summarize(good), v: 1 }), 'a v1 read (old counter) is not usable for the trend');
 // a twitch in the middle (half the depth) -> no number
 const twitch = per(6, 95, 2.1, 3000); twitch[3] = { ...twitch[3], rom: 40 };
 ok(summarize({ ...good, romTempo: { perRep: twitch } }).reps === null, 'a shallow dip mid-set -> no number');
@@ -75,7 +84,7 @@ ok(s8.reps === null && s8.reason === 'capture', `angle jitter 4 deg vs range 60 
 ok(isolateSet([]).reps === null && isolateSet(null).reps === null, 'isolateSet on nothing -> no reps');
 
 // ---- 3. trend -------------------------------------------------------------
-const A = (at, reps, tempoS, romDeg, quality = 'good') => ({ at, reps, tempoS, romDeg, quality });
+const A = (at, reps, tempoS, romDeg, quality = 'good') => ({ v: 2, at, reps, tempoS, romDeg, quality });   // current (v2) reads; v1 never counts
 ok(trend([A('1', 6, 2, 90)]) === null, 'one read -> no trend');
 ok(trend([A('1', 6, 2, 90), { ...s2 }]) === null, 'a poor read is skipped (one usable left -> no trend)');
 const t1 = trend([A('1', 5, 2.4, 80), A('2', 6, 2.0, 90), A('3', 6, 2.1, 98)]);

@@ -13,7 +13,7 @@
 //
 // The clips are athletes' own videos, so they never live in the repo (it is
 // public): they sit in a private folder with labels.json beside them
-//   SET_CLIPS   default C:/Users/Ohad/expo-private-backups/set-clips
+//   SET_CLIPS   default %USERPROFILE%/expo-private-backups/set-clips
 // No folder or no scorable label = "nothing measured" and exit 1 - this gate
 // never passes on nothing.
 //
@@ -35,7 +35,7 @@ import { analyzeClip } from '../src/poseLab.js';
 import * as SA from '../src/setAnalysis.js';
 const { summarize, isUsable } = SA;
 
-const DIR = process.env.SET_CLIPS || 'C:/Users/Ohad/expo-private-backups/set-clips';
+const DIR = process.env.SET_CLIPS || (process.env.USERPROFILE || process.env.HOME || '') + '/expo-private-backups/set-clips';   // no username in the public repo
 const BASE = process.env.BASE || 'http://127.0.0.1:5390';
 const CDP = process.env.CDP || 'http://127.0.0.1:9447';
 const RUNS = Math.max(1, parseInt(process.env.RUNS || '1', 10));

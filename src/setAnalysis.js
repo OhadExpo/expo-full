@@ -71,8 +71,26 @@ export function isolateSet(events, rules = SET_RULES) {
     const refGap = median(gaps);
     const romOut = (e) => useRom && (e.rom < rules.romLo * refRom || e.rom > rules.romHi * refRom);
     const gapOut = (g) => g > rules.gapHi * refGap || g < rules.gapLo * refGap;
-    if (romOut(reps[0]) || gapOut(gaps[0])) { reps = reps.slice(1); trimmed++; continue; }
-    if (romOut(reps[reps.length - 1]) || gapOut(gaps[gaps.length - 1])) { reps = reps.slice(0, -1); trimmed++; continue; }
+    // A rep of normal depth whose gap to its neighbour is about TWO normal gaps
+    // is a real rep with one missed in between - not setup. Trimming it read
+    // 4 for a set of 6 when the segmenter lost the 2nd rep (9.10 review): a
+    // wrong number. No number instead. Walk-ins and re-racks sit far beyond 2.4x.
+    // Only with 5+ reps on the table: below that the median gap is too shaky to
+    // tell "two gaps" from a slow rep (it blanked a correct 3-rep push-up set,
+    // real clip c05, offline re-score 9.10).
+    // "Like the others" is tighter than the trim window: a deep pick-up bend
+    // (1.5x the set's depth) is setup and still trims; a lost rep's neighbour
+    // has the set's own depth.
+    const alike = (e) => !useRom || (e.rom >= 0.8 * refRom && e.rom <= 1.25 * refRom);
+    const missedNext = (g, e) => reps.length >= 5 && alike(e) && g >= 1.7 * refGap && g <= 2.4 * refGap;
+    if (romOut(reps[0]) || gapOut(gaps[0])) {
+      if (missedNext(gaps[0], reps[0])) return { reps: null, reason: 'inconsistent', trimmed };
+      reps = reps.slice(1); trimmed++; continue;
+    }
+    if (romOut(reps[reps.length - 1]) || gapOut(gaps[gaps.length - 1])) {
+      if (missedNext(gaps[gaps.length - 1], reps[reps.length - 1])) return { reps: null, reason: 'inconsistent', trimmed };
+      reps = reps.slice(0, -1); trimmed++; continue;
+    }
     if (reps.some(romOut) || gaps.some(gapOut)) return { reps: null, reason: 'inconsistent', trimmed };
     return { reps, trimmed };
   }
@@ -152,7 +170,9 @@ export function setFrameBudget(secs) {
 }
 // A read worth putting a number on (and worth trending).
 export function isUsable(a) {
-  return !!(a && a.quality !== 'poor' && isNum(a.reps) && a.reps > 0);
+  // v2+ only: v1 reads came from the whole-clip counter that was wrong on 14 of
+  // 28 real runs (9.10) - they must not feed the coach's trend
+  return !!(a && (a.v || 1) >= 2 && a.quality !== 'poor' && isNum(a.reps) && a.reps > 0);
 }
 
 // The coach's trend: the athlete's reads of the SAME exercise, oldest first,
