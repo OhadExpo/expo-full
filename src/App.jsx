@@ -495,6 +495,15 @@ function cachedSelfTrainee(email, setError) {
   return null;
 }
 
+// A cache hit for THIS email, without touching the error flag.
+function hasCachedSelfTrainee(email) {
+  try {
+    const raw = localStorage.getItem(SELF_TRAINEE_KEY);
+    const hit = raw ? JSON.parse(raw) : null;
+    return !!(hit && hit.email === email && hit.trainee);
+  } catch { return false; }
+}
+
 function BootSplash() {
   const logo = useLogoSrc();
   // THE WATCHDOG (26.9). A splash is a promise that something is coming; after
@@ -1042,7 +1051,12 @@ function AuthedApp() {
     // server still replaces it (and a late "no row" still means not registered).
     let settled = false;
     const fromCache = () => { if (cancelled || settled) return; settled = true; setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); };
-    const timer = setTimeout(fromCache, 5000);
+    // The 5 s fallback only when there IS a cached record (or the probe already
+    // says offline). With nothing cached and the network up - a first sign-in on
+    // slow gym LTE - it flashed "Couldn't Verify Account" (and Sign out) while
+    // the answer was on its way (9.10 whole-diff review). Then the splash waits:
+    // the RPC still answers, times out (timedFetch) or the probe flips to offline.
+    const timer = setTimeout(() => { if (hasCachedSelfTrainee(email) || netState() === 'offline') fromCache(); }, 5000);
     const unsubNet = subscribeNet((st) => { if (st === 'offline') fromCache(); });
     supabase.rpc('my_trainee')
       .then(({ data, error }) => {
