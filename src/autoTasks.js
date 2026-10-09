@@ -249,7 +249,8 @@ const ruleAtRiskSilent = {
       // touch crosses 21d (open) or any touch is fresher than 14d (close).
       if (latestWorkoutAgo < 21 || latestActivityAgo < 21) continue;
       // 'no workouts logged', not 'never trained': a gym client trains every week and logs
-      // nothing in the app (9.10 audit #612). Rows already stored keep the old words.
+      // nothing in the app (9.10 audit #612). Open rows are re-worded on the next sync;
+      // autoTaskHe still translates the old words on closed ones.
       const wkLabel = tWorkouts.length === 0 ? 'no workouts logged'
                                               : `${latestWorkoutAgo}d no workout`;
       const acLabel = tActivity.length === 0 ? 'never contacted'

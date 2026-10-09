@@ -167,6 +167,7 @@ export function SheetBillingHistory({ traineeId, onCount }) {
   const tt = useT();
   const [rows, setRows] = useState(null);
   useEffect(() => {
+    onCount?.(0);   // a new athlete starts at 0, not at the previous athlete's count (review NIT)
     if (!traineeId) return undefined;
     let alive = true;
     supabase.from('revenue_sheet_event').select('*').eq('trainee_id', traineeId).in('event_kind', ['payment', 'card_start', 'session'])
@@ -261,7 +262,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                   <td style={{ ...td, textAlign: 'end', color: c.unknown ? C.tx : C.td }} dir="ltr">{c.unknown || '—'}</td>
                   <td style={{ ...td, textAlign: 'end', color: c.unpaid ? C.tx : C.td }} dir="ltr">{c.unpaid || '—'}</td>
                   <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{c.sessions || '—'}</td>
-                  <td style={{ ...td, color: C.tm }}><bdi>{c.rate || '—'}</bdi></td>
+                  <td style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(c.rate)}</td>
                   {/* what EXPO knows of him, in words: Active / Archived / no record */}
                   <td style={{ ...td, color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                     {st ? tt(st) : tt('no record')}
@@ -279,7 +280,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                       </table>
                       {c.rates.length > 0 && (
                         <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6 }}>
-                          {tt('Rate changes')}: {c.rates.slice().reverse().map((r, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi dir="ltr">{fmtNumericDate(r.event_date)}</bdi> <bdi>{r.rate_text}</bdi></React.Fragment>)}
+                          {tt('Rate changes')}: {c.rates.slice().reverse().map((r, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi dir="ltr">{fmtNumericDate(r.event_date)}</bdi> {fmtRate(r.rate_text)}</React.Fragment>)}
                         </div>
                       )}
                     </td>
@@ -318,7 +319,8 @@ export default function RevenueSheetCard({ trainees = [] }) {
   const [showInactive, setShowInactive] = useState(false);
   // active = linked to a trainee whose status is Active (the Dashboard's own rule)
   const byId = useMemo(() => new Map((trainees || []).map((t) => [t.id, t])), [trainees]);
-  const statusOf = (c) => { const t = c.trainee_id && byId.get(c.trainee_id); return t ? (t.status || 'Active') : null; };
+  // a couple member's id (tr_x__0) belongs to the household row (1008k review S2; 0 such events today)
+  const statusOf = (c) => { const id = c.trainee_id && String(c.trainee_id).replace(/__\d+$/, ''); const t = id && byId.get(id); return t ? (t.status || 'Active') : null; };
   const activeClients = clients.filter((c) => statusOf(c) === 'Active');
   const inactiveClients = clients.filter((c) => statusOf(c) !== 'Active');
 
@@ -403,7 +405,10 @@ export default function RevenueSheetCard({ trainees = [] }) {
                 const base = g.coaching - bhbc;
                 // THE CURRENT MONTH HAS NO GAP YET (9.10 audit #612 A9: October read '+₪4,075' against
                 // ₪0 - the finance sheet is filled in when the month closes, so the gap says so in words)
-                const monthOpen = String(g.month).slice(0, 7) === new Date().toISOString().slice(0, 7);
+                // the LOCAL month (UTC called October 'open' until 03:00 on 1.11), and a month whose
+                // finance total is still empty is open too - its gap would be against ₪0 (1008k review S1)
+                const nowD = new Date();
+                const monthOpen = String(g.month).slice(0, 7) === `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}` || !(g.coaching > 0);
                 const gap = est && !monthOpen ? est.est - base : null;
                 const isOpenM = openMonth === g.month;
                 const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));

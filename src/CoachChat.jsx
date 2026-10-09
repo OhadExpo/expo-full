@@ -39,7 +39,7 @@ export default function CoachChat() {
   const he = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
   const L = (en, heText) => (he ? heText : en);
   const [open, setOpen] = useState(false);
-  // ON A PHONE THE BUBBLE WAITS FOR THE FIRST SCROLL (9.10 audit #612 E4): at 390 it sat
+  // ON A PHONE THE BUBBLE WAITS UNTIL THE PAGE IS SCROLLED 300px (9.10 audit #612 E4): at 390 it sat
   // on the hero's last line ('NO CARD · NO SIGNUP · ...'), and the first screen already has
   // its CTAs plus the sticky bar. On a wider screen it shows at once, as before.
   const [pastFold, setPastFold] = useState(() => typeof window === 'undefined' || window.innerWidth > 480 || window.scrollY > 300);

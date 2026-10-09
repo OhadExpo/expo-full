@@ -140,22 +140,25 @@ try {
         const kindH = {}; for (const x of side.real) (kindH[x.kind] ||= new Set()).add(x.h);
         const near = (h, set) => [...set].some((v) => Math.abs(v - h) <= 1);
         const found = [];
+        const unchecked = [];
         for (const [k, hs] of D) {
           const [kind, label] = k.split('|');
           if (R.has(k)) {
             for (const h of hs) if (!near(h, R.get(k))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...R.get(k)] });
           } else if (label && RL.has(label)) {
             for (const h of hs) if (!near(h, RL.get(label))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...RL.get(label)] });
-          } else if (kind !== 'row' && !label.startsWith('[box:')) {   // a row (or a named box) with no twin on the real page is not judged against unrelated boxes
+          } else if (label && label.startsWith('[box:')) {
+            unchecked.push(label);   // a named box with no twin: SAID, not silently passed (1008k review S4)
+          } else if (kind !== 'row') {   // a row (or a named box) with no twin on the real page is not judged against unrelated boxes
             // no box of that kind on the real page at all = nothing to compare (the
             // demo's opened PR row; a real page with no open row) - not a finding
             if (!kindH[kind] || !kindH[kind].size) continue;
             for (const h of hs) if (!near(h, kindH[kind])) found.push({ type: 'ODD', kind, label, demo: h, realKind: [...(kindH[kind] || [])].sort((a, c) => a - c) });
           }
         }
-        report.push({ id, real: side.real.length, demo: side.demo.length, found });
+        report.push({ id, real: side.real.length, demo: side.demo.length, found, unchecked });
         bad += found.length;
-        console.log(`${id}: real ${side.real.length} boxes, demo ${side.demo.length}, ${found.length} off`);
+        console.log(`${id}: real ${side.real.length} boxes, demo ${side.demo.length}, ${found.length} off${unchecked.length ? ` · UNCHECKED (no twin on the real page): ${[...new Set(unchecked)].join(', ')}` : ''}`);
         for (const f of found) console.log(`   ${f.type.padEnd(8)} ${f.kind.padEnd(5)} "${f.label}" demo ${f.demo}px vs real ${JSON.stringify(f.real || f.realKind)}`);
       }
     }

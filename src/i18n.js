@@ -1861,7 +1861,7 @@ export const HE = {
   SETS: 'סטים',
   REPS: 'חזרות',
   REST: 'מנוחה',
-  KG: 'ק"ג',
+  KG: 'ק״ג',   // gershayim, like every other ק״ג in the app
   // The booking page's calendar line: the rules say when he CAN be booked,
   // the calendar says when he already is.
   'From your calendar': 'מהיומן שלך',
