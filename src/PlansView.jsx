@@ -38,6 +38,12 @@ export function exById(exercises) {
 // Same module-singleton pattern, keyed on normalized title — so free-text rows
 // resolve their library target with an O(1) Map lookup instead of a linear
 // exercises.find() over ~1,500 entries per row on every render (keystroke lag).
+// AN EXERCISE NAME WRAPS BETWEEN WORDS AND AFTER A SLASH, NEVER MID-WORD (9.10 audit
+// #612: "PROTRACTION/RETRAC-TION" on a phone). A <wbr> after each "/" gives the long
+// slashed names a clean break; a single token wider than the whole cell may still wrap.
+const slashWbr = (s) => (typeof s === 'string' && s.includes('/')
+  ? s.split('/').flatMap((part, i, all) => (i < all.length - 1 ? [part, '/', <wbr key={i} />] : [part]))
+  : s);
 let _exTitleSrc = null, _exTitleMap = null;
 function exByTitle(exercises) {
   if (_exTitleSrc !== exercises) {
@@ -1231,7 +1237,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
                   style={{ color: C.tx, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}><CaretGlyph /></span>
-                  <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
+                  <span style={{ overflowWrap: 'break-word', wordBreak: 'normal', color: w.t ? C.tx : C.td }}>{w.t ? slashWbr(w.t) : 'New warm-up — click to name'}</span>
                 </div>
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
@@ -1571,7 +1577,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpEx(exKey); } }}
                                 style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderInlineStart:`3px solid ${pe.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
                                 <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
-                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
+                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{slashWbr(title)}</span>
                               </div>
                               <input value={pe.superset || ''} readOnly tabIndex={-1}
                                 style={{...tinyInputRO, background: pe.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: pe.superset ? `1px solid ${sc}` : tinyInputRO.border, color: pe.superset ? C.tx : C.td, fontFamily:FN, fontWeight: pe.superset ? 800 : 600, textAlign:'center'}} />
@@ -2861,7 +2867,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleOvExpand(ex.id); } }}
                         style={{color:C.tx, minWidth:0, borderInlineStart:`3px solid ${ex.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
                         <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
-                        <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
+                        <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{slashWbr(title)}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
