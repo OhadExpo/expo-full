@@ -72,9 +72,12 @@ const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
 // A day added to a plan whose days are lettered continues the letters in order - A, B -> C
 // (Ohad 9.10 #634: 'regular order.. abcd', 'applied everywhere'); a numbered plan keeps numbers.
 const nextDayName = (days) => {
-  const named = days.filter((d) => /^day\s/i.test(d.name || ''));
-  const lettered = named.filter((d) => /^day [a-z](?![a-z])/i.test(d.name || ''));
-  return lettered.length && lettered.length === named.length ? `Day ${String.fromCharCode(65 + lettered.length)}` : `Day ${days.length + 1}`;
+  const nm = (d) => String((d && (d.name || d.n)) || '');   // both plan shapes
+  const named = days.filter((d) => /^day\s/i.test(nm(d)));
+  const letters = named.map((d) => /^day\s+([a-z])(?![a-z])/i.exec(nm(d))).filter(Boolean).map((m) => m[1].toUpperCase().charCodeAt(0));
+  // after the HIGHEST letter, not the count: A, C (B deleted) + Add Day = D, never a second C (1008u review)
+  const next = letters.length ? Math.max(...letters) + 1 : 0;
+  return letters.length && letters.length === named.length && next <= 90 ? `Day ${String.fromCharCode(next)}` : `Day ${days.length + 1}`;
 };
 
 const PAGE_SIZE = 25;

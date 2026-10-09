@@ -122,11 +122,11 @@ export default function SwUpdateBanner() {
   useEffect(() => {
     if (!needRefresh || updating) return;
     // Two clocks (1008t review SHOULD): rule A asks "touched since the LOAD?" (0 = never);
-    // the idle rule and the embed hold count from the last input OR from now, the moment this
-    // update was found - with 0 there, an untouched page reloaded 1s after an update was found
-    // and a YouTube video started inside the frame (its taps never reach this page) lost its hold.
+    // the idle rule and the embed hold count from NOW, the moment this update was found, as they
+    // always did - with 0 there an untouched page reloaded 1s after an update was found, and with
+    // an earlier input (1008u review) a poster tap 25 min ago no longer held a playing video.
     let lastActivity = LAST_INPUT;
-    let idleFrom = LAST_INPUT || Date.now();
+    let idleFrom = Date.now();
     const bumpActivity = () => { lastActivity = Date.now(); idleFrom = lastActivity; };
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, bumpActivity, { passive: true }));
 
