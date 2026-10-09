@@ -670,6 +670,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return wuCount > 0 ? 'wu0' : 'checkin';
   });
   const [notes, setNotes] = useState(_restoredSession?.notes || editOf?.notes || '');
+  // Complete reads the notes AFTER it waits for a clip's encode (up to minutes):
+  // the state captured when it was tapped missed what was typed meanwhile (9.10 review)
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
   // Readiness check-in (autoregulation) — collected between warm-ups and the
   // first exercise, saved onto the workout. (Ohad: "couldn't see the check-in")
   const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || (editOf?.autoregulation && Object.keys(editOf.autoregulation).length ? editOf.autoregulation : null) || { pain: '', sleep: '', energy: '' });
@@ -1306,6 +1310,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // Complete can take this clip over (5.10 #560): the request is cut, and the
     // blob queue - which already holds the bytes by then - finishes the job.
     if (inflight) inflight.abort = () => fail408('handed to the offline queue');
+    // Complete may have taken the clip while readSession() waited on the auth
+    // lock (abort was still null then): cut this request at once instead of a
+    // second upload of the same bytes (9.10 review)
+    if (inflight && inflight.handedOff) fail408('handed to the offline queue');
 
     xhr.upload.onprogress = (e) => {
       lastTick = Date.now();
@@ -1595,6 +1603,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:handed, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
         return;
       }
+      // From here this clip saves ITSELF to the queue (or fails): Complete waits
+      // for that (inflight.settled) instead of storing a second copy while the
+      // enqueue below is in progress (9.10 review: two copies, one orphaned for 7 days)
+      inflight.failing = true;
       console.error('Video upload error:', err);
       // If we appear to be offline (or this is a network-shaped error), persist
       // the blob to IndexedDB and let the blob queue replay it once connectivity
@@ -1723,6 +1735,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     for (const [k, inf] of Object.entries(inflightRef.current)) {
       const i = Number(k);
       if (!inf || inf.handedOff || !inf.blob) continue;
+      if (inf.failing) { if (inf.settled) unhanded[i] = inf.settled; continue; }   // its own catch is queuing it
       try {
         const blobId = newBlobId();
         const storagePath = inf.path || `${clientId}/${Date.now()}-${Math.floor(Math.random() * 1e6).toString(36)}-form${inf.ext || '.mp4'}`;
@@ -1747,8 +1760,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // and patch this workout once the upload eventually succeeds. Only the
     // athlete's own fields: the coach's (reviewNotes…) are merged from the
     // SERVER copy at write time (upsertWorkoutRow), never from this device's.
-    const formVideos = fv.map((f, i) => ({
-      has: f.has || !!handed[i] || !!landed[i],
+    // the slots as they are NOW (the encode wait above can take minutes), and a
+    // video counts only with something to point at - a clip that came out over
+    // the size limit while Complete waited has neither (9.10 review)
+    const formVideos = (fvRef.current || fv).map((f, i) => ({
+      has: !!(f.cloudUrl || landed[i] || handed[i] || f.pendingBlobId),
       note: f.note,
       fileName: f.fileName || null,
       cloudUrl: f.cloudUrl || landed[i] || null,
@@ -1779,7 +1795,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
       // A re-saved log keeps the day it was trained and the coach's review mark.
       // (reviewedAt is deliberately absent: the coach's mark is never re-sent.)
-      week: weekNum + 1, date: existingLog?.date || finishedAt, notes, autoregulation: checkin,
+      week: weekNum + 1, date: existingLog?.date || finishedAt, notes: notesRef.current, autoregulation: checkin,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -2688,6 +2704,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   })();
   const [bw, setBw] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
+  // A live answer that lands while a workout is OPEN on the cached programme waits
+  // for the logger to close: a coach edit since the snapshot would re-shape the
+  // day under an athlete mid-set (sets line up by position) - 9.10 review
+  const lgOpenRef = useRef(false);
+  lgOpenRef.current = lg !== null;
+  const pendingPlansRef = useRef(null);
+  useEffect(() => {
+    if (lg === null && pendingPlansRef.current) { setClientPlans(pendingPlansRef.current); setPlansFromSnapshot(false); pendingPlansRef.current = null; }
+  }, [lg]);
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
   const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
   const bwDel = useDelayedUnmountValue(bwDeleteConfirm); // holds the entry through the exit animation
@@ -2775,8 +2800,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // whole-plan daily routine renders as a normal week-paced block.
             kind: p.data?.kind || undefined,
           }));
-          setClientPlans(mapped);
-          setPlansFromSnapshot(false);
+          if (shown && lgOpenRef.current) pendingPlansRef.current = mapped;
+          else { pendingPlansRef.current = null; setClientPlans(mapped); setPlansFromSnapshot(false); }
           // Keep a local copy so a session in a basement still has a session.
           // lsSnapshot refuses to write if it would crowd the space the
           // workout itself needs, so a big programme simply is not cached.
