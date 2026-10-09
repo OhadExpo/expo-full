@@ -77,7 +77,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
         </div></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-            {tt('Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.')}
+            {tt('Categories guessed from each title, from the fixed category list. Review, edit any dropdown, or skip. Applying writes only the library — never programs.')}
           </div>
           <input type="text" value={q} onChange={(e) => { setQ(e.target.value); setShowAll(false); }} placeholder={tt('Filter by title (e.g. push-up, DB, squat) to classify in focused batches…')}
             style={{ textAlign: 'start', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '9px 11px', maxWidth: 480 }} />

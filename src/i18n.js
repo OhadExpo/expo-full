@@ -2801,7 +2801,7 @@ export const HE = {
   'Fill all fully-guessed': 'מילוי כל הניחושים השלמים',
   'Applying…': 'מחיל…',
   'Apply': 'החלה',
-  'Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.': 'הסיווג נוחש מכל שם (לפי הרשימה הקבועה). תעבור על זה, תשנה כל רשימה נפתחת או דלג. ההחלה כותבת רק לספרייה — אף פעם לא לתוכניות.',
+  'Categories guessed from each title, from the fixed category list. Review, edit any dropdown, or skip. Applying writes only the library — never programs.': 'הסיווג נוחש מכל שם (לפי הרשימה הקבועה). תעבור על זה, תשנה כל רשימה נפתחת או דלג. ההחלה כותבת רק לספרייה — אף פעם לא לתוכניות.',
   'Filter by title (e.g. push-up, DB, squat) to classify in focused batches…': 'סינון לפי שם (למשל push-up, DB, squat) כדי לסווג בקבוצות ממוקדות…',
   'Un-skip': 'ביטול דילוג',
   'showing {n} — most-complete guesses first': 'מוצגים {n} — הניחושים הכי שלמים קודם',
