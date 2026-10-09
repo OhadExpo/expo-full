@@ -113,8 +113,8 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
           <div style={{ ...th, display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 4 }}>
             <span>{rows.length} {tt('flagged')}</span>
             {/* plural after a number in Hebrew: 'ודאיים / חשודים' (the row tags keep 'ודאי / חשוד') */}
-            <span style={{ color: C.rd }}>{nDef} {readLang() === 'he' ? 'ודאיים' : tt('definite')}</span>
-            <span style={{ color: C.or }}>{nSus} {readLang() === 'he' ? 'חשודים' : tt('suspicious')}</span>
+            <span style={{ color: C.rd }}>{nDef} {readLang() === 'he' ? (nDef === 1 ? 'ודאי' : 'ודאיים') : tt('definite')}</span>
+            <span style={{ color: C.or }}>{nSus} {readLang() === 'he' ? (nSus === 1 ? 'חשוד' : 'חשודים') : tt('suspicious')}</span>
             <span style={{ color: sel.size ? C.tx : C.tm }}>{sel.size} {tt('selected')}</span>
           </div>
           <JoinedButtons items={[
