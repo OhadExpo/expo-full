@@ -1755,6 +1755,9 @@ export const HE = {
   "Income history": 'היסטוריית הכנסות',
   "Payment history": 'היסטוריית תשלומים',
   "No amount": 'בלי סכום',
+  // training formats not yet in the dictionary (Gym, Single / Couple and Bnei Herzliya are above) - audit #612
+  "Gym, Group": 'חדר כושר · קבוצתי',
+  "Online Client": 'אימון אונליין',
   "pending requests": 'בקשות ממתינות',
   "requests": 'בקשות',
   "from payment requests": 'מבקשות תשלום',

@@ -17,7 +17,7 @@ import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stri
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
-import { useT, useTB, tr, readLang, dirOfText } from './i18n';
+import { useT, useTB, tr, readLang, dirOfText, agoLabel } from './i18n';
 // '+ 1 נענו' on the dashboard: threads are feminine and the count decides the form.
 const answeredWord = (n) => (readLang() === 'he' ? (n === 1 ? 'שנענתה' : 'שנענו') : tr('en', 'Answered'));
 
@@ -31,6 +31,13 @@ const initialOf = (name) => {
 };
 const ago = (iso) => {
   const ms = Date.now() - new Date(iso).getTime();
+  // HEBREW SAYS IT IN WORDS (9.10 audit #612: '20W' in the Hebrew inbox): under a week
+  // the shared agoLabel (אתמול, לפני 3 ימים), then weeks with the dual for two
+  if (readLang() === 'he') {
+    const w = Math.floor(ms / (7 * 86_400_000));
+    if (w < 1) return agoLabel(iso, 'he');
+    return w === 1 ? 'לפני שבוע' : w === 2 ? 'לפני שבועיים' : `לפני ${w} שבועות`;
+  }
   if (ms < 60_000) return 'now';
   const m = Math.floor(ms / 60_000);
   if (m < 60) return `${m}m`;
@@ -367,7 +374,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                   fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                   color: unread ? 'var(--c-ac)' : 'var(--c-td)',
                   flexShrink: 0,
-                  alignSelf: 'flex-start', paddingTop: 2,
+                  alignSelf: 'flex-start', paddingTop: 2, whiteSpace: 'nowrap',
                 }}>{ago(r.created_at)}</div>
               </div>
             );

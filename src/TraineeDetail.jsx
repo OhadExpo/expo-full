@@ -762,7 +762,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
           <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto",textAlign:"center"}}>
-            {[[t("Age"),td.age||"—"],[t("Weight"),td.weight?`${td.weight}kg`:"—"],[t("Height"),td.height?`${td.height}cm`:"—"],[t("Format"),td.format||"—"]].map(([l,v])=>{
+            {[[t("Age"),td.age||"—"],[t("Weight"),td.weight?`${td.weight} ${readLang()==='he'?'ק״ג':'kg'}`:"—"],[t("Height"),td.height?`${td.height} ${readLang()==='he'?'ס״מ':'cm'}`:"—"],[t("Format"),td.format?t(td.format):"—"]].map(([l,v])=>{
               const empty = v==="—";
               return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
             })}
