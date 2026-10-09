@@ -75,14 +75,16 @@ export function isolateSet(events, rules = SET_RULES) {
     // is a real rep with one missed in between - not setup. Trimming it read
     // 4 for a set of 6 when the segmenter lost the 2nd rep (9.10 review): a
     // wrong number. No number instead. Walk-ins and re-racks sit far beyond 2.4x.
-    // Only with 5+ reps on the table: below that the median gap is too shaky to
-    // tell "two gaps" from a slow rep (it blanked a correct 3-rep push-up set,
-    // real clip c05, offline re-score 9.10).
+    // From 4 reps on the table (a set of 5 with its 2nd rep lost read 3). It
+    // also blanks real clip c05 (3 push-ups after an alike pick-up at a double
+    // gap): from the record alone that is the SAME shape as a lost rep, and a
+    // blank beats a number that may be wrong (offline re-score 9.10: 2/14
+    // exact, 0 wrong; was 3/14 with a hole the review proved).
     // "Like the others" is tighter than the trim window: a deep pick-up bend
     // (1.5x the set's depth) is setup and still trims; a lost rep's neighbour
     // has the set's own depth.
     const alike = (e) => !useRom || (e.rom >= 0.8 * refRom && e.rom <= 1.25 * refRom);
-    const missedNext = (g, e) => reps.length >= 5 && alike(e) && g >= 1.7 * refGap && g <= 2.4 * refGap;
+    const missedNext = (g, e) => reps.length >= 4 && alike(e) && g >= 1.7 * refGap && g <= 2.4 * refGap;
     if (romOut(reps[0]) || gapOut(gaps[0])) {
       if (missedNext(gaps[0], reps[0])) return { reps: null, reason: 'inconsistent', trimmed };
       reps = reps.slice(1); trimmed++; continue;
@@ -92,6 +94,13 @@ export function isolateSet(events, rules = SET_RULES) {
       reps = reps.slice(0, -1); trimmed++; continue;
     }
     if (reps.some(romOut) || gaps.some(gapOut)) return { reps: null, reason: 'inconsistent', trimmed };
+    // A short set's median sits between a double gap and a normal one, so a lost
+    // rep passes the window (0,2,3 read 3 for a set of 4 - 9.10 review). Up to 4
+    // reps, one gap about twice the shortest is a lost rep: no number.
+    if (reps.length <= 4) {
+      const gMin = Math.min(...gaps);
+      if (gMin > 0 && gaps.some((g) => g >= 1.7 * gMin && g <= 2.4 * gMin)) return { reps: null, reason: 'inconsistent', trimmed };
+    }
     return { reps, trimmed };
   }
   return { reps: null, reason: trimmed ? 'inconsistent' : 'no-reps', trimmed };

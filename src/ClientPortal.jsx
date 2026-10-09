@@ -431,6 +431,8 @@ const SET_READ_REASON = {
   'no-reps': 'No reps found in the clip. Film side-on, whole body in frame.',
   'not-counted': "The camera can't count this exercise yet.",
   inconsistent: "The reps didn't look like one set - film only the set, side-on, whole body in frame.",
+  // a read from the old whole-clip counter (v1, 9.10): nothing wrong with the clip
+  old: 'An older measure. Analyse the set again.',
 };
 // The clip's length, read from its metadata only (null when the browser cannot
 // say - a MediaRecorder WebM reports Infinity until a full seek).
@@ -517,7 +519,7 @@ function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
             {analysis.romDeg != null && <span style={{ whiteSpace: 'nowrap' }}><span style={{ color: C.td }}>· </span>{tt('Range')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{analysis.romDeg}°</span></span>}
           </div>
         ) : (
-          <div dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{tt(SET_READ_REASON[analysis.reason] || SET_READ_REASON.capture)}</div>
+          <div dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{tt(SET_READ_REASON[(analysis.v || 1) < 2 ? 'old' : analysis.reason] || SET_READ_REASON.capture)}</div>
         )}
         {usable && analysis.quality === 'ok' && <div dir="auto" style={{ marginTop: 4, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>{tt('Rough measure. Film steadier, whole body in frame.')}</div>}
         <div dir="auto" style={{ marginTop: 6, fontFamily: FB, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{tt('Goes to your coach with the workout.')}</div>
@@ -1313,7 +1315,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // Complete may have taken the clip while readSession() waited on the auth
     // lock (abort was still null then): cut this request at once instead of a
     // second upload of the same bytes (9.10 review)
-    if (inflight && inflight.handedOff) fail408('handed to the offline queue');
+    // (return: abort() on an opened-but-unsent XHR leaves it OPENED, and the
+    // send() below would still push the bytes)
+    if (inflight && inflight.handedOff) { fail408('handed to the offline queue'); return; }
 
     xhr.upload.onprogress = (e) => {
       lastTick = Date.now();
@@ -1598,6 +1602,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // Complete already handed this clip to the blob queue (5.10 #560): the
       // bytes are in IndexedDB under that id and the saved row points at it.
       // Nothing to classify, nothing to queue twice - keep the preview playable.
+      if (inflight.handingOff && !inflight.handedOff) { try { await inflight.handingOff; } catch { /* the queue refused it: this catch keeps it */ } }
       if (inflight.handedOff) {
         const handed = inflight.handedOff;
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:handed, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
@@ -1739,7 +1744,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       try {
         const blobId = newBlobId();
         const storagePath = inf.path || `${clientId}/${Date.now()}-${Math.floor(Math.random() * 1e6).toString(36)}-form${inf.ext || '.mp4'}`;
-        await enqueueBlob({ id: blobId, blob: inf.blob, contentType: inf.contentType || 'video/mp4', storagePath });
+        // the upload can fail DURING this await: its catch waits on handingOff
+        // to learn whether the queue took the clip, instead of queuing a 2nd copy
+        inf.handingOff = enqueueBlob({ id: blobId, blob: inf.blob, contentType: inf.contentType || 'video/mp4', storagePath });
+        await inf.handingOff;
         inf.handedOff = blobId;
         handed[i] = blobId;
         try { if (inf.abort) inf.abort(); } catch { /* already settled */ }
@@ -2753,6 +2761,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // Clearing the previous client's load error when ci flips (or goes
     // null) keeps a stale red banner from sticking when switching between
     // trainees on a dual-role account.
+    pendingPlansRef.current = null;   // a held answer belongs to the run that held it
     if (!ci) { setClientPlans([]); setPlansLoadError(null); setPlansFromSnapshot(false); return; }
     // Demo mode: skip Supabase entirely, render the prop-supplied plans.
     if (demoMode) {

@@ -1907,6 +1907,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
 const SET_READ_COACH_REASON = {
   'not-counted': "The camera can't count this exercise",
   inconsistent: "The reps didn't look like one set - no count",
+  old: 'An older measure - no count',   // a v1 read (the old whole-clip counter)
 };
 function AthleteSetRead({ analysis, history }) {
   const tt = useAppT();
@@ -1928,7 +1929,7 @@ function AthleteSetRead({ analysis, history }) {
       {analysis.tempoS != null && <> · <b style={{ fontFamily: FN, whiteSpace: 'nowrap' }}>{tt('{t} s/rep').replace('{t}', analysis.tempoS)}</b></>}
       {analysis.romDeg != null && <> · <b style={{ fontFamily: FN, whiteSpace: 'nowrap' }}>{tt('Range')} {ltr(analysis.romDeg + '°')}</b></>}
       {analysis.quality === 'ok' && <span style={{ color: C.tm }}> ({tt('rough measure')})</span>}
-    </> : <span style={{ color: C.tm }}>{tt(SET_READ_COACH_REASON[analysis.reason] || "The camera didn't catch the movement")}</span>}
+    </> : <span style={{ color: C.tm }}>{tt(SET_READ_COACH_REASON[(analysis.v || 1) < 2 ? 'old' : analysis.reason] || "The camera didn't catch the movement")}</span>}
     {parts.length > 0 && <div data-athlete-set-trend style={{ color: C.tm }}>
       {tt('vs {d}').replace('{d}', fmtNumericDate(tr8.since))}: {parts.map((p, k) => <React.Fragment key={k}>{k ? ' · ' : ''}{p}</React.Fragment>)}
     </div>}

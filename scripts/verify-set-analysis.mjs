@@ -70,6 +70,14 @@ for (const at of [1, 4]) {
   const s = summarize({ ...good, romTempo: { perRep: lost } });
   ok(s.reps === null, `rep ${at + 1} of 6 lost -> no number (got ${s.reps})`);
 }
+// small sets (1008f review): the median of 2-3 gaps lets a lost rep through
+for (const [n, at] of [[5, 1], [5, 3], [4, 1]]) {
+  const lost = per(n, 95, 2.1, 3000); lost.splice(at, 1);
+  const s = summarize({ ...good, romTempo: { perRep: lost } });
+  ok(s.reps === null, `rep ${at + 1} of ${n} lost -> no number (got ${s.reps})`);
+}
+ok(summarize({ ...good, romTempo: { perRep: per(3, 95, 2.1, 3000) } }).reps === 3, 'three even reps -> 3');
+ok(summarize({ ...good, romTempo: { perRep: per(4, 95, 2.1, 3000) } }).reps === 4, 'four even reps -> 4');
 // v1 reads (the whole-clip counter, wrong on 14 of 28 real runs) never feed the trend
 ok(!isUsable({ ...summarize(good), v: 1 }), 'a v1 read (old counter) is not usable for the trend');
 // a twitch in the middle (half the depth) -> no number
