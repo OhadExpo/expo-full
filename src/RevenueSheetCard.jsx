@@ -202,10 +202,15 @@ export function SheetBillingHistory({ traineeId }) {
 }
 
 // One table for both lists (active / inactive): the same columns, so the two read alike.
+// ONE GRID FOR BOTH (9.10 #608 "keep it perfect"): fixed columns at the same widths, so a
+// column of the inactive table sits exactly under the same column above. Wider than a
+// phone on purpose - it scrolls sideways in its ScrollFade, one row per client.
+const CLIENT_COLS = ['22%', '12%', '11%', '11%', '9%', '11%', '14%', '10%'];
 function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
   return (
     <ScrollFade>
-      <table className="rs-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="rs-table" style={{ width: '100%', minWidth: 880, tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+        <colgroup>{CLIENT_COLS.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
         <thead>
           <tr>
             <th style={th}>{tt('Client')}</th>
@@ -461,7 +466,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
       {inactiveClients.length > 0 && (
         <div style={{ marginTop: activeClients.length ? 18 : 0 }}>
           <button type="button" onClick={() => setShowInactive((v) => !v)} aria-expanded={showInactive}
-            style={{ display: 'flex', alignItems: 'center', width: '100%', height: 'var(--btn-h)', padding: 0, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, textAlign: 'start' }}>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', height: 'var(--btn-h)', padding: 0, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, textAlign: 'start' }}>
             <Chev open={showInactive} />
             <span>{tt('Inactive clients')} · {inactiveClients.length}</span>
             <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginInlineStart: 8 }}>{tt('not linked in EXPO, or not active')}</span>
