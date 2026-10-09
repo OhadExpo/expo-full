@@ -1523,7 +1523,7 @@ export function ScrollFade({ children, style, className }) {
 // re-renders the page (27.9 review). Direction-aware: RTL trails left.
 export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
   React.useEffect(() => {
-    let el = null, t = 0, ro = null, lastActive = null, alive = true;
+    let el = null, t = 0, ro = null, lastActive = null, alive = true, scrolling = false;
     const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
     const apply = (w, lw, lx, rtl) => {
       if (!el) return;
@@ -1531,8 +1531,13 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         const v = w || lw ? (rtl ? `inset(0 ${lw}px 0 ${w}px)` : `inset(0 ${w}px 0 ${lw}px)`) : '';
         if (el.style.clipPath !== v) el.style.clipPath = v;
       }
+      // a write only when the plate actually changes (9.10 #621/#625: every scroll event rewrote
+      // both plates - six style writes per gesture on the club and demo menus, each a visible pop)
       const put = (p, width, side, off) => {
         const n = p && p.current; if (!n) return;
+        const want = width ? `${width}|${side}|${off}` : 'none';
+        if (n.__rtm === want) return;
+        n.__rtm = want;
         if (!width) { n.style.display = 'none'; return; }
         n.style.display = 'block'; n.style.width = `${width}px`;
         n.style.left = ''; n.style.right = '';
@@ -1542,7 +1547,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
       put(leadRef, lw, rtl ? 'right' : 'left', lx);
     };
     const measure = () => {
-      if (!alive) return;
+      if (!alive || scrolling) return;   // never mid-gesture (the poll, a font load) - settle measures
       // follow the ref, not the element first seen: the rail can be re-created
       // (a sub-tab tap remounts it), and it can mount after the data loads
       const cur = ref && ref.current;
@@ -1587,9 +1592,18 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
       const lx = Math.round(rtl ? r.right - ledge : ledge - r.left);
       apply(Math.ceil(w), Math.ceil(lw), lx, rtl);
     };
-    // every scroll event (no state, so it is cheap) and once more after it
-    // settles - snap lands a few frames after the last event
-    function later() { measure(); clearTimeout(t); t = setTimeout(measure, 140); }
+    // WHILE THE FINGER MOVES, NOTHING IS MEASURED OR WRITTEN (9.10 #621/#625, Ohad: "Top menu is
+    // lagging"): the first scroll event releases the mask once (plates hidden, clip cleared), the
+    // items slide freely, and 140ms after the last event - when snap has landed - it is measured
+    // and applied once. A resize still measures straight away.
+    function later(e) {
+      if (e && e.type === 'scroll') {
+        if (!scrolling) { scrolling = true; apply(0, 0, 0, false); }
+        clearTimeout(t); t = setTimeout(() => { scrolling = false; measure(); }, 140);
+        return;
+      }
+      measure(); clearTimeout(t); t = setTimeout(measure, 140);
+    }
     measure();
     window.addEventListener('resize', later);
     const t2 = setTimeout(measure, 700);   // fonts land after first paint
