@@ -364,20 +364,21 @@ export default function BookingView({ trainees }) {
           // the last rule draws no rule of its own - the box edge ends the list (#419)
           <div key={r.id} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-            borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none', flexWrap: 'wrap',
+            borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none',
+            // ONE ROW ON A PHONE: the two time boxes give way, the × stays on the row
+            // (audit #612 C8: at 390 the × wrapped alone onto a second line)
           }}>
             <select value={r.day_of_week} onChange={e => updateRule(r.id, { day_of_week: parseInt(e.target.value) })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }}>
               {DAY_LABELS.map((d, i) => <option key={i} value={i}>{tt(d)}</option>)}
             </select>
             <input type="time" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRuleDebounced(r.id, { start_time: e.target.value })}
-              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
-            <span style={{ color: C.tm }}>→</span>
+              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0 }} />
+            <span style={{ color: C.tm }}>{readLang() === 'he' ? '←' : '→'}</span>
             <input type="time" value={r.end_time?.slice(0, 5) || '17:00'} onChange={e => updateRuleDebounced(r.id, { end_time: e.target.value })}
-              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
-            <span style={{ flex: 1 }} />
-            <button onClick={() => removeRule(r.id)}
-              style={{ height: 23, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
+              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0 }} />
+            <button onClick={() => removeRule(r.id)} aria-label={tt('Remove')}
+              style={{ flexShrink: 0, height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
           </div>
         ))}
       </CollapsibleSection>
