@@ -1523,7 +1523,7 @@ export function ScrollFade({ children, style, className }) {
 // re-renders the page (27.9 review). Direction-aware: RTL trails left.
 export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
   React.useEffect(() => {
-    let el = null, t = 0, ro = null, lastActive = null, alive = true, scrolling = false;
+    let el = null, t = 0, ro = null, lastActive = null, alive = true, scrolling = false, selfScroll = false;
     const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
     const apply = (w, lw, lx, rtl) => {
       if (!el) return;
@@ -1576,7 +1576,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
           const sp = parseFloat(getComputedStyle(el).scrollPaddingInlineStart) || 0;
           const s0 = pr ? ledge : (rtl ? r.right - sp : r.left + sp);
           const whole = rtl ? (a.right <= s0 + 1 && a.left >= edge - 1) : (a.left >= s0 - 1 && a.right <= edge + 1);
-          if (!whole) { el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
+          if (!whole) { selfScroll = true; el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
         }
       }
       let w = 0, lw = 0;
@@ -1602,6 +1602,8 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     let ts = 0;
     function later(e) {
       if (e && e.type === 'scroll') {
+        // our own instant scroll to the active item is not a finger: measure, do not release (1008o review)
+        if (selfScroll) { selfScroll = false; if (!scrolling) { measure(); return; } }
         if (!scrolling) { scrolling = true; apply(0, 0, 0, false); }
         clearTimeout(ts); ts = setTimeout(() => { scrolling = false; measure(); }, 140);
         return;

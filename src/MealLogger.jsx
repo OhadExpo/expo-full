@@ -130,6 +130,14 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
     }
   };
 
+  // an upload or an analysis in flight holds the auto-update (1008o review, #626)
+  const inFlight = uploading || analyzing;
+  useEffect(() => {
+    if (!inFlight) return undefined;
+    window.__expoUploadInFlight = (window.__expoUploadInFlight | 0) + 1;
+    return () => { window.__expoUploadInFlight = Math.max(0, (window.__expoUploadInFlight | 0) - 1); };
+  }, [inFlight]);
+
   const analyze = async () => {
     if (!photoUrl) return;
     setAnalyzing(true);

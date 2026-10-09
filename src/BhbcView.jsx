@@ -882,8 +882,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // lights up this frame (tabPending, urgent); the page renders as a transition. Measured before:
   // 100-330ms tap->paint at a phone's CPU, one ~85ms long task per switch.
   const [tabPending, setTabPending] = useState(null);
-  const [, startTabTransition] = useTransition();
-  useEffect(() => { setTabPending(null); }, [view]);
+  const [tabTransitioning, startTabTransition] = useTransition();
+  useEffect(() => { if (!tabTransitioning) setTabPending(null); }, [tabTransitioning, view]);   // settles, whatever committed (1008o review)
   const pickView = useCallback((k) => { setTabPending(k); startTabTransition(() => setView(k)); }, []);
   // the tab's content renders with the tab (a deferred copy was measured slower, 4.10 #529)
   const shownView = view;

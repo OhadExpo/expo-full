@@ -1221,8 +1221,10 @@ function AuthedApp() {
   // renders as a transition, so a heavy view never holds the menu. Measured before: 100-330ms
   // from tap to paint at a phone's CPU.
   const [navPending,setNavPending]=useState(null);
-  const [,startNavTransition]=useTransition();
-  useEffect(() => { setNavPending(null); }, [tab]);
+  const [navTransitioning,startNavTransition]=useTransition();
+  // cleared when the transition settles, not when `tab` changes: a Back or a same-tab action
+  // inside the window left the highlight on the tapped item (1008o review)
+  useEffect(() => { if (!navTransitioning) setNavPending(null); }, [navTransitioning, tab]);
   // the view area reads the tab directly: a deferred copy (useDeferredValue) was
   // measured 4.10 #529 at 4x CPU - the screen arrived ~100 ms LATER on every tab
   const viewTab = tab;

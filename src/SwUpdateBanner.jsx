@@ -97,7 +97,7 @@ export default function SwUpdateBanner() {
       try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ }
     }, 800);
     // #626: a check every 10 minutes while visible, and one on coming back to the foreground
-    const check = () => { try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ } };
+    const check = () => { try { const p = regRef.current && regRef.current.update && regRef.current.update(); if (p && p.catch) p.catch(() => {}); } catch { /* offline */ } };
     const ivCheck = setInterval(() => { if (document.visibilityState === 'visible') check(); }, 10 * 60 * 1000);
     const onResume = () => { if (document.visibilityState === 'visible') { window.__expoResumeAt = Date.now(); check(); } };
     const onInput = () => { window.__expoLastInput = Date.now(); };
@@ -150,7 +150,14 @@ export default function SwUpdateBanner() {
     // spent yet) is never a moment to reload: a reload there is one way the
     // return gets lost (27.9 #346).
     const signingIn = () => { try { return /access_token=|[?&]code=/.test(window.location.href) || !!window.sessionStorage.getItem('expo-oauth-hash'); } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn();
+    // 1008o review: a voice note being recorded or not yet sent (audio only - no <video>), and
+    // media playing or an embedded player focused (a YouTube demo: its taps never reach this page)
+    const recordingActive = () => { try { return (window.__expoRecording | 0) > 0; } catch { return false; } };
+    const mediaPlaying = () => { try {
+      if ([...document.querySelectorAll('video, audio')].some((m) => !m.paused && !m.ended && m.readyState > 2)) return true;
+      const a = document.activeElement; return !!(a && a.tagName === 'IFRAME');
+    } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn() || recordingActive() || mediaPlaying();
     // #464: the two places a reload is never taken on its own - something is
     // being written (a focused field, or typed text sitting in any visible
     // field), or the athlete portal (the pill waits for the athlete's tap).
@@ -184,7 +191,8 @@ export default function SwUpdateBanner() {
     // Rule R (#626): back in the foreground moments ago and not touched since - like a fresh load
     const resumeAt = window.__expoResumeAt || 0;
     const justResumed = () => resumeAt > 0 && Date.now() - resumeAt < 15000 && (window.__expoLastInput || 0) < resumeAt;
-    if (!forced && (freshNoInput() || justNavigated() || justResumed()) && !busy() && !writing()) {
+    // a resume never reloads a public form (1008o review MUST: a drawn signature or ticked answers are not 'typed text')
+    if (!forced && (freshNoInput() || justNavigated() || (justResumed() && !onPublicForm())) && !busy() && !writing()) {
       silentApply();
       return () => { ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, bumpActivity)); window.removeEventListener('keydown', onKey); };
     }
