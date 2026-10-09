@@ -423,7 +423,14 @@ function UnsavedWorkoutsBanner({ clientId }) {
 //    logger stops it (aliveRef -> shouldStop).
 //  - Blank > wrong: summarize() keeps every number null on a poor capture and
 //    the card says what to film instead.
-const SET_ANALYSIS_ON = (() => { try { return localStorage.getItem('expo-set-analysis') === '1'; } catch { return false; } })();
+// ?setread=1 / ?setread=0 flips it on this device - so the coach can try it on
+// his own phone without a console (9.10); an athlete never meets the link
+const SET_ANALYSIS_ON = (() => { try {
+  const q = new URLSearchParams(window.location.search).get('setread');
+  if (q === '1') localStorage.setItem('expo-set-analysis', '1');
+  else if (q === '0') localStorage.removeItem('expo-set-analysis');
+  return localStorage.getItem('expo-set-analysis') === '1';
+} catch { return false; } })();
 const SET_READ_REASON = {
   capture: "The camera didn't catch the movement. Film side-on, whole body in frame.",
   'too-few-frames': "The camera didn't catch the movement. Film side-on, whole body in frame.",
