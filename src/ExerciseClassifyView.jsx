@@ -10,6 +10,8 @@ import { useT, readLang } from './i18n';
 
 const CAP = 150;
 // colour of a guess: all three / some / none - said in words beside it, never a lone dot
+// a long 'A/B' name breaks after its slash, never mid-word ('PROTRACTION/RETRA-CTION' at 390)
+const slashWbr = (t) => String(t || '').split('/').flatMap((part, i, all) => (i < all.length - 1 ? [part, '/', <wbr key={i} />] : [part]));
 const GUESS_INK = (n) => (n === 3 ? '#2E9E6B' : n ? C.ac : '#E0A73A');
 
 // A PHONE GETS CARDS, NOT A TABLE (9.10 #619, Ohad: "This can look much better. Lacking
@@ -28,7 +30,7 @@ function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
   return (
     <div style={{ padding: '12px 0', borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <bdi style={{ flex: '1 1 0', minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word' }}>{e.title || e.t}</bdi>
+        <bdi style={{ flex: '1 1 0', minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', wordBreak: 'normal' }}>{slashWbr(e.title || e.t)}</bdi>
         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: GUESS_INK(g.filled), whiteSpace: 'nowrap' }}>{tt('{n}/3 guessed').replace('{n}', g.filled)}</span>
         <button type="button" onClick={() => toggleSkip(e.id)} aria-label={skip ? tt('Un-skip') : tt('Skip')} title={skip ? tt('Un-skip') : tt('Skip')} style={{ width: 36, height: 36, flexShrink: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 12, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>{skip ? '↺' : '✕'}</button>
       </div>
@@ -41,7 +43,6 @@ function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
                 <option value="" disabled hidden>—</option>
                 {opts.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
-              <span aria-hidden style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 9, color: C.tm, pointerEvents: 'none' }}>▾</span>
             </span>
           </React.Fragment>
         ))}
@@ -116,7 +117,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
             <span style={{ color: pending.length ? C.ac : C.tm }}>{pending.length} {tt('ready to apply')}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, maxWidth: 560 }}>
-            <button type="button" onClick={acceptAllComplete} style={{ ...ACTION, color: C.tx }}>{tt('Fill all fully-guessed')}</button>
+            <button type="button" onClick={acceptAllComplete} style={{ ...ACTION, color: C.tx }}>{tt('Fill all 3/3')}</button>
             <button type="button" disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ ...ACTION, color: pending.length ? C.ac : C.td, cursor: pending.length ? 'pointer' : 'default' }}>
               {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}
             </button>
