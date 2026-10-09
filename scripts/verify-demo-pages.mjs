@@ -207,7 +207,12 @@ for (const [name, route] of SURFACES) {
               if (bb.width < 2 || bb.height < 2 || !inView(bb)) continue;
               if (bb.right > 1 && bb.left < vw - 1) {
                 // On screen. Check the tap target while we are here.
-                if (matchMedia('(pointer: coarse)').matches && (bb.height < minTap || bb.width < minTap)) {
+                // a strip button draws at 26 and reaches 32 through an invisible ::after band
+                // (#650): the TAP target is the band, read from the computed CSS, not assumed
+                const af = getComputedStyle(el, '::after');
+                const band = af && af.content && af.content !== 'none' && af.position === 'absolute' ? -(parseFloat(af.top) || 0) - (parseFloat(af.bottom) || 0) : 0;
+                const tapH = bb.height + Math.max(0, band);
+                if (matchMedia('(pointer: coarse)').matches && (tapH < minTap || bb.width < minTap)) {
                   out.tiny.push({ t: (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 24), w: Math.round(bb.width), h: Math.round(bb.height) });
                 }
                 continue;

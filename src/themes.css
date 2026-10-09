@@ -1741,6 +1741,16 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 /* ...except a dropdown's ITEMS opened from a strip control: a menu row is a
    36px control, not a strip button (4.10 review: the demo status menu shrank to 26) */
 .title-strip .motion-menu button { min-height: 36px !important; height: auto !important; }
+/* A STRIP BUTTON IS ONE SIZE ON EVERY DEVICE (10.10 #650, Ohad: "on mobile ... the buttons on the
+   title box almost touch the borders ... matching size to all types of matching buttons all over
+   the platforms"). 32 inside a 41px strip left 4.5px above and below. Inside a strip the nested
+   height is 26 on touch too (7.5px above, 7.5px below - the desktop's own geometry), and the
+   finger keeps its 32: an invisible 3px band above and below every strip button. */
+@media (pointer: coarse) {
+  .title-strip, .prog-striphdr, [data-strip-actions] { --btn-h-in: 26px; }
+  .title-strip button:not(.motion-menu button), .prog-striphdr button, [data-strip-actions] button { position: relative; }
+  .title-strip button:not(.motion-menu button)::after, .prog-striphdr button::after, [data-strip-actions] button::after { content: ''; position: absolute; inset: -3px 0; }
+}
 /* the demo's Online Now, shut: the strip IS the card (no 12px band under it) */
 .cd-online.alert-sev .title-strip[aria-expanded="false"] { margin-bottom: -1px !important; }
 
