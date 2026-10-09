@@ -1751,6 +1751,12 @@ export const HE = {
   "+ ASSIGN PROGRAM": '+ הקצה תוכנית',
   "Last Payment": 'תשלום אחרון',
   "From the sheets": 'מהגיליונות',
+  // the billing card's own name (9.10 #611: "'from the sheets' is not a good title") + #608/#610
+  "Income history": 'היסטוריית הכנסות',
+  "Payment history": 'היסטוריית תשלומים',
+  "No amount": 'בלי סכום',
+  "Inactive clients": 'לקוחות לא פעילים',
+  "not linked in EXPO, or not active": 'לא מקושרים ב-EXPO, או לא פעילים',
   month: 'חודש',
   months: 'חודשים',
   clients: 'לקוחות',

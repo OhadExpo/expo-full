@@ -288,7 +288,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
 
       {/* FROM THE SHEETS LAST (29.9 #448 audit): ~1,900px of history sat between
           OWED and the two sections a coach acts on, pushing them to y 3300 */}
-      <RevenueSheetCard />
+      <RevenueSheetCard trainees={trainees} />
 
       {showRequest && (
         <RequestModal
