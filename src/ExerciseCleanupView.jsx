@@ -23,7 +23,7 @@ export function trashVerdict(title) {
   // Squat Superset") — only bare markers are definite (audit 08-22).
   if (/superset/i.test(t) && /\w+\s+\w+.*superset/i.test(t) && !/חסר תרגיל|super exercies/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
   if (/^[\d\s,.*x×+\-–/%@()]+$/.test(t)) return { level: 'definite', reason: 'set/rep numbers' };
-  if (/superset|חסר תרגיל|super exercies|super exercise/i.test(t)) return { level: 'definite', reason: 'superset marker' };
+  if (/super\s?set|חסר תרגיל|super exercies|super exercise/i.test(t)) return { level: 'definite', reason: 'superset marker' };   // 'Super Set:' (with a space) slipped through (#620)
   if (/warm.?up set|% of (day|last)|of last (week|block)|last week|next week/i.test(t)) return { level: 'definite', reason: 'warmup / % note' };
   if (/\brpe\s*\d/i.test(t)) return { level: 'definite', reason: 'RPE note' };
   if (/^backoff set/i.test(t)) return { level: 'definite', reason: 'backoff prefix' };
@@ -148,7 +148,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
             {rows.map((r) => (
               <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, alignItems: 'center', padding: '7px 2px', minHeight: 36, boxSizing: 'border-box' /* 30-33 -> 36 (OCD #494) */, borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', opacity: sel.has(r.ex.id) ? 1 : 0.72 }}>
                 <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 15, height: 15 }} />
-                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'break-word', unicodeBidi: 'plaintext' /* the order follows the text, the alignment stays the cell's - with dir=auto a Latin title sat on the left edge of a Hebrew table and was cut */ }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
+                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'break-word', unicodeBidi: 'plaintext', textAlign: readLang() === 'he' ? 'right' : 'left' /* the order follows the text, the alignment stays the screen's (plaintext makes 'start' follow the title) - with dir=auto a Latin title sat on the left edge of a Hebrew table and was cut */ }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{tt(r.reason)}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: (r.idRefs + r.titleRefs) ? C.or : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Math.max(r.idRefs, r.titleRefs) || '—'}</span>
                 <span style={{ textAlign: 'center', fontFamily: FN, fontSize: 9 }}>
