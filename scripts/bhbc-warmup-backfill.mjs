@@ -94,6 +94,7 @@ if (!trainees.length) { console.log('expo-trainees is empty - refusing to write'
 const GHOST = new Set(trainees.filter((t) => t && t.bhbcGhost).map((t) => t.id));
 for (let i = roster.length - 1; i >= 0; i--) if (GHOST.has(roster[i].id)) roster.splice(i, 1);
 
+const firstSeen = (id) => { const rec = loads[id] || {}; const d = [...Object.keys(rec.sessions || {}), ...Object.keys(rec.attendance || {}).map((k) => k.slice(0, 10))].filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort(); return d[0] || null; };
 const happened = (f) => f.date < TODAY || (f.date === TODAY && !!f.start && f.start <= NOW);
 const byDate = {};
 for (const f of fixtures) if (f && f.date && f.date >= SINCE && f.date <= TODAY) (byDate[f.date] = byDate[f.date] || []).push(f);
@@ -120,6 +121,9 @@ for (const date of Object.keys(byDate).sort()) {
     const who = roster.filter((a) => {
       const rec = loads[a.id] || {};
       if (a.arrival && date < a.arrival) return false;
+      // no join date on record (Kagan #41, 9.10): no warm-up before the first day anything was logged
+      // for him - never invent presence the record does not show (asked him for the date, 10.10)
+      if (!a.arrival) { const first = firstSeen(a.id); if (!first || date < first) return false; }
       if (availOn(rec, medical, a.id, date) >= 4) return false;
       if ((rec.attendance || {})[slotKey] === 'out') return false;
       // already has this practice's warm-up, in either shape - never a second one
