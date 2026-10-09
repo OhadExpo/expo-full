@@ -2142,8 +2142,10 @@ select.avail-select:dir(rtl) {
    fit - nothing scrolls, so nothing can be half-shown. One column PER TAB, not a
    fixed four (9.10 audit #612: VIDEOS, the 5th since 5.10, dropped to a 2nd row). */
 @media (max-width: 480px) {
-  .subtab-scroll { display: grid !important; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow: visible !important; }
-  .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; }
+  /* five labels need 365px at 12px against 336 at 360 (measured): cells sized to their
+     words, one notch smaller and tighter - one row, no label cut */
+  .subtab-scroll { display: grid !important; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: auto; justify-content: space-between; overflow: visible !important; }
+  .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; font-size: 11px !important; letter-spacing: 0.02em !important; }
 }
 
 /* DASHBOARD ALERT CARDS: side by side they end on ONE bottom edge (#428 rule:
