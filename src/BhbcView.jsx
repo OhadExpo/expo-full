@@ -4433,7 +4433,7 @@ function AttMark({ mark, overlays = [], label }) {
     </span>
   );
 }
-const WD_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const WD_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];   // two letters: T/T and S/S were ambiguous (1008r review)
 const WD_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const wdOf = (iso, he) => { const d = new Date(`${iso}T12:00:00`); return (he ? WD_HE : WD_EN)[d.getDay()]; };
 
@@ -4686,7 +4686,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         {/* the legend draws the SAME marks the cells draw, every one in words (#629) */}
         {[
           ['practice', [], tr('Practice')], ['played', [], tr('Game played')], ['dnp', [], tr('did not play')],
-          ['scrimmage', [], tr('Scrimmage')], ['missed', [], tr('missed')], ['excused', [], tr('Out (injured or away)')],
+          ['scrimmage', [], tr('Scrimmage')], ['shootaround', [], tr('Shootaround')], ['missed', [], tr('missed')], ['excused', [], tr('Out (injured or away)')],
           ['pending', [], tr('Game not logged yet')],
           ...(showSc ? [[null, [SC_COLOR], tr('S&C')]] : []), ...(showLift ? [[null, [FX_COLOR.lift], tr('Lift')]] : []),
         ].map(([mark, overlays, lbl]) => (
@@ -4695,7 +4695,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           </span>
         ))}
         <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, gridColumn: '1 / -1' }}>
-          <span style={{ width: 14, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[4].color }} /></span>{tr('Dot by the name = today’s availability')}
+          <span style={{ width: 14, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[2].color /* a typical dot (Limited) - not the missed X's red */ }} /></span>{tr('Dot by the name = today’s availability')}
         </span>
       </div>
     </Card>

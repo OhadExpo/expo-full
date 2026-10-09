@@ -2081,7 +2081,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
         <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700,textAlign:'center'}}>{tt("DELETE WORKOUT")}</div>
         <div style={{fontSize:13,color:C.tx,marginBottom:6,textAlign:'center'}}>
-          {delHold.value.dayName} · {delHold.value.planName} · W{delHold.value.week}
+          {delHold.value.dayName} · {delHold.value.planName} · {readLang() === 'he' ? <span dir="rtl" style={{unicodeBidi:'isolate'}}>{`שבוע ${delHold.value.week}`}</span> : `W${delHold.value.week}`}
         </div>
         <div style={{fontSize:12,color:C.tm,marginBottom:14,textAlign:'center'}}>
           {tt('This permanently removes the workout, its sets, form videos, and review notes. Type the word')} <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> {tt('to confirm.')}

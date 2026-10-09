@@ -3893,7 +3893,7 @@ function DemoReview() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>{selected.traineeName}</div>
               <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginTop: 2 }}>
-                {selected.dayName.toUpperCase()} · {selected.planName} · W{selected.week} · {selected.date.toUpperCase()}
+                {selected.dayName.toUpperCase()} · {selected.planName} · {readLang() === 'he' ? <span dir="rtl" style={{unicodeBidi:'isolate'}}>{`שבוע ${selected.week}`}</span> : `W${selected.week}`} · {selected.date.toUpperCase()}
               </div>
             </div>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>
