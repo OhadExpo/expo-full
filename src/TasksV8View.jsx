@@ -367,7 +367,6 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false, fill = false
   const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
   const sc = statusColors(status, theme);
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
-  const filled = !!sc;
   const base = {
     boxSizing: 'border-box', height: 'var(--btn-h)', width: fill ? '100%' : 128, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
