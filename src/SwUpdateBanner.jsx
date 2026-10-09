@@ -155,7 +155,11 @@ export default function SwUpdateBanner() {
     const recordingActive = () => { try { return (window.__expoRecording | 0) > 0; } catch { return false; } };
     const mediaPlaying = () => { try {
       if ([...document.querySelectorAll('video, audio')].some((m) => !m.paused && !m.ended && m.readyState > 2)) return true;
-      const a = document.activeElement; return !!(a && a.tagName === 'IFRAME');
+      const a = document.activeElement; if (a && a.tagName === 'IFRAME') return true;
+      // a demo video playing in an embedded player never takes focus (autoplay after the poster
+      // tap), so a visible YouTube/Vimeo player counts too - but only for 20 minutes since the
+      // last input, so a forgotten embed cannot hold an update forever (1008p review)
+      return Date.now() - lastActivity < 20 * 60 * 1000 && [...document.querySelectorAll('iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]')].some((f) => f.getClientRects().length > 0);
     } catch { return false; } };
     const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn() || recordingActive() || mediaPlaying();
     // #464: the two places a reload is never taken on its own - something is
