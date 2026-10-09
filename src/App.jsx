@@ -1800,9 +1800,9 @@ function AuthedApp() {
           a count drawn from a store that never loaded is not a fact - saying so
           is the difference between "you have no athletes" and "we could not
           reach the server". */}
-      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{lang === 'he'
-        ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.'
-        : 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.'}</div>}
+      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{/* OFFLINE only when the probe says so: the deadline also passes when the server is merely slow, and 'OFFLINE' on a working connection is a false alarm (9.10 audit #612 C11) */}{(() => { const off = netState() === 'offline'; return lang === 'he'
+        ? (off ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.' : 'עדיין נטען — חלק מהמידע עוד לא הגיע. יכול להיות שהמספרים חלקיים עד שיגיע.')
+        : (off ? 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.' : "STILL LOADING — some data hasn't arrived yet. Numbers may be incomplete until it does."); })()}</div>}
       {isOwner && <Suspense fallback={null}><SensorLab trainees={trainees} /></Suspense>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
