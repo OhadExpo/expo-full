@@ -2239,7 +2239,10 @@ select.avail-select:dir(rtl) {
    review renders the same card) */
 @media (max-width: 760px){
   .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
-  .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
+  /* the phone pattern (10.10, 1010c review): the card's lines, then REVIEW / DELETE as one full-width
+     joined row under them - absolute at the top-end, the 38px pair covered long day / block names */
+  .wr-day-card{ flex-direction: column !important; align-items: stretch !important; }
+  .wr-day-card > .wr-day-acts{ position: static !important; width: auto !important; margin: 8px 0 0 !important; }
   /* ONE RIGHT EDGE PER CARD. Measured at 390: the video icon sat
      0.8px short of the card's inner edge, the DELETE label 10.8px and
      the set count 19.8px - three staggered right edges down one card.
