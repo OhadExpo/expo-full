@@ -4666,18 +4666,20 @@ const DEMO_REVIEW_TOOLS = [
 // the real page's lift + tools cards (10.10 #648 parity): the six lifts and 'any lift' as one joined
 // control, the tools as equal rows with OPEN → in one right column. No clips in the demo.
 const DEMO_QUICK_LIFTS = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press', 'Row', 'Pull-Up'];
+// the real Card's house title for a plain-string header (13px Nord, 700, 0.08em, caps)
+const demoCardTitle = (k) => <span style={{ display: 'block', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', overflowWrap: 'break-word', minWidth: 0 }}>{T(k)}</span>;
 function DemoReviewTools() {
   const [title, setTitle] = useState('Squat');
   const [note, setNote] = useState(false);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <DemoDetailCard header={T('Lift being analysed')} padding={24} collapsible={false}>
+      <DemoDetailCard header={demoCardTitle('Lift being analysed')} padding={24} collapsible={false}>
         <ChipGrid ariaLabel={T('Lift being analysed')} value={title.trim().toLowerCase()} onChange={(k) => setTitle(DEMO_QUICK_LIFTS.find((l) => l.toLowerCase() === k) || title)} cols={3} phoneCols={2}
           items={DEMO_QUICK_LIFTS.map((l) => ({ k: l.toLowerCase(), label: l }))} />
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={T('…or type any lift')} aria-label={T('…or type any lift')}
           style={{ display: 'block', width: '100%', height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: 'none', color: C.tx, fontFamily: FB, fontSize: 13, padding: '0 12px', borderRadius: 0, outline: 'none' }} />
       </DemoDetailCard>
-      <DemoDetailCard header={T('TOOLS')} padding={24} collapsible={false}>
+      <DemoDetailCard header={demoCardTitle('TOOLS')} padding={24} collapsible={false}>
         {DEMO_REVIEW_TOOLS.map((t, i) => (
           <div key={t.key} role="button" tabIndex={0} className="rt-tool" onClick={() => setNote(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNote(true); } }}
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64, padding: '10px 0', boxSizing: 'border-box', borderTop: i ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', outline: 'none' }}>
