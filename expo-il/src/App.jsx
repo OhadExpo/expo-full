@@ -767,10 +767,17 @@ function ShareButton({ programId, programTitle, size = 'sm' }) {
   );
 }
 
+// The catalogue in Hebrew says its level and equipment in Hebrew (9.10 audit #612: the
+// /he#/online cards read 'BARBELL · DUMBBELLS · BENCH' beside 'מתחילים'). Native-checked;
+// 'מוט' is his own word (6:0 over 'ברבל' in his exercise notes).
+const LEVEL_HE = { Beginner: 'מתחילים', Intermediate: 'בינוני' };
+const EQUIP_HE = { Barbell: 'מוט', Dumbbells: 'משקולות יד', Bench: 'ספסל', Cables: 'כבלים', Machines: 'מכונות', Bands: 'גומיות', 'Track or open space': 'מסלול או שטח פתוח' };
 function ProgramMeta({ p }) {
+  const [lang] = useLang();
+  const he = lang === 'he';
   const meta = [];
-  if (p.level) meta.push(p.level);
-  if (Array.isArray(p.equipment) && p.equipment.length) meta.push(p.equipment.join(' · '));
+  if (p.level) meta.push(he ? (LEVEL_HE[p.level] || p.level) : p.level);
+  if (Array.isArray(p.equipment) && p.equipment.length) meta.push(p.equipment.map((e) => (he ? (EQUIP_HE[e] || e) : e)).join(' · '));
   if (meta.length === 0) return null;
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -875,6 +882,8 @@ function ProgramCard({ p }) {
 
 function Catalog() {
   const t = useT();
+  const [lang] = useLang();
+  const tagLabel = (tag) => (lang === 'he' ? (PROGRAMS.find((p) => p.tag === tag)?.tagHe || tag) : tag).toUpperCase();
   const tags = uniqueTags(PROGRAMS);
   const [active, setActive] = useState('__all');
   const list = active === '__all' ? PROGRAMS : PROGRAMS.filter(p => p.tag === active);
@@ -896,7 +905,7 @@ function Catalog() {
           the active chip keeps this site's cyan wash. Count of programs in a tag
           gives the chip a data signal so the user knows how many they'll see. */}
       <ChipGrid soft ariaLabel={t('catalog.badge')} value={active} onChange={setActive} style={{ marginBottom: 24 }}
-        items={tags.map(tag => ({ k: tag, label: tag === '__all' ? t('catalog.chip.all') : tag.toUpperCase(), n: tag === '__all' ? PROGRAMS.length : PROGRAMS.filter(p => p.tag === tag).length }))} />
+        items={tags.map(tag => ({ k: tag, label: tag === '__all' ? t('catalog.chip.all') : tagLabel(tag), n: tag === '__all' ? PROGRAMS.length : PROGRAMS.filter(p => p.tag === tag).length }))} />
       <div style={{
         display: 'grid', gap: 14,
         // auto-fit collapses empty tracks AND `justifyContent: center`

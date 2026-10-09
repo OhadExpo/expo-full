@@ -741,12 +741,12 @@ function Location({ heb }) {
             style={{
               display: 'inline-block', marginBottom: 8, fontFamily: FN, fontSize: 13,
               color: C.ac, textDecoration: 'none', fontWeight: 700,
-            }}>WhatsApp →</a>
+            }}>WhatsApp {heb ? '←' : '→'}</a>
           <br/>
           <a href={`https://instagram.com/expo_il`} target="_blank" rel="noopener"
             style={{
               fontFamily: FN, fontSize: 13, color: C.ac, textDecoration: 'none', fontWeight: 700,
-            }}>Instagram @expo_il →</a>
+            }}>Instagram @expo_il {heb ? '←' : '→'}</a>
         </div>
         {/* Map placeholder — Google Maps embed could go here later */}
         <div style={{
