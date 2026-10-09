@@ -4663,50 +4663,38 @@ const DEMO_REVIEW_TOOLS = [
   // off the sales site (it's for me only right now); it shouldn't be in the
   // demo either." It stays in the real app behind the owner seat.
 ];
+// the real page's lift + tools cards (10.10 #648 parity): the six lifts and 'any lift' as one joined
+// control, the tools as equal rows with OPEN → in one right column. No clips in the demo.
+const DEMO_QUICK_LIFTS = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press', 'Row', 'Pull-Up'];
 function DemoReviewTools() {
-  const [title, setTitle] = useState('Back Squat');
+  const [title, setTitle] = useState('Squat');
   const [note, setNote] = useState(false);
-  const [hover, setHover] = useState(null);
   return (
-    <div>
-      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>{T('REVIEW · TOOLS')}</div>
-      <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>{T('Measure the lift')}</h2>
-      <div style={{ color: C.tm, fontSize: 13, marginBottom: 20, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
-        {/* A dotted key returns ITSELF from tr() when there is no entry, so an
-            English visitor would have read the literal string "tools.blurb".
-            Every dotted key in this codebase needs its English side written out. */}
-        {readLang() === 'he'
-          ? T('tools.blurb')
-          : 'Camera and pose tools that read a set — bar speed, range of motion, jump power, live coaching. In the full app SEND TO ATHLETE puts the result on his clip as a note; nothing is saved in the demo.' /* the real blurb (#530), less the shot tool the demo dropped 24.9 */}
-      </div>
-      <div style={{ marginBottom: 20, maxWidth: 380 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>{T('Exercise · for Lab / Metrics / Live')}</label>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder={T('e.g. Back Squat')} style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
-      </div>
-      <div style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-        {DEMO_REVIEW_TOOLS.map(t => {
-          const active = hover === t.key;
-          return (
-            <div key={t.key} role="button" tabIndex={0} onClick={() => setNote(true)} onMouseEnter={() => setHover(t.key)} onMouseLeave={() => setHover(null)}
-              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 12px', borderTop: `1px solid ${C.cardBd}`, cursor: 'pointer', background: active ? 'rgba(57,189,255,0.05)' : 'transparent', transition: 'background .15s' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{T(t.label)}</div>
-                <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{T(t.measures)}</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: 'none', padding: '2px 6px', whiteSpace: 'nowrap' }}>{tr(readLang(), t.live ? 'LIVE' : 'CLIP')}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{T('OPEN →')}</span>
-              </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <DemoDetailCard header={T('Lift being analysed')} padding={24} collapsible={false}>
+        <ChipGrid ariaLabel={T('Lift being analysed')} value={title.trim().toLowerCase()} onChange={(k) => setTitle(DEMO_QUICK_LIFTS.find((l) => l.toLowerCase() === k) || title)} cols={3} phoneCols={2}
+          items={DEMO_QUICK_LIFTS.map((l) => ({ k: l.toLowerCase(), label: l }))} />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={T('…or type any lift')} aria-label={T('…or type any lift')}
+          style={{ display: 'block', width: '100%', height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: 'none', color: C.tx, fontFamily: FB, fontSize: 13, padding: '0 12px', borderRadius: 0, outline: 'none' }} />
+      </DemoDetailCard>
+      <DemoDetailCard header={T('TOOLS')} padding={24} collapsible={false}>
+        {DEMO_REVIEW_TOOLS.map((t, i) => (
+          <div key={t.key} role="button" tabIndex={0} className="rt-tool" onClick={() => setNote(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNote(true); } }}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64, padding: '10px 0', boxSizing: 'border-box', borderTop: i ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', outline: 'none' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: C.tx }}>{T(t.label)}</div>
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, lineHeight: 1.4 }}>{T(t.measures)}</div>
             </div>
-          );
-        })}
-      </div>
-      {note && (
-        <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{T('The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.')}</span>
-          <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, flexShrink: 0 }}>{T('DISMISS')}</button>
-        </div>
-      )}
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, textAlign: 'end', whiteSpace: 'nowrap' }}>{T('OPEN →')}</span>
+          </div>
+        ))}
+        {note && (
+          <div style={{ marginTop: 12, border: `1px solid ${C.ac}`, padding: '0 0 0 12px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 36 }}>
+            <span style={{ flex: 1, fontFamily: FB, fontSize: 13, color: C.tx, padding: '8px 0' }}>{T('The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.')}</span>
+            <button onClick={() => setNote(false)} style={{ ...baseBtn, height: 36, background: 'transparent', color: C.tm, border: 'none', borderInlineStart: `1px solid ${C.cardBd}`, padding: '0 14px', fontSize: 10, flexShrink: 0, alignSelf: 'stretch' }}>{T('DISMISS')}</button>
+          </div>
+        )}
+      </DemoDetailCard>
     </div>
   );
 }
