@@ -1906,7 +1906,8 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 1199px) {
   .em-card { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; gap: 12px !important; }
   .em-card > .em-head, .em-card > .em-sugg { flex: none !important; width: 100%; }
-  .em-actions { display: grid !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px !important; }
+  /* one joined row (JoinedButtons): hairline gap, full width - 9.10 */
+  .em-actions { display: grid !important; grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px !important; width: 100% !important; align-self: stretch !important; }
 }
 
 

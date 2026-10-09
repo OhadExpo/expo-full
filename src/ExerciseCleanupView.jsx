@@ -10,10 +10,10 @@
 // become unresolved and surface in the Matching screen — the designed funnel.
 import React, { useState, useEffect, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { Card, Btn, EmptyState, ConfirmDialog, toast } from './ui';
+import { Card, Btn, EmptyState, ConfirmDialog, toast, JoinedButtons } from './ui';
 import { normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
-import { useT, useTB } from './i18n';
+import { useT, useTB, readLang } from './i18n';
 
 // Returns { level: 'definite'|'suspicious', reason } or null.
 export function trashVerdict(title) {
@@ -106,14 +106,24 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
       <Card leftStripe={C.or} header={tt('Library Cleanup')}>
         {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
-        <div style={{ marginBottom: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: C.tm }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
-          <Btn variant="ghost" onClick={() => setAll(null, true)}>{tb('Select all')}</Btn>
-          <Btn variant="ghost" onClick={() => setAll(null, false)}>{tb('Clear')}</Btn>
-          <Btn disabled={!sel.size} variant={sel.size ? 'danger' : 'primary'} onClick={() => setConfirm(true)} /* red frame + red words, no solid block (9.10 audit #612 D1) */>{tb('Delete')} {sel.size} {tb('selected')}</Btn>
-        </div></div>
-        <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          {tt('Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises.')} <b style={{ color: C.tx }}>{nDef} {tt('definite')}</b>, <b style={{ color: C.tx }}>{nSus} {tt('suspicious')}</b>. {tt('Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.')}
+        {/* ONE STATS LINE, ONE JOINED ROW OF ACTIONS, A SHORT NOTE (9.10, after #619 on Classify:
+            three boxes of different widths over two rows and a paragraph of capitals) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ ...th, display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 4 }}>
+            <span>{rows.length} {tt('flagged')}</span>
+            {/* plural after a number in Hebrew: 'ודאיים / חשודים' (the row tags keep 'ודאי / חשוד') */}
+            <span style={{ color: C.rd }}>{nDef} {readLang() === 'he' ? 'ודאיים' : tt('definite')}</span>
+            <span style={{ color: C.or }}>{nSus} {readLang() === 'he' ? 'חשודים' : tt('suspicious')}</span>
+            <span style={{ color: sel.size ? C.tx : C.tm }}>{sel.size} {tt('selected')}</span>
+          </div>
+          <JoinedButtons items={[
+            { label: tb('Select all'), onClick: () => setAll(null, true) },
+            { label: tb('Clear'), onClick: () => setAll(null, false), disabled: !sel.size },
+            { label: `${tb('Delete')} ${sel.size}`, onClick: () => setConfirm(true), disabled: !sel.size, tone: 'danger' },
+          ]} />
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560 }}>
+            {tt('Pre-checked: definite, in no plan, no video or cues. Deleting sends any plan row that used one to Matching.')}
+          </div>
         </div>
       </Card>
 

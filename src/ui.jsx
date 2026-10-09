@@ -1638,6 +1638,25 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
 //             first row when the count leaves one cell short of full rows
 //   phoneCols phone columns, where the 2/3 rule would cut a label (data
 //             titles of any length, like the intake forms: one per row)
+// JOINED BUTTONS - a group of actions is ONE equal-cell grid, a hairline between, the colour in
+// the words (his 5.10 rule; 9.10 #619: Classify / Cleanup / Matching had lone boxes of different
+// widths stacked). items: [{ label, onClick, disabled, tone: 'accent' | 'danger' | 'muted' }].
+// vertical: one column (a side stack on desktop); className lets a page re-flow it on a phone.
+const JB_TONE = { accent: C.ac, danger: C.rd, muted: C.tm };
+export function JoinedButtons({ items, vertical = false, maxWidth = 560, className = '', style = null }) {
+  const list = (items || []).filter(Boolean);
+  return (
+    <div className={`joined-buttons${className ? ' ' + className : ''}`} style={{ display: 'grid', gridTemplateColumns: vertical ? 'minmax(0, 1fr)' : `repeat(${list.length}, minmax(0, 1fr))`, gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, maxWidth, ...style }}>
+      {list.map((it, i) => (
+        <button key={i} type="button" onClick={it.disabled ? undefined : it.onClick} disabled={!!it.disabled} title={it.title}
+          style={{ height: 36, minWidth: 0, padding: '0 12px', border: 'none', borderRadius: 0, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: it.disabled ? 'default' : 'pointer', color: it.disabled ? 'var(--c-td)' : (JB_TONE[it.tone] || C.tx) }}>
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ChipGrid({ items, value, onChange, cols = null, phoneCols = null, soft = false, prose = false, ariaLabel, className = '', style = null, cellStyle = null }) {
   const list = items || [];
   const n = list.length;

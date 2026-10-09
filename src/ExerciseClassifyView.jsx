@@ -4,7 +4,7 @@
 // SAFE: writes only the exercise library store (never trainee plans), confirm-gated.
 import React, { useState, useMemo, useEffect } from 'react';
 import { C, FN, FB, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Card, Btn, Select, Modal, EmptyState, toast } from './ui';
+import { Card, Btn, Select, Modal, EmptyState, toast, JoinedButtons } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { useT, readLang } from './i18n';
 
@@ -103,7 +103,6 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   };
 
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
-  const ACTION = { height: 36, padding: '0 12px', border: 'none', borderRadius: 0, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
   const fullyGuessed = items.filter(({ g }) => g.filled === 3).length;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1150, margin: '0 auto', padding: '4px 0 60px' }}>
@@ -116,12 +115,10 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
             <span style={{ color: GUESS_INK(3) }}>{fullyGuessed} {tt('fully guessed')}</span>
             <span style={{ color: pending.length ? C.ac : C.tm }}>{pending.length} {tt('ready to apply')}</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, maxWidth: 560 }}>
-            <button type="button" onClick={acceptAllComplete} style={{ ...ACTION, color: C.tx }}>{tt('Fill all 3/3')}</button>
-            <button type="button" disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ ...ACTION, color: pending.length ? C.ac : C.td, cursor: pending.length ? 'pointer' : 'default' }}>
-              {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}
-            </button>
-          </div>
+          <JoinedButtons items={[
+            { label: tt('Fill all 3/3'), onClick: acceptAllComplete },
+            { label: applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`, onClick: () => setConfirm(true), disabled: !pending.length || applying, tone: 'accent' },
+          ]} />
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560 }}>
             {tt('Guesses come from each title. Change any, skip any - Apply writes the library only, never programs.')}
           </div>

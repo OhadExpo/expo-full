@@ -2830,6 +2830,10 @@ export const HE = {
   'SCANNING PLANS…': 'סורק תוכניות…',
   'titles': 'שמות',
   'Accept all high-confidence': 'אישור כל ההתאמות הבטוחות',
+  // Matching / Cleanup tops, joined actions (9.10, after #619) - native-checked
+  'Accept all high': 'אישור כל ההתאמות הבטוחות',
+  'Plan rows whose exercise is not in the library, by title. Accept, change or skip - Apply links every row with that title.': 'שורות תוכנית שהתרגיל שלהן לא בספרייה, לפי שם. תאשר, תשנה או תדלג - ההחלה מקשרת כל שורה עם אותו שם.',
+  'Pre-checked: definite, in no plan, no video or cues. Deleting sends any plan row that used one to Matching.': 'מסומנים מראש: ודאיים, לא בשום תוכנית, בלי סרטון או דגשים. מחיקה שולחת כל שורת תוכנית שהשתמשה באחד מהם למסך ההתאמה.',
   'Preview this library exercise — video, cues, classification': 'תצוגה מקדימה של תרגיל מהספרייה — סרטון, דגשים, סיווג',
   'No close library match — Change to search, or leave to create later.': 'אין התאמה קרובה בספרייה — תלחץ שינוי כדי לחפש, או תשאיר את זה ותיצור אחר כך.',
   'Change…': 'שינוי…',
