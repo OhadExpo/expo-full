@@ -266,7 +266,14 @@ export default function BillingView({ trainees, onSelectTrainee }) {
             first name sits centred between the strip and its rule, like every
             other row (verify-rule-rhythm FIRSTGAP: 22 above / 10 below, 4.10) */}
         <div style={{ marginTop: -12 }}>
-        {(trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t)).map((t, i, arr) => {
+        {(() => {
+          // ONLY A REQUEST GETS A ROW (9.10 audit #612 A7: 13 rows of NO REQUEST, ~400px, one fact).
+          // The athletes with none share one line at the end, by name.
+          const active = (trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t));
+          const withReq = active.filter(t => rosterSummary[t.id]);
+          const noReq = active.filter(t => !rosterSummary[t.id]);
+          return (<>
+        {withReq.map((t, i, arr) => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
           const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
@@ -276,13 +283,23 @@ export default function BillingView({ trainees, onSelectTrainee }) {
             // THE NAME FIRST, the status at the end (29.9 #448 audit: a dim NO REQUEST
             // led all 13 rows and a "—" closed each one - three columns, one fact).
             // With a request the amount and date sit beside its status.
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 36, boxSizing: 'border-box', padding: '6px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 36, boxSizing: 'border-box', padding: '6px 0', borderBottom: i < arr.length - 1 || noReq.length ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tx }}><bdi>{t.name}</bdi></span>
               {r && <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCurrency(r.amount, r.currency)} · {fmtPrettyDate(r.created_at)}</span>}
               <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>{labelTxt}</span>
             </div>
           );
         })}
+        {noReq.length > 0 && (
+          <div data-no-request="" style={{ display: 'flex', alignItems: 'baseline', gap: 12, minHeight: 36, boxSizing: 'border-box', padding: '10px 0 6px' }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tm, lineHeight: 1.6 }}>
+              {noReq.map((t, i) => <React.Fragment key={t.id}>{i > 0 && <span style={{ color: C.td }}>{'\u00A0· '}</span>}<bdi style={{ whiteSpace: 'nowrap' }}>{t.name}</bdi></React.Fragment>)}
+            </span>
+            <span style={{ fontFamily: FN, fontSize: 9, color: C.td, fontWeight: 700, letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>{tt('NO REQUEST')} · {noReq.length}</span>
+          </div>
+        )}
+          </>);
+        })()}
         </div>
       </CollapsibleSection>
 
