@@ -5692,6 +5692,14 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
           {tr('Show {n} more').replace('{n}', Math.min(12, past.length - limit))}
         </button>
       )}
+      {/* what the squares in the S&C slot are (#646): the warm-up is its own thing */}
+      {anySc && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10, fontFamily: FB, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}>
+          {[[WARMUP_COLOR, tr('Warm-up')], [SC_COLOR, tr('S&C')]].map(([col, lbl]) => (
+            <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span aria-hidden style={{ width: 8, height: 8, background: col, flexShrink: 0 }} />{lbl}</span>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
