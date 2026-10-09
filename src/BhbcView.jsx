@@ -4407,6 +4407,36 @@ function TeamSnapshotCard({ team }) {
 //                   mark that is loud, and it is what the banner at the top counts.
 //
 // Nothing here invents attendance. An unlogged day stays unlogged.
+// ONE MARK PER STATE, BY SHAPE FIRST (9.10 #629, Ohad: "Table, markers and design for them could
+// and needs to be much clearer, easier to understand and perfectly designed"). The old marks were
+// all the same square, told apart by orange vs brown vs a red or orange outline. Now the shape
+// says it, the colour only confirms: practice = square, game = circle (open = did not play),
+// scrimmage = diamond, missed = a red X, out = a grey dash, a game not logged yet = a dotted
+// circle. S&C / lift overlays sit as thin bars under the mark.
+const ATT_ORANGE = '#E46B2C';
+function AttMark({ mark, overlays = [], label }) {
+  if (!mark && !overlays.length) return null;
+  const S = 14;
+  let shape = null;
+  if (mark === 'practice') shape = <rect x="1" y="1" width="12" height="12" rx="1.5" fill={FX_COLOR.practice} />;
+  else if (mark === 'shootaround') shape = <rect x="2" y="2" width="10" height="10" rx="1.5" fill={FX_COLOR.shootaround} />;
+  else if (mark === 'played') shape = <circle cx="7" cy="7" r="6" fill={ATT_ORANGE} />;
+  else if (mark === 'scrimmage') shape = <path d="M7 0.8 L13.2 7 L7 13.2 L0.8 7 Z" fill={ATT_ORANGE} />;
+  else if (mark === 'dnp') shape = <circle cx="7" cy="7" r="5.2" fill="none" stroke={ATT_ORANGE} strokeWidth="1.8" />;
+  else if (mark === 'missed') shape = <path d="M2.5 2.5 L11.5 11.5 M11.5 2.5 L2.5 11.5" stroke="#DE4E3B" strokeWidth="2.2" strokeLinecap="round" />;
+  else if (mark === 'excused') shape = <path d="M3 7 H11" stroke="#8A919B" strokeWidth="2" strokeLinecap="round" />;
+  else if (mark === 'pending') shape = <circle cx="7" cy="7" r="5.2" fill="none" stroke="#8A919B" strokeWidth="1.4" strokeDasharray="2 2" />;
+  return (
+    <span aria-label={label} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <svg width={S} height={S} viewBox="0 0 14 14" aria-hidden="true" style={{ display: 'block', visibility: shape ? 'visible' : 'hidden' }}>{shape}</svg>
+      {overlays.length > 0 && <span style={{ display: 'flex', gap: 2 }}>{overlays.map((c, i) => <span key={i} style={{ width: overlays.length > 1 ? 6 : 14, height: 3, background: c, borderRadius: 1 }} />)}</span>}
+    </span>
+  );
+}
+const WD_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const WD_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const wdOf = (iso, he) => { const d = new Date(`${iso}T12:00:00`); return (he ? WD_HE : WD_EN)[d.getDay()]; };
+
 function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = [], today, onOpen }) {
   const tr = useT();
   const he = useHe();
@@ -4596,13 +4626,13 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
             <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
             {days.list.map((d) => (
               d.future
-                ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
-                : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
+                ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}><span style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
+                : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
             ))}
-            <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('there')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+            <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('made')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '4px 14px 5px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` /* the count row is part of the header band (5.10 #570) */ }}>
-            <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
+            <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('present')}</span>
             {perDay.map((v, i) => (
               // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
               <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
@@ -4624,16 +4654,16 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   const label = c.state === 'none' ? (t.arrival && c.iso < t.arrival && dayFx[c.iso] ? `${monDay(c.iso)} · ${tr('before he landed')}` : monDay(c.iso))
                     : `${monDay(c.iso)} · ${tr(FX_LABEL[c.kind] || 'Practice')} · ${tr(
                       c.state === 'in' ? 'attended' : c.state === 'played' ? 'played' : c.state === 'dnp' ? 'did not play' : c.state === 'pending' ? 'box score not in yet' : c.state === 'missed' ? 'missed' : c.state === 'excused' ? AVAIL[c.code] ? AVAIL[c.code].label : 'out' : 'attended')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}`;
-                  const bands = [];
-                  if (c.state === 'in') bands.push(FX_COLOR[c.kind] || FX_COLOR.practice);
-                  if (c.state === 'played') bands.push(FX_COLOR.game);
-                  if (showSc && c.sc) bands.push(SC_COLOR);
-                  if (showLift && c.lift) bands.push(FX_COLOR.lift);
-                  const outline = c.state === 'missed' ? MISS : c.state === 'dnp' ? FX_COLOR.game : null;
+                  const mark = c.state === 'in' ? (c.kind === 'scrimmage' ? 'scrimmage' : c.kind === 'shootaround' ? 'shootaround' : 'practice')
+                    : c.state === 'played' ? (c.kind === 'scrimmage' ? 'scrimmage' : 'played')
+                      : (c.state === 'dnp' || c.state === 'missed' || c.state === 'excused' || c.state === 'pending') ? c.state : null;
+                  const overlays = [];
+                  if (showSc && c.sc) overlays.push(SC_COLOR);
+                  if (showLift && c.lift) overlays.push(FX_COLOR.lift);
                   return (
                     <span key={c.iso} title={label}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
-                      <CellMarks bands={bands} outline={outline} label={label} />
+                      <AttMark mark={mark} overlays={overlays} label={label} />
                     </span>
                   );
                 })}
@@ -4653,16 +4683,20 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           mess"): every swatch on one start edge, every label beside it, the
           rows in step - no ragged wrap. */}
       <div className="bhbc-legend-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', columnGap: 14, rowGap: 8, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
-        {/* the legend draws the SAME marks the cells draw */}
+        {/* the legend draws the SAME marks the cells draw, every one in words (#629) */}
         {[
-          [[FX_COLOR.practice], null, tr('Practice')], [[FX_COLOR.scrimmage], null, tr('Scrimmage')],
-          [[FX_COLOR.game], null, tr('Game played')], [[], FX_COLOR.game, tr('did not play')], [[], MISS, tr('missed')],
-          ...(showSc ? [[[SC_COLOR], null, tr('S&C')]] : []), ...(showLift ? [[[FX_COLOR.lift], null, tr('Lift')]] : []),
-        ].map(([bands, outline, lbl]) => (
-          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm, whiteSpace: 'nowrap', minWidth: 0 }}>
-            <CellMarks bands={bands} outline={outline} />{lbl}
+          ['practice', [], tr('Practice')], ['played', [], tr('Game played')], ['dnp', [], tr('did not play')],
+          ['scrimmage', [], tr('Scrimmage')], ['missed', [], tr('missed')], ['excused', [], tr('Out (injured or away)')],
+          ['pending', [], tr('Game not logged yet')],
+          ...(showSc ? [[null, [SC_COLOR], tr('S&C')]] : []), ...(showLift ? [[null, [FX_COLOR.lift], tr('Lift')]] : []),
+        ].map(([mark, overlays, lbl]) => (
+          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0 }}>
+            <span style={{ width: 14, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><AttMark mark={mark} overlays={overlays} /></span>{lbl}
           </span>
         ))}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, gridColumn: '1 / -1' }}>
+          <span style={{ width: 14, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[4].color }} /></span>{tr('Dot by the name = today’s availability')}
+        </span>
       </div>
     </Card>
   );

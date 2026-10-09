@@ -757,6 +757,12 @@ Object.assign(HE, {
   'absences': 'חיסורים',
   'missed': 'לא הגיע',
   'there': 'הגיעו',
+  // practice attendance, clearer marks (9.10 #629) - native-checked
+  'present': 'נוכחים',
+  'made': 'השתתף',
+  'Out (injured or away)': 'בחוץ (פצוע או נעדר)',
+  'Game not logged yet': 'המשחק עוד לא נרשם',
+  'Dot by the name = today’s availability': 'נקודה ליד השם = הזמינות היום',
   'none': 'אין',
 
   // ---- the weight-room tab --------------------------------------------
