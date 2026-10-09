@@ -362,6 +362,11 @@ function GooglePhotosEmbed({ url }) {
 }
 
 
+// A warm-up's structured sets/reps win over its written rx only when they are the
+// whole prescription: a lone `sets: 11` beside rx '1x12' (one live plan, audit #612
+// B4) showed the athlete a bare '11'. Half-filled fields + an rx = the rx.
+const wuStructured = (w) => !!(w && (w.sets || w.reps) && ((w.sets && w.reps) || !w.rx));
+
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 // Completed (ticked) sets across a workout's exercises. The unit of "is this a
 // real workout": a row with 0 is refused by the logger (27.9).
@@ -2035,7 +2040,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // them consistent). rx-only warm-ups pass the combined reps token, which
           // SetsRepsHero splits (or shows plainly if it can't).
           let heroSets = '', heroReps = '', tempo = wu.tempo || '';
-          if (wu.sets || wu.reps) {
+          if (wuStructured(wu)) {
             heroSets = wu.sets ?? ''; heroReps = wu.reps ?? '';
           } else {
             const parts = splitPrescription(wu.rx);
@@ -4146,7 +4151,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             tempoColor: TEMPO_COLOR,
             rows: vp.warmup.map((w,i) => ({
               num: i + 1,
-              rx: (w.sets || w.reps)
+              rx: wuStructured(w)
                 ? ((w.sets ?? '') && (w.reps ?? '') ? `${w.sets}×${w.reps}` : `${w.sets ?? ''}${w.reps ?? ''}`)
                 : (w.rx || ''),
               tempo: w.tempo,
