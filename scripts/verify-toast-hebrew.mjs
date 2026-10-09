@@ -23,34 +23,47 @@ import { tr } from '../src/i18n.js';
 import { bhbcT } from '../src/bhbcHe.js';
 
 const SKIP = /^TrySandbox\.jsx$/;   // held at production by the cut
-const RX = /(?<![\w.])(?:confirmToast|toast)\(\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/g;
+const RX = /(?<![\w.])(confirmToast|toast)\(\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`)/g;
 const unesc = (v) => v.replace(/\\n/g, '\n').replace(/\\(['"`\\])/g, '$1');
-const he = (file, m) => {
-  const look = (k) => { const a = tr('he', k); if (a !== k) return a; if (/^Bhbc/.test(file)) { const b = bhbcT('he', k); if (b !== k) return b; } return k; };
+// the club dictionary counts only for a club toast(): BhbcView wraps toast() in zoneT,
+// but imports confirmToast straight from ./ui (1008e review)
+const he = (file, m, fn = 'toast') => {
+  const look = (k) => { const a = tr('he', k); if (a !== k) return a; if (/^Bhbc/.test(file) && fn === 'toast') { const b = bhbcT('he', k); if (b !== k) return b; } return k; };
   if (look(m) !== m) return true;
   const i = m.indexOf(': ');
   return i > 0 && look(m.slice(0, i + 1)) !== m.slice(0, i + 1);
 };
 
 const per = {}; const all = [];
+// toast(tt('...')) / toast(tr(readLang(), '...')): the key itself must exist exactly -
+// a typo there ships English while the line looks translated (1008e review)
+const RX_TT = /(?<![\w.])(?:confirmToast|toast)\(\s*(?:tt\(|tr\(\s*readLang\(\)\s*,)\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")/g;
 for (const f of fs.readdirSync('src').filter((x) => /\.(jsx|js)$/.test(x) && !SKIP.test(x))) {
   const s = fs.readFileSync('src/' + f, 'utf8');
   for (const m of s.matchAll(RX)) {
-    const raw = m[1] ?? m[2] ?? m[3];
+    const fn = m[1];
+    const raw = m[2] ?? m[3] ?? m[4];
     const v = unesc(raw);
     if (!/^[A-Z✓⚠]/.test(v) || /[֐-׿]/.test(v)) continue;     // Hebrew already, or not a sentence
     const ln = s.slice(0, m.index).split('\n').length;
     const line = s.split('\n')[ln - 1];
     if (/readLang\(\)\s*===\s*'he'|\bhe\s*\?|\bheCtx\s*\?/.test(line)) continue;   // a Hebrew branch on the line
     let ok;
-    if (m[3] !== undefined && v.includes('${')) {
+    if (m[4] !== undefined && v.includes('${')) {
       const i = v.indexOf(': ');
       const dollar = v.indexOf('${');
-      ok = i > 0 && i < dollar && he(f, v.slice(0, i + 1) + ' x');   // a translatable head before the first ${
-    } else ok = he(f, v);
+      ok = i > 0 && i < dollar && he(f, v.slice(0, i + 1) + ' x', fn);   // a translatable head before the first ${
+    } else ok = he(f, v, fn);
     if (ok) continue;
     per[f] = (per[f] || 0) + 1;
     all.push(`${f}:${ln} | ${v.replace(/\s+/g, ' ').slice(0, 110)}`);
+  }
+  for (const m of s.matchAll(RX_TT)) {
+    const k = unesc(m[1] ?? m[2]);
+    if (tr('he', k) !== k || (/^Bhbc/.test(f) && bhbcT('he', k) !== k)) continue;
+    const ln = s.slice(0, m.index).split('\n').length;
+    per[f] = (per[f] || 0) + 1;
+    all.push(`${f}:${ln} | tt key not in the dictionary: ${k.replace(/\s+/g, ' ').slice(0, 90)}`);
   }
 }
 

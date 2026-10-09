@@ -1364,6 +1364,7 @@ export const HE = {
   "Start Workout →": 'לאימון ←',
   // athlete portal strings the English-literal gate never saw (9.10 #586)
   // coach-side toasts: the ToastHost looks up the head up to ": " (9.10 #590)
+  "Demo mode — uploads disabled": "מצב דמו — העלאות מושבתות",
   "Copy failed — the new program was refused. See console.": "ההעתקה נכשלה — התוכנית החדשה נדחתה. הפרטים בקונסול.",
   "Copy failed — the save was refused. See console.": "ההעתקה נכשלה — השמירה נדחתה. הפרטים בקונסול.",
   "Save blocked — see console for details. The plan you are saving would wipe {n} existing exercises. Reload the page first.": "השמירה נחסמה — היא עלולה למחוק {n} תרגילים קיימים בתוכנית. הפרטים בקונסול. טען מחדש את העמוד קודם.",
