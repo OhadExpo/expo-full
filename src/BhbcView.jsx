@@ -621,7 +621,10 @@ const fxWhere = (f) => {
 function MinTok({ n }) {
   const tr = useT();
   if (!(Number(n) > 0)) return null;
-  return <span style={{ whiteSpace: 'nowrap' }}>{n}<span className="min-unit">{' ' + tr('min')}</span><span className="min-tick">′</span></span>;
+  // the number + prime are one LTR run (9.10 #644): in a Hebrew line the trailing prime is
+  // neutral and landed on the left, '′120'. The word 'דק׳' (wide screens) stays outside it,
+  // in the line's own direction.
+  return <span style={{ whiteSpace: 'nowrap' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{n}<span className="min-tick">′</span></span><span className="min-unit">{' ' + tr('min')}</span></span>;
 }
 
 // WAS THE TEAM S&C LOGGED FOR THIS PRACTICE? (#305 G1 / L2). Read off the
@@ -5506,7 +5509,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
     const daySlots = past.filter((x) => x.date === f.date)
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
     const trained = [], out = [], scMins = [], scNotes = [], notes = [], rowsBy = [];
-    let notYet = 0;
+    let notYet = 0, wuN = 0;
     for (const t of roster) {
       const rec = loads[t.id];
       const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
@@ -5539,6 +5542,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
           // reported as the mean) and the one note written for it.
           if (rowKind(r) === 'sc' && Number(r.min) > 0) scMins.push(Number(r.min));
           if (rowKind(r) === 'sc' && r.note) scNotes.push(String(r.note));
+          if (rowKind(r) === 'warmup') wuN++;   // the 5-min warm-up, its own line (#646)
           if (r.by) rowsBy.push(r.by);
         }
         const n = (rec.notes && (rec.notes[`${f.date}|${f.start || ''}`] || rec.notes[f.date])) || '';
@@ -5558,7 +5562,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
     // read, so the row needs an author for the same reason a medical record
     // does — you cannot ask a question of an unsigned entry.
     const loggers = [...new Set(rowsBy.filter(Boolean))];
-    return { trained, out, expected: roster.length - notYet, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, notes, loggers };
+    return { trained, out, expected: roster.length - notYet, scMinutes: scMins.length ? Math.round(sum(scMins) / scMins.length) : 0, scNote, wuCount: wuN, notes, loggers };
   // medical belongs here (#305 N-D2): an injury filed or cleared while this
   // card is open moves who was out of a past practice, and without it the
   // rows kept the medical record as it was when the card first rendered.
@@ -5568,7 +5572,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   // the label 8px - and a 128px "Shootaround · 60′" stretched the whole list
   // past the screen. Decided over the WHOLE list, not the rows shown, so
   // "Show more" never moves the columns.
-  const anySc = useMemo(() => past.some((f) => detailFor(f).scMinutes > 0), [past, detailFor]);
+  const anySc = useMemo(() => past.some((f) => { const d = detailFor(f); return d.scMinutes > 0 || d.wuCount > 0; }), [past, detailFor]);
 
   if (!past.length) return null;
 
@@ -5624,7 +5628,10 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                 </span>
                 {/* the S&C slot: on every row while the list has any S&C (empty where none ran), gone when it has none (anySc) */}
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 92, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
-                  {d.scMinutes > 0 ? <>{tr('S&C')} <MinTok n={d.scMinutes} /></> : null}
+                  {/* the warm-up's purple square leads the slot (#646): it is its own thing, not S&C,
+                      and a word for it would not fit a 390 row beside 'S&C 12′' */}
+                  {d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, marginInlineEnd: d.scMinutes > 0 ? 6 : 0, verticalAlign: 'middle' }} /> : null}
+                  {d.scMinutes > 0 ? <><span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, background: SC_COLOR, marginInlineEnd: 4, verticalAlign: 'middle' }} />{tr('S&C')} <MinTok n={d.scMinutes} /></> : null}
                 </span>
                 {/* The two numbers a head coach actually asks for. */}
                 {/* THE WHOLE SQUAD OUT IS NOT A 0/10 PRACTICE (#305 B8) - on a
@@ -5658,6 +5665,12 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                       ? <span dir="auto"><span style={{ fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{d.scMinutes} {tr('min')}</span>{d.scNote ? <span style={{ color: C.tm }}> · {d.scNote}</span> : null}</span>
                       : <span style={{ color: C.td }}>{tr('no S&C session logged')}</span>}
                     {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td, marginInlineStart: 'auto', fontFamily: FN, fontSize: 10 }}>{tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, flexShrink: 0 }}>{tr('Warm-up')}</span>
+                    {d.wuCount > 0
+                      ? <span style={{ fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}><MinTok n={WARMUP_MIN} /></span>
+                      : <span style={{ color: C.td }}>{tr('no warm-up logged')}</span>}
                   </div>
                   <NameRoll label={tr('Trained')} list={d.trained} color={C.tm} empty={tr('nobody logged')} />
                   {d.out.length > 0 && <NameRoll label={tr('Out')} list={d.out} color="#DE4E3B" />}

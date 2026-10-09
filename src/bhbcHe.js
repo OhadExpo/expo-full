@@ -910,6 +910,7 @@ Object.assign(HE, {
   'Warm-up': 'חימום',
   'Remove': 'הסרה',   // as the app's own (i18n.js)
   'Warm-ups': 'חימומים',
+  'no warm-up logged': 'לא נרשם חימום',
   'Warm-up logged': 'החימום נרשם',
   'Warm-up removed': 'החימום נמחק',
   'Warm-up logged - tap to remove it': 'החימום נרשם - לחיצה תמחק אותו',
