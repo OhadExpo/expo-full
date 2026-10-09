@@ -168,9 +168,10 @@ export function resolveChannels(exerciseTitle, movement) {
   return d.matched ? { kind: d.kind, channels: d.channels } : { kind: null, channels: [] };
 }
 
-// Returns { t[], angle[], kind, channels } where angle is median-smoothed and
-// aligned to the frame timestamps. Mirrors the live counter's averaging of the
-// L+R channel pair so asymmetry doesn't drop a rep.
+// Returns { t[], angle[], raw[], kind, channels } where angle is median-smoothed
+// and aligned to the frame timestamps (raw = the same series before smoothing,
+// speed-clamped). Mirrors the live counter's averaging of the L+R channel pair
+// so asymmetry doesn't drop a rep.
 export function channelSignal(frames, exerciseTitle, movement) {
   const { kind, channels } = resolveChannels(exerciseTitle, movement);
   const t = frames.map(f => f.t);
@@ -183,7 +184,27 @@ export function channelSignal(frames, exerciseTitle, movement) {
     }).filter(isReal);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   });
-  return { t, angle: medianFilter(clampAngleSeries(raw, t), 5), kind, channels };
+  const clamped = clampAngleSeries(raw, t);
+  return { t, angle: medianFilter(clamped, 5), raw: clamped, kind, channels };
+}
+
+// How much the joint angle moves ON ITS OWN over a rep (9.10 #552): the median
+// distance of each unsmoothed sample from the 5-point quadratic (Savitzky-Golay)
+// fit through it and its neighbours, between startIdx and endIdx. A quadratic
+// follows a real descent / turn / ascent closely, so what is left is the
+// model's own scatter - a joint it is guessing (occluded by a plate, out of
+// frame) scatters several degrees a sample. null when fewer than 3 clean
+// windows. (A 3-point line fit was tried first: real reps read as noisy
+// through their own curvature - a right push-up count scored 14, a wrong
+// squat count 11; the quadratic residual separates them 32 / 18.)
+export function repJitter(raw, startIdx, endIdx) {
+  const d = [];
+  for (let i = Math.max(2, startIdx); i <= Math.min(raw.length - 3, endIdx); i++) {
+    const w = [raw[i - 2], raw[i - 1], raw[i], raw[i + 1], raw[i + 2]];
+    if (!w.every(isReal)) continue;
+    d.push(Math.abs(w[2] - (-3 * w[0] + 12 * w[1] + 17 * w[2] + 12 * w[3] - 3 * w[4]) / 35));
+  }
+  return d.length >= 3 ? round2(median(d)) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -602,7 +623,9 @@ export function romTempoMetrics(frames, angle, reps) {
     // startT (ms, clip-relative) — lets the RomTable rep row seek the video
     // to this rep's start, same as VelocityTable already does.
     const startT = frames[startIdx]?.t;
-    return { rom, ecc: round1(ecc), pause: round1(pause), con: round1(con), startT: startT != null ? Math.round(startT) : null };
+    // bottomT / endT (ms) - where the rep turns and where it locks out. The
+    // athlete's set read (setAnalysis.isolateSet) spaces the reps by them.
+    return { rom, ecc: round1(ecc), pause: round1(pause), con: round1(con), startT: startT != null ? Math.round(startT) : null, bottomT: tBot != null ? Math.round(tBot) : null, endT: tEnd != null ? Math.round(tEnd) : null };
   });
   const valid = perRep.filter(Boolean);
   const maxRom = valid.reduce((m, r) => Math.max(m, r.rom), 0) || 1;
@@ -1609,10 +1632,12 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
   const mv = explicit ? movementByKey(opts.movement) : undefined;
   const fps = estimateFps(frames);
-  const { angle, kind, channels } = channelSignal(frames, exerciseTitle, mv);
+  const { angle, raw: rawAngle, kind, channels } = channelSignal(frames, exerciseTitle, mv);
   const reps = channels.length ? segmentReps(angle, fps, frames) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
+  // per-rep angle jitter, for the athlete's set read (setAnalysis.readSet)
+  if (romTempo) romTempo.perRep.forEach((p, k) => { if (p) p.jitter = repJitter(rawAngle, reps[k].startIdx, reps[k].endIdx); });
   const jointRom = jointRomMetrics(frames);
   const barSpeed = barSpeedSeries(frames, opts.barLandmark);
   // Ballistic override: for jumps/pogos/hops the joint-angle channel misses
@@ -1643,7 +1668,7 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   // the two when reading a spec. Honest by construction — a channel is present
   // only when its hard gate passed.
   const extRom = extendedJointRom(frames);
-  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
+  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, ballistic, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
 }
 
 // --- small helpers ---

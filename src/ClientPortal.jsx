@@ -38,7 +38,7 @@ import { deriveWeekIdx } from './planWeek';
 import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 import { resolveStoredUrl } from './storageUrl';
-import { summarize as summarizeSet, isUsable as isUsableSetRead } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
+import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
@@ -476,7 +476,7 @@ function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
       const remote = !/^(blob:|data:)/.test(src);
       const url = remote ? ((await resolveStoredUrl(src).catch(() => null)) || src) : src;
       const secs = await clipSeconds(url, remote);
-      const maxFrames = secs ? Math.min(900, Math.max(120, Math.ceil(secs * 12))) : 600;
+      const maxFrames = setFrameBudget(secs);
       const frames = await captureClipFrames(url, {
         crossOrigin: remote, quality: 'lite', maxFrames,
         onProgress: (p) => { if (aliveRef.current) setPct(p); },
