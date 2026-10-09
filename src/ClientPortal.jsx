@@ -3585,7 +3585,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt("ENTRIES")}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt(bwData.length === 1 ? "ENTRY" : "ENTRIES") /* '1 ENTRIES' (audit #612 B10) */}</div>
         </div>
 
         {/* One condition for whether SAVE can act, read by both the handler
