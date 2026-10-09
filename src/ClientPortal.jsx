@@ -2003,7 +2003,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
        // Hebrew athletes read "Exercise 1/4" in English on every exercise step
        // (9.10, measured on /demo/athlete?lang=he) - the warm-up line was the
        // only one translated.
-       groups[step]?.superset ? (heCtx ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}`) :
+       groups[step]?.superset ? (heCtx ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · ${step+1}/${groupCount}` /* no 'Group': the counter is the same step count 'Exercise 2/8' uses (audit #612 B10) */) :
        `${tt('Exercise')} ${step+1}/${groupCount}`}
     </div></div>;
 
