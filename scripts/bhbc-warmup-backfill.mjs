@@ -114,6 +114,8 @@ for (const date of Object.keys(byDate).sort()) {
   if (live.length >= 2) skipped.doubleMorning.push(`${date} ${live[0].start}`);
   for (const f of targets) {
     if (!happened(f)) { skipped.notYet.push(`${date} ${f.start}`); continue; }
+    // a coach REMOVED this practice's warm-up (the practice carries noWarmup): it stays removed (1008z review MUST)
+    if (f.noWarmup) { (skipped.removed = skipped.removed || []).push(`${date} ${f.start}`); continue; }
     const slotKey = `${date}|${f.start || ''}`;
     const who = roster.filter((a) => {
       const rec = loads[a.id] || {};

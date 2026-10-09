@@ -2191,7 +2191,14 @@ select.avail-select:dir(rtl) {
    label, "S&C ✓ 10′" / Hebrew "כוח ✓ 10′", plus air), CANCEL one width
    (--cx-w), each the chip's full height behind one hairline. A segment tints on
    hover; nothing inside it draws a box. */
-:root { --sc-w: 96px; --cx-w: 76px; --wu-w: 112px; }   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
+:root { --sc-w: 96px; --cx-w: 76px; --wu-w: 112px; }
+/* the columns view stacks a chip's actions one per row (1008z review: three side by side spilled
+   out of a 1/7 column); each row the chip's own height, a hairline between them */
+.bhbc-chip-acts-col > .bhbc-seg { border-inline-start: none !important; width: auto !important; flex: 0 0 auto !important; height: calc(var(--btn-h) - 2px) !important; }
+.bhbc-chip-acts-col > .bhbc-seg + .bhbc-seg { border-top: 1px solid var(--c-cardBd) !important; }
+/* past practices' warm-up + S&C slot: 'S&C 12 min' and two squares need 112px; a phone shows '12′' in 92 */
+:root { --past-sc-w: 112px; }
+@media (max-width: 420px) { :root { --past-sc-w: 92px; } }   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
 .bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
 .bhbc-seg:focus-visible { outline: 2px solid var(--c-ac); outline-offset: -2px; }

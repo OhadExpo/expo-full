@@ -570,7 +570,7 @@ const segBtn = (ink = C.tm, extra = null) => ({ display: 'inline-flex', alignIte
 // minutes on one line, actions (segBtn) at its end. `stacked` (a narrow
 // column) puts the actions on a second row of equal segments under a hairline.
 // The venue is never inside it: it is the line that broke a chip to 54px.
-function EventChip({ f, time = null, actions = null, stacked = false, className = '', ...rest }) {
+function EventChip({ f, time = null, actions = null, stacked = false, actsColumn = false, className = '', ...rest }) {
   const tr = useT();
   const off = isCancelled(f);
   const col = FX_COLOR[f.type] || NAVY;
@@ -597,7 +597,9 @@ function EventChip({ f, time = null, actions = null, stacked = false, className 
       style={{ display: 'flex', flexDirection: stacked ? 'column' : 'row', alignItems: 'stretch', minWidth: 0, height: stacked ? 'auto' : 'var(--btn-h)', boxSizing: 'border-box', border: `1px ${off ? 'dashed' : 'solid'} ${off ? C.cardBd : col}`, background: 'var(--c-sf)' }}>
       {info}
       {actions && (stacked
-        ? <span className="bhbc-chip-acts" style={{ display: 'flex', alignItems: 'stretch', height: 'calc(var(--btn-h) - 2px)', borderTop: `1px solid ${C.cardBd}` }}>{actions}</span>
+        ? actsColumn
+          ? <span className="bhbc-chip-acts bhbc-chip-acts-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', borderTop: `1px solid ${C.cardBd}` }}>{actions}</span>
+          : <span className="bhbc-chip-acts" style={{ display: 'flex', alignItems: 'stretch', height: 'calc(var(--btn-h) - 2px)', borderTop: `1px solid ${C.cardBd}` }}>{actions}</span>
         : actions)}
     </div>
   );
@@ -1399,8 +1401,24 @@ function attendance28(rec, days) {
   // practice - the zone's own rule: landed by then, not out for the day, not marked out of the
   // slot (ghosts are not on the roster). It never writes attendance; the practice's record is
   // the S&C sheet's / the availability's. A second tap takes it off again.
-  const setWarmup = useCallback((date, start = '', on = true) => {
+  const setWarmup = useCallback((date, start = '', on = true, fx = null) => {
     if (!date) return;
+    // a practice still ahead has not warmed up yet (1008z review): judged from that day's record
+    // when it happens, never from today's
+    const nowD = new Date(); const pad2 = (n) => String(n).padStart(2, '0');
+    const todayIso = `${nowD.getFullYear()}-${pad2(nowD.getMonth() + 1)}-${pad2(nowD.getDate())}`, nowHM = `${pad2(nowD.getHours())}:${pad2(nowD.getMinutes())}`;
+    if (on && (date > todayIso || (date === todayIso && (start || '00:00') > nowHM))) { toast('The warm-up is logged once the practice has started'); return; }
+    // A REMOVAL IS REMEMBERED ON THE PRACTICE (1008z review MUST): the daemon adds the warm-up to
+    // every practice it finds without one, so a coach's removal came back 20 minutes later. The
+    // practice carries noWarmup; the backfill skips it, and adding it again clears the mark.
+    if (fx && setBhbcFixtures) {
+      setBhbcFixtures((prev) => (prev || []).map((x) => {
+        if (!sameSlot(x, fx)) return x;
+        const next = { ...x };
+        if (on) delete next.noWarmup; else next.noWarmup = true;
+        return next;
+      }));
+    }
     const slotKey = `${date}|${start || ''}`;
     const ids = roster.filter((t) => {
       const rec = bhbcLoads[t.id] || {};
@@ -1411,7 +1429,7 @@ function attendance28(rec, days) {
       if (availOn(rec, medical, t.id, date) >= 4) return false;
       return ((rec.attendance || {})[slotKey]) !== 'out';
     }).map((t) => t.id);
-    if (!ids.length) { toast(on ? 'Nobody to log - everyone is out of this practice' : 'Warm-up removed'); return; }
+    if (!ids.length) { if (on) toast('Nobody to log - everyone is out of this practice'); return; }
     setBhbcLoads((prev) => {
       const next = { ...prev };
       ids.forEach((id) => {
@@ -1428,7 +1446,7 @@ function attendance28(rec, days) {
     toast(on ? 'Warm-up logged' : 'Warm-up removed');
     track('session', on ? `logged the ${WARMUP_MIN}-min dynamic warm-up on ${fmtNumericDate(date)}${start ? ` ${start}` : ''} · ${ids.length} in` : `removed the warm-up on ${fmtNumericDate(date)}${start ? ` ${start}` : ''}`);
     notify();
-  }, [setBhbcLoads, notify, track, currentUser, roster, bhbcLoads, medical]);
+  }, [setBhbcLoads, setBhbcFixtures, notify, track, currentUser, roster, bhbcLoads, medical]);
 
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
   // readinessAutoreg engine (so the Load board + athlete cards show a real
@@ -5573,6 +5591,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   // past the screen. Decided over the WHOLE list, not the rows shown, so
   // "Show more" never moves the columns.
   const anySc = useMemo(() => past.some((f) => { const d = detailFor(f); return d.scMinutes > 0 || d.wuCount > 0; }), [past, detailFor]);
+  const listHas = useMemo(() => ({ wu: past.some((f) => detailFor(f).wuCount > 0), sc: past.some((f) => detailFor(f).scMinutes > 0) }), [past, detailFor]);
 
   if (!past.length) return null;
 
@@ -5627,7 +5646,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                   {densityOf(f) ? <span style={{ flexShrink: 0 }}>{'\u00A0·\u00A0'}<DensityBit f={f} /></span> : null}
                 </span>
                 {/* the S&C slot: on every row while the list has any S&C (empty where none ran), gone when it has none (anySc) */}
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 92, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 'var(--past-sc-w)', flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
                   {/* the warm-up's purple square leads the slot (#646): it is its own thing, not S&C,
                       and a word for it would not fit a 390 row beside 'S&C 12′' */}
                   {d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, marginInlineEnd: d.scMinutes > 0 ? 6 : 0, verticalAlign: 'middle' }} /> : null}
@@ -5695,7 +5714,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
       {/* what the squares in the S&C slot are (#646): the warm-up is its own thing */}
       {anySc && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10, fontFamily: FB, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}>
-          {[[WARMUP_COLOR, tr('Warm-up')], [SC_COLOR, tr('S&C')]].map(([col, lbl]) => (
+          {[listHas.wu && [WARMUP_COLOR, tr('Warm-up')], listHas.sc && [SC_COLOR, tr('S&C')]].filter(Boolean).map(([col, lbl]) => (
             <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span aria-hidden style={{ width: 8, height: 8, background: col, flexShrink: 0 }} />{lbl}</span>
           ))}
         </div>
@@ -5754,11 +5773,14 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
   const wuWord = he ? 'חימום' : tr('Warm-up');
   const wuLabel = (d, f) => (wuOf(d, f) ? <><span aria-hidden style={{ width: 8, height: 8, background: WARMUP_COLOR, flexShrink: 0, marginInlineEnd: 2 }} />{wuWord}<MinTok n={WARMUP_MIN} /></> : `+ ${wuWord}`);
   const wuBg = (d, f) => (wuOf(d, f) ? `color-mix(in srgb, ${WARMUP_COLOR} 14%, transparent)` : 'transparent');
-  const wuInk = (d, f) => (wuOf(d, f) ? C.tx : d < today ? C.tm : ORANGE);
+  // a practice still ahead: the warm-up waits for it (muted; a tap says why)
+  const wuAhead = (d, f) => { const n = new Date(); const hm = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; return d > today || (d === today && (f.start || '00:00') > hm); };
+  const wuInk = (d, f) => (wuOf(d, f) ? C.tx : wuAhead(d, f) ? C.td : d < today ? C.tm : ORANGE);
   const wuTap = async (d, f) => {
     const on = !wuOf(d, f);
+    if (on && wuAhead(d, f)) { toast('The warm-up is logged once the practice has started'); return; }
     if (!on && !(await confirmToast(tr('Remove the warm-up from this practice?'), { okLabel: tr('Remove'), cancelLabel: tr('Back') }))) return;
-    onWarmup(d, f.start || '', on);
+    onWarmup(d, f.start || '', on, { ...f, date: d });
   };
   // a phone stacks the chip: the session on one line, its actions as one joined row under it
   // (the columns view's own layout) - four segments do not fit one 360 row
@@ -5886,7 +5908,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                     : null;
                   const acts = [wu, sc, cancelBtn, ...edits].filter(Boolean);
                   return (
-                    <EventChip key={i} f={f} stacked={flexActs} actions={acts.length ? acts : null} />
+                    <EventChip key={i} f={f} stacked={flexActs} actsColumn={horizontalWeek} actions={acts.length ? acts : null} />
                   );
                 })}
                 {editing && editing.date === d && (
