@@ -63,6 +63,12 @@ const GRACE_MS = 12000;               // rule 1
 const FRESH_MS = 20000;               // rule A
 const NAG_AFTER_MS = 3 * 24 * 3600 * 1000; // rule 6
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+// The last real input since THIS page loaded (0 = none yet), counted from the bundle's first
+// run. Rule A compared against the update effect's own mount time, which is always after the
+// load, so 'no input since the load' was never true and a fresh open with a build waiting
+// stayed on the old one until 60s idle - mid-workout, the whole session (9.10, in prod since 27.9).
+let LAST_INPUT = 0;
+try { ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, () => { LAST_INPUT = Date.now(); }, { passive: true })); } catch { /* no window */ }
 const K_FIRST = 'expo-update-first-seen';   // "<bundle>|<ms>"
 
 // The bundle this page runs: the same pending update stays pending until it is
@@ -115,7 +121,7 @@ export default function SwUpdateBanner() {
 
   useEffect(() => {
     if (!needRefresh || updating) return;
-    let lastActivity = Date.now();
+    let lastActivity = LAST_INPUT;   // 0 = nothing touched since the load (rule A, and no 'recent input' for the embed rule)
     const bumpActivity = () => { lastActivity = Date.now(); };
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, bumpActivity, { passive: true }));
 
