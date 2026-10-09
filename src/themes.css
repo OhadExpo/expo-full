@@ -2305,3 +2305,11 @@ select.avail-select:dir(rtl) {
    a club badge has no empty badge slot to push a blank second line */
 @media (max-width: 620px) { .prog-striphdr .prog-recency { min-width: 0 !important; } }
 .prog-badge-slot:empty { display: none; }
+
+/* BOOKING AVAILABILITY RULE ON A PHONE (9.10 audit #612 C8): day + two times + × on one
+   row at 360 left each time box ~70px, and the clock icon covered '09:00'. A tap on a
+   time box opens the phone's own picker, so the icon is dropped there and the digits
+   get its room. */
+@media (max-width: 480px) {
+  input.rule-time::-webkit-calendar-picker-indicator { display: none; }
+}
