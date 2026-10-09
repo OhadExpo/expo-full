@@ -2790,7 +2790,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
                     <span className="wr-meta" style={{display:'flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>
                       <span className="wr-dot">·</span>
-                      <span style={{color:C.tx,fontWeight:700}}>W{wo.week}{planWeeks?`/${planWeeks}`:''}</span>
+                      <span style={{color:C.tx,fontWeight:700,unicodeBidi:'isolate'}}>{readLang() === 'he' ? `שבוע ${wo.week}${planWeeks ? `/${planWeeks}` : ''}` : `W${wo.week}${planWeeks ? `/${planWeeks}` : ''}`}</span>{/* the dashboard's rule: 'שבוע 2/4' in Hebrew, not W2/4 (audit #612) */}
                       <span className="wr-dot">·</span>
                       {/* day/month/year in the tight meta row (#294; 27.9 #328 gate: the
                           words-date broke onto two rows at 360) */}
