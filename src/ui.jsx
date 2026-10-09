@@ -1596,12 +1596,17 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     // lagging"): the first scroll event releases the mask once (plates hidden, clip cleared), the
     // items slide freely, and 140ms after the last event - when snap has landed - it is measured
     // and applied once. A resize still measures straight away.
+    // The settle has its OWN timer: a resize / observer callback that shared it cleared the
+    // settle and left the rail 'scrolling' for good - nothing was ever applied again (the demo
+    // menu sat sliced from first load, caught by verify-rail-scroll-smooth).
+    let ts = 0;
     function later(e) {
       if (e && e.type === 'scroll') {
         if (!scrolling) { scrolling = true; apply(0, 0, 0, false); }
-        clearTimeout(t); t = setTimeout(() => { scrolling = false; measure(); }, 140);
+        clearTimeout(ts); ts = setTimeout(() => { scrolling = false; measure(); }, 140);
         return;
       }
+      if (scrolling) return;   // the settle will measure
       measure(); clearTimeout(t); t = setTimeout(measure, 140);
     }
     measure();
@@ -1613,7 +1618,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     // what the user does.
     const iv = setInterval(() => { if (window.innerWidth <= maxWidth && document.visibilityState === 'visible') measure(); }, 1000);
     return () => {
-      alive = false; clearTimeout(t); clearTimeout(t2); clearInterval(iv);
+      alive = false; clearTimeout(t); clearTimeout(ts); clearTimeout(t2); clearInterval(iv);
       window.removeEventListener('resize', later);
       if (el) { el.removeEventListener('scroll', later); if (clip) el.style.clipPath = ''; }
       if (ro) ro.disconnect();
