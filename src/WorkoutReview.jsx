@@ -1444,8 +1444,11 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>{tr(readLang(), 'Loading…')}</div>}>
               <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || ''} tab={metricsTab} setTab={setMetricsTab} view="metrics"
                 recordedReps={recordedReps} targetReps={targetReps}
-                playheadT={videoTime * 1000}
-                onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
+                // AnalyzeResult works in CLIP-RELATIVE ms (the first frame = 0), as the Movement Lab
+                // passes it; absolute times here put every trace - and the 3D slider - off by the
+                // moment the athlete entered the frame (1010b review)
+                playheadT={videoTime * 1000 - ((metrics.frames && metrics.frames[0] && metrics.frames[0].t) || 0)}
+                onScrub={(tRel) => { const v = videoRef.current; const t0 = (metrics.frames && metrics.frames[0] && metrics.frames[0].t) || 0; if (v) { const t = Math.max(0, (tRel + t0) / 1000); v.currentTime = t; setVideoTime(t); } }} />
             </Suspense>
           </div>
         </div>

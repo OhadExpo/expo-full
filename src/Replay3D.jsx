@@ -175,8 +175,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       if (head.visible) {
         const E = ears.length ? ears.reduce((acc, k) => acc.add(V(p[k])), new THREE.Vector3()).multiplyScalar(1 / ears.length) : V(p[0]);
         const hy = (spineUp || up).clone();
-        const hf = ok(0) && ears.length ? V(p[0]).sub(E) : new THREE.Vector3(0, 0, 1);
-        hf.addScaledVector(hy, -hf.dot(hy)); if (hf.lengthSq() < 1e-8) hf.set(0, 0, 1); hf.normalize();
+        // no face: a stand-in direction that is never along the spine (a plank filmed from the feet
+        // has the spine along z - a z stand-in collapsed the head's axes, 1010b review)
+        const alt = Math.abs(hy.z) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+        const hf = ok(0) && ears.length ? V(p[0]).sub(E) : alt.clone();
+        hf.addScaledVector(hy, -hf.dot(hy)); if (hf.lengthSq() < 1e-8) hf.copy(alt).addScaledVector(hy, -alt.dot(hy)); hf.normalize();
         const hx = new THREE.Vector3().crossVectors(hy, hf).normalize();
         const c = E.clone().addScaledVector(hy, 0.03);
         place(head, c, hx, hy, hf, 0.085, 0.115, 0.1);
