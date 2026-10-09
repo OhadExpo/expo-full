@@ -97,6 +97,7 @@ try {
   await pg.deleteCookie({ name: 'expo-rt', url: BASE });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* ignore */ } });
   for (const c of await pg.cookies()) await pg.deleteCookie(c);   // the session cookie too (9.10 #605): a leftover one revives the previous seat
+  await pg.evaluate(() => { try { localStorage.setItem('expo-gate-run', '1'); } catch { /* storage blocked */ } });   // a gate, not a visit: no 'opened the club zone' under a real name (#604)
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(3500);
   await pg.evaluate(({ email, pw }) => {
