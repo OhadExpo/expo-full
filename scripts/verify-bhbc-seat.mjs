@@ -63,6 +63,11 @@ try {
   phase = 'sign-in';
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
+  // THE SESSION ALSO LIVES IN A COOKIE (5.10 #560 offline boot): clearing storage
+  // alone left the PREVIOUS seat's cookie, the app revived it, and this gate
+  // measured the owner while calling him the PT - "BHBC seat can SEE owner
+  // revenue" on 9.10, a false alarm. Clear the cookies too, then PROVE the seat.
+  for (const c of await pg.cookies()) await pg.deleteCookie(c);
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(3500);
   await pg.evaluate(({ email, pw }) => {
@@ -91,6 +96,9 @@ try {
       && !/^\s*loading/i.test(document.body.innerText.trim()))) break;
   }
   await wait(2500);
+  const who = await pg.evaluate((k) => { try { const j = JSON.parse(localStorage.getItem(k) || 'null'); return (j && j.user && j.user.email) || null; } catch { return null; } }, 'sb-gtcbfglttoiyfsnfbhdy-auth-token');
+  console.log('signed in as: ' + who);
+  if (who !== EMAIL) { console.log(`FAILED: the page is signed in as ${who}, not ${EMAIL} - nothing about this seat was measured`); process.exit(1); }
   const seat = await pg.evaluate(() => ({
     login: /sign in/i.test(document.body.innerText.slice(0, 300)),
     txt: document.body.innerText.replace(/\s+/g, ' ').trim().slice(0, 100),
