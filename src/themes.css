@@ -2338,6 +2338,6 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
    video / cues marks, its reason and VIEW. On a phone the name takes the first line and the
    rest wraps under it. */
 @media (max-width: 600px) {
-  .em-sugg-btn { flex-wrap: wrap !important; row-gap: 6px !important; }
+  .em-sugg-btn { flex-wrap: wrap !important; row-gap: 6px !important; justify-content: flex-start !important; padding-inline-start: 10px !important; }
   .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 24px) !important; }
 }

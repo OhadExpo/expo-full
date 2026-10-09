@@ -276,7 +276,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           <span className="em-sugg-title" style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
-                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{tr(readLang(), s.why)}</span>
+                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf], unicodeBidi: 'isolate' }} dir="ltr" /* '+plate' / '-horizontal' are diff marks: their sign stays on the left in Hebrew */>{tr(readLang(), s.why)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
                             style={VIEW_TAG}>{tt('VIEW')}</span>
