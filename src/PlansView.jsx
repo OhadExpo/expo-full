@@ -69,6 +69,13 @@ const plural = (n, word, lang = 'en') => countIn(lang, n, word);
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
+// A day added to a plan whose days are lettered continues the letters in order - A, B -> C
+// (Ohad 9.10 #634: 'regular order.. abcd', 'applied everywhere'); a numbered plan keeps numbers.
+const nextDayName = (days) => {
+  const named = days.filter((d) => /^day\s/i.test(d.name || ''));
+  const lettered = named.filter((d) => /^day [a-z](?![a-z])/i.test(d.name || ''));
+  return lettered.length && lettered.length === named.length ? `Day ${String.fromCharCode(65 + lettered.length)}` : `Day ${days.length + 1}`;
+};
 
 const PAGE_SIZE = 25;
 
@@ -2218,7 +2225,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [leftPaneRef, leftSbInset] = useScrollbarInset(compareActive);
 
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
-  const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
+  const addDay = () => { setPlan(p => ({...p, days: [...p.days, { ...defaultDay(p.days.length+1), name: nextDayName(p.days) }]})); setActiveDay(plan.days.length); };
   const removeDay = i => { if (plan.days.length<=1) return; setPlan(p => ({...p, days: p.days.filter((_,idx)=>idx!==i)})); if (activeDay>=plan.days.length-1) setActiveDay(Math.max(0,plan.days.length-2)); };
   const addExWithId = (exerciseId) => {
     const ex = defaultPlanEx();
