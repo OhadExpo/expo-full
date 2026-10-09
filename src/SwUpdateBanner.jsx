@@ -62,7 +62,7 @@ const IDLE_MS = 60000;
 const GRACE_MS = 12000;               // rule 1
 const FRESH_MS = 20000;               // rule A
 const NAG_AFTER_MS = 3 * 24 * 3600 * 1000; // rule 6
-const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll', 'wheel', 'pointerdown'];   // wheel: an inner panel's scroll never reaches window as 'scroll' (1008t review)
 // The last real input since THIS page loaded (0 = none yet), counted from the bundle's first
 // run. Rule A compared against the update effect's own mount time, which is always after the
 // load, so 'no input since the load' was never true and a fresh open with a build waiting
@@ -121,8 +121,13 @@ export default function SwUpdateBanner() {
 
   useEffect(() => {
     if (!needRefresh || updating) return;
-    let lastActivity = LAST_INPUT;   // 0 = nothing touched since the load (rule A, and no 'recent input' for the embed rule)
-    const bumpActivity = () => { lastActivity = Date.now(); };
+    // Two clocks (1008t review SHOULD): rule A asks "touched since the LOAD?" (0 = never);
+    // the idle rule and the embed hold count from the last input OR from now, the moment this
+    // update was found - with 0 there, an untouched page reloaded 1s after an update was found
+    // and a YouTube video started inside the frame (its taps never reach this page) lost its hold.
+    let lastActivity = LAST_INPUT;
+    let idleFrom = LAST_INPUT || Date.now();
+    const bumpActivity = () => { lastActivity = Date.now(); idleFrom = lastActivity; };
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, bumpActivity, { passive: true }));
 
     // Rule 5: remember when THIS bundle first saw a pending update.
@@ -165,7 +170,7 @@ export default function SwUpdateBanner() {
       // a demo video playing in an embedded player never takes focus (autoplay after the poster
       // tap), so a visible YouTube/Vimeo player counts too - but only for 20 minutes since the
       // last input, so a forgotten embed cannot hold an update forever (1008p review)
-      return Date.now() - lastActivity < 20 * 60 * 1000 && [...document.querySelectorAll('iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]')].some((f) => f.getClientRects().length > 0);
+      return Date.now() - idleFrom < 20 * 60 * 1000 && [...document.querySelectorAll('iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]')].some((f) => f.getClientRects().length > 0);
     } catch { return false; } };
     const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn() || recordingActive() || mediaPlaying();
     // #464: the two places a reload is never taken on its own - something is
@@ -213,7 +218,7 @@ export default function SwUpdateBanner() {
       // a navigation lands on the new build - but never over typed text (AUDIT-470:
       // an upload ending after the coach moved page and started a note reloaded it)
       if (!forced && window.location.pathname !== pathAtFind && !busy() && !writing()) { silentApply(); return; }
-      if (Date.now() - lastActivity >= IDLE_MS && autoOk()) tryUpdate();
+      if (Date.now() - idleFrom >= IDLE_MS && autoOk()) tryUpdate();
     }, 1000);
 
     return () => {
