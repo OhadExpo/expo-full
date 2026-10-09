@@ -7051,7 +7051,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     return (
                       <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>
                         {(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}
-                        {quiet != null && quiet >= 14 && <span style={{ display: 'block', marginTop: 2, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)', whiteSpace: 'nowrap' }}>{he ? `אין עדכון ${quiet} ימים` : `no update ${quiet}d`}</span>}
+                        {quiet != null && quiet >= 14 && <span style={{ display: 'block', marginTop: 2, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)', whiteSpace: 'nowrap' }}>{he ? `אין עדכון כבר ${quiet} ימים` : `no update ${quiet}d`}</span>}
                       </div>
                     );
                   })()}

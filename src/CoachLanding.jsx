@@ -42,7 +42,7 @@ const STRINGS = {
 
   // Hero
   'hero.badge':          { en: 'COACHING PLATFORM',    he: 'פלטפורמת אימון' },
-  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תנהל את כל המתאמנים שלך באותו מנוע שהם מצלמים איתו.' },
+  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תנהל את כל המתאמנים שלך באותה מערכת שהם מצלמים בה.' },
   'hero.body': {
     en: 'Pose detection, auto rep counter, side-by-side video review, plan authoring, client portals, and a dormant-client WhatsApp nudge — built by a working coach, running live on real clients.',
     he: 'זיהוי תנוחה, ספירת חזרות אוטומטית, השוואה בין שני סרטונים, בניית תוכניות, פורטל אישי לכל מתאמן ותזכורת וואטסאפ למתאמנים ששקטו — מאמן פעיל בונה את זה, וזה כבר עובד עם מתאמנים אמיתיים.',
@@ -102,21 +102,21 @@ const STRINGS = {
   'feat.ops.body': {
     // 5.10 parity: the dashboard's block-ending card (#565, blockEnding.js)
     en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record. It also lists athletes in the last week of a block with no next block written yet — with how much of the block they completed and the best set of their main lift.",
-    he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן. הוא גם מציג מתאמנים בשבוע האחרון של הבלוק שעוד אין להם בלוק הבא — עם כמה מהבלוק הם השלימו והסט הכי טוב בתרגיל המרכזי שלהם.',
+    he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן. הוא גם מציג מתאמנים בשבוע האחרון של הבלוק שעוד אין להם בלוק הבא — כמה מהבלוק הם כבר השלימו, והסט הכי טוב שלהם בתרגיל המרכזי.',
   },
   'feat.review.tag':     { en: 'REVIEW',               he: 'בקרה' },
   'feat.review.title':   { en: 'Per-rep video review', he: 'בקרת וידאו לכל חזרה' },
   'feat.review.body': {
     // 5.10 parity: the review player's speeds (0.125x .. 2x) and frame step
     en: 'Pause on any frame, step frame by frame, slow it down to 0.125x, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
-    he: 'עצירה על כל פריים, מעבר פריים אחרי פריים, האטה עד פי שמונה, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבקרה באותו פורטל — בלי הלוך ושוב במיילים.',
+    he: 'עצירה על כל פריים, מעבר פריים אחרי פריים, האטה עד פי שמונה, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבדיקה באותו פורטל — בלי הלוך ושוב במיילים.',
   },
   'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי נעילה' },
   'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך — אתה מחליט' },
   'feat.export.body': {
     // 5.10 parity: + the library's VIDEOS tool (#559, videoGaps.js)
     en: 'Export everything in one file, anytime — every plan, exercise and workout log. Bring your existing exercise library in: xlsx, sheets, or whatever export your previous app gave you. Bulk import is part of onboarding. The Videos tool ranks the exercises missing a video by how many athletes miss it, suggests only safe matches, shows a dry run before it writes, and checks your links for dead videos.',
-    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים בלי סרטון לפי כמה מתאמנים חסר להם, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר מתים.',
+    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים בלי סרטון לפי כמה מתאמנים חסר להם הסרטון, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר מתים.',
   },
 
   // About

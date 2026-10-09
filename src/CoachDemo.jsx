@@ -5065,7 +5065,7 @@ function DemoBilling({ onJumpToTrainee }) {
       {/* the real tiles' grid (.kpi-grid): 2 + the odd one full width on a phone */}
       <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
         {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending')}`, C.or)}
-        {sumTile('Overdue', fmtIls(lateAmt), readLang() === 'he' ? `${lateRows.length} · מעל 14 יום` : `${lateRows.length} · ≥ 14d`, C.rd)}
+        {sumTile('Overdue', fmtIls(lateAmt), readLang() === 'he' ? `${lateRows.length} · 14 יום ומעלה` : `${lateRows.length} · ≥ 14d`, C.rd)}
         {sumTile('Collected MTD', fmtIls(collected), T('received'), C.gn)}
       </div>
       {/* OWED, expanded - the real billing page's second section */}

@@ -397,7 +397,7 @@ export async function savePlan(plan) {
     if (cur && cur.updated_at !== base) {
       console.warn(`[savePlan] ${plan.id} changed on another device since this editor loaded it (${base} -> ${cur.updated_at}); not overwriting.`);
       if (typeof window !== 'undefined') {
-        try { toast(readPlanLangHe() ? 'התוכנית שונתה במכשיר אחר - טען מחדש לפני שמירה. השינוי שלך עדיין בעורך.' : 'This program was changed on another device - reload before saving. Your edit is still in the editor.', 'error', { ttl: 9000 }); } catch {}
+        try { toast(readPlanLangHe() ? 'התוכנית שונתה במכשיר אחר - תטען מחדש לפני שאתה שומר. השינוי שלך עדיין בעורך.' : 'This program was changed on another device - reload before saving. Your edit is still in the editor.', 'error', { ttl: 9000 }); } catch {}
       }
       return false;
     }

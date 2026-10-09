@@ -375,7 +375,7 @@ const STRINGS = {
   // ─── Testimonials ─────────────────────────────────────────────────
   'testi.badge':      { en: 'ATHLETE VOICES',  he: 'מהספורטאים' },
   'testi.h2':         { en: 'What people say after a block', he: 'מה אומרים אחרי בלוק' },
-  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each athlete.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום ואישור עם כל ספורטאי.' },
+  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each athlete.', he: 'ציטוטים בקרוב. המקומות כאן שמורים עד שאסגור צילום ואישור עם כל ספורטאי.' },
 
   // ─── Israeli trust signals strip ──────────────────────────────────
   'trust.badge':      { en: 'WHY IT IS SAFE TO BUY', he: 'למה זה בטוח לקנות' },
