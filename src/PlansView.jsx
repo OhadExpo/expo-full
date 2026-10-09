@@ -4507,7 +4507,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       const daysSince = lastTs ? Math.floor((now - lastTs) / 86400000) : null;
       rows.push({
         tid,
-        name: traineeMap[tid] || (tid === '__unassigned__' ? 'Unassigned' : tid),
+        name: traineeMap[tid] || (tid === '__unassigned__' ? tt('Unassigned') : tid),   // was English in the Hebrew list (audit #612)
         current,
         earlier,
         daysSince,

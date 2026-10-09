@@ -34,7 +34,7 @@ import TraineeIntake from './TraineeIntake';
 import { rowKind } from './bhbcSession';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
-import { useT, tr, readLang } from './i18n';
+import { useT, tr, readLang, daysCount, exercisesCount } from './i18n';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
 // markers counts, the way PlansView already had to accept all three.
@@ -498,7 +498,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               </button>
             )}
           </div>
-          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount||0} {t('days')} · {cur.exerciseCount||0} {t('exercises')}</div>
+          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{daysCount(cur.dayCount||0)} · {exercisesCount(cur.exerciseCount||0)}</div>
         </div>
 
         {/* Light text actions — PORTAL toggle (green, kept) + spacer + Only / Remove. */}

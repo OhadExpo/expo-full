@@ -28,7 +28,7 @@
 import { safeUrl } from './VideoEmbed';   // a link read from a sheet cell is http(s) or nothing (5.10, security gate S10/S14)
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { mergeFilled } from './importMerge';
-import { useT, tr, readLang } from './i18n';
+import { useT, tr, readLang, daysCount, exercisesCount } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
@@ -335,7 +335,7 @@ function ProgramImport({ drafts, source, lib, titleGroups, resOf, onPickMatch, l
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, alignItems: 'end' }}>
             <Select label="Athlete" placeholder={tt('Pick an athlete')} options={rosterOptions} value={athleteId} onChange={onAthlete} />
             <div style={{ ...metaStyle, minHeight: 'var(--btn-h)', display: 'flex', alignItems: 'center', lineHeight: 1.6 }}>
-              <span><span style={{ color: source === 'direct' ? C.ac : C.tm }}>{source === 'direct' ? tt('Read directly - no AI') : tt('Read by AI')}</span>{` · ${nDays} ${tt('days')} · ${nEx} ${tt('exercises')} · ${nVid} ${tt('videos')}`}</span>
+              <span><span style={{ color: source === 'direct' ? C.ac : C.tm }}>{source === 'direct' ? tt('Read directly - no AI') : tt('Read by AI')}</span>{` · ${daysCount(nDays)} · ${exercisesCount(nEx)} · ${nVid} ${tt('videos')}`}</span>
             </div>
             <Btn onClick={onCommit} disabled={committing || !!block} style={{ minWidth: 168, justifyContent: 'center' }}>{tr(readLang(), committing ? 'Writing…' : 'Commit to Database')}</Btn>
           </div>

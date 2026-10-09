@@ -14,7 +14,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { C, FN, FB } from './theme';
 import { CollapsibleSection, Modal } from './ui';
 import { supabase } from './supabase';
-import { useT, readLang } from './i18n';
+import { useT, readLang, daysCount } from './i18n';
 import { fmtNumericDate } from './dates';
 
 const ils = (n) => `₪${Math.round(n).toLocaleString('en-US')}`;
@@ -142,7 +142,7 @@ function Detail({ e, tt, onClose, onOpenBilling, onSelectTrainee }) {
         <Row k={tt('OWED')} v={e.amount > 0 ? ils(e.amount) : '—'} ltr />
         {s && <>
           <Row k={tt('SOURCE')} v={s.section === 'online' ? tt('Roster sheet · online') : tt('Roster sheet · in person')} />
-          <Row k={tt('LAST PAYMENT')} v={`${fmtNumericDate(s.last_payment)}${daysSince(s.last_payment) != null ? ` · ${daysSince(s.last_payment)} ${tt('days')}` : ''}`} />
+          <Row k={tt('LAST PAYMENT')} v={`${fmtNumericDate(s.last_payment)}${daysSince(s.last_payment) != null ? ` · ${daysCount(daysSince(s.last_payment))}` : ''}`} />
           {s.sessions_text && <Row k={tt('SESSIONS SINCE')} v={<bdi>{s.sessions_text}</bdi>} />}
           {s.price_text && <Row k={tt('PRICE')} v={<bdi>{s.price_text}</bdi>} />}
           {s.prices && s.prices.personal != null && <Row k={tt('PRICE RULE')} v={`${tt('personal')} ${s.prices.personal} · ${tt('couple')} ${s.prices.couple}`} />}
@@ -150,7 +150,7 @@ function Detail({ e, tt, onClose, onOpenBilling, onSelectTrainee }) {
           {s.sheet_updated && <Row k={tt('SHEET')} v={<bdi>{s.sheet_updated}</bdi>} />}
         </>}
         {e.requests.map((q) => <Row key={q.id} k={tt('REQUEST PENDING')} v={`${ils(parseFloat(q.amount) || 0)} · ${fmtNumericDate(q.created_at)}`} />)}
-        {e.overdue && <Row k={tt('OVERDUE')} v={e.overdue.never ? tt('No payment recorded') : `${e.overdue.days} ${tt('days')}`} />}
+        {e.overdue && <Row k={tt('OVERDUE')} v={e.overdue.never ? tt('No payment recorded') : daysCount(e.overdue.days)} />}
         <div style={{ display: 'grid', gridTemplateColumns: e.traineeId && onSelectTrainee ? '1fr 1fr' : '1fr', gap: 8, marginTop: 16 }}>
           {e.traineeId && onSelectTrainee && <button type="button" onClick={() => { onClose(); onSelectTrainee(e.traineeId); }} style={btn(false)}>{tt('ATHLETE PAGE')}</button>}
           {onOpenBilling && <button type="button" onClick={() => { onClose(); onOpenBilling(); }} style={btn(true)}>{tt('BILLING')} {readLang() === 'he' ? '←' : '→'}</button>}

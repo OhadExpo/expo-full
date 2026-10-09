@@ -3070,6 +3070,19 @@ export function agoLabel(iso, lang) {
   if (m >= 1) return m === 1 ? 'לפני דקה' : `לפני ${m} דקות`;
   return 'עכשיו';
 }
+// A COUNT OF DAYS / EXERCISES (9.10 audit #612: "1 ימים" on program rows). Hebrew
+// agrees the noun with the number - one is "יום אחד", two is the dual "יומיים" - so
+// a number + a looked-up plural word cannot say it. English: "1 day", "2 days".
+export function daysCount(n, lang = readLang()) {
+  const k = Number(n) || 0;
+  if (lang === 'he') return k === 1 ? 'יום אחד' : k === 2 ? 'יומיים' : `${k} ימים`;
+  return k === 1 ? '1 day' : `${k} days`;
+}
+export function exercisesCount(n, lang = readLang()) {
+  const k = Number(n) || 0;
+  if (lang === 'he') return k === 1 ? 'תרגיל אחד' : `${k} תרגילים`;
+  return k === 1 ? '1 exercise' : `${k} exercises`;
+}
 export function daysOverdueHe(n) {
   if (n === 1) return 'באיחור של יום';
   return `באיחור של ${n} ימים`;
