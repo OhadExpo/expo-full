@@ -40,6 +40,17 @@
 //     EXCEPT while something is being written (a focused field, or any visible
 //     field holding typed text) and EXCEPT on the athlete portal, where the
 //     pill waits for the tap. Rules A/B (fresh load, navigation) are unchanged.
+//
+// 9.10 (#626), Ohad: "Make sure the platform auto reload (if not in the middle of anything)
+// when they need to update". Two gaps closed:
+//   - an app that STAYS OPEN never asked for a new build (only a URL change did), and a phone
+//     PWA resumed from the background is exactly that. Now: a check every 10 minutes while
+//     visible, and one the moment the app comes back to the foreground;
+//   - R. a RESUME is a fresh load: an update found within 15s of coming back, before any
+//     touch, applies silently (busy rules still win);
+//   - the athlete portal is no longer excluded from the idle rule (27.9: athletes update
+//     "automatically ... instead of asking"); the busy + writing guards cover a workout,
+//     a film, an upload, an unsaved session and a typed note. Public forms stay excluded.
 
 import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -85,7 +96,18 @@ export default function SwUpdateBanner() {
       window.__expoLastNav = Date.now();
       try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ }
     }, 800);
-    return () => clearInterval(iv);
+    // #626: a check every 10 minutes while visible, and one on coming back to the foreground
+    const check = () => { try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ } };
+    const ivCheck = setInterval(() => { if (document.visibilityState === 'visible') check(); }, 10 * 60 * 1000);
+    const onResume = () => { if (document.visibilityState === 'visible') { window.__expoResumeAt = Date.now(); check(); } };
+    const onInput = () => { window.__expoLastInput = Date.now(); };
+    document.addEventListener('visibilitychange', onResume);
+    ['pointerdown', 'touchstart', 'keydown'].forEach((e) => window.addEventListener(e, onInput, { passive: true }));
+    return () => {
+      clearInterval(iv); clearInterval(ivCheck);
+      document.removeEventListener('visibilitychange', onResume);
+      ['pointerdown', 'touchstart', 'keydown'].forEach((e) => window.removeEventListener(e, onInput));
+    };
   }, []);
   const [tick, setTick] = useState(0);           // re-evaluates the rules once a second
   const lang = readLang();
@@ -140,8 +162,10 @@ export default function SwUpdateBanner() {
     } catch { return true; } };
     // ...and the public form pages (#510-R2 M10): a half-filled intake, a contract
     // being signed or a booking being made is never reloaded from under the visitor
-    const onAthletePortal = () => { try { return /^\/(athlete|demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname) || !!document.body.getAttribute('data-athlete-lang'); } catch { return true; } };
-    const autoOk = () => !busy() && !writing() && !onAthletePortal();
+    // #626: the athlete portal now updates on its own when idle (busy/writing still guard it);
+    // the public forms and the demo athlete (its state lives in the page) still never reload.
+    const onPublicForm = () => { try { return /^\/(demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname); } catch { return true; } };
+    const autoOk = () => !busy() && !writing() && !onPublicForm();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
     const onVis = () => { if (document.visibilityState === 'hidden' && autoOk()) tryUpdate(); };
@@ -157,7 +181,10 @@ export default function SwUpdateBanner() {
     window.addEventListener('keydown', onKey);
     const navAt = window.__expoLastNav || 0;
     const justNavigated = () => Date.now() - navAt < 15000 && lastKey < navAt;
-    if (!forced && (freshNoInput() || justNavigated()) && !busy()) {
+    // Rule R (#626): back in the foreground moments ago and not touched since - like a fresh load
+    const resumeAt = window.__expoResumeAt || 0;
+    const justResumed = () => resumeAt > 0 && Date.now() - resumeAt < 15000 && (window.__expoLastInput || 0) < resumeAt;
+    if (!forced && (freshNoInput() || justNavigated() || justResumed()) && !busy() && !writing()) {
       silentApply();
       return () => { ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, bumpActivity)); window.removeEventListener('keydown', onKey); };
     }
