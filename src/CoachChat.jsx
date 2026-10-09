@@ -39,6 +39,17 @@ export default function CoachChat() {
   const he = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
   const L = (en, heText) => (he ? heText : en);
   const [open, setOpen] = useState(false);
+  // ON A PHONE THE BUBBLE WAITS FOR THE FIRST SCROLL (9.10 audit #612 E4): at 390 it sat
+  // on the hero's last line ('NO CARD · NO SIGNUP · ...'), and the first screen already has
+  // its CTAs plus the sticky bar. On a wider screen it shows at once, as before.
+  const [pastFold, setPastFold] = useState(() => typeof window === 'undefined' || window.innerWidth > 480 || window.scrollY > 300);
+  useEffect(() => {
+    if (pastFold) return undefined;
+    const onScroll = () => { if (window.innerWidth > 480 || window.scrollY > 300) setPastFold(true); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+  }, [pastFold]);
   const [messages, setMessages] = useState([]); // [{role:'user'|'assistant'|'system-capture', content:string}]
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -214,7 +225,7 @@ export default function CoachChat() {
   return (
     <>
       {/* Floating bubble — always visible bottom-right when closed */}
-      {!open && (
+      {!open && pastFold && (
         <button onClick={() => { setOpen(true); trackFunnel('coach_chat_open', {}); }} aria-label={L('Open chat', 'פתיחת צ׳אט')}
           style={{
             // insetInlineEnd, not right: in Hebrew the bubble belongs on the
