@@ -1747,9 +1747,10 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    height is 26 on touch too (7.5px above, 7.5px below - the desktop's own geometry), and the
    finger keeps its 32: an invisible 3px band above and below every strip button. */
 @media (pointer: coarse) {
-  .title-strip, .prog-striphdr, [data-strip-actions] { --btn-h-in: 26px; }
-  .title-strip button:not(.motion-menu button), .prog-striphdr button, [data-strip-actions] button { position: relative; }
-  .title-strip button:not(.motion-menu button)::after, .prog-striphdr button::after, [data-strip-actions] button::after { content: ''; position: absolute; inset: -3px 0; }
+  .title-strip, .prog-striphdr { --btn-h-in: 26px; }
+  .title-strip button:not(.motion-menu button), .prog-striphdr button { position: relative; }
+  .title-strip button:not(.motion-menu button)::after, .prog-striphdr button::after { content: ''; position: absolute; inset: -3px 0; }
+  /* (a strip button that a phone stacks BELOW the strip - [data-strip-actions] - is a 36px page control: untouched) */
 }
 /* the demo's Online Now, shut: the strip IS the card (no 12px band under it) */
 .cd-online.alert-sev .title-strip[aria-expanded="false"] { margin-bottom: -1px !important; }
