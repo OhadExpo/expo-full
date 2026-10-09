@@ -4799,8 +4799,10 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
         /* THE PHONE ROW = the real list's (9.10 #618): title on line 1, status + priority
            as two equal halves on line 2, the meta centred on line 3 only when there is any */
         @media (max-width: 560px) {
-          .dtl-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "title title" "status prio" "meta meta"; column-gap: 10px; padding: 10px 12px; }
-          .dtl-row > .dtl-status, .dtl-row > .dtl-prio { width: 100% !important; justify-self: stretch; }
+          .dtl-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "title title" "status prio" "meta meta"; column-gap: 0; padding: 10px 12px; }
+          /* one joined pair: hairline between, one frame around, colour in the words */
+          .dtl-row > .dtl-status, .dtl-row > .dtl-prio { width: 100% !important; justify-self: stretch; border: 1px solid var(--c-cardBd) !important; background: var(--c-sf) !important; }
+          .dtl-row > .dtl-prio { border-inline-start: none !important; }
           .dtl-meta { justify-self: center !important; }
           .dtl-meta:empty { display: none; }
         }

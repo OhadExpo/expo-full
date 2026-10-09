@@ -374,8 +374,8 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false, fill = false
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     // A FRAME AND COLOURED WORDS, NEVER A FILL (5.10 design rule; 9.10 audit #612:
     // IN PROGRESS sat as a solid yellow block beside the framed TO DO)
-    border: `1px solid ${pillColor}`,
-    background: 'transparent',
+    border: fill ? 'none' : `1px solid ${pillColor}`,
+    background: fill ? 'var(--c-sf)' : 'transparent',
     color: pillColor,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
@@ -470,7 +470,7 @@ function PriorityPill({ priority, onSetPriority, readOnly = false, fill = false 
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
-    border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
+    border: fill ? 'none' : `1px solid ${cur.color}`, background: fill ? 'var(--c-sf)' : 'transparent', color: cur.color,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
   if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
@@ -1613,7 +1613,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // THE PHONE ROW, ONE SHAPE (9.10 #618, Ohad's photo: "buttons and tags are awfully layed
   // out" - a 128px status box on one side of the title, a 96px priority box alone under
   // it, SHARED floating at the far edge). Now: the title has line 1; line 2 is status and
-  // priority as two EQUAL halves of the row; line 3, only when there is any, is the plain
+  // priority as two EQUAL halves of ONE joined pair; line 3, only when there is any, is the plain
   // meta (owner, athlete, shared, due) centred under them.
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
@@ -1828,14 +1828,16 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             already states the status, so repeating it on every card is noise
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
-        {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 1, flex: '1 1 0', minWidth: 0, marginInlineStart: 0 } : null) }}>
-            <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} fill={phone} />
-          </span>
-        )}
-        {phone && (
-          <span style={{ display: 'inline-flex', order: 2, flex: '1 1 0', minWidth: 0 }}>
+        {phone ? (
+          // ONE JOINED PAIR (his 5.10 rule: a group of boxes is one equal-cell grid joined by
+          // hairlines, the colour in the words) - status and priority, equal halves
+          <span style={{ order: 1, flex: '1 1 100%', minWidth: 0, display: 'grid', gridTemplateColumns: hideStatus ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)' }}>
+            {!hideStatus && <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} fill />}
             <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} fill />
+          </span>
+        ) : !hideStatus && (
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined }}>
+            <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
       </div>
