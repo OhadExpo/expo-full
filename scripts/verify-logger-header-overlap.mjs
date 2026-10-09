@@ -45,12 +45,13 @@ for (const w of WIDTHS) {
     await clickText(page, /^(START|AGAIN|RESUME)/);
     await wait(2500);
     const r = await page.evaluate(() => {
-      const label = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()) && getComputedStyle(s).position === 'absolute');
+      const label = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()));
       if (!label) return { err: 'no day label in the logger bar' };
       const bar = label.parentElement;
+      const BR = bar.getBoundingClientRect();
       const resumed = /RESUMED|הופעל מחדש/.test(document.body.innerText);
       const ink = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); const rs = [...rg.getClientRects()].filter((x) => x.width > 0); if (!rs.length) return null; return { l: Math.min(...rs.map((x) => x.left)), r: Math.max(...rs.map((x) => x.right)), t: Math.min(...rs.map((x) => x.top)), b: Math.max(...rs.map((x) => x.bottom)) }; };
-      const L = ink(label);
+      const L0 = ink(label); const LB = label.getBoundingClientRect(); const L = L0 && { ...L0, l: Math.max(L0.l, LB.left), r: Math.min(L0.r, LB.right) };
       const others = [...bar.querySelectorAll('span,img,button,svg')].filter((e) => e !== label && !label.contains(e) && !e.contains(label));
       const hits = [];
       for (const o of others) {
@@ -59,14 +60,16 @@ for (const w of WIDTHS) {
         const R = 'r' in box ? box : { l: box.left, r: box.right, t: box.top, b: box.bottom };
         if (R.l < L.r - 0.5 && R.r > L.l + 0.5 && R.t < L.b - 0.5 && R.b > L.t + 0.5) hits.push(`${o.tagName.toLowerCase()} "${(o.textContent || o.getAttribute('alt') || '').trim().slice(0, 20)}" [${Math.round(R.l)}-${Math.round(R.r)}]`);
       }
-      return { resumed, label: (label.textContent || '').trim(), L: [Math.round(L.l), Math.round(L.r)], hits: [...new Set(hits)] };
+      return { resumed, label: (label.textContent || '').trim(), L: [Math.round(L.l), Math.round(L.r)], hits: [...new Set(hits)], off: Math.round(((L.l + L.r) / 2 - (BR.left + BR.right) / 2) * 10) / 10, cut: [label, ...label.children].some((e) => e.scrollWidth > e.clientWidth + 1), week: /W\d+/.test(label.innerText), barOverflow: bar.scrollWidth > bar.clientWidth + 1 };
     });
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/logger-resumed-${w}.png`, clip: { x: 0, y: 0, width: w, height: 150 } });
     if (r.err) { bad++; console.log(`FAIL ${w}: ${r.err}`); continue; }
     if (!r.resumed) { bad++; console.log(`FAIL ${w}: the logger did not resume - the state this gate exists for was not reached`); continue; }
     measured++;
     if (r.hits.length) { bad++; console.log(`FAIL ${w}: "${r.label}" [${r.L.join('-')}] is overlapped by ${r.hits.join(', ')}`); }
-    else console.log(`ok   ${w}: resumed, "${r.label}" [${r.L.join('-')}] clear of everything else in the bar`);
+    else if (!r.week) { bad++; console.log(`FAIL ${w}: the week number is not visible in "${r.label}"`); }
+    else if (r.barOverflow) { bad++; console.log(`FAIL ${w}: the bar overflows its width`); }
+    else console.log(`ok   ${w}: resumed, "${r.label}" [${r.L.join('-')}] clear of everything else in the bar; ${r.off}px from the bar centre${r.cut ? ', TRUNCATED to fit' : ''}`);
   } finally { await page.close(); }
 }
 await b.disconnect();

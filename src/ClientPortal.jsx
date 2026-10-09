@@ -1893,14 +1893,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return () => clearTimeout(t);
   }, [showResumedPill]);
   const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
-    <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:40}}>
-      <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
-      <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
-      {/* Right cluster — one flex box anchored right with marginLeft:'auto',
-          so ← Exit sits on the RIGHT EDGE always (Ohad). Previously only the
-          autosave pill carried the auto-margin, so before the first autosave
-          the Exit button hugged the logo on the left. */}
-      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+    {/* THREE COLUMNS, NOT AN ABSOLUTE LABEL (9.10 #585). The day label used to
+        be absolutely centred on the bar, outside the flow, so nothing could push
+        it aside: a BHBC athlete's crest + EXIT + the save tick printed over
+        "DAY A · W1" at 360, RESUMED did at every width. 1fr | label | 1fr keeps
+        the label exactly centred whenever it fits; when the bar is tight the
+        sides keep their content and the label gives way (ellipsis) - it is
+        never painted over. */}
+    <div style={{display:'grid',gridTemplateColumns:'1fr minmax(0,max-content) 1fr',alignItems:'center',columnGap:8,marginBottom:6,minHeight:40}}>
+      <EXPOMark theme="dark" height={36} style={{flexShrink:0,justifySelf:'start'}} />
+      {/* Only the day's NAME gives way on a tight bar - the week always shows. */}
+      <span style={{display:'flex',justifyContent:'center',minWidth:0,fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span style={{flexShrink:0}}>{' '}· W{weekNum+1}</span></span>
+      {/* Right cluster — anchored to the right edge of its column, so ← Exit
+          sits on the RIGHT EDGE always (Ohad). */}
+      <div style={{justifySelf:'end',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
           <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
             {/* Glyphs (✓/⚠/…) aren't in JetBrains Mono → they render in a
@@ -1913,7 +1919,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 on top of each other and neither could be read. A failed save is
                 also the most important thing on this screen, so it gets its own
                 full-width strip below instead of a corner it does not fit. */}
-            {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
+            {/* The glyph alone (9.10 #585): "… SAVING" was English inside the
+                Hebrew portal, and with a club crest + EXIT it made the cluster
+                wider than a 360 phone - EXIT was pushed off the screen while a
+                save ran. The colour already says it: saving / ✓ saved / red. */}
+            {sessionAutosave.status === 'saving' ? <span aria-label={tt('SAVING…')} style={{lineHeight:1}}>…</span> :
              sessionAutosave.status === 'error' ? <span aria-hidden="true" style={{width:7,height:7,borderRadius:'50%',background:'#E0574A',display:'inline-block'}} /> :
              lastSavedAt ? <span style={{lineHeight:1}}>✓</span> : ''}
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
