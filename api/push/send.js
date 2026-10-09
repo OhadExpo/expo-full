@@ -212,12 +212,16 @@ export default async function handler(req, res) {
   let ownerSubs = null;
   if (toEmail === OWNER_EMAIL && callerEmail !== OWNER_EMAIL && process.env.HEALTH_SECRET) {
     try {
+      // 4 s cap: four back-to-back calls must stay inside maxDuration
       const r = await fetch(`${SUPA_URL}/rest/v1/rpc/push_owner_subs`, {
         method: 'POST',
         headers: { 'apikey': SUPA_PUBLISHABLE_KEY, 'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`, 'content-type': 'application/json' },
         body: JSON.stringify({ p_secret: process.env.HEALTH_SECRET }),
+        signal: AbortSignal.timeout(4000),
       });
-      if (r.ok) { const j = await r.json(); if (Array.isArray(j)) ownerSubs = j; }
+      // an EMPTY answer is not trusted: a rotated secret (wrong p_secret) also
+      // reads as zero rows, and would drop every push to him without a word
+      if (r.ok) { const j = await r.json(); if (Array.isArray(j) && j.length) ownerSubs = j; }
       else console.error('push/send owner subs failed, falling back:', r.status);
     } catch (e) { console.error('push/send owner subs threw, falling back:', e?.message); }
   }

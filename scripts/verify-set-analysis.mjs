@@ -76,6 +76,11 @@ for (const [n, at] of [[5, 1], [5, 3], [4, 1]]) {
   const s = summarize({ ...good, romTempo: { perRep: lost } });
   ok(s.reps === null, `rep ${at + 1} of ${n} lost -> no number (got ${s.reps})`);
 }
+{ // a stretched double gap (2.5x) in a short set still reads blank (1008g review)
+  const st = per(4, 95, 2.0, 3000); st.splice(2, 1); st[2] = { ...st[2], bottomT: st[1].bottomT + 5000 };
+  const s = summarize({ ...good, romTempo: { perRep: st } });
+  ok(s.reps === null, `set of 4, a rep lost at a 2.5x gap -> no number (got ${s.reps})`);
+}
 ok(summarize({ ...good, romTempo: { perRep: per(3, 95, 2.1, 3000) } }).reps === 3, 'three even reps -> 3');
 ok(summarize({ ...good, romTempo: { perRep: per(4, 95, 2.1, 3000) } }).reps === 4, 'four even reps -> 4');
 // v1 reads (the whole-clip counter, wrong on 14 of 28 real runs) never feed the trend

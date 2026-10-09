@@ -96,10 +96,11 @@ export function isolateSet(events, rules = SET_RULES) {
     if (reps.some(romOut) || gaps.some(gapOut)) return { reps: null, reason: 'inconsistent', trimmed };
     // A short set's median sits between a double gap and a normal one, so a lost
     // rep passes the window (0,2,3 read 3 for a set of 4 - 9.10 review). Up to 4
-    // reps, one gap about twice the shortest is a lost rep: no number.
+    // reps, one gap 1.7x the shortest or more is a lost rep (or two): no number.
+    // (gapOut already passed every gap, so a walk-in never reaches this.)
     if (reps.length <= 4) {
       const gMin = Math.min(...gaps);
-      if (gMin > 0 && gaps.some((g) => g >= 1.7 * gMin && g <= 2.4 * gMin)) return { reps: null, reason: 'inconsistent', trimmed };
+      if (gMin > 0 && gaps.some((g) => g >= 1.7 * gMin)) return { reps: null, reason: 'inconsistent', trimmed };
     }
     return { reps, trimmed };
   }
