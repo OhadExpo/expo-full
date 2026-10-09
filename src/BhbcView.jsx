@@ -3491,7 +3491,7 @@ function ActivityView({ activity = [], tr, he }) {
                       <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'center' }} />
                       <span style={{ fontFamily: FB, fontSize: 13, lineHeight: '18px' /* even leading: a wrapped line sat 11 / 13 in its row */, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
                         {say(e.what)}
-                        {e.n > 1 && <span dir="ltr" style={{ ...lbl, display: 'inline-block', margin: '0 8px' /* both sides: in Hebrew the run sits at the line's left end, where an inline-START margin is on the wrong side (5.10) */, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
+                        {e.n > 1 && <span dir="ltr" style={{ ...lbl, display: 'inline-block', lineHeight: '18px', verticalAlign: 'top' /* the line's own 18px: Nord's taller box grew the line to 19 and sat the row 12/10 (rule rhythm 9.10) */, margin: '0 8px' /* both sides: in Hebrew the run sits at the line's left end, where an inline-START margin is on the wrong side (5.10) */, color: C.td, unicodeBidi: 'isolate' }}>×{e.n}</span>}
                       </span>
                       {people.length >= 2 && <span className="bhbc-act-by" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>{e.by ? byName(e.by) : '—'}</span>}
                     </div>
