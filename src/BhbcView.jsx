@@ -5529,7 +5529,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                   {f.minutes ? <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{f.type !== 'practice' ? '\u00A0·\u00A0' : null}{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span> : null}
                   {densityOf(f) ? <span style={{ flexShrink: 0 }}>{'\u00A0·\u00A0'}<DensityBit f={f} /></span> : null}
                 </span>
-                {/* the S&C slot is always there, empty when none ran */}
+                {/* the S&C slot: on every row while the list has any S&C (empty where none ran), gone when it has none (anySc) */}
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 92, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
                   {d.scMinutes > 0 ? <>{tr('S&C')} <MinTok n={d.scMinutes} /></> : null}
                 </span>
