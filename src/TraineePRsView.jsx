@@ -15,7 +15,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { isRefined5b } from './ui';
 import { EX } from './exerciseData';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, readLang, countIn } from './i18n';
 
 function topSetOfWorkoutEx(ex) {
   // ex.sets[] from the trainee log — { reps, load, rpe, done }
@@ -198,7 +198,9 @@ function Sparkline({ series, overlay, height = 64, overlayUid }) {
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  // Hebrew athletes read "7 Oct" in English here (9.10 #586) - the app's one
+  // date convention is he-IL when the UI is Hebrew.
+  return d.toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' });
 }
 
 // Picker-style Records view: athlete or coach picks a logged exercise from
@@ -304,7 +306,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               />
               {!open && picked ? (
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, marginTop: 6 }}>
-                  {picked.sessionCount} {picked.sessionCount === 1 ? 'session' : 'sessions'}
+                  {readLang() === 'he' && picked.sessionCount === 1 ? 'אימון אחד' : countIn(readLang(), picked.sessionCount, 'session')}
                 </div>
               ) : null}
               {open && (
@@ -328,7 +330,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                       }}>
                       <span style={{ color: C.tx, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
                       <span style={{ fontFamily: FN, color: C.td, fontSize: 10, flexShrink: 0 }}>
-                        {o.sessionCount} session{o.sessionCount === 1 ? '' : 's'}
+                        {readLang() === 'he' && o.sessionCount === 1 ? 'אימון אחד' : countIn(readLang(), o.sessionCount, 'session')}
                       </span>
                     </div>
                   ))}

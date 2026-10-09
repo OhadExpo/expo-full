@@ -398,12 +398,12 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       padding: 14, marginBottom: 14,
     }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 10 }}>
-        📸 MEAL LOG
+        📸 {tt('MEAL LOG')}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
-          style={navBtn}>← PREV</button>
+          style={navBtn}>{tt('← PREV')}</button>
         <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontWeight: 700, letterSpacing: '0.04em' }}>
           {dayLabel(day, tt, he)}
         </span>
@@ -441,7 +441,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                 padding: '10px 18px', border: `1px solid ${C.ac}`, color: C.ac,
                 fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                 width: '100%', textAlign: 'center', boxSizing: 'border-box',
-              }}>+ PHOTO</span>
+              }}>{tt('+ PHOTO')}</span>
             </label>
           )}
           {uploading && (
@@ -503,7 +503,7 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving })
         <div style={{ marginBottom: 10, fontSize: 11, color: C.tm }}>
           {macros.items.map((it, i) => (
             <div key={i} style={{ padding: '2px 0' }}>
-              • {it.name} {it.portion ? `(${it.portion})` : ''} {it.kcal ? `· ${it.kcal} kcal` : ''}
+              • {it.name} {it.portion ? `(${it.portion})` : ''} {it.kcal ? `· ${it.kcal} ${tt('KCAL').toLowerCase()}` : ''}
             </div>
           ))}
         </div>
@@ -615,7 +615,7 @@ function MealRow({ meal, page = false }) {
       <MealThumb url={meal.photo_url} size={56} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', fontWeight: 700 }}>
-          {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <span style={{ color: C.ac }}>{meal.kcal} kcal</span>
+          {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <span style={{ color: C.ac }}>{meal.kcal} {tt('KCAL').toLowerCase()}</span>
         </div>
         <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, marginTop: 2 }}>
           {meal.protein_g}P / {meal.carbs_g}C / {meal.fat_g}F

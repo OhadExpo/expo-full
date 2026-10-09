@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { findAlternates } from './exerciseSimilarity';
 import { ChipGrid } from './ui';
+import { useT } from './i18n';
 
 // F-25 — equipment chips the trainee can toggle on/off. Only alternates
 // matching at least one selected chip will surface. The TRAVELING
@@ -72,6 +73,9 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
   // F-25 — equipment filter chips + TRAVELING toggle. State is local so
   // the sheet remembers selection while open but resets on next open
   // (a different exercise often has a different "what's reasonable" set).
+  // The athlete opens this mid-workout; it was all English in the Hebrew
+  // portal (9.10 #586 - the English-literal gate skipped this file).
+  const tt = useT();
   const [traveling, setTraveling] = useState(false);
   const [activeEquip, setActiveEquip] = useState(() => new Set());
   const toggleEquip = (id) => setActiveEquip(prev => {
@@ -132,16 +136,16 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
               fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
               marginBottom: 4,
             }}>
-              FIND AN ALTERNATE
+              {tt('FIND AN ALTERNATE')}
             </div>
             <div style={{
               fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.4,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }} title={currentTitle}>
-              instead of <span style={{ color: C.tx, fontWeight: 700 }}>{currentTitle}</span>
+              {tt('instead of')} <span style={{ color: C.tx, fontWeight: 700 }}>{currentTitle}</span>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{
+          <button onClick={onClose} aria-label={tt('Close')} style={{
             background: 'transparent', border: 'none', color: C.tm,
             fontSize: 24, cursor: 'pointer', lineHeight: 1, padding: '0 4px',
             flex: '0 0 auto',
@@ -162,22 +166,22 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
             cursor: 'pointer',
             minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>{traveling ? '✓ TRAVELING' : '✈ TRAVELING'}</button>
-          <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginInlineStart: 4 }}>HAVE:</span>
+          }}>{traveling ? '✓ ' : '✈ '}{tt('TRAVELING')}</button>
+          <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginInlineStart: 4 }}>{tt('HAVE:')}</span>
           {/* the seven equipment toggles as one equal-cell grid (5.10 #574); a multi-select, so `value` is the Set */}
           <ChipGrid value={activeEquip} onChange={toggleEquip} style={{ flex: '1 1 auto' }}
-            items={EQUIP_CHIPS.map(chip => ({ k: chip.id, label: chip.label }))} />
+            items={EQUIP_CHIPS.map(chip => ({ k: chip.id, label: tt(chip.label) }))} />
         </div>
 
         {alternates.length === 0 && (
           <div style={{ padding: '36px 20px', textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
-              {activeEquip.size > 0 ? 'NO MATCHES FOR YOUR EQUIPMENT' : 'NO CLOSE MATCHES'}
+              {activeEquip.size > 0 ? tt('NO MATCHES FOR YOUR EQUIPMENT') : tt('NO CLOSE MATCHES')}
             </div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               {activeEquip.size > 0
-                ? 'Try selecting more equipment chips above, or clear the filter to see all alternates.'
-                : "The library doesn't have an obvious alternate for this exercise. Stick with the prescribed one or skip the set."}
+                ? tt('Try selecting more equipment chips above, or clear the filter to see all alternates.')
+                : tt("The library doesn't have an obvious alternate for this exercise. Stick with the prescribed one or skip the set.")}
             </div>
           </div>
         )}
@@ -237,7 +241,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
           marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`,
           fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', textAlign: 'center',
         }}>
-          Just for today's session — the prescribed plan stays intact.
+          {tt("Just for today's session — the prescribed plan stays intact.")}
         </div>
       </div>
     </div>

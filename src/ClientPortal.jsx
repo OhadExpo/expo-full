@@ -1903,12 +1903,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     <div style={{display:'grid',gridTemplateColumns:'1fr minmax(0,max-content) 1fr',alignItems:'center',columnGap:8,marginBottom:6,minHeight:40}}>
       <EXPOMark theme="dark" height={36} style={{flexShrink:0,justifySelf:'start'}} />
       {/* Only the day's NAME gives way on a tight bar - the week always shows. */}
-      <span style={{display:'flex',justifyContent:'center',minWidth:0,fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span style={{flexShrink:0}}>{' '}· W{weekNum+1}</span></span>
+      {/* dir="auto": in an RTL shell (the Hebrew coach preview) an English day
+          name read "W1 · Day A"; overflow:hidden: on a 320 bar with a crest and
+          many pending uploads the unshrinkable " · W12" clips rather than paint
+          over the logo or the cluster (1008a review). */}
+      <span dir="auto" style={{display:'flex',justifyContent:'center',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span style={{flexShrink:0}}>{' '}· W{weekNum+1}</span></span>
       {/* Right cluster — anchored to the right edge of its column, so ← Exit
           sits on the RIGHT EDGE always (Ohad). */}
       <div style={{justifySelf:'end',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
-          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
+          <span title={pendingBlobs > 0 ? (pendingBlobs === 1 ? tt('1 video waiting to upload') : tt('{n} videos waiting to upload').replace('{n}', pendingBlobs)) : (sessionAutosave.status === 'error' ? tt('Last save failed — your edits are not safe yet') : tt('Session saved locally'))} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
             {/* Glyphs (✓/⚠/…) aren't in JetBrains Mono → they render in a
                 fallback font with a taller baseline. Splitting the mark into
                 its own flex item lets alignItems:center line it up with the
@@ -1923,14 +1927,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 Hebrew portal, and with a club crest + EXIT it made the cluster
                 wider than a 360 phone - EXIT was pushed off the screen while a
                 save ran. The colour already says it: saving / ✓ saved / red. */}
-            {sessionAutosave.status === 'saving' ? <span aria-label={tt('SAVING…')} style={{lineHeight:1}}>…</span> :
+            {sessionAutosave.status === 'saving' ? <span role="img" aria-label={tt('SAVING…')} style={{lineHeight:1}}>…</span> :
              sessionAutosave.status === 'error' ? <span aria-hidden="true" style={{width:7,height:7,borderRadius:'50%',background:'#E0574A',display:'inline-block'}} /> :
              lastSavedAt ? <span style={{lineHeight:1}}>✓</span> : ''}
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
-        {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
+        {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt={tt('Bnei Herzliya')} style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
         {/* #472 (AUDIT-470): EXIT during a form-video upload orphaned the clip - the
             upload finished into an unmounted logger (no link) or failed into a queue
             entry with no workout. Leaving mid-upload now asks first. */}
@@ -1957,8 +1961,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {typeof step==='string'&&step.startsWith('wu') ? `${tt('Warm-Up')} ${parseInt(step.slice(2))+1}/${wuCount}` :
        step==='checkin' ? tt('Check-In') :
        step==='end' ? tt('Complete') :
-       groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
-       `Exercise ${step+1}/${groupCount}`}
+       // Hebrew athletes read "Exercise 1/4" in English on every exercise step
+       // (9.10, measured on /demo/athlete?lang=he) - the warm-up line was the
+       // only one translated.
+       groups[step]?.superset ? (readLang() === 'he' ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}`) :
+       `${tt('Exercise')} ${step+1}/${groupCount}`}
     </div></div>;
 
   // ===== WARM-UP STEP =====
@@ -2019,7 +2026,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <StoredVideo src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
-          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
+          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
           <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
             {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
       </div></div>;
@@ -2054,8 +2061,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
         <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
-          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
+          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
+          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('Start Workout →')}</button>
         </div>
       </div></div>;
   }
@@ -2345,7 +2352,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               onMouseEnter={e=>e.currentTarget.style.color=C.ac}
               onMouseLeave={e=>e.currentTarget.style.color=C.tm}>
               <span style={{opacity:0.5,marginRight:4}}>⇄</span>
-              EQUIPMENT BUSY? FIND ALTERNATE
+              {tt('EQUIPMENT BUSY? FIND ALTERNATE')}
             </button>
           ) : (
             <span style={{color:C.ac}}>
@@ -2428,7 +2435,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               <div style={{marginTop:(hasText||showNote)?10:0}}>
                 <button onClick={() => setFbOpenForEid(fbOpen ? null : ex.eid)}
                   style={{width:'100%',padding:'10px 8px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
-                  {fbOpen ? '▾ ' : '▸ '}{tt("Coach's video feedback ·")}{lastWeekFb.count} note{lastWeekFb.count===1?'':'s'}
+                  {fbOpen ? '▾ ' : '▸ '}{tt("Coach's video feedback ·")}{lastWeekFb.count===1 ? tt('1 note') : tt('{n} notes').replace('{n}', lastWeekFb.count)}
                 </button>
                 {fbOpen && (
                   <div style={{marginTop:8}}>
@@ -2484,7 +2491,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-              <input aria-label="Reps" value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
+              <input aria-label={tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
               <input aria-label="RPE" value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
               {/* Whole cell is the tap target (not just the 18px box) so a
@@ -2500,7 +2507,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>{tt("FORM CHECK")}</div>
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>✓ UPLOADED</span></div>}
+            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>{tt('✓ UPLOADED')}</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `Compressing ${f.compressProgress||0}%` : `Uploading ${f.uploadProgress||0}%`}</span></div>}
         </div>
@@ -2518,7 +2525,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   flight — otherwise picking a new file mid-upload would race
                   the previous upload's setFv against the new one's. */}
               <label style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box'}}>
-                Replace
+                {tt('Replace')}
                 <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => {
                   // Drop the slot's prior queued blob before enqueuing the new one —
                   // Replace overwrites pendingBlobId, so without this the old blob
@@ -2565,9 +2572,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </label>
           </div>
         )}
-        <button onClick={() => setLiveCountForEid(ex.eid)} title="Live rep counter — camera + voice trigger"
+        <button onClick={() => setLiveCountForEid(ex.eid)} title={tt('LIVE REP COUNTER')}
           style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-          Live Rep Counter
+          {tt('LIVE REP COUNTER')}
         </button>
         <textarea dir="auto" value={f.note} onChange={e => { const v = e.target.value; setFv(prev => { const n=[...prev]; n[ei]={...n[ei],note:v}; return n; }); }} placeholder={tt('Notes for coach')} style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8,color:C.ac}}/>
       </div>
@@ -2577,8 +2584,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
       {isSuperset && <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
-        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>SUPERSET {group.superset} · {groupExs.length} EXERCISES</div>
-        <div style={{fontSize:11,color:C.tm,marginTop:3}}>Alternate between exercises each round</div>
+        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>{tt('SUPERSET')} {group.superset} · {countIn(readLang(), groupExs.length, 'exercise').toUpperCase()}</div>
+        <div style={{fontSize:11,color:C.tm,marginTop:3}}>{tt('Alternate between exercises each round')}</div>
       </div>}
 
       {groupExs.map(renderExerciseBlock)}
@@ -2589,9 +2596,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div dir="auto" data-upload-background style={{marginTop:20,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{tt('Video uploading in the background — you can keep going.')}</div>
       )}
       <div style={{display:'flex',gap:8,marginTop:anyUploading?10:20}}>
-        {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
+        {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
         <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-          {step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
+          {step===groupCount-1 ? tt('FINISH →') : tt('NEXT →')}</button></div>
     </div></div>;
 }
 
@@ -3126,7 +3133,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <div className="pv-toprow" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
           {/* Bnei Herzliya crest — top row, horizontally centered, sized to the
               EXPO mark's height (Ohad: "all the way up, same size as the EXPO logo"). */}
-          {isBnei && <img className="pv-crest" src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
+          {isBnei && <img className="pv-crest" src="/bnei-herzliya-logo-w.png" alt={tt('Bnei Herzliya')} style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
@@ -3139,7 +3146,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <span style={{width:36}} aria-hidden="true" />
             ) : onReturnToCoach && !demoMode ? (
               <button onClick={onReturnToCoach}
-                title="Switch to the coach portal"
+                title={tt('Switch to the coach portal')}
                 style={{background:'transparent',border:'none',padding:0,marginLeft:3,cursor:'pointer',display:'flex',alignItems:'center'}}>
                 <EXPOMark theme="dark" height={36} style={{marginLeft:0}} />
               </button>
@@ -3202,7 +3209,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <h1 dir="auto" style={{margin:0,lineHeight:1,fontFamily:FN,fontSize:21,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}><span style={/[֐-׿]/.test(clientName.split(' ')[0]) ? {fontFamily:FH} : undefined}>{clientName.split(' ')[0]}</span></h1>
           <div style={{width:24,height:1,background:C.ac,marginTop:12,opacity:0.5}}/>
           {isBnei && (
-            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',lineHeight:1,color:C.ac,marginTop:12,textAlign:'center'}}>BNEI HERZLIYA</div>
+            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',lineHeight:1,color:C.ac,marginTop:12,textAlign:'center'}}>{tt('Bnei Herzliya').toUpperCase()}</div>
           )}
         </div>
         {/* Three across: BLOCK (left) · THIS WEEK completion blocks (centred) ·
@@ -3656,10 +3663,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         })}
         {bwHistOpen && bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>{tt("No bodyweight entries yet")}</div>}
       </div>
-      {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label="Delete bodyweight entry" className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
+      {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label={tt('Delete bodyweight entry')} className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} className={bwDel.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
           <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>{tt("DELETE ENTRY")}</div>
-          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDel.value.bw}kg from {bwDel.value.blockName || '?'} · W{bwDel.value.week || '?'}?</div>
+          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>{tt('Remove {kg}kg from {block} · W{week}?').replace('{kg}', bwDel.value.bw).replace('{block}', bwDel.value.blockName || '?').replace('{week}', bwDel.value.week || '?')}</div>
           <div style={{display:'flex',gap:8}}>
             <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("CANCEL")}</button>
             <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week && b.date===d.date))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("DELETE")}</button>
@@ -3683,8 +3690,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       {renderTopHeader()}
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
-          <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount}{tt('CHECK-IN')}{checkinCount===1?'':'S'}</div>
+          <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>{tt('← HISTORY')}</button>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {readLang() === 'he' ? (checkinCount === 1 ? 'דיווח אחד' : `${checkinCount} דיווחים`) : `${checkinCount} CHECK-IN${checkinCount === 1 ? '' : 'S'}`}</div>
         </div>
         <CheckinTrends workouts={cw} />
       </div>
