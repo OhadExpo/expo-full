@@ -204,11 +204,29 @@ export default async function handler(req, res) {
     notifTitle = `EXPO · ${String(senderName).slice(0, 40)}`;
   }
 
+  // A push TO the owner from anyone else resolves his devices with the server
+  // secret (push_owner_subs), so lookup_push_subscriptions can stop handing his
+  // endpoint + keys to every signed-in athlete (#490, 9.10). Until that function
+  // exists (404) or without the secret, the old lookup below still runs - a push
+  // is never lost to the change.
+  let ownerSubs = null;
+  if (toEmail === OWNER_EMAIL && callerEmail !== OWNER_EMAIL && process.env.HEALTH_SECRET) {
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/push_owner_subs`, {
+        method: 'POST',
+        headers: { 'apikey': SUPA_PUBLISHABLE_KEY, 'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ p_secret: process.env.HEALTH_SECRET }),
+      });
+      if (r.ok) { const j = await r.json(); if (Array.isArray(j)) ownerSubs = j; }
+      else console.error('push/send owner subs failed, falling back:', r.status);
+    } catch (e) { console.error('push/send owner subs threw, falling back:', e?.message); }
+  }
+
   // Resolve target's subscriptions via SECURITY DEFINER RPC. Avoids
   // needing a service-role key in env — the function is gated to
   // authenticated callers and has the same trust boundary as the
   // existing coach_messages insert path.
-  const subsR = await fetch(
+  const subsR = ownerSubs ? null : await fetch(
     `${SUPA_URL}/rest/v1/rpc/lookup_push_subscriptions`,
     {
       method: 'POST',
@@ -220,13 +238,13 @@ export default async function handler(req, res) {
       body: JSON.stringify({ target_email: toEmail }),
     }
   );
-  if (!subsR.ok) {
+  if (subsR && !subsR.ok) {
     const t = await subsR.text().catch(() => '');
     console.error('push/send subs lookup failed:', subsR.status, t.slice(0, 300));
     res.status(502).json({ error: `subs lookup failed (${subsR.status})` });
     return;
   }
-  const subs = await subsR.json();
+  const subs = ownerSubs || await subsR.json();
   if (!Array.isArray(subs) || subs.length === 0) {
     res.status(200).json({ ok: true, sent: 0, note: 'no subscriptions for this user' });
     return;
