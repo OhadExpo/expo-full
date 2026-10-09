@@ -68,6 +68,7 @@ try {
   // measured the owner while calling him the PT - "BHBC seat can SEE owner
   // revenue" on 9.10, a false alarm. Clear the cookies too, then PROVE the seat.
   for (const c of await pg.cookies()) await pg.deleteCookie(c);
+  await pg.evaluate(() => { try { localStorage.setItem('expo-gate-run', '1'); } catch { /* storage blocked */ } });   // a gate, not a visit (#604)
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(3500);
   await pg.evaluate(({ email, pw }) => {
