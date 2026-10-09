@@ -2086,11 +2086,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
-        {opts.map(([v,l],idx) => {
+        {opts.map(([v,l,heWord],idx) => {
           const on = checkin[field] === v;
           const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
           return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
-            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{tt(l)}</button>;
+            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{heCtx && heWord ? heWord : tt(l)}</button>;
         })}
       </div>
     );
@@ -2098,9 +2098,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
         <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24,unicodeBidi:'plaintext'}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
-        <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
-        <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
-        <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH','חזק'],['moderate','MODERATE','בינוני'],['mild','MILD','קל'],['none','NONE','אין']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{/* each scale agrees with its own noun in Hebrew (שינה / אנרגיה feminine, כאב masculine) - the shared GOOD/HIGH words read 'שינה חלש' (audit #612, native-checked) */}{scale('sleep',[['poor','POOR','גרועה'],['ok','OK','בסדר'],['good','GOOD','טובה'],['great','GREAT','מצוינת']], false)}</div>
+        <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW','נמוכה'],['ok','OK','בסדר'],['good','GOOD','טובה'],['high','HIGH','גבוהה']], false)}</div>
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
           <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('Start Workout →')}</button>
