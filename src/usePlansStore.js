@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { supabase } from './supabase';
 import { uid } from './theme';
 import { toast } from './ui';
+import { tr, readLang } from './i18n';
 
 // Drive-imported plans store exercises as d.ex = [{eid, s, r, tempo, superset, n, wk}]
 // to save space. The trainer PlanEditor expects d.exercises = [{id, exerciseId, sets,
@@ -346,7 +347,7 @@ export async function savePlan(plan) {
       const msg = `Refusing to save plan ${plan.id}: would overwrite ${existingExTotal} existing exercises with an empty days[] array. This usually means the editor opened the plan with a stale or broken adapter. Reload the page and try again — if the editor still shows the plan as empty, file a bug instead of saving.`;
       console.error('[savePlan blank-overwrite guard]', msg);
       if (typeof window !== 'undefined') {
-        try { toast('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.', 'error'); } catch {}
+        try { toast(tr(readLang(), 'Save blocked — see console for details. The plan you are saving would wipe {n} existing exercises. Reload the page first.').replace('{n}', () => existingExTotal), 'error'); } catch {}
       }
       return false;
     }
