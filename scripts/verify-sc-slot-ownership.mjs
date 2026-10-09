@@ -9,7 +9,7 @@
 //
 // This imports the REAL predicate (src/bhbcSession.js) — a copy of the logic
 // here would keep passing after the app's version drifted.
-import { rowKind, ownsScRow, buildScRow, scPrefillNotes } from '../src/bhbcSession.js';
+import { rowKind, ownsScRow, buildScRow, scPrefillNotes, buildWarmupRow, ownsWarmupRow } from '../src/bhbcSession.js';
 
 let bad = 0;
 const check = (name, ok, got) => {
@@ -78,6 +78,13 @@ const resave = (dayRows, start, min) => {
 check('rowKind legacy Practice = practice', rowKind({ type: 'Practice', team: true }) === 'practice');
 check('rowKind legacy team Lift = sc', rowKind({ type: 'Lift', team: true }) === 'sc');
 check('rowKind untyped, no team = lift', rowKind({ min: 30 }) === 'lift');
+// THE WARM-UP IS NOT S&C (9.10 #643): its own kind, the old 5-min S&C-shaped rows read as warm-ups,
+// a real S&C (any other note or length) stays S&C, and an S&C save never owns (deletes) a warm-up
+check('warm-up row = warmup', rowKind(buildWarmupRow({ start: '18:00' })) === 'warmup');
+check('old 5-min Dynamic warm-up S&C row = warmup', rowKind(buildScRow({ min: 5, start: '18:00', teamNote: 'Dynamic warm-up' })) === 'warmup');
+check('a real 12-min S&C stays sc', rowKind(buildScRow({ min: 12, start: '18:00', teamNote: 'dynamic stretching + activation' })) === 'sc');
+check('an S&C re-save never owns a warm-up', !ownsScRow(buildWarmupRow({ start: '18:00' }), '18:00') && !ownsScRow(buildScRow({ min: 5, start: '18:00', teamNote: 'Dynamic warm-up' }), '18:00'));
+check('a warm-up is owned only by its own practice', ownsWarmupRow(buildWarmupRow({ start: '18:00' }), '18:00') && !ownsWarmupRow(buildWarmupRow({ start: '18:00' }), '11:00'));
 
 console.log(`\nS&C SLOT-OWNERSHIP GATE — ${shapes.length} row shapes + 8 re-save/note cases + 3 readings, ${bad} failing`);
 process.exit(bad ? 1 : 0);

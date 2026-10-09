@@ -2191,7 +2191,7 @@ select.avail-select:dir(rtl) {
    label, "S&C ✓ 10′" / Hebrew "כוח ✓ 10′", plus air), CANCEL one width
    (--cx-w), each the chip's full height behind one hairline. A segment tints on
    hover; nothing inside it draws a box. */
-:root { --sc-w: 96px; --cx-w: 76px; }
+:root { --sc-w: 96px; --cx-w: 76px; --wu-w: 112px; }   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
 .bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
 .bhbc-seg:focus-visible { outline: 2px solid var(--c-ac); outline-offset: -2px; }

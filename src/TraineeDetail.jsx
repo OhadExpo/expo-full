@@ -1004,7 +1004,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           were already one record: the zone reads EXPO's plans. */}
       {isClubAthleteRow(td) && (() => {
         const rec = (bhbcLoads || {})[trainee] || {};
-        const KIND = { lift: t('Lift'), sc: t('S&C session'), game: t('Game'), practice: t('Practice'), other: t('Session') };
+        const KIND = { lift: t('Lift'), sc: t('S&C session'), warmup: t('Warm-up'), game: t('Game'), practice: t('Practice'), other: t('Session') };   // warm-up is not S&C (#643)
         const entries = [];
         for (const [date, list] of Object.entries(rec.sessions || {})) for (const r of (list || [])) entries.push({ date, r, kind: rowKind(r) });
         entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));

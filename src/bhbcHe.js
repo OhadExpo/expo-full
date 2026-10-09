@@ -906,6 +906,16 @@ Object.assign(HE, {
   'A session cannot move to a day that has not happened': 'אי אפשר להזיז אימון ליום שעוד לא היה',
   'Pick a body part': 'תבחר אזור בגוף',
   'S&C session saved': 'אימון הכוח נשמר',
+  // the dynamic warm-up, its own thing (9.10 #643) - native-checked
+  'Warm-up': 'חימום',
+  'Remove': 'הסרה',   // as the app's own (i18n.js)
+  'Warm-ups': 'חימומים',
+  'Warm-up logged': 'החימום נרשם',
+  'Warm-up removed': 'החימום נמחק',
+  'Warm-up logged - tap to remove it': 'החימום נרשם - לחיצה תמחק אותו',
+  'Log the 5-min dynamic warm-up for everyone at this practice': 'לרשום 5 דקות חימום דינמי לכל מי שהיה באימון',
+  'Remove the warm-up from this practice?': 'למחוק את החימום מהאימון הזה?',
+  'Nobody to log - everyone is out of this practice': 'אין את מי לרשום - כולם מחוץ לאימון הזה',
   'Session added': 'האימון נוסף',
   'Session removed': 'האימון נמחק',
   'Session restored': 'האימון שוחזר',

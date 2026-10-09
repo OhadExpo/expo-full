@@ -27,8 +27,17 @@ export const sessionSig = (x) => (x ? [x.type || '', x.min || 0, x.rpe == null ?
 // What a logged row IS. The reading of each kind, and of the legacy rows that
 // carry only a free-text `type`, is documented above emptyRec in BhbcView.jsx.
 // It lives here so node can import it in the verify suites.
+// THE DYNAMIC WARM-UP IS NOT S&C (9.10 #643, Ohad: "S&C is different than dynamic warmup,
+// and dynamic warmup is automatically 5 minutes as a button when I add"). Its own kind,
+// 'warmup'. The rows written before that were S&C rows with the note 'Dynamic warm-up'
+// (5 min, team) - they read as warm-ups too, so nothing counts them as S&C even before the
+// stored rows are converted.
+export const WARMUP_MIN = 5;
+export const WARMUP_NOTE = 'Dynamic warm-up';
+const legacyWarmup = (r) => r.kind === 'sc' && r.team && Number(r.min) === WARMUP_MIN && (r.teamNote === WARMUP_NOTE || (!r.teamNote && r.note === WARMUP_NOTE));
 export const rowKind = (r) => {
   if (!r) return 'other';
+  if (r.kind === 'warmup' || legacyWarmup(r)) return 'warmup';
   if (r.kind === 'sc' || r.kind === 'lift' || r.kind === 'practice' || r.kind === 'game') return r.kind;
   const t = String(r.type || '').toLowerCase();
   if (t === 'practice' || t === 'shootaround') return 'practice';
@@ -67,6 +76,17 @@ export const buildScRow = ({ min, start = '', teamNote = '', ownNote = '', by = 
   note: ownNote || teamNote || '', teamNote: teamNote || '', ownNote: ownNote || '',
   team: true, start, by,
 });
+
+/**
+ * One athlete's 5-minute dynamic warm-up at the practice that starts at `start` (#643).
+ * Team, no RPE, no load - the same shape as an S&C row, its own kind.
+ */
+export const buildWarmupRow = ({ start = '', by = null }) => ({
+  kind: 'warmup', type: 'Warm-up', min: WARMUP_MIN, rpe: null, load: 0, attended: true,
+  note: WARMUP_NOTE, teamNote: WARMUP_NOTE, ownNote: '', team: true, start, by,
+});
+// the warm-up rows the practice at `start` owns (a practice has at most one warm-up)
+export const ownsWarmupRow = (r, start) => !!r && rowKind(r) === 'warmup' && String(r.start || '') === String(start || '');
 
 /**
  * What the sheet reopens with, from the rows a slot owns ({ athleteId: row }).

@@ -14,7 +14,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy, useTransition } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -25,7 +25,7 @@ import { returnToLoadFlags } from './bhbcReturnLoad';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
-import { sessionSig, rowKind, ownsScRow, buildScRow, scPrefillNotes } from './bhbcSession.js';
+import { sessionSig, rowKind, ownsScRow, buildScRow, scPrefillNotes, buildWarmupRow, ownsWarmupRow, WARMUP_MIN } from './bhbcSession.js';
 import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
@@ -538,6 +538,8 @@ const FX_LABEL_SHORT = { game: 'Game', practice: 'Prac', lift: 'Lift', scrimmage
 // The team S&C block's own colour in the grids (teal - not the lift slate, not
 // the practice blue, not a restriction tint).
 const SC_COLOR = '#2A9D8F';
+// the dynamic warm-up's own colour - not S&C's teal (9.10 #643: they are different things)
+const WARMUP_COLOR = '#8C6BC8';
 // ONE CELL, ONE BOX (27.9, Ohad: "the design is horrible when there's multiple
 // signals in one box" / "the numbers inside the boxes are not helpful at all").
 // Every mark in a grid cell is the same 16px square: one thing fills it, two or
@@ -636,6 +638,14 @@ const COURT_PRACTICE = ['practice', 'shootaround', 'scrimmage'];
 // sync keeps unknown fields on a row it matches (date + type + start), so the
 // next sync does not bring it back. A moved start time is a new session.
 const isCancelled = (f) => !!(f && f.cancelled);
+// The practice's warm-up, if logged (#643): how many athletes carry it. A warm-up row always
+// carries its practice's start, so the match is exact.
+function warmupLoggedFor(loads, athleteIds, f) {
+  if (!f || isCancelled(f) || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
+  let n = 0;
+  for (const id of athleteIds || []) if (((((loads || {})[id] || {}).sessions || {})[f.date] || []).some((r) => ownsWarmupRow(r, f.start || ''))) n++;
+  return n ? { min: WARMUP_MIN, n } : null;
+}
 function scLoggedFor(loads, athleteIds, f, fixtures) {
   if (!f || isCancelled(f) || !COURT_PRACTICE.includes(String(f.type || '').toLowerCase())) return null;
   const first = (fixtures || []).filter((x) => x && !isCancelled(x) && x.date === f.date && COURT_PRACTICE.includes(String(x.type || '').toLowerCase()))
@@ -1381,6 +1391,42 @@ function attendance28(rec, days) {
     toast('S&C session saved'); track('session', `logged the practice and an S&C session on ${fmtNumericDate(date)}${start ? ` ${start}` : ''} · ${min} min · ${inCount} in`); notify();
   }, [setBhbcLoads, notify, track, currentUser, roster]);
 
+  // THE DYNAMIC WARM-UP, ONE TAP (9.10 #643, Ohad: "dynamic warmup is automatically 5 minutes
+  // as a button when I add"). Not S&C: its own 5-minute row (kind 'warmup') for everyone at the
+  // practice - the zone's own rule: landed by then, not out for the day, not marked out of the
+  // slot (ghosts are not on the roster). It never writes attendance; the practice's record is
+  // the S&C sheet's / the availability's. A second tap takes it off again.
+  const setWarmup = useCallback((date, start = '', on = true) => {
+    if (!date) return;
+    const slotKey = `${date}|${start || ''}`;
+    const ids = roster.filter((t) => {
+      const rec = bhbcLoads[t.id] || {};
+      const has = (((rec.sessions || {})[date]) || []).some((r) => ownsWarmupRow(r, start));
+      if (!on) return has;
+      if (has) return false;
+      if (t.arrival && date < t.arrival) return false;
+      if (availOn(rec, medical, t.id, date) >= 4) return false;
+      return ((rec.attendance || {})[slotKey]) !== 'out';
+    }).map((t) => t.id);
+    if (!ids.length) { toast(on ? 'Nobody to log - everyone is out of this practice' : 'Warm-up removed'); return; }
+    setBhbcLoads((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        const rec = next[id] ? { ...next[id] } : emptyRec();
+        const rows = ((rec.sessions || {})[date]) || [];
+        rec.sessions = { ...(rec.sessions || {}) };
+        rec.sessions[date] = on
+          ? (rows.some((r) => ownsWarmupRow(r, start)) ? rows : [...rows, buildWarmupRow({ start, by: currentUser || null })])
+          : rows.filter((r) => !ownsWarmupRow(r, start));
+        next[id] = rec;
+      });
+      return next;
+    });
+    toast(on ? 'Warm-up logged' : 'Warm-up removed');
+    track('session', on ? `logged the ${WARMUP_MIN}-min dynamic warm-up on ${fmtNumericDate(date)}${start ? ` ${start}` : ''} · ${ids.length} in` : `removed the warm-up on ${fmtNumericDate(date)}${start ? ` ${start}` : ''}`);
+    notify();
+  }, [setBhbcLoads, notify, track, currentUser, roster, bhbcLoads, medical]);
+
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
   // readinessAutoreg engine (so the Load board + athlete cards show a real
   // session nudge before athletes have their own portal accounts).
@@ -2124,6 +2170,7 @@ function attendance28(rec, days) {
                 <WeekPlanner fixtures={bhbcFixtures} today={today} loads={bhbcLoads} athleteIds={roster.map((t) => t.id)}
                   onUpsert={null} onRemove={null} onCancel={canLog ? setFixtureCancelled : null}
                   onAttachSc={canLog ? (date, start) => { setScPreset({ date, start }); setPracticeOpen(true); } : null}
+                  onWarmup={canLog ? setWarmup : null}
                   action={canLog ? <StripBtn onClick={() => { setScPreset(null); setPracticeOpen(true); }}>{tr('Log S&C Session')}</StripBtn> : null} />
                 {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
                     want an easy way to view the history of who trained
@@ -2507,7 +2554,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   // EXPO's set-by-set gym workouts keep their own "Gym" chip below.
   // 'S&C' in a row: the chip above already says S&C SESSIONS, and the long word
   // broke every phone row onto three lines (26.9).
-  const KIND_WORD = { sc: 'S&C', lift: 'Lift', practice: 'Practice', game: 'Game' };
+  const KIND_WORD = { sc: 'S&C', warmup: 'Warm-up', lift: 'Lift', practice: 'Practice', game: 'Game' };
   const rowLabel = (s) => {
     const k = rowKind(s);
     if (k === 'practice' && s.type && String(s.type).toLowerCase() !== 'practice') return tr(String(s.type));   // Shootaround keeps its word
@@ -2572,10 +2619,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   const allActivity = activity;
   activity = showPast ? allActivity : allActivity.filter((a) => seasonOfDate(a.date) === curSeason);
   // Counts per kind for the chips, then the visible rows grouped by month.
-  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C', lift: 'Lifts', note: 'Notes', other: 'Other' };
+  const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C', warmup: 'Warm-ups', lift: 'Lifts', note: 'Notes', other: 'Other' };
   const kindCount = {};
   activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
-  const kindChips = ['game', 'practice', 'sc', 'lift', 'note', 'other'].filter((k) => kindCount[k]);
+  const kindChips = ['game', 'practice', 'sc', 'warmup', 'lift', 'note', 'other'].filter((k) => kindCount[k]);
   const effKind = histKind === 'all' || kindChips.includes(histKind) ? histKind : 'all';
   const shownActivity = effKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === effKind);
   const monthKeys = [];
@@ -2625,7 +2672,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                 const mm = Number(r.min) || 0;
                 // team S&C is logged WITH its practice (24.9 model): on a court
                 // day it is that practice's record, counted once below
-                if (d >= cut7 && !(rowKind(r) === 'sc' && fxDays.has(d))) { n7++; m7 += mm; }
+                if (d >= cut7 && !((rowKind(r) === 'sc' || rowKind(r) === 'warmup') && fxDays.has(d))) { n7++; m7 += mm; }
                 if (rowKind(r) === 'lift' && (!lastLift || d > lastLift)) lastLift = d;
                 if (rowKind(r) === 'game' && (!lastGame || d > lastGame.date)) lastGame = gameLineOf(d, r);
               }
@@ -2654,7 +2701,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                 // row, a scrimmage by a game row. A GAME row never swallows the
                 // morning shootaround of a game day (29.9 audit round 2).
                 if (day.some((r) => rowKind(r) === 'practice' || (String(f.type || '').toLowerCase() === 'scrimmage' && rowKind(r) === 'game'))) continue;
-                const hadSc = day.some((r) => rowKind(r) === 'sc');
+                const hadSc = day.some((r) => rowKind(r) === 'sc' || rowKind(r) === 'warmup');   // either proves he was there
                 if (att[`${f.date}|${f.start || ''}`] === 'out') continue;
                 if (!hadSc && id && availOn(rec || {}, medicalAll || {}, id, f.date) >= 4) continue;
                 n7++; m7 += Number(f.minutes) || 0;
@@ -4458,7 +4505,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   // of logged practices. A personal LIFT is never court attendance — that was
   // the 20.9 bug — and S&C MINUTES are never court time: only a court or game
   // row's minutes reach the cell.
-  const isCourtRow = (r) => { const k = rowKind(r); return k === 'practice' || k === 'game' || k === 'sc'; };
+  const isCourtRow = (r) => { const k = rowKind(r); return k === 'practice' || k === 'game' || k === 'sc' || k === 'warmup'; };
   const courtMins = (r) => { const k = rowKind(r); return (k === 'practice' || k === 'game') ? (Number(r.min) || 0) : 0; };
 
   const phone = usePhoneGrid();
@@ -5468,7 +5515,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
       // 30th was being counted at the practices of the 20th. Before his
       // arrival he is not owed the practice at all - out of the count and out
       // of the denominator - unless something was actually logged for him.
-      if (t.arrival && f.date < t.arrival && !(rec && rec.attendance && rec.attendance[`${f.date}|${f.start || ''}`]) && !rows.some((r) => rowKind(r) === 'sc' || rowKind(r) === 'practice')) { notYet++; continue; }
+      if (t.arrival && f.date < t.arrival && !(rec && rec.attendance && rec.attendance[`${f.date}|${f.start || ''}`]) && !rows.some((r) => rowKind(r) === 'sc' || rowKind(r) === 'warmup' || rowKind(r) === 'practice')) { notYet++; continue; }
       // An explicitly recorded attendance for this slot is the truth; the
       // session-row inference below only covers sessions logged before the
       // per-slot model existed.
@@ -5479,7 +5526,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
         // it happens to carry. Caught 20.9 when this card reported "2/10
         // trained" at a practice whose only records were two lifts. A game
         // row belongs to the game, not to a practice on the same day.
-        if (kind !== 'practice' && kind !== 'sc') return false;
+        if (kind !== 'practice' && kind !== 'sc' && kind !== 'warmup') return false;
         if (r.start) return r.start === f.start;
         return daySlots.length > 0 && daySlots[0].start === f.start;
       });
@@ -5636,7 +5683,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   );
 }
 
-function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc, onCancel = null, action = null }) {
+function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpsert, onRemove, onAttachSc, onWarmup = null, onCancel = null, action = null }) {
   const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
@@ -5680,6 +5727,22 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
     <button type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)}
       style={segBtn(scInk(d, f), { width: 'var(--sc-w)', padding: 0, background: scBg(d, f) })}>{scLabel(d, f)}</button>
   );
+  // THE WARM-UP SEGMENT (#643): beside S&C, its own colour and word, one tap = 5 minutes for
+  // everyone at the practice; tapping a logged one asks, then takes it off.
+  const wuOf = (d, f) => warmupLoggedFor(loads, athleteIds, { ...f, date: d });
+  const wuWord = he ? 'חימום' : tr('Warm-up');
+  const wuLabel = (d, f) => (wuOf(d, f) ? <><span aria-hidden style={{ width: 8, height: 8, background: WARMUP_COLOR, flexShrink: 0, marginInlineEnd: 2 }} />{wuWord}<MinTok n={WARMUP_MIN} /></> : `+ ${wuWord}`);
+  const wuBg = (d, f) => (wuOf(d, f) ? `color-mix(in srgb, ${WARMUP_COLOR} 14%, transparent)` : 'transparent');
+  const wuInk = (d, f) => (wuOf(d, f) ? C.tx : d < today ? C.tm : ORANGE);
+  const wuTap = async (d, f) => {
+    const on = !wuOf(d, f);
+    if (!on && !(await confirmToast(tr('Remove the warm-up from this practice?'), { okLabel: tr('Remove'), cancelLabel: tr('Back') }))) return;
+    onWarmup(d, f.start || '', on);
+  };
+  // a phone stacks the chip: the session on one line, its actions as one joined row under it
+  // (the columns view's own layout) - four segments do not fit one 360 row
+  const phone = usePhone();
+  const flexActs = horizontalWeek || (phone && !!onWarmup);
   const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
   const days = useMemo(() => {
     const d = new Date(`${anchor}T12:00:00`);
@@ -5745,7 +5808,7 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
           style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
           {wpLayout === 'columns' ? `▤ ${tr('Rows')}` : `▥ ${tr('Columns')}`}
         </button>
-        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע, מלוח המועדון. ‎+ כוח רושם את אימון הכוח של הקבוצה לאימון הזה.' : 'The week’s practices and games, from the club calendar. + S&C logs the team S&C session for that practice.'}</span>
+        <span style={{ marginInlineStart: 'auto', fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'האימונים והמשחקים של השבוע, מלוח המועדון. ‎+ חימום רושם 5 דקות חימום דינמי לכל מי שהיה באימון; ‎+ כוח רושם את אימון הכוח של הקבוצה.' : 'The week’s practices and games, from the club calendar. + Warm-up logs 5 minutes of dynamic warm-up for everyone at the practice; + S&C logs the team S&C session.'}</span>
       </div>
 
       {/* SEVEN across, like a calendar week (Ohad: "all 7 days in one row, like
@@ -5784,18 +5847,22 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
                     <button key="cx" type="button" data-cancel-fx={off ? 'restore' : 'cancel'} className="bhbc-seg bhbc-cancel-btn" aria-label={tr(off ? 'Restore this session' : 'Cancel this session')}
                       onClick={async (e) => { const el = e.currentTarget; if (off) { onCancel(f, false); return; } if (await confirmToast(he ? `לבטל את האימון של ${f.start || ''}? הוא יישאר בלוח עם קו עליו ולא ייספר בשום מקום.` : `Cancel the ${f.start || ''} ${tr(FX_LABEL[f.type] || 'session').toLowerCase()}? It stays on the calendar, struck through, and counts nowhere.`, { okLabel: he ? 'ביטול האימון' : 'Cancel session', cancelLabel: he ? 'חזרה' : 'Back' })) onCancel(f, true); try { el.blur(); document.activeElement?.blur?.(); } catch { /* gone */ } }}
                       title={tr(off ? 'Restore this session' : 'Cancel this session')}
-                      style={segBtn(C.tm, { width: horizontalWeek ? undefined : 'var(--cx-w)', flex: horizontalWeek ? '1 1 0' : undefined, padding: 0 })}>{off || horizontalWeek ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
+                      style={segBtn(C.tm, { width: flexActs ? undefined : 'var(--cx-w)', flex: flexActs ? '1 1 0' : undefined, padding: 0 })}>{off || flexActs ? tr(off ? 'Restore' : 'Cancel') : <><span className="cx-full">{tr('Cancel')}</span><span className="cx-icon" aria-hidden>⊘</span></>}</button>
                   ) : null;
                   const sc = !off && onAttachSc && court
-                    ? (horizontalWeek ? <button key="sc" type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)} style={segBtn(scInk(d, f), { flex: '1 1 0', padding: 0, borderInlineStart: 'none', background: scBg(d, f) })}>{scLabel(d, f)}</button> : scBtn(d, f))
+                    ? (flexActs ? <button key="sc" type="button" onClick={() => onAttachSc(d, f.start || '')} className="bhbc-seg bhbc-sc-btn" title={scTitle(d, f)} style={segBtn(scInk(d, f), { flex: '1 1 0', padding: 0, ...(onWarmup ? null : { borderInlineStart: 'none' }), background: scBg(d, f) })}>{scLabel(d, f)}</button> : scBtn(d, f))
                     : null;
                   const edits = onUpsert ? [
-                    <button key="ed" type="button" onClick={() => startEdit(d, f)} className="bhbc-seg" title={tr('Edit session')} aria-label={tr('Edit session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: horizontalWeek ? '1 1 0' : undefined })}><PencilGlyph /></button>,
-                    <button key="rm" type="button" onClick={() => onRemove(f)} className="bhbc-seg" title={tr('Remove session')} aria-label={tr('Remove session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: horizontalWeek ? '1 1 0' : undefined })}><CrossGlyph /></button>,
+                    <button key="ed" type="button" onClick={() => startEdit(d, f)} className="bhbc-seg" title={tr('Edit session')} aria-label={tr('Edit session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: flexActs ? '1 1 0' : undefined })}><PencilGlyph /></button>,
+                    <button key="rm" type="button" onClick={() => onRemove(f)} className="bhbc-seg" title={tr('Remove session')} aria-label={tr('Remove session')} style={segBtn(C.tm, { width: 'var(--btn-h)', padding: 0, flex: flexActs ? '1 1 0' : undefined })}><CrossGlyph /></button>,
                   ] : [];
-                  const acts = [sc, cancelBtn, ...edits].filter(Boolean);
+                  const wu = !off && onWarmup && court
+                    ? <button key="wu" type="button" onClick={() => wuTap(d, f)} className="bhbc-seg bhbc-wu-btn" title={tr(wuOf(d, f) ? 'Warm-up logged - tap to remove it' : 'Log the 5-min dynamic warm-up for everyone at this practice')} data-warmup={wuOf(d, f) ? 'on' : 'off'}
+                        style={segBtn(wuInk(d, f), flexActs ? { flex: '1 1 0', padding: 0, borderInlineStart: 'none', background: wuBg(d, f) } : { width: 'var(--wu-w)', padding: 0, background: wuBg(d, f) })}>{wuLabel(d, f)}</button>
+                    : null;
+                  const acts = [wu, sc, cancelBtn, ...edits].filter(Boolean);
                   return (
-                    <EventChip key={i} f={f} stacked={horizontalWeek} actions={acts.length ? acts : null} />
+                    <EventChip key={i} f={f} stacked={flexActs} actions={acts.length ? acts : null} />
                   );
                 })}
                 {editing && editing.date === d && (
