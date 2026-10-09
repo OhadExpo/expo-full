@@ -4782,7 +4782,7 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
   const statusBtn = (t) => {
     const col = STATUS_COLS.find((c) => c.id === t.status) || STATUS_COLS[0];
     const on = t.status === 'working';
-    return <button type="button" title={T('Demo only')} className="dtl-status" style={{ width: 128, height: 'var(--btn-h)', boxSizing: 'border-box', background: on ? '#D4A000' : 'transparent', border: `1px solid ${on ? '#D4A000' : 'var(--c-tm)'}`, color: on ? '#0a0a0b' : 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', justifySelf: 'end' }}>{T(col.label)}</button>;
+    return <button type="button" title={T('Demo only')} className="dtl-status" style={{ width: 128, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'transparent' /* a frame + coloured words like the real list (audit #612 D1) */, border: `1px solid ${on ? '#D4A000' : 'var(--c-tm)'}`, color: on ? '#D4A000' : 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', justifySelf: 'end' }}>{T(col.label)}</button>;
   };
   return (
     <div style={{ border: `1px solid ${C.cardBd}`, background: C.sf }}>
