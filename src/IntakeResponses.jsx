@@ -14,7 +14,24 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { FORM_BY_KEY } from './intakeFormSchemas';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
+
+// A TAB NAMES THE QUESTIONNAIRE AND ITS LANGUAGE, IN THE COACH'S LANGUAGE (9.10 audit
+// #612 C12: the Hebrew screen had 'SELF EVALUATION' and 'PHYSICAL ASSESSMENT' - the
+// English versions' own titles). Hebrew names are the forms' own titles; native-checked.
+const FORM_NAME = {
+  initial: { en: 'Initial assessment', he: 'הערכה ראשונית' },
+  progress: { en: 'Progress assessment', he: 'הערכת התקדמות' },
+  assessment: { en: 'Physical assessment', he: 'הערכה פיזית' },
+};
+const LOCALE_NAME = { he: { en: 'Hebrew', he: 'עברית' }, en: { en: 'English', he: 'אנגלית' } };
+function formTabLabel(key, form) {
+  const [type, locale] = key.split(':');
+  const ui = readLang() === 'he' ? 'he' : 'en';
+  const name = FORM_NAME[type]?.[ui];
+  if (!name) return form.title.replace(/^EXPO\s*[—-]\s*/, '');
+  return `${name} · ${LOCALE_NAME[locale]?.[ui] || locale}`;
+}
 import { CollapsibleSection, ChipGrid } from './ui';
 
 const isEmpty = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0);
@@ -130,7 +147,7 @@ export default function IntakeResponses({ submissions = [], traineeNameFor }) {
         {/* which form */}
         {/* equal cells, the response count beside the title; a form with no responses is dimmed (5.10 #574) */}
         <ChipGrid ariaLabel={tt('Responses')} value={cur.key} onChange={(k) => { setFormKey(k); setQIdx(0); setPIdx(0); }} phoneCols={1}
-          items={forms.map((f) => ({ k: f.key, label: f.form.title.replace(/^EXPO\s*[—-]\s*/, ''), n: f.subs.length, dim: !f.subs.length }))} />
+          items={forms.map((f) => ({ k: f.key, label: formTabLabel(f.key, f.form), n: f.subs.length, dim: !f.subs.length }))} />
         {/* which view */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
           {[['summary', tt('Summary')], ['question', tt('Question')], ['individual', tt('Individual')]].map(([k, l]) => (
