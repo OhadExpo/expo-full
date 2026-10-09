@@ -4148,7 +4148,7 @@ function DemoReview() {
                     <span style={{ fontFamily: FN, fontSize: 12, color: C.ac, letterSpacing: '0.04em' }}>{String(wo.planName).split(' — ')[0]}</span>
                     <span className="wr-meta" style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em' }}>
                       <span className="wr-dot">·</span>
-                      <span style={{ color: C.tx, fontWeight: 700 }}>W{wo.week}/4</span>
+                      <span style={{ color: C.tx, fontWeight: 700, unicodeBidi: 'isolate' }}>{readLang() === 'he' ? `שבוע ${wo.week}/4` : `W${wo.week}/4`}</span>{/* = the real review card (audit #612) */}
                       <span className="wr-dot">·</span>
                       <span>{fmtNumericDate(dAgo(/^yesterday/i.test(wo.date) ? 1 : /^today/i.test(wo.date) ? 0 : (parseInt(wo.date, 10) || 2)))}</span>
                       <span className="wr-dot">·</span>
