@@ -3179,7 +3179,7 @@ function ScSessionModal({ roster, bhbcLoads, fixtures, onClose, onSave, medical 
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which practice')}</span>
           {dayFx.length
             ? <KindChips value={slotStart} onChange={(k) => setSlotStart(k)}
-                items={dayFx.map((f) => ({ k: f.start || '', label: <span data-dirties>{f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? <>{' · '}<MinTok n={f.minutes} /></> : null}</span> }))} />
+                items={dayFx.map((f) => ({ k: f.start || '', label: <span data-dirties>{f.start} · {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? <>{'\u00A0·\u00A0'}<MinTok n={f.minutes} /></> : null}</span> }))} />
             : <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('No practice on the schedule for this date — it is saved to the day.')}</span>}
         </div>
         {/* WHO WAS THERE — read, not edited (Ohad 26.9: "same for sc sessions:
