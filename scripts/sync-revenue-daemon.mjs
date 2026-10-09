@@ -169,7 +169,7 @@ runOwed();
 setInterval(runOwed, 20 * 60 * 1000);
 runWarmup();
 setInterval(runWarmup, 20 * 60 * 1000);
-runGameWarmup();
-setInterval(runGameWarmup, 20 * 60 * 1000);
+// 7 minutes after the owed cycle: both download through the same Chrome (1010c review)
+setTimeout(() => { runGameWarmup(); setInterval(runGameWarmup, 20 * 60 * 1000); }, 7 * 60 * 1000);
 // THE DATABASE NEVER STAYS DOWN UNNOTICED (4.10 #543): probe every minute, alert Ohad
 startDbWatch(say, path.join(REPO, 'audit-out/sheets/db-watchdog.json'));

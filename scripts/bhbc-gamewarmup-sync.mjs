@@ -22,6 +22,10 @@ const KEY = 'expo-bhbc-gamewarmup';
 const WRITE = process.argv.includes('--write');
 const OUT = path.join(os.homedir(), 'expo-private-backups', 'sheets-647');
 
+// ONLY OUR OWN DOWNLOAD (1010c review): the download folder is browser-wide and the owed sync
+// downloads through the same Chrome - 'the first new file' could be HIS roster xlsx, read as CSV
+// into the coaches' warm-up. Chrome names the file by the download's guid: wait for OUR guid to
+// report 'completed' and read exactly that file.
 async function fetchCsv() {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await puppeteer.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
@@ -29,18 +33,19 @@ async function fetchCsv() {
   try {
     const client = await page.target().createCDPSession();
     await client.send('Browser.setDownloadBehavior', { behavior: 'allowAndName', downloadPath: OUT, eventsEnabled: true });
-    const before = new Set(fs.readdirSync(OUT));
-    await page.goto(`https://docs.google.com/spreadsheets/d/${ID}/export?format=csv&gid=${GID}`, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
-    for (let i = 0; i < 30; i++) {
-      const fresh = fs.readdirSync(OUT).filter((f) => !before.has(f) && !f.endsWith('.crdownload'));
-      if (fresh.length) {
-        const p = path.join(OUT, fresh[0]);
-        const txt = fs.readFileSync(p, 'utf8');
-        if (txt.length > 20) { fs.renameSync(p, path.join(OUT, `gamewarmup-${GID}.csv`)); return txt; }
-      }
-      await new Promise((r) => setTimeout(r, 700));
-    }
-    throw new Error('the export never landed - is the debug Chrome signed into his Google account?');
+    const url = `https://docs.google.com/spreadsheets/d/${ID}/export?format=csv&gid=${GID}`;
+    let guid = null, done = false;
+    client.on('Browser.downloadWillBegin', (e) => { if (!guid && String(e.url || '').includes(`gid=${GID}`) && String(e.url || '').includes(ID)) guid = e.guid; });
+    client.on('Browser.downloadProgress', (e) => { if (guid && e.guid === guid && e.state === 'completed') done = true; });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+    for (let i = 0; i < 60 && !done; i++) await new Promise((r) => setTimeout(r, 500));
+    if (!guid || !done) throw new Error('our export never completed - is the debug Chrome signed into his Google account?');
+    const p = path.join(OUT, guid);
+    const buf = fs.readFileSync(p);
+    fs.renameSync(p, path.join(OUT, `gamewarmup-${GID}.csv`));
+    // a CSV, not a zip (xlsx starts 'PK') or binary
+    if (buf.length < 20 || (buf[0] === 0x50 && buf[1] === 0x4b) || buf.includes(0)) throw new Error('the download is not the sheet CSV - refusing');
+    return buf.toString('utf8');
   } finally {
     await page.close().catch(() => {});
     browser.disconnect();
@@ -94,7 +99,9 @@ const parsed = parse(csv);
 const drills = parsed.sections.reduce((n, s) => n + s.drills.length, 0);
 console.log(`read: "${parsed.title}", ${parsed.sections.length} section(s), ${drills} drill(s)`);
 for (const s of parsed.sections) console.log(`  ${s.name || '(no section)'}: ${s.drills.map((x) => x.n ?? '-').join(' ')}`);
-if (!drills) { console.log('nothing parsed - refusing to write'); process.exit(1); }
+// it must look like HIS warm-up tab: the 'Warm-Up' title and numbered drills, or nothing is written
+const numbered = parsed.sections.reduce((n, x) => n + x.drills.filter((d) => d.n != null).length, 0);
+if (!drills || !/warm/i.test(parsed.title) || numbered < drills * 0.8) { console.log('not the warm-up tab (title or numbering) - refusing to write'); process.exit(1); }
 
 const s = await ownerClient();
 try {
