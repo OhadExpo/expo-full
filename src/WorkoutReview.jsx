@@ -1447,7 +1447,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                 // AnalyzeResult works in CLIP-RELATIVE ms (the first frame = 0), as the Movement Lab
                 // passes it; absolute times here put every trace - and the 3D slider - off by the
                 // moment the athlete entered the frame (1010b review)
-                playheadT={videoTime * 1000 - ((metrics.frames && metrics.frames[0] && metrics.frames[0].t) || 0)}
+                playheadT={Math.max(0, videoTime * 1000 - ((metrics.frames && metrics.frames[0] && metrics.frames[0].t) || 0))}
                 onScrub={(tRel) => { const v = videoRef.current; const t0 = (metrics.frames && metrics.frames[0] && metrics.frames[0].t) || 0; if (v) { const t = Math.max(0, (tRel + t0) / 1000); v.currentTime = t; setVideoTime(t); } }} />
             </Suspense>
           </div>
@@ -2824,7 +2824,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     locations doesnt feel good in the eyes on the right side"): a boxed REVIEW beside a
                     bare red DELETE gave two shapes and a ragged edge. Equal cells, one frame, the colour
                     in the words; the same width as ATHLETE PAGE in the strip, on the same right edge. */}
-                <div className="wr-day-acts" style={{marginInlineStart:12,flexShrink:0,width:'var(--wr-acts-w)'}} onClick={(e)=>e.stopPropagation()}>
+                <div className="wr-day-acts" style={{marginInlineStart:12,flexShrink:0,width:'var(--wr-acts-w)'}} onClick={(e)=>e.stopPropagation()} onKeyDown={(e)=>e.stopPropagation() /* Enter on DELETE opened the card instead of the confirm */}>
                   <JoinedButtons maxWidth={9999} items={[
                     { label: reviewed ? tt('VIEW →') : tt('REVIEW →'), onClick: () => setSelectedWo(wo.id), tone: reviewed ? 'muted' : 'accent', title: tr(readLang(), reviewed ? 'View this workout' : 'Review this workout') },
                     deleteWorkout && { label: tb('DELETE'), onClick: () => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }, tone: 'danger', title: tt('Delete this workout') },
