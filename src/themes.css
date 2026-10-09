@@ -2313,3 +2313,9 @@ select.avail-select:dir(rtl) {
 @media (max-width: 480px) {
   input.rule-time::-webkit-calendar-picker-indicator { display: none; }
 }
+
+/* HEBREW IS NOT TRACKED (9.10 audit #612 B8). The labels' letter-spacing (0.08-0.22em) is
+   for Nord capitals; on Hebrew letters it pulls a word apart into separate letters - the
+   side rail already dropped it for that reason (#191). In Hebrew the whole app sets type
+   at 0.02em; Latin capitals inside a Hebrew screen keep a hint of their tracking. */
+body[data-lang="he"] #root *:not(svg):not(svg *) { letter-spacing: 0.02em !important; }
