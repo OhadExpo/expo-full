@@ -373,9 +373,11 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
+    // A FRAME AND COLOURED WORDS, NEVER A FILL (5.10 design rule; 9.10 audit #612:
+    // IN PROGRESS sat as a solid yellow block beside the framed TO DO)
     border: `1px solid ${pillColor}`,
-    background: filled ? pillColor : 'transparent',
-    color: filled ? (sc.fg || '#FFFFFF') : pillColor,
+    background: 'transparent',
+    color: pillColor,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
   if (readOnly) {

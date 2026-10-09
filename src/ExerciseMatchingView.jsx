@@ -251,7 +251,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
               <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.or, background: `color-mix(in srgb, ${C.or} 14%, transparent)`, padding: '2px 7px' }}>{g.count}×</span>
+                  {/* how many plan rows use this title - said in words, framed, no fill (audit #612 D1/D2: an orange tint with no words) */}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>{readLang() === 'he' ? `${g.count} פעמים בתוכניות` : `${g.count}× in plans`}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 5 }}>
                   {g.rows.slice(0, 3).map((r) => `${r.planName || 'plan'} · ${r.dayName}`).join('  ·  ')}{g.rows.length > 3 ? `  +${g.rows.length - 3}` : ''}
