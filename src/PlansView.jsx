@@ -4875,7 +4875,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 /* on the program line */ }}>
                     {row.earlier.length > 0 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
-                        title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
+                        title={he ? (row.earlier.length === 1 ? 'בלוק קודם אחד' : `${row.earlier.length} בלוקים קודמים`) : (row.earlier.length === 1 ? '1 previous block' : `${row.earlier.length} previous blocks`)}
                         style={{ display: 'inline-flex', alignItems: 'center', height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', padding: 0, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer' }}>
                         {/* the tap area is 32 tall; the tag drawn inside is 16, as tall as the text line - filled, not bordered (a bordered control is 36, the house height) */}
                         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 16, minWidth: 44 /* one width for +1 and +27 */, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'color-mix(in srgb, var(--c-ac) 18%, transparent)' : 'rgba(127,127,138,0.16)', color: expanded ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
