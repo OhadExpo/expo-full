@@ -979,6 +979,7 @@ export const HE = {
   Today: 'היום',
   Tomorrow: 'מחר',
   'IN PROGRESS': 'בתהליך',
+  'month open': 'לא סגור',   // billing: the current month's gap cell; native-checked 9.10
   WAITING: 'ממתין',
   STUCK: 'תקוע',
   'AUTO-ALERTS': 'התראות אוטומטיות',

@@ -401,7 +401,10 @@ export default function RevenueSheetCard({ trainees = [] }) {
                 // estimate is set against coaching MINUS the club.
                 const bhbc = Number(g.rows.find((x) => x.channel === 'bhbc')?.amount || 0);
                 const base = g.coaching - bhbc;
-                const gap = est ? est.est - base : null;
+                // THE CURRENT MONTH HAS NO GAP YET (9.10 audit #612 A9: October read '+₪4,075' against
+                // ₪0 - the finance sheet is filled in when the month closes, so the gap says so in words)
+                const monthOpen = String(g.month).slice(0, 7) === new Date().toISOString().slice(0, 7);
+                const gap = est && !monthOpen ? est.est - base : null;
                 const isOpenM = openMonth === g.month;
                 const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
                 return (
@@ -424,7 +427,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
                         yellow numbers is not easy to understand ... it makes the column un-aligned"):
                         the estimate column holds money only, on one edge, and the gap is plain ink. */}
                     <td style={{ ...td, textAlign: 'end', color: est && est.unknown ? C.tx : C.td }} dir="ltr">{est && est.unknown ? est.unknown : '—'}</td>
-                    <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : C.tx }} dir="ltr">{gap == null ? '—' : (gap > 0 ? '+' : gap < 0 ? '−' : '') + ILS(Math.abs(gap))}</td>
+                    <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : C.tx, whiteSpace: 'nowrap' }} dir={monthOpen ? undefined : 'ltr'}>{monthOpen ? tt('month open') : gap == null ? '—' : (gap > 0 ? '+' : gap < 0 ? '−' : '') + ILS(Math.abs(gap))}</td>
                     <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{g.other ? ILS(g.other) : '—'}</td>
                   </tr>
                   {isOpenM && (
