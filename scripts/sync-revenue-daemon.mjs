@@ -126,6 +126,21 @@ function runWarmup() {
     if (!/nothing to write/.test(out)) say(`warm-up: exit ${code} ${out.trim().replace(/\s+/g, ' ').slice(0, 500)}`);
   });
 }
+// THE GAME WARM-UP, from his sheet, every 20 minutes (10.10 #647: "make sure it stays constantly
+// synced"). Writes only when the sheet changed; a cycle with nothing new stays quiet.
+let gwRunning = false;
+function runGameWarmup() {
+  if (gwRunning) return;
+  gwRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/bhbc-gamewarmup-sync.mjs', '--write'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', (code) => {
+    gwRunning = false;
+    if (!/unchanged - nothing to write/.test(out)) say(`game warm-up: exit ${code} ${out.trim().replace(/\s+/g, ' ').slice(0, 400)}`);
+  });
+}
 // OWED, from the roster sheet, every 20 minutes (#386). It fails soft and says
 // so in one line; a cycle with nothing new stays quiet.
 let owedRunning = false, owedLast = '';
@@ -143,7 +158,7 @@ function runOwed() {
     owedLast = line;
   });
 }
-say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + owed + practice warm-up every 20 min`);
+say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + owed + practice warm-up + game warm-up sheet every 20 min`);
 tick();
 setInterval(tick, 60 * 1000);
 runGames();
@@ -154,5 +169,7 @@ runOwed();
 setInterval(runOwed, 20 * 60 * 1000);
 runWarmup();
 setInterval(runWarmup, 20 * 60 * 1000);
+runGameWarmup();
+setInterval(runGameWarmup, 20 * 60 * 1000);
 // THE DATABASE NEVER STAYS DOWN UNNOTICED (4.10 #543): probe every minute, alert Ohad
 startDbWatch(say, path.join(REPO, 'audit-out/sheets/db-watchdog.json'));
