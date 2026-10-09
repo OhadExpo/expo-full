@@ -43,6 +43,7 @@ try {
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
   await pg.deleteCookie({ name: 'expo-rt', url: BASE });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* private */ } });
+  for (const c of await pg.cookies()) await pg.deleteCookie(c);   // the session cookie too (9.10 #605): a leftover one revives the previous seat
   await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) { /* private */ } });
   await setWidth(pg, W, 844);
   await pg.goto(BASE + '/book/' + SLUG, { waitUntil: 'domcontentloaded', timeout: 45000 });

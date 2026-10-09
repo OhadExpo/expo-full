@@ -102,6 +102,7 @@ const visit = async (route) => {
 try {
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* ignore */ } });
+  for (const c of await pg.cookies()) await pg.deleteCookie(c);   // the session cookie too (9.10 #605): a leftover one revives the previous seat
   // The public seat is walked SIGNED OUT, because that is the state its
   // visitors are in. Skipping the sign-in is the whole point of it.
   if (!who) {

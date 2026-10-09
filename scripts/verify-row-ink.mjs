@@ -345,6 +345,7 @@ const run = async () => {
     await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
     await wait(1500);
     await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* blocked */ } });
+    for (const c of await pg.cookies()) await pg.deleteCookie(c);   // the session cookie too (9.10 #605): a leftover one revives the previous seat
     await signIn(pg, BASE);
     await wait(2000);
   }
