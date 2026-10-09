@@ -263,7 +263,12 @@ export async function drain(opts) {
       if (!next) {
         // only entries that HAVE a rest time (5.10 review 1005d #4a: an entry blocked
         // behind a resting one has none -> NaN -> a timer that fired at once, a spin)
-        const rests = q.map((e) => e.nextTryAt).filter((t) => Number.isFinite(t));
+        // ...and only FUTURE ones (9.10 whole-diff review): a past-due entry
+        // blocked behind a resting one for the same row booked the 250 ms floor
+        // every pass - the phone re-read the queue 4x a second until the resting
+        // one woke. It becomes eligible exactly when that one does, and that time
+        // is already in this list.
+        const rests = q.map((e) => e.nextTryAt).filter((t) => Number.isFinite(t) && t > now);
         if (rests.length) scheduleRetry(Math.min(...rests) - now);
         break;
       }
@@ -368,8 +373,9 @@ export async function drain(opts) {
     draining = false;
     // whatever is resting gets its own wake-up, until the server confirms it
     try {
-      const left = read().filter((e) => e.nextTryAt && (!e.uid || e.uid === currentUid));
-      if (left.length) scheduleRetry(Math.min(...left.map((e) => e.nextTryAt)) - Date.now());
+      const t0 = Date.now();
+      const left = read().filter((e) => e.nextTryAt && e.nextTryAt > t0 && (!e.uid || e.uid === currentUid));   // future rests only (see above)
+      if (left.length) scheduleRetry(Math.min(...left.map((e) => e.nextTryAt)) - t0);
     } catch { /* the interval still runs */ }
   }
 }
