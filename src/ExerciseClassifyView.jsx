@@ -21,7 +21,7 @@ const GUESS_INK = (n) => (n === 3 ? '#2E9E6B' : n ? C.ac : '#E0A73A');
 function usePhone(max = 600) {
   const q = `(max-width: ${max}px)`;
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
-  useEffect(() => { const mq = window.matchMedia(q); const on = () => setM(mq.matches); mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); }, [q]);
+  useEffect(() => { const mq = window.matchMedia(q); const on = () => setM(mq.matches); if (mq.addEventListener) { mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); } mq.addListener(on); return () => mq.removeListener(on); /* Safari < 14 */ }, [q]);
   return m;
 }
 const CELL_SELECT = { width: '100%', height: 36, boxSizing: 'border-box', border: 'none', borderRadius: 0, background: 'var(--c-sf)', color: C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', padding: '0 10px', appearance: 'none', WebkitAppearance: 'none', outline: 'none', textAlign: 'start' };
@@ -38,7 +38,7 @@ function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
         {PHONE_FIELDS.map(([k, label, opts]) => (
           <React.Fragment key={k}>
             <span style={{ display: 'flex', alignItems: 'center', padding: '0 10px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt(label)}</span>
-            <span style={{ position: 'relative', display: 'flex' }}>
+            <span style={{ display: 'flex' }}>
               <select aria-label={tt(label)} value={val(e, g, k) || ''} onChange={(ev) => setVal(e.id, k, ev.target.value)} style={{ ...CELL_SELECT, color: val(e, g, k) ? C.tx : C.td }}>
                 <option value="" disabled hidden>—</option>
                 {opts.map((o) => <option key={o} value={o}>{o}</option>)}

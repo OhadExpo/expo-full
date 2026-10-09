@@ -381,7 +381,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false, fill = false
   };
   if (readOnly) {
     return (
-      <span title={tr(readLang(), 'Read-only')} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
+      <span title={tr(readLang(), 'Read-only')} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', ...(fill ? { color: 'var(--c-td)' } : { opacity: 0.65 }) /* in the joined pair a see-through cell showed the hairline colour (review NIT) */ }}>
         {tb(opt.label)}
       </span>
     );
