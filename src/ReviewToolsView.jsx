@@ -321,7 +321,7 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
       }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: C.tx }}>
-          {tt(t.label)}{t.live ? <span style={{ color: C.ac }}>{' · '}{tt('LIVE')}</span> : null}
+          {tt(t.label)}
         </div>
         <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, lineHeight: 1.4 }}>{tt(t.measures)}</div>
       </div>
