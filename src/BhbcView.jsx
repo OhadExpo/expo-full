@@ -4419,7 +4419,8 @@ function AttMark({ mark, overlays = [], label }) {
   const S = 14;
   let shape = null;
   if (mark === 'practice') shape = <rect x="1" y="1" width="12" height="12" rx="1.5" fill={FX_COLOR.practice} />;
-  else if (mark === 'shootaround') shape = <rect x="2" y="2" width="10" height="10" rx="1.5" fill={FX_COLOR.shootaround} />;
+  // a short session = a short bar (a 10px square beside the 12px practice square read as the same mark)
+  else if (mark === 'shootaround') shape = <rect x="1" y="4.5" width="12" height="5" rx="1.5" fill={FX_COLOR.shootaround} />;
   else if (mark === 'played') shape = <circle cx="7" cy="7" r="6" fill={ATT_ORANGE} />;
   else if (mark === 'scrimmage') shape = <path d="M7 0.8 L13.2 7 L7 13.2 L0.8 7 Z" fill={ATT_ORANGE} />;
   else if (mark === 'dnp') shape = <circle cx="7" cy="7" r="5.2" fill="none" stroke={ATT_ORANGE} strokeWidth="1.8" />;
@@ -4686,7 +4687,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         {/* the legend draws the SAME marks the cells draw, every one in words (#629) */}
         {[
           ['practice', [], tr('Practice')], ['played', [], tr('Game played')], ['dnp', [], tr('did not play')],
-          ['scrimmage', [], tr('Scrimmage')], ['shootaround', [], tr('Shootaround')], ['missed', [], tr('missed')], ['excused', [], tr('Out (injured or away)')],
+          ['scrimmage', [], tr('Scrimmage')], ['shootaround', [], tr('Shootaround')], ['missed', [], tr('missed')], ['excused', [], tr('Injured or away')],
           ['pending', [], tr('Game not logged yet')],
           ...(showSc ? [[null, [SC_COLOR], tr('S&C')]] : []), ...(showLift ? [[null, [FX_COLOR.lift], tr('Lift')]] : []),
         ].map(([mark, overlays, lbl]) => (

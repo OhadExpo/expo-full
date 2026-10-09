@@ -760,7 +760,7 @@ Object.assign(HE, {
   // practice attendance, clearer marks (9.10 #629) - native-checked
   'present': 'נוכחים',
   'made': 'השתתף',
-  'Out (injured or away)': 'בחוץ (פצוע או נעדר)',
+  'Injured or away': 'פצוע או נעדר',   // one line in the legend column (was 'Out (injured or away)', wrapped at 390)
   'Game not logged yet': 'המשחק עוד לא נרשם',
   'Dot by the name = today’s availability': 'נקודה ליד השם = הזמינות היום',
   'none': 'אין',
