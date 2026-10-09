@@ -32,12 +32,16 @@ const WIDTHS = (process.argv[2] || '320,360,390,430,768').split(',').map(Number)
 const PREVIEW_PLAN = process.env.PREVIEW_PLAN || '';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const click = (page, src) => page.evaluate((s) => {
+// first=true for the day's START/AGAIN (the FIRST day card - the same day on
+// every pass, or the resumed draft is a different day's); otherwise the last
+// match (a step's own NEXT sits below everything else)
+const click = (page, src, first = false) => page.evaluate((s, f) => {
   const rx = new RegExp(s, 'i');
-  const el = [...document.querySelectorAll('button,[role=button]')].filter((x) => rx.test((x.textContent || '').trim()) && (x.textContent || '').length < 40).pop();
+  const all = [...document.querySelectorAll('button,[role=button]')].filter((x) => rx.test((x.textContent || '').trim()) && (x.textContent || '').length < 40);
+  const el = f ? all[0] : all.pop();
   if (el) { el.click(); return (el.textContent || '').trim().slice(0, 40); }
   return null;
-}, src);
+}, src, first);
 
 // measured in the page: the label, its visible ink, and every other painted box in the bar
 const measure = (page) => page.evaluate(() => {
@@ -117,12 +121,12 @@ const judge = (tag, w, r, need) => {
     await page.setViewport({ width: w, height: 860, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     try {
       await page.goto(`${BASE}/demo/athlete?lang=${lang}`, { waitUntil: 'domcontentloaded' }); await wait(5000);
-      await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k !== 'expo-lang') localStorage.removeItem(k); });
+      await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('expo-stepLogger-')) localStorage.removeItem(k); });   // the logger's drafts only (an install-prompt snooze must survive)
       await page.reload({ waitUntil: 'domcontentloaded' }); await wait(5000);
-      if (!(await click(page, '^(START|AGAIN|התחל|שוב)$'))) { bad++; console.log(`FAIL ${tag} ${w}: no START/AGAIN on the demo athlete - nothing measured`); continue; }
-      await wait(2500); await click(page, '^(NEXT|הבא|החימום הבא)'); await wait(2000);
+      if (!(await click(page, '^(START|AGAIN|התחל|שוב)$', true))) { bad++; console.log(`FAIL ${tag} ${w}: no START/AGAIN on the demo athlete - nothing measured`); continue; }
+      await wait(2500); await click(page, '^(maybe later|אחר כך)'); await click(page, '^(NEXT|הבא|החימום הבא)'); await wait(2000);
       await page.reload({ waitUntil: 'domcontentloaded' }); await wait(5000);
-      await click(page, '^(START|AGAIN|RESUME|התחל|שוב)'); await wait(2500);
+      await click(page, '^(START|AGAIN|RESUME|התחל|שוב)', true); await wait(2500);
       const r = await measure(page);
       if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/logger-${tag}-${w}.png`, clip: { x: 0, y: 0, width: w, height: 150 } });
       judge(tag, w, r, [['resumed', 'the logger did not resume']]);
@@ -146,14 +150,17 @@ const judge = (tag, w, r, need) => {
 if (PREVIEW_PLAN) {
   const b = await P.connect({ browserURL: CDP2 });
   let signedIn = false;
+  // the coach preview frames the athlete portal with a 12px gutter on each side,
+  // so a phone of width w is the preview at w + 24
   for (const w of WIDTHS.filter((x) => x <= 430)) {
     expected++;
     const page = await b.newPage();
-    await page.setViewport({ width: w, height: 860, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    await page.setViewport({ width: w + 24, height: 860, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     try {
       if (!signedIn) { await signIn(page, BASE); signedIn = true; }
-      await page.goto(`${BASE}/coach/programs/${PREVIEW_PLAN}/preview`, { waitUntil: 'domcontentloaded' }); await wait(9000);
-      await click(page, '^(AGAIN|START)$'); await wait(4000);
+      await page.goto(`${BASE}/coach/programs/${PREVIEW_PLAN}/preview?lang=en`, { waitUntil: 'domcontentloaded' }); await wait(9000);
+      await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('expo-stepLogger-')) localStorage.removeItem(k); });
+      await click(page, '^(AGAIN|START)$', true); await wait(4000);
       for (let i = 0; i < 10; i++) {
         if (await page.$('input[inputmode="numeric"],input[inputmode="decimal"],input[type="number"]')) break;
         await click(page, '^(maybe later|next|start check-in|start workout|skip|continue)'); await wait(1800);

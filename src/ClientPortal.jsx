@@ -1957,7 +1957,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* Group dots (one per superset group or solo exercise) */}
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
-    <div style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
+    {/* dir follows the UI language: in the LTR portal shell a Hebrew caption
+        with a RESUMED prefix laid out as "· הופעל מחדש ↻ 2/3 חימום" (9.10) */}
+    <div dir={heCtx ? 'rtl' : 'ltr'} style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
       {/* RESUMED sat in the right cluster, beside the crest and EXIT. The day
           label is absolutely centred on the bar (not in the flow), so the wider
           cluster printed over it: "DAY A · W1" under "RESUMED" at 390 (9.10 #585,
