@@ -10,7 +10,7 @@
 // become unresolved and surface in the Matching screen — the designed funnel.
 import React, { useState, useEffect, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { Card, Btn, EmptyState, ConfirmDialog, toast, JoinedButtons, usePhone } from './ui';
+import { Card, EmptyState, ConfirmDialog, toast, JoinedButtons, usePhone } from './ui';
 import { normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
 import { useT, useTB, readLang } from './i18n';
@@ -21,7 +21,8 @@ export function trashVerdict(title) {
   if (!t) return { level: 'definite', reason: 'empty title' };
   // A multi-word "<exercises> Superset" is likely a REAL combo (e.g. "KB Swing +
   // Squat Superset") — only bare markers are definite (audit 08-22).
-  if (/superset/i.test(t) && /\w+\s+\w+.*superset/i.test(t) && !/חסר תרגיל|super exercies/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
+  // 'super\s?set' in BOTH tests (1008m review MUST): with only the definite test widened, a real pairing written 'Super Set' skipped this guard and was pre-checked for deletion
+  if (/super\s?set/i.test(t) && /\w+\s+\w+.*super\s?set/i.test(t) && !/חסר תרגיל|super exercies/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
   if (/^[\d\s,.*x×+\-–/%@()]+$/.test(t)) return { level: 'definite', reason: 'set/rep numbers' };
   if (/super\s?set|חסר תרגיל|super exercies|super exercise/i.test(t)) return { level: 'definite', reason: 'superset marker' };   // 'Super Set:' (with a space) slipped through (#620)
   if (/warm.?up set|% of (day|last)|of last (week|block)|last week|next week/i.test(t)) return { level: 'definite', reason: 'warmup / % note' };

@@ -248,8 +248,10 @@ function PhonePayments({ payments, tt }) {
         {p.rate_text ? <span>{fmtRate(p.rate_text)}</span> : null}
         {p.counter_before ? <bdi style={{ textTransform: 'none' }}>{p.counter_before}</bdi> : null}
         <span>{tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}</span>
+        {p.event_kind === 'card_start' ? <span>{tt('card start')}</span> : null}
         {p.unpaid ? <span style={{ color: C.rd }}>{tt('marked unpaid')}</span> : null}
       </div>
+      {p.notes ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 2 }}><bdi>{p.notes}</bdi></div> : null}
     </div>
   ));
 }
@@ -310,6 +312,7 @@ function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt 
               </span>
               <span style={{ ...P_META, paddingInlineStart: 14 }}>
                 <span>{tt('Roster estimate')} <span dir="ltr">{est ? ILS(est.est) : '—'}</span></span>
+                {est && est.unknown ? <span>{tt('No amount')} {est.unknown}</span> : null}
                 <span>{tt('Gap')} {monthOpen ? tt('month open') : <span dir="ltr">{gap == null ? '—' : signedILS(gap)}</span>}</span>
                 {g.other ? <span>{noDangle(tt(CHANNEL_LABEL.national_insurance))} <span dir="ltr">{ILS(g.other)}</span></span> : null}
               </span>
