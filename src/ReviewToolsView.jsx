@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'rea
 import { useT, tr, readLang } from './i18n';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
-import { RefinedHeaderStrip, SectionLabel, ChipGrid } from './ui';
+import { Card, ChipGrid } from './ui';
 import { FormVideoPlayer } from './WorkoutReview';
 import ErrorBoundary from './ErrorBoundary';
 import { useAthletePlans } from './usePlansStore';
@@ -96,8 +96,9 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
     return pe.reps != null && pe.reps !== '' ? String(pe.reps) : null;
   };
 
-  const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
-  const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
+  // the five choices are ONE joined grid (10.10 #648): equal cells, 36px, one frame, hairlines
+  const sel = { width: '100%', minWidth: 0, height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: 'none', color: C.tx, fontFamily: FB, fontSize: 13, padding: '0 10px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
+  const selDim = { ...sel, color: C.td, cursor: 'default' };
 
   const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex), ex.wid, ex.slot); };
   // RECENT CLIPS, ONE TAP (4.10 #530, Ohad: "the tools in expo can be 10x better"):
@@ -128,64 +129,62 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   }, [plans, day, e]);
   const shortDate = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}` : ''; };
 
-  if (!tree.length) {
-    return (
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>{tt('Load a reviewed clip')}</label>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, border: `1px dashed ${C.cardBd}`, padding: '10px 12px' }}>{tt("No recorded form videos yet — athletes' uploaded clips will appear here to analyse.")}</div>
-      </div>
-    );
-  }
+  // REBUILT FROM THE RULES (10.10 #648, Ohad: "literally everything on this page is horrible ...
+  // there's 0 rules applied here"): one card, its strip the card's top; one short note; the recent
+  // clips the card's full width with one right column (date · action), no row fills; the older clips
+  // as one joined 36px grid.
+  const total = tree.reduce((n, A) => n + A.blocks.reduce((m, B) => m + B.weeks.reduce((k, W) => k + W.days.reduce((j, D) => j + D.exercises.length, 0), 0), 0), 0);
+  const miniLabel = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>{tt('Load a reviewed clip')}</label>
-      <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
-        {tt("Pick an athlete's already-recorded set — only exercises with a video are listed — and the tools analyse it directly, no re-upload.")}
+    <Card header={tt('Load a reviewed clip')} headerRight={tree.length ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{tt('{n} clips').replace('{n}', total)}</span> : null} style={{ marginBottom: 16 }}>
+      <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.45, marginBottom: tree.length ? 14 : 0 }}>
+        {tree.length ? tt('A recorded set, then a tool - no re-upload.') : tt("No recorded form videos yet — athletes' uploaded clips will appear here to analyse.")}
       </div>
       {recent.length > 0 && (
-        <div style={{ maxWidth: 720, marginBottom: 12, border: `1px solid ${C.cardBd}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', minHeight: 30, padding: '0 11px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.tm }}>{tt('Recent clips')}</div>
+        <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
+          <div style={{ ...miniLabel, display: 'flex', alignItems: 'center', height: 32, padding: '0 12px', borderBottom: `1px solid ${C.cardBd}` }}>{tt('Recent clips')}</div>
           {recent.map((r, i) => {
             const on = activeUrl && r.ex.url === activeUrl;
             return (
-              <button key={r.ex.url + i} type="button" onClick={() => pickRecent(r)} aria-pressed={!!on}
-                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 12, alignItems: 'center', width: '100%', minHeight: 44, padding: '6px 11px', boxSizing: 'border-box', background: on ? 'color-mix(in srgb, var(--c-ac) 10%, transparent)' : 'transparent', border: 'none', borderTop: i ? `1px solid ${C.cardBd}` : 'none', borderInlineStart: `2px solid ${on ? C.ac : 'transparent'}`, cursor: 'pointer', textAlign: 'start', color: C.tx, borderRadius: 0 }}>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <button key={r.ex.url + i} type="button" onClick={() => pickRecent(r)} aria-pressed={!!on} className="rt-clip"
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 52px 72px', columnGap: 12, alignItems: 'center', width: '100%', minHeight: 48, padding: '6px 12px', boxSizing: 'border-box', background: 'transparent', border: 'none', borderTop: i ? `1px solid ${C.cardBd}` : 'none', boxShadow: on ? `inset 2px 0 0 ${C.ac}` : 'none', cursor: 'pointer', textAlign: 'start', color: C.tx, borderRadius: 0 }}>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                   <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.ex.title}</bdi></span>
-                  <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.name}</bdi></span>
+                  <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.name}</bdi></span>
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
-                  <span dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{shortDate(r.ex.date)}</span>
-                  <span style={{ color: C.ac }}>{on ? tt('Loaded') : tt('Load')}</span>
-                </span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{shortDate(r.ex.date)}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: on ? C.gn : C.ac, textAlign: 'end', whiteSpace: 'nowrap' }}>{on ? tt('Loaded') : tt('Load')}</span>
               </button>
             );
           })}
         </div>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 720 }}>
-        <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel}>
-          <option value="">{tt('Athlete…')}</option>
-          {tree.map((x, i) => <option key={x.cid} value={i}>{x.name}</option>)}
-        </select>
-        <select value={b} disabled={!athlete} onChange={ev => { setB(ev.target.value); setW(''); setD(''); setE(''); }} style={athlete ? sel : selDim}>
-          <option value="">{tt('Block…')}</option>
-          {athlete?.blocks.map((x, i) => <option key={i} value={i}>{x.block}</option>)}
-        </select>
-        <select value={w} disabled={!block} onChange={ev => { setW(ev.target.value); setD(''); setE(''); }} style={block ? sel : selDim}>
-          <option value="">{tt('Week…')}</option>
-          {block?.weeks.map((x, i) => <option key={i} value={i}>{x.week}</option>)}
-        </select>
-        <select value={d} disabled={!week} onChange={ev => { setD(ev.target.value); setE(''); }} style={week ? sel : selDim}>
-          <option value="">{tt('Day…')}</option>
-          {week?.days.map((x, i) => <option key={i} value={i}>{x.day}</option>)}
-        </select>
-        <select value={e} disabled={!day} onChange={ev => onE(ev.target.value)} style={day ? sel : selDim}>
-          <option value="">{tt('Exercise…')}</option>
-          {day?.exercises.map((x, i) => <option key={i} value={i}>{x.title}</option>)}
-        </select>
-      </div>
-    </div>
+      {tree.length > 0 && (<>
+        <div style={{ ...miniLabel, marginBottom: 6 }}>{tt('Older clips')}</div>
+        <div className="rt-picker" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+          <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel} aria-label={tt('Athlete…')}>
+            <option value="">{tt('Athlete…')}</option>
+            {tree.map((x, i) => <option key={x.cid} value={i}>{x.name}</option>)}
+          </select>
+          <select value={b} disabled={!athlete} onChange={ev => { setB(ev.target.value); setW(''); setD(''); setE(''); }} style={athlete ? sel : selDim} aria-label={tt('Block…')}>
+            <option value="">{tt('Block…')}</option>
+            {athlete?.blocks.map((x, i) => <option key={i} value={i}>{x.block}</option>)}
+          </select>
+          <select value={w} disabled={!block} onChange={ev => { setW(ev.target.value); setD(''); setE(''); }} style={block ? sel : selDim} aria-label={tt('Week…')}>
+            <option value="">{tt('Week…')}</option>
+            {block?.weeks.map((x, i) => <option key={i} value={i}>{x.week}</option>)}
+          </select>
+          <select value={d} disabled={!week} onChange={ev => { setD(ev.target.value); setE(''); }} style={week ? sel : selDim} aria-label={tt('Day…')}>
+            <option value="">{tt('Day…')}</option>
+            {week?.days.map((x, i) => <option key={i} value={i}>{x.day}</option>)}
+          </select>
+          <select value={e} disabled={!day} onChange={ev => onE(ev.target.value)} style={day ? sel : selDim} aria-label={tt('Exercise…')}>
+            <option value="">{tt('Exercise…')}</option>
+            {day?.exercises.map((x, i) => <option key={i} value={i}>{x.title}</option>)}
+          </select>
+        </div>
+      </>)}
+    </Card>
   );
 }
 
@@ -308,29 +307,25 @@ function ToolLoading({ label }) {
 // camera are dimmed and marked.
 function ToolRow({ t, blocked, isFirst, onOpen }) {
   const tt = useT();
-  const [hover, setHover] = useState(false);
-  const active = hover && !blocked;
   return (
     <div
       role="button" tabIndex={blocked ? -1 : 0} aria-disabled={blocked || undefined}
       aria-label={`${tr(readLang(), t.label)} — ${tr(readLang(), t.measures)}`}
       onClick={blocked ? undefined : onOpen}
       onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      className="rt-tool"
       style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: '15px 4px',
-        borderTop: isFirst ? 'none' : `1px solid ${C.cardBd}`, cursor: blocked ? 'not-allowed' : 'pointer',
-        opacity: blocked ? 0.55 : 1, background: active ? 'rgba(57,189,255,0.05)' : 'transparent',
-        transition: 'background .15s', outline: 'none',
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64, padding: '10px 0',
+        boxSizing: 'border-box', borderTop: isFirst ? 'none' : `1px solid ${C.cardBd}`, cursor: blocked ? 'not-allowed' : 'pointer',
+        opacity: blocked ? 0.55 : 1, outline: 'none',
       }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{tt(t.label)}</div>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{tt(t.measures)}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: C.tx }}>
+          {tt(t.label)}{t.live ? <span style={{ color: C.ac }}>{' · '}{tt('LIVE')}</span> : null}
+        </div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, lineHeight: 1.4 }}>{tt(t.measures)}</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? C.ac : C.tm, border: 'none', padding: '2px 0', whiteSpace: 'nowrap' }}>{tt(t.live ? 'LIVE' : 'CLIP')}</span>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? C.or : C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{tt(blocked ? 'NEEDS CAMERA' : 'OPEN →')}</span>
-      </div>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? C.or : C.ac, textAlign: 'end', whiteSpace: 'nowrap' }}>{tt(blocked ? 'NEEDS CAMERA' : 'OPEN →')}</span>
     </div>
   );
 }
@@ -378,68 +373,36 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
 
   return (
     <div className="motion-rise" style={{ width: '100%' }}>
-      {/* Header card — cyan strip + intro + the lift selector, matching the
-          coach app's card/strip pattern (was a bespoke editorial layout). */}
-      <div style={{ marginBottom: 16, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-        <RefinedHeaderStrip padY={14} padX={18} marginBottom={14}>
-          <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('MEASURE THE LIFT')}</SectionLabel>
-        </RefinedHeaderStrip>
-        <div style={{ color: C.tm, fontSize: 13, fontFamily: FB, lineHeight: 1.5, maxWidth: 620, marginBottom: 16 }}>
-          {tt("Camera & pose tools to read a set you're reviewing — bar speed, range of motion, jump power, live coaching. Saved trends stay on this device; SEND TO ATHLETE puts the result on his clip as a note.")}
-        </div>
-
-        {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
-            the video + tools lay out below as a two-column workspace. */}
-        <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
-          onPick={(url, t, cid, date, recorded, target, wid, slot) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [], target: target || null, wid: wid || null, slot: Number.isInteger(slot) ? slot : null }); }} />
-      </div>
+      <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
+        onPick={(url, t, cid, date, recorded, target, wid, slot) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [], target: target || null, wid: wid || null, slot: Number.isInteger(slot) ? slot : null }); }} />
 
       {clipUrl ? (
-        /* Two-column workspace: the reviewed video (with its own speed/loop
-           toggler) sits on the LEFT, page-height; the lift + TOOLS sit on the
-           RIGHT, top-aligned with the video — Ohad: "the analysis on the right". */
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div key={clipUrl} style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 560, position: 'sticky', top: 12 }}>
+        /* the clip on the left (sticky), the lift and the tools on the right, top-aligned with it */
+        <div className="rt-work" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
+          <div key={clipUrl} style={{ minWidth: 0, position: 'sticky', top: 12 }}>
             <FormVideoPlayer url={clipUrl} exerciseTitle={title || 'Exercise'} />
           </div>
-          <div style={{ flex: '1 1 300px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Lift being analysed — AUTO-detected from the picked clip's exercise.
-                Editable ONLY here, after a clip is loaded (Ohad: "must be fully
-                automated. i can only change it after analyzing, not before"). */}
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')}</label>
-              <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('The name it was logged under. The movement is picked inside the tool.')}</div>
-              {/* six lifts, equal cells, 3 to a desktop row of this 300px column (5.10 #574) */}
-              <ChipGrid ariaLabel={tt('Lift being analysed')} value={title.trim().toLowerCase()} onChange={(k) => setTitle(QUICK_LIFTS.find(l => l.toLowerCase() === k))} cols={3} phoneCols={2} style={{ marginBottom: 10 }}
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* the lift: the six as one grid and "any lift" as its last row - one joined control */}
+            <Card header={tt('Lift being analysed')}>
+              <ChipGrid ariaLabel={tt('Lift being analysed')} value={title.trim().toLowerCase()} onChange={(k) => setTitle(QUICK_LIFTS.find(l => l.toLowerCase() === k))} cols={3} phoneCols={2}
                 items={QUICK_LIFTS.map(l => ({ k: l.toLowerCase(), label: l }))} />
-              <input value={title} onChange={e => setTitle(e.target.value)} placeholder={tt('…or type any lift')}
-                style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
-            </div>
-            {/* Tools */}
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-                <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
-              </RefinedHeaderStrip>
+              <input value={title} onChange={e => setTitle(e.target.value)} placeholder={tt('…or type any lift')} aria-label={tt('…or type any lift')}
+                style={{ display: 'block', width: '100%', height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: 'none', color: C.tx, fontFamily: FB, fontSize: 13, padding: '0 12px', borderRadius: 0, outline: 'none' }} />
+            </Card>
+            <Card header={tt('TOOLS')}>
               {REVIEW_TOOLS.map((t, i) => (
                 <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
               ))}
-            </div>
+            </Card>
           </div>
         </div>
       ) : (
-        <>
-          {/* No clip yet → just the tools. The "Lift being analysed" card only
-              appears once a clip loads (Ohad: the empty lift row is noise —
-              the lift is auto-detected from the picked clip's exercise). */}
-          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-            <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-              <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
-            </RefinedHeaderStrip>
-            {REVIEW_TOOLS.map((t, i) => (
-              <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
-            ))}
-          </div>
-        </>
+        <Card header={tt('TOOLS')}>
+          {REVIEW_TOOLS.map((t, i) => (
+            <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
+          ))}
+        </Card>
       )}
 
       {tool && createPortal((
