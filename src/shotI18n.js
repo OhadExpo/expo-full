@@ -49,7 +49,7 @@ export const SHOT_I18N = {
       ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.'],
     ],
     record: 'RECORD →', gallery: 'FROM GALLERY', stopAnalyse: 'STOP & ANALYSE',
-    progress: { 'checking the clip': 'checking the clip', 'loading the model': 'loading the model', 'loading the clip': 'loading the clip', 'finding the athlete': 'finding the athlete', 'filling the dropped frames': 'filling the dropped frames', 'loading the detailed model': 'loading the detailed model', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
+    progress: { 'checking the clip': 'checking the clip', 'loading the model': 'loading the model', 'loading the clip': 'loading the clip', 'finding the athlete': 'finding the athlete', 'filling the dropped frames': 'filling the dropped frames', 'loading the detailed model': 'loading the detailed model', 'reading the shots': 'reading the shots', 'following the ball': 'following the ball', done: 'done', '': 'reading the shot' },
     // The phone path (27.9, "stuck at 40%"): the watchdog line, its button, the
     // keep-the-screen-on line under the bar, and every capture failure by code
     // (shotCapture.js codeErr) - each says what to do next, never just "failed".
@@ -276,7 +276,7 @@ export const SHOT_I18N = {
       noPerson: 'לא מצאתי אדם בקליפ. צלם את כל הגוף, מהצד, בתאורה טובה.',
       failed: 'הניתוח נעצר. תנתח את הקליפ שוב.',
     },
-    progress: { 'checking the clip': 'בודק את הקליפ', 'loading the model': 'טוען את המודל', 'loading the clip': 'טוען את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'filling the dropped frames': 'משלים פריימים חסרים', 'loading the detailed model': 'טוען את המודל המפורט', 'reading the shots': 'מנתח את הזריקות', done: 'סיום', '': 'מנתח את הזריקה' },
+    progress: { 'checking the clip': 'בודק את הקליפ', 'loading the model': 'טוען את המודל', 'loading the clip': 'טוען את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'filling the dropped frames': 'משלים פריימים חסרים', 'loading the detailed model': 'טוען את המודל המפורט', 'reading the shots': 'מנתח את הזריקות', 'following the ball': 'עוקב אחרי הכדור', done: 'סיום', '': 'מנתח את הזריקה' },
 
     preflight: {
       title: 'אי אפשר למדוד את הקליפ הזה כמו שצריך',

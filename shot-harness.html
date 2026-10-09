@@ -17,7 +17,10 @@
     // video. Slower, but it sees every frame regardless of machine load - which
     // is the whole question, since the same clip returns 11, 10 or 9 shots on
     // the default path. window.runHarness(url, { deterministic: true }) to try it.
-    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l), ...(opts.coarseRate ? { coarseRate: opts.coarseRate } : null), deterministic: opts.deterministic === 'coarse' ? 'coarse' : !!opts.deterministic });
+    // `ballPass: 'seek'` re-reads the ball around each release by seeking
+    // (shotCapture seekBallPass); each analysed shot then says which
+    // candidates its angle came from (ballSrc 'seek' or 'play').
+    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l), ...(opts.coarseRate ? { coarseRate: opts.coarseRate } : null), deterministic: opts.deterministic === 'coarse' ? 'coarse' : !!opts.deterministic, ballPass: opts.ballPass === 'seek' ? 'seek' : 'off' });
     window.__frames = frames;
     const hand = detectShootingHand(frames) || 'R';
     const series = buildSeries(frames, { hand, aspect: (frames.dims.w / frames.dims.h) });
@@ -61,7 +64,7 @@
       // module script and does not always invalidate it when the html
       // changes — a long-lived dev server then serves harness code older
       // than the file on disk, and every run silently tests the wrong thing.
-      harnessBuild: 'wristtrack-1',
+      harnessBuild: 'ballpass-1',
       // Raw ball track for the FIRST tracked shot, so the 1.75x scale error can
       // be reasoned about from real numbers instead of theory: the samples, the
       // time span, the fitted acceleration and what they imply.
@@ -117,7 +120,7 @@
                  wristTrack,
                  why: sf.info.ballWhy, frames: out };
       })(),
-      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM, why: s.info.ballWhy, recede: s.info.ballRecede, oblique: s.info.ballOblique })) : null,
+      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM, why: s.info.ballWhy, recede: s.info.ballRecede, oblique: s.info.ballOblique, ballSrc: s.info.ballSource })) : null,
       ballFramesSeen: frames.filter((f) => f.blobs && f.blobs.length).length,
       // How far the nearest moving blob is from the shooting hand, in ball
       // diameters, over the frames right after each release. This is the number

@@ -12,12 +12,17 @@
 //
 //   node scripts/_shot-stability.mjs "/clip.mp4" 3 1 0.5
 //       clip, runs per rate, then the rates to compare
+//   BALLPASS=seek node scripts/shot-stability.mjs "/clip.mp4" 3 0.5
+//       the same, with the opt-in seek ball pass (shotCapture seekBallPass);
+//       compare the angles column against a run without it
 import puppeteer from 'puppeteer-core';
 import { unmangleArg } from './lib/unmangle.mjs';
 
 const CLIP = unmangleArg(process.argv[2] || '/10%20of%2011.mp4');
 const RUNS = parseInt(process.argv[3] || '3', 10);
 const RATES = process.argv.slice(4).map(Number).filter((n) => n > 0);
+const BALLPASS = process.env.BALLPASS === 'seek' ? 'seek' : null;
+if (BALLPASS) console.log('  ball pass: seek (angles from frame-by-frame seeks around each release)');
 if (!RATES.length) RATES.push(1);
 
 const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 3_600_000 });
@@ -32,24 +37,36 @@ for (const rate of RATES) {
   const runs = [];
   for (let i = 0; i < RUNS; i++) {
     const t0 = Date.now();
-    const r = await page.evaluate((u, cr) => window.runHarness(u, { coarseRate: cr }), CLIP, rate, { timeout: 0 });
+    const r = await page.evaluate((u, cr, bp) => window.runHarness(u, { coarseRate: cr, ...(bp ? { ballPass: bp } : null) }), CLIP, rate, BALLPASS, { timeout: 0 });
     const secs = Math.round((Date.now() - t0) / 1000);
     const shots = r && r.analyzed ? r.analyzed.length : 0;
     const angles = r && r.analyzed ? r.analyzed.filter((s) => s.ballDeg != null).length : 0;
+    const seekShots = r && r.analyzed ? r.analyzed.filter((s) => s.ballSrc === 'seek').length : 0;
     const times = r && r.analyzed ? r.analyzed.map((s) => s.t) : [];
-    runs.push({ shots, angles, frames: r && r.ballFramesSeen != null ? r.ballFramesSeen : null, secs, times });
-    console.log(`  rate ${rate}  run ${i + 1}/${RUNS}: ${shots} shots, ${angles} with an angle, ${secs}s  t=${JSON.stringify(times.map((x) => x == null ? null : +Number(x).toFixed(2)))}  stats=${JSON.stringify(r && r.stats ? { coarse: r.stats.coarse, recovered: r.stats.recovered, capped: r.stats.recoveryCapped, recoverMs: r.stats.recoverMs, holes: r.stats.holes, planned: r.stats.planned, tried: r.stats.tried, msCoarse: r.stats.msCoarse } : null)}`);
+    runs.push({ shots, angles, seekShots, degs: r && r.analyzed ? r.analyzed.map((s) => s.ballDeg) : [], frames: r && r.ballFramesSeen != null ? r.ballFramesSeen : null, secs, times });
+    console.log(`  rate ${rate}  run ${i + 1}/${RUNS}: ${shots} shots, ${angles} with an angle, ${secs}s${BALLPASS ? `  seek-read ${seekShots}/${shots} ballPass=${JSON.stringify(r && r.stats ? r.stats.ballPass : null)}` : ''}  deg=${JSON.stringify(r && r.analyzed ? r.analyzed.map((s) => s.ballDeg) : [])}  t=${JSON.stringify(times.map((x) => x == null ? null : +Number(x).toFixed(2)))}  stats=${JSON.stringify(r && r.stats ? { coarse: r.stats.coarse, recovered: r.stats.recovered, capped: r.stats.recoveryCapped, recoverMs: r.stats.recoverMs, holes: r.stats.holes, planned: r.stats.planned, tried: r.stats.tried, msCoarse: r.stats.msCoarse } : null)}`);
   }
   const shots = runs.map((r) => r.shots);
   const spread = Math.max(...shots) - Math.min(...shots);
-  table.push({ rate, shots, spread, angles: runs.map((r) => r.angles), secs: Math.round(runs.reduce((a, r) => a + r.secs, 0) / runs.length) });
+  // ANGLE REPEATABILITY, per shot: the worst max-min of one shot's launch angle
+  // across runs, over the shots that got an angle on EVERY run. Only defined
+  // when the runs agree on the shot count - otherwise index i is not one shot.
+  let degSpread = null;
+  if (!spread && runs.length > 1) {
+    for (let i = 0; i < shots[0]; i++) {
+      const d = runs.map((r) => r.degs[i]);
+      if (d.some((x) => x == null)) continue;
+      degSpread = Math.max(degSpread || 0, Math.max(...d) - Math.min(...d));
+    }
+  }
+  table.push({ rate, shots, spread, angles: runs.map((r) => r.angles), degSpread: degSpread == null ? null : +degSpread.toFixed(1), secs: Math.round(runs.reduce((a, r) => a + r.secs, 0) / runs.length) });
 }
 
 console.log('');
-console.log('rate   shot counts      spread   angles           avg secs');
+console.log('rate   shot counts      spread   angles           deg spread  avg secs');
 for (const t of table) {
   console.log(String(t.rate).padEnd(6) + JSON.stringify(t.shots).padEnd(17)
-    + String(t.spread).padEnd(9) + JSON.stringify(t.angles).padEnd(17) + t.secs);
+    + String(t.spread).padEnd(9) + JSON.stringify(t.angles).padEnd(17) + String(t.degSpread).padEnd(12) + t.secs);
 }
 console.log('');
 console.log('A spread of 0 means the same clip answered the same way every time.');

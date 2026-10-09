@@ -315,6 +315,10 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       // clip, so the fast path stays the default and this is the retry.
       const frames = await captureShotFrames(url, {
         deterministic: opts.deterministic || false,
+        // opts.ballPass 'seek' re-reads the ball around each release by seeking
+        // (shotCapture seekBallPass). OFF unless asked for - null leaves the
+        // choice to localStorage 'expo-shot-ball', which is unset by default.
+        ballPass: opts.ballPass || null,
         signal: ac.signal,
         // Every call is a heartbeat, not only a changed percentage: a slow
         // phone can take a few seconds per whole percent and is still working.
