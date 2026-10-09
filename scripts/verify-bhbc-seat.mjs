@@ -18,6 +18,9 @@
 //   node scripts/verify-bhbc-seat.mjs [email] [width]
 import P from 'puppeteer-core';
 import { setWidth } from './lib/viewport.mjs';
+import { readFileSync } from 'node:fs';
+// the app's own session key, from src/supabase.js (one source, like authed-page)
+const AUTH_KEY = (() => { try { const m = readFileSync(new URL('../src/supabase.js', import.meta.url), 'utf8').match(/AUTH_TOKEN_KEY = '([^']+)'/); if (m) return m[1]; } catch { /* fall through */ } return 'sb-gtcbfglttoiyfsnfbhdy-auth-token'; })();
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const EMAIL = process.argv[2] || 'tomerlich11@gmail.com';   // a PT, per authRoles.js
@@ -97,9 +100,10 @@ try {
       && !/^\s*loading/i.test(document.body.innerText.trim()))) break;
   }
   await wait(2500);
-  const who = await pg.evaluate((k) => { try { const j = JSON.parse(localStorage.getItem(k) || 'null'); return (j && j.user && j.user.email) || null; } catch { return null; } }, 'sb-gtcbfglttoiyfsnfbhdy-auth-token');
+  const who = await pg.evaluate((k) => { try { const j = JSON.parse(localStorage.getItem(k) || 'null'); return (j && j.user && j.user.email) || null; } catch { return null; } }, AUTH_KEY);
   console.log('signed in as: ' + who);
-  if (who !== EMAIL) { console.log(`FAILED: the page is signed in as ${who}, not ${EMAIL} - nothing about this seat was measured`); process.exit(1); }
+  // thrown, not process.exit: the finally below still closes this tab (a leaked tab skews the next gate's timing)
+  if ((who || '').toLowerCase() !== EMAIL.toLowerCase()) throw new Error(`FAILED: the page is signed in as ${who}, not ${EMAIL} - nothing about this seat was measured`);
   const seat = await pg.evaluate(() => ({
     login: /sign in/i.test(document.body.innerText.slice(0, 300)),
     txt: document.body.innerText.replace(/\s+/g, ' ').trim().slice(0, 100),
@@ -112,7 +116,7 @@ try {
       .map((e) => (e.textContent || '').trim())
       .filter((t) => !/sign\s*out|log\s*out|preview as/i.test(t)),
   }));
-  if (seat.login) { console.log(`FAILED: ${EMAIL} cannot sign in`); process.exit(1); }
+  if (seat.login) throw new Error(`FAILED: ${EMAIL} cannot sign in`);
   console.log('seat : ' + seat.txt.slice(0, 78));
   if (!seat.tabs.length) { problems.push('[bhbc-zone] no BHBC tabs rendered'); }
   console.log('tabs : ' + seat.tabs.join(' | '));
