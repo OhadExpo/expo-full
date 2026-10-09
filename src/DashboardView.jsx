@@ -841,7 +841,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('blockEnding', blockEnding).map((r) => (
-                    <div key={r.traineeId} {...asButton(() => onSelectTrainee(r.traineeId))} aria-label={readLang() === 'he' ? `פתיחת ${r.name}` : `Open ${r.name}`}
+                    <div key={r.traineeId} data-box="block-ending-row" {...asButton(() => onSelectTrainee(r.traineeId))} aria-label={readLang() === 'he' ? `פתיחת ${r.name}` : `Open ${r.name}`}
                       style={{ ...ALERT_ROW, flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 3, padding: '7px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 0 }}>
                         <span style={{ color: C.tx, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>

@@ -662,7 +662,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
             completion and its main lift's best set. Demo athletes, demo numbers. */}
         <Panel title={`${T('Block ending')} (2)`} tint={C.ac} icon="alert" edge={C.ac}>
           {[{ t: MOCK_TRAINEES[3], wk: [4, 4, 7, 8], ink: C.gn, title: 'Back Squat', best: '100 → 115×4' }, { t: MOCK_TRAINEES[0], wk: [4, 4, 5, 12], ink: C.rd, title: 'Trap Bar Deadlift', best: '90 → 100×5' }].map(({ t, wk, ink, title: lift, best }) => (
-            <div key={t.id} role="button" tabIndex={0} onClick={() => onJumpToTrainee(t.id, 'dashboard')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpToTrainee(t.id, 'dashboard'); } }}
+            <div key={t.id} data-box="block-ending-row" /* pairs with the real row in the box-height gate: the real card shows only while someone is in a block's last week */ role="button" tabIndex={0} onClick={() => onJumpToTrainee(t.id, 'dashboard')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpToTrainee(t.id, 'dashboard'); } }}
               style={{ display: 'flex', flexDirection: 'column', gap: 3, minHeight: 36, padding: '7px 0', boxSizing: 'border-box', cursor: 'pointer', fontSize: 13 }}>
               <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                 <span dir="auto" style={{ color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</span>
