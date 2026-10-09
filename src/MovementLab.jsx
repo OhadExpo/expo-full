@@ -50,7 +50,7 @@ Object.assign(HE, {
   // the camera read (10.10 #639) - native-checked
   'Camera: side view.': 'מצלמה: מהצד.',
   'Camera: front or back view.': 'מצלמה: מלפנים או מאחור.',
-  'Camera: about {n}° off a side view - joint angles read best side-on.': 'מצלמה: בערך {n}° מהצד - הזוויות נמדדות הכי טוב מהצד.',
+  'Camera: about {n}° off a side view - joint angles read best side-on.': 'מצלמה: בערך {n} מעלות מהצד - הזוויות נמדדות הכי טוב מהצד.',
   'Body tracked in {n}% of frames — usable, but film fuller and steadier for sharper numbers.': 'הגוף זוהה ב-{n}% מהפריימים — אפשר לעבוד עם זה, אבל צילום מלא ויציב יותר ייתן מספרים חדים יותר.',
   'Body tracked in only {n}% of frames — treat the numbers as rough. Film the whole body, steady camera, decent light.': 'הגוף זוהה רק ב-{n}% מהפריימים — תתייחס למספרים כהערכה גסה. צלם את כל הגוף, מצלמה יציבה ותאורה סבירה.',
   'Neutral read': 'מדידה ניטרלית',
