@@ -1755,6 +1755,8 @@ export const HE = {
   "Income history": 'היסטוריית הכנסות',
   "Payment history": 'היסטוריית תשלומים',
   "No amount": 'בלי סכום',
+  "Unpaid": 'לא שולמו',
+  "Payments": 'תשלומים',
   "Inactive clients": 'לקוחות לא פעילים',
   "not linked in EXPO, or not active": 'לא מקושרים ב-EXPO, או לא פעילים',
   month: 'חודש',

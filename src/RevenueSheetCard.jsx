@@ -115,12 +115,14 @@ function groupClients(events) {
   const map = new Map();
   for (const e of events || []) {
     const k = e.trainee_id || 'name:' + e.client_name;
-    if (!map.has(k)) map.set(k, { key: k, names: new Set(), trainee_id: e.trainee_id, section: e.section, payments: [], sessions: 0, rates: [], estTotal: 0, unknown: 0, latest: null, rate: null });
+    if (!map.has(k)) map.set(k, { key: k, names: new Set(), trainee_id: e.trainee_id, section: e.section, payments: [], sessions: 0, rates: [], estTotal: 0, unknown: 0, unpaid: 0, latest: null, rate: null });
     const g = map.get(k);
     g.names.add(e.client_name);
     if (e.event_kind === 'payment' || e.event_kind === 'card_start') {
       g.payments.push(e);
-      if (e.amount_est == null) g.unknown++; else g.estTotal += Number(e.amount_est);
+      // MARKED UNPAID ON THE SHEET = NOT MONEY IN (9.10 audit: 23 such rows, ₪19,300, were summed as paid)
+      if (e.unpaid) g.unpaid++;
+      else if (e.amount_est == null) g.unknown++; else g.estTotal += Number(e.amount_est);
       if (!g.latest || e.event_date > g.latest) { g.latest = e.event_date; g.rate = e.rate_text; }
     } else if (e.event_kind === 'session') g.sessions += Number(e.sessions_count || 0);
     else if (e.event_kind === 'rate_change') g.rates.push(e);
@@ -205,7 +207,7 @@ export function SheetBillingHistory({ traineeId }) {
 // ONE GRID FOR BOTH (9.10 #608 "keep it perfect"): fixed columns at the same widths, so a
 // column of the inactive table sits exactly under the same column above. Wider than a
 // phone on purpose - it scrolls sideways in its ScrollFade, one row per client.
-const CLIENT_COLS = ['22%', '12%', '11%', '11%', '9%', '11%', '14%', '10%'];
+const CLIENT_COLS = ['20%', '11%', '9%', '12%', '9%', '9%', '9%', '12%', '9%'];
 function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
   return (
     <ScrollFade>
@@ -215,10 +217,11 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
           <tr>
             <th style={th}>{tt('Client')}</th>
             <th style={th}>{tt('Last payment')}</th>
-            <th style={{ ...th, textAlign: 'end' }}>{tt('Payments on record')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Payments')}</th>
             <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated total')}</th>
             <th style={{ ...th, textAlign: 'end' }}>{tt('No amount')}</th>
-            <th style={{ ...th, textAlign: 'end' }}>{tt('Sessions counted')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Unpaid')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Sessions')}</th>
             <th style={th}>{tt('Rate')}</th>
             <th style={th}>{tt('In EXPO')}</th>
           </tr>
@@ -245,6 +248,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                   <td style={{ ...td, textAlign: 'end' }} dir="ltr">{c.payments.length}</td>
                   <td style={{ ...td, textAlign: 'end', fontWeight: 700 }} dir="ltr">{ILS(c.estTotal)}</td>
                   <td style={{ ...td, textAlign: 'end', color: c.unknown ? C.tx : C.td }} dir="ltr">{c.unknown || '—'}</td>
+                  <td style={{ ...td, textAlign: 'end', color: c.unpaid ? C.tx : C.td }} dir="ltr">{c.unpaid || '—'}</td>
                   <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{c.sessions || '—'}</td>
                   <td style={{ ...td, color: C.tm }}><bdi>{c.rate || '—'}</bdi></td>
                   {/* what EXPO knows of him, in words: Active / Archived / no record */}
@@ -254,7 +258,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                 </tr>
                 {isOpen && (
                   <tr>
-                    <td colSpan={8} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+                    <td colSpan={9} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead><tr>
                           <th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
@@ -264,7 +268,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                       </table>
                       {c.rates.length > 0 && (
                         <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6 }}>
-                          {tt('Rate changes')}: {c.rates.slice().reverse().map((r) => `${fmtNumericDate(r.event_date)} ${r.rate_text}`).join(' · ')}
+                          {tt('Rate changes')}: {c.rates.slice().reverse().map((r, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi dir="ltr">{fmtNumericDate(r.event_date)}</bdi> <bdi>{r.rate_text}</bdi></React.Fragment>)}
                         </div>
                       )}
                     </td>
@@ -314,7 +318,9 @@ export default function RevenueSheetCard({ trainees = [] }) {
       if (e.event_kind !== 'payment') continue;
       const k = String(e.event_date).slice(0, 7) + '-01';
       const g = m.get(k) || { est: 0, n: 0, unknown: 0 };
-      g.n++; if (e.amount_est == null) g.unknown++; else g.est += Number(e.amount_est);
+      g.n++;
+      // marked unpaid on the sheet = not money in: out of the estimate (still a payment row)
+      if (!e.unpaid) { if (e.amount_est == null) g.unknown++; else g.est += Number(e.amount_est); }
       m.set(k, g);
     }
     return m;
