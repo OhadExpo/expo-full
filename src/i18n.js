@@ -1363,6 +1363,8 @@ export const HE = {
   "Alternate between exercises each round": 'בכל סבב סט אחד מכל תרגיל',
   "Start Workout →": 'לאימון ←',
   // athlete portal strings the English-literal gate never saw (9.10 #586)
+  // coach-side toasts: the ToastHost looks up the head up to ": " (9.10 #590)
+  "Not marked paid - the request was not updated (no permission, or it no longer exists).": "לא סומן כשולם — הבקשה לא עודכנה (אין הרשאה, או שהיא כבר לא קיימת).",
   // athlete toasts: the ToastHost translates static ones by key; templates go through tt + .replace (9.10 #589)
   "That video is empty — try recording again.": "הסרטון ריק. צלם שוב.",
   "That file isn't a video. Record a clip or pick a video from your library.": "הקובץ הזה הוא לא סרטון. צלם קליפ או תבחר סרטון מהגלריה.",

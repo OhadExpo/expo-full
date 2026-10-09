@@ -897,6 +897,7 @@ Object.assign(HE, {
   'Medical record saved': 'התיק הרפואי נשמר',
   'Minutes must be more than 0 — delete the session instead': 'הדקות צריכות להיות יותר מאפס — אחרת, מחק את האימון',
   'Minutes saved': 'הדקות נשמרו',
+  'A session cannot move to a day that has not happened': 'אי אפשר להזיז אימון ליום שעוד לא היה',
   'Pick a body part': 'תבחר אזור בגוף',
   'S&C session saved': 'אימון הכוח נשמר',
   'Session added': 'האימון נוסף',
