@@ -1397,7 +1397,7 @@ export const HE = {
   "Replace": "החלפה",
   "Switch to the coach portal": "מעבר לפורטל המאמן",
   "Delete bodyweight entry": "מחיקת שקילה",
-  "Remove {kg}kg from {block} · W{week}?": "למחוק את השקילה של {kg} קילו ({block} · W{week})?",
+  "Remove {kg}kg from {block} · W{week}?": "למחוק את השקילה של {kg} קילו ({block} · שבוע {week})?",
   "← HISTORY": "→ היסטוריה",
   "← PREV": "→ הקודם",
   "+ PHOTO": "+ תמונה",

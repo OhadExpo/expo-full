@@ -365,6 +365,13 @@ function GooglePhotosEmbed({ url }) {
 // A warm-up's structured sets/reps win over its written rx only when they are the
 // whole prescription: a lone `sets: 11` beside rx '1x12' (one live plan, audit #612
 // B4) showed the athlete a bare '11'. Half-filled fields + an rx = the rx.
+// The week inside a line of text: 'W2' in English, 'שבוע 2' in Hebrew (the coach app's
+// word, audit #612 B5). Its own isolated run - a bare 'שבוע 2' inside an LTR line
+// reorders to '2 שבוע'. Week CHIPS stay 'W2' in both languages (32px cells, as in the coach app).
+function WeekWord({ n, style }) {
+  const he = useHe();
+  return <span dir={he ? 'rtl' : 'ltr'} style={{ unicodeBidi: 'isolate', ...style }}>{he ? `שבוע ${n}` : `W${n}`}</span>;
+}
 const wuStructured = (w) => !!(w && (w.sets || w.reps) && ((w.sets && w.reps) || !w.rx));
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
@@ -1949,7 +1956,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           "· W2 יום א" (1008b review), and the leading space collapsed ("Day A·").
           overflow:hidden: on a 320 bar with a crest and many pending uploads the
           unshrinkable week clips rather than paint over the logo or the cluster. */}
-      <span dir="auto" style={{display:'flex',justifyContent:'center',alignItems:'baseline',columnGap:'0.4em',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><span style={{flexShrink:0}}>W{weekNum+1}</span></span>
+      <span dir="auto" style={{display:'flex',justifyContent:'center',alignItems:'baseline',columnGap:'0.4em',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><WeekWord n={weekNum+1} style={{flexShrink:0}} /></span>
       {/* Right cluster — anchored to the right edge of its column, so ← Exit
           sits on the RIGHT EDGE always (Ohad). */}
       <div style={{justifySelf:'end',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
@@ -3781,7 +3788,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
             {/* order: DAY · W# · BLOCK — the week sits between the day and the
                 block (Ohad); the date moves to the right on its own. */}
-            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· W{w.week} ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· <WeekWord n={w.week} /> ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
             <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)}</div>
           </div>
           {/* Pre-workout readiness check-in the athlete logged for this session. */}
