@@ -4796,6 +4796,14 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
           .dtl-meta { justify-self: start; }
           .dtl-prio { justify-self: start; }
         }
+        /* THE PHONE ROW = the real list's (9.10 #618): title on line 1, status + priority
+           as two equal halves on line 2, the meta centred on line 3 only when there is any */
+        @media (max-width: 560px) {
+          .dtl-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "title title" "status prio" "meta meta"; column-gap: 10px; padding: 10px 12px; }
+          .dtl-row > .dtl-status, .dtl-row > .dtl-prio { width: 100% !important; justify-self: stretch; }
+          .dtl-meta { justify-self: center !important; }
+          .dtl-meta:empty { display: none; }
+        }
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 46, padding: '0 14px', borderBottom: `1px solid ${C.cardBd}` }}>
         <span aria-hidden style={{ width: 20, height: 20, border: `1px solid ${C.ac}`, color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, lineHeight: 1 }}>+</span>

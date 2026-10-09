@@ -358,7 +358,7 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
 // One height for every in-row pill/tag (status, urgency, date, athlete, shared)
 // so a row of tags lines up — no asymmetry (Ohad).
 const TASK_PILL_H = 24;
-function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
+function StatusPill({ status, theme, onSetStatus, readOnly = false, fill = false }) {
   const tt = useT();
   const tb = useTB();
   // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
@@ -369,7 +369,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
   const filled = !!sc;
   const base = {
-    boxSizing: 'border-box', height: 'var(--btn-h)', width: 128, padding: '0 10px', borderRadius: 0,
+    boxSizing: 'border-box', height: 'var(--btn-h)', width: fill ? '100%' : 128, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -388,7 +388,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
     );
   }
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: fill ? '100%' : undefined }} onClick={(e) => e.stopPropagation()}>
       <select
         className="task-select"
         value={status}
@@ -461,22 +461,22 @@ const PRIORITY_PICK = [
   { id: 'normal', label: 'Normal', color: 'var(--c-tm)' },
   { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
 ];
-function PriorityPill({ priority, onSetPriority, readOnly = false }) {
+function PriorityPill({ priority, onSetPriority, readOnly = false, fill = false }) {
   const tt = useT();
   const tb = useTB();
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
-    boxSizing: 'border-box', height: 'var(--btn-h)', width: 96, padding: '0 8px', borderRadius: 0,
+    boxSizing: 'border-box', height: 'var(--btn-h)', width: fill ? '100%' : 96, padding: '0 8px', borderRadius: 0,
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
-  if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
+  if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: fill ? '100%' : undefined }} onClick={(e) => e.stopPropagation()}>
       <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
         title={tt('Change urgency')} style={{ ...base, cursor: 'pointer' }}>
@@ -1611,6 +1611,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // meta and the status pill share the second — meta left, status right —
   // makes each task a tidy two-line block with no dead space.
   const phone = narrow && !board;
+  // THE PHONE ROW, ONE SHAPE (9.10 #618, Ohad's photo: "buttons and tags are awfully layed
+  // out" - a 128px status box on one side of the title, a 96px priority box alone under
+  // it, SHARED floating at the far edge). Now: the title has line 1; line 2 is status and
+  // priority as two EQUAL halves of the row; line 3, only when there is any, is the plain
+  // meta (owner, athlete, shared, due) centred under them.
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1677,7 +1682,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // reserve a left gutter (26px) — the title/meta can never slide under it
           // in either LTR or RTL (Ohad: "checkmark and text overlap"). Non-board
           // rows keep their tight padding.
-          padding: board ? '5px 8px 5px 26px' : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
+          padding: board ? '5px 8px 5px 26px' : phone ? '10px 12px' /* equal sides: the two halves sit symmetric (#618) */ : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           border: `1px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
@@ -1709,11 +1714,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             // status read as a hole. The status now stays up on the title line where
             // his rule puts it (#189: priority left, title centred, status right) and
             // the chips own line 2 outright - two lines, packed left, always.
-            ? { order: 1, flexBasis: '100%', flexGrow: 0, flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
+            ? { order: 3, flexBasis: '100%', flexGrow: 0, flexShrink: 1, minWidth: 0, justifyContent: 'center', direction: 'inherit',
+                display: (showAvatar || showAthlete || row._owner === 'shared' || dateStr) ? 'flex' : 'none' }
             : wrapRow
               ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
               : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
-          <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
+          {phone && showAvatar && <AssigneeDot owner={row._owner} />}
+          {!phone && <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />}
           {/* Athlete chip in an ALWAYS-reserved column (like SHARED/DATE below) so a
               task WITH an athlete can't push the meta cluster wider than one without —
               chips line up vertically and titles keep an identical edge (Ohad #207). */}
@@ -1763,13 +1770,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             )}
           </span>
         </div>
-        {showAvatar && !board && <AssigneeDot owner={row._owner} />}
+        {showAvatar && !board && !phone && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
           // Board + phone: title leads line 1 and SHARES it with the status pill
           // (flex:1 pushes the pill to the right edge). The meta cluster wraps to
           // line 2 below (order:1). Was flexBasis:100% which forced the title onto
           // a line of its own and sprawled the row to 3-4 lines (Ohad: "trash").
-          ...(phone ? { order: -1, flex: '1 1 0%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
+          ...(phone ? { order: -1, flex: '1 1 100%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div dir="auto" style={{
             maxWidth: '100%', alignSelf: 'stretch',
             // ONE TYPE SYSTEM (29.9 #448 audit): a title with any Hebrew in it was set
@@ -1823,8 +1830,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 0 } : null) }}>
-            <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 1, flex: '1 1 0', minWidth: 0, marginInlineStart: 0 } : null) }}>
+            <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} fill={phone} />
+          </span>
+        )}
+        {phone && (
+          <span style={{ display: 'inline-flex', order: 2, flex: '1 1 0', minWidth: 0 }}>
+            <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} fill />
           </span>
         )}
       </div>
