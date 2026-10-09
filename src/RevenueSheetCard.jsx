@@ -25,7 +25,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useT, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { CollapsibleSection, ScrollFade } from './ui';
+import { CollapsibleSection, ScrollFade, usePhone } from './ui';
 import { fmtNumericDate, monthAbbr } from './dates';
 import { noDangle } from './script';
 
@@ -215,6 +215,127 @@ export function SheetBillingHistory({ traineeId, onCount }) {
   );
 }
 
+
+// A MONTH'S FIGURES, ONE PLACE (the table and the phone cards read the same money):
+// BHBC is a club contract, not a roster client, so the roster estimate is set against
+// coaching MINUS the club. THE CURRENT MONTH HAS NO GAP YET (9.10 audit #612 A9: October
+// read '+₪4,075' against ₪0 - the finance sheet is filled in when the month closes): the
+// LOCAL month, and a month whose finance total is still empty, is open (1008k review S1).
+function monthFigures(g, est) {
+  const bhbc = Number(g.rows.find((x) => x.channel === 'bhbc')?.amount || 0);
+  const base = g.coaching - bhbc;
+  const nowD = new Date();
+  const monthOpen = String(g.month).slice(0, 7) === `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}` || !(g.coaching > 0);
+  const gap = est && !monthOpen ? est.est - base : null;
+  return { monthOpen, gap };
+}
+const signedILS = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + ILS(Math.abs(n));
+
+// ON A PHONE THE HISTORY IS CARDS, NOT 9- AND 11-COLUMN TABLES (9.10, the phone pattern after
+// #618/#619: the tables scrolled sideways and the money sat off-screen). A row = the name and
+// its money on one line, the rest as one line of small facts under it; tap for the payments.
+const P_ROW = { padding: '10px 0', borderBottom: `1px solid ${C.cardBd}` };
+const P_META = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 2, marginTop: 4 };
+const P_BTN = { display: 'block', width: '100%', padding: 0, background: 'transparent', border: 'none', textAlign: 'start', cursor: 'pointer', color: C.tx };
+function PhonePayments({ payments, tt }) {
+  return payments.map((p) => (
+    <div key={p.id} style={{ padding: '8px 0', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{fmtNumericDate(p.event_date)}</span>
+        <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }}>{p.amount_est == null ? '—' : ILS(p.amount_est)}</span>
+      </div>
+      <div style={P_META}>
+        {p.rate_text ? <span>{fmtRate(p.rate_text)}</span> : null}
+        {p.counter_before ? <bdi style={{ textTransform: 'none' }}>{p.counter_before}</bdi> : null}
+        <span>{tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}</span>
+        {p.unpaid ? <span style={{ color: C.rd }}>{tt('marked unpaid')}</span> : null}
+      </div>
+    </div>
+  ));
+}
+function ClientsPhone({ list, open, setOpen, statusOf, tt }) {
+  return (
+    <div>
+      {list.map((c) => {
+        const isOpen = open === c.key;
+        const st = statusOf(c);
+        return (
+          <div key={c.key} style={P_ROW}>
+            <button type="button" onClick={() => setOpen(isOpen ? null : c.key)} aria-expanded={isOpen} style={P_BTN}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, minWidth: 0 }}><Chev open={isOpen} /><bdi>{c.name}</bdi></span>
+                <span dir="ltr" style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>{ILS(c.estTotal)}</span>
+              </span>
+              {c.alsoKnownAs.length > 0 && <span style={{ display: 'block', fontSize: 11, color: C.td, paddingInlineStart: 14 }}><bdi>{c.alsoKnownAs.join(' · ')}</bdi></span>}
+              <span style={{ ...P_META, paddingInlineStart: 14 }}>
+                <span>{tt('Last payment')} <span dir="ltr">{c.latest ? fmtNumericDate(c.latest) : '—'}</span></span>
+                <span>{c.payments.length} {tt('payments')}</span>
+                {c.sessions ? <span>{c.sessions} {tt('Sessions')}</span> : null}
+                {c.rate ? <span>{fmtRate(c.rate)}</span> : null}
+                {c.unpaid ? <span style={{ color: C.rd }}>{tt('Unpaid')} {c.unpaid}</span> : null}
+                {c.unknown ? <span>{tt('No amount')} {c.unknown}</span> : null}
+                <span>{st ? tt(st) : tt('no record')}</span>
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ paddingInlineStart: 14, marginTop: 6 }}>
+                <PhonePayments payments={c.payments} tt={tt} />
+                {c.rates.length > 0 && (
+                  <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6 }}>
+                    {tt('Rate changes')}: {c.rates.slice().reverse().map((r, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi dir="ltr">{fmtNumericDate(r.event_date)}</bdi> {fmtRate(r.rate_text)}</React.Fragment>)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt }) {
+  return (
+    <div>
+      {byMonth.map((g) => {
+        const est = estByMonth.get(g.month);
+        const { monthOpen, gap } = monthFigures(g, est);
+        const isOpenM = openMonth === g.month;
+        const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
+        return (
+          <div key={g.month} style={P_ROW}>
+            <button type="button" onClick={() => setOpenMonth(isOpenM ? null : g.month)} aria-expanded={isOpenM} style={P_BTN}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><Chev open={isOpenM} />{monthLabel(g.month)}</span>
+                <span dir="ltr" style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap' }}>{ILS(g.coaching)}</span>
+              </span>
+              <span style={{ ...P_META, paddingInlineStart: 14 }}>
+                <span>{tt('Roster estimate')} <span dir="ltr">{est ? ILS(est.est) : '—'}</span></span>
+                <span>{tt('Gap')} {monthOpen ? tt('month open') : <span dir="ltr">{gap == null ? '—' : signedILS(gap)}</span>}</span>
+                {g.other ? <span>{noDangle(tt(CHANNEL_LABEL.national_insurance))} <span dir="ltr">{ILS(g.other)}</span></span> : null}
+              </span>
+            </button>
+            {isOpenM && (
+              <div style={{ paddingInlineStart: 14, marginTop: 6 }}>
+                <div style={{ ...P_META, marginTop: 0, marginBottom: 6 }}>
+                  {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => { const r = g.rows.find((x) => x.channel === c); return r && Number(r.amount) ? <span key={c}>{tt(CHANNEL_LABEL[c])} <span dir="ltr" style={{ color: C.tx }}>{ILS(r.amount)}</span></span> : null; })}
+                </div>
+                {monthPays.length === 0
+                  ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('The roster recorded no payment dated this month.')}</div>
+                  : monthPays.map((p) => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '6px 0', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+                      <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, minWidth: 0 }}><bdi>{p.client_name}</bdi> <span dir="ltr" style={{ color: C.tm, fontWeight: 400, fontSize: 12 }}>{fmtNumericDate(p.event_date)}</span></span>
+                      <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: p.unpaid ? C.rd : p.amount_est == null ? C.td : C.tx, whiteSpace: 'nowrap' }}>{p.unpaid ? tt('marked unpaid') : p.amount_est == null ? '—' : ILS(p.amount_est)}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // One table for both lists (active / inactive): the same columns, so the two read alike.
 // ONE GRID FOR BOTH (9.10 #608 "keep it perfect"): fixed columns at the same widths, so a
 // column of the inactive table sits exactly under the same column above. Wider than a
@@ -297,6 +418,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
 
 export default function RevenueSheetCard({ trainees = [] }) {
   const tt = useT();
+  const phone = usePhone();
   const PAD = 14;
   const { months, events, health } = useSheetRevenue();
   const [open, setOpen] = useState(null);
@@ -382,6 +504,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
               sheets". Child combinators leave the nested history tables alone;
               the class out-ranks index.html's phone cell rule. */}
           <style>{`.rs-table > thead > tr > th:first-child, .rs-table > tbody > tr > td:first-child { padding-inline-start: 0 !important; }`}</style>
+          {phone ? <MonthsPhone byMonth={byMonth} estByMonth={estByMonth} events={events} openMonth={openMonth} setOpenMonth={setOpenMonth} tt={tt} /> : (
           <table className="rs-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -401,15 +524,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
                 const est = estByMonth.get(g.month);
                 // BHBC is a club contract, not a roster client, so the roster
                 // estimate is set against coaching MINUS the club.
-                const bhbc = Number(g.rows.find((x) => x.channel === 'bhbc')?.amount || 0);
-                const base = g.coaching - bhbc;
-                // THE CURRENT MONTH HAS NO GAP YET (9.10 audit #612 A9: October read '+₪4,075' against
-                // ₪0 - the finance sheet is filled in when the month closes, so the gap says so in words)
-                // the LOCAL month (UTC called October 'open' until 03:00 on 1.11), and a month whose
-                // finance total is still empty is open too - its gap would be against ₪0 (1008k review S1)
-                const nowD = new Date();
-                const monthOpen = String(g.month).slice(0, 7) === `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}` || !(g.coaching > 0);
-                const gap = est && !monthOpen ? est.est - base : null;
+                const { monthOpen, gap } = monthFigures(g, est);
                 const isOpenM = openMonth === g.month;
                 const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
                 return (
@@ -471,6 +586,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
               })}
             </tbody>
           </table>
+          )}
           <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6, lineHeight: 1.5 }}>
             {tt('Roster estimate = the payments the roster recorded that month, priced at the rate beside each date × the sessions counter when it was reset. Gap = estimate minus the sheet\'s coaching total without the club. A payment dated in one month is often banked in the next.')}
           </div>
@@ -482,7 +598,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 8 }}>
             {tt('Payments recorded per client')} · <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{tt('tap a row for the full history')}</span>
           </div>
-          <ClientsTable list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />
+          {phone ? <ClientsPhone list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} /> : <ClientsTable list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />}
         </>
       )}
 
@@ -496,7 +612,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
             <span>{tt('Inactive clients')} · {inactiveClients.length}</span>
             <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginInlineStart: 8 }}>{tt('not linked in EXPO, or not active')}</span>
           </button>
-          {showInactive && <div style={{ marginTop: 8 }}><ClientsTable list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} /></div>}
+          {showInactive && <div style={{ marginTop: 8 }}>{phone ? <ClientsPhone list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} /> : <ClientsTable list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />}</div>}
         </div>
       )}
 
