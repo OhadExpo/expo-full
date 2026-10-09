@@ -18,7 +18,7 @@
 // Output frames match what the analyser expects:
 //   [{ t(ms), landmarks (full-frame normalised), worldLandmarks (metric) }]
 // plus frames.dims, frames.fps, frames.windows and frames.stats.
-import { createPoseLandmarker } from './usePose.js';
+import { createPoseLandmarker, createBallDetector } from './usePose.js';
 import { toGray, motionBlobs } from './ballTrack.js';
 // Pure, DOM-free: only used to find the provisional releases for the opt-in
 // ball pass (ballPass 'seek'), after the pose passes are complete.
@@ -321,8 +321,15 @@ export async function stepThrough(v, { from, to, step, onFrame, run }) {
 //   readGray   (video) => Uint8Array luma plane of mw x mh, the SAME fixed
 //              whole-frame canvas the fine pass differences
 //   cutFor     (tSec) => pixel row the search stops at (the athlete's waist)
+//   detect     optional (video) => [{ x, y, w, h, score }] in FRAME-HEIGHT
+//              fractions: a trained detector's balls (ballPass 'seek+det').
+//              They join the motion blobs as extra candidates - trackBall,
+//              the parabola and the gravity gate decide, exactly as before -
+//              and they also give the first frame of a span candidates, which
+//              differencing cannot (it has no frame before it). A detector that
+//              throws on a frame simply adds nothing to that frame.
 export async function seekBallPass(v, {
-  releases, frameDur, duration = Infinity, readGray, mw, mh, cutFor = () => mh, run,
+  releases, frameDur, duration = Infinity, readGray, mw, mh, cutFor = () => mh, run, detect = null,
   preMs = 100, postMs = 1500, maxFps = 60, maxFramesPerShot = 120,
   shotBudgetMs = 20000, totalBudgetMs = 600000, minCover = 0.8, onProgress,
 }) {
@@ -333,6 +340,7 @@ export async function seekBallPass(v, {
   const stride = Math.max(1, Math.round((1 / maxFps) / frameDur));
   const frames = [], spans = [];
   const why = {};
+  const det = detect ? { frames: 0, hits: 0, errors: 0 } : null;
   const fail = (span, w) => { span.why = w; why[w] = (why[w] || 0) + 1; };
   for (let si = 0; si < (releases || []).length; si++) {
     const rel = releases[si];
@@ -390,6 +398,17 @@ export async function seekBallPass(v, {
             .map((bb) => ({ x: bb.x / mh, y: bb.y / mh, w: bb.w / mh, h: bb.h / mh, n: bb.n }));
         }
         prevG = g; prevT = tMs;
+        if (detect) {
+          det.frames++;
+          let found = null;
+          try { found = await detect(v); } catch { det.errors++; }
+          if (cancelled) return 'deadline';
+          const yCutF = Math.max(1, Math.min(mh, Math.round(cutFor(tMs / 1000)))) / mh;
+          const balls = (Array.isArray(found) ? found : [])
+            .filter((d) => d && Number.isFinite(d.x) && Number.isFinite(d.y) && d.w > 0 && d.h > 0 && d.y <= yCutF)
+            .map((d) => ({ x: d.x, y: d.y, w: d.w, h: d.h, n: 0, det: true, score: d.score }));
+          if (balls.length) { det.hits++; blobs = (blobs || []).concat(balls); }
+        }
         got.push({ t: tMs, blobs });
         if (onProgress) { try { onProgress((si + got.length / ks.length) / releases.length); } catch { /* noop */ } }
       }
@@ -421,7 +440,7 @@ export async function seekBallPass(v, {
   // Two releases closer than the span overlap; keep one sample per instant.
   const dedup = [];
   for (const f of frames) if (!dedup.length || f.t - dedup[dedup.length - 1].t > 0.5) dedup.push(f);
-  return { frames: dedup, spans, stepMs: frameDur * 1000 * stride, ms: Math.round(clock() - t0), why };
+  return { frames: dedup, spans, stepMs: frameDur * 1000 * stride, ms: Math.round(clock() - t0), why, det };
 }
 
 /**
@@ -667,9 +686,13 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
   //   true       both seek-stepped (slowest, byte-identical between runs)
   const detCoarse = deterministic === true || deterministic === 'coarse';
   const detFine = deterministic === true;
-  const ballSeek = ballPass === 'seek' || (ballPass == null && (() => {
-    try { return typeof localStorage !== 'undefined' && localStorage.getItem('expo-shot-ball') === 'seek'; } catch { return false; }
-  })());
+  // 'seek+det' (10.10 #638, also opt-in): the same seek pass, with a trained
+  // detector's balls added to the motion candidates - see seekBallPass.
+  const ballChoice = ballPass != null ? ballPass : (() => {
+    try { return typeof localStorage !== 'undefined' ? localStorage.getItem('expo-shot-ball') : null; } catch { return null; }
+  })();
+  const ballSeek = ballChoice === 'seek' || ballChoice === 'seek+det';
+  const ballDet = ballChoice === 'seek+det';
   // The fine pass owns 50-98% of the bar, unless the ball pass needs a share.
   const fineSpan = ballSeek ? 30 : 48;
   let lmCoarse, lmFine, v, canvas;
@@ -1196,9 +1219,21 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
         if (!cyc.length) cyc = detectShots(series, fps, RELAXED_SHOT_GATES);
         releases = cyc.map((c) => series.tMs[c.release]).filter((t) => Number.isFinite(t));
       } catch { releases = []; }
-      ballStats = { mode: 'seek', releases: releases.length, ok: 0, frames: 0, ms: 0, why: {} };
+      ballStats = { mode: ballDet ? 'seek+det' : 'seek', releases: releases.length, ok: 0, frames: 0, ms: 0, why: {} };
       if (releases.length) {
         report(50 + fineSpan, 'following the ball');
+        // The detector is extra evidence, never a requirement: one that does
+        // not load (offline, a GPU that refuses it) leaves the motion pass as it was.
+        let detector = null;
+        if (ballDet) {
+          try {
+            detector = await withDeadline(createBallDetector(), 30000, codeErr('model', 'ball detector did not load'),
+              { clock, signal, onLate: (d) => { try { d.close(); } catch { /* noop */ } } });
+          } catch (e) {
+            if (e && e.code === 'aborted') throw e;
+            ballStats.detError = String((e && e.message) || e);
+          }
+        }
         try {
           const bp = await seekBallPass(v, {
             releases, frameDur, duration: dur, mw: MW, mh: MH, run,
@@ -1211,16 +1246,26 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
               return (b.y0 + (b.y1 - b.y0) * 0.5) * MH;
             },
             onProgress: (f) => report(50 + fineSpan + Math.max(0, Math.min(1, f)) * (48 - fineSpan), 'following the ball'),
+            // Boxes in the video's own pixels -> centre + size in frame heights,
+            // the unit the motion blobs already use.
+            detect: detector ? (vid) => (detector.detect(vid).detections || []).map((d) => {
+              const bb = d.boundingBox || {};
+              return { x: (bb.originX + bb.width / 2) / vh, y: (bb.originY + bb.height / 2) / vh, w: bb.width / vh, h: bb.height / vh,
+                score: d.categories && d.categories[0] ? d.categories[0].score : null };
+            }) : null,
           });
           out.ballSeek = { frames: bp.frames, spans: bp.spans, stepMs: bp.stepMs };
           ballStats.ok = bp.spans.filter((s) => s.ok).length;
           ballStats.frames = bp.frames.length;
           ballStats.ms = bp.ms;
           ballStats.why = bp.why;
+          if (bp.det) ballStats.det = bp.det;
         } catch (e) {
           if (e && e.code === 'aborted') throw e;
           // Whatever went wrong, the playback ball is still there for every shot.
           ballStats.error = String((e && e.message) || e);
+        } finally {
+          if (detector) { try { detector.close(); } catch { /* noop */ } }
         }
       }
     }

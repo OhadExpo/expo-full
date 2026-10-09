@@ -21,8 +21,8 @@ import { unmangleArg } from './lib/unmangle.mjs';
 const CLIP = unmangleArg(process.argv[2] || '/10%20of%2011.mp4');
 const RUNS = parseInt(process.argv[3] || '3', 10);
 const RATES = process.argv.slice(4).map(Number).filter((n) => n > 0);
-const BALLPASS = process.env.BALLPASS === 'seek' ? 'seek' : null;
-if (BALLPASS) console.log('  ball pass: seek (angles from frame-by-frame seeks around each release)');
+const BALLPASS = ['seek', 'seek+det'].includes(process.env.BALLPASS) ? process.env.BALLPASS : null;   // 'seek+det' = + the trained ball detector (#638)
+if (BALLPASS) console.log(`  ball pass: ${BALLPASS} (angles from frame-by-frame seeks around each release${BALLPASS === 'seek+det' ? ', plus a trained ball detector' : ''})`);
 if (!RATES.length) RATES.push(1);
 
 const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 3_600_000 });

@@ -297,6 +297,32 @@ console.log('SHOT CAPTURE ON A PHONE\n');
   ok('ball pass: STOP rejects with code aborted, promptly', t.err && t.err.code === 'aborted' && t.ms < 1500, t.err ? `${t.err.code} ${Math.round(t.ms)}ms` : 'resolved');
   run.vis.dispose();
 
+  // 'seek+det' (10.10 #638): a trained detector's balls join the motion blobs.
+  // A STILL ball (no motion at all) is only seen through the detector; one
+  // below the waist cut is dropped; a detector that throws adds nothing and
+  // never fails the span.
+  {
+    const still = () => new Uint8Array(MW * MH).fill(30);
+    const detAt = (vid) => [{ x: 0.5 + vid.currentTime * 0.01, y: 0.3, w: 0.03, h: 0.03, score: 0.6 }, { x: 0.4, y: 0.95, w: 0.03, h: 0.03, score: 0.9 }];
+    scene('ball pass + detector'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+    r = await seekBallPass(v, base({ run, readGray: still, detect: async (vid) => detAt(vid), cutFor: () => MH * 0.5 }));
+    const withDet = r.frames.filter((f) => Array.isArray(f.blobs) && f.blobs.some((b) => b.det));
+    ok('detector: a still ball is a candidate in every read frame (motion alone sees none)', r.frames.length > 80 && withDet.length === r.frames.length, `${withDet.length} of ${r.frames.length}`);
+    ok('detector: a ball below the waist cut is dropped', r.frames.every((f) => !f.blobs || f.blobs.every((b) => b.y <= 0.5)));
+    // counted per READ frame: two spans can overlap, and the merged list keeps one sample per instant
+    const readN = r.spans.reduce((n, sp) => n + sp.read, 0);
+    ok('detector: counted per read frame (frames, hits)', r.det && r.det.frames === readN && r.det.hits === readN && r.det.errors === 0, `${JSON.stringify(r.det)} read ${readN}`);
+    run.vis.dispose();
+    scene('ball pass + throwing detector'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+    r = await seekBallPass(v, base({ run, detect: () => { throw new Error('gpu lost'); } }));
+    ok('detector: one that throws leaves the motion pass exactly as it was', r.spans.every((sp) => sp.ok) && r.det.errors === r.det.frames && r.frames.every((f) => !f.blobs || f.blobs.every((b) => !b.det)), JSON.stringify(r.det));
+    run.vis.dispose();
+    scene('ball pass no detector'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+    r = await seekBallPass(v, base({ run }));
+    ok('detector: absent -> det is null, motion path unchanged', r.det === null && r.spans.every((sp) => sp.ok));
+    run.vis.dispose();
+  }
+
   scene('ball pass nothing to do'); v = new FakeVideo({ duration: 4 }); run = mkRun();
   r = await seekBallPass(v, base({ run, releases: [] }));
   ok('ball pass: no releases -> no spans, no frames', r.spans.length === 0 && r.frames.length === 0);
