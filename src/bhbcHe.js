@@ -909,7 +909,7 @@ Object.assign(HE, {
   // the dynamic warm-up, its own thing (9.10 #643) - native-checked
   'Warm-up': 'חימום',
   // the game warm-up tab (10.10 #647)
-  'Game warm-up': 'חימום משחק',
+  'Game warm-up': 'חימום למשחק',
   'drill': 'תרגיל',
   'drills': 'תרגילים',
   'From the sheet · synced': 'מהגיליון · עודכן',
