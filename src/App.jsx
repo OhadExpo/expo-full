@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
@@ -1216,6 +1216,13 @@ function AuthedApp() {
     ? (initRoute.tab || 'dashboard')
     : (STAFF_TABS.includes(initRoute.tab) ? initRoute.tab : 'dashboard');
   const [tab,setTab]=useState(isCoach ? coachInitialTab : "client");
+  // THE MENU ANSWERS THE TAP AT ONCE (9.10 #625, Ohad: "Same for expo top menu" - lagging):
+  // the tapped item lights up in the same frame (navPending, urgent) and the page behind it
+  // renders as a transition, so a heavy view never holds the menu. Measured before: 100-330ms
+  // from tap to paint at a phone's CPU.
+  const [navPending,setNavPending]=useState(null);
+  const [,startNavTransition]=useTransition();
+  useEffect(() => { setNavPending(null); }, [tab]);
   // the view area reads the tab directly: a deferred copy (useDeferredValue) was
   // measured 4.10 #529 at 4x CPU - the screen arrived ~100 ms LATER on every tab
   const viewTab = tab;
@@ -1405,8 +1412,11 @@ function AuthedApp() {
     // fired its Supabase reads for one frame before the URL guard bounced them.
     // Owners (isOwner) are unaffected; athletes never hit the coach app.
     if (isCoach && !isOwner && newTab && !STAFF_TABS.includes(newTab)) return;
-    setTab(newTab);
-    setSelectedTrainee(newTrainee || null);
+    setNavPending(newTab);
+    startNavTransition(() => {
+      setTab(newTab);
+      setSelectedTrainee(newTrainee || null);
+    });
     updateURL(newTab, newTrainee, hash);
   }, [updateURL, isCoach, isOwner]);
 
@@ -1953,8 +1963,9 @@ function AuthedApp() {
               // A tab with `submenu` becomes a dropdown trigger.
               // Active-state for a submenu trigger fires when current
               // tab is any of the items' routes.
-              const isSection = t.submenu && t.submenu.some(it => tab === it.route);
-              const isActive = t.submenu ? isSection : tab === t.key;
+              const shownTab = navPending || tab;   // the tapped item, this frame (#625)
+              const isSection = t.submenu && t.submenu.some(it => shownTab === it.route);
+              const isActive = t.submenu ? isSection : shownTab === t.key;
               const dataTheme=(typeof document!=='undefined'?document.documentElement.getAttribute('data-theme'):null);
               const isChosen=dataTheme==='5'||dataTheme==='5b'||dataTheme==='light';
               const CYAN='#39BDFF';

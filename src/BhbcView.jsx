@@ -11,7 +11,7 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
-import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy, useTransition } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
 import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn } from './ui';
@@ -878,6 +878,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // (27.9 #375) - it lands on OVERVIEW instead (`coach` is the prop; the
   // preview toggle cannot be on at first render)
   const [view, setView] = useState(() => { const p = pageFromUrl(); return p && !(coach && p === 'activity') ? p : 'overview'; });   // overview | schedule | roster
+  // THE MENU ANSWERS THE TAP AT ONCE (9.10 #621, Ohad: "Top menu is lagging"): the tapped tab
+  // lights up this frame (tabPending, urgent); the page renders as a transition. Measured before:
+  // 100-330ms tap->paint at a phone's CPU, one ~85ms long task per switch.
+  const [tabPending, setTabPending] = useState(null);
+  const [, startTabTransition] = useTransition();
+  useEffect(() => { setTabPending(null); }, [view]);
+  const pickView = useCallback((k) => { setTabPending(k); startTabTransition(() => setView(k)); }, []);
   // the tab's content renders with the tab (a deferred copy was measured slower, 4.10 #529)
   const shownView = view;
   useEffect(() => {
@@ -1948,9 +1955,9 @@ function attendance28(rec, days) {
               of the zone's overflow-x:clip amputating the tail tabs. */}
           <nav ref={navRef} className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'safe center', gap: 6, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
-              const on = view === k;
+              const on = (tabPending || view) === k;
               return (
-                <button key={k} role="tab" aria-selected={on} onClick={() => setView(k)} className={on ? undefined : 'bhbc-tab'} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.5)', background: 'transparent', border: `1px solid ${on ? ORANGE : 'transparent'}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>{label}</button>
+                <button key={k} role="tab" aria-selected={on} onClick={() => pickView(k)} className={on ? undefined : 'bhbc-tab'} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.5)', background: 'transparent', border: `1px solid ${on ? ORANGE : 'transparent'}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>{label}</button>
               );
             })}
           </nav>
