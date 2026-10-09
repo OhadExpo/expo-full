@@ -84,7 +84,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     scene.add(key);
     // a cool fill from the other side and a cyan rim from behind: the silhouette separates from the dark
     const fill = new THREE.DirectionalLight(0x9fc7ff, 0.45); fill.position.set(-3, 2, 1.5); scene.add(fill);
-    const rim = new THREE.DirectionalLight(0x39bdff, 0.9); rim.position.set(-1.5, 2.6, -3.5); scene.add(rim);
+    const rim = new THREE.DirectionalLight(0xa8dcff, 0.5); rim.position.set(-1.5, 2.6, -3.5); scene.add(rim);
 
     // the floor: a grid on a plane that takes the body's shadow
     const plane = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.ShadowMaterial({ opacity: 0.35 }));
@@ -113,7 +113,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const JOINT_R = { 11: 0.054, 12: 0.054, 13: 0.043, 14: 0.043, 15: 0.032, 16: 0.032, 23: 0.074, 24: 0.074, 25: 0.06, 26: 0.06, 27: 0.042, 28: 0.042 };
     const joints = Object.entries(JOINT_R).map(([k, r]) => ({ k: +k, m: addMesh(new THREE.SphereGeometry(r, 24, 16), +k % 2 ? LEFT_MAT : RIGHT_MAT) }));
     const unit = new THREE.SphereGeometry(1, 32, 24);
-    const chest = addMesh(unit, trunkMat), belly = addMesh(unit, trunkMat), pelvis = addMesh(unit, trunkMat);
+    // the core is one smooth capsule along his spine; the chest (wider, flatter) blends over its top
+    const core = addMesh(new THREE.CapsuleGeometry(1, 1, 8, 24), trunkMat);
+    const chest = addMesh(unit, trunkMat), pelvis = addMesh(unit, trunkMat);
     const neck = addMesh(new THREE.CylinderGeometry(0.045, 0.056, 1, 20, 1, true), skin);
     const head = addMesh(unit, skin), visor = addMesh(unit, visorMat);
     const hands = [0, 1].map(() => addMesh(unit, skin));
@@ -160,12 +162,13 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         const [sx, sy, sz] = axesOf(sideS, spine);
         const [hx, hy, hz] = axesOf(sideH, spine);
         const [bx, by, bz] = axesOf(sideS.clone().normalize().add(sideH.clone().normalize()), spine);
-        place(chest, H.clone().addScaledVector(sy, L * 0.70), sx, sy, sz, Math.max(0.12, sw * 0.56), L * 0.33, 0.125);
-        place(belly, H.clone().addScaledVector(by, L * 0.37), bx, by, bz, Math.max(0.11, Math.max(hw, sw * 0.8) * 0.5), L * 0.28, 0.11);
+        place(chest, H.clone().addScaledVector(sy, L * 0.74), sx, sy, sz, Math.max(0.12, sw * 0.55), L * 0.25, 0.105);
+        // capsule height = 3 x its y scale (length 1 + two radii): shoulders to hips
+        place(core, H.clone().addScaledVector(by, L * 0.47), bx, by, bz, Math.max(0.10, Math.max(hw * 0.95, sw * 0.8) * 0.5), L * 0.29, 0.095);
         place(pelvis, H.clone().addScaledVector(hy, 0.02), hx, hy, hz, Math.max(0.12, hw * 0.8), 0.115, 0.12);
         neck.visible = true; neck.position.copy(S).addScaledVector(sy, 0.065); neck.scale.set(1, 0.15, 1); neck.quaternion.setFromUnitVectors(up, sy);
         spineUp = sy;
-      } else { chest.visible = belly.visible = pelvis.visible = neck.visible = false; }
+      } else { chest.visible = core.visible = pelvis.visible = neck.visible = false; }
       // the head from the face, never from the shoulder line (poseLab's rule); the visor faces his nose
       const ears = [7, 8].filter(ok);
       head.visible = visor.visible = ears.length > 0 || ok(0);
