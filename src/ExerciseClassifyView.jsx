@@ -2,16 +2,57 @@
 // unclassified exercise gets its taxonomy pre-filled by the title classifier;
 // the coach reviews (edit any dropdown / skip), then Applies to the library.
 // SAFE: writes only the exercise library store (never trainee plans), confirm-gated.
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { C, FN, FB, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Card, Btn, Select, Modal, EmptyState, toast } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { useT, readLang } from './i18n';
 
 const CAP = 150;
+// colour of a guess: all three / some / none - said in words beside it, never a lone dot
+const GUESS_INK = (n) => (n === 3 ? '#2E9E6B' : n ? C.ac : '#E0A73A');
+
+// A PHONE GETS CARDS, NOT A TABLE (9.10 #619, Ohad: "This can look much better. Lacking
+// design"): at 390 the table showed only the names - the three dropdowns the screen is for
+// sat off to the right. Each exercise is a card: its name and how much was guessed, then
+// the three categories as one joined list (label | dropdown), 36px rows.
+function usePhone(max = 600) {
+  const q = `(max-width: ${max}px)`;
+  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  useEffect(() => { const mq = window.matchMedia(q); const on = () => setM(mq.matches); mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); }, [q]);
+  return m;
+}
+const CELL_SELECT = { width: '100%', height: 36, boxSizing: 'border-box', border: 'none', borderRadius: 0, background: 'var(--c-sf)', color: C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', padding: '0 10px', appearance: 'none', WebkitAppearance: 'none', outline: 'none', textAlign: 'start' };
+const PHONE_FIELDS = [['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES]];
+function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
+  return (
+    <div style={{ padding: '12px 0', borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <bdi style={{ flex: '1 1 0', minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word' }}>{e.title || e.t}</bdi>
+        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: GUESS_INK(g.filled), whiteSpace: 'nowrap' }}>{tt('{n}/3 guessed').replace('{n}', g.filled)}</span>
+        <button type="button" onClick={() => toggleSkip(e.id)} aria-label={skip ? tt('Un-skip') : tt('Skip')} title={skip ? tt('Un-skip') : tt('Skip')} style={{ width: 36, height: 36, flexShrink: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 12, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>{skip ? '↺' : '✕'}</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, auto) minmax(0, 1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+        {PHONE_FIELDS.map(([k, label, opts]) => (
+          <React.Fragment key={k}>
+            <span style={{ display: 'flex', alignItems: 'center', padding: '0 10px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt(label)}</span>
+            <span style={{ position: 'relative', display: 'flex' }}>
+              <select aria-label={tt(label)} value={val(e, g, k) || ''} onChange={(ev) => setVal(e.id, k, ev.target.value)} style={{ ...CELL_SELECT, color: val(e, g, k) ? C.tx : C.td }}>
+                <option value="" disabled hidden>—</option>
+                {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <span aria-hidden style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 9, color: C.tm, pointerEvents: 'none' }}>▾</span>
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   const tt = useT();
+  const phone = usePhone();
   const [edits, setEdits] = useState({}); // exId -> { resistanceType, bodyPosition, movementType, skip }
   const [q, setQ] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -61,26 +102,30 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   };
 
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
+  const ACTION = { height: 36, padding: '0 12px', border: 'none', borderRadius: 0, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+  const fullyGuessed = items.filter(({ g }) => g.filled === 3).length;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1150, margin: '0 auto', padding: '4px 0 60px' }}>
       <Card leftStripe={C.ac} header={tt('Classify Library')}>
-        {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
-        <div style={{ marginBottom: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {/* --c-stripTx: this sits on the header strip, which is #E3F4FE in light.
-              Measured 1.39:1 by light-dark-parity once /coach/exercise-classify
-              was added to its routes. */}
-          <span style={{ ...th, color: C.tm }}>{items.length} {tt('unclassified')}</span>
-          <Btn variant="ghost" onClick={acceptAllComplete}>{tt('Fill all fully-guessed')}</Btn>
-          <Btn disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ background: pending.length ? C.ac : undefined, borderColor: pending.length ? C.ac : undefined, color: pending.length ? '#04121f' : undefined }}>
-            {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}
-          </Btn>
-        </div></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-            {tt('Categories guessed from each title, from the fixed category list. Review, edit any dropdown, or skip. Applying writes only the library — never programs.')}
+        {/* ONE STATS LINE, ONE JOINED PAIR OF ACTIONS, A SHORT NOTE (9.10 #619): the actions were two
+            lone boxes of different widths, the note a grey paragraph of capitals. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ ...th, color: C.tm, display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 4 }}>
+            <span>{items.length} {tt('unclassified')}</span>
+            <span style={{ color: GUESS_INK(3) }}>{fullyGuessed} {tt('fully guessed')}</span>
+            <span style={{ color: pending.length ? C.ac : C.tm }}>{pending.length} {tt('ready to apply')}</span>
           </div>
-          <input type="text" value={q} onChange={(e) => { setQ(e.target.value); setShowAll(false); }} placeholder={tt('Filter by title (e.g. push-up, DB, squat) to classify in focused batches…')}
-            style={{ textAlign: 'start', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '9px 11px', maxWidth: 480 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, maxWidth: 560 }}>
+            <button type="button" onClick={acceptAllComplete} style={{ ...ACTION, color: C.tx }}>{tt('Fill all fully-guessed')}</button>
+            <button type="button" disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ ...ACTION, color: pending.length ? C.ac : C.td, cursor: pending.length ? 'pointer' : 'default' }}>
+              {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}
+            </button>
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560 }}>
+            {tt('Guesses come from each title. Change any, skip any - Apply writes the library only, never programs.')}
+          </div>
+          <input type="text" value={q} onChange={(e) => { setQ(e.target.value); setShowAll(false); }} placeholder={tt('Filter by title…')} aria-label={tt('Filter by title…')}
+            style={{ textAlign: 'start', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '0 11px', height: 36, boxSizing: 'border-box', maxWidth: 560 }} />
         </div>
       </Card>
 
@@ -88,6 +133,11 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
         <EmptyState message="Every exercise is classified. Nothing to do here." />
       ) : (
         <Card>
+          {phone ? (
+            <div style={{ marginTop: -12 }}>
+              {rows.map(({ e, g }) => <PhoneRow key={e.id} e={e} g={g} skip={!!(edits[e.id] || {}).skip} val={val} setVal={setVal} toggleSkip={toggleSkip} tt={tt} />)}
+            </div>
+          ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
               <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
@@ -105,7 +155,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
                     <tr key={e.id} style={{ borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1 }}>
                       <td style={{ ...cell, minWidth: 220 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: g.filled === 3 ? '#2E9E6B' : g.filled ? C.ac : '#E0A73A', flexShrink: 0 }} title={`${g.filled}/3 guessed`} />
+                          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: GUESS_INK(g.filled), flexShrink: 0, minWidth: 22 }} title={tt('{n}/3 guessed').replace('{n}', g.filled)}>{g.filled}/3</span>
                           <bdi style={{ fontFamily: FB, fontSize: 13, color: C.tx, flex: '1 1 0', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' /* wraps between words - an inline nowrap title ran past its cell, cut mid-word at 390 (audit #612 C10) */ }}>{e.title || e.t}</bdi>
                         </div>
                       </td>
@@ -121,6 +171,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
               </tbody>
             </table>
           </div>
+          )}
           {!showAll && filtered.length > CAP && (
             <div style={{ textAlign: 'center', marginTop: 12 }}>
               <Btn variant="ghost" onClick={() => setShowAll(true)}>{tt('Show all')} {filtered.length}</Btn>
