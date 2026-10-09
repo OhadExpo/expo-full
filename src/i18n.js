@@ -1807,6 +1807,8 @@ export const HE = {
   '{n} clips': '{n} קליפים',
   'Older clips': 'קליפים ישנים',
   'A recorded set, then a tool - no re-upload.': 'תבחר סט שצולם ואז תבחר כלי - בלי להעלות שוב.',
+  'SEC': 'שנ׳',
+  'Seconds': 'שניות',
   'Recent clips': 'קליפים אחרונים',
   'Loaded': 'נטען',
   'Load': 'טען',

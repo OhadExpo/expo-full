@@ -150,7 +150,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       // full on a desktop (better joints); lite on a touch device, where frame rate is the limit (#641)
       const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
       if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: coarse ? 'lite' : 'full' });
-      anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top';
+      anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top'; drawSmoothRef.current = null;
       setReps(0); setMoving('top');
       setPhase('live');
       rafRef.current = requestAnimationFrame(loop);

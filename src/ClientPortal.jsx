@@ -2295,6 +2295,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wrS = ex.wkS?.length > 0 ? pickWk(ex.wkS, weekNum, ex.s) : null;
     const setsForDisplay = wrS ?? ex.s;
     const repsForDisplay = wr ?? ex.r;
+    // A TIMED HOLD LOGS SECONDS (10.10 #617, audit #612 B3): '3 x 20 SEC' showed a REPS column. The
+    // number still saves to the set's reps field - nothing downstream changes - the column says SEC.
+    const timedHold = /\d\s*(sec|secs|second|seconds|s(?![a-z])|שנ)/i.test(String(repsForDisplay ?? '')) && !/rep|חזר/i.test(String(repsForDisplay ?? ''));   // '15 SEC to 10 Reps' logs reps
     // `|| {}`: fv is sized at mount, so if the coach adds an exercise to this day
     // mid-session, day.ex grows past fv and fv[ei] is undefined — f.uploaded/.has
     // would then throw and white-screen the workout (allSets[ei] was already
@@ -2508,7 +2511,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
-          {['',tt('REPS'),tt('KG'),'RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
+          {['',timedHold?tt('SEC'):tt('REPS'),tt('KG'),'RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
@@ -2544,7 +2547,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-              <input aria-label={tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
+              <input aria-label={timedHold ? tt('Seconds') : tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
               <input aria-label="RPE" value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
               {/* Whole cell is the tap target (not just the 18px box) so a

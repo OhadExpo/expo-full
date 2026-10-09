@@ -39,12 +39,12 @@ async function fetchCsv() {
     client.on('Browser.downloadProgress', (e) => { if (guid && e.guid === guid && e.state === 'completed') done = true; });
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
     for (let i = 0; i < 60 && !done; i++) await new Promise((r) => setTimeout(r, 500));
-    if (!guid || !done) throw new Error('our export never completed - is the debug Chrome signed into his Google account?');
+    if (!guid || !done) { if (guid) { try { fs.unlinkSync(path.join(OUT, guid)); } catch { /* none */ } } throw new Error('our export never completed - is the debug Chrome signed into his Google account?'); }
     const p = path.join(OUT, guid);
     const buf = fs.readFileSync(p);
+    // a CSV, not a zip (xlsx starts 'PK') or binary - checked BEFORE it replaces the last good copy
+    if (buf.length < 20 || (buf[0] === 0x50 && buf[1] === 0x4b) || buf.includes(0)) { fs.unlinkSync(p); throw new Error('the download is not the sheet CSV - refusing'); }
     fs.renameSync(p, path.join(OUT, `gamewarmup-${GID}.csv`));
-    // a CSV, not a zip (xlsx starts 'PK') or binary
-    if (buf.length < 20 || (buf[0] === 0x50 && buf[1] === 0x4b) || buf.includes(0)) throw new Error('the download is not the sheet CSV - refusing');
     return buf.toString('utf8');
   } finally {
     await page.close().catch(() => {});
@@ -91,7 +91,7 @@ export function parse(csv) {
     if (!cur) { cur = { name: '', drills: [] }; sections.push(cur); }
     cur.drills.push({ n: null, name: [a, b].filter(Boolean).join(' · '), cue: d || c || '', dose: e || '' });
   }
-  return { title: title || 'Warm-Up', sections: sections.filter((s) => s.drills.length) };
+  return { title, sections: sections.filter((s) => s.drills.length) };   // no default: the title check below is real
 }
 
 const csv = await fetchCsv();

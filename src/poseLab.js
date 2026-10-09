@@ -176,18 +176,20 @@ export function channelSignal(frames, exerciseTitle, movement) {
   const { kind, channels } = resolveChannels(exerciseTitle, movement);
   const t = frames.map(f => f.t);
   // THE LIMB THE CAMERA SEES (10.10 #639): side-on, the far knee is hidden and MediaPipe guesses
-  // it; averaging it in pulled every rep toward the guess. A channel counts when its three points
-  // are visible; only when none is does the frame fall back to all of them, as before.
+  // it; averaging it in pulled every rep toward the guess. The choice is made ONCE PER CLIP - the
+  // channels whose three points are visible in most frames (a clear majority) - never frame by frame:
+  // a knee hovering at the visibility line flipped the signal between one side and the mean, 10-30
+  // degrees apart, which can fake a rep (1010d review). No clear majority = all channels, as before.
   const seen = (lms, i) => { const p = lms[i]; return !!p && (p.visibility == null || p.visibility >= VIS_MIN); };
+  const defs = channels.map((name) => ANGLE_DEFS.find((a) => a.name === name)).filter(Boolean);
+  const visShare = defs.map((d) => { let n = 0, v = 0; for (const f of frames) { const l = f.worldLandmarks; if (!l) continue; n++; if (seen(l, d.a) && seen(l, d.b) && seen(l, d.c)) v++; } return n ? v / n : 0; });
+  const clear = defs.filter((d, i) => visShare[i] >= 0.6);
+  const useDefs = clear.length && clear.length < defs.length && visShare.some((x) => x < 0.4) ? clear : defs;
   const raw = frames.map(f => {
     const lms = f.worldLandmarks;
     if (!lms || channels.length === 0) return null;
-    const all = channels.map(name => {
-      const d = ANGLE_DEFS.find(a => a.name === name);
-      return d ? { v: angleAt(lms, d.a, d.b, d.c), vis: seen(lms, d.a) && seen(lms, d.b) && seen(lms, d.c) } : null;
-    }).filter((x) => x && isReal(x.v));
-    const use = all.some((x) => x.vis) ? all.filter((x) => x.vis) : all;
-    return use.length ? use.reduce((a, x) => a + x.v, 0) / use.length : null;
+    const vals = useDefs.map((d) => angleAt(lms, d.a, d.b, d.c)).filter(isReal);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   });
   const clamped = clampAngleSeries(raw, t);
   return { t, angle: medianFilter(clamped, 5), raw: clamped, kind, channels };
@@ -1642,7 +1644,7 @@ export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
   // numbers read raw frames, where the limbs swapped sides mid-set. NOT the bone-length rebuild
   // (re-scored offline on the 14 hand-counted real sets: it cost an exact count, c31 7 -> blank),
   // the display smoother (it lags and shaves peaks) or the planted feet. With the visible-limb pick
-  // in channelSignal: exact 2/14 -> 3/14, wrong numbers 0 -> 0.
+  // in channelSignal (chosen once per clip): exact 2/14 -> 3/14, wrong numbers shown 0 -> 0.
   const frames = opts.raw ? rawFrames : stabilizeWorldFrames(rawFrames, { plantFeet: false, smooth: false, bones: false });
   const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
   const mv = explicit ? movementByKey(opts.movement) : undefined;
