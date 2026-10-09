@@ -363,7 +363,7 @@ export default function BookingView({ trainees }) {
         ) : rules.map((r, ri) => (
           // the last rule draws no rule of its own - the box edge ends the list (#419)
           <div key={r.id} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
             borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none',
             // ONE ROW ON A PHONE: the two time boxes give way, the × stays on the row
             // (audit #612 C8: at 390 the × wrapped alone onto a second line)
@@ -373,10 +373,10 @@ export default function BookingView({ trainees }) {
               {DAY_LABELS.map((d, i) => <option key={i} value={i}>{tt(d)}</option>)}
             </select>
             <input type="time" dir="ltr" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRuleDebounced(r.id, { start_time: e.target.value })}
-              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0, maxWidth: 150 }} />
+              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0, maxWidth: 150 }} />
             <span style={{ color: C.tm }}>{readLang() === 'he' ? '←' : '→'}</span>
             <input type="time" dir="ltr" value={r.end_time?.slice(0, 5) || '17:00'} onChange={e => updateRuleDebounced(r.id, { end_time: e.target.value })}
-              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0, maxWidth: 150 }} />
+              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0, maxWidth: 150 }} />
             <button onClick={() => removeRule(r.id)} aria-label={tt('Remove')}
               style={{ flexShrink: 0, marginInlineStart: 'auto', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
           </div>
