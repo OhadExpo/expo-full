@@ -940,6 +940,18 @@ select.task-select {
   background-image: none !important;
   padding-right: 8px !important;
 }
+/* A RIGHT-TO-LEFT SELECT MIRRORS ITS CHEVRON (9.10 #619): in Hebrew the arrow stayed on the
+   right, against the value, with the 30px gap on the wrong side. :dir(rtl) = only a select
+   whose own direction is RTL; an LTR select inside a Hebrew screen keeps the right side. */
+select:dir(rtl) {
+  background-position: left 12px center !important;
+  padding-right: 10px !important;
+  padding-left: 30px !important;
+}
+select.task-select:dir(rtl) {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
 
 /* ========================================================================
    THEME CROSS-FADE (Ohad 2026-08-26: "it switches in a weird glitchy way,
