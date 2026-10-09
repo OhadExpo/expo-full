@@ -156,6 +156,7 @@ if (PREVIEW_PLAN) {
   { const p0 = await b.newPage(); try { await p0.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); prevLang = await p0.evaluate(() => localStorage.getItem('expo-lang')); langRead = true; } catch { /* unread: leave it alone */ } finally { await p0.close(); } }
   // the coach preview frames the athlete portal with a 12px gutter on each side,
   // so a phone of width w is the preview at w + 24
+  try {
   for (const w of WIDTHS.filter((x) => x <= 430)) {
     expected++;
     const page = await b.newPage();
@@ -181,7 +182,10 @@ if (PREVIEW_PLAN) {
       judge('bhbc', w, r, [['crest', 'no club crest in the bar'], ['tick', 'no save tick after typing']]);
     } finally { await page.close(); }
   }
-  if (langRead) { const p1 = await b.newPage(); try { await p1.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await p1.evaluate((v) => { if (v === null) localStorage.removeItem('expo-lang'); else localStorage.setItem('expo-lang', v); }, prevLang); } catch { /* noop */ } finally { await p1.close(); } }
+  } finally {
+    // put his language back even when a pass threw (1008d review)
+    if (langRead) { const p1 = await b.newPage(); try { await p1.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await p1.evaluate((v) => { if (v === null) localStorage.removeItem('expo-lang'); else localStorage.setItem('expo-lang', v); }, prevLang); } catch { /* noop */ } finally { await p1.close(); } }
+  }
   await b.disconnect();
 }
 
