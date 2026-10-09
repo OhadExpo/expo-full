@@ -110,7 +110,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
           <span style={{ ...th, color: C.tm }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
           <Btn variant="ghost" onClick={() => setAll(null, true)}>{tb('Select all')}</Btn>
           <Btn variant="ghost" onClick={() => setAll(null, false)}>{tb('Clear')}</Btn>
-          <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>{tb('Delete')} {sel.size} {tb('selected')}</Btn>
+          <Btn disabled={!sel.size} variant={sel.size ? 'danger' : 'primary'} onClick={() => setConfirm(true)} /* red frame + red words, no solid block (9.10 audit #612 D1) */>{tb('Delete')} {sel.size} {tb('selected')}</Btn>
         </div></div>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
           {tt('Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises.')} <b style={{ color: C.tx }}>{nDef} {tt('definite')}</b>, <b style={{ color: C.tx }}>{nSus} {tt('suspicious')}</b>. {tt('Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.')}
