@@ -339,7 +339,7 @@ export default function IntakeForm() {
           <Field key={q.id} q={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} dir={labelDir(q.label)} />
         ))}
         <button disabled style={{ background: 'var(--c-sf)', border: `1px solid ${C.tm}`, color: C.tm, padding: '0 24px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, marginTop: 12, opacity: 0.5 }}>
-          {form?.submitLabel || 'Submit'} (preview)
+          {form?.submitLabel || 'Submit'}{/* the notice at the top already says PREVIEW; '(preview)' was English on the Hebrew form (audit #612 E6) */}
         </button>
       </div></div>
     );
