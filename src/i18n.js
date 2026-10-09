@@ -1363,6 +1363,18 @@ export const HE = {
   "Alternate between exercises each round": 'בכל סבב סט אחד מכל תרגיל',
   "Start Workout →": 'לאימון ←',
   // athlete portal strings the English-literal gate never saw (9.10 #586)
+  // athlete toasts: the ToastHost translates static ones by key; templates go through tt + .replace (9.10 #589)
+  "That video is empty — try recording again.": "הסרטון ריק. צלם שוב.",
+  "That file isn't a video. Record a clip or pick a video from your library.": "הקובץ הזה הוא לא סרטון. צלם קליפ או תבחר סרטון מהגלריה.",
+  "Could not identify your account — sign out and back in, then retry.": "לא הצלחנו לזהות את החשבון שלך. תצא ותיכנס שוב, ואז נסה שוב.",
+  "Session expired — sign back in. Your video is saved and will upload once you do.": "פג תוקף הכניסה. תיכנס שוב — הסרטון שמור ויעלה אחרי שתיכנס.",
+  "Could not save your video on this device. Free up storage and upload it again.": "לא הצלחנו לשמור את הסרטון בטלפון. תפנה מקום ותעלה אותו שוב.",
+  "This program is no longer available.": "התוכנית הזו כבר לא זמינה.",
+  "Video is {n}MB — too large. Max 750MB.\nRecord a shorter clip and try again.": "הסרטון שוקל {n}MB — גדול מדי, המקסימום הוא 750MB.\nצלם קליפ קצר יותר ונסה שוב.",
+  "Video is {n}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.": "הסרטון שוקל {n}MB — יותר מ-50MB, והדפדפן הזה לא יכול לכווץ אותו.\nצלם קליפ קצר יותר (בערך 30 שניות) או תוריד את רזולוציית המצלמה בהגדרות > מצלמה.",
+  "Video is {n}MB after processing — over the 50MB upload limit.\nKeep the clip under ~2 minutes and try again.": "אחרי העיבוד הסרטון שוקל {n}MB — יותר מ-50MB.\nצלם עד שתי דקות בערך ונסה שוב.",
+  "Video upload failed: {msg}\nTry again or pick a shorter clip.": "העלאת הסרטון נכשלה: {msg}\nנסה שוב או תבחר קליפ קצר יותר.",
+  "Moved to week {n} — this block has {w} weeks": "עברת לשבוע {n} — בבלוק הזה יש {w} שבועות",
   "Compressing {n}%": "דוחס {n}%",
   "Uploading {n}%": "מעלה {n}%",
   "✓ LOG {s}s": "✓ רישום · {s} שניות",

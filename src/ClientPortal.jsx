@@ -1387,7 +1387,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const MAX_INPUT_BYTES = 750 * 1024 * 1024;
     if (file.size > MAX_INPUT_BYTES) {
       const sizeMB = Math.round(file.size / 1e6);
-      toast(`Video is ${sizeMB}MB — too large. Max 750MB.\nRecord a shorter clip and try again.`, 'error', { ttl: 8000 });
+      toast(tt('Video is {n}MB — too large. Max 750MB.\nRecord a shorter clip and try again.').replace('{n}', () => sizeMB), 'error', { ttl: 8000 });
       return;
     }
 
@@ -1403,7 +1403,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const compressionAvailable = canCompressVideo();
     if (!compressionAvailable && file.size > SUPA_MAX_BYTES) {
       const sizeMB = Math.round(file.size / 1e6);
-      toast(`Video is ${sizeMB}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.`, 'error', { ttl: 9000 });
+      toast(tt("Video is {n}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.").replace('{n}', () => sizeMB), 'error', { ttl: 9000 });
       return;
     }
 
@@ -1525,7 +1525,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const sizeMB = Math.round(uploadBlob.size / 1e6);
         URL.revokeObjectURL(previewUrl);
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:`${sizeMB}MB > 50MB limit`}; return n; });
-        toast(`Video is ${sizeMB}MB after processing — over the 50MB upload limit.\nKeep the clip under ~2 minutes and try again.`, 'error', { ttl: 9000 });
+        toast(tt('Video is {n}MB after processing — over the 50MB upload limit.\nKeep the clip under ~2 minutes and try again.').replace('{n}', () => sizeMB), 'error', { ttl: 9000 });
         return;
       }
 
@@ -1658,7 +1658,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       }
       URL.revokeObjectURL(previewUrl);
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
-      toast(`Video upload failed: ${msg}\nTry again or pick a shorter clip.`, 'error', { ttl: 7000 });
+      toast(tt('Video upload failed: {msg}\nTry again or pick a shorter clip.').replace('{msg}', () => msg), 'error', { ttl: 7000 });
     } finally {
       inflight.compressing = false; compressResolve();
       settleResolve({ cloudUrl: inflight.cloudUrl, pendingBlobId: inflight.pendingBlobId });
@@ -2930,7 +2930,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     if (wk > max) {
       // Surface the clamp so the trainee notices when a block-swap moves
       // them. Silent clamping was producing log-misdating reports.
-      toast(`Moved to week ${max + 1} — this block has ${activePlan.weeks || 4} weeks`, 'info', { ttl: 5000 });
+      toast(tt('Moved to week {n} — this block has {w} weeks').replace('{n}', () => max + 1).replace('{w}', () => activePlan.weeks || 4), 'info', { ttl: 5000 });
       setWk(max);
     }
   }, [activePlan?.weeks, wk]);
