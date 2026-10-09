@@ -106,7 +106,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
                       <td style={{ ...cell, minWidth: 220 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: g.filled === 3 ? '#2E9E6B' : g.filled ? C.ac : '#E0A73A', flexShrink: 0 }} title={`${g.filled}/3 guessed`} />
-                          <bdi style={{ fontFamily: FB, fontSize: 13, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title || e.t}</bdi>
+                          <bdi style={{ fontFamily: FB, fontSize: 13, color: C.tx, flex: '1 1 0', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' /* wraps between words - an inline nowrap title ran past its cell, cut mid-word at 390 (audit #612 C10) */ }}>{e.title || e.t}</bdi>
                         </div>
                       </td>
                       <td style={cell}><Select options={RESISTANCE_TYPES} value={val(e, g, 'resistanceType')} onChange={(v) => setVal(e.id, 'resistanceType', v)} placeholder="—" /></td>
