@@ -212,7 +212,8 @@ export default async function handler(req, res) {
   let ownerSubs = null;
   if (toEmail === OWNER_EMAIL && callerEmail !== OWNER_EMAIL && process.env.HEALTH_SECRET) {
     try {
-      // 4 s cap: four back-to-back calls must stay inside maxDuration
+      // 4 s cap, shorter than the wrapper's 10 s: this call is an extra step in
+      // front of the old lookup, so it must not eat the old path's time
       const r = await fetch(`${SUPA_URL}/rest/v1/rpc/push_owner_subs`, {
         method: 'POST',
         headers: { 'apikey': SUPA_PUBLISHABLE_KEY, 'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`, 'content-type': 'application/json' },
@@ -221,7 +222,11 @@ export default async function handler(req, res) {
       });
       // an EMPTY answer is not trusted: a rotated secret (wrong p_secret) also
       // reads as zero rows, and would drop every push to him without a word
-      if (r.ok) { const j = await r.json(); if (Array.isArray(j) && j.length) ownerSubs = j; }
+      if (r.ok) {
+        const j = await r.json();
+        if (Array.isArray(j) && j.length) ownerSubs = j;
+        else console.error('push/send owner subs EMPTY (secret rotated without re-making push_owner_subs?), falling back');
+      }
       else console.error('push/send owner subs failed, falling back:', r.status);
     } catch (e) { console.error('push/send owner subs threw, falling back:', e?.message); }
   }
