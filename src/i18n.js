@@ -1000,6 +1000,7 @@ export const HE = {
   'New Leads': 'פניות חדשות',
   Expiring: 'נגמרת',
   'Never trained': 'אף פעם לא התאמן',
+  'No workouts logged': 'לא נרשמו אימונים',   // native-checked 9.10 (dormant list: nothing logged in the app, not 'never trained')
   'Never paid': 'אף פעם לא שילם',
   'CHAT SESSIONS': 'שיחות צ׳אט',
   'MESSAGES SENT': 'הודעות שנשלחו',

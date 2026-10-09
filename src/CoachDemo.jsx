@@ -697,7 +697,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0 }}>{t.dormantDays == null ? T('Never trained') : (readLang() === 'he' ? daysAgoHe(t.dormantDays) : TN('{n}d ago', t.dormantDays))}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0 }}>{t.dormantDays == null ? T('No workouts logged') : (readLang() === 'he' ? daysAgoHe(t.dormantDays) : TN('{n}d ago', t.dormantDays))}</span>
               {/* the real card's slot: 8px gap (Row's own) + a 40px end-aligned slot */}
               <span style={{ width: 40, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0 }}><FakeWaButton edge /></span>
             </Row>

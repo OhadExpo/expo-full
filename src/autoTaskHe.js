@@ -52,7 +52,8 @@ const RULES = [
 // The two "quiet" fragments of the reach-out rule.
 function quiet(s) {
   const t = String(s).trim();
-  if (t === 'never trained') return 'עוד לא התאמן';
+  if (t === 'never trained') return 'עוד לא התאמן';          // rows stored before 9.10
+  if (t === 'no workouts logged') return 'לא נרשמו אימונים';  // native-checked 9.10
   if (t === 'never contacted') return 'עוד לא היה קשר';
   let m = t.match(/^(\d+)d no workout$/); if (m) return `${days(m[1])} בלי אימון`;
   m = t.match(/^(\d+)d no contact$/); if (m) return `${days(m[1])} בלי קשר`;

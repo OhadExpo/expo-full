@@ -870,7 +870,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     return (
                       <div key={t.id} style={{ ...ALERT_ROW, justifyContent: 'space-between', fontSize: 13 }}>
                         <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minHeight: 36, lineHeight: '36px' /* the row's one 36px (#474): as a button on a phone it took the 40px touch floor, so DORMANT alone ran 40 beside OVERDUE's 36 - the whole row height is still the target */ }}>{t.name}</span>
-                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('No workouts logged') /* not 'Never trained': gym clients train every week and log nothing in the app (audit #612) */ : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one).
                             40, not 26: the button renders 40px wide, and in a 26px slot
