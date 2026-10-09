@@ -1638,6 +1638,14 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
 //             first row when the count leaves one cell short of full rows
 //   phoneCols phone columns, where the 2/3 rule would cut a label (data
 //             titles of any length, like the intake forms: one per row)
+// A PHONE-WIDTH SWITCH for screens that show a table on a desktop and cards on a phone (#619)
+export function usePhone(max = 600) {
+  const q = `(max-width: ${max}px)`;
+  const [m, setM] = React.useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  React.useEffect(() => { const mq = window.matchMedia(q); const on = () => setM(mq.matches); if (mq.addEventListener) { mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); } mq.addListener(on); return () => mq.removeListener(on); /* Safari < 14 */ }, [q]);
+  return m;
+}
+
 // JOINED BUTTONS - a group of actions is ONE equal-cell grid, a hairline between, the colour in
 // the words (his 5.10 rule; 9.10 #619: Classify / Cleanup / Matching had lone boxes of different
 // widths stacked). items: [{ label, onClick, disabled, tone: 'accent' | 'danger' | 'muted' }].

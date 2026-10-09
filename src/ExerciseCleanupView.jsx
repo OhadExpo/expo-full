@@ -10,7 +10,7 @@
 // become unresolved and surface in the Matching screen — the designed funnel.
 import React, { useState, useEffect, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { Card, Btn, EmptyState, ConfirmDialog, toast, JoinedButtons } from './ui';
+import { Card, Btn, EmptyState, ConfirmDialog, toast, JoinedButtons, usePhone } from './ui';
 import { normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
 import { useT, useTB, readLang } from './i18n';
@@ -48,6 +48,7 @@ export function trashVerdict(title) {
 export default function ExerciseCleanupView({ exercises = [], setExercises }) {
   const tt = useT();
   const tb = useTB();
+  const phone = usePhone();
   const [plans, setPlans] = useState(null);
   const [checked, setChecked] = useState(null); // Set of ids; null = not initialized
   const [confirm, setConfirm] = useState(false);
@@ -140,6 +141,25 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
               minWidth was 420, which is only 32px more than the fixed tracks, so
               the 1fr title column got 28px and a superset name lost 333px of
               itself. 700 leaves the title 312px; the container still scrolls. */}
+          {phone ? (
+            // A PHONE GETS ROWS, NOT A 700px TABLE (9.10, after #619): the box and the whole
+            // title, then why it was flagged, its plan rows and its video/cues on one line
+            <div style={{ marginTop: -12 }} data-allow-copy>
+              {rows.map((r) => (
+                <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '24px minmax(0, 1fr)', columnGap: 10, rowGap: 4, alignItems: 'start', padding: '10px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 18, height: 18, margin: '1px 0 0' }} />
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'break-word', unicodeBidi: 'plaintext', textAlign: readLang() === 'he' ? 'right' : 'left' }}>{r.ex.title || r.ex.t}</span>
+                  <span />
+                  <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 2, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    <span style={{ color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{tt(r.reason)}</span>
+                    <span style={{ color: (r.idRefs + r.titleRefs) ? C.or : C.td }}>{tt('Plan rows')} {Math.max(r.idRefs, r.titleRefs) || 0}</span>
+                    {r.ex.videoLink && <span style={{ color: C.ac }}>▶ {tt('has video')}</span>}
+                    {(r.ex.cues || r.ex.notes) && <span style={{ color: C.tm }}>✎ {tt('has cues/notes')}</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ minWidth: 700, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px', minHeight: 36, boxSizing: 'border-box', alignItems: 'center' /* a header row is a row: 36 (OCD #494: 19) */, borderBottom: `1px solid ${C.bd}`, ...th }}>
             <span /><span>{tt('Title')}</span><span>{tt('Why flagged')}</span><span style={{ textAlign: 'center' }}>{tt('Plan rows')}</span><span style={{ textAlign: 'center' }}>{tt('Has')}</span>
@@ -159,6 +179,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
             ))}
           </div>
           </div>
+          )}
         </Card>
       )}
 

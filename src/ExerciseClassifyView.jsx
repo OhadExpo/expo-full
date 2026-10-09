@@ -2,9 +2,9 @@
 // unclassified exercise gets its taxonomy pre-filled by the title classifier;
 // the coach reviews (edit any dropdown / skip), then Applies to the library.
 // SAFE: writes only the exercise library store (never trainee plans), confirm-gated.
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { C, FN, FB, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Card, Btn, Select, Modal, EmptyState, toast, JoinedButtons } from './ui';
+import { Card, Btn, Select, Modal, EmptyState, toast, JoinedButtons, usePhone } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { useT, readLang } from './i18n';
 
@@ -18,12 +18,6 @@ const GUESS_INK = (n) => (n === 3 ? '#2E9E6B' : n ? C.ac : '#E0A73A');
 // design"): at 390 the table showed only the names - the three dropdowns the screen is for
 // sat off to the right. Each exercise is a card: its name and how much was guessed, then
 // the three categories as one joined list (label | dropdown), 36px rows.
-function usePhone(max = 600) {
-  const q = `(max-width: ${max}px)`;
-  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
-  useEffect(() => { const mq = window.matchMedia(q); const on = () => setM(mq.matches); if (mq.addEventListener) { mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); } mq.addListener(on); return () => mq.removeListener(on); /* Safari < 14 */ }, [q]);
-  return m;
-}
 const CELL_SELECT = { width: '100%', height: 36, boxSizing: 'border-box', border: 'none', borderRadius: 0, background: 'var(--c-sf)', color: C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', padding: '0 10px', appearance: 'none', WebkitAppearance: 'none', outline: 'none', textAlign: 'start' };
 const PHONE_FIELDS = [['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES]];
 function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
