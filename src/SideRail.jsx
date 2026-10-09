@@ -119,8 +119,12 @@ export function SideRail({
             read as COVERED (26.9, audit-out/_cover1440.mjs). Sticky to the
             rail's bottom edge: -16px takes back the rail's bottom padding so no
             row shows beneath it, and the matching padding + margin keep the
-            un-scrolled layout exactly where it was. */}
-        {footer && <div style={{ padding: '0 14px', marginTop: 'auto', ...(narrow ? null : { position: 'sticky', bottom: -16, zIndex: 1, background: 'var(--c-sf2)', paddingBottom: 16, marginBottom: -16 }) }}>{footer}</div>}
+            un-scrolled layout exactly where it was.
+              The shadow is a 12px band of the rail's own colour over the flex
+            gap above it (9.10 audit #612 C7): a row scrolled beneath showed
+            half of itself in that gap ('PAYMENT' cut through the middle above
+            + Add Athlete). Same colour, so with nothing beneath it is invisible. */}
+        {footer && <div style={{ padding: '0 14px', marginTop: 'auto', ...(narrow ? null : { position: 'sticky', bottom: -16, zIndex: 1, background: 'var(--c-sf2)', paddingBottom: 16, marginBottom: -16, boxShadow: '0 -12px 0 var(--c-sf2)' }) }}>{footer}</div>}
       </>)}
     </div>
   );
