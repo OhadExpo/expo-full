@@ -35,6 +35,9 @@ const EQUIP_CHIPS = [
 // 'משקל' - "weights", the opposite of "no equipment". BB/DB/KB stay in Latin
 // letters, the way he writes them.
 const EQUIP_HE = { BODYWEIGHT: 'משקל גוף', BAND: 'גומייה', CABLE: 'כבל', MACHINE: 'מכונה' };
+// The per-exercise equipment hint in Hebrew (9.10 #588): BB/DB/KB the way he
+// writes them, the rest in gym Hebrew; anything unmapped (TRX) stays as is.
+const EQUIP_HINT_HE = { ...EQUIP_HE, BARBELL: 'BB', DUMBBELL: 'DB', KETTLEBELL: 'KB', SMITH: 'סמית׳', RINGS: 'טבעות', SLED: 'מזחלת' };
 const TRAVELING_EQUIP = new Set(['BODYWEIGHT', 'BAND']);
 
 // Wrap a Supabase library exercise into the shape expected by the rest of
@@ -229,7 +232,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
                       marginTop: 4, fontFamily: FN, fontSize: 9, letterSpacing: '0.18em', fontWeight: 700,
                       color: eqDifferent ? C.ac : C.tm,
                     }}>
-                      {eqDifferent && '⇄ '}{eq}
+                      {eqDifferent && '⇄ '}{he ? (EQUIP_HINT_HE[eq] || eq) : eq}
                     </div>
                   )}
                 </div>
