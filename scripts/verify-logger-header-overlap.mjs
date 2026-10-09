@@ -87,7 +87,7 @@ const measure = (page) => page.evaluate(() => {
     nameCut: nameEl.scrollWidth > nameEl.clientWidth + 1,
     barOverflow: bar.scrollWidth > bar.clientWidth + 1,
     exitOut: (() => { const ex = [...bar.querySelectorAll('button')].pop(); return ex ? box(ex).r > innerWidth + 0.5 : false; })(),
-    resumed: /RESUMED|הופעל מחדש/.test(document.body.innerText),
+    resumed: /RESUMED|שוחזר|הופעל מחדש/.test(document.body.innerText),   // שוחזר since the day-4 voice pass (was הופעל מחדש)
     crest: !!bar.querySelector('img[src*="bnei-herzliya"]'),
     tick: /✓/.test(bar.innerText),
   };
