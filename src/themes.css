@@ -2333,3 +2333,11 @@ select.avail-select:dir(rtl) {
    at 0.02em; Latin capitals inside a Hebrew screen keep a hint of their tracking. */
 /* every Hebrew element, the page AND the portals (modals, drawers, toasts render outside #root - review S1) */
 body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; }
+
+/* MATCHING SUGGESTIONS ON A PHONE (9.10): the name squeezed into four lines beside its
+   video / cues marks, its reason and VIEW. On a phone the name takes the first line and the
+   rest wraps under it. */
+@media (max-width: 600px) {
+  .em-sugg-btn { flex-wrap: wrap !important; row-gap: 6px !important; }
+  .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 24px) !important; }
+}
