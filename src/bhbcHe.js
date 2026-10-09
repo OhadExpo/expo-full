@@ -908,6 +908,12 @@ Object.assign(HE, {
   'S&C session saved': 'אימון הכוח נשמר',
   // the dynamic warm-up, its own thing (9.10 #643) - native-checked
   'Warm-up': 'חימום',
+  // the game warm-up tab (10.10 #647)
+  'Game warm-up': 'חימום משחק',
+  'drill': 'תרגיל',
+  'drills': 'תרגילים',
+  'From the sheet · synced': 'מהגיליון · עודכן',
+  'Not synced yet - the warm-up comes from the sheet within 20 minutes.': 'עוד לא עודכן - החימום יגיע מהגיליון תוך 20 דקות.',
   'Remove': 'הסרה',   // as the app's own (i18n.js)
   'Warm-ups': 'חימומים',
   'no warm-up logged': 'לא נרשם חימום',

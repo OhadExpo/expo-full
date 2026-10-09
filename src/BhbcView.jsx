@@ -804,7 +804,7 @@ function SortBar({ sort, cols, className, style }) {
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, gameWarmup = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -861,6 +861,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     try { if (localStorage.getItem('expo-gate-run') === '1') return; } catch { /* storage blocked: a real visit */ }
     trackRef.current('open', 'opened the club zone');
   }, [activityLoaded]);
+  const [gamesSub, setGamesSub] = usePersistentState('bhbc-games-sub', 'games');
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   // Which already-landed athlete has had their date re-opened for editing in
@@ -2212,10 +2213,15 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {shownView === 'games' && (
-              <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
-                bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />
-            )}
+            {shownView === 'games' && (<>
+              {/* GAMES | GAME WARM-UP (10.10 #647): the warm-up he reads at the game, from his sheet */}
+              <KindChips value={gamesSub} onChange={setGamesSub} style={{ marginBottom: 16 }}
+                items={[{ k: 'games', label: tr('Games') }, { k: 'warmup', label: tr('Game warm-up') }]} />
+              {gamesSub === 'warmup'
+                ? <GameWarmupView data={gameWarmup} />
+                : <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
+                    bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />}
+            </>)}
 
             {shownView === 'activity' && !asCoach && (
               <ActivityView activity={activity} tr={tr} he={he} />
@@ -6611,6 +6617,51 @@ function fixturesToGames(fixtures) {
       played: done, timeTBD: f.timeTBD, venue: venueRest(f) || undefined, travel: f.travel,
     };
   });
+}
+
+// THE GAME WARM-UP (10.10 #647, Ohad: "so i can read it on the games instead of using the google
+// sheets ... the design needs to be ocd, amazing, and flawless"). His sheet, read-only, synced by the
+// daemon every 20 min. One card; a section is a label over one framed list; a drill is one row -
+// its number, the drill and its cue, the volume - in three fixed columns so every row lines up.
+// His words are English, so the list reads left to right in both languages; the labels translate.
+function GameWarmupView({ data = {} }) {
+  const tr = useT();
+  const sections = Array.isArray(data.sections) ? data.sections : [];
+  const total = sections.reduce((n, sct) => n + (sct.drills || []).length, 0);
+  const synced = data.syncedAt ? new Date(data.syncedAt) : null;
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const syncedTxt = synced && !Number.isNaN(synced.getTime()) ? `${pad2(synced.getHours())}:${pad2(synced.getMinutes())} · ${pad2(synced.getDate())}/${pad2(synced.getMonth() + 1)}` : null;
+  const mini = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
+  return (
+    <Card padding={14} leftStripe={NAVY} header={secTitle('Game warm-up')}
+      headerRight={total ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{total} {tr(total === 1 ? 'drill' : 'drills')}</span> : null}>
+      {!total ? (
+        <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{tr('Not synced yet - the warm-up comes from the sheet within 20 minutes.')}</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {sections.map((sct, si) => (
+            <div key={si}>
+              {sct.name && <div dir="ltr" style={{ ...mini, marginBottom: 6, textAlign: 'left' }}>{sct.name}</div>}
+              <div dir="ltr" style={{ border: `1px solid ${C.cardBd}` }}>
+                {(sct.drills || []).map((d, di) => (
+                  <div key={di} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 76px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'left' }}>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>{d.n != null ? d.n : '·'}</span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere' }}>{d.name}</span>
+                      {d.cue && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.cue}</span>}
+                      {d.note && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.note}</span>}
+                    </span>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: 'right', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{d.dose}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr('From the sheet · synced')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes }) {

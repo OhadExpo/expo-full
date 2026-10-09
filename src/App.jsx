@@ -843,6 +843,8 @@ function AuthedApp() {
   const [bhbcLoads,setBhbcLoads,,,,refreshBhbcLoads]=useSupaStore('expo-bhbc-loads',{});
   const [bhbcFixtures,setBhbcFixtures,,,,refreshBhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
   const [bhbcLeague,,,,,refreshBhbcLeague]=useSupaStore('expo-bhbc-league',{});
+  // the game warm-up, synced from his sheet by the daemon (10.10 #647) - read-only here
+  const [bhbcGameWarmup,,,,,refreshBhbcGameWarmup]=useSupaStore('expo-bhbc-gamewarmup',{});
   const [bhbcMedical,setBhbcMedical,,,,refreshBhbcMedical]=useSupaStore('expo-bhbc-medical',{});
   // (`expo-bhbc-plans`, the per-slot practice plan, is no longer read: the
   // zone has no practice plans since 24.9. The key stays in the database.)
@@ -1619,7 +1621,7 @@ function AuthedApp() {
   // still in the offline queue, reads the version first and the value only if
   // it moved, and keeps the hook's compare-and-swap base current.
   const bhbcRefreshRef = useRef([]);
-  bhbcRefreshRef.current = [refreshBhbcLoads, refreshBhbcFixtures, refreshBhbcLeague, refreshBhbcMedical, refreshTrainees];
+  bhbcRefreshRef.current = [refreshBhbcLoads, refreshBhbcFixtures, refreshBhbcLeague, refreshBhbcMedical, refreshTrainees, refreshBhbcGameWarmup];
   const bhbcChanRef = useRef(null);
   // Called by the zone after any local write so other open clients refetch at once.
   const notifyBhbcChange = useCallback(() => {
@@ -1640,7 +1642,7 @@ function AuthedApp() {
     let ch = null;
     try {
       ch = supabase.channel('bhbc-live', { config: { private: true } });   // private (#510-A4): RLS on realtime.messages decides who hears it
-      ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees'].forEach((k) => {
+      ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees', 'expo-bhbc-gamewarmup'].forEach((k) => {
         ch.on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${k}` }, () => { if (!stop) poll(); });
       });
       // Broadcast layer (works WITHOUT the store table being in the realtime
@@ -1790,7 +1792,7 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <>{sandboxBanner}<Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} gameWarmup={bhbcGameWarmup} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense></>
   );
