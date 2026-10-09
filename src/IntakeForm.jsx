@@ -331,7 +331,7 @@ export default function IntakeForm() {
     return (
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center', color: C.or, fontFamily: FN, fontSize: 11, marginBottom: 16 }}>
-          {dir === 'rtl' ? 'תצוגה מקדימה · בלי טוקן ·' : 'PREVIEW · NO TOKEN ·'} {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
+          {/* no code words (9.10 audit #612: 't=' drew as 'ד=' in the Hebrew line). Native-checked */}{dir === 'rtl' ? 'תצוגה מקדימה · בקישור שתשלח למתאמן יש קוד אישי' : 'PREVIEW · the link you send a client carries a personal code'}
         </div>
         <h2 style={{ fontFamily: FN, fontSize: 22, color: C.tx, margin: '0 0 8px' }}>{form?.title}</h2>
         <p style={{ fontSize: 13, color: C.tm, marginTop: 0, marginBottom: 24, lineHeight: 1.5 }}>{form?.intro}</p>
