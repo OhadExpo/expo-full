@@ -5064,9 +5064,9 @@ function DemoBilling({ onJumpToTrainee }) {
       <h2 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Billing')}</h2>
       {/* the real tiles' grid (.kpi-grid): 2 + the odd one full width on a phone */}
       <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
-        {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending')}`, C.or)}
-        {sumTile('Overdue', fmtIls(lateAmt), readLang() === 'he' ? `${lateRows.length} · 14 יום ומעלה` : `${lateRows.length} · ≥ 14d`, C.rd)}
-        {sumTile('Collected MTD', fmtIls(collected), T('received'), C.gn)}
+        {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending requests')}`, C.or)}
+        {sumTile('Overdue', fmtIls(lateAmt), readLang() === 'he' ? `${lateRows.length} ${T('requests')} · 14 יום ומעלה` : `${lateRows.length} requests · 14+ days`, C.rd)}
+        {sumTile('Collected MTD', fmtIls(collected), T('from payment requests'), C.gn)}
       </div>
       {/* OWED, expanded - the real billing page's second section */}
       <DemoOwedCard onJumpToTrainee={onJumpToTrainee || (() => {})} expanded />

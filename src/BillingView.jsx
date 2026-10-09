@@ -162,8 +162,8 @@ export default function BillingView({ trainees, onSelectTrainee }) {
           nothing. */}
       <div className="kpi-grid" style={{ display: 'grid', gap: 10 }}>
         {[
-          { label: tt('Outstanding'), value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} ${tt('pending')}`, dot: summary.outstanding > 0 ? C.or : C.gn },
-          { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ${OVERDUE_DAYS}+ ${tt('days')}`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
+          { label: tt('Outstanding'), value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} ${tt('pending requests')}`, dot: summary.outstanding > 0 ? C.or : C.gn },   // the tiles count in-app payment REQUESTS - said so, beside the sheet's OWED card (audit #612 A6)
+          { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: readLang() === 'he' ? `${summary.overdueCount} ${tt('requests')} · ${OVERDUE_DAYS} יום ומעלה` : `${summary.overdueCount} requests · ${OVERDUE_DAYS}+ days`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
           // 'Collected MTD', not 'Collected · This month'. DashboardView made
           // exactly this change for exactly this reason - the long form wraps to
           // two lines and that tile's strip then stands taller than the other
@@ -171,7 +171,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
           // has the same three tiles and never got the fix; measured 19.9 at
           // 360px in English, where OUTSTANDING and OVERDUE were one line and
           // this one was two. The demo mirrors it, per the parity rule.
-          { label: tt('Collected MTD'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
+          { label: tt('Collected MTD'), value: fmtCurrency(summary.collectedMonth), sub: tt('from payment requests'), dot: C.gn },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
             {/* TITLE ON THE BODY'S EDGE, DOT AT THE FAR END (Ohad, 26.9: title boxes whose

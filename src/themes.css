@@ -2138,10 +2138,11 @@ select.avail-select:dir(rtl) {
   .subtab-scroll { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .subtab-scroll > button { flex: 0 0 auto; }
 }
-/* FOUR SUB-TABS ARE ONE CONTROL ON A PHONE (27.9 #304): equal cells
-   that always fit - nothing scrolls, so nothing can be half-shown */
+/* THE SUB-TABS ARE ONE CONTROL ON A PHONE (27.9 #304): equal cells that always
+   fit - nothing scrolls, so nothing can be half-shown. One column PER TAB, not a
+   fixed four (9.10 audit #612: VIDEOS, the 5th since 5.10, dropped to a 2nd row). */
 @media (max-width: 480px) {
-  .subtab-scroll { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible !important; }
+  .subtab-scroll { display: grid !important; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow: visible !important; }
   .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; }
 }
 
