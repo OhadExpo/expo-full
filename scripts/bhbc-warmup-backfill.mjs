@@ -77,6 +77,14 @@ const fixtures = (await readStore(s, 'expo-bhbc-fixtures')) || [];
 const loads = (await readStore(s, 'expo-bhbc-loads')) || {};
 const medical = (await readStore(s, 'expo-bhbc-medical')) || {};
 if (!roster.length) { console.log('the roster is empty - refusing to write'); process.exit(1); }
+// GHOSTS DO NOT PRACTISE (9.10 #637). The zone leaves a ghost (bhbcGhost on the athlete in
+// expo-trainees) out of practices, attendance and the planner; the expo-bhbc-roster copy drops
+// that flag, so the first runs gave a ghost (#22) a warm-up row on 13 practices. Read the flag
+// from expo-trainees and keep ghosts out. No trainee list = refuse, never guess.
+const trainees = (await readStore(s, 'expo-trainees')) || [];
+if (!trainees.length) { console.log('expo-trainees is empty - refusing to write'); process.exit(1); }
+const GHOST = new Set(trainees.filter((t) => t && t.bhbcGhost).map((t) => t.id));
+for (let i = roster.length - 1; i >= 0; i--) if (GHOST.has(roster[i].id)) roster.splice(i, 1);
 
 const happened = (f) => f.date < TODAY || (f.date === TODAY && !!f.start && f.start <= NOW);
 const byDate = {};
