@@ -175,14 +175,19 @@ export function resolveChannels(exerciseTitle, movement) {
 export function channelSignal(frames, exerciseTitle, movement) {
   const { kind, channels } = resolveChannels(exerciseTitle, movement);
   const t = frames.map(f => f.t);
+  // THE LIMB THE CAMERA SEES (10.10 #639): side-on, the far knee is hidden and MediaPipe guesses
+  // it; averaging it in pulled every rep toward the guess. A channel counts when its three points
+  // are visible; only when none is does the frame fall back to all of them, as before.
+  const seen = (lms, i) => { const p = lms[i]; return !!p && (p.visibility == null || p.visibility >= VIS_MIN); };
   const raw = frames.map(f => {
     const lms = f.worldLandmarks;
     if (!lms || channels.length === 0) return null;
-    const vals = channels.map(name => {
+    const all = channels.map(name => {
       const d = ANGLE_DEFS.find(a => a.name === name);
-      return d ? angleAt(lms, d.a, d.b, d.c) : null;
-    }).filter(isReal);
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      return d ? { v: angleAt(lms, d.a, d.b, d.c), vis: seen(lms, d.a) && seen(lms, d.b) && seen(lms, d.c) } : null;
+    }).filter((x) => x && isReal(x.v));
+    const use = all.some((x) => x.vis) ? all.filter((x) => x.vis) : all;
+    return use.length ? use.reduce((a, x) => a + x.v, 0) / use.length : null;
   });
   const clamped = clampAngleSeries(raw, t);
   return { t, angle: medianFilter(clamped, 5), raw: clamped, kind, channels };
@@ -1470,7 +1475,7 @@ const swapLR = (arr) => {
   return out;
 };
 const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
-export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true } = {}) {
+export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true } = {}) {
   if (!frames || !frames.length) return [];
   const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
   // world points carry no visibility in every build - borrow the image landmark's
@@ -1494,8 +1499,12 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   }
   // smoothing next (One-Euro, the display smoother), so the bone rebuild below
   // is the LAST step and no filter can stretch a limb again afterwards
-  const sm = smoothFramesForDisplay(fixed);
-  for (let i = 0; i < fixed.length; i++) fixed[i] = { ...fixed[i], landmarks: sm[i].landmarks, worldLandmarks: sm[i].worldLandmarks };
+  // (analysis passes smooth:false - the display filter lags and shaves peak angles, 10.10 #639)
+  if (smooth) {
+    const sm = smoothFramesForDisplay(fixed);
+    for (let i = 0; i < fixed.length; i++) fixed[i] = { ...fixed[i], landmarks: sm[i].landmarks, worldLandmarks: sm[i].worldLandmarks };
+  }
+  if (!bones) return fixed;
   // 2. one length per bone (median over confident frames)
   const lens = {};
   for (const [a, b] of LIMB_TREE) {
@@ -1627,8 +1636,14 @@ export function captureQuality(frames, title, movement) {
 // channel, ballistic counting and the capture-quality region all come from the
 // pick, and null means no rep counting at all. When absent, the logged title is
 // used as before (Workout Review / auto-analysis callers).
-export function analyzeClip(frames, exerciseTitle, opts = {}) {
-  if (!frames || frames.length < 4) return { ok: false, reason: 'too-few-frames' };
+export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
+  if (!rawFrames || rawFrames.length < 4) return { ok: false, reason: 'too-few-frames' };
+  // ANALYSIS-GRADE FRAMES (10.10 #639): the left/right swap repair the 3D view already had - the
+  // numbers read raw frames, where the limbs swapped sides mid-set. NOT the bone-length rebuild
+  // (re-scored offline on the 14 hand-counted real sets: it cost an exact count, c31 7 -> blank),
+  // the display smoother (it lags and shaves peaks) or the planted feet. With the visible-limb pick
+  // in channelSignal: exact 2/14 -> 3/14, wrong numbers 0 -> 0.
+  const frames = opts.raw ? rawFrames : stabilizeWorldFrames(rawFrames, { plantFeet: false, smooth: false, bones: false });
   const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
   const mv = explicit ? movementByKey(opts.movement) : undefined;
   const fps = estimateFps(frames);
