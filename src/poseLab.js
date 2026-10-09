@@ -184,7 +184,15 @@ export function channelSignal(frames, exerciseTitle, movement) {
   const defs = channels.map((name) => ANGLE_DEFS.find((a) => a.name === name)).filter(Boolean);
   const visShare = defs.map((d) => { let n = 0, v = 0; for (const f of frames) { const l = f.worldLandmarks; if (!l) continue; n++; if (seen(l, d.a) && seen(l, d.b) && seen(l, d.c)) v++; } return n ? v / n : 0; });
   const clear = defs.filter((d, i) => visShare[i] >= 0.6);
-  const useDefs = clear.length && clear.length < defs.length && visShare.some((x) => x < 0.4) ? clear : defs;
+  // ...unless the visible limb is the one NOT working (a one-sided set filmed with the working limb on
+  // the far side, 1010e review): its angle barely moves while the hidden one does. Movement is read as
+  // the p10-p90 spread of each channel over the clip; if the visible ones move less than half of the
+  // most-moving channel, every channel is used, as before #639.
+  const spread = (d) => { const v = frames.map((f) => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null)).filter(isReal).sort((x, y) => x - y); return v.length > 4 ? v[Math.floor(v.length * 0.9)] - v[Math.floor(v.length * 0.1)] : 0; };
+  const asym = clear.length && clear.length < defs.length && visShare.some((x) => x < 0.4);
+  const moves = asym ? defs.map(spread) : [];
+  const clearMoves = asym ? Math.max(...defs.map((d, i) => (clear.includes(d) ? moves[i] : 0))) : 0;
+  const useDefs = asym && clearMoves >= 0.5 * Math.max(...moves) ? clear : defs;
   const raw = frames.map(f => {
     const lms = f.worldLandmarks;
     if (!lms || channels.length === 0) return null;
