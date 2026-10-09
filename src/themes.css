@@ -2351,5 +2351,8 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
 
 /* THE REVIEW LIST'S RIGHT COLUMN (10.10 #649): REVIEW | DELETE and the strip's ATHLETE PAGE are one
    width, so the eye reads one column down the page */
-:root { --wr-acts-w: 192px; }
-@media (max-width: 420px) { :root { --wr-acts-w: 168px; } }
+:root { --wr-acts-w: 192px; --wr-acts-gutter: 21px; }
+@media (max-width: 420px) { :root { --wr-acts-w: 168px; --wr-acts-gutter: 23px; } }
+/* the strip's collapse chevron sits right of ATHLETE PAGE; the rows keep the same gutter so the
+   pair's right edge is ATHLETE PAGE's right edge (measured: 21px desktop, 23px phone) */
+.wr-day-acts { margin-inline-end: var(--wr-acts-gutter); }
