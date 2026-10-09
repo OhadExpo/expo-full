@@ -77,7 +77,11 @@ export default class ErrorBoundary extends React.Component {
     // right now (uncached, 4 s)? - because dead gym wifi still says "online" and
     // the connectivity probe is off for a signed-out or demo visitor (1008b
     // review). Any doubt keeps the caches.
-    const reload = () => { try { window.location.reload(); } catch { /* noop */ } };
+    // once, and at the latest after 5 s whatever the probe or the cache delete
+    // is doing (a browser without AbortController waits for its own TCP timeout)
+    let reloaded = false;
+    const reload = () => { if (reloaded) return; reloaded = true; try { window.location.reload(); } catch { /* noop */ } };
+    setTimeout(reload, 5000);
     try {
       if (netState() === 'offline' || navigator.onLine === false || !('caches' in window) || typeof fetch !== 'function') { reload(); return; }
       const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;

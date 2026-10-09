@@ -2143,7 +2143,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           }}>
             {(() => {
               const nPr = newPRs.filter(p => !p.debut).length, nDeb = newPRs.filter(p => p.debut).length;
-              const heEnd = readLang() === 'he';
+              const heEnd = heCtx;
               const head = nPr ? (heEnd ? `🏆 ${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `🏆 ${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? '✨ רישום ראשון' : '✨ FIRST LOGS');
               const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל חדש' : `${nDeb} תרגילים חדשים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
               return head + tail;
@@ -2167,7 +2167,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* an EMPTY dir="auto" field resolves to LTR, which scrambled the Hebrew
           placeholder's question marks - empty follows the language, typed text
           follows itself */}
-      <textarea dir={notes ? 'auto' : (readLang() === 'he' ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
+      <textarea dir={notes ? 'auto' : (heCtx ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
       {/* Complete is never replaced by "Video uploading..." any more (5.10 #560):
           a clip still in flight is handed to the blob queue by finish() and the
           row saves at once. The athlete is told the clip follows on its own. */}

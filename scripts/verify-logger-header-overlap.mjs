@@ -150,6 +150,10 @@ const judge = (tag, w, r, need) => {
 if (PREVIEW_PLAN) {
   const b = await P.connect({ browserURL: CDP2 });
   let signedIn = false;
+  // his stored language on BASE, read from the origin itself (a fresh page is
+  // about:blank, where localStorage throws) and put back once at the end
+  let prevLang = null, langRead = false;
+  { const p0 = await b.newPage(); try { await p0.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); prevLang = await p0.evaluate(() => localStorage.getItem('expo-lang')); langRead = true; } catch { /* unread: leave it alone */ } finally { await p0.close(); } }
   // the coach preview frames the athlete portal with a 12px gutter on each side,
   // so a phone of width w is the preview at w + 24
   for (const w of WIDTHS.filter((x) => x <= 430)) {
@@ -158,8 +162,10 @@ if (PREVIEW_PLAN) {
     await page.setViewport({ width: w + 24, height: 860, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     try {
       if (!signedIn) { await signIn(page, BASE); signedIn = true; }
+      // case B runs in the signed-in debug Chrome (CDP2 = :9222, Ohad's profile): it
+      // deletes NO drafts there, and puts his language choice back after (?lang=en
+      // stores 'en' for BASE) - 1008c review
       await page.goto(`${BASE}/coach/programs/${PREVIEW_PLAN}/preview?lang=en`, { waitUntil: 'domcontentloaded' }); await wait(9000);
-      await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('expo-stepLogger-')) localStorage.removeItem(k); });
       await click(page, '^(AGAIN|START)$', true); await wait(4000);
       for (let i = 0; i < 10; i++) {
         if (await page.$('input[inputmode="numeric"],input[inputmode="decimal"],input[type="number"]')) break;
@@ -172,6 +178,7 @@ if (PREVIEW_PLAN) {
       judge('bhbc', w, r, [['crest', 'no club crest in the bar'], ['tick', 'no save tick after typing']]);
     } finally { await page.close(); }
   }
+  if (langRead) { const p1 = await b.newPage(); try { await p1.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await p1.evaluate((v) => { if (v === null) localStorage.removeItem('expo-lang'); else localStorage.setItem('expo-lang', v); }, prevLang); } catch { /* noop */ } finally { await p1.close(); } }
   await b.disconnect();
 }
 
