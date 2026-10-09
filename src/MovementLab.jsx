@@ -787,7 +787,7 @@ export default function MovementLab({
           <>
             {!romSpec && (
               <Section title={tt('3D SKELETON')}>
-                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} />
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
               </Section>
             )}
             <Section title={tt('JOINT ANGLES')}>
@@ -1119,7 +1119,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} />}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} />}
     </div>
   );
 }
@@ -2312,12 +2312,12 @@ function drawScene3D(canvas, scene) {
 // the light canvas Viewer3D below shows the same skeleton.
 // a stale tab after a deploy cannot fetch the old chunk: fall back to the canvas viewer, never a crash (5.10 review N5)
 const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable(p) { React.useEffect(() => { if (p.onUnsupported) p.onUnsupported(); }, [p]); return null; } })));
-function ThreeDPanel({ frames, playheadT = null }) {
+function ThreeDPanel({ frames, playheadT = null, onScrub = null }) {
   const [fallback, setFallback] = useState(false);
   if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
   return (
     <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
-      <Replay3D frames={frames} playheadT={playheadT} onUnsupported={() => setFallback(true)} />
+      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} />
     </Suspense>
   );
 }
