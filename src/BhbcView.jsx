@@ -239,7 +239,7 @@ function Card({ header, headerRight, children, ...rest }) {
       )}
       {...rest}
     >{present ? (
-      <div data-card-body="" data-shown={shown ? '1' : '0'} style={{ display: 'grid', gridTemplateRows: shown ? '1fr' : '0fr', transition: `grid-template-rows ${CARD_MS}ms ease` }}>
+      <div data-card-body="" data-shown={shown ? '1' : '0'} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)' /* the card's own width: an auto column grew to the widest unwrapped line (a 430px past-practice list in a 310px card at 360, 9.10) */, gridTemplateRows: shown ? '1fr' : '0fr', transition: `grid-template-rows ${CARD_MS}ms ease` }}>
         {/* clipped only while it moves, so a menu inside an open card is never cut */}
         <div style={{ minHeight: 0, overflow: settled ? 'visible' : 'hidden' }} inert={shown ? undefined : ''}>{children}</div>
       </div>
@@ -5470,6 +5470,12 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
   // card is open moves who was out of a past practice, and without it the
   // rows kept the medical record as it was when the card first rendered.
   }, [loads, roster, past, medical]);
+  // THE S&C SLOT IS RESERVED ONLY WHEN THE LIST HAS S&C (9.10). Reserved on
+  // every row it kept the columns still (27.9), but on a phone its 92px left
+  // the label 8px - and a 128px "Shootaround · 60′" stretched the whole list
+  // past the screen. Decided over the WHOLE list, not the rows shown, so
+  // "Show more" never moves the columns.
+  const anySc = useMemo(() => past.some((f) => detailFor(f).scMinutes > 0), [past, detailFor]);
 
   if (!past.length) return null;
 
@@ -5510,19 +5516,21 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                     slot · count · chevron on every row, so a row with S&C lays out
                     exactly like one without. The list is Past PRACTICES, so a
                     practice row shows its minutes only; any other kind names itself. */}
-                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap' }}>
+                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline' }}>
                   {/* THE DURATION IS ONE TOKEN, NOT TWO WORDS THAT MAY PART.
                       Measured 19.9 at 390 in Hebrew: this column is the one that
                       gives way, and every past-practice row broke "120 דק׳" in
                       half, leaving "דק׳" alone on a second line - eight rows, all
                       of them. The label may wrap; the NUMBER and its unit may
                       not. */}
-                  {f.type !== 'practice' ? fxLabelFor(f.type, FX_LABEL[f.type] || 'Session') : null}
-                  {f.minutes ? <>{f.type !== 'practice' ? ' · ' : null}<span style={{ whiteSpace: 'nowrap' }}>{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span></> : null}
-                  {densityOf(f) ? <>{' · '}<DensityBit f={f} /></> : null}
+                  {/* the kind word gives way to its short form when the row is
+                      narrow (SegWord measures), the way the month cells do */}
+                  {f.type !== 'practice' ? <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /> : null}
+                  {f.minutes ? <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{f.type !== 'practice' ? '\u00A0·\u00A0' : null}{f.minutes}<span className="min-unit">{' ' + fxLabelFor('__min', 'min')}</span><span className="min-tick">′</span></span> : null}
+                  {densityOf(f) ? <span style={{ flexShrink: 0 }}>{'\u00A0·\u00A0'}<DensityBit f={f} /></span> : null}
                 </span>
                 {/* the S&C slot is always there, empty when none ran */}
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 92, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 92, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
                   {d.scMinutes > 0 ? <>{tr('S&C')} <MinTok n={d.scMinutes} /></> : null}
                 </span>
                 {/* The two numbers a head coach actually asks for. */}
