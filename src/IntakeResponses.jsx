@@ -19,10 +19,11 @@ import { useT, readLang } from './i18n';
 // A TAB NAMES THE QUESTIONNAIRE AND ITS LANGUAGE, IN THE COACH'S LANGUAGE (9.10 audit
 // #612 C12: the Hebrew screen had 'SELF EVALUATION' and 'PHYSICAL ASSESSMENT' - the
 // English versions' own titles). Hebrew names are the forms' own titles; native-checked.
+// English is one word each: in Nord capitals 'PHYSICAL ASSESSMENT · ENGLISH' overran its cell at 1440.
 const FORM_NAME = {
-  initial: { en: 'Initial assessment', he: 'הערכה ראשונית' },
-  progress: { en: 'Progress assessment', he: 'הערכת התקדמות' },
-  assessment: { en: 'Physical assessment', he: 'הערכה פיזית' },
+  initial: { en: 'Intake', he: 'הערכה ראשונית' },
+  progress: { en: 'Progress', he: 'הערכת התקדמות' },
+  assessment: { en: 'Assessment', he: 'הערכה פיזית' },
 };
 const LOCALE_NAME = { he: { en: 'Hebrew', he: 'עברית' }, en: { en: 'English', he: 'אנגלית' } };
 function formTabLabel(key, form) {
