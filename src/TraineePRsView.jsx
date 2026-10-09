@@ -482,7 +482,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                           {s.load}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>kg</span>
                           {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}>× {s.reps}</span>}
                           {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginInlineStart: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
-                          {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
+                          {isPR && <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
                         </div>
                       </div>
                     );

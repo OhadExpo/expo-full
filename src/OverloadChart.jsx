@@ -165,7 +165,7 @@ function LiftDetail({ row }) {
               <span style={{ color: C.tx, fontWeight: 700 }}>{s.topLoad}kg <span style={{ color: C.tm, fontWeight: 400 }}>× {s.topReps || '—'}</span></span>
               <span style={{ textAlign: 'end', color: C.td, whiteSpace: 'nowrap' }}>
                 {s.avgRpe != null ? `RPE ${s.avgRpe.toFixed(1)}` : ''}
-                {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginInlineStart: 8, fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', fontWeight: 700, letterSpacing: '0.08em' }}>{tt('PR')}</span>}
+                {isPR && <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginInlineStart: 8, fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', fontWeight: 700, letterSpacing: '0.08em' }}>{tt('PR')}</span>}
               </span>
             </div>
           );
