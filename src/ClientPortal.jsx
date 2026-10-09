@@ -2396,7 +2396,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           cells span the full width, flush with the video box below (Ohad). */}
       {hw && <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginTop:12,marginBottom:14}}>
         {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
-          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
+          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>{readLang() === 'he' ? `${tt('Week')} ${i+1}` : `WK ${i+1}`}</div>
           <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div>}
 
       {/* Cyan-polish pass: every neutral border on this view is now 1px
