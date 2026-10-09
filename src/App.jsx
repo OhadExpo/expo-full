@@ -1870,8 +1870,12 @@ function AuthedApp() {
                  rail's own edge */
               scroll-padding-inline: 8px;
               /* at rest a tab starts on the rail's start edge - never half a
-                 word there (27.9 #304) */
-              scroll-snap-type: x mandatory; }
+                 word there (27.9 #304). PROXIMITY, not mandatory (9.10 #607,
+                 Ohad: "scrolling on the top menu's doesnt feel smooth"):
+                 mandatory pulled the rail onto an edge on every scroll and
+                 fought the finger; proximity still lands a resting tab on the
+                 edge, and the no-slice mask hides any half tab at rest. */
+              scroll-snap-type: x proximity; }
             .hdr-rail nav.hdr-scroll button, .hdr-rail .hdr-right > * { scroll-snap-align: start; }
             .hdr-rail .hdr-right { scroll-snap-align: end; }
             .hdr-rail::-webkit-scrollbar { display: none; }

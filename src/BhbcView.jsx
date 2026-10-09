@@ -1800,7 +1800,7 @@ function attendance28(rec, days) {
              the right edge. The whole bar is the horizontal scroller now and the
              identity block is sticky at its left, so the wordmark stays put
              while the tabs and controls slide under it. */
-          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding-block:0!important;padding-inline:14px 0!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scroll-padding-inline-start:var(--crest-w,88px)}
+          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding-block:0!important;padding-inline:14px 0!important;min-height:56px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity /* #607: mandatory fought the finger */;scroll-padding-inline-start:var(--crest-w,88px)}
           /* AT REST A TAB STARTS RIGHT AFTER THE CREST (27.9, his shot: "EDULE"
              with SCH under the crest). Every tab is a snap point; the pinned
              crest plate is the scroll padding, so a settled bar never slices a

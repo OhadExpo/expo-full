@@ -5317,7 +5317,7 @@ export default function CoachDemo() {
            neighbours at 1024 on every screen. The sliding row is the answer
            the zone already uses where a header does not fit. */
         @media (max-width: 1199px) {
-          .cd-hdr { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; gap: 8px !important; padding-inline: 0 !important; scroll-snap-type: x mandatory; scroll-padding-inline-start: var(--crest-w, 84px); }
+          .cd-hdr { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; gap: 8px !important; padding-inline: 0 !important; scroll-snap-type: x proximity; /* #607: mandatory fought the finger */ scroll-padding-inline-start: var(--crest-w, 84px); }
           .cd-hdr > a:first-child { position: sticky; inset-inline-start: 0; z-index: 3; flex: 0 0 auto !important; align-self: stretch; display: flex !important; align-items: center; background: var(--c-headerBg, var(--c-sf)); padding-inline: 16px 16px; box-shadow: 8px 0 12px -8px rgba(0,0,0,0.7); }
           [dir="rtl"] .cd-hdr > a:first-child { box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7); }
           .cd-hdr > nav { flex: 0 0 auto !important; display: flex !important; gap: 6px !important; }
