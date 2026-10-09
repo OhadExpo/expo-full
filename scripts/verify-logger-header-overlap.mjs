@@ -162,10 +162,13 @@ if (PREVIEW_PLAN) {
     await page.setViewport({ width: w + 24, height: 860, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     try {
       if (!signedIn) { await signIn(page, BASE); signedIn = true; }
-      // case B runs in the signed-in debug Chrome (CDP2 = :9222, Ohad's profile): it
-      // deletes NO drafts there, and puts his language choice back after (?lang=en
-      // stores 'en' for BASE) - 1008c review
+      // case B runs in the signed-in debug Chrome (CDP2 = :9222, Ohad's profile): on
+      // production it deletes no drafts, and his language choice is put back after
+      // (?lang=en stores 'en' for BASE) - 1008c review
       await page.goto(`${BASE}/coach/programs/${PREVIEW_PLAN}/preview?lang=en`, { waitUntil: 'domcontentloaded' }); await wait(9000);
+      // a fresh logger every pass (a resumed draft never saves again, so no tick) -
+      // but drafts are deleted only off production: on expo-app.co.il these are HIS
+      if (!/expo-app\.co\.il/.test(BASE)) { await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('expo-stepLogger-')) localStorage.removeItem(k); }); await page.reload({ waitUntil: 'domcontentloaded' }); await wait(7000); }
       await click(page, '^(AGAIN|START)$', true); await wait(4000);
       for (let i = 0; i < 10; i++) {
         if (await page.$('input[inputmode="numeric"],input[inputmode="decimal"],input[type="number"]')) break;
