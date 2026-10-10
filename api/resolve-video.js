@@ -23,7 +23,12 @@ const ALLOWED = /^https:\/\/(photos\.app\.goo\.gl|photos\.google\.com)\//i;
 const REDIRECT_HOSTS = /^(photos\.app\.goo\.gl|photos\.google\.com|accounts\.google\.com|[a-z0-9-]+\.googleusercontent\.com|lh3\.googleusercontent\.com)$/i;
 const MAX_HOPS = 5;
 
+import { videoHealth } from './_video-health.js';
+
 export default async function handler(req, res) {
+  // the library's dead-link sweep rides on this function (?health=1): a 13th function broke the
+  // Hobby plan's 12-per-deployment limit (10.10)
+  if (req.query?.health) return videoHealth(req, res);
   const url = req.query?.url || '';
   if (!ALLOWED.test(url)) {
     res.status(400).json({ error: 'URL must be a Google Photos share link' });

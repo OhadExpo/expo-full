@@ -1,3 +1,7 @@
+// NOT A FUNCTION OF ITS OWN (10.10: the Hobby plan allows 12 serverless functions per deployment
+// and this was the 13th - the deploy failed at patchBuild). A leading underscore keeps Vercel from
+// deploying the file; /api/resolve-video?health=1 serves it.
+//
 // Is a library video still alive? (5.10 #559, the library video-gap screen's
 // dead-link sweep.) Takes up to 50 YouTube / Vimeo links and answers, per link:
 //   ok        - the video exists and embeds
@@ -41,7 +45,7 @@ async function check(raw) {
   }
 }
 
-export default async function handler(req, res) {
+export async function videoHealth(req, res) {
   let urls = [];
   if (req.method === 'POST') {
     const body = typeof req.body === 'string' ? (() => { try { return JSON.parse(req.body); } catch { return {}; } })() : (req.body || {});

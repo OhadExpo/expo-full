@@ -79,9 +79,19 @@ export default function SubmenuTab({ id, label, count, items, tab, navTo, active
     recalc();
     // again once the panel has a measured width
     const raf = requestAnimationFrame(recalc);
+    // THE MENU GOES WHEN ITS RAIL MOVES (10.10 #652, Ohad on his phone: "Top menu still
+    // glitching"). Swiping the header rail with a panel open slid the trigger under the logo
+    // plate while the panel floated on beside it, chasing a tab that was no longer there. A
+    // swipe of the rail means the coach moved on: the panel closes. A scroll of the PAGE (or
+    // any scroller the trigger is not inside) still only re-places it.
+    const onScroll = (e) => {
+      const sc = e && e.target;
+      if (sc && sc !== document && sc.nodeType === 1 && btnRef.current && sc.contains(btnRef.current) && sc.scrollWidth > sc.clientWidth + 1) { setOpen(false); return; }
+      recalc();
+    };
     window.addEventListener('resize', recalc);
-    window.addEventListener('scroll', recalc, true);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', recalc); window.removeEventListener('scroll', recalc, true); };
+    window.addEventListener('scroll', onScroll, true);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', recalc); window.removeEventListener('scroll', onScroll, true); };
   }, [open]);
   useEffect(() => {
     if (!open) return;
