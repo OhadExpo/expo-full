@@ -61,7 +61,23 @@ const markerId = `rls-probe-${uid.slice(0, 8)}-${Date.now()}`;
   let { error } = await sb.from('client_workouts').upsert({ id: markerId, client_id: myId || 'unresolved', date: new Date().toISOString(), notes: 'rls-probe' });
   check('own workout write round-trips (insert)', !error, error ? `${error.code} ${error.message}` : markerId);
   const del = await sb.from('client_workouts').delete().eq('id', markerId);
-  check('own workout write round-trips (delete)', !del.error, del.error ? `${del.error.code} ${del.error.message}` : 'marker removed');
+  // A delete that RLS refuses returns NO error and removes nothing - and the
+  // proposed durability policy (supabase/proposed/2026-09-27-workout-durability.sql)
+  // takes DELETE away from the athlete on purpose. Without this read-back the
+  // check passed while the probe row stayed in the athlete's own history.
+  const { data: still, error: stillErr } = await sb.from('client_workouts').select('id').eq('id', markerId);
+  let gone = !del.error && !stillErr && !(still && still.length);
+  let how = stillErr ? `read-back failed (${stillErr.message}) - removal not verified` : 'marker removed by the athlete seat';
+  // also when the read-back failed: the owner delete is filtered to this probe row, so repeating it is safe
+  if (!gone && (stillErr || (still && still.length))) {
+    const { ownerClient } = await import('./lib/store-client.mjs');
+    const own = await ownerClient();
+    const r = await own.from('client_workouts').delete().eq('id', markerId).eq('notes', 'rls-probe').select('id');
+    await own.auth.signOut({ scope: 'local' });
+    gone = !r.error && r.data && r.data.length === 1;
+    how = gone ? 'athlete DELETE refused (durability policy) - marker removed by the owner' : `marker LEFT in the athlete's workouts: ${r.error ? r.error.message : 'owner delete matched 0'}`;
+  }
+  check('own workout write round-trips (delete)', gone, del.error ? `${del.error.code} ${del.error.message}` : how);
 }
 
 // the write it must never make is refused by the database

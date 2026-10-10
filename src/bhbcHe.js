@@ -231,8 +231,9 @@ export const HE = {
   'Over 240 minutes - check the number.': 'יותר מ-240 דקות — בדוק את המספר.',
   'MED': 'רפואי',
   'Show': 'הצג',
-  'This season only': 'העונה הזו בלבד',
-  'Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.': 'כל משחק שנרשם העונה — משחקים ודקות סופרים את כולם; נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה (מנהלת הליגה). לחיצה על שחקן — המשחקים שלו.',
+  'This season only': 'רק העונה הזו',
+  'Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.': 'כל משחק שנרשם העונה — משחקים ודקות סופרים את כולם; נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה (מנהלת הליגה, basket.co.il). לחיצה על שחקן — המשחקים שלו.',
+  'Every official game this season - cup, league and Europe; scrimmages do not count. Points, rebounds, assists and shooting come from the games with a box score. Tap an athlete for his games.': 'כל משחק רשמי העונה — גביע, ליגה ואירופה; משחקי אימון לא נספרים. נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה. לחיצה על שחקן — המשחקים שלו.',
   'Season': 'עונה',
   'PIR': 'מדד',
   'Off. reb': 'ריבאונד התקפה',
@@ -282,7 +283,10 @@ export const HE = {
   'entries': 'רישומים',
   'entry': 'רישום',
   'lifted': 'הרימו',
-  'A box is a lift he logged. S&C shows when its toggle is on.': 'ריבוע = הרמה שנרשמה. אימוני כוח מופיעים כשהמתג שלהם דולק.',
+  'A box is a lift he logged.': 'ריבוע זה הרמה שנרשמה.',
+  'S&C in green.': 'כוח קבוצתי בירוק.',
+  'Every practice is drawn from the day’s availability.': 'כל אימון נבנה לפי הזמינות של אותו יום.',
+  'A box is a lift he logged. S&C shows when its toggle is on.': 'ריבוע זה הרמה שנרשמה. אימוני כוח מופיעים כשהמתג שלהם דולק.',
   'Ghost': 'לא פעיל',
   'not counted': 'לא נספר',
   'A ghost stays on the roster but is not counted anywhere': 'שחקן לא פעיל נשאר בסגל אבל לא נספר בשום מקום',
@@ -493,7 +497,7 @@ export const HE = {
   'Person': 'מי',
   'Actions': 'פעולות',
   'Last seen': 'נראה לאחרונה',
-  'Show older': 'עוד ישנים',
+  'Show older': 'הצג ישנים יותר',
   'Yesterday': 'אתמול',
   'opened the club zone': 'נכנס לאזור המועדון',
   Practice: 'אימון',
@@ -629,6 +633,13 @@ export const fxLabelFor = (kind, en) => {
   return { game: 'משחק', practice: 'אימון', lift: 'כוח', scrimmage: 'משחק אימון', shootaround: 'שוטאראונד', __min: 'דק׳' }[kind] ?? en;
 };
 
+/** The SHORT word, for a cell the full one does not fit (5.10 #568: in Hebrew the
+ *  short form came back as the full "שוטאראונד" and ran 4px past its chip). */
+export const fxShortFor = (kind, en) => {
+  if (_dateLang !== 'he') return en;
+  return { game: 'משחק', practice: 'אימון', lift: 'כוח', scrimmage: 'משחק אימון', shootaround: 'זריקות' }[kind] ?? en;
+};
+
 /** Availability state → the word for one player. */
 export const availFor = (key, en) => {
   if (_dateLang !== 'he') return en;
@@ -734,7 +745,7 @@ Object.assign(HE, {
   // (basketball) and who didn't like the weight room view".
   'Practice Attendance': 'נוכחות באימונים',
   'A bar is a session he was at. A red box is a session he was available for and missed. A dash is a scheduled session nobody logged.':
-    'פס זה אימון שהוא היה בו. ריבוע אדום זה אימון שהיה זמין אליו ולא הגיע. מקף זה אימון שנקבע ואף אחד לא רשם.',
+    'פס זה אימון שהוא היה בו. ריבוע אדום זה אימון שהוא היה זמין ולא הגיע אליו. מקף זה אימון שנקבע ואף אחד לא רשם.',
   'attended this month': 'נוכחויות החודש',
   'nothing logged this month': 'לא נרשם כלום החודש',
   'attended this week': 'נוכחויות בשבוע הזה',
@@ -746,6 +757,12 @@ Object.assign(HE, {
   'absences': 'חיסורים',
   'missed': 'לא הגיע',
   'there': 'הגיעו',
+  // practice attendance, clearer marks (9.10 #629) - native-checked
+  'present': 'נוכחים',
+  'made': 'השתתף',
+  'Injured or away': 'פצוע או נעדר',   // one line in the legend column (was 'Out (injured or away)', wrapped at 390)
+  'Game not logged yet': 'המשחק עוד לא נרשם',
+  'Dot by the name = today’s availability': 'נקודה ליד השם = הזמינות היום',
   'none': 'אין',
 
   // ---- the weight-room tab --------------------------------------------
@@ -820,8 +837,8 @@ Object.assign(HE, {
   'Out for the whole day': 'בחוץ כל היום',
   'At this practice — click to mark absent': 'היה באימון — לחץ לסמן שלא הגיע',
   'Absent from this practice — click to mark present': 'לא הגיע לאימון — לחץ לסמן שהגיע',
-  'No practice on the schedule for this date — it is saved to the day.': 'אין אימון בתאריך הזה — נשמר על היום.',
-  'Team S&C · minutes and a note. Who was in comes from the day’s availability.': 'כוח קבוצתי — דקות והערה. מי שנכח — לפי הזמינות של היום.',
+  'No practice on the schedule for this date — it is saved to the day.': 'אין אימון בלו״ז בתאריך הזה, אז הרישום נשמר על התאריך עצמו.',
+  'Team S&C · minutes and a note. Who was in comes from the day’s availability.': 'כוח קבוצתי — דקות והערה. מי שהיה — לפי הזמינות של היום.',
   'Lift — minutes only, no RPE. Personal, any day, not tied to a practice.': 'הרמה — רק דקות, בלי RPE. אישי, בכל יום, לא קשור לאימון.',
   'Note (optional)': 'הערה (לא חובה)',
   'e.g. lower body · 4 lifts': 'למשל תחתון · 4 תרגילים',
@@ -873,7 +890,7 @@ Object.assign(HE, {
   'Restore this session': 'שחזור האימון הזה',
   'Session cancelled': 'האימון בוטל',
   // L: schedule
-  'S&C logged - open it to correct': 'הכוח נרשם — פתח כדי לתקן',
+  'S&C logged - open it to correct': 'אימון הכוח נרשם — פתח אותו כדי לתקן',
   // N: the zone's confirmations (toasts), in the zone's language
   'Add minutes': 'חסרות דקות',
   'Add the S&C minutes': 'חסרות דקות הכוח',
@@ -884,10 +901,29 @@ Object.assign(HE, {
   'Game updated': 'המשחק עודכן',
   'Lift logged': 'ההרמה נרשמה',
   'Medical record saved': 'התיק הרפואי נשמר',
-  'Minutes must be more than 0 — delete the session instead': 'הדקות צריכות להיות יותר מ-0 — אם צריך, מחק את האימון',
+  'Minutes must be more than 0 — delete the session instead': 'הדקות צריכות להיות יותר מאפס — אחרת, מחק את האימון',
   'Minutes saved': 'הדקות נשמרו',
-  'Pick a body part': 'בחר אזור בגוף',
+  'A session cannot move to a day that has not happened': 'אי אפשר להזיז אימון ליום שעוד לא היה',
+  'Pick a body part': 'תבחר אזור בגוף',
   'S&C session saved': 'אימון הכוח נשמר',
+  // the dynamic warm-up, its own thing (9.10 #643) - native-checked
+  'Warm-up': 'חימום',
+  // the game warm-up tab (10.10 #647)
+  'Game warm-up': 'חימום למשחק',
+  'drill': 'תרגיל',
+  'drills': 'תרגילים',
+  'From the sheet · synced': 'מהגיליון · עודכן',
+  'Not synced yet - the warm-up comes from the sheet within 20 minutes.': 'עוד לא עודכן - החימום יגיע מהגיליון תוך 20 דקות.',
+  'Remove': 'הסרה',   // as the app's own (i18n.js)
+  'Warm-ups': 'חימומים',
+  'no warm-up logged': 'לא נרשם חימום',
+  'The warm-up is logged once the practice has started': 'החימום יירשם רק כשהאימון יתחיל',
+  'Warm-up logged': 'החימום נרשם',
+  'Warm-up removed': 'החימום נמחק',
+  'Warm-up logged - tap to remove it': 'החימום נרשם - לחיצה תמחק אותו',
+  'Log the 5-min dynamic warm-up for everyone at this practice': 'לרשום 5 דקות חימום דינמי לכל מי שהיה באימון',
+  'Remove the warm-up from this practice?': 'למחוק את החימום מהאימון הזה?',
+  'Nobody to log - everyone is out of this practice': 'אין את מי לרשום - כולם מחוץ לאימון הזה',
   'Session added': 'האימון נוסף',
   'Session removed': 'האימון נמחק',
   'Session restored': 'האימון שוחזר',
@@ -895,7 +931,7 @@ Object.assign(HE, {
   'Set a start time': 'חסרה שעת התחלה',
   'That session moved — reopen it': 'האימון הזה השתנה — פתח אותו מחדש',
   'That session moved — reopen the list': 'האימון הזה השתנה — פתח את הרשימה מחדש',
-  Undo: 'ביטול',
+  Undo: 'בטל פעולה',
   // extra pass
   '+{n} more on the Medical tab': 'ועוד {n} בלשונית הרפואית',
   '+{n} more on the Schedule tab': 'ועוד {n} בלשונית הלו"ז',
@@ -903,7 +939,7 @@ Object.assign(HE, {
   'N/A': 'לא רלוונטי',
   Concussion: 'זעזוע מוח',
   '+{n} older changes not shown': 'ועוד {n} שינויים ישנים שלא מוצגים',
-  'Over an hour - is that the practice length rather than the S&C block?': 'יותר משעה — זה לא אורך האימון במקום הבלוק של הכוח?',
+  'Over an hour - is that the practice length rather than the S&C block?': 'יותר משעה — אולי רשמת את אורך האימון כולו ולא רק את בלוק הכוח?',
 });
 
 /** `const he = useHe();` — true when the zone is in Hebrew. For the few places

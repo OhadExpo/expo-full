@@ -11,6 +11,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN } from './theme';
+import { useT } from './i18n';
 
 const fmt = (ms) => {
   const totalT = Math.floor(ms / 100);            // tenths
@@ -28,6 +29,8 @@ export default function HoldTimer({
   onSave,                      // (seconds:number) => void
   onClose,
 }) {
+  // Hebrew athletes read this whole timer in English (9.10 #586).
+  const tt = useT();
   const [elapsedMs, setElapsedMs] = useState(0);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);        // stopped with a time on the clock
@@ -91,12 +94,12 @@ export default function HoldTimer({
   });
 
   return createPortal((
-    <div role="dialog" aria-modal="true" aria-label="Isometric hold timer" style={{
+    <div role="dialog" aria-modal="true" aria-label={tt('Isometric hold timer')} style={{
       position: 'fixed', inset: 0, background: '#000', zIndex: 400,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: 20,
     }}>
-      <button onClick={onClose} aria-label="Close timer" style={{
+      <button onClick={onClose} aria-label={tt('Close timer')} style={{
         position: 'absolute', top: 16, right: 18, background: 'transparent',
         border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 24, cursor: 'pointer',
       }}>✕</button>
@@ -104,7 +107,7 @@ export default function HoldTimer({
       <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.18em', color: C.ac, textTransform: 'uppercase' }}>
         {title}{side ? ` · ${side}` : ''}
       </div>
-      {goal && <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6 }}>TARGET · {goal}</div>}
+      {goal && <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6 }}>{tt('TARGET')} · {goal}</div>}
 
       {/* the clock */}
       <div style={{ display: 'flex', alignItems: 'baseline', margin: '28px 0 10px', color: accent, transition: 'color .2s' }}>
@@ -117,12 +120,12 @@ export default function HoldTimer({
 
       {/* controls */}
       <div style={{ display: 'flex', gap: 12, marginTop: 30, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {!running && !done && <button onClick={start} style={btn(C.gn, '#000', C.gn)}>▶ START</button>}
-        {running && <button onClick={stop} style={btn('#000', C.rd, C.rd)}>■ STOP</button>}
+        {!running && !done && <button onClick={start} style={btn(C.gn, '#000', C.gn)}>▶ {tt('START')}</button>}
+        {running && <button onClick={stop} style={btn('#000', C.rd, C.rd)}>■ {tt('STOP')}</button>}
         {done && <>
-          <button onClick={reset} style={btn('transparent', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.3)')}>↺ REDO</button>
-          <button onClick={start} style={btn('transparent', C.gn, C.gn)}>▶ RESUME</button>
-          <button onClick={() => onSave && onSave(seconds)} style={btn(C.ac, '#fff', C.ac)}>✓ LOG {seconds}s</button>
+          <button onClick={reset} style={btn('transparent', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.3)')}>↺ {tt('REDO')}</button>
+          <button onClick={start} style={btn('transparent', C.gn, C.gn)}>▶ {tt('RESUME')}</button>
+          <button onClick={() => onSave && onSave(seconds)} style={btn(C.ac, '#fff', C.ac)}>{tt('✓ LOG {s}s').replace('{s}', () => seconds)}</button>
         </>}
       </div>
     </div>

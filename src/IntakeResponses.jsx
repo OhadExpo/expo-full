@@ -14,8 +14,26 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { FORM_BY_KEY } from './intakeFormSchemas';
-import { useT } from './i18n';
-import { CollapsibleSection } from './ui';
+import { useT, readLang } from './i18n';
+
+// A TAB NAMES THE QUESTIONNAIRE AND ITS LANGUAGE, IN THE COACH'S LANGUAGE (9.10 audit
+// #612 C12: the Hebrew screen had 'SELF EVALUATION' and 'PHYSICAL ASSESSMENT' - the
+// English versions' own titles). Hebrew names are the forms' own titles; native-checked.
+// English is one word each: in Nord capitals 'PHYSICAL ASSESSMENT · ENGLISH' overran its cell at 1440.
+const FORM_NAME = {
+  initial: { en: 'Intake', he: 'הערכה ראשונית' },
+  progress: { en: 'Progress', he: 'הערכת התקדמות' },
+  assessment: { en: 'Assessment', he: 'הערכה פיזית' },
+};
+const LOCALE_NAME = { he: { en: 'Hebrew', he: 'עברית' }, en: { en: 'English', he: 'אנגלית' } };
+function formTabLabel(key, form) {
+  const [type, locale] = key.split(':');
+  const ui = readLang() === 'he' ? 'he' : 'en';
+  const name = FORM_NAME[type]?.[ui];
+  if (!name) return form.title.replace(/^EXPO\s*[—-]\s*/, '');
+  return `${name} · ${LOCALE_NAME[locale]?.[ui] || locale}`;
+}
+import { CollapsibleSection, ChipGrid } from './ui';
 
 const isEmpty = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0);
 const asNum = (v) => { const n = Number(String(v).replace(',', '.').replace(/[^\d.-]/g, '')); return Number.isFinite(n) && String(v).trim() !== '' ? n : null; };
@@ -128,13 +146,9 @@ export default function IntakeResponses({ submissions = [], traineeNameFor }) {
       right={<span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{subs.length} {tt('responses')}</span>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* which form */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {forms.map((f) => (
-            <button key={f.key} type="button" onClick={() => { setFormKey(f.key); setQIdx(0); setPIdx(0); }} style={{ ...seg(f.key === cur.key), fontFamily: f.form.locale === 'he' ? FH : FN, letterSpacing: f.form.locale === 'he' ? 0 : '0.1em', opacity: f.subs.length ? 1 : 0.55 }}>
-              {f.form.title.replace(/^EXPO\s*[—-]\s*/, '')} · {f.subs.length}
-            </button>
-          ))}
-        </div>
+        {/* equal cells, the response count beside the title; a form with no responses is dimmed (5.10 #574) */}
+        <ChipGrid ariaLabel={tt('Responses')} value={cur.key} onChange={(k) => { setFormKey(k); setQIdx(0); setPIdx(0); }} phoneCols={1}
+          items={forms.map((f) => ({ k: f.key, label: formTabLabel(f.key, f.form), n: f.subs.length, dim: !f.subs.length }))} />
         {/* which view */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
           {[['summary', tt('Summary')], ['question', tt('Question')], ['individual', tt('Individual')]].map(([k, l]) => (

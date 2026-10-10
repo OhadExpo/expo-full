@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate, ageFromDob } from './dates';
 import { supabase } from './supabase';
 import { C, FN, FB } from './theme';
-import { isRefined5b, toast, useEscClose, ConfirmDialog, CollapsibleSection } from './ui';
+import { isRefined5b, toast, useEscClose, ConfirmDialog, CollapsibleSection, ChipGrid } from './ui';
 import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
@@ -584,12 +584,6 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
   // the coach sees done-vs-remaining at a glance. Cyan check, Nord value.
   const doneTick = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-ac)' };
 
-  const liveBtn = {
-    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-    padding: '4px 9px', borderRadius: 0, cursor: 'pointer',
-    border: `1px solid var(--c-ac)`, background: 'transparent', color: 'var(--c-ac)',
-    whiteSpace: 'nowrap',
-  };
   const soonChip = {
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     padding: '4px 9px', borderRadius: 0,
@@ -610,14 +604,9 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
   const renderTestChips = (test, map) => {
     if (map.status === 'soon') return <span style={soonChip}>{tt('◉ TEST · soon')}</span>;
     const sides = map.side ? ['L', 'R'] : [null];
+    // L / R as two equal cells (5.10 #574); an action, so nothing is "active" and the cyan stays
     return (
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        {sides.map(s => (
-          <button key={s || 'x'} type="button" onClick={() => onPickTest(test, map, s)} style={liveBtn}>
-            {tt('◉ TEST')}{s ? ` · ${s}` : ''}
-          </button>
-        ))}
-      </div>
+      <ChipGrid value={null} items={sides.map(s => ({ k: s || 'x', label: `${tt('◉ TEST')}${s ? ` · ${s}` : ''}`, tone: 'var(--c-ac)', onClick: () => onPickTest(test, map, s) }))} />
     );
   };
 
@@ -681,20 +670,18 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
             <div style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', fontWeight: 700, letterSpacing: '0.04em', minWidth: 110, paddingTop: 4 }}>
               {j.label}
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 }}>
-              {j.axes.map(ax => {
+            {/* the joint's axes as equal cells (5.10 #574): a live axis keeps its cyan, a captured
+                one is filled, an axis the camera cannot read sits dimmed and inert */}
+            {/* two to a row at 720 ("EXTERNAL ROTATION ◉" cut at three); on a phone the grid drops
+                under the joint's name and runs one axis per row */}
+            <ChipGrid value={null} style={{ flex: '1 1 300px' }} cols={2} phoneCols={1} cellStyle={{ letterSpacing: '0.05em', padding: '0 6px' }} ariaLabel={j.label}
+              items={j.axes.map(ax => {
                 const spec = romAxisSpec(j.id, ax);
-                if (!spec) return <span key={ax} style={soonChip}>{ax} · {tt('soon')}</span>;
+                if (!spec) return { k: ax, label: `${ax} · ${tt('soon')}`, disabled: true, dim: true, tone: 'var(--c-td)' };
                 const captured = capturedRom?.[romKey(j.id, ax)];
-                return (
-                  <button key={ax} type="button" onClick={() => onPickRom(spec)}
-                    style={captured != null && captured !== '' ? { ...liveBtn, borderColor: 'var(--c-ac)', color: 'var(--c-ac)' } : liveBtn}
-                    title={spec.cue}>
-                    {captured != null && captured !== '' ? `${ax} ✓ ${captured}°` : `${ax} ◉`}
-                  </button>
-                );
-              })}
-            </div>
+                const got = captured != null && captured !== '';
+                return { k: ax, label: got ? `${ax} ✓ ${captured}°` : `${ax} ◉`, active: got, tone: 'var(--c-ac)', title: spec.cue, onClick: () => onPickRom(spec) };
+              })} />
           </div>
         ))}
 

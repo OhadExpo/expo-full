@@ -48,6 +48,7 @@ Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found al
 | `/coach/exercise-matching` | exerciseMatching | `ExerciseMatchingView` | 🆕 2026-08-16 (Athletes▾→Matching; resolve unmatched plan exercise titles at scale) |
 | `/coach/exercise-classify` | exerciseClassify | `ExerciseClassifyView` | 🆕 2026-08-16 (Athletes▾→Classify; batch taxonomy classify unclassified library at scale) |
 | `/coach/exercise-cleanup` | exerciseCleanup | `ExerciseCleanupView` | 🆕 2026-08-21 (Exercises hub→Cleanup; review + bulk-delete trash library entries — set/rep numbers, superset markers, warmup notes) |
+| `/coach/exercise-videos` | exerciseVideos | `VideoGapsView` | 🆕 2026-10-05 #559 (Exercises hub→Videos, owner-only; library exercises with no video ranked by the athletes who miss one, safe candidates, dry-run approve to library + absent program rows, undo, dead-link check via /api/video-health) |
 | `/coach/review` | review | `WorkoutReview` | ✅ pass1 (Review▾→Workouts) |
 | `/coach/review-tools` | reviewTools | `ReviewToolsView` | 🆕 2026-06-14 (Review▾→Tools; owner-only camera suite) |
 | `/coach/workouts` | workouts | `WorkoutsView` | ✅ pass2 |

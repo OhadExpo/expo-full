@@ -55,6 +55,32 @@ export const signedDeviationAt = (lms, ai, bi, ci) => {
   return sign * (180 - interior);                       // 0 = straight; ± away from straight
 };
 
+// THE SAME BEND, IN THE BODY'S OWN SAGITTAL PLANE (10.10 #639 stage 2). The
+// x,y version above only reads a knee honestly when the camera stands side-on:
+// turned 45 deg, the image squashes the bend and the hyperextension with it. The
+// world landmarks are 3D, so measure where the joint actually moves - in the
+// plane perpendicular to the hip axis (L hip -> R hip). The sign comes from that
+// same axis, so it no longer flips with the way he faced. Needs both hips; null
+// otherwise (the caller keeps the x,y read).
+export const signedSagittalAt = (lms, ai, bi, ci, li = 23, ri = 24) => {
+  const a = lms[ai], b = lms[bi], c = lms[ci], hl = lms[li], hr = lms[ri];
+  if (!a || !b || !c || !hl || !hr) return null;
+  let nx = hr.x - hl.x, ny = hr.y - hl.y, nz = (hr.z ?? 0) - (hl.z ?? 0);
+  const nm = Math.hypot(nx, ny, nz);
+  if (!(nm > 1e-6)) return null;
+  nx /= nm; ny /= nm; nz /= nm;
+  const proj = (x, y, z) => { const d = x * nx + y * ny + z * nz; return [x - d * nx, y - d * ny, z - d * nz]; };
+  const v1 = proj(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+  const v2 = proj(c.x - b.x, c.y - b.y, (c.z ?? 0) - (b.z ?? 0));
+  const m1 = Math.hypot(v1[0], v1[1], v1[2]), m2 = Math.hypot(v2[0], v2[1], v2[2]);
+  if (!(m1 > 1e-6) || !(m2 > 1e-6)) return null;
+  const cos = Math.max(-1, Math.min(1, (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]) / (m1 * m2)));
+  const interior = Math.acos(cos) * 180 / Math.PI;
+  const cx = v1[1] * v2[2] - v1[2] * v2[1], cy = v1[2] * v2[0] - v1[0] * v2[2], cz = v1[0] * v2[1] - v1[1] * v2[0];
+  const s = cx * nx + cy * ny + cz * nz;
+  return (s > 0 ? 1 : s < 0 ? -1 : 0) * (180 - interior);
+};
+
 // Title-regex → channel pair. Order matters — `none` first so isometric /
 // carry / hold / anti-rotation exercises skip counting. An UNMATCHED title
 // returns matched:false so the caller knows the channel is a fallback guess,

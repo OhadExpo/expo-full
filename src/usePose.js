@@ -35,6 +35,29 @@ export async function createPoseLandmarker({ runningMode = 'VIDEO', quality = 'l
   }
 }
 
+// THE BALL DETECTOR (10.10 #638 step 3, opt-in). The shot analyzer finds the
+// ball by MOTION - round blobs that moved since the previous frame - and limbs
+// pass that test too. A trained detector sees the ball itself, in one frame,
+// moving or not. EfficientDet-Lite0 is MediaPipe's own COCO detector, shipped
+// with the same tasks-vision runtime as the pose model (no new dependency, no
+// new licence) and COCO has a 'sports ball' class. IMAGE mode: the ball pass
+// seeks frame by frame, so there is no video timeline to keep.
+const MODEL_DET = 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.tflite';
+export async function createBallDetector({ scoreThreshold = 0.15, maxResults = 4 } = {}) {
+  const { ObjectDetector, FilesetResolver } = await import('@mediapipe/tasks-vision');
+  if (!_filesetPromise) _filesetPromise = FilesetResolver.forVisionTasks(WASM_CDN);
+  const fileset = await _filesetPromise;
+  const opts = (delegate) => ({
+    baseOptions: { modelAssetPath: MODEL_DET, delegate },
+    runningMode: 'IMAGE', scoreThreshold, maxResults, categoryAllowlist: ['sports ball'],
+  });
+  try {
+    return await ObjectDetector.createFromOptions(fileset, opts('GPU'));
+  } catch {
+    return await ObjectDetector.createFromOptions(fileset, opts('CPU'));
+  }
+}
+
 // getUserMedia camera. facingMode 'user' (selfie, live overlay) or
 // 'environment' (rear, filming someone else on the floor).
 export async function getCamera(facingMode = 'user') {

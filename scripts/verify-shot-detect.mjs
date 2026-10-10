@@ -10,7 +10,7 @@
 //
 // So: synthesise skeletons for a jump shot and for the things that must NOT be
 // counted as one, and assert what the detector does with them. Runs in ~1s.
-import { buildSeries, detectShots } from '../src/shotAnalysis.js';
+import { buildSeries, detectShots, analyzeShotClip } from '../src/shotAnalysis.js';
 
 let pass = 0, fail = 0;
 const eq = (name, got, want) => {
@@ -155,6 +155,45 @@ console.log('SHOT DETECTION\n');
   const f = frames(hold(4, 0).map(() => ({ k: 0, a: 0, lift: 0 })));
   const s = buildSeries(f, { hand: 'R', aspect: 1080 / 1920 });
   eq('a 4-frame clip yields no shot and no throw', detectShots(s, FPS).length, 0);
+}
+
+// ── the seek ball pass feeds the SAME tracker and gates ────────────────────
+// shotCapture's opt-in ballPass 'seek' attaches frames.ballSeek: ball
+// candidates re-read frame by frame around each release. scoreShot must use
+// them only for a shot whose release window a span covers cleanly, and fall
+// back to the playback candidates (frame.blobs) otherwise.
+{
+  const f = frames(SHOT);
+  const base = analyzeShotClip(f, { hand: 'R' });
+  eq('ball pass: the synthetic shot is analysed', base.ok && base.shots.length, 1);
+  if (base.ok && base.shots.length === 1) {
+    const sh = base.shots[0];
+    const tRel = base.series.tMs[sh.cycle.release];
+    const wp = base.series.raw.wristPos[sh.cycle.release];
+    eq('ball pass OFF: no playback blobs -> no angle, source play', [sh.info.ballLaunchDeg, sh.info.ballSource], [null, 'play']);
+    // A clean 50 degree flight out of the hand. Units are frame heights, as the
+    // capture reports them; a 0.02 ball falls at 9.81 m/s2 when g = 0.8175/s2.
+    const BALL = 0.02, G = 9.81 * BALL / 0.24, VY = 0.369, VX = VY / Math.tan(50 * Math.PI / 180);
+    const seekFrames = [];
+    for (let k = Math.ceil((tRel - 100) / DT); k * DT <= tRel + 1500; k++) {
+      const t = k * DT, u = (t - tRel) / 1000;
+      const blobs = u < 0 ? [] : [{ x: wp.x + VX * u, y: wp.y - BALL - VY * u + 0.5 * G * u * u, w: BALL, h: BALL, n: 20 }];
+      seekFrames.push({ t, blobs });
+    }
+    const spanOf = (ok, shift = 0) => [{ releaseMs: tRel, from: seekFrames[0].t + shift, to: seekFrames[seekFrames.length - 1].t + shift, ok }];
+    const withSeek = (spans) => { const g = frames(SHOT); g.ballSeek = { frames: seekFrames, spans, stepMs: DT }; return analyzeShotClip(g, { hand: 'R' }); };
+    const on = withSeek(spanOf(true));
+    const si = on.ok && on.shots[0] && on.shots[0].info;
+    eq('ball pass ON: the shot count does not move', on.ok && on.shots.length, 1);
+    eq('ball pass ON: angle read from the seek frames', si && si.ballSource, 'seek');
+    eq('ball pass ON: the 50 degree flight measures ~50', si && si.ballLaunchDeg != null && Math.abs(si.ballLaunchDeg - 50) < 3, true);
+    if (!(si && si.ballLaunchDeg != null)) console.log('   seek read:', JSON.stringify(si && si.ballWhy));
+    const bad = withSeek(spanOf(false));
+    eq('ball pass: a span that failed falls back to playback', bad.ok && [bad.shots[0].info.ballSource, bad.shots[0].info.ballLaunchDeg], ['play', null]);
+    const off = withSeek(spanOf(true, 900));
+    eq('ball pass: a span that misses the release window falls back', off.ok && off.shots[0].info.ballSource, 'play');
+    eq('ball pass: pose results identical with and without it', JSON.stringify(on.shots[0].checks), JSON.stringify(sh.checks));
+  }
 }
 
 console.log(`\nSHOT DETECTION: ${pass} passed, ${fail} failed`);

@@ -129,6 +129,16 @@
     }
     button{font:inherit}
 
+    /* ONE CHIP GRID (5.10 #574, src/components/ChipGrid.jsx): the desktop span
+       and the phone re-flow, the same rules as the app's themes.css .chip-grid */
+    .chip-grid[data-deskspan] > :first-child { grid-column: 1 / -1; }
+    .chip-grid > button:not([aria-pressed="true"]):not(:disabled):hover { background: rgba(57,189,255,0.06) !important; }
+    @media (max-width: 620px) {
+      .chip-grid { grid-template-columns: repeat(var(--cg-phone, 2), minmax(0, 1fr)) !important; }
+      .chip-grid[data-deskspan] > :first-child { grid-column: auto; }
+      .chip-grid[data-allspan] > :first-child { grid-column: 1 / -1; }
+    }
+
     /* Hide the EXPO wordmark on narrow phones — the X glyph alone is recognisable
        and frees up enough horizontal room for the three nav links to share a line. */
     @media (max-width: 479px) {

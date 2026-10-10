@@ -87,7 +87,10 @@ function collect() {
     // names never equal real names, and by label a demo row met an unrelated real
     // table's heights (AUDIT-470: 44 vs a 30.5 row of another table)
     // an owed row pairs with the real owed rows (names never match) - AUDIT-470
-    const k = e.hasAttribute('data-owed-row') ? '[data-owed-row]' : kind === 'row' ? `table.${((e.closest('table') || {}).className || '?').trim().split(/\s+/).join('.')}:${e.parentElement ? e.parentElement.tagName.toLowerCase() : ''}` : key(e);
+    // a box NAMED with data-box (the PR chip: an inline 15px mark, not a 36px control) pairs
+    // only with the same name on the real page - #613: with no PR on the real seat's screen
+    // it was judged against every real tag (38px) and failed every battery
+    const k = e.dataset.box ? `[box:${e.dataset.box}]` : e.hasAttribute('data-owed-row') ? '[data-owed-row]' : kind === 'row' ? `table.${((e.closest('table') || {}).className || '?').trim().split(/\s+/).join('.')}:${e.parentElement ? e.parentElement.tagName.toLowerCase() : ''}` : key(e);
     out.push({ kind, k, h: Math.round(r.height * 2) / 2 });
   }
   return out;
@@ -137,22 +140,25 @@ try {
         const kindH = {}; for (const x of side.real) (kindH[x.kind] ||= new Set()).add(x.h);
         const near = (h, set) => [...set].some((v) => Math.abs(v - h) <= 1);
         const found = [];
+        const unchecked = [];
         for (const [k, hs] of D) {
           const [kind, label] = k.split('|');
           if (R.has(k)) {
             for (const h of hs) if (!near(h, R.get(k))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...R.get(k)] });
           } else if (label && RL.has(label)) {
             for (const h of hs) if (!near(h, RL.get(label))) found.push({ type: 'MISMATCH', kind, label, demo: h, real: [...RL.get(label)] });
-          } else if (kind !== 'row') {   // a row with no twin table on the real page is not judged against unrelated tables
+          } else if (label && label.startsWith('[box:')) {
+            unchecked.push(label);   // a named box with no twin: SAID, not silently passed (1008k review S4)
+          } else if (kind !== 'row') {   // a row (or a named box) with no twin on the real page is not judged against unrelated boxes
             // no box of that kind on the real page at all = nothing to compare (the
             // demo's opened PR row; a real page with no open row) - not a finding
             if (!kindH[kind] || !kindH[kind].size) continue;
             for (const h of hs) if (!near(h, kindH[kind])) found.push({ type: 'ODD', kind, label, demo: h, realKind: [...(kindH[kind] || [])].sort((a, c) => a - c) });
           }
         }
-        report.push({ id, real: side.real.length, demo: side.demo.length, found });
+        report.push({ id, real: side.real.length, demo: side.demo.length, found, unchecked });
         bad += found.length;
-        console.log(`${id}: real ${side.real.length} boxes, demo ${side.demo.length}, ${found.length} off`);
+        console.log(`${id}: real ${side.real.length} boxes, demo ${side.demo.length}, ${found.length} off${unchecked.length ? ` · UNCHECKED (no twin on the real page): ${[...new Set(unchecked)].join(', ')}` : ''}`);
         for (const f of found) console.log(`   ${f.type.padEnd(8)} ${f.kind.padEnd(5)} "${f.label}" demo ${f.demo}px vs real ${JSON.stringify(f.real || f.realKind)}`);
       }
     }

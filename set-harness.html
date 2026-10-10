@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>set harness</title></head>
+<body style="background:#111;color:#eee;font:13px monospace">
+<div id="out">idle</div>
+<script type="module">
+  // ANALYSE MY SET, headless (#552). The SAME calls the athlete's button makes
+  // (ClientPortal SetAnalysisPanel.run): clip length from metadata -> the frame
+  // budget -> MovementLab.captureClipFrames(lite, crossOrigin) -> poseLab.analyzeClip
+  // -> setAnalysis.summarize. Driven by scripts/verify-set-count-accuracy.mjs.
+  // Dev-only page: not in the build (vite builds index.html only).
+  import { captureClipFrames } from '/src/MovementLab.jsx';
+  import { analyzeClip } from '/src/poseLab.js';
+  import { summarize, readSet, setFrameBudget } from '/src/setAnalysis.js';
+
+  const out = document.getElementById('out');
+  const say = (m) => { out.textContent = m; };
+
+  // ClientPortal.clipSeconds, verbatim in behaviour: metadata only, null when unknown
+  function clipSeconds(url, crossOrigin) {
+    return new Promise((resolve) => {
+      const v = document.createElement('video');
+      let done = false;
+      const end = (x) => { if (done) return; done = true; clearTimeout(to); try { v.removeAttribute('src'); v.load(); } catch { /* noop */ } resolve(x); };
+      const to = setTimeout(() => end(null), 8000);
+      if (crossOrigin) v.crossOrigin = 'anonymous';
+      v.preload = 'metadata'; v.muted = true;
+      v.onloadedmetadata = () => end(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : null);
+      v.onerror = () => end(null);
+      v.src = url;
+    });
+  }
+
+  const r5 = (x) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x * 100000) / 100000 : null);
+  const pack = (lms) => (lms ? lms.map((p) => [r5(p.x), r5(p.y), r5(p.z), r5(p.visibility)]) : null);
+
+  window.runSet = async (url, title, opts = {}) => {
+    const t0 = performance.now();
+    const secs = await clipSeconds(url, true);
+    const maxFrames = setFrameBudget(secs);
+    // opts.quality (10.10 #552/#639): the athlete's pipeline is 'lite'; 'full' / 'heavy' are
+    // here only to MEASURE whether a bigger model counts the hand-counted sets better
+    const quality = ['full', 'heavy'].includes(opts.quality) ? opts.quality : 'lite';
+    const frames = await captureClipFrames(url, { crossOrigin: true, quality, maxFrames, onProgress: (p) => say(p + '%') });
+    const result = analyzeClip(frames, title || '');
+    const read = summarize(result, { title: title || null, fileName: null, model: quality });
+    const set = readSet(result);
+    const ms = Math.round(performance.now() - t0);
+    say('done ' + ms + 'ms');
+    return {
+      harnessBuild: 'set-3', quality,
+      secs, maxFrames, ms,
+      frameCount: frames.length,
+      read,
+      // the bottoms (ms) of the reps the number is made of - the gate checks
+      // they are the set's reps, not the setup's
+      countedT: set && set.reps ? set.reps.map((e) => e.t) : null,
+      raw: result && result.ok !== false ? {
+        repCount: result.repCount, jointRepCount: result.jointRepCount, countMethod: result.countMethod, kind: result.kind, fps: result.fps,
+        grade: result.captureQuality && result.captureQuality.grade, coverage: result.captureQuality && result.captureQuality.coverage,
+        bottomsT: (result.reps || []).map((r) => Math.round(frames[r.bottomIdx].t)),
+        rejected: result.rejectedReps, rerack: result.velocity && result.velocity.rerackCount,
+      } : result,
+      // the captured pose stream, so the counting can be re-scored offline
+      frames: opts.keepFrames ? frames.map((f) => ({ t: Math.round(f.t), l: pack(f.landmarks), w: pack(f.worldLandmarks) })) : undefined,
+      dims: frames.dims || null,
+    };
+  };
+  window.__ready = true;
+</script>
+</body>
+</html>

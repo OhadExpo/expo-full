@@ -1,8 +1,10 @@
 // src/supabase.js — Supabase client for EXPO. Also the canonical export
 // point for SUPA_URL + SUPA_PUBLISHABLE_KEY so other modules (CoachChat,
 // CoachLanding, ClientPortal) don't have to redeclare them inline.
+import { fetchBudgetFor } from './fetchBudget.js';
 import { createClient } from '@supabase/supabase-js';
 import { PARTNER_EMAILS } from './authRoles';
+import { setProbeUrl, setProbeActive, noteSuccess, noteFailure } from './connectivity';
 
 export const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 export const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -50,6 +52,11 @@ const NEVER_EVICT = new Set([
                            // does not lose a cache, it loses what someone typed offline.
   'expo-lead-notes',       // notes he typed on a lead
 ]);
+// ...and the logger's in-progress drafts (5.10 #560): `expo-stepLogger-<athlete>-
+// <plan>-<day>-...` is the only copy of the sets an athlete is logging RIGHT
+// NOW, mid-workout, on a phone whose session just needed room. Keyed per
+// session so it cannot be listed above; matched by prefix instead.
+const NEVER_EVICT_PREFIXES = ['expo-stepLogger-'];
 const evictSnapshots = () => {
   let freed = 0;
   try {
@@ -57,7 +64,7 @@ const evictSnapshots = () => {
     // Biggest first: one large snapshot usually frees more than a dozen small
     // ones, and the fewer we drop the less the user has to refetch.
     const sized = keys
-      .filter((k) => SNAPSHOT_PREFIXES.some((p) => k.startsWith(p)) && !/auth-token/.test(k) && !NEVER_EVICT.has(k))
+      .filter((k) => SNAPSHOT_PREFIXES.some((p) => k.startsWith(p)) && !/auth-token/.test(k) && !NEVER_EVICT.has(k) && !NEVER_EVICT_PREFIXES.some((p) => k.startsWith(p)))
       .map((k) => ({ k, n: (window.localStorage.getItem(k) || '').length }))
       .sort((a, b) => b.n - a.n);
     for (const { k, n } of sized) {
@@ -243,6 +250,48 @@ if (typeof window !== 'undefined' && window.sessionStorage && window.localStorag
   } catch { /* private mode / quota — ignore */ }
 }
 
+// NO REQUEST HANGS FOREVER (5.10 #560). On a gym's dead wifi a request neither
+// fails nor answers: the socket sits open, supabase-js waits on it, and whatever
+// awaited that call - the identity read at boot, a queue handler, the auth
+// refresh - waits with it. Every request the client makes now carries a budget:
+// a read may take 20 s (a big plan list on 3G), a write 10 s, and a storage
+// upload 60 s (a 40 MB clip on a weak signal must not be cut off while it is
+// still making progress - the uploader's own stall watchdog guards that path).
+// An abort reads as 'aborted' / 'AbortError', which the queue already treats as
+// transient, so a cut-off write stays queued and is retried.
+//
+// The same wrapper is where the client REPORTS: an answer of any kind means the
+// server is reachable (connectivity goes 'online' with no probe spent); a
+// network failure asks the probe at once, so the app knows it is offline
+// within seconds instead of at the next 30 s tick.
+// the budget itself lives in fetchBudget.js (node-tested: scripts/verify-fetch-budget.mjs)
+const timedFetch = (input, init) => {
+  const url = typeof input === 'string' ? input : (input && input.url) || '';
+  const opts = init || {};
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  if (!ctl) return fetch(input, opts);
+  const outer = opts.signal;
+  // a caller's own signal (withTimeout in useSupaStore) still aborts this one
+  if (outer) {
+    if (outer.aborted) ctl.abort();
+    else { try { outer.addEventListener('abort', () => ctl.abort(), { once: true }); } catch { /* not a signal */ } }
+  }
+  const t = setTimeout(() => ctl.abort(), fetchBudgetFor(url, opts));
+  return fetch(input, { ...opts, signal: ctl.signal }).then(
+    (r) => { clearTimeout(t); noteSuccess(); return r; },
+    (e) => { clearTimeout(t); noteFailure(); throw e; },   // a caller's own timeout is a failure too
+  );
+};
+// The probe sends the public key as a HEADER, never in the URL (the S25 gate:
+// no token in a URL, ever). Keyless, the gateway answered 401 - reachable, but a
+// red "Failed to load resource" in the console every 30 s, which the
+// console-clean sweeps read as an error (5.10 review N3). Keyed it answers 200;
+// the CORS preflight the header costs is cached for an hour (max-age 3600).
+setProbeUrl(`${SUPA_URL}/auth/v1/health`, { apikey: SUPABASE_ANON_KEY });
+// a device that holds a seat probes from its first tick: on a dead wifi the
+// session read itself hangs, and the pill must still say offline (5.10 recheck)
+try { if (readStoredSession()) setProbeActive(true); } catch { /* storage blocked */ }
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
@@ -250,7 +299,34 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     detectSessionInUrl: true,
     storage: authStorage,
   },
+  global: { fetch: typeof fetch === 'function' ? timedFetch : undefined },
 });
+
+// THE SESSION THIS DEVICE HOLDS, READ WITHOUT ASKING THE SERVER (5.10 #560).
+// supabase-js refuses to hand out an expired session until it has refreshed it,
+// and offline that refresh cannot happen - so a phone that slept through the
+// token's hour booted into the login screen with a perfectly good refresh token
+// in storage. auth.jsx uses this to keep the last known person signed in while
+// the server cannot be reached; the real refresh lands the moment it can.
+// FORGET THIS DEVICE'S SESSION, WITH OR WITHOUT A NETWORK (5.10 review S3).
+// supabase-js signOut({scope:'local'}) returns early - token still stored - when
+// it cannot reach the server; with the offline boot, the next start on dead
+// wifi signed the person who had just signed out straight back in (a shared
+// gym phone). The token, its sessionStorage copy and the refresh cookie go here.
+export function forgetStoredSession() {
+  try { if (authStorage) authStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* storage blocked */ }
+  try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* noop */ }
+  try { sessionStorage.removeItem(AUTH_TOKEN_KEY); } catch { /* noop */ }
+  cookieDel(REFRESH_COOKIE);
+}
+
+export function readStoredSession() {
+  try {
+    const raw = authStorage ? authStorage.getItem(AUTH_TOKEN_KEY) : null;
+    const j = raw ? JSON.parse(raw) : null;
+    return j && j.refresh_token && j.user && j.user.id ? j : null;
+  } catch { return null; }
+}
 
 // THE PARTNER SEAT IS A SANDBOX (#476, 30.9). Ohad: "fake money but everything
 // ... the ability to actually touch or change it (sandbox) - his own version".
@@ -332,6 +408,9 @@ export function reviveSession() {
       const rt = cookieGet(REFRESH_COOKIE);
       if (!rt) return false;
       const { data: out, error } = await supabase.auth.refreshSession({ refresh_token: rt });
+      // a refresh that never reached the server (offline, timed out: status 0)
+      // has not refused anything - the cookie stays for the next visit (5.10 #560)
+      if (error && (error.status === 0 || /fetch|network|abort/i.test(String(error.message || '')))) return false;
       if (error || !out || !out.session) { cookieDel(REFRESH_COOKIE); return false; }
       return true;
     } catch { return false; }

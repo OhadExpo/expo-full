@@ -199,7 +199,10 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
   sm.elbowVel = deriv(sm.elbow, tMs);
   sm.wristVel = deriv(sm.wristY, tMs);
   // aspect travels with the series so the ball fit can share one unit system.
-  return { raw: s, sm, n, tMs, aspect };
+  // ballSeek: the opt-in deterministic ball pass (shotCapture seekBallPass) -
+  // ball candidates re-read by seeking around each release. Absent unless the
+  // capture was asked for it, and then only consulted by scoreShot.
+  return { raw: s, sm, n, tMs, aspect, ballSeek: (frames && frames.ballSeek) || null };
 }
 
 // ------------------------------------------------------------- detection ---
@@ -572,7 +575,27 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballO
     // same height-fraction the whole engine uses, so it cancels everywhere.
     const K = 1000;
     const frames = [];
-    for (let k = c.release; k <= end; k++) {
+    // THE SEEK BALL PASS, WHERE IT READ THIS SHOT. Same 700 ms window, same
+    // candidate shape, same tracker and the same gates - the only thing that
+    // changes is that every source frame in the window was read, instead of
+    // whichever ones the browser happened to present while MediaPipe ran.
+    // Only a span that covers the WHOLE window is used; anything else keeps
+    // the playback candidates below, so a failed or missing span changes
+    // nothing for that shot.
+    const tRel = tMs[c.release];
+    const seek = series.ballSeek;
+    const half = seek && seek.stepMs > 0 ? seek.stepMs / 2 : 1;
+    const span = seek && Array.isArray(seek.spans) && Array.isArray(seek.frames)
+      ? seek.spans.find((sp) => sp && sp.ok && sp.from != null && sp.to != null && tRel >= sp.from - half && tRel + 700 <= sp.to + half)
+      : null;
+    const source = span ? 'seek' : 'play';
+    if (span) {
+      for (const f of seek.frames) {
+        if (f.t < tRel - half || f.t > tRel + 700 + half) continue;
+        if (Array.isArray(f.blobs) && f.blobs.length) frames.push({ t: f.t, blobs: f.blobs.map((b) => ({ x: b.x * K, y: b.y * K, w: b.w * K, h: b.h * K, n: b.n })) });
+      }
+    }
+    for (let k = c.release; !span && k <= end; k++) {
       if (Array.isArray(cands[k]) && cands[k].length) {
         // NOT aspect-scaled, and that was TESTED rather than assumed.
         //
@@ -604,14 +627,14 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballO
     // arc wins whether or not it left the shooter's hand. Swept offline
     // before any default changes; see docs/ball-launch-diagnosis-2026-08-31.md.
     const tr = trackBall(frames, { ...(origin ? { origin } : {}), stats, originBias: ballOriginBias, riseBias: ballRiseBias });
-    if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0), stats };
+    if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0), stats, source };
     const out = {};
     // `origin` is the shooting wrist at release — already computed above for
     // trackBall. launchAngle needs it too, so the rise gate can measure from
     // the hand rather than from wherever the track happened to begin.
     const la = launchAngle(tr.points, tMs[c.release], tr.ballPx, out, origin);
-    if (!la) return { failed: 'track rejected', why: out.why, diag: out.diag, frames: frames.length, n: tr.points.length, fit: tr.fit, ballPx: tr.ballPx, stats };
-    return la;
+    if (!la) return { failed: 'track rejected', why: out.why, diag: out.diag, frames: frames.length, n: tr.points.length, fit: tr.fit, ballPx: tr.ballPx, stats, source };
+    return { ...la, source };
   })();
 
   const defs = buildCheckpoints(shotType);
@@ -672,6 +695,9 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballO
     // angle SPREAD and the rep-to-rep comparison are unaffected.
     ballOblique: !!(ballLaunch && !ballLaunch.failed && ballLaunch.obliqueShot),
     ballRecede: ballLaunch && !ballLaunch.failed ? ballLaunch.recede : null,
+    // Which candidates the reading came from: 'seek' (the opt-in ball pass read
+    // this shot's window frame by frame) or 'play' (the fine pass's own).
+    ballSource: ballLaunch ? ballLaunch.source || null : null,
   };
   const phases = [
     { key: 'stance', label: 'STANCE', idx: c.stance },
@@ -733,6 +759,11 @@ export function detectShootingHand(frames) {
   return rSum >= lSum ? 'R' : 'L';
 }
 
+// The forgiving second pass analyzeShotClip falls back to when the strict one
+// finds nothing. Shared so the capture's ball pass looks for releases with the
+// very same gates the analysis will use.
+export const RELAXED_SHOT_GATES = Object.freeze({ minArmElev: 50, minElbow: 92, maxDipKnee: 173, dipWindowMs: 2400, requireAboveHead: false });
+
 export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType = 'mid', ballOriginBias = 0, ballRiseBias = 0 } = {}) {
   if (!frames || frames.length < 8) return { ok: false, error: 'Not enough frames with a visible body. Film the whole body, side-on, in good light.' };
   const dims = frames.dims || { w: 9, h: 16 };
@@ -761,9 +792,7 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
   let relaxed = false;
   if (!cycles.length) {
     const why2 = [];
-    cycles = detectShots(series, fps, {
-      debug: why2, minArmElev: 50, minElbow: 92, maxDipKnee: 173, dipWindowMs: 2400, requireAboveHead: false,
-    });
+    cycles = detectShots(series, fps, { debug: why2, ...RELAXED_SHOT_GATES });
     if (cycles.length) relaxed = true; else strictWhy.push(...why2);
   }
   if (!cycles.length) {

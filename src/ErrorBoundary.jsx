@@ -9,6 +9,28 @@
 // + getDerivedStateFromError are the official lifecycle hooks for this.
 
 import React from 'react';
+import { getState as netState } from './connectivity';
+
+// HEBREW WITHOUT THE DICTIONARY (9.10 #586). This screen is what an athlete sees
+// when something crashed - so it must not depend on the big modules that might
+// be the broken thing (the same reason it uses CSS vars and not theme.js).
+// connectivity.js imports nothing. The language is read from the stored choice
+// the way i18n's readLang() does.
+const PAGE_MSG = `The page couldn't paint. This usually means a recent deploy shipped a bug. Try refreshing — it may already be fixed. If it persists, hit "Reset & reload" to clear local state.`;
+const HE = {
+  'THIS VIEW HIT AN ERROR': 'המסך הזה לא נטען',
+  "This section couldn't render. Switch away and back, or refresh — your other data is unaffected.": 'החלק הזה לא נטען. תעבור למסך אחר ותחזור, או תרענן. שאר הנתונים שלך לא נפגעו.',
+  '↻ Refresh': '↻ רענון',
+  'SOMETHING BROKE': 'משהו השתבש',
+  'EXPO hit a render error': 'EXPO לא נטען כמו שצריך',
+  [PAGE_MSG]: 'העמוד לא נטען. בדרך כלל זו תקלה בעדכון האחרון, ויכול להיות שכבר תוקנה. תרענן. אם זה חוזר, תלחץ על "איפוס וטעינה". זה מנקה את ההגדרות השמורות במכשיר.',
+  'Reset & reload': 'איפוס וטעינה',
+};
+const isHe = () => {
+  try { const q = new URLSearchParams(window.location.search).get('lang'); if (q === 'he' || q === 'en') return q === 'he'; } catch { /* no window */ }
+  try { return localStorage.getItem('expo-lang') === 'he'; } catch { return false; }
+};
+const t = (s) => (isHe() && HE[s]) || s;
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -47,14 +69,28 @@ export default class ErrorBoundary extends React.Component {
   }
 
   handleReload = () => {
+    // Soft-clear the SW cache so the refresh actually pulls a new bundle
+    // (otherwise PWA installs can loop on the broken cached bundle) - but ONLY
+    // when the server can refill it. Offline in the gym, wiping the precache and
+    // reloading leaves the athlete with no app at all (the splash Reload had the
+    // same bug, #560). The test is the one that matters - can THIS origin answer
+    // right now (uncached, 4 s)? - because dead gym wifi still says "online" and
+    // the connectivity probe is off for a signed-out or demo visitor (1008b
+    // review). Any doubt keeps the caches.
+    // once, and at the latest after 5 s whatever the probe or the cache delete
+    // is doing (a browser without AbortController waits for its own TCP timeout)
+    let reloaded = false;
+    const reload = () => { if (reloaded) return; reloaded = true; try { window.location.reload(); } catch { /* noop */ } };
+    setTimeout(reload, 5000);
     try {
-      // Soft-clear the SW cache so the refresh actually pulls a new bundle
-      // (otherwise PWA installs can loop on the broken cached bundle).
-      if ('caches' in window) {
-        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-      }
-    } catch {}
-    window.location.reload();
+      if (netState() === 'offline' || navigator.onLine === false || !('caches' in window) || typeof fetch !== 'function') { reload(); return; }
+      const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = setTimeout(() => { try { ctl && ctl.abort(); } catch { /* noop */ } }, 4000);
+      fetch(`${window.location.origin}/?alive=${Date.now()}`, { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+        .then((r) => (r.ok ? caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))) : null))
+        .catch(() => null)
+        .then(() => { clearTimeout(timer); reload(); });
+    } catch { reload(); }
   };
 
   handleHardReset = () => {
@@ -81,23 +117,23 @@ export default class ErrorBoundary extends React.Component {
     // per-route in App.jsx; keyed on the tab so switching tabs resets it.
     if (this.props.inline) {
       return (
-        <div style={{
+        <div dir={isHe() ? 'rtl' : 'ltr'} style={{
           maxWidth: 520, margin: '28px auto', padding: '22px 24px',
           background: 'var(--c-sf, #111114)',
           border: '1px solid var(--c-cardBd, #1F4A5C)',
           fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
         }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>THIS VIEW HIT AN ERROR</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>{t('THIS VIEW HIT AN ERROR')}</div>
           <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--c-tm, #7a7a88)', lineHeight: 1.55 }}>
-            This section couldn't render. Switch away and back, or refresh — your other data is unaffected.
+            {t("This section couldn't render. Switch away and back, or refresh — your other data is unaffected.")}
           </p>
-          <div style={{ background: 'var(--c-bg, #0a0a0c)', border: '1px solid var(--c-cardBd, #1F4A5C)', padding: '8px 10px', marginBottom: 14, fontSize: 11, fontFamily: 'monospace', color: 'var(--c-rd, #FF4757)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 100, overflow: 'auto' }}>{msg}</div>
+          <div dir="ltr" style={{ background: 'var(--c-bg, #0a0a0c)', border: '1px solid var(--c-cardBd, #1F4A5C)', padding: '8px 10px', marginBottom: 14, fontSize: 11, fontFamily: 'monospace', color: 'var(--c-rd, #FF4757)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 100, overflow: 'auto' }}>{msg}</div>
           <button onClick={this.handleReload} style={{
             padding: '10px 16px', background: 'transparent',
             border: '1px solid var(--c-ac, #39BDFF)', color: 'var(--c-ac, #39BDFF)',
             fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif", fontSize: 11, fontWeight: 700,
             letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer',
-          }}>↻ Refresh</button>
+          }}>{t('↻ Refresh')}</button>
         </div>
       );
     }
@@ -106,7 +142,7 @@ export default class ErrorBoundary extends React.Component {
     // still resolves in both light and dark. Fallbacks cover the case where
     // even themes.css fails to load.
     return (
-      <div style={{
+      <div dir={isHe() ? 'rtl' : 'ltr'} style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24,
         background: 'var(--c-bg, #0a0a0c)',
@@ -125,20 +161,18 @@ export default class ErrorBoundary extends React.Component {
             color: 'var(--c-rd, #FF4757)',
             letterSpacing: '0.18em',
             textTransform: 'uppercase', marginBottom: 14,
-          }}>SOMETHING BROKE</div>
+          }}>{t('SOMETHING BROKE')}</div>
           <h1 style={{
             margin: '0 0 12px', fontSize: 22, fontWeight: 700,
             color: 'var(--c-tx, #f0f0f4)',
             letterSpacing: '-0.01em', lineHeight: 1.3,
-          }}>EXPO hit a render error</h1>
+          }}>{t('EXPO hit a render error')}</h1>
           <p style={{
             margin: '0 0 18px', fontSize: 14,
             color: 'var(--c-tm, #7a7a88)',
             lineHeight: 1.55,
-          }}>The page couldn't paint. This usually means a recent deploy shipped
-            a bug. Try refreshing — it may already be fixed. If it persists,
-            hit "Reset & reload" to clear local state.</p>
-          <div style={{
+          }}>{t(PAGE_MSG)}</p>
+          <div dir="ltr" style={{
             background: 'var(--c-bg, #0a0a0c)',
             border: '1px solid var(--c-cardBd, #1F4A5C)',
             padding: '10px 12px', marginBottom: 18, fontSize: 11,
@@ -156,7 +190,7 @@ export default class ErrorBoundary extends React.Component {
               fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
               fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
               textTransform: 'uppercase', cursor: 'pointer',
-            }}>↻ Refresh</button>
+            }}>{t('↻ Refresh')}</button>
             <button onClick={this.handleHardReset} style={{
               flex: 1, padding: '12px 18px', minWidth: 140,
               background: 'transparent',
@@ -165,7 +199,7 @@ export default class ErrorBoundary extends React.Component {
               fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
               fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
               textTransform: 'uppercase', cursor: 'pointer',
-            }}>Reset & reload</button>
+            }}>{t('Reset & reload')}</button>
           </div>
         </div>
       </div>

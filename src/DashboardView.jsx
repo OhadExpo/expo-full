@@ -9,6 +9,7 @@ import MessagesCard from './MessagesCard';
 import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
 import { monthAbbr } from './dates';
 import { syncAutoTasks } from './autoTasks';
+import { blockEndingRows } from './blockEnding';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays, so there is no
 // package and no session balance. Stripping the values at save time was not
@@ -275,14 +276,22 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // press on a card's HEADER starts a reorder-drag (via stopPropagation, so
   // the rail's own onMouseDown never sees it); a press anywhere else on the
   // rail still scrolls exactly as before. Nothing else on the page is touched.
-  const [alertOrder, setAlertOrder] = usePersistentState('dash-alert-order', ['expiring', 'overdue', 'dormant']);
+  const [alertOrderRaw, setAlertOrder] = usePersistentState('dash-alert-order', ['blockEnding', 'expiring', 'overdue', 'dormant']);
+  // a saved order from before a card existed still shows the new card - first (5.10 #565)
+  const alertOrder = useMemo(() => { const o = Array.isArray(alertOrderRaw) ? alertOrderRaw : []; return [...(o.includes('blockEnding') ? [] : ['blockEnding']), ...o]; }, [alertOrderRaw]);
+  // THE BLOCKS ENDING THIS WEEK (5.10 #565, Ohad approved offer 3): who is in the
+  // last week of a block with no next block written, and what the block held -
+  // completion and the main lift's best set. Never writes a program.
+  const [planIdx, setPlanIdx] = useState(null);
+  const blockEnding = useMemo(() => (planIdx ? blockEndingRows({ trainees, plans: planIdx, workouts: clientWorkouts || [] }) : []), [planIdx, trainees, clientWorkouts]);
   const alertReorderRef = useRef(null); // { key, moved } while a reorder-drag is live
   const [draggingAlertKey, setDraggingAlertKey] = useState(null);
   const [dragOverAlertKey, setDragOverAlertKey] = useState(null);
   const reorderAlertCards = (fromKey, toKey) => {
     if (!fromKey || !toKey || fromKey === toKey) return;
-    setAlertOrder(prev => {
-      const next = prev.includes(fromKey) && prev.includes(toKey) ? [...prev] : ['expiring', 'overdue', 'dormant'];
+    setAlertOrder(prevRaw => {
+      const prev = Array.isArray(prevRaw) ? (prevRaw.includes('blockEnding') ? prevRaw : ['blockEnding', ...prevRaw]) : alertOrder;
+      const next = prev.includes(fromKey) && prev.includes(toKey) ? [...prev] : ['blockEnding', 'expiring', 'overdue', 'dormant'];
       const fromIdx = next.indexOf(fromKey), toIdx = next.indexOf(toKey);
       if (fromIdx === -1 || toIdx === -1) return prev;
       next.splice(fromIdx, 1);
@@ -533,6 +542,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         createdAt: p.created_at,
       }));
       if (cancelled) return;
+      setPlanIdx(planList);   // the BLOCK ENDING card reads the same list (5.10 #565)
       try {
         await syncAutoTasks({
           trainees: tList,
@@ -792,7 +802,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // alertHeaderDragProps drive the visuals + gesture).
             const cardsByKey = {
               expiring: expiring.length > 0 && (
-                <div key="expiring" data-alert-key="expiring" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
+                <div key="expiring" data-alert-key="expiring" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}` /* the house cyan frame; the coloured status text carries the severity (5.10 #579) */, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
@@ -808,7 +818,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 </div>
               ),
               overdue: isOwner && overduePayment.length > 0 && (
-                <div key="overdue" data-alert-key="overdue" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
+                <div key="overdue" data-alert-key="overdue" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}` /* the house cyan frame; the coloured status text carries the severity (5.10 #579) */, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
                       <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dollar" color="var(--c-stripTx)"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
@@ -823,8 +833,33 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   {alertMore('overdue', overduePayment)}
                 </div>
               ),
+              blockEnding: isOwner && blockEnding.length > 0 && (
+                <div key="blockEnding" data-alert-key="blockEnding" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('blockEnding') }}>
+                  <div {...alertHeaderDragProps('blockEnding')}>
+                    <RefinedHeaderStrip>
+                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Block ending')} ({blockEnding.length})</SectionLabel>
+                    </RefinedHeaderStrip>
+                  </div>
+                  {capAlert('blockEnding', blockEnding).map((r) => (
+                    <div key={r.traineeId} data-box="block-ending-row" {...asButton(() => onSelectTrainee(r.traineeId))} aria-label={readLang() === 'he' ? `פתיחת ${r.name}` : `Open ${r.name}`}
+                      style={{ ...ALERT_ROW, flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 3, padding: '7px 0', cursor: 'pointer', fontSize: 13 }}>
+                      <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 0 }}>
+                        <span style={{ color: C.tx, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                        <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: r.pct >= 80 ? C.gn : r.pct >= 50 ? C.or : C.rd, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{he ? `שבוע ${r.week}/${r.weeks}` : `W${r.week}/${r.weeks}`} · {r.logged}/{r.planned}</span>
+                      </span>
+                      {r.best && (
+                        <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 0, fontSize: 11, color: C.tm }}>
+                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'start' }}>{r.best.title}</span>
+                          <span dir="ltr" style={{ fontFamily: FN, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{r.best.from != null ? `${r.best.from} → ` : ''}{r.best.load}×{r.best.reps}</span>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {alertMore('blockEnding', blockEnding)}
+                </div>
+              ),
               dormant: dropoutRisk.length > 0 && (
-                <div key="dormant" data-alert-key="dormant" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
+                <div key="dormant" data-alert-key="dormant" className="alert-card alert-sev" style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}` /* the house cyan frame; the coloured status text carries the severity (5.10 #579) */, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="moon" color="var(--c-stripTx)"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
@@ -835,7 +870,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     return (
                       <div key={t.id} style={{ ...ALERT_ROW, justifyContent: 'space-between', fontSize: 13 }}>
                         <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minHeight: 36, lineHeight: '36px' /* the row's one 36px (#474): as a button on a phone it took the 40px touch floor, so DORMANT alone ran 40 beside OVERDUE's 36 - the whole row height is still the target */ }}>{t.name}</span>
-                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('No workouts logged') /* not 'Never trained': gym clients train every week and log nothing in the app (audit #612) */ : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one).
                             40, not 26: the button renders 40px wide, and in a 26px slot

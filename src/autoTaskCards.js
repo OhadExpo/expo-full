@@ -89,7 +89,8 @@ export function throttleWhatsAppTasks(rows) {
       // "week skipped · at risk" exactly like "Call X" over "skipped W4 of
       // Block #27", instead of one wrapped bullet sentence.
       seed.body = `Reach out to ${bidi(seed.target_label || 'trainee')} — ` +
-        sources.map(s => String(AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind).toLowerCase()).join(' · ');
+        // each reason ONCE: two skipped weeks read 'week skipped · week skipped' (audit #612 C9)
+        [...new Set(sources.map(s => String(AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind).toLowerCase()))].join(' · ');
       seed.pinned = seed.pinned || r.pinned;
       seed.auto_kind = 'whatsapp_combined';
       // Keep the most-recent created_at so the sort places the merged

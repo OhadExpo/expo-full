@@ -9,7 +9,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StoredVideo } from './StoredMedia';
 import { C, FN, FB, ytId } from './theme';
-import { Card, Btn, Modal, EmptyState, toast } from './ui';
+import { Card, Btn, Modal, EmptyState, toast, JoinedButtons } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
 import { useT, readLang, tr } from './i18n';
@@ -226,15 +226,21 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
       <style>{CONF_THEME_CSS}</style>
       <Card leftStripe={C.ac} header={tt('Exercise Matching')}>
         {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
-        <div style={{ marginBottom: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: C.tm }}>{groups.length} {tt('titles')} · {totalEntries} {tt('rows')}</span>
-          <Btn variant="ghost" onClick={acceptAllHighConfidence}>{tt('Accept all high-confidence')}</Btn>
-          <Btn disabled={!affectedRows || applying} onClick={() => setConfirm(true)} style={{ background: affectedRows ? '#39BDFF' : undefined, borderColor: affectedRows ? '#39BDFF' : undefined, color: affectedRows ? '#06131b' : undefined }} /* literal cyan — C.ac resolves near-black in the light theme (audit 08-22) */>
-            {applying ? tt('Applying…') : `${tt('Apply')} ${accepted.length} ${tt(accepted.length === 1 ? 'match' : 'matches')} (${affectedRows} ${tt('rows')})`}
-          </Btn>
-        </div></div>
-        <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          {tt('Every plan row whose exercise doesn’t resolve to the library, grouped by title. Accept a suggestion, Change it, or Skip. Applying writes the library link to all rows sharing that title.')}
+        {/* ONE STATS LINE, ONE JOINED PAIR, A SHORT NOTE (9.10, after #619 on Classify: two lone
+            boxes of different widths and a paragraph of capitals) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ ...th, display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 4 }}>
+            <span>{groups.length} {tt('titles')}</span>
+            <span>{totalEntries} {tt('rows')}</span>
+            <span style={{ color: accepted.length ? C.ac : C.tm }}>{accepted.length} {tt(accepted.length === 1 ? 'match' : 'matches')}</span>
+          </div>
+          <JoinedButtons items={[
+            { label: tt('Accept all high'), onClick: acceptAllHighConfidence },
+            { label: applying ? tt('Applying…') : `${tt('Apply')} · ${affectedRows} ${tt('rows')}`, onClick: () => setConfirm(true), disabled: !affectedRows || applying, tone: 'accent' },
+          ]} />
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560 }}>
+            {tt('Plan rows whose exercise is not in the library, by title. Accept, change or skip - Apply links every row with that title.')}
+          </div>
         </div>
       </Card>
 
@@ -251,7 +257,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
               <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.or, background: `color-mix(in srgb, ${C.or} 14%, transparent)`, padding: '2px 7px' }}>{g.count}×</span>
+                  {/* how many plan rows use this title - said in words, framed, no fill (audit #612 D1/D2: an orange tint with no words) */}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>{readLang() === 'he' ? `${g.count} פעמים בתוכניות` : `${g.count}× in plans`}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 5 }}>
                   {g.rows.slice(0, 3).map((r) => `${r.planName || 'plan'} · ${r.dayName}`).join('  ·  ')}{g.rows.length > 3 ? `  +${g.rows.length - 3}` : ''}
@@ -265,12 +271,12 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                       const conf = confidenceLabel(s.score);
                       const on = chosen && chosen.id === s.ex.id;
                       return (
-                        <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
+                        <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} className="em-sugg-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} />
-                          <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
+                          <span className="em-sugg-title" style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
-                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{tr(readLang(), s.why)}</span>
+                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf], unicodeBidi: 'isolate' }} dir="ltr" /* '+plate' / '-horizontal' are diff marks: their sign stays on the left in Hebrew */>{tr(readLang(), s.why)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
                             style={VIEW_TAG}>{tt('VIEW')}</span>
@@ -280,11 +286,11 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                   </div>
                 ) : <div style={{ fontFamily: FB, fontSize: 12, color: C.td, padding: '8px 0' }}>{tt('No close library match — Change to search, or leave to create later.')}</div>}
               </div>
-              <div className="em-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                <Btn variant="ghost" onClick={() => setPickerFor({ key: g.key, title: g.title })}>{tt('Change…')}</Btn>
-                {setExercises && <Btn variant="ghost" onClick={() => createInLibrary(g)}>{tt('+ New')}</Btn>}
-                <Btn variant="ghost" onClick={() => setDecision(g.key, 'skip')}>{tt('Skip')}</Btn>
-              </div>
+              <JoinedButtons vertical className="em-actions" maxWidth={null} style={{ flexShrink: 0, alignSelf: 'flex-start', width: 132 }} items={[
+                { label: tt('Change…'), onClick: () => setPickerFor({ key: g.key, title: g.title }) },
+                setExercises && { label: tt('+ New'), onClick: () => createInLibrary(g) },
+                { label: tt('Skip'), onClick: () => setDecision(g.key, 'skip'), tone: 'muted' },
+              ]} />
             </div>
           </Card>
         );

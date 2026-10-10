@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { supabase } from './supabase';
 import { uid } from './theme';
 import { toast } from './ui';
+import { tr, readLang } from './i18n';
 
 // Drive-imported plans store exercises as d.ex = [{eid, s, r, tempo, superset, n, wk}]
 // to save space. The trainer PlanEditor expects d.exercises = [{id, exerciseId, sets,
@@ -282,6 +283,10 @@ const remember = (plan, at) => {
   if (inLineage(m, plan)) { m.seen.add(at); m.at = at; return; }
   lastSavedAt.set(plan.id, { seen: new Set([plan.updatedAt, at].filter(Boolean)), at });
 };
+// The version THIS device last wrote for a plan (5.10 review N6): a caller that
+// needs it (the Videos screen's undo) reads it here instead of re-reading the
+// row, which could return a newer save by someone else.
+export const lastWrittenAt = (planId) => { const m = lastSavedAt.get(planId); return m ? m.at : null; };
 const readPlanLangHe = () => { try { return (localStorage.getItem('expo-lang') || '') === 'he' || document.documentElement.lang === 'he'; } catch { return false; } };
 
 export async function savePlan(plan) {
@@ -342,7 +347,7 @@ export async function savePlan(plan) {
       const msg = `Refusing to save plan ${plan.id}: would overwrite ${existingExTotal} existing exercises with an empty days[] array. This usually means the editor opened the plan with a stale or broken adapter. Reload the page and try again — if the editor still shows the plan as empty, file a bug instead of saving.`;
       console.error('[savePlan blank-overwrite guard]', msg);
       if (typeof window !== 'undefined') {
-        try { toast('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.', 'error'); } catch {}
+        try { toast(tr(readLang(), 'Save blocked — see console for details. The plan you are saving would wipe {n} existing exercises. Reload the page first.').replace('{n}', () => existingExTotal), 'error'); } catch {}
       }
       return false;
     }
@@ -393,7 +398,7 @@ export async function savePlan(plan) {
     if (cur && cur.updated_at !== base) {
       console.warn(`[savePlan] ${plan.id} changed on another device since this editor loaded it (${base} -> ${cur.updated_at}); not overwriting.`);
       if (typeof window !== 'undefined') {
-        try { toast(readPlanLangHe() ? 'התוכנית שונתה במכשיר אחר - טען מחדש לפני שמירה. השינוי שלך עדיין בעורך.' : 'This program was changed on another device - reload before saving. Your edit is still in the editor.', 'error', { ttl: 9000 }); } catch {}
+        try { toast(readPlanLangHe() ? 'התוכנית שונתה במכשיר אחר - תטען מחדש לפני שאתה שומר. השינוי שלך עדיין בעורך.' : 'This program was changed on another device - reload before saving. Your edit is still in the editor.', 'error', { ttl: 9000 }); } catch {}
       }
       return false;
     }

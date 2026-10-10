@@ -314,7 +314,7 @@ export default function WaitlistView({ trainees }) {
         </div>
         <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 8, textAlign: 'center' }}>
           {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.'
-            : (readLang() === 'he' ? `המעבר לכמה מאמנים נפתח ב-${COACH_GATE} הרשמות רציניות ומעלה` : `Multi-tenant opens at ${COACH_GATE}+ serious signups`)}
+            : (readLang() === 'he' ? `המעבר לכמה מאמנים נפתח כשיש ${COACH_GATE} הרשמות רציניות ומעלה` : `Multi-tenant opens at ${COACH_GATE}+ serious signups`)}
         </div>
       </CollapsibleSection>
 

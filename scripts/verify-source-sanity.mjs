@@ -28,7 +28,7 @@ const walk = (d) => {
   }
 };
 for (const d of ['src', 'scripts', 'api', 'expo-il/src']) walk(d);
-files.push('shot-harness.html');
+files.push('shot-harness.html', 'set-harness.html');
 
 // Tab (9), newline (10), carriage return (13) are legitimate. Everything else
 // below 32 is not, and neither is 0x7f.

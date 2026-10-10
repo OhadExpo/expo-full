@@ -15,6 +15,7 @@ import { C, FN } from './theme';
 import { useT } from './i18n';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
+import { createPoseSmoother, ONE_EURO_IMAGE } from './poseLab';
 
 const SKEL = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
@@ -46,6 +47,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const rafRef = useRef(null);
   const anchorRef = useRef(null);      // {x, topY} normalized bar-path anchor
   const angleBufRef = useRef([]);      // smoothing buffer for the rep state machine
+  // the DRAWN skeleton through the house One-Euro filter (10.10 #641: the raw lite landmarks jittered
+  // on screen); the rep / depth logic keeps reading the raw ones, unchanged
+  const drawSmoothRef = useRef(null);
   const phaseRef = useRef('top');      // 'top' | 'bottom'
   const depthRef = useRef(false);      // last depth state (so we only setState on flips)
   const showDepthRef = useRef(true);   // current depth-toggle, read by the running rAF loop
@@ -128,7 +132,10 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
     }
 
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showSkeletonRef.current });
+    if (!drawSmoothRef.current) drawSmoothRef.current = createPoseSmoother(ONE_EURO_IMAGE);
+    const drawn = landmarks ? drawSmoothRef.current.smooth(landmarks, performance.now()) : null;
+    if (!landmarks) drawSmoothRef.current.reset();
+    draw(canvasRef.current, v, drawn, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showSkeletonRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -140,8 +147,10 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         streamRef.current = s;
         const v = videoRef.current; if (v) { v.srcObject = s; await v.play(); }
       }
-      if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite' });
-      anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top';
+      // full on a desktop (better joints); lite on a touch device, where frame rate is the limit (#641)
+      const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+      if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: coarse ? 'lite' : 'full' });
+      anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top'; drawSmoothRef.current = null;
       setReps(0); setMoving('top');
       setPhase('live');
       rafRef.current = requestAnimationFrame(loop);

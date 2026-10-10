@@ -20,7 +20,7 @@
 // image-unit per frame (a mostly-vertical ruler keeps aspect-ratio error low).
 // A "frame" captured by the loop is { t (ms), landmarks, worldLandmarks }.
 
-import { ANGLE_DEFS, angleAt, signedDeviationAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
+import { ANGLE_DEFS, angleAt, signedSagittalAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
 
 // MediaPipe Pose landmark indices we lean on.
 export const LM = {
@@ -168,22 +168,58 @@ export function resolveChannels(exerciseTitle, movement) {
   return d.matched ? { kind: d.kind, channels: d.channels } : { kind: null, channels: [] };
 }
 
-// Returns { t[], angle[], kind, channels } where angle is median-smoothed and
-// aligned to the frame timestamps. Mirrors the live counter's averaging of the
-// L+R channel pair so asymmetry doesn't drop a rep.
+// Returns { t[], angle[], raw[], kind, channels } where angle is median-smoothed
+// and aligned to the frame timestamps (raw = the same series before smoothing,
+// speed-clamped). Mirrors the live counter's averaging of the L+R channel pair
+// so asymmetry doesn't drop a rep.
 export function channelSignal(frames, exerciseTitle, movement) {
   const { kind, channels } = resolveChannels(exerciseTitle, movement);
   const t = frames.map(f => f.t);
+  // THE LIMB THE CAMERA SEES (10.10 #639): side-on, the far knee is hidden and MediaPipe guesses
+  // it; averaging it in pulled every rep toward the guess. The choice is made ONCE PER CLIP - the
+  // channels whose three points are visible in most frames (a clear majority) - never frame by frame:
+  // a knee hovering at the visibility line flipped the signal between one side and the mean, 10-30
+  // degrees apart, which can fake a rep (1010d review). No clear majority = all channels, as before.
+  const seen = (lms, i) => { const p = lms[i]; return !!p && (p.visibility == null || p.visibility >= VIS_MIN); };
+  const defs = channels.map((name) => ANGLE_DEFS.find((a) => a.name === name)).filter(Boolean);
+  const visShare = defs.map((d) => { let n = 0, v = 0; for (const f of frames) { const l = f.worldLandmarks; if (!l) continue; n++; if (seen(l, d.a) && seen(l, d.b) && seen(l, d.c)) v++; } return n ? v / n : 0; });
+  const clear = defs.filter((d, i) => visShare[i] >= 0.6);
+  // ...unless the visible limb is the one NOT working (a one-sided set filmed with the working limb on
+  // the far side, 1010e review): its angle barely moves while the hidden one does. Movement is read as
+  // the p10-p90 spread of each channel over the clip; if the visible ones move less than half of the
+  // most-moving channel, every channel is used, as before #639.
+  const spread = (d) => { const v = frames.map((f) => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null)).filter(isReal).sort((x, y) => x - y); return v.length > 4 ? v[Math.floor(v.length * 0.9)] - v[Math.floor(v.length * 0.1)] : 0; };
+  const asym = clear.length && clear.length < defs.length && visShare.some((x) => x < 0.4);
+  const moves = asym ? defs.map(spread) : [];
+  const clearMoves = asym ? Math.max(...defs.map((d, i) => (clear.includes(d) ? moves[i] : 0))) : 0;
+  const useDefs = asym && clearMoves >= 0.5 * Math.max(...moves) ? clear : defs;
   const raw = frames.map(f => {
     const lms = f.worldLandmarks;
     if (!lms || channels.length === 0) return null;
-    const vals = channels.map(name => {
-      const d = ANGLE_DEFS.find(a => a.name === name);
-      return d ? angleAt(lms, d.a, d.b, d.c) : null;
-    }).filter(isReal);
+    const vals = useDefs.map((d) => angleAt(lms, d.a, d.b, d.c)).filter(isReal);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   });
-  return { t, angle: medianFilter(clampAngleSeries(raw, t), 5), kind, channels };
+  const clamped = clampAngleSeries(raw, t);
+  return { t, angle: medianFilter(clamped, 5), raw: clamped, kind, channels };
+}
+
+// How much the joint angle moves ON ITS OWN over a rep (9.10 #552): the median
+// distance of each unsmoothed sample from the 5-point quadratic (Savitzky-Golay)
+// fit through it and its neighbours, between startIdx and endIdx. A quadratic
+// follows a real descent / turn / ascent closely, so what is left is the
+// model's own scatter - a joint it is guessing (occluded by a plate, out of
+// frame) scatters several degrees a sample. null when fewer than 3 clean
+// windows. (A 3-point line fit was tried first: real reps read as noisy
+// through their own curvature - a right push-up count scored 14, a wrong
+// squat count 11; the quadratic residual separates them 32 / 18.)
+export function repJitter(raw, startIdx, endIdx) {
+  const d = [];
+  for (let i = Math.max(2, startIdx); i <= Math.min(raw.length - 3, endIdx); i++) {
+    const w = [raw[i - 2], raw[i - 1], raw[i], raw[i + 1], raw[i + 2]];
+    if (!w.every(isReal)) continue;
+    d.push(Math.abs(w[2] - (-3 * w[0] + 12 * w[1] + 17 * w[2] + 12 * w[3] - 3 * w[4]) / 35));
+  }
+  return d.length >= 3 ? round2(median(d)) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -602,7 +638,9 @@ export function romTempoMetrics(frames, angle, reps) {
     // startT (ms, clip-relative) — lets the RomTable rep row seek the video
     // to this rep's start, same as VelocityTable already does.
     const startT = frames[startIdx]?.t;
-    return { rom, ecc: round1(ecc), pause: round1(pause), con: round1(con), startT: startT != null ? Math.round(startT) : null };
+    // bottomT / endT (ms) - where the rep turns and where it locks out. The
+    // athlete's set read (setAnalysis.isolateSet) spaces the reps by them.
+    return { rom, ecc: round1(ecc), pause: round1(pause), con: round1(con), startT: startT != null ? Math.round(startT) : null, bottomT: tBot != null ? Math.round(tBot) : null, endT: tEnd != null ? Math.round(tEnd) : null };
   });
   const valid = perRep.filter(Boolean);
   const maxRom = valid.reduce((m, r) => Math.max(m, r.rom), 0) || 1;
@@ -736,12 +774,35 @@ export function extendedJointRom(frames) {
   const t = frames.map(f => f.t);
   const out = [];
 
-  // ---- signed knee → over-extension (needs a clean side-on view) ----
-  for (const [name, hipI, kneeI, ankI] of [['L KNE±', 23, 25, 27], ['R KNE±', 24, 26, 28]]) {
-    const raw = frames.map(f => {
-      const w = f.worldLandmarks; if (!w) return null;
-      if (!(visOK(f.landmarks, hipI) && visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI))) return null;
-      return signedDeviationAt(w, hipI, kneeI, ankI);
+  // ---- signed knee → over-extension ----
+  // Read in the body's sagittal plane (signedSagittalAt, 10.10 #639), so a camera
+  // turned off side-on no longer shrinks the number. A FRONT-on clip is refused:
+  // there the bend runs along the camera's depth axis, MediaPipe's weakest, and a
+  // hyperextension of a few degrees cannot be told from depth noise.
+  const camera = estimateView(frames);
+  const kneeOk = !(camera && camera.view === 'front');
+  // The sign comes from the hip axis (L -> R), so a left/right label swap the repair
+  // upstream missed would flip it: a frame whose axis turned more than 90 deg from
+  // the last good one is dropped, never read with the opposite sign (1010g review).
+  const axisOk = [];
+  {
+    let prev = null;
+    for (const f of frames) {
+      const w = f.worldLandmarks;
+      const hl = w && w[23], hr = w && w[24];
+      if (!hl || !hr) { axisOk.push(false); continue; }
+      const n = [hr.x - hl.x, hr.y - hl.y, (hr.z ?? 0) - (hl.z ?? 0)];
+      const ok = !prev || n[0] * prev[0] + n[1] * prev[1] + n[2] * prev[2] >= 0;
+      axisOk.push(ok);
+      if (ok) prev = n;
+    }
+  }
+  for (const [name, hipI, kneeI, ankI] of kneeOk ? [['L KNE±', 23, 25, 27], ['R KNE±', 24, 26, 28]] : []) {
+    const raw = frames.map((f, fi) => {
+      const w = f.worldLandmarks; if (!w || !axisOk[fi]) return null;
+      // both hips: the plane is built from them, so the far one has to be seen too
+      if (!(visOK(f.landmarks, 23) && visOK(f.landmarks, 24) && visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI))) return null;
+      return signedSagittalAt(w, hipI, kneeI, ankI);
     });
     const s0 = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
     if (s0.length < 6) continue;
@@ -754,7 +815,12 @@ export function extendedJointRom(frames) {
     // Need a REAL flexion sweep to trust the sign; a near-straight clip can't tell
     // a small flexion from a small hyperextension, so we refuse (overExtDeg=null).
     const calibrated = flexMax >= 25;
-    const overExtDeg = calibrated ? (hyper >= 5 ? Math.round(hyper) : 0) : null;
+    // A knee does not hyperextend 30+ degrees (genu recurvatum past ~20 is rare and clinical).
+    // On the 23 real set captures (10.10) every read above that was tracking: a leg the model
+    // lost for a moment and swung through the hip - 37 of 46 legs read over 20 on the old x,y
+    // read, 7 on the sagittal one. A number that cannot be a knee is refused, not shown.
+    const plausible = hyper <= 25;
+    const overExtDeg = calibrated && plausible ? (hyper >= 5 ? Math.round(hyper) : 0) : null;
     const rex = robustExtremes(s);
     out.push({ name, maxDeg: Math.round(flexMax), minDeg: Math.round(Math.min(...s)), hiDeg: rex.hiDeg, loDeg: rex.loDeg, romDeg: Math.round(flexMax - Math.min(...s)), overExtDeg, samples: s.length });
   }
@@ -1420,6 +1486,118 @@ export function smoothFramesForDisplay(frames) {
     worldLandmarks: f.worldLandmarks ? wld.smooth(withVis(f.worldLandmarks, f.landmarks), f.t) : null,
   }));
 }
+// ---------------------------------------------------------------------------
+// A STABLE 3D SKELETON (5.10 #558, Ohad: the 3D geometry "really works shitty.
+// Like 2/10"). MediaPipe estimates every frame's world skeleton on its own, so
+// across a clip (measured on two real athlete clips, audit-out/_pose-score.mjs):
+// limbs change length frame to frame (a shin 10-20% longer, then shorter), the
+// left and right sides trade labels for a frame when the body is side-on, and
+// the depth axis jumps. A person's bones do not change length. So, for DISPLAY:
+//   1. left/right continuity - when swapping every L/R label fits the previous
+//      frame far better than keeping them, the frame's labels were flipped:
+//      swap them back (both the image and the world landmarks, so they agree);
+//   2. one length per bone - the median over the frames where both ends are
+//      confident; each limb is rebuilt from the torso outward along its measured
+//      DIRECTION at that length, so a joint can bend but never stretch.
+// Angles from the analysis keep reading the raw landmarks; this feeds the
+// overlay and the 3D replay. Pure - node-tested by scripts/verify-pose-stable.mjs.
+// ---------------------------------------------------------------------------
+const LR_PAIRS = [[1, 4], [2, 5], [3, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16], [17, 18], [19, 20], [21, 22], [23, 24], [25, 26], [27, 28], [29, 30], [31, 32]];
+const LR_TEST = [[11, 12], [13, 14], [15, 16], [23, 24], [25, 26], [27, 28]];
+// parent -> child, torso outward (the torso itself is kept as measured)
+const LIMB_TREE = [[11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [27, 29], [27, 31], [24, 26], [26, 28], [28, 30], [28, 32]];
+const swapLR = (arr) => {
+  if (!arr) return arr;
+  const out = arr.slice();
+  for (const [l, r] of LR_PAIRS) { out[l] = arr[r]; out[r] = arr[l]; }
+  return out;
+};
+const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true } = {}) {
+  if (!frames || !frames.length) return [];
+  const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
+  // world points carry no visibility in every build - borrow the image landmark's
+  const withVis = (w, l) => (w && l ? w.map((p, i) => (p && p.visibility == null && l[i] && l[i].visibility != null ? { ...p, visibility: l[i].visibility } : p)) : w);
+  // 1. left/right continuity
+  const fixed = [];
+  let prev = null;
+  for (const f of frames) {
+    let lm = f.landmarks || null, wl = withVis(f.worldLandmarks || null, f.landmarks);
+    if (prev && wl) {
+      let keep = 0, swap = 0, used = 0;
+      for (const [l, r] of LR_TEST) {
+        const pl = prev[l], pr = prev[r], cl = wl[l], cr = wl[r];
+        if (!confident(pl) || !confident(pr) || !cl || !cr) continue;
+        keep += dist3(cl, pl) + dist3(cr, pr); swap += dist3(cl, pr) + dist3(cr, pl); used++;
+      }
+      if (used >= 3 && swap < keep * swapRatio) { wl = swapLR(wl); lm = swapLR(lm); }
+    }
+    if (wl) prev = wl;
+    fixed.push({ ...f, landmarks: lm, worldLandmarks: wl });
+  }
+  // smoothing next (One-Euro, the display smoother), so the bone rebuild below
+  // is the LAST step and no filter can stretch a limb again afterwards
+  // (analysis passes smooth:false - the display filter lags and shaves peak angles, 10.10 #639)
+  if (smooth) {
+    const sm = smoothFramesForDisplay(fixed);
+    for (let i = 0; i < fixed.length; i++) fixed[i] = { ...fixed[i], landmarks: sm[i].landmarks, worldLandmarks: sm[i].worldLandmarks };
+  }
+  if (!bones) return fixed;
+  // 2. one length per bone (median over confident frames)
+  const lens = {};
+  for (const [a, b] of LIMB_TREE) {
+    const L = [];
+    for (const f of fixed) { const w = f.worldLandmarks; if (w && confident(w[a]) && confident(w[b])) L.push(dist3(w[a], w[b])); }
+    L.sort((x, y) => x - y);
+    lens[`${a}-${b}`] = L.length >= 5 ? L[L.length >> 1] : null;
+  }
+  const rebuilt = fixed.map((f) => {
+    const w = f.worldLandmarks;
+    if (!w) return f;
+    const out = w.slice();
+    for (const [a, b] of LIMB_TREE) {
+      const L = lens[`${a}-${b}`], pa = out[a], pb = w[b];
+      if (!L || !pa || !pb) continue;
+      const d = dist3(pb, pa);
+      if (!(d > 1e-6)) continue;
+      const k = L / d;
+      out[b] = { ...pb, x: pa.x + (pb.x - pa.x) * k, y: pa.y + (pb.y - pa.y) * k, z: (pa.z ?? 0) + ((pb.z ?? 0) - (pa.z ?? 0)) * k };
+    }
+    return { ...f, worldLandmarks: out };
+  });
+  if (!plantFeet) return rebuilt;
+  // 3. the feet stay on the floor. World landmarks are HIP-centred: in a squat
+  // the hips drop and travel back, so drawn from the hips the feet slid forward
+  // and floated up under a still pelvis. A lift is done standing on the floor:
+  // move each frame so the ankle midpoint keeps its median floor position (x/z)
+  // - the body moves over planted feet - and the lowest foot point sits at the
+  // floor height. Only when both ankles are confident; a frame without them is
+  // left where it was measured.
+  const ank = (w) => (w && confident(w[27]) && confident(w[28]) ? { x: (w[27].x + w[28].x) / 2, z: ((w[27].z ?? 0) + (w[28].z ?? 0)) / 2 } : null);
+  const footY = (w) => Math.max(...[27, 28, 29, 30, 31, 32].map((i) => (w[i] && isReal(w[i].y) ? w[i].y : -Infinity)));   // MediaPipe y is DOWN: the floor is the largest y
+  const A = rebuilt.map((f) => ank(f.worldLandmarks)).filter(Boolean);
+  if (A.length < 5) return rebuilt;
+  const med = (arr) => { const s2 = arr.slice().sort((x, y) => x - y); return s2[s2.length >> 1]; };
+  const ax = med(A.map((p) => p.x)), az = med(A.map((p) => p.z));
+  const floor = med(rebuilt.map((f) => (f.worldLandmarks ? footY(f.worldLandmarks) : null)).filter((v) => isReal(v)));
+  // the per-frame correction is itself smoothed (a centred 9-frame mean over the
+  // frames that have one): applied raw, the ankles' own frame-to-frame noise was
+  // copied onto the WHOLE body - measured on a real squat, jitter 7 -> 23 mm/frame^2
+  const off = rebuilt.map((f) => { const w = f.worldLandmarks; const a = ank(w); return a ? { x: ax - a.x, y: floor - footY(w), z: az - a.z } : null; });
+  const R = 4;
+  const sm2 = off.map((o, i) => {
+    if (!o) return null;
+    let n = 0, x = 0, y = 0, z = 0;
+    for (let k = Math.max(0, i - R); k <= Math.min(off.length - 1, i + R); k++) if (off[k]) { n++; x += off[k].x; y += off[k].y; z += off[k].z; }
+    return { x: x / n, y: y / n, z: z / n };
+  });
+  return rebuilt.map((f, i) => {
+    const w = f.worldLandmarks; const d = sm2[i];
+    if (!w || !d) return f;
+    return { ...f, worldLandmarks: w.map((p) => (p ? { ...p, x: p.x + d.x, y: p.y + d.y, z: (p.z ?? 0) + d.z } : p)) };
+  });
+}
+
 // Nearest captured frame to tMs (frames sorted by t). Returns null when the
 // closest one is further than maxGapMs — no pose there, so draw nothing rather
 // than freeze a stale skeleton over a moving body.
@@ -1437,6 +1615,27 @@ export function frameAt(frames, tMs, maxGapMs = 120) {
 // cropped, shaky, low-light or badly-angled clip yields confident-LOOKING but
 // garbage angles/velocities. Grade how well the body was actually tracked so the
 // UI can warn the coach when a read shouldn't be trusted. Honest by default.
+// WHERE THE CAMERA STANDS (10.10 #639 stage 2). captureQuality used to say it "can't tell if the
+// camera angle is off". The world landmarks can: the hip line (shoulders when the hips are not
+// seen) runs across the picture in a front or back view and along the depth in a side view. The
+// angle between it and the picture plane, median over the clip: 0 = front / back, 90 = side-on.
+// Depth is MediaPipe's weakest axis, so this is a coarse read (front / angled / side), not a protractor.
+export function estimateView(frames) {
+  const yaws = [];
+  for (const f of frames || []) {
+    const w = f && f.worldLandmarks; if (!w) continue;
+    const pair = lmVisible(w[23]) && lmVisible(w[24]) ? [w[23], w[24]] : lmVisible(w[11]) && lmVisible(w[12]) ? [w[11], w[12]] : null;
+    if (!pair) continue;
+    const dx = Math.abs(pair[1].x - pair[0].x), dz = Math.abs((pair[1].z ?? 0) - (pair[0].z ?? 0));
+    if (!(dx + dz > 1e-4)) continue;
+    yaws.push((Math.atan2(dz, dx) * 180) / Math.PI);
+  }
+  if (yaws.length < 5) return null;
+  yaws.sort((a, b) => a - b);
+  const yaw = yaws[yaws.length >> 1];
+  return { yawDeg: Math.round(yaw), view: yaw >= 65 ? 'side' : yaw <= 25 ? 'front' : 'angled', offSideDeg: Math.round(90 - yaw) };
+}
+
 export function captureQuality(frames, title, movement) {
   if (!frames || !frames.length) return { coverage: 0, meanVis: null, grade: 'poor', note: 'No frames captured.' };
   // Judge only the joints that matter for THIS lift — an upper-body clip framed
@@ -1486,7 +1685,7 @@ export function captureQuality(frames, title, movement) {
     : grade === 'fair'
       ? `Body tracked in ${pct}% of frames — usable, but reframe fuller and steadier for sharper numbers.`
       : `Body tracked in only ${pct}% of frames — treat the numbers below as unreliable. Refilm with the whole body in shot (straight-on or a clean side view), steady camera, decent light.`;
-  return { coverage: round2(coverage), meanVis: meanVis == null ? null : round2(meanVis), grade, note };
+  return { coverage: round2(coverage), meanVis: meanVis == null ? null : round2(meanVis), grade, note, camera: estimateView(frames) };
 }
 
 // Top-level: run the full battery on a captured clip.
@@ -1496,15 +1695,23 @@ export function captureQuality(frames, title, movement) {
 // channel, ballistic counting and the capture-quality region all come from the
 // pick, and null means no rep counting at all. When absent, the logged title is
 // used as before (Workout Review / auto-analysis callers).
-export function analyzeClip(frames, exerciseTitle, opts = {}) {
-  if (!frames || frames.length < 4) return { ok: false, reason: 'too-few-frames' };
+export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
+  if (!rawFrames || rawFrames.length < 4) return { ok: false, reason: 'too-few-frames' };
+  // ANALYSIS-GRADE FRAMES (10.10 #639): the left/right swap repair the 3D view already had - the
+  // numbers read raw frames, where the limbs swapped sides mid-set. NOT the bone-length rebuild
+  // (re-scored offline on the 14 hand-counted real sets: it cost an exact count, c31 7 -> blank),
+  // the display smoother (it lags and shaves peaks) or the planted feet. With the visible-limb pick
+  // in channelSignal (chosen once per clip): exact 2/14 -> 3/14, wrong numbers shown 0 -> 0.
+  const frames = opts.raw ? rawFrames : stabilizeWorldFrames(rawFrames, { plantFeet: false, smooth: false, bones: false });
   const explicit = Object.prototype.hasOwnProperty.call(opts, 'movement');
   const mv = explicit ? movementByKey(opts.movement) : undefined;
   const fps = estimateFps(frames);
-  const { angle, kind, channels } = channelSignal(frames, exerciseTitle, mv);
+  const { angle, raw: rawAngle, kind, channels } = channelSignal(frames, exerciseTitle, mv);
   const reps = channels.length ? segmentReps(angle, fps, frames) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
+  // per-rep angle jitter, for the athlete's set read (setAnalysis.readSet)
+  if (romTempo) romTempo.perRep.forEach((p, k) => { if (p) p.jitter = repJitter(rawAngle, reps[k].startIdx, reps[k].endIdx); });
   const jointRom = jointRomMetrics(frames);
   const barSpeed = barSpeedSeries(frames, opts.barLandmark);
   // Ballistic override: for jumps/pogos/hops the joint-angle channel misses
@@ -1535,7 +1742,7 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   // the two when reading a spec. Honest by construction — a channel is present
   // only when its hard gate passed.
   const extRom = extendedJointRom(frames);
-  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
+  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, ballistic, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
 }
 
 // --- small helpers ---

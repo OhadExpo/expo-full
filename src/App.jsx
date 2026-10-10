@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
@@ -100,6 +100,7 @@ export const hasAuthPayload = () => {
 import { parseTraineeId } from './traineeUtils';
 import { logAppOpen } from './logAppOpen';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
+import { getState as netState, subscribe as subscribeNet } from './connectivity';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
 import { setSeat } from './seatWrite';
@@ -165,6 +166,8 @@ const BhbcView = lazyReload(() => import('./BhbcView'));
 const ExerciseMatchingView = lazyReload(() => import('./ExerciseMatchingView'));
 const ExerciseClassifyView = lazyReload(() => import('./ExerciseClassifyView'));
 const ExerciseCleanupView = lazyReload(() => import('./ExerciseCleanupView'));
+// Exercises hub -> VIDEOS: library video gaps ranked by who misses them (5.10 #559)
+const VideoGapsView = lazyReload(() => import('./VideoGapsView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazyReload(() => import('./TrySandbox'));
@@ -492,6 +495,15 @@ function cachedSelfTrainee(email, setError) {
   return null;
 }
 
+// A cache hit for THIS email, without touching the error flag.
+function hasCachedSelfTrainee(email) {
+  try {
+    const raw = localStorage.getItem(SELF_TRAINEE_KEY);
+    const hit = raw ? JSON.parse(raw) : null;
+    return !!(hit && hit.email === email && hit.trainee);
+  } catch { return false; }
+}
+
 function BootSplash() {
   const logo = useLogoSrc();
   // THE WATCHDOG (26.9). A splash is a promise that something is coming; after
@@ -500,7 +512,12 @@ function BootSplash() {
   const [slow, setSlow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setSlow(true), 10000); return () => clearTimeout(t); }, []);
   const reload = () => {
-    try { if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))); } catch { /* noop */ }
+    // OFFLINE, THE PRECACHE IS THE ONLY COPY OF THE APP (5.10 #560). Deleting
+    // every cache and reloading with no network turns a slow boot into no app
+    // at all - the service worker has nothing left to serve. Clear caches only
+    // when the server can be reached to refill them; offline, just reload.
+    const canRefill = netState() !== 'offline' && (typeof navigator === 'undefined' || navigator.onLine !== false);
+    if (canRefill) { try { if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))); } catch { /* noop */ } }
     window.location.reload();
   };
   return (
@@ -826,6 +843,8 @@ function AuthedApp() {
   const [bhbcLoads,setBhbcLoads,,,,refreshBhbcLoads]=useSupaStore('expo-bhbc-loads',{});
   const [bhbcFixtures,setBhbcFixtures,,,,refreshBhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
   const [bhbcLeague,,,,,refreshBhbcLeague]=useSupaStore('expo-bhbc-league',{});
+  // the game warm-up, synced from his sheet by the daemon (10.10 #647) - read-only here
+  const [bhbcGameWarmup,,,,,refreshBhbcGameWarmup]=useSupaStore('expo-bhbc-gamewarmup',{});
   const [bhbcMedical,setBhbcMedical,,,,refreshBhbcMedical]=useSupaStore('expo-bhbc-medical',{});
   // (`expo-bhbc-plans`, the per-slot practice plan, is no longer read: the
   // zone has no practice plans since 24.9. The key stays in the database.)
@@ -1027,15 +1046,32 @@ function AuthedApp() {
     let cancelled = false;
     setSelfTrainee(undefined);
     setSelfTraineeError(false);
+    // RACED AGAINST THE CACHED IDENTITY (5.10 #560). On a dead wifi this RPC
+    // neither fails nor answers, and the athlete sat on "Loading…" for as long
+    // as the socket stayed open. The cached record is used after 5 s, or the
+    // moment the probe says the server is out of reach; a late answer from the
+    // server still replaces it (and a late "no row" still means not registered).
+    let settled = false;
+    const fromCache = () => { if (cancelled || settled) return; settled = true; setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); };
+    // The 5 s fallback only when there IS a cached record (or the probe already
+    // says offline). With nothing cached and the network up - a first sign-in on
+    // slow gym LTE - it flashed "Couldn't Verify Account" (and Sign out) while
+    // the answer was on its way (9.10 whole-diff review). Then the splash waits:
+    // the RPC still answers, times out (timedFetch) or the probe flips to offline.
+    const timer = setTimeout(() => { if (hasCachedSelfTrainee(email) || netState() === 'offline') fromCache(); }, 5000);
+    const unsubNet = subscribeNet((st) => { if (st === 'offline') fromCache(); });
     supabase.rpc('my_trainee')
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) { setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); return; }
+        clearTimeout(timer);
+        if (error) { fromCache(); return; }
+        settled = true;
         setSelfTrainee(data || null);
+        setSelfTraineeError(false);
         rememberSelfTrainee(email, data || null);
       })
-      .catch(() => { if (!cancelled) setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); });
-    return () => { cancelled = true; };
+      .catch(() => { clearTimeout(timer); fromCache(); });
+    return () => { cancelled = true; clearTimeout(timer); unsubNet(); };
   }, [email, storeClientTrainee, isTrainerEmail]);
   const clientTrainee = storeClientTrainee || selfTrainee || null;
   const hasClientRow = !!clientTrainee;
@@ -1157,7 +1193,7 @@ function AuthedApp() {
       }
       // /coach/bhbc/<tab>: the club zone owns the segment after bhbc (27.9).
       if (sub.startsWith('bhbc/')) return { mode:'coach', tab:'bhbc', traineeId:null };
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup','exercise-videos':'exerciseVideos',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -1182,6 +1218,15 @@ function AuthedApp() {
     ? (initRoute.tab || 'dashboard')
     : (STAFF_TABS.includes(initRoute.tab) ? initRoute.tab : 'dashboard');
   const [tab,setTab]=useState(isCoach ? coachInitialTab : "client");
+  // THE MENU ANSWERS THE TAP AT ONCE (9.10 #625, Ohad: "Same for expo top menu" - lagging):
+  // the tapped item lights up in the same frame (navPending, urgent) and the page behind it
+  // renders as a transition, so a heavy view never holds the menu. Measured before: 100-330ms
+  // from tap to paint at a phone's CPU.
+  const [navPending,setNavPending]=useState(null);
+  const [navTransitioning,startNavTransition]=useTransition();
+  // cleared when the transition settles, not when `tab` changes: a Back or a same-tab action
+  // inside the window left the highlight on the tapped item (1008o review)
+  useEffect(() => { if (!navTransitioning) setNavPending(null); }, [navTransitioning, tab]);
   // the view area reads the tab directly: a deferred copy (useDeferredValue) was
   // measured 4.10 #529 at 4x CPU - the screen arrived ~100 ms LATER on every tab
   const viewTab = tab;
@@ -1249,7 +1294,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',exerciseVideos:'exercise-videos',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
     // The club zone writes its own page into the URL (/coach/bhbc/roster);
     // entering the zone must not flatten that back to /coach/bhbc.
     if (newTab === 'bhbc' && /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname)) return;
@@ -1371,8 +1416,11 @@ function AuthedApp() {
     // fired its Supabase reads for one frame before the URL guard bounced them.
     // Owners (isOwner) are unaffected; athletes never hit the coach app.
     if (isCoach && !isOwner && newTab && !STAFF_TABS.includes(newTab)) return;
-    setTab(newTab);
-    setSelectedTrainee(newTrainee || null);
+    setNavPending(newTab);
+    startNavTransition(() => {
+      setTab(newTab);
+      setSelectedTrainee(newTrainee || null);
+    });
     updateURL(newTab, newTrainee, hash);
   }, [updateURL, isCoach, isOwner]);
 
@@ -1573,7 +1621,7 @@ function AuthedApp() {
   // still in the offline queue, reads the version first and the value only if
   // it moved, and keeps the hook's compare-and-swap base current.
   const bhbcRefreshRef = useRef([]);
-  bhbcRefreshRef.current = [refreshBhbcLoads, refreshBhbcFixtures, refreshBhbcLeague, refreshBhbcMedical, refreshTrainees];
+  bhbcRefreshRef.current = [refreshBhbcLoads, refreshBhbcFixtures, refreshBhbcLeague, refreshBhbcMedical, refreshTrainees, refreshBhbcGameWarmup];
   const bhbcChanRef = useRef(null);
   // Called by the zone after any local write so other open clients refetch at once.
   const notifyBhbcChange = useCallback(() => {
@@ -1594,7 +1642,7 @@ function AuthedApp() {
     let ch = null;
     try {
       ch = supabase.channel('bhbc-live', { config: { private: true } });   // private (#510-A4): RLS on realtime.messages decides who hears it
-      ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees'].forEach((k) => {
+      ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees', 'expo-bhbc-gamewarmup'].forEach((k) => {
         ch.on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${k}` }, () => { if (!stop) poll(); });
       });
       // Broadcast layer (works WITHOUT the store table being in the realtime
@@ -1744,7 +1792,7 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <>{sandboxBanner}<Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} gameWarmup={bhbcGameWarmup} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense></>
   );
@@ -1766,9 +1814,9 @@ function AuthedApp() {
           a count drawn from a store that never loaded is not a fact - saying so
           is the difference between "you have no athletes" and "we could not
           reach the server". */}
-      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{lang === 'he'
-        ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.'
-        : 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.'}</div>}
+      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{/* OFFLINE only when the probe says so: the deadline also passes when the server is merely slow, and 'OFFLINE' on a working connection is a false alarm (9.10 audit #612 C11) */}{(() => { const off = netState() === 'offline'; return lang === 'he'
+        ? (off ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.' : 'עדיין נטען — חלק מהמידע עוד לא הגיע. יכול להיות שהמספרים חלקיים עד שיגיע.')
+        : (off ? 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.' : "STILL LOADING — some data hasn't arrived yet. Numbers may be incomplete until it does."); })()}</div>}
       {isOwner && <Suspense fallback={null}><SensorLab trainees={trainees} /></Suspense>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
@@ -1836,8 +1884,12 @@ function AuthedApp() {
                  rail's own edge */
               scroll-padding-inline: 8px;
               /* at rest a tab starts on the rail's start edge - never half a
-                 word there (27.9 #304) */
-              scroll-snap-type: x mandatory; }
+                 word there (27.9 #304). PROXIMITY, not mandatory (9.10 #607,
+                 Ohad: "scrolling on the top menu's doesnt feel smooth"):
+                 mandatory pulled the rail onto an edge on every scroll and
+                 fought the finger; proximity still lands a resting tab on the
+                 edge, and the no-slice mask hides any half tab at rest. */
+              scroll-snap-type: x proximity; }
             .hdr-rail nav.hdr-scroll button, .hdr-rail .hdr-right > * { scroll-snap-align: start; }
             .hdr-rail .hdr-right { scroll-snap-align: end; }
             .hdr-rail::-webkit-scrollbar { display: none; }
@@ -1915,8 +1967,9 @@ function AuthedApp() {
               // A tab with `submenu` becomes a dropdown trigger.
               // Active-state for a submenu trigger fires when current
               // tab is any of the items' routes.
-              const isSection = t.submenu && t.submenu.some(it => tab === it.route);
-              const isActive = t.submenu ? isSection : tab === t.key;
+              const shownTab = navPending || tab;   // the tapped item, this frame (#625)
+              const isSection = t.submenu && t.submenu.some(it => shownTab === it.route);
+              const isActive = t.submenu ? isSection : shownTab === t.key;
               const dataTheme=(typeof document!=='undefined'?document.documentElement.getAttribute('data-theme'):null);
               const isChosen=dataTheme==='5'||dataTheme==='5b'||dataTheme==='light';
               const CYAN='#39BDFF';
@@ -2025,14 +2078,15 @@ function AuthedApp() {
           {viewTab==="trainees"&&!selectedTrainee&&<TraineesView dataIncomplete={dataIncomplete} trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
           {viewTab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
           {viewTab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail key={selectedTrainee} trainee={selectedTrainee} trainees={trainees} bhbcLoads={bhbcLoads} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} setBwLog={setBwLog} portalVis={portalVis} setPortalVis={setPortalVisSynced} presence={presence} onBack={()=>navTo("trainees")}/>}
-          {(viewTab==="exercises"||viewTab==="exerciseMatching"||viewTab==="exerciseClassify"||viewTab==="exerciseCleanup")&&(
+          {(viewTab==="exercises"||viewTab==="exerciseMatching"||viewTab==="exerciseClassify"||viewTab==="exerciseCleanup"||viewTab==="exerciseVideos")&&(
             <div>
               {/* Exercises hub: Library + its two maintenance tools (Matching,
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
               <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
-                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
+                {/* VIDEOS (5.10 #559) is owner-only: it writes the library AND athletes' programs */}
+                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup'],...(isOwner?[['exerciseVideos','Videos']]:[])].map(([r,l])=>{
                   const on=viewTab===r;
                   return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{tb(l)}</button>;
                 })}
@@ -2041,6 +2095,8 @@ function AuthedApp() {
               {viewTab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
               {viewTab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
               {viewTab==="exerciseCleanup"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseCleanupView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {/* eL gates every library write in VideoGapsView: a write before the library loaded wiped it once (27.8) */}
+              {viewTab==="exerciseVideos"&&isOwner&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><VideoGapsView exercises={exercises} setExercises={setExercises} exercisesLoaded={eL} trainees={trainees} clientWorkouts={clientWorkouts} isOwner={isOwner}/></ErrorBoundary></Suspense>}
             </div>
           )}
           {viewTab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}

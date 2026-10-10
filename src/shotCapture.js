@@ -18,8 +18,11 @@
 // Output frames match what the analyser expects:
 //   [{ t(ms), landmarks (full-frame normalised), worldLandmarks (metric) }]
 // plus frames.dims, frames.fps, frames.windows and frames.stats.
-import { createPoseLandmarker } from './usePose.js';
+import { createPoseLandmarker, createBallDetector } from './usePose.js';
 import { toGray, motionBlobs } from './ballTrack.js';
+// Pure, DOM-free: only used to find the provisional releases for the opt-in
+// ball pass (ballPass 'seek'), after the pose passes are complete.
+import { buildSeries, detectShots, detectShootingHand, RELAXED_SHOT_GATES } from './shotAnalysis.js';
 
 const LM_HEAD = [0, 2, 5, 7, 8];
 const LM_BODY = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
@@ -281,6 +284,165 @@ export async function stepThrough(v, { from, to, step, onFrame, run }) {
   }
 }
 
+// ------------------------------------------------------------------------
+// THE DETERMINISTIC BALL PASS (opt-in: ballPass 'seek').
+//
+// The shot COUNT is repeatable now; the launch ANGLE is not. Measured on
+// 2026-09-01, three runs of his 11-shot clip: 11 / 11 / 11 shots, and 0 / 10 /
+// 10 angles. The release is found from the pose - wrist apex plus elbow
+// extension - and lands within 0-3 frames of the truth on every run. The ball
+// is found somewhere else entirely: motion blobs collected DURING the fine pass,
+// off a PLAYING video, which the browser presents at whatever rate MediaPipe
+// leaves it. A frame that is not presented is a frame with no ball candidate,
+// and a blob is only computed when the previous frame is under 60 ms old - so
+// one dropped frame costs two frames of ball. Which frames go missing changes
+// every run, and trackBall needs six dense frames in a row to call it a flight.
+//
+// Seek-stepping the WHOLE fine pass was measured and rejected (9 of 17 shots,
+// 3x slower). This is far narrower: once the releases are known, read only
+// release-100 ms to release+1500 ms of each shot, by seeking, one source frame
+// at a time, and difference consecutive frames exactly as the fine pass does.
+// That is ~100 seeks a shot instead of ~2,700 for a clip, and the frames it
+// reads do not depend on how busy the machine was.
+//
+// Nothing about the pose changes - the shot count cannot move. Only the ball
+// candidates for a shot whose span was read cleanly are replaced; every other
+// shot keeps the playback candidates it had. trackBall and launchAngle run
+// unchanged, with every gate they already have.
+//
+// Never throws except for STOP: a seek that does not land, a canvas that cannot
+// be read or a shot that takes too long marks THAT span as not read, and the
+// analysis falls back to the playback candidates for it.
+//
+// Exported, and handed `readGray` instead of a canvas, so the control flow can
+// be driven from node with a fake video (scripts/verify-shot-phone-stall.mjs).
+//
+//   releases   release times in ms (the provisional ones; see captureShotFrames)
+//   readGray   (video) => Uint8Array luma plane of mw x mh, the SAME fixed
+//              whole-frame canvas the fine pass differences
+//   cutFor     (tSec) => pixel row the search stops at (the athlete's waist)
+//   detect     optional (video) => [{ x, y, w, h, score }] in FRAME-HEIGHT
+//              fractions: a trained detector's balls (ballPass 'seek+det').
+//              They join the motion blobs as extra candidates - trackBall,
+//              the parabola and the gravity gate decide, exactly as before -
+//              and they also give the first frame of a span candidates, which
+//              differencing cannot (it has no frame before it). A detector that
+//              throws on a frame simply adds nothing to that frame.
+export async function seekBallPass(v, {
+  releases, frameDur, duration = Infinity, readGray, mw, mh, cutFor = () => mh, run, detect = null,
+  preMs = 100, postMs = 1500, maxFps = 60, maxFramesPerShot = 120,
+  shotBudgetMs = 20000, totalBudgetMs = 600000, minCover = 0.8, onProgress,
+}) {
+  const clock = () => run.vis.activeNow();
+  const t0 = clock();
+  // "At the clip's real fps, capped": a 120 / 240 fps clip is read at 60, which
+  // still differences frames 17 ms apart - far inside the 60 ms gate.
+  const stride = Math.max(1, Math.round((1 / maxFps) / frameDur));
+  const frames = [], spans = [];
+  const why = {};
+  const det = detect ? { frames: 0, hits: 0, errors: 0 } : null;
+  const fail = (span, w) => { span.why = w; why[w] = (why[w] || 0) + 1; };
+  for (let si = 0; si < (releases || []).length; si++) {
+    const rel = releases[si];
+    if (run.signal?.aborted) throw abortErr();
+    // From the release minus a little - the provisional release can sit a frame
+    // or two off the final one - to well past the 700 ms the score reads, so a
+    // re-score with a different hand or shot type still lands inside the span.
+    const kFrom = Math.max(0, Math.ceil((rel - preMs) / 1000 / frameDur));
+    let kTo = Math.floor((rel + postMs) / 1000 / frameDur);
+    if (Number.isFinite(duration)) kTo = Math.min(kTo, Math.floor((duration - frameDur * 0.5) / frameDur));
+    const ks = [];
+    for (let k = kFrom; k <= kTo && ks.length < maxFramesPerShot; k += stride) ks.push(k);
+    const span = { releaseMs: Math.round(rel), from: null, to: null, planned: ks.length, read: 0, ok: false, why: null };
+    spans.push(span);
+    if (!ks.length) { fail(span, 'empty'); continue; }
+    if (clock() - t0 > totalBudgetMs) { fail(span, 'budget'); continue; }
+    const got = [];
+    let cancelled = false;
+    const work = (async () => {
+      let prevG = null, prevT = -1e9, misses = 0;
+      const SEEK_MIN = run.seekMs || 600, SEEK_MAX = run.seekMaxMs || 3000;
+      let seekMs = SEEK_MIN;
+      for (const k of ks) {
+        if (cancelled) return 'deadline';
+        if (run.signal?.aborted) throw abortErr();
+        await run.vis.whenVisible(run.signal);
+        if (run.signal?.aborted) throw abortErr();
+        if (cancelled) return 'deadline';
+        // The MIDDLE of the frame, not its start. A seek to exactly k/fps sits on
+        // the boundary between two frames, and float rounding then hands back
+        // the previous frame now and then - a duplicate (zero difference, no
+        // ball) followed by a skip (a 2-frame difference). That is the very
+        // irregularity this pass exists to remove. The sample is still recorded
+        // at k/fps, the same clock the playback frames carry.
+        const landed = await seekTo(v, (k + 0.5) * frameDur, seekMs);
+        if (v.error) return 'decode';
+        if (!landed) {
+          // A frame that did not land must not be differenced against.
+          prevG = null;
+          seekMs = Math.min(SEEK_MAX, seekMs * 1.5);
+          if (++misses >= 6) return 'seek';
+          continue;
+        }
+        misses = 0; seekMs = Math.max(SEEK_MIN, seekMs * 0.9);
+        let g = null;
+        try { g = readGray(v); } catch { return 'read'; }
+        if (!g) return 'read';
+        const tMs = k * frameDur * 1000;
+        let blobs = null;
+        // Same rule as the fine pass: only difference against the frame that
+        // really is the one before.
+        if (prevG && tMs - prevT > 0 && tMs - prevT < 60) {
+          const yCut = Math.max(1, Math.min(mh, Math.round(cutFor(tMs / 1000))));
+          blobs = motionBlobs(prevG, g, mw, mh, { x0: 0, y0: 0, x1: mw, y1: yCut })
+            .map((bb) => ({ x: bb.x / mh, y: bb.y / mh, w: bb.w / mh, h: bb.h / mh, n: bb.n }));
+        }
+        prevG = g; prevT = tMs;
+        if (detect) {
+          det.frames++;
+          let found = null;
+          try { found = await detect(v); } catch { det.errors++; }
+          if (cancelled) return 'deadline';
+          const yCutF = Math.max(1, Math.min(mh, Math.round(cutFor(tMs / 1000)))) / mh;
+          const balls = (Array.isArray(found) ? found : [])
+            .filter((d) => d && Number.isFinite(d.x) && Number.isFinite(d.y) && d.w > 0 && d.h > 0 && d.y <= yCutF)
+            .map((d) => ({ x: d.x, y: d.y, w: d.w, h: d.h, n: 0, det: true, score: d.score }));
+          if (balls.length) { det.hits++; blobs = (blobs || []).concat(balls); }
+        }
+        got.push({ t: tMs, blobs });
+        if (onProgress) { try { onProgress((si + got.length / ks.length) / releases.length); } catch { /* noop */ } }
+      }
+      return null;
+    })();
+    let res;
+    try {
+      res = await withDeadline(work, shotBudgetMs, codeErr('ballPass', 'ball pass over budget'), { clock, signal: run.signal });
+    } catch (e) {
+      cancelled = true;
+      if (e && e.code === 'aborted') throw e;
+      if (e && e.code === 'ballPass') {
+        // Over budget: stop the loop and WAIT for it to let go of the video
+        // before the next span seeks it - each of its awaits is bounded.
+        try { await work; } catch (e2) { if (e2 && e2.code === 'aborted') throw e2; }
+        res = 'deadline';
+      } else res = 'error';   // anything unexpected: this span falls back, the pass goes on
+    }
+    span.read = got.length;
+    if (got.length) { span.from = Math.round(got[0].t); span.to = Math.round(got[got.length - 1].t); }
+    if (res) { fail(span, res); continue; }
+    // A span that was mostly seeks that never landed is not a deterministic
+    // read; the playback candidates are the better evidence for that shot.
+    if (got.length < ks.length * minCover) { fail(span, 'sparse'); continue; }
+    span.ok = true;
+    for (const f of got) frames.push(f);
+  }
+  frames.sort((a, b) => a.t - b.t);
+  // Two releases closer than the span overlap; keep one sample per instant.
+  const dedup = [];
+  for (const f of frames) if (!dedup.length || f.t - dedup[dedup.length - 1].t > 0.5) dedup.push(f);
+  return { frames: dedup, spans, stepMs: frameDur * 1000 * stride, ms: Math.round(clock() - t0), why, det };
+}
+
 /**
  * Play [from,to] at `rate` and call onFrame(video, mediaTimeSeconds) once per
  * DISTINCT source frame. Resolves when `to` is reached or the video ends.
@@ -495,11 +657,17 @@ async function measureFps(v) {
  *
  * Not wired to any UI yet - it is here so the speed/reliability trade can be
  * MEASURED before anyone decides. See docs/shot-analyzer-next-2026-08-27.md.
+ *
+ * `ballPass` 'seek' (default OFF) re-reads the ball for each shot by seeking,
+ * after the releases are known - see seekBallPass above. Also reachable without
+ * a code change with localStorage 'expo-shot-ball' = 'seek', the same way the
+ * heavy fine model is. Any other value, or null with no stored choice, is the
+ * old behaviour exactly.
  */
 // `signal` (AbortSignal): STOP on the screen. The capture used to run on after
 // STOP with nobody listening, so the NEXT analysis shared the phone's CPU with
 // a ghost of the last one - and stalled for real.
-export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 0.5, deterministic = false, signal } = {}) {
+export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 0.5, deterministic = false, ballPass = null, signal } = {}) {
   // Three settings, because measurement showed the two passes do not deserve
   // the same treatment. Three default-path captures on an IDLE machine returned
   // 11, 8 and 11 shots, and the per-run stats pinned the loss precisely:
@@ -518,6 +686,15 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
   //   true       both seek-stepped (slowest, byte-identical between runs)
   const detCoarse = deterministic === true || deterministic === 'coarse';
   const detFine = deterministic === true;
+  // 'seek+det' (10.10 #638, also opt-in): the same seek pass, with a trained
+  // detector's balls added to the motion candidates - see seekBallPass.
+  const ballChoice = ballPass != null ? ballPass : (() => {
+    try { return typeof localStorage !== 'undefined' ? localStorage.getItem('expo-shot-ball') : null; } catch { return null; }
+  })();
+  const ballSeek = ballChoice === 'seek' || ballChoice === 'seek+det';
+  const ballDet = ballChoice === 'seek+det';
+  // The fine pass owns 50-98% of the bar, unless the ball pass needs a share.
+  const fineSpan = ballSeek ? 30 : 48;
   let lmCoarse, lmFine, v, canvas;
   const report = (p, label) => { if (onProgress) onProgress(Math.max(0, Math.min(100, Math.round(p))), label); };
   const vis = visibilityClock();
@@ -1007,7 +1184,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
             } catch { /* canvas read blocked — carry on without ball candidates */ }
             fine.push({ t: mt * 1000, landmarks: mapped, worldLandmarks: r.worldLandmarks[sub.idx], blobs, fine: true });
           }
-          report(50 + ((doneMs + (mt * 1000 - w.from)) / totalMs) * 48, 'reading the shots');
+          report(50 + ((doneMs + (mt * 1000 - w.from)) / totalMs) * fineSpan, 'reading the shots');
         },
       });
       doneMs += w.to - w.from;
@@ -1024,6 +1201,74 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     out.dims = { w: vw, h: vh };
     out.windows = windows;
     out.fps = fps;
+
+    // ---------------------------------------------------- ball pass (opt-in) ---
+    // The pose is finished and the count is decided; nothing below can change
+    // either. The releases found here are PROVISIONAL - the screen re-runs the
+    // analysis with the coach's hand and shot type - which is why each span
+    // reaches 1.5 s past its release: a final release a few frames away still
+    // falls inside it, and one that does not simply keeps the playback ball.
+    let ballStats = null;
+    if (ballSeek) {
+      checkAbort();
+      let releases = [];
+      try {
+        const hand = detectShootingHand(out) || 'R';
+        const series = buildSeries(out, { hand, aspect: vw / vh });
+        let cyc = detectShots(series, fps);
+        if (!cyc.length) cyc = detectShots(series, fps, RELAXED_SHOT_GATES);
+        releases = cyc.map((c) => series.tMs[c.release]).filter((t) => Number.isFinite(t));
+      } catch { releases = []; }
+      ballStats = { mode: ballDet ? 'seek+det' : 'seek', releases: releases.length, ok: 0, frames: 0, ms: 0, why: {} };
+      if (releases.length) {
+        report(50 + fineSpan, 'following the ball');
+        // The detector is extra evidence, never a requirement: one that does
+        // not load (offline, a GPU that refuses it) leaves the motion pass as it was.
+        let detector = null;
+        if (ballDet) {
+          try {
+            detector = await withDeadline(createBallDetector(), 30000, codeErr('model', 'ball detector did not load'),
+              { clock, signal, onLate: (d) => { try { d.close(); } catch { /* noop */ } } });
+          } catch (e) {
+            if (e && e.code === 'aborted') throw e;
+            ballStats.detError = String((e && e.message) || e);
+          }
+        }
+        try {
+          const bp = await seekBallPass(v, {
+            releases, frameDur, duration: dur, mw: MW, mh: MH, run,
+            readGray: (vid) => {
+              mctx.drawImage(vid, 0, 0, vw, vh, 0, 0, MW, MH);
+              return toGray(mctx.getImageData(0, 0, MW, MH).data, MW, MH, 4);
+            },
+            cutFor: (tSec) => {
+              const b = boxAt(track, tSec) || { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.9 };
+              return (b.y0 + (b.y1 - b.y0) * 0.5) * MH;
+            },
+            onProgress: (f) => report(50 + fineSpan + Math.max(0, Math.min(1, f)) * (48 - fineSpan), 'following the ball'),
+            // Boxes in the video's own pixels -> centre + size in frame heights,
+            // the unit the motion blobs already use.
+            detect: detector ? (vid) => (detector.detect(vid).detections || []).map((d) => {
+              const bb = d.boundingBox || {};
+              return { x: (bb.originX + bb.width / 2) / vh, y: (bb.originY + bb.height / 2) / vh, w: bb.width / vh, h: bb.height / vh,
+                score: d.categories && d.categories[0] ? d.categories[0].score : null };
+            }) : null,
+          });
+          out.ballSeek = { frames: bp.frames, spans: bp.spans, stepMs: bp.stepMs };
+          ballStats.ok = bp.spans.filter((s) => s.ok).length;
+          ballStats.frames = bp.frames.length;
+          ballStats.ms = bp.ms;
+          ballStats.why = bp.why;
+          if (bp.det) ballStats.det = bp.det;
+        } catch (e) {
+          if (e && e.code === 'aborted') throw e;
+          // Whatever went wrong, the playback ball is still there for every shot.
+          ballStats.error = String((e && e.message) || e);
+        } finally {
+          if (detector) { try { detector.close(); } catch { /* noop */ } }
+        }
+      }
+    }
     // skipped: frames discarded mid-detection. skipRatio: how much of the
     // clip never reached the model. A high ratio means the shot COUNT is
     // unreliable, which no fps average will reveal - the fps figure is
@@ -1039,7 +1284,9 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
                   steppedFrames: run.stats.steppedFrames || 0, fineModel: run.stats.fineModel,
                   detectErrors: health.err, rebuilt: health.rebuilt,
                   // the dropped-frame re-read: how many it found, and whether its budget ran out (#475)
-                  recovered: drops.recovered || 0, recoveryCapped: !!drops.recoveryCapped, recoverMs: drops.recoverMs || 0, holes: drops.holes || 0, planned: drops.planned || 0, tried: drops.tried || 0 };
+                  recovered: drops.recovered || 0, recoveryCapped: !!drops.recoveryCapped, recoverMs: drops.recoverMs || 0, holes: drops.holes || 0, planned: drops.planned || 0, tried: drops.tried || 0,
+                  // the opt-in seek ball pass: null when off; else spans read cleanly of releases found, and why the rest fell back
+                  ballPass: ballStats };
     report(100, 'done');
     try { console.log('[shot-capture]', JSON.stringify(out.stats), 'out', out.length); } catch { /* noop */ }
     return out;

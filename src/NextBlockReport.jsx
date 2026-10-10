@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { useT } from './i18n';
+import { ChipGrid } from './ui';
 
 // ── Copied from PlansView.jsx (module-level helpers, not exported there) ──
 // Training emphasis from the volume-weighted mean reps (NSCA goal table).
@@ -470,14 +471,8 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
   const seg = (label, value, onChange, options) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{label}</div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-        {options.map(([v, l]) => {
-          const on = value === v;
-          return (
-            <button key={String(v)} onClick={() => onChange(v)} style={{ height: 26, padding: '0 10px', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'transparent', color: on ? '#06131b' : C.tx, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer' }}>{l}</button>
-          );
-        })}
-      </div>
+      {/* equal cells at the one control height (5.10 #574; these stood 26px beside 36px controls) */}
+      <ChipGrid ariaLabel={label} value={value} onChange={onChange} items={options.map(([v, l]) => ({ k: v, label: l, tone: C.tx }))} />
     </div>
   );
 

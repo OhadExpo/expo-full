@@ -13,8 +13,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { C, FN } from './theme';
-import { frameToPoints3D } from './poseLab';
+import { frameToPoints3D } from './poseLab';
 import { useT } from './i18n';
+import { ChipGrid } from './ui';
 
 // Limb segments [jointA, jointB, kind].
 const SEGMENTS = [
@@ -168,16 +169,16 @@ export default function AnatomyViewer({ frames }) {
   const f = Math.min(frameIdx, poseFrames.length - 1);
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-        {LAYERS.map((L, li) => (
-          <Pill key={L.id} active={peel === li} onClick={() => setPeel(li)}>{L.label}</Pill>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8 }}>
-        <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? '❚❚ PAUSE' : '▶ PLAY'}</Pill>
-        <Pill onClick={() => setPeel(p => Math.min(LAYERS.length - 1, p + 1))}>PEEL ↓</Pill>
-        <Pill onClick={() => setPeel(p => Math.max(0, p - 1))}>{tt('↑ ADD')}</Pill>
-      </div>
+      {/* the layer picker and the transport as equal-cell grids (5.10 #574); white
+          resting text, as the pills had - this canvas is dark in every theme */}
+      <ChipGrid value={peel} onChange={setPeel} style={{ maxWidth: 340, margin: '0 auto 8px' }}
+        items={LAYERS.map((L, li) => ({ k: li, label: L.label, tone: '#FFF' }))} />
+      <ChipGrid value={null} style={{ maxWidth: 340, margin: '0 auto 8px' }}
+        items={[
+          { k: 'play', label: playing ? '❚❚ PAUSE' : '▶ PLAY', active: playing, tone: '#FFF', onClick: () => setPlaying(p => !p) },
+          { k: 'peel', label: 'PEEL ↓', tone: '#FFF', onClick: () => setPeel(p => Math.min(LAYERS.length - 1, p + 1)) },
+          { k: 'add', label: tt('↑ ADD'), tone: '#FFF', onClick: () => setPeel(p => Math.max(0, p - 1)) },
+        ]} />
       <div ref={mountRef} style={{ width: '100%', maxWidth: 340, height: 420, margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }} />
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textAlign: 'center', marginTop: 6 }}>{tt('DRAG ORBIT · WHEEL / PINCH ZOOM ·')} {tt('{x} LAYER').replace('{x}', LAYERS[peel].label)}</div>
       <input type="range" min={0} max={poseFrames.length - 1} value={f} onChange={e => { setPlaying(false); setFrameIdx(Number(e.target.value)); }}
@@ -187,6 +188,3 @@ export default function AnatomyViewer({ frames }) {
   );
 }
 
-const Pill = ({ onClick, active, children }) => (
-  <button onClick={onClick} style={{ padding: '6px 12px', background: active ? C.ac : 'transparent', color: '#FFF', border: `1px solid ${active ? C.ac : 'rgba(255,255,255,0.25)'}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 0 }}>{children}</button>
-);

@@ -13,6 +13,7 @@ import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 function trackFunnel(event, payload) { try { track(event, payload || {}); } catch {} }
 
 import { SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
+import { ChipGrid } from './ui';
 
 const SUGGESTIONS = [
   "What does EXPO do?",
@@ -38,6 +39,17 @@ export default function CoachChat() {
   const he = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
   const L = (en, heText) => (he ? heText : en);
   const [open, setOpen] = useState(false);
+  // ON A PHONE THE BUBBLE WAITS UNTIL THE PAGE IS SCROLLED 300px (9.10 audit #612 E4): at 390 it sat
+  // on the hero's last line ('NO CARD · NO SIGNUP · ...'), and the first screen already has
+  // its CTAs plus the sticky bar. On a wider screen it shows at once, as before.
+  const [pastFold, setPastFold] = useState(() => typeof window === 'undefined' || window.innerWidth > 480 || window.scrollY > 300);
+  useEffect(() => {
+    if (pastFold) return undefined;
+    const onScroll = () => { if (window.innerWidth > 480 || window.scrollY > 300) setPastFold(true); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+  }, [pastFold]);
   const [messages, setMessages] = useState([]); // [{role:'user'|'assistant'|'system-capture', content:string}]
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -213,7 +225,7 @@ export default function CoachChat() {
   return (
     <>
       {/* Floating bubble — always visible bottom-right when closed */}
-      {!open && (
+      {!open && pastFold && (
         <button onClick={() => { setOpen(true); trackFunnel('coach_chat_open', {}); }} aria-label={L('Open chat', 'פתיחת צ׳אט')}
           style={{
             // insetInlineEnd, not right: in Hebrew the bubble belongs on the
@@ -360,21 +372,9 @@ export default function CoachChat() {
                 under each AI answer instead of living in a dead strip above
                 the input. */}
             {healthy !== false && !sending && (messages.length === 0 || messages[messages.length - 1].role === 'assistant') && (
-              <div style={{
-                alignSelf: 'stretch',
-                display: 'flex', flexWrap: 'wrap', gap: 6,
-                paddingTop: messages.length === 0 ? 0 : 4,
-              }}>
-                {SUGGESTIONS.map((s, i) => (
-                  <button key={i} onClick={() => send(s)} disabled={sending}
-                    style={{
-                      background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-                      color: C.tx, borderRadius: 0, padding: '6px 12px',
-                      fontFamily: FB, fontSize: 12, cursor: 'pointer',
-                      whiteSpace: 'nowrap', flexShrink: 0,
-                    }}>{s}</button>
-                ))}
-              </div>
+              // the prompts as equal cells, two to a row (5.10 #574); sentences, so body font and no caps
+              <ChipGrid prose value={null} cols={2} style={{ alignSelf: 'stretch', marginTop: messages.length === 0 ? 0 : 4 }}
+                items={SUGGESTIONS.map((s, i) => ({ k: i, label: s, tone: C.tx, disabled: sending, onClick: () => send(s) }))} />
             )}
           </div>
 

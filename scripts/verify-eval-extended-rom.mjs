@@ -29,7 +29,9 @@ near('signed knee: hyperextended (ankle back) -> −90', signedDeviationAt(lm({ 
 
 // signed L-knee at a chosen signed value v (deg): ankle rotated off straight
 const kneeAnkle = (v) => P(Math.sin(v * D), 1 + Math.cos(v * D));   // v>0 flexion / v<0 hyperext
-const kneeFrames = (seq) => seq.map((v, i) => frame(i * 50, { 23: P(0, 0), 25: P(0, 1), 27: kneeAnkle(v) }));
+// side-on: the far hip sits behind the near one along the camera depth (10.10: the knee is now read
+// in the plane perpendicular to the hip line, so a fixture with both hips on one point has no plane)
+const kneeFrames = (seq) => seq.map((v, i) => frame(i * 50, { 23: P(0, 0), 24: { x: 0, y: 0, z: 0.2, visibility: 1 }, 25: P(0, 1), 27: kneeAnkle(v) }));
 
 // ── extendedJointRom: knee over-extension, calibrated by a real flexion sweep ──
 {

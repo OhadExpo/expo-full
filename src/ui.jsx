@@ -1,7 +1,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, FH } from './theme';
 import { lockBodyScroll } from './scrollLock';
+import { isHebrew } from './script';
 // Section and dialog titles are shared by every screen, so translating them
 // HERE covers the whole app at once. tr() falls back to the input string when
 // there is no key, so a title that is DATA (an athlete's name in a modal)
@@ -1522,7 +1523,7 @@ export function ScrollFade({ children, style, className }) {
 // re-renders the page (27.9 review). Direction-aware: RTL trails left.
 export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
   React.useEffect(() => {
-    let el = null, t = 0, ro = null, lastActive = null, alive = true;
+    let el = null, t = 0, ro = null, lastActive = null, alive = true, scrolling = false, selfScroll = false;
     const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
     const apply = (w, lw, lx, rtl) => {
       if (!el) return;
@@ -1530,8 +1531,13 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         const v = w || lw ? (rtl ? `inset(0 ${lw}px 0 ${w}px)` : `inset(0 ${w}px 0 ${lw}px)`) : '';
         if (el.style.clipPath !== v) el.style.clipPath = v;
       }
+      // a write only when the plate actually changes (9.10 #621/#625: every scroll event rewrote
+      // both plates - six style writes per gesture on the club and demo menus, each a visible pop)
       const put = (p, width, side, off) => {
         const n = p && p.current; if (!n) return;
+        const want = width ? `${width}|${side}|${off}` : 'none';
+        if (n.__rtm === want) return;
+        n.__rtm = want;
         if (!width) { n.style.display = 'none'; return; }
         n.style.display = 'block'; n.style.width = `${width}px`;
         n.style.left = ''; n.style.right = '';
@@ -1541,7 +1547,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
       put(leadRef, lw, rtl ? 'right' : 'left', lx);
     };
     const measure = () => {
-      if (!alive) return;
+      if (!alive || scrolling) return;   // never mid-gesture (the poll, a font load) - settle measures
       // follow the ref, not the element first seen: the rail can be re-created
       // (a sub-tab tap remounts it), and it can mount after the data loads
       const cur = ref && ref.current;
@@ -1570,7 +1576,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
           const sp = parseFloat(getComputedStyle(el).scrollPaddingInlineStart) || 0;
           const s0 = pr ? ledge : (rtl ? r.right - sp : r.left + sp);
           const whole = rtl ? (a.right <= s0 + 1 && a.left >= edge - 1) : (a.left >= s0 - 1 && a.right <= edge + 1);
-          if (!whole) { el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
+          if (!whole) { selfScroll = true; el.scrollTo({ left: el.scrollLeft + (rtl ? a.right - s0 : a.left - s0), behavior: 'instant' }); setTimeout(measure, 0); return; }
         }
       }
       let w = 0, lw = 0;
@@ -1586,9 +1592,25 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
       const lx = Math.round(rtl ? r.right - ledge : ledge - r.left);
       apply(Math.ceil(w), Math.ceil(lw), lx, rtl);
     };
-    // every scroll event (no state, so it is cheap) and once more after it
-    // settles - snap lands a few frames after the last event
-    function later() { measure(); clearTimeout(t); t = setTimeout(measure, 140); }
+    // WHILE THE FINGER MOVES, NOTHING IS MEASURED OR WRITTEN (9.10 #621/#625, Ohad: "Top menu is
+    // lagging"): the first scroll event releases the mask once (plates hidden, clip cleared), the
+    // items slide freely, and 140ms after the last event - when snap has landed - it is measured
+    // and applied once. A resize still measures straight away.
+    // The settle has its OWN timer: a resize / observer callback that shared it cleared the
+    // settle and left the rail 'scrolling' for good - nothing was ever applied again (the demo
+    // menu sat sliced from first load, caught by verify-rail-scroll-smooth).
+    let ts = 0;
+    function later(e) {
+      if (e && e.type === 'scroll') {
+        // our own instant scroll to the active item is not a finger: measure, do not release (1008o review)
+        if (selfScroll) { selfScroll = false; if (!scrolling) { measure(); return; } }
+        if (!scrolling) { scrolling = true; apply(0, 0, 0, false); }
+        clearTimeout(ts); ts = setTimeout(() => { scrolling = false; measure(); }, 140);
+        return;
+      }
+      if (scrolling) return;   // the settle will measure
+      measure(); clearTimeout(t); t = setTimeout(measure, 140);
+    }
     measure();
     window.addEventListener('resize', later);
     const t2 = setTimeout(measure, 700);   // fonts land after first paint
@@ -1598,12 +1620,117 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     // what the user does.
     const iv = setInterval(() => { if (window.innerWidth <= maxWidth && document.visibilityState === 'visible') measure(); }, 1000);
     return () => {
-      alive = false; clearTimeout(t); clearTimeout(t2); clearInterval(iv);
+      alive = false; clearTimeout(t); clearTimeout(ts); clearTimeout(t2); clearInterval(iv);
       window.removeEventListener('resize', later);
       if (el) { el.removeEventListener('scroll', later); if (clip) el.style.clipPath = ''; }
       if (ro) ro.disconnect();
     };
   }, [ref, items, lead, maxWidth, active, clip, trailRef, leadRef]);
+}
+
+// ONE CHIP GRID FOR EVERY GROUP OF FILTER / KIND / TOGGLE CHIPS (5.10 #574,
+// Ohad: "button/tag layout looks awful ... massive sweep to all over our
+// platforms"). The groups were wrapping flex rows of boxed buttons: ragged
+// rows, every chip its own width, 24-34px tall beside 36px controls. This is
+// the EXPO twin of BhbcView's KindChips: a segmented grid of EQUAL cells
+// joined by hairlines (.hl-grid draws each line as a cell edge so it is one
+// whole pixel, 27.9 #300), every cell --btn-h tall, the count beside the
+// word inside the cell, the active cell FILLED the way Segmented fills its
+// active tab (DNA rule 01: solid cyan + white). Desktop: one row (or `cols`).
+// Phone (<=620): 2 or 3 equal columns so every row is full; with a count that
+// fills neither, the first chip takes the whole first row and the rest fill
+// two columns under it - never an empty cell (27.9).
+//   items: [{ k, label, n, color, active, onClick, title, disabled, dim }]
+//     n       a count, set beside the word in tabular figures
+//     color   the fill for THIS chip when active (OPEN red, FIXED green);
+//             default is the brand cyan
+//     active  / onClick  override the value/onChange pair for one chip, so a
+//             toggle (ERRORS ONLY) can sit in the same grid as a filter;
+//             onMouseDown passes through (the task composer picks on mousedown
+//             so its title field keeps the focus)
+//     dim     a chip with nothing behind it (a form with no responses)
+//     tone    the resting text colour, where muted grey is wrong: an action
+//             chip (TEST) keeps its cyan, a chip on a 3D canvas stays white
+//   value     the active key, or a Set/array of keys for a multi-select
+//   soft      active = cyan wash + cyan text instead of a solid fill, where a
+//             solid fill was ruled too loud (the NEXT workout day)
+//   prose     a sentence, not a label: body font, no caps, may wrap
+//   cols      desktop columns (default: one row); the first chip spans the
+//             first row when the count leaves one cell short of full rows
+//   phoneCols phone columns, where the 2/3 rule would cut a label (data
+//             titles of any length, like the intake forms: one per row)
+// A PHONE-WIDTH SWITCH for screens that show a table on a desktop and cards on a phone (#619)
+export function usePhone(max = 600) {
+  const q = `(max-width: ${max}px)`;
+  const [m, setM] = React.useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  React.useEffect(() => { const mq = window.matchMedia(q); const on = () => setM(mq.matches); if (mq.addEventListener) { mq.addEventListener('change', on); return () => mq.removeEventListener('change', on); } mq.addListener(on); return () => mq.removeListener(on); /* Safari < 14 */ }, [q]);
+  return m;
+}
+
+// JOINED BUTTONS - a group of actions is ONE equal-cell grid, a hairline between, the colour in
+// the words (his 5.10 rule; 9.10 #619: Classify / Cleanup / Matching had lone boxes of different
+// widths stacked). items: [{ label, onClick, disabled, tone: 'accent' | 'danger' | 'muted' }].
+// vertical: one column (a side stack on desktop); className lets a page re-flow it on a phone.
+const JB_TONE = { accent: C.ac, danger: C.rd, muted: C.tm };
+export function JoinedButtons({ items, vertical = false, maxWidth = 560, className = '', style = null }) {
+  const list = (items || []).filter(Boolean);
+  return (
+    <div className={`joined-buttons${className ? ' ' + className : ''}`} style={{ display: 'grid', gridTemplateColumns: vertical ? 'minmax(0, 1fr)' : `repeat(${list.length}, minmax(0, 1fr))`, gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, maxWidth, ...style }}>
+      {list.map((it, i) => (
+        <button key={i} type="button" onClick={it.disabled ? undefined : it.onClick} disabled={!!it.disabled} title={it.title}
+          style={{ height: 36, minWidth: 0, padding: '0 12px', border: 'none', borderRadius: 0, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: it.disabled ? 'default' : 'pointer', color: it.disabled ? 'var(--c-td)' : (JB_TONE[it.tone] || C.tx) }}>
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ChipGrid({ items, value, onChange, cols = null, phoneCols = null, soft = false, prose = false, ariaLabel, className = '', style = null, cellStyle = null }) {
+  const list = items || [];
+  const n = list.length;
+  const desk = Math.max(1, Math.min(n, cols || n));
+  const deskSpan = desk < n && n % desk === 1;
+  const phone = phoneCols || (n <= 3 ? n : n % 3 === 0 ? 3 : 2);
+  const phoneSpan = !phoneCols && n > 3 && n % 3 !== 0 && n % 2 !== 0;
+  const isOn = (it) => it.active != null ? !!it.active
+    : value instanceof Set ? value.has(it.k)
+    : Array.isArray(value) ? value.includes(it.k)
+    : value === it.k;
+  return (
+    <div role="group" aria-label={ariaLabel} className={`chip-grid hl-grid${className ? ' ' + className : ''}`}
+      data-deskspan={deskSpan ? '' : undefined} data-allspan={phoneSpan ? '' : undefined}
+      style={{ display: 'grid', gridTemplateColumns: `repeat(${desk}, minmax(0, 1fr))`, '--cg-phone': phone, border: '1px solid var(--c-cardBd)', boxSizing: 'border-box', minWidth: 0, ...style }}>
+      {list.map((it) => {
+        const on = isOn(it);
+        const he = typeof it.label === 'string' && isHebrew(it.label);
+        const fill = it.color || '#39BDFF';
+        const bg = !on ? 'transparent' : soft ? (it.color ? `color-mix(in srgb, ${it.color} 12%, transparent)` : 'rgba(57,189,255,0.094)') : fill;
+        const fg = !on ? (it.tone || 'var(--c-tm)') : soft ? (it.color || 'var(--c-ac)') : '#FFFFFF';
+        return (
+          <button key={it.k} type="button" aria-pressed={on} disabled={it.disabled} title={it.title}
+            onClick={it.onClick || (onChange ? () => onChange(it.k) : undefined)} onMouseDown={it.onMouseDown}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              // the box is pinned at --btn-h; a sentence may grow past it only when it wraps
+              height: prose ? 'auto' : 'var(--btn-h)', minHeight: 'var(--btn-h)', minWidth: 0, boxSizing: 'border-box',
+              padding: prose ? '6px 10px' : '0 10px', margin: 0,
+              fontFamily: he ? FH : prose ? FB : FN,
+              // Hebrew inside the same box reads +3px (Heebo's smaller cap height, the box never moves)
+              fontSize: prose ? 12 : he ? 13 : 10, fontWeight: prose ? 500 : 700,
+              letterSpacing: he || prose ? 0 : '0.1em', textTransform: prose ? 'none' : 'uppercase',
+              lineHeight: prose ? 1.3 : 1, whiteSpace: prose ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              color: fg, background: bg, border: 'none', borderRadius: 0,
+              cursor: it.disabled ? 'default' : 'pointer', opacity: it.dim ? 0.55 : 1,
+              ...cellStyle,
+            }}>
+            {it.label}
+            {it.n != null && <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75, flexShrink: 0 }}>{it.n}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 // A segment label: the full word, or - only when the full word would not fit

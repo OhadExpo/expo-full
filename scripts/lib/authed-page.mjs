@@ -83,6 +83,10 @@ export async function signIn(page, base) {
 
 async function signInOnce(page, base) {
   await page.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+  // A GATE RUN SAYS SO (9.10 #604): every gate signed in as the owner wrote
+  // "opened the club zone" into his BHBC activity trail - 85 lines in one day,
+  // his trail mostly my noise. The zone skips that line when this is set.
+  await safeEval(page, () => { try { localStorage.setItem('expo-gate-run', '1'); } catch { /* storage blocked */ } return true; });
   await wait(3000);
 
   const already = await safeEval(page, () => document.body.innerText.slice(0, 400));

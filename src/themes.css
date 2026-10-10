@@ -940,6 +940,18 @@ select.task-select {
   background-image: none !important;
   padding-right: 8px !important;
 }
+/* A RIGHT-TO-LEFT SELECT MIRRORS ITS CHEVRON (9.10 #619): in Hebrew the arrow stayed on the
+   right, against the value, with the 30px gap on the wrong side. :dir(rtl) = only a select
+   whose own direction is RTL; an LTR select inside a Hebrew screen keeps the right side. */
+select:dir(rtl) {
+  background-position: left 12px center !important;
+  padding-right: 10px !important;
+  padding-left: 30px !important;
+}
+select.task-select:dir(rtl) {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
 
 /* ========================================================================
    THEME CROSS-FADE (Ohad 2026-08-26: "it switches in a weird glitchy way,
@@ -1729,6 +1741,17 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 /* ...except a dropdown's ITEMS opened from a strip control: a menu row is a
    36px control, not a strip button (4.10 review: the demo status menu shrank to 26) */
 .title-strip .motion-menu button { min-height: 36px !important; height: auto !important; }
+/* A STRIP BUTTON IS ONE SIZE ON EVERY DEVICE (10.10 #650, Ohad: "on mobile ... the buttons on the
+   title box almost touch the borders ... matching size to all types of matching buttons all over
+   the platforms"). 32 inside a 41px strip left 4.5px above and below. Inside a strip the nested
+   height is 26 on touch too (7.5px above, 7.5px below - the desktop's own geometry), and the
+   finger keeps its 32: an invisible 3px band above and below every strip button. */
+@media (pointer: coarse) {
+  .title-strip, .prog-striphdr { --btn-h-in: 26px; }
+  .title-strip button:not(.motion-menu button), .prog-striphdr button { position: relative; }
+  .title-strip button:not(.motion-menu button)::after, .prog-striphdr button::after { content: ''; position: absolute; inset: -3px 0; }
+  /* (a strip button that a phone stacks BELOW the strip - [data-strip-actions] - is a 36px page control: untouched) */
+}
 /* the demo's Online Now, shut: the strip IS the card (no 12px band under it) */
 .cd-online.alert-sev .title-strip[aria-expanded="false"] { margin-bottom: -1px !important; }
 
@@ -1750,6 +1773,8 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 620px) {
   .bhbc-hist-chips { grid-template-columns: repeat(var(--hc-phone, 2), minmax(0, 1fr)) !important; }
   .bhbc-hist-chips[data-allspan] > :first-child { grid-column: 1 / -1; }
+  /* a history entry's edit form on a phone: date + minutes, then Save + Cancel under them (5.10 #576) */
+  .bhbc-edit-form { grid-template-columns: minmax(0, 1fr) 88px !important; }
 }
 
 /* BHBC player stats: a real table at every width, the name column pinned (27.9) */
@@ -1818,6 +1843,22 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .hl-rows { gap: 0 !important; }
 .hl-rows > * + * { border-top: 1px solid var(--c-cardBd); }
 
+/* ONE CHIP GRID (5.10 #574, ui.jsx ChipGrid): the EXPO twin of the BHBC
+   history filter above. Desktop keeps the caller's columns; with a count one
+   short of full rows the first chip spans the first row. On a phone the grid
+   re-flows to 2 or 3 equal columns (--cg-phone) and the desktop span is
+   dropped first, so a 9-chip grid asked for 2 desktop columns does not keep
+   its spanning first cell over 3 phone columns. The inline background is
+   `transparent`, so the hover wash needs !important to land. */
+.chip-grid[data-deskspan] > :first-child { grid-column: 1 / -1; }
+.chip-grid > button:not([aria-pressed="true"]):not(:disabled):hover { background: color-mix(in srgb, currentColor 10%, transparent) !important; }
+@media (max-width: 620px) {
+  .chip-grid { grid-template-columns: repeat(var(--cg-phone, 2), minmax(0, 1fr)) !important; }
+  /* same specificity as the desktop span rule above, so the later one wins here */
+  .chip-grid[data-deskspan] > :first-child { grid-column: auto; }
+  .chip-grid[data-allspan] > :first-child { grid-column: 1 / -1; }
+}
+
 /* A trip leg on a phone: direction + when on one row, where on the row under
    it, starting under the date (27.9 #300). */
 @media (max-width: 480px) {
@@ -1876,7 +1917,8 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 @media (max-width: 1199px) {
   .em-card { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; gap: 12px !important; }
   .em-card > .em-head, .em-card > .em-sugg { flex: none !important; width: 100%; }
-  .em-actions { display: grid !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px !important; }
+  /* one joined row (JoinedButtons): hairline gap, full width - 9.10 */
+  .em-actions { display: grid !important; grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px !important; width: 100% !important; align-self: stretch !important; }
 }
 
 
@@ -2062,18 +2104,8 @@ select.avail-select:dir(rtl) {
   .cal-sync-row > .cal-sync-msg { order: 3; flex-basis: 100%; }
 }
 
-/* FORM-VIDEO TOOLBAR when it is narrow (#358): the left group takes the first
-   line whole (the speeds as equal segments), the middle and right groups drop
-   to the next line in their own columns - the middle stays centred, the right
-   stays on the edge. By the BAR's width (.fv-bar is the container): a phone and
-   a desktop portrait clip (the bar capped to the video's 380) read the same. */
-@container (max-width: 500px) {
-  .fv-toolbar > .fv-left { grid-column: 1 / -1; }
-  .fv-toolbar > .fv-mid { grid-column: 2; }
-  .fv-toolbar > .fv-right { grid-column: 3; }
-  .fv-toolbar > .fv-speeds { width: 100%; }
-  .fv-toolbar > .fv-speeds > button { flex: 1 1 0; padding: 0 !important; }
-}
+/* the form-video toolbar's narrow-width rules went with the toolbar: the #563
+   control deck is equal cells at every width (5.10). */
 
 /* the athlete page's club log (#453): date | type | minutes | note on a wide screen;
    on a phone the note takes the whole second line, words never split */
@@ -2130,11 +2162,16 @@ select.avail-select:dir(rtl) {
   .subtab-scroll { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .subtab-scroll > button { flex: 0 0 auto; }
 }
-/* FOUR SUB-TABS ARE ONE CONTROL ON A PHONE (27.9 #304): equal cells
-   that always fit - nothing scrolls, so nothing can be half-shown */
+/* THE SUB-TABS ARE ONE CONTROL ON A PHONE (27.9 #304): equal cells that always
+   fit - nothing scrolls, so nothing can be half-shown. One column PER TAB, not a
+   fixed four (9.10 audit #612: VIDEOS, the 5th since 5.10, dropped to a 2nd row). */
 @media (max-width: 480px) {
-  .subtab-scroll { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible !important; }
-  .subtab-scroll > button { min-width: 0; padding-inline: 2px !important; justify-content: center; text-align: center; }
+  /* five labels need 365px at 12px against 336 at 360 (measured): cells sized to their
+     words, one notch smaller and tighter - one row, no label cut */
+  .subtab-scroll { display: grid !important; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: auto; justify-content: space-between; overflow: visible !important; }
+  /* min-width 32 (10.10 battery): sized to its word, a short Hebrew label (סיווג, ניקוי) was a
+     30px-wide tap target - under the 32 a finger needs; the cells still fit one row */
+  .subtab-scroll > button { min-width: 32px; padding-inline: 2px !important; justify-content: center; text-align: center; font-size: 11px !important; letter-spacing: 0.02em !important; }
 }
 
 /* DASHBOARD ALERT CARDS: side by side they end on ONE bottom edge (#428 rule:
@@ -2167,7 +2204,14 @@ select.avail-select:dir(rtl) {
    label, "S&C ✓ 10′" / Hebrew "כוח ✓ 10′", plus air), CANCEL one width
    (--cx-w), each the chip's full height behind one hairline. A segment tints on
    hover; nothing inside it draws a box. */
-:root { --sc-w: 96px; --cx-w: 76px; }
+:root { --sc-w: 96px; --cx-w: 76px; --wu-w: 112px; }
+/* the columns view stacks a chip's actions one per row (1008z review: three side by side spilled
+   out of a 1/7 column); each row the chip's own height, a hairline between them */
+.bhbc-chip-acts-col > .bhbc-seg { border-inline-start: none !important; width: auto !important; flex: 0 0 auto !important; height: calc(var(--btn-h) - 2px) !important; }
+.bhbc-chip-acts-col > .bhbc-seg + .bhbc-seg { border-top: 1px solid var(--c-cardBd) !important; }
+/* past practices' warm-up + S&C slot: 'S&C 12 min' and two squares need 112px; a phone shows '12′' in 92 */
+:root { --past-sc-w: 112px; }
+@media (max-width: 420px) { :root { --past-sc-w: 92px; } }   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
 .bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
 .bhbc-seg:focus-visible { outline: 2px solid var(--c-ac); outline-offset: -2px; }
@@ -2179,7 +2223,7 @@ select.avail-select:dir(rtl) {
    ~330px of a 250px chip. */
 .bhbc-cancel-btn .cx-icon { display: none; }
 @media (max-width: 480px) {
-  .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none; }
+  .bhbc-chip:has(.bhbc-sc-btn) .bhbc-kind-practice { display: none !important; } /* !important: the kind span carries an inline display for its SegWord measure (5.10 #568) */
   .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn { width: var(--btn-h) !important; font-size: 13px !important; letter-spacing: 0 !important; }
   .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn .cx-full { display: none; }
   .bhbc-chip:not(.bhbc-chip-stacked) .bhbc-cancel-btn .cx-icon { display: inline; }
@@ -2197,7 +2241,10 @@ select.avail-select:dir(rtl) {
    review renders the same card) */
 @media (max-width: 760px){
   .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
-  .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
+  /* the phone pattern (10.10, 1010c review): the card's lines, then REVIEW / DELETE as one full-width
+     joined row under them - absolute at the top-end, the 38px pair covered long day / block names */
+  .wr-day-card{ flex-direction: column !important; align-items: stretch !important; }
+  .wr-day-card > .wr-day-acts{ position: static !important; width: auto !important; margin: 8px 0 0 !important; }
   /* ONE RIGHT EDGE PER CARD. Measured at 390: the video icon sat
      0.8px short of the card's inner edge, the DELETE label 10.8px and
      the set count 19.8px - three staggered right edges down one card.
@@ -2205,7 +2252,7 @@ select.avail-select:dir(rtl) {
      it out of line; drop it and the label lands on the same edge as
      the icon. The set count stays inset because it is a COLUMN with
      the icon after it, not an edge. */
-  .wr-day-card > div:last-child > button:last-child{ padding-inline-end: 0 !important; }
+  /* (the actions are one joined pair since #649 - no trailing padding to trim) */
   /* Mobile: the meta takes its own full-width line and its items (week /
      date / sets / video icon) spread edge-to-edge with even spacing;
      the dot separators hide (the spacing is the separator now). */
@@ -2287,4 +2334,58 @@ select.avail-select:dir(rtl) {
   .bhbc-team-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bhbc-team-sum > :nth-child(odd) { border-inline-start: none; }
   .bhbc-team-sum > :nth-child(n+3) { border-top: 1px solid var(--c-cardBd); }
+}
+
+/* PROGRAMS (4.10 #550/#551): a card strip that WRAPS on a phone puts the status
+   right after ANALYSIS (no reserved box), real and demo alike; an athlete without
+   a club badge has no empty badge slot to push a blank second line */
+@media (max-width: 620px) { .prog-striphdr .prog-recency { min-width: 0 !important; } }
+.prog-badge-slot:empty { display: none; }
+
+/* BOOKING AVAILABILITY RULE ON A PHONE (9.10 audit #612 C8): day + two times + × on one
+   row at 360 left each time box ~70px, and the clock icon covered '09:00'. A tap on a
+   time box opens the phone's own picker, so the icon is dropped there and the digits
+   get its room. */
+@media (max-width: 480px) {
+  input.rule-time::-webkit-calendar-picker-indicator { display: none; }
+}
+
+/* HEBREW IS NOT TRACKED (9.10 audit #612 B8). The labels' letter-spacing (0.08-0.22em) is
+   for Nord capitals; on Hebrew letters it pulls a word apart into separate letters - the
+   side rail already dropped it for that reason (#191). In Hebrew the whole app sets type
+   at 0.02em; Latin capitals inside a Hebrew screen keep a hint of their tracking. */
+/* every Hebrew element, the page AND the portals (modals, drawers, toasts render outside #root - review S1) */
+body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; }
+
+/* MATCHING SUGGESTIONS ON A PHONE (9.10): the name squeezed into four lines beside its
+   video / cues marks, its reason and VIEW. On a phone the name takes the first line and the
+   rest wraps under it. */
+@media (max-width: 600px) {
+  .em-sugg-btn { flex-wrap: wrap !important; row-gap: 6px !important; justify-content: flex-start !important; padding-inline-start: 10px !important; }
+  .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 24px) !important; }
+}
+
+/* THE REVIEW LIST'S RIGHT COLUMN (10.10 #649): REVIEW | DELETE and the strip's ATHLETE PAGE are one
+   width, so the eye reads one column down the page */
+:root { --wr-acts-w: 192px; --wr-acts-gutter: 21px; }
+@media (max-width: 420px) { :root { --wr-acts-w: 168px; --wr-acts-gutter: 23px; } }
+/* the strip's collapse chevron sits right of ATHLETE PAGE; the rows keep the same gutter so the
+   pair's right edge is ATHLETE PAGE's right edge (measured: 21px desktop, 23px phone) */
+.wr-day-acts { margin-inline-end: var(--wr-acts-gutter); }
+
+/* REVIEW TOOLS (10.10 #648): on a phone the five clip choices are one per row, and the workspace is one column (the clip, then the lift, then the tools) */
+@media (max-width: 760px) {
+  /* one choice per row: a dropdown cannot wrap, and two-up cut a Latin exercise name in Hebrew */
+  .rt-picker { grid-template-columns: minmax(0, 1fr) !important; }
+  .rt-work { grid-template-columns: minmax(0, 1fr) !important; }
+  .rt-work > :first-child { position: static !important; }
+}
+/* the recent-clip row: on a wide screen the date has its own column; on a phone two fixed
+   columns (52 + 72) left an exercise name 84px and it broke one word per line (10.10 overflow
+   sweep) - the date moves under the athlete's name and LOAD takes only its word */
+.rt-clip-subdate { display: none; }
+@media (max-width: 480px) {
+  .rt-clip { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .rt-clip-date { display: none; }
+  .rt-clip-subdate { display: inline; }
 }

@@ -13,7 +13,7 @@ const SUPA_KEY = process.env.EXPO_SUPABASE_KEY || 'sb_publishable_i_ifflCFMUF7rX
 function fromFile() {
   try {
     const txt = fs.readFileSync('.env.owner.local', 'utf8');
-    const get = (k) => (txt.match(new RegExp('^' + k + '\s*=\s*(.+)$', 'm')) || [])[1];
+    const get = (k) => (txt.match(new RegExp('^' + k + '\\s*=\\s*(.+)$', 'm')   /* '\s' in a string literal: a plain '\s' was the letter s (5.10) */) || [])[1];
     return { email: (get('EXPO_OWNER_EMAIL') || '').trim(), pw: (get('EXPO_OWNER_PW') || '').trim() };
   } catch { return {}; }
 }

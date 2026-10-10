@@ -29,7 +29,7 @@ const doc = globalThis.document;
 // Every fake video listens for visibility, like the browser pausing it.
 (await import('node:events')).setMaxListeners(100, doc);
 
-const { playThrough, stepThrough, seekTo, withDeadline, visibilityClock } = await import('../src/shotCapture.js');
+const { playThrough, stepThrough, seekTo, withDeadline, visibilityClock, seekBallPass } = await import('../src/shotCapture.js');
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra = '') => { if (cond) { pass++; console.log('  ✓ ' + name); } else { fail++; console.log('  ✗ ' + name + (extra ? '   ' + extra : '')); } };
@@ -230,6 +230,103 @@ console.log('SHOT CAPTURE ON A PHONE\n');
   doc.setHidden(false);
   ok('deadline: hidden time does not expire it', !r2.err, r2.err ? 'expired while hidden' : '');
   vis.dispose();
+}
+
+// 11. The opt-in seek ball pass (ballPass 'seek'). It runs AFTER the pose is
+//     finished, so every way it can fail must leave the shot with its playback
+//     ball: never a throw (except STOP), never a hang, never a half-read span
+//     marked as read.
+{
+  // A ball crossing the frame at 220 px/s - 7 px a frame at 30 fps, so two
+  // consecutive frames difference into a clean disc.
+  const MW = 400, MH = 200;
+  const ballGray = (vid) => {
+    const g = new Uint8Array(MW * MH).fill(30);
+    const cx = Math.round(10 + 220 * vid.currentTime) % MW, cy = 60, r = 3;
+    for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+      if (x >= 0 && x < MW && (x - cx) ** 2 + (y - cy) ** 2 <= r * r) g[y * MW + x] = 220;
+    }
+    return g;
+  };
+  const base = (o = {}) => ({ releases: [1000, 2500], frameDur: FD, duration: 4, readGray: ballGray, mw: MW, mh: MH, ...o });
+
+  scene('ball pass healthy'); let v = new FakeVideo({ duration: 4 }); let run = mkRun();
+  let r = null; let t = await timed((async () => { r = await seekBallPass(v, base({ run })); })());
+  ok('ball pass: healthy - resolves', !t.err, t.err && t.err.message);
+  // '- 2': a 60 ms fake seek can miss once on a loaded machine; the pass tolerates it (minCover).
+  ok('ball pass: healthy - both spans read cleanly', r && r.spans.length === 2 && r.spans.every((sp) => sp.ok && sp.read >= sp.planned - 2), JSON.stringify(r && r.spans));
+  ok('ball pass: samples sit on the source frame clock (k / fps)', r && r.frames.length > 80 && r.frames.every((f) => Math.abs(f.t / (FD * 1000) - Math.round(f.t / (FD * 1000))) < 1e-6), `frames ${r && r.frames.length}`);
+  ok('ball pass: span starts 100 ms before the release', r && r.spans[0].from <= 900 && r.spans[0].from > 860, `from ${r && r.spans[0].from}`);
+  ok('ball pass: the moving ball is a candidate in most frames', r && r.frames.filter((f) => Array.isArray(f.blobs) && f.blobs.length).length >= r.frames.length * 0.8,
+    `${r && r.frames.filter((f) => Array.isArray(f.blobs) && f.blobs.length).length} of ${r && r.frames.length}`);
+  run.vis.dispose();
+
+  scene('ball pass 120 fps'); v = new FakeVideo({ duration: 4, fps: 120 }); run = mkRun();
+  r = await seekBallPass(v, base({ run, frameDur: 1 / 120, releases: [1000] }));
+  const dts = r.frames.slice(1).map((f, i) => f.t - r.frames[i].t);
+  // Every step a whole number of 60 fps steps, the smallest exactly one - a
+  // seek that misses under load leaves a 2-step gap, which is not a coarser read.
+  ok('ball pass: a 120 fps clip is read at 60 (capped), never coarser', dts.length > 50 && Math.abs(Math.min(...dts) - 1000 / 60) < 0.01 && dts.every((d) => Math.abs(d / (1000 / 60) - Math.round(d / (1000 / 60))) < 1e-3), `steps ${JSON.stringify([...new Set(dts.map((d) => d.toFixed(2)))])}`);
+  run.vis.dispose();
+
+  scene('ball pass unseekable'); v = new FakeVideo({ duration: 4, seekNever: true }); run = mkRun();
+  r = null; t = await timed((async () => { r = await seekBallPass(v, base({ run })); })());
+  ok('ball pass: unseekable - does not throw', !t.err, t.err && t.err.message);
+  ok('ball pass: unseekable - every span falls back (why seek)', r && r.spans.every((sp) => !sp.ok && sp.why === 'seek') && r.frames.length === 0, JSON.stringify(r && r.spans));
+  ok('ball pass: unseekable - gives up in bounded time', t.ms < 3000, `${Math.round(t.ms)}ms`);
+  run.vis.dispose();
+
+  scene('ball pass canvas blocked'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+  r = null; t = await timed((async () => { r = await seekBallPass(v, base({ run, readGray: () => { throw new Error('tainted canvas'); } })); })());
+  ok('ball pass: a canvas that cannot be read falls back, no throw', !t.err && r && r.spans.every((sp) => !sp.ok && sp.why === 'read'), t.err ? t.err.message : JSON.stringify(r && r.spans));
+  run.vis.dispose();
+
+  scene('ball pass over budget'); v = new FakeVideo({ duration: 4, seekDelay: 40 }); run = mkRun();
+  let inFlight = 0, overlap = false;
+  const slowGray = (vid) => { inFlight++; if (inFlight > 1) overlap = true; const g = ballGray(vid); inFlight--; return g; };
+  const realSeek = Object.getOwnPropertyDescriptor(FakeVideo.prototype, 'currentTime');
+  r = null; t = await timed((async () => { r = await seekBallPass(v, base({ run, readGray: slowGray, shotBudgetMs: 300 })); })());
+  ok('ball pass: a span over its budget is cut off and falls back', !t.err && r && r.spans.every((sp) => !sp.ok && sp.why === 'deadline' && sp.read < sp.planned), t.err ? t.err.message : JSON.stringify(r && r.spans));
+  ok('ball pass: over budget - the next span still runs, in bounded time', r && r.spans.length === 2 && t.ms < 3000, `${Math.round(t.ms)}ms`);
+  ok('ball pass: over budget - spans never seek the video at the same time', !overlap && !!realSeek);
+  run.vis.dispose();
+
+  scene('ball pass STOP'); v = new FakeVideo({ duration: 4, seekDelay: 20 }); const ac = new AbortController(); run = mkRun({ signal: ac.signal });
+  setTimeout(() => ac.abort(), 150);
+  t = await timed(seekBallPass(v, base({ run })));
+  ok('ball pass: STOP rejects with code aborted, promptly', t.err && t.err.code === 'aborted' && t.ms < 1500, t.err ? `${t.err.code} ${Math.round(t.ms)}ms` : 'resolved');
+  run.vis.dispose();
+
+  // 'seek+det' (10.10 #638): a trained detector's balls join the motion blobs.
+  // A STILL ball (no motion at all) is only seen through the detector; one
+  // below the waist cut is dropped; a detector that throws adds nothing and
+  // never fails the span.
+  {
+    const still = () => new Uint8Array(MW * MH).fill(30);
+    const detAt = (vid) => [{ x: 0.5 + vid.currentTime * 0.01, y: 0.3, w: 0.03, h: 0.03, score: 0.6 }, { x: 0.4, y: 0.95, w: 0.03, h: 0.03, score: 0.9 }];
+    scene('ball pass + detector'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+    r = await seekBallPass(v, base({ run, readGray: still, detect: async (vid) => detAt(vid), cutFor: () => MH * 0.5 }));
+    const withDet = r.frames.filter((f) => Array.isArray(f.blobs) && f.blobs.some((b) => b.det));
+    ok('detector: a still ball is a candidate in every read frame (motion alone sees none)', r.frames.length > 80 && withDet.length === r.frames.length, `${withDet.length} of ${r.frames.length}`);
+    ok('detector: a ball below the waist cut is dropped', r.frames.every((f) => !f.blobs || f.blobs.every((b) => b.y <= 0.5)));
+    // counted per READ frame: two spans can overlap, and the merged list keeps one sample per instant
+    const readN = r.spans.reduce((n, sp) => n + sp.read, 0);
+    ok('detector: counted per read frame (frames, hits)', r.det && r.det.frames === readN && r.det.hits === readN && r.det.errors === 0, `${JSON.stringify(r.det)} read ${readN}`);
+    run.vis.dispose();
+    scene('ball pass + throwing detector'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+    r = await seekBallPass(v, base({ run, detect: () => { throw new Error('gpu lost'); } }));
+    ok('detector: one that throws leaves the motion pass exactly as it was', r.spans.every((sp) => sp.ok) && r.det.errors === r.det.frames && r.frames.every((f) => !f.blobs || f.blobs.every((b) => !b.det)), JSON.stringify(r.det));
+    run.vis.dispose();
+    scene('ball pass no detector'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+    r = await seekBallPass(v, base({ run }));
+    ok('detector: absent -> det is null, motion path unchanged', r.det === null && r.spans.every((sp) => sp.ok));
+    run.vis.dispose();
+  }
+
+  scene('ball pass nothing to do'); v = new FakeVideo({ duration: 4 }); run = mkRun();
+  r = await seekBallPass(v, base({ run, releases: [] }));
+  ok('ball pass: no releases -> no spans, no frames', r.spans.length === 0 && r.frames.length === 0);
+  run.vis.dispose();
 }
 
 console.log(`\nSHOT PHONE STALL: ${pass} passed, ${fail} failed`);

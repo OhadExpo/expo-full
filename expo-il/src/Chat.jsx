@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import ChipGrid from './components/ChipGrid';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -384,21 +385,9 @@ export default function Chat() {
                 Chips refresh under every assistant answer instead of living in a
                 dead strip above the input. */}
             {healthy !== false && !sending && (messages.length === 0 || messages[messages.length - 1].role === 'assistant') && (
-              <div style={{
-                alignSelf: 'stretch',
-                display: 'flex', flexWrap: 'wrap', gap: 6,
-                paddingTop: messages.length === 0 ? 0 : 4,
-              }}>
-                {SUGGESTIONS.map((s, i) => (
-                  <button key={i} onClick={() => send(s)} disabled={sending}
-                    style={{
-                      background: 'transparent', border: `0.25px solid ${C.ac}4D`,
-                      color: C.tx, borderRadius: 0, padding: '6px 12px',
-                      fontFamily: FB, fontSize: 12, cursor: 'pointer',
-                      whiteSpace: 'nowrap', flexShrink: 0,
-                    }}>{s}</button>
-                ))}
-              </div>
+              // the prompts as equal cells, two to a row (5.10 #574); sentences, so body font and no caps
+              <ChipGrid prose value={null} cols={2} style={{ alignSelf: 'stretch', marginTop: messages.length === 0 ? 0 : 4 }}
+                items={SUGGESTIONS.map((s, i) => ({ k: i, label: s, tone: C.tx, disabled: sending, onClick: () => send(s) }))} />
             )}
           </div>
 

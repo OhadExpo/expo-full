@@ -40,6 +40,17 @@
 //     EXCEPT while something is being written (a focused field, or any visible
 //     field holding typed text) and EXCEPT on the athlete portal, where the
 //     pill waits for the tap. Rules A/B (fresh load, navigation) are unchanged.
+//
+// 9.10 (#626), Ohad: "Make sure the platform auto reload (if not in the middle of anything)
+// when they need to update". Two gaps closed:
+//   - an app that STAYS OPEN never asked for a new build (only a URL change did), and a phone
+//     PWA resumed from the background is exactly that. Now: a check every 10 minutes while
+//     visible, and one the moment the app comes back to the foreground;
+//   - R. a RESUME is a fresh load: an update found within 15s of coming back, before any
+//     touch, applies silently (busy rules still win);
+//   - the athlete portal is no longer excluded from the idle rule (27.9: athletes update
+//     "automatically ... instead of asking"); the busy + writing guards cover a workout,
+//     a film, an upload, an unsaved session and a typed note. Public forms stay excluded.
 
 import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -51,7 +62,13 @@ const IDLE_MS = 60000;
 const GRACE_MS = 12000;               // rule 1
 const FRESH_MS = 20000;               // rule A
 const NAG_AFTER_MS = 3 * 24 * 3600 * 1000; // rule 6
-const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll', 'wheel', 'pointerdown'];   // wheel: an inner panel's scroll never reaches window as 'scroll' (1008t review)
+// The last real input since THIS page loaded (0 = none yet), counted from the bundle's first
+// run. Rule A compared against the update effect's own mount time, which is always after the
+// load, so 'no input since the load' was never true and a fresh open with a build waiting
+// stayed on the old one until 60s idle - mid-workout, the whole session (9.10, in prod since 27.9).
+let LAST_INPUT = 0;
+try { ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, () => { LAST_INPUT = Date.now(); }, { passive: true })); } catch { /* no window */ }
 const K_FIRST = 'expo-update-first-seen';   // "<bundle>|<ms>"
 
 // The bundle this page runs: the same pending update stays pending until it is
@@ -85,7 +102,18 @@ export default function SwUpdateBanner() {
       window.__expoLastNav = Date.now();
       try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ }
     }, 800);
-    return () => clearInterval(iv);
+    // #626: a check every 10 minutes while visible, and one on coming back to the foreground
+    const check = () => { try { const p = regRef.current && regRef.current.update && regRef.current.update(); if (p && p.catch) p.catch(() => {}); } catch { /* offline */ } };
+    const ivCheck = setInterval(() => { if (document.visibilityState === 'visible') check(); }, 10 * 60 * 1000);
+    const onResume = () => { if (document.visibilityState === 'visible') { window.__expoResumeAt = Date.now(); check(); } };
+    const onInput = () => { window.__expoLastInput = Date.now(); };
+    document.addEventListener('visibilitychange', onResume);
+    ['pointerdown', 'touchstart', 'keydown'].forEach((e) => window.addEventListener(e, onInput, { passive: true }));
+    return () => {
+      clearInterval(iv); clearInterval(ivCheck);
+      document.removeEventListener('visibilitychange', onResume);
+      ['pointerdown', 'touchstart', 'keydown'].forEach((e) => window.removeEventListener(e, onInput));
+    };
   }, []);
   const [tick, setTick] = useState(0);           // re-evaluates the rules once a second
   const lang = readLang();
@@ -93,8 +121,13 @@ export default function SwUpdateBanner() {
 
   useEffect(() => {
     if (!needRefresh || updating) return;
-    let lastActivity = Date.now();
-    const bumpActivity = () => { lastActivity = Date.now(); };
+    // Two clocks (1008t review SHOULD): rule A asks "touched since the LOAD?" (0 = never);
+    // the idle rule and the embed hold count from NOW, the moment this update was found, as they
+    // always did - with 0 there an untouched page reloaded 1s after an update was found, and with
+    // an earlier input (1008u review) a poster tap 25 min ago no longer held a playing video.
+    let lastActivity = LAST_INPUT;
+    let idleFrom = Date.now();
+    const bumpActivity = () => { lastActivity = Date.now(); idleFrom = lastActivity; };
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, bumpActivity, { passive: true }));
 
     // Rule 5: remember when THIS bundle first saw a pending update.
@@ -128,7 +161,18 @@ export default function SwUpdateBanner() {
     // spent yet) is never a moment to reload: a reload there is one way the
     // return gets lost (27.9 #346).
     const signingIn = () => { try { return /access_token=|[?&]code=/.test(window.location.href) || !!window.sessionStorage.getItem('expo-oauth-hash'); } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn();
+    // 1008o review: a voice note being recorded or not yet sent (audio only - no <video>), and
+    // media playing or an embedded player focused (a YouTube demo: its taps never reach this page)
+    const recordingActive = () => { try { return (window.__expoRecording | 0) > 0; } catch { return false; } };
+    const mediaPlaying = () => { try {
+      if ([...document.querySelectorAll('video, audio')].some((m) => !m.paused && !m.ended && m.readyState > 2)) return true;
+      const a = document.activeElement; if (a && a.tagName === 'IFRAME') return true;
+      // a demo video playing in an embedded player never takes focus (autoplay after the poster
+      // tap), so a visible YouTube/Vimeo player counts too - but only for 20 minutes since the
+      // last input, so a forgotten embed cannot hold an update forever (1008p review)
+      return Date.now() - idleFrom < 20 * 60 * 1000 && [...document.querySelectorAll('iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]')].some((f) => f.getClientRects().length > 0);
+    } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn() || recordingActive() || mediaPlaying();
     // #464: the two places a reload is never taken on its own - something is
     // being written (a focused field, or typed text sitting in any visible
     // field), or the athlete portal (the pill waits for the athlete's tap).
@@ -140,8 +184,10 @@ export default function SwUpdateBanner() {
     } catch { return true; } };
     // ...and the public form pages (#510-R2 M10): a half-filled intake, a contract
     // being signed or a booking being made is never reloaded from under the visitor
-    const onAthletePortal = () => { try { return /^\/(athlete|demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname) || !!document.body.getAttribute('data-athlete-lang'); } catch { return true; } };
-    const autoOk = () => !busy() && !writing() && !onAthletePortal();
+    // #626: the athlete portal now updates on its own when idle (busy/writing still guard it);
+    // the public forms and the demo athlete (its state lives in the page) still never reload.
+    const onPublicForm = () => { try { return /^\/(demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname); } catch { return true; } };
+    const autoOk = () => !busy() && !writing() && !onPublicForm();
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
     const onVis = () => { if (document.visibilityState === 'hidden' && autoOk()) tryUpdate(); };
@@ -157,7 +203,11 @@ export default function SwUpdateBanner() {
     window.addEventListener('keydown', onKey);
     const navAt = window.__expoLastNav || 0;
     const justNavigated = () => Date.now() - navAt < 15000 && lastKey < navAt;
-    if (!forced && (freshNoInput() || justNavigated()) && !busy()) {
+    // Rule R (#626): back in the foreground moments ago and not touched since - like a fresh load
+    const resumeAt = window.__expoResumeAt || 0;
+    const justResumed = () => resumeAt > 0 && Date.now() - resumeAt < 15000 && (window.__expoLastInput || 0) < resumeAt;
+    // a resume never reloads a public form (1008o review MUST: a drawn signature or ticked answers are not 'typed text')
+    if (!forced && (freshNoInput() || justNavigated() || (justResumed() && !onPublicForm())) && !busy() && !writing()) {
       silentApply();
       return () => { ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, bumpActivity)); window.removeEventListener('keydown', onKey); };
     }
@@ -168,7 +218,7 @@ export default function SwUpdateBanner() {
       // a navigation lands on the new build - but never over typed text (AUDIT-470:
       // an upload ending after the coach moved page and started a note reloaded it)
       if (!forced && window.location.pathname !== pathAtFind && !busy() && !writing()) { silentApply(); return; }
-      if (Date.now() - lastActivity >= IDLE_MS && autoOk()) tryUpdate();
+      if (Date.now() - idleFrom >= IDLE_MS && autoOk()) tryUpdate();
     }, 1000);
 
     return () => {

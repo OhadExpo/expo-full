@@ -196,7 +196,7 @@ export const PROGRAMS = [
     tag: 'Powerbuild',
     title: 'PowerBuild',
     titleHe: 'פאוורבילד',
-    tagHe: 'כוח+מסה',
+    tagHe: 'כוח ומסה',   // in words: a '+' beside Hebrew jumps sides in RTL
     audienceHe: 'כוח עם מסה, בלי להתחרות',
     durationHe: '12 שבועות · 4 ימים בשבוע',
     duration: '12 weeks · 4 days/week',

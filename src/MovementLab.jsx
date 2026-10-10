@@ -15,14 +15,14 @@
 // scripts/verify-pose-overlay.mjs); pose bootstrap in usePose.js. This file is
 // capture + presentation. Measures + reports only — no load recommendations.
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, CTRL_H } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import {
   analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps,
   barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, buildPoseReport,
-  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, smoothFramesForDisplay, frameAt,
+  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, stabilizeWorldFrames, frameAt,
 } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift, getLastPoseEntryBefore, saveJumpMetric, getLastJumpBefore } from './poseMetricsStore';
@@ -47,29 +47,33 @@ Object.assign(HE, {
   '3D SKELETON': 'שלד 3D',
   'JOINT ANGLES': 'זוויות מפרקים',
   'Body tracked in {n}% of frames.': 'הגוף זוהה ב-{n}% מהפריימים.',
+  // the camera read (10.10 #639) - native-checked
+  'Camera: side view.': 'מצלמה: מהצד.',
+  'Camera: front or back view.': 'מצלמה: מלפנים או מאחור.',
+  'Camera: about {n}° off a side view - joint angles read best side-on.': 'מצלמה: בערך {n} מעלות מהצד - הזוויות נמדדות הכי טוב מהצד.',
   'Body tracked in {n}% of frames — usable, but film fuller and steadier for sharper numbers.': 'הגוף זוהה ב-{n}% מהפריימים — אפשר לעבוד עם זה, אבל צילום מלא ויציב יותר ייתן מספרים חדים יותר.',
   'Body tracked in only {n}% of frames — treat the numbers as rough. Film the whole body, steady camera, decent light.': 'הגוף זוהה רק ב-{n}% מהפריימים — תתייחס למספרים כהערכה גסה. צלם את כל הגוף, מצלמה יציבה ותאורה סבירה.',
   'Neutral read': 'מדידה ניטרלית',
   'No exercise picked, so reps are not counted. Speed and joint angles below are measured as they are. Pick the exercise to add reps, bar speed per rep, tempo and form.': 'לא נבחר תרגיל, אז החזרות לא נספרות. המהירות וזוויות המפרקים למטה נמדדות כמו שהן. תבחר תרגיל כדי להוסיף חזרות, מהירות מוט לכל חזרה, טמפו וטכניקה.',
   "This lift isn't mapped to a joint, so reps are not counted. Speed and joint angles below are still measured.": 'התרגיל הזה לא משויך למפרק, אז החזרות לא נספרות. המהירות וזוויות המפרקים למטה עדיין נמדדות.',
-  'A hold, or a movement too small or too off-angle for the camera to split into reps. Per-rep speed, tempo and form need counted reps; the traces still show.': 'החזקה, או תנועה קטנה מדי או בזווית לא טובה, והמצלמה לא הצליחה לחלק אותה לחזרות. מהירות לכל חזרה, טמפו וטכניקה צריכים חזרות שנספרו. הגרפים עדיין מוצגים.',
+  'A hold, or a movement too small or too off-angle for the camera to split into reps. Per-rep speed, tempo and form need counted reps; the traces still show.': 'החזקה, או תנועה קטנה מדי או בזווית לא טובה — המצלמה לא הצליחה לחלק אותה לחזרות. בלי חזרות שנספרו אין מהירות לכל חזרה, טמפו וטכניקה. הגרפים עדיין מוצגים.',
   'Side-on, full body in frame, ~2–3m back. Record, or upload a clip — stand still for a second, then jump.': 'מהצד, כל הגוף בפריים, בערך 2–3 מטר אחורה. צלם או תעלה קליפ — עמוד שנייה בלי לזוז, ואז קפוץ.',
   'Side-on, full body in frame, ~2–3m back. Record a set, or upload a clip — keep the whole lift in shot.': 'מהצד, כל הגוף בפריים, בערך 2–3 מטר אחורה. צלם סט או תעלה קליפ — כל התרגיל בתוך הפריים.',
   'Stand still — jump once REC starts.': 'עמוד בלי לזוז — קפוץ כשההקלטה מתחילה.',
   'Get set — recording starts at zero.': 'היכון — ההקלטה מתחילה באפס.',
   '{n} reps lost >15% of range': '{n} חזרות איבדו יותר מ-15% מהטווח',
-  "depth is fading — the last reps aren't the same lift as the first. Fatigue or cheating range.": 'העומק הולך ונעלם — החזרות האחרונות הן כבר לא אותו תרגיל כמו הראשונות. עייפות או קיצור טווח.',
+  "depth is fading — the last reps aren't the same lift as the first. Fatigue or cheating range.": 'העומק הולך וקטן — החזרות האחרונות הן כבר לא אותו תרגיל כמו הראשונות. עייפות או קיצור טווח.',
   'Full range held on every rep.': 'טווח מלא בכל החזרות.',
-  'Dropping fast (~{s}s lowering)': 'יורד מהר (ירידה של ~{s} שניות)',
+  'Dropping fast (~{s}s lowering)': 'יורד מהר (ירידה של בערך {s} שניות)',
   'almost no eccentric control — slow the negative for more stimulus and safer joints.': 'כמעט אין שליטה בירידה — תאט את הירידה בשביל יותר גירוי ומפרקים מוגנים יותר.',
   'Controlled {s}s eccentric.': 'ירידה מבוקרת של {s} שניות.',
   'Last rep {p} slower than the best': 'החזרה האחרונה איטית ב-{p} מהחזרה הכי טובה',
-  'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.': 'אחרי איבוד מהירות של ~20–30% הסט הוא כבר עייפות, לא כוח מתפרץ — תעצור מוקדם יותר אם המטרה היא מהירות.',
-  'Bar speed held ({p}% loss) — quality reps throughout.': 'מהירות המוט נשמרה (איבוד של {p}%) — חזרות איכותיות לאורך כל הסט.',
+  'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.': 'אחרי ירידה של בערך 20–30% במהירות, הסט הוא כבר עייפות ולא כוח מתפרץ — תעצור מוקדם יותר אם המטרה היא מהירות.',
+  'Bar speed held ({p}% loss) — quality reps throughout.': 'מהירות המוט נשמרה (ירידה של {p}%) — חזרות איכותיות לאורך כל הסט.',
   'Stopping high (knee bends to ~{d}°)': 'עוצר גבוה (הברך מתכופפת עד {d} מעלות בערך)',
-  'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.': 'מתחת למקביל זו זווית ברך של בערך 90 מעלות — העומק נחתך. מוביליטי או כוונה.',
+  'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.': 'מתחת למקביל זה בערך 90 מעלות בברך — מקצר עומק. מוביליטי או כוונה.',
   'Hitting depth (below parallel).': 'מגיע לעומק (מתחת למקביל).',
-  'Short lockout (elbow to ~{d}°)': 'נעילה קצרה (המרפק עד {d} מעלות בערך)',
+  'Short lockout (elbow to ~{d}°)': 'נעילה חלקית (המרפק עד {d} מעלות בערך)',
   'not finishing the press — cue full lockout or drop the load.': 'לא מסיים את הלחיצה — תבקש נעילה מלאה או תוריד משקל.',
   'Full lockout at the top.': 'נעילה מלאה למעלה.',
   'Partial pull (elbow only to ~{d}°)': 'משיכה חלקית (המרפק רק עד {d} מעלות בערך)',
@@ -77,9 +81,9 @@ Object.assign(HE, {
   '2D phone pose — angles are approximate. Flags to eyeball, not a medical verdict.': 'תנוחה דו־ממדית מהטלפון — הזוויות משוערות. סימנים לבדיקה בעין, לא קביעה רפואית.',
   "Single-side lift — comparing left vs right in one clip isn't fair (one side is the working side by design). Track the working side over time in the injury trend instead.": 'תרגיל חד־צדדי — השוואה בין שמאל לימין בקליפ אחד לא הוגנת, כי צד אחד עובד בכוונה. תעקוב אחרי הצד העובד לאורך זמן במגמת הפציעות.',
   '2D pose reads in-plane travel only — a real flag is worth screening in person, not a medical verdict.': 'תנוחה דו־ממדית מודדת רק תנועה במישור הצילום — סימן אמיתי שווה בדיקה פנים מול פנים, והוא לא קביעה רפואית.',
-  'In the usual range at this load — nothing here says back off. Train as planned.': 'בטווח הרגיל במשקל הזה — שום דבר כאן לא אומר להוריד. תתאמן כמתוכנן.',
+  'In the usual range at this load — nothing here says back off. Train as planned.': 'בטווח הרגיל במשקל הזה — אין פה סיבה להוריד. תתאמן כמתוכנן.',
   'Reading slightly slow at this load — could be fatigue, could be the camera angle. Confirm before adding load today.': 'קצת איטי במשקל הזה — יכול להיות עייפות, יכול להיות זווית המצלמה. תוודא לפני שאתה מוסיף משקל היום.',
-  'Reading well down at this load. If filming was consistent, the athlete may not be fresh — confirm by feel/RPE before top sets.': 'הרבה מתחת לרגיל במשקל הזה. אם הצילום היה עקבי, ייתכן שהמתאמן לא רענן — תוודא לפי תחושה או RPE לפני הסטים הכבדים.',
+  'Reading well down at this load. If filming was consistent, the athlete may not be fresh — confirm by feel/RPE before top sets.': 'הרבה מתחת לרגיל במשקל הזה. אם הצילום היה עקבי, יכול להיות שהמתאמן לא רענן — תוודא לפי תחושה או RPE לפני הסטים הכבדים.',
 });
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -187,10 +191,25 @@ async function measureVideoFps(v) {
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
-export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null } = {}) {
+export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null, quality = null } = {}) {
   let lm, v;
   try {
-    lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
+    // An explicit `quality` ('lite' | 'full' | 'heavy') overrides the pick below
+    // (5.10 #552): the athlete's own set read runs 'lite' on the phone - 173 ms
+    // a frame against full's 410 on a phone-class CPU. Absent = unchanged.
+    const forced = quality === 'lite' || quality === 'full' || quality === 'heavy' ? quality : null;
+    // THE HEAVY MODEL ON A DESKTOP (5.10 #558, measured on a real squat clip,
+    // audit-out/_pose-score.mjs): frame-to-frame jitter 22 -> 7 mm/frame^2 and
+    // limb-length spread 7.4% -> 4.2% against 'full', for ~3x the time - the
+    // coach reviews at a desk and waits for a clip once. A phone (coarse pointer
+    // or < 8 cores) keeps 'full'; localStorage 'expo-pose-quality' overrides;
+    // a heavy model that fails to load falls back to full.
+    const wantHeavy = forced ? forced === 'heavy' : (() => {
+      try { const o = localStorage.getItem('expo-pose-quality'); if (o === 'heavy' || o === 'full') return o === 'heavy'; } catch { /* private mode */ }
+      try { return !window.matchMedia('(pointer: coarse)').matches && (navigator.hardwareConcurrency || 0) >= 8; } catch { return false; }
+    })();
+    try { lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: forced || (wantHeavy ? 'heavy' : 'full'), numPoses: 5 }); }
+    catch (e) { if (!wantHeavy) throw e; lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 }); }
     v = document.createElement('video');
     if (crossOrigin) v.crossOrigin = 'anonymous';
     v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
@@ -476,7 +495,7 @@ export default function MovementLab({
   // One place turns captured frames into a result, for every capture path.
   const finishFrames = useCallback((frames) => {
     framesRef.current = frames;
-    setDisplayFrames(smoothFramesForDisplay(frames));
+    setDisplayFrames(stabilizeWorldFrames(frames, { plantFeet: false }));   // L/R continuity + steady limbs for the overlay too (5.10 #558); the 2D overlay keeps its image position
     if (mode === 'jump') {
       const j = computeJump(frames, jumpKind);
       setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
@@ -772,7 +791,7 @@ export default function MovementLab({
           <>
             {!romSpec && (
               <Section title={tt('3D SKELETON')}>
-                <Viewer3D frames={framesRef.current} playheadT={playheadRel} />
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
               </Section>
             )}
             <Section title={tt('JOINT ANGLES')}>
@@ -843,6 +862,7 @@ function ReadSummary({ result, movement }) {
         ? <div>{result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount)} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>
         : <div>{tt('Neutral read')} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>}
       {cqLine && <div style={{ color: cq.grade === 'poor' ? C.or : C.tm }}>{cqLine}</div>}
+      {cq && cq.camera && <div style={{ color: cq.camera.view === 'angled' ? C.or : C.tm }}>{cq.camera.view === 'side' ? tt('Camera: side view.') : cq.camera.view === 'front' ? tt('Camera: front or back view.') : tt('Camera: about {n}° off a side view - joint angles read best side-on.').replace('{n}', cq.camera.offSideDeg)}</div>}
     </div>
   );
 }
@@ -909,7 +929,9 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
     { k: 'threeD', label: '3D', on: true },
   ];
   const tabs = view === '3d' ? allTabs.filter(t => t.k === 'threeD')
-    : view === 'metrics' ? allTabs.filter(t => t.k !== 'threeD')
+    // the Review player's metrics keep the 3D tab too (5.10 #556): "a rotatable 3D replay of ANY clip" -
+    // the frames are already captured for the metrics, so it costs nothing more
+    : view === 'metrics' ? allTabs
       : allTabs;
   const neutral = movement === null || result.counted === false;
   return (
@@ -1102,7 +1124,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <Viewer3D frames={frames} playheadT={playheadT} />}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} />}
     </div>
   );
 }
@@ -2288,11 +2310,29 @@ function drawScene3D(canvas, scene) {
   }
 }
 
+// THE ROTATABLE 3D REPLAY (5.10 #556, idea #23): a lit body you can orbit, on
+// the stable skeleton (#558), with front/side/top/behind views, slow motion,
+// the hand and hip paths and true 3D joint angles. three.js is ~600KB, so it
+// loads only when a 3D view opens; until then - and on a device with no WebGL -
+// the light canvas Viewer3D below shows the same skeleton.
+// a stale tab after a deploy cannot fetch the old chunk: fall back to the canvas viewer, never a crash (5.10 review N5)
+const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable(p) { React.useEffect(() => { if (p.onUnsupported) p.onUnsupported(); }, [p]); return null; } })));
+function ThreeDPanel({ frames, playheadT = null, onScrub = null }) {
+  const [fallback, setFallback] = useState(false);
+  if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
+  return (
+    <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
+      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} />
+    </Suspense>
+  );
+}
+
 const PRESET_DEFAULT = { yaw: 0.5, pitch: -0.05 };
 function Viewer3D({ frames, playheadT = null }) {
   const tt = useT();
   const canvasRef = useRef(null);
-  const poseFrames = useMemo(() => smoothFramesForDisplay((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
+  // the stable skeleton (5.10 #558): L/R continuity, one length per bone, feet on the floor
+  const poseFrames = useMemo(() => stabilizeWorldFrames((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
   const maxR = useMemo(() => computeFit(poseFrames), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);

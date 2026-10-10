@@ -3,6 +3,7 @@ import { Analytics, track } from '@vercel/analytics/react';
 import ConsentFrame from './ConsentFrame';
 import { Privacy, Terms, Accessibility } from './Legal';
 import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV } from './theme';
+import ChipGrid from './components/ChipGrid';
 import { PROGRAMS } from './programs';
 import { useT, useLang, setLang } from './i18n';
 import Chat from './Chat';
@@ -766,10 +767,17 @@ function ShareButton({ programId, programTitle, size = 'sm' }) {
   );
 }
 
+// The catalogue in Hebrew says its level and equipment in Hebrew (9.10 audit #612: the
+// /he#/online cards read 'BARBELL · DUMBBELLS · BENCH' beside 'מתחילים'). Native-checked;
+// 'מוט' is his own word (6:0 over 'ברבל' in his exercise notes).
+const LEVEL_HE = { Beginner: 'מתחילים', Intermediate: 'בינוני' };
+const EQUIP_HE = { Barbell: 'מוט', Dumbbells: 'משקולות יד', Bench: 'ספסל', Cables: 'כבלים', Machines: 'מכונות', Bands: 'גומיות', 'Track or open space': 'מסלול או שטח פתוח' };
 function ProgramMeta({ p }) {
+  const [lang] = useLang();
+  const he = lang === 'he';
   const meta = [];
-  if (p.level) meta.push(p.level);
-  if (Array.isArray(p.equipment) && p.equipment.length) meta.push(p.equipment.join(' · '));
+  if (p.level) meta.push(he ? (LEVEL_HE[p.level] || p.level) : p.level);
+  if (Array.isArray(p.equipment) && p.equipment.length) meta.push(p.equipment.map((e) => (he ? (EQUIP_HE[e] || e) : e)).join(' · '));
   if (meta.length === 0) return null;
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -874,6 +882,8 @@ function ProgramCard({ p }) {
 
 function Catalog() {
   const t = useT();
+  const [lang] = useLang();
+  const tagLabel = (tag) => (lang === 'he' ? (PROGRAMS.find((p) => p.tag === tag)?.tagHe || tag) : tag).toUpperCase();
   const tags = uniqueTags(PROGRAMS);
   const [active, setActive] = useState('__all');
   const list = active === '__all' ? PROGRAMS : PROGRAMS.filter(p => p.tag === active);
@@ -891,33 +901,11 @@ function Catalog() {
           {t('catalog.body')}
         </p>
       </div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {tags.map(tag => {
-          const on = active === tag;
-          const label = tag === '__all' ? t('catalog.chip.all') : tag.toUpperCase();
-          // Count of programs in this tag — gives the chip a data signal so
-          // the user knows how many they'll see when they filter.
-          const count = tag === '__all' ? PROGRAMS.length : PROGRAMS.filter(p => p.tag === tag).length;
-          return (
-            <button key={tag} onClick={() => setActive(tag)} style={{
-              ...baseBtn,
-              background: on ? C.acD : 'transparent',
-              color: on ? C.ac : C.tm,
-              border: on ? `1px solid ${C.ac}` : `1px solid ${C.bd}`,
-              padding: '0 12px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', borderRadius: 0,
-              fontSize: 11, fontWeight: 700, letterSpacing: 1,
-              gap: 6,
-            }}>
-              <span>{label}</span>
-              <span style={{
-                fontSize: 9, fontWeight: 700,
-                color: on ? C.ac : C.td,
-                opacity: 0.85,
-              }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* ALL + the tags as one equal-cell grid, the count beside the word (5.10 #574);
+          the active chip keeps this site's cyan wash. Count of programs in a tag
+          gives the chip a data signal so the user knows how many they'll see. */}
+      <ChipGrid soft ariaLabel={t('catalog.badge')} value={active} onChange={setActive} style={{ marginBottom: 24 }}
+        items={tags.map(tag => ({ k: tag, label: tag === '__all' ? t('catalog.chip.all') : tagLabel(tag), n: tag === '__all' ? PROGRAMS.length : PROGRAMS.filter(p => p.tag === tag).length }))} />
       <div style={{
         display: 'grid', gap: 14,
         // auto-fit collapses empty tracks AND `justifyContent: center`

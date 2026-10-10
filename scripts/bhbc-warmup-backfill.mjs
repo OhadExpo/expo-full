@@ -29,7 +29,7 @@
 //   node scripts/bhbc-warmup-backfill.mjs --write    # write + read back
 //   [--since 2026-08-01] [--today 2026-09-29] [--now 23:59]
 import { ownerClient, readStore, writeStore } from './lib/store-client.mjs';
-import { rowKind, buildScRow } from '../src/bhbcSession.js';
+import { rowKind, buildScRow, buildWarmupRow, ownsWarmupRow } from '../src/bhbcSession.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 const WRITE = process.argv.includes('--write');
@@ -40,6 +40,14 @@ const NOW = arg('now', `${pad(nowD.getHours())}:${pad(nowD.getMinutes())}`);
 const SINCE = arg('since', '2026-08-01');
 const MIN = 5;
 const NOTE = 'Dynamic warm-up';
+// THE WARM-UP IS ITS OWN KIND (9.10 #643, Ohad: "S&C is different than dynamic warmup").
+// --kind warmup writes kind:'warmup' rows and drops the old "the day already has S&C" skip
+// (that rule existed only because the warm-up WAS an S&C row). The default stays 'sc' - the
+// old row shape - until the build that reads kind:'warmup' is live; production's code would
+// show a warmup row as 'other'. Either way an athlete who already has a warm-up for the slot
+// (either shape: rowKind reads the old rows as warm-ups) is never given a second one.
+const KIND = arg('kind', 'sc');
+if (KIND !== 'sc' && KIND !== 'warmup') { console.log('--kind must be sc or warmup'); process.exit(1); }
 const BY = 'ohadyproductions@gmail.com';
 
 // ---- the zone's availability rule, ported from BhbcView.jsx (medicalAvailOn / availOn)
@@ -77,7 +85,16 @@ const fixtures = (await readStore(s, 'expo-bhbc-fixtures')) || [];
 const loads = (await readStore(s, 'expo-bhbc-loads')) || {};
 const medical = (await readStore(s, 'expo-bhbc-medical')) || {};
 if (!roster.length) { console.log('the roster is empty - refusing to write'); process.exit(1); }
+// GHOSTS DO NOT PRACTISE (9.10 #637). The zone leaves a ghost (bhbcGhost on the athlete in
+// expo-trainees) out of practices, attendance and the planner; the expo-bhbc-roster copy drops
+// that flag, so the first runs gave a ghost (#22) a warm-up row on 13 practices. Read the flag
+// from expo-trainees and keep ghosts out. No trainee list = refuse, never guess.
+const trainees = (await readStore(s, 'expo-trainees')) || [];
+if (!trainees.length) { console.log('expo-trainees is empty - refusing to write'); process.exit(1); }
+const GHOST = new Set(trainees.filter((t) => t && t.bhbcGhost).map((t) => t.id));
+for (let i = roster.length - 1; i >= 0; i--) if (GHOST.has(roster[i].id)) roster.splice(i, 1);
 
+const firstSeen = (id) => { const rec = loads[id] || {}; const d = [...Object.keys(rec.sessions || {}), ...Object.keys(rec.attendance || {}).map((k) => k.slice(0, 10))].filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort(); return d[0] || null; };
 const happened = (f) => f.date < TODAY || (f.date === TODAY && !!f.start && f.start <= NOW);
 const byDate = {};
 for (const f of fixtures) if (f && f.date && f.date >= SINCE && f.date <= TODAY) (byDate[f.date] = byDate[f.date] || []).push(f);
@@ -92,18 +109,25 @@ for (const date of Object.keys(byDate).sort()) {
   for (const f of practices.filter((x) => x.cancelled)) skipped.cancelled.push(`${date} ${f.start}`);
   if (day.some((f) => (f.type === 'game' || f.type === 'scrimmage') && !f.cancelled)) { skipped.gameDay.push(`${date} (${live.map((f) => f.start).join(', ')})`); continue; }
   const anySc = roster.some((a) => (((loads[a.id] || {}).sessions || {})[date] || []).some((r) => r && r.team && rowKind(r) === 'sc'));
-  if (anySc) { skipped.hasSc.push(date); continue; }
+  if (anySc && KIND === 'sc') { skipped.hasSc.push(date); continue; }
   // the morning of a double day: two (live) practices, the earlier one is out
   const targets = live.length >= 2 ? live.slice(1) : live;
   if (live.length >= 2) skipped.doubleMorning.push(`${date} ${live[0].start}`);
   for (const f of targets) {
     if (!happened(f)) { skipped.notYet.push(`${date} ${f.start}`); continue; }
+    // a coach REMOVED this practice's warm-up (the practice carries noWarmup): it stays removed (1008z review MUST)
+    if (f.noWarmup) { (skipped.removed = skipped.removed || []).push(`${date} ${f.start}`); continue; }
     const slotKey = `${date}|${f.start || ''}`;
     const who = roster.filter((a) => {
       const rec = loads[a.id] || {};
       if (a.arrival && date < a.arrival) return false;
+      // no join date on record (Kagan #41, 9.10): no warm-up before the first day anything was logged
+      // for him - never invent presence the record does not show (asked him for the date, 10.10)
+      if (!a.arrival) { const first = firstSeen(a.id); if (!first || date < first) return false; }
       if (availOn(rec, medical, a.id, date) >= 4) return false;
       if ((rec.attendance || {})[slotKey] === 'out') return false;
+      // already has this practice's warm-up, in either shape - never a second one
+      if ((((rec.sessions || {})[date]) || []).some((r) => ownsWarmupRow(r, f.start || ''))) return false;
       return true;
     });
     if (who.length) plan.push({ date, start: f.start || '', ids: who.map((a) => a.id), names: who.map((a) => a.name) });
@@ -122,7 +146,7 @@ for (const p of plan) {
   for (const id of p.ids) {
     const rec = next[id] || (next[id] = { loads: {}, sessions: {} });
     rec.sessions = rec.sessions || {};
-    rec.sessions[p.date] = [...(rec.sessions[p.date] || []), buildScRow({ min: MIN, start: p.start, teamNote: NOTE, by: BY })];
+    rec.sessions[p.date] = [...(rec.sessions[p.date] || []), (KIND === 'warmup' ? buildWarmupRow({ start: p.start, by: BY }) : buildScRow({ min: MIN, start: p.start, teamNote: NOTE, by: BY }))];
   }
 }
 await writeStore(s, 'expo-bhbc-loads', next);

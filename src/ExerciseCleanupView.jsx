@@ -10,10 +10,10 @@
 // become unresolved and surface in the Matching screen — the designed funnel.
 import React, { useState, useEffect, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { Card, Btn, EmptyState, ConfirmDialog, toast } from './ui';
+import { Card, EmptyState, ConfirmDialog, toast, JoinedButtons, usePhone } from './ui';
 import { normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
-import { useT, useTB } from './i18n';
+import { useT, useTB, readLang } from './i18n';
 
 // Returns { level: 'definite'|'suspicious', reason } or null.
 export function trashVerdict(title) {
@@ -21,9 +21,10 @@ export function trashVerdict(title) {
   if (!t) return { level: 'definite', reason: 'empty title' };
   // A multi-word "<exercises> Superset" is likely a REAL combo (e.g. "KB Swing +
   // Squat Superset") — only bare markers are definite (audit 08-22).
-  if (/superset/i.test(t) && /\w+\s+\w+.*superset/i.test(t) && !/חסר תרגיל|super exercies/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
+  // 'super\s?set' in BOTH tests (1008m review MUST): with only the definite test widened, a real pairing written 'Super Set' skipped this guard and was pre-checked for deletion
+  if (/super\s?set/i.test(t) && /\w+\s+\w+.*super\s?set/i.test(t) && !/חסר תרגיל|super exercies/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
   if (/^[\d\s,.*x×+\-–/%@()]+$/.test(t)) return { level: 'definite', reason: 'set/rep numbers' };
-  if (/superset|חסר תרגיל|super exercies|super exercise/i.test(t)) return { level: 'definite', reason: 'superset marker' };
+  if (/super\s?set|חסר תרגיל|super exercies|super exercise/i.test(t)) return { level: 'definite', reason: 'superset marker' };   // 'Super Set:' (with a space) slipped through (#620)
   if (/warm.?up set|% of (day|last)|of last (week|block)|last week|next week/i.test(t)) return { level: 'definite', reason: 'warmup / % note' };
   if (/\brpe\s*\d/i.test(t)) return { level: 'definite', reason: 'RPE note' };
   if (/^backoff set/i.test(t)) return { level: 'definite', reason: 'backoff prefix' };
@@ -48,6 +49,7 @@ export function trashVerdict(title) {
 export default function ExerciseCleanupView({ exercises = [], setExercises }) {
   const tt = useT();
   const tb = useTB();
+  const phone = usePhone();
   const [plans, setPlans] = useState(null);
   const [checked, setChecked] = useState(null); // Set of ids; null = not initialized
   const [confirm, setConfirm] = useState(false);
@@ -106,14 +108,24 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
       <Card leftStripe={C.or} header={tt('Library Cleanup')}>
         {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
-        <div style={{ marginBottom: 12 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: C.tm }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
-          <Btn variant="ghost" onClick={() => setAll(null, true)}>{tb('Select all')}</Btn>
-          <Btn variant="ghost" onClick={() => setAll(null, false)}>{tb('Clear')}</Btn>
-          <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>{tb('Delete')} {sel.size} {tb('selected')}</Btn>
-        </div></div>
-        <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          {tt('Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises.')} <b style={{ color: C.tx }}>{nDef} {tt('definite')}</b>, <b style={{ color: C.tx }}>{nSus} {tt('suspicious')}</b>. {tt('Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.')}
+        {/* ONE STATS LINE, ONE JOINED ROW OF ACTIONS, A SHORT NOTE (9.10, after #619 on Classify:
+            three boxes of different widths over two rows and a paragraph of capitals) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ ...th, display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 4 }}>
+            <span>{rows.length} {tt('flagged')}</span>
+            {/* plural after a number in Hebrew: 'ודאיים / חשודים' (the row tags keep 'ודאי / חשוד') */}
+            <span style={{ color: C.rd }}>{nDef} {readLang() === 'he' ? (nDef === 1 ? 'ודאי' : 'ודאיים') : tt('definite')}</span>
+            <span style={{ color: C.or }}>{nSus} {readLang() === 'he' ? (nSus === 1 ? 'חשוד' : 'חשודים') : tt('suspicious')}</span>
+            <span style={{ color: sel.size ? C.tx : C.tm }}>{sel.size} {tt('selected')}</span>
+          </div>
+          <JoinedButtons items={[
+            { label: tb('Select all'), onClick: () => setAll(null, true) },
+            { label: tb('Clear'), onClick: () => setAll(null, false), disabled: !sel.size },
+            { label: <>{tb('Delete')}{' '}{sel.size}</> /* tb() is an element - in a template string it printed [object Object] */, onClick: () => setConfirm(true), disabled: !sel.size, tone: 'danger' },
+          ]} />
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560 }}>
+            {tt('Pre-checked: definite, in no plan, no video or cues. Deleting sends any plan row that used one to Matching.')}
+          </div>
         </div>
       </Card>
 
@@ -130,6 +142,25 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
               minWidth was 420, which is only 32px more than the fixed tracks, so
               the 1fr title column got 28px and a superset name lost 333px of
               itself. 700 leaves the title 312px; the container still scrolls. */}
+          {phone ? (
+            // A PHONE GETS ROWS, NOT A 700px TABLE (9.10, after #619): the box and the whole
+            // title, then why it was flagged, its plan rows and its video/cues on one line
+            <div style={{ marginTop: -12 }} data-allow-copy>
+              {rows.map((r) => (
+                <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '24px minmax(0, 1fr)', columnGap: 10, rowGap: 4, alignItems: 'start', padding: '10px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 18, height: 18, margin: '1px 0 0' }} />
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'break-word', unicodeBidi: 'plaintext', textAlign: readLang() === 'he' ? 'right' : 'left' }}>{r.ex.title || r.ex.t}</span>
+                  <span />
+                  <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 2, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    <span style={{ color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{tt(r.reason)}</span>
+                    <span style={{ color: (r.idRefs + r.titleRefs) ? C.or : C.td }}>{tt('Plan rows')} {Math.max(r.idRefs, r.titleRefs) || 0}</span>
+                    {r.ex.videoLink && <span style={{ color: C.ac }}>▶ {tt('has video')}</span>}
+                    {(r.ex.cues || r.ex.notes) && <span style={{ color: C.tm }}>✎ {tt('has cues/notes')}</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ minWidth: 700, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px', minHeight: 36, boxSizing: 'border-box', alignItems: 'center' /* a header row is a row: 36 (OCD #494: 19) */, borderBottom: `1px solid ${C.bd}`, ...th }}>
             <span /><span>{tt('Title')}</span><span>{tt('Why flagged')}</span><span style={{ textAlign: 'center' }}>{tt('Plan rows')}</span><span style={{ textAlign: 'center' }}>{tt('Has')}</span>
@@ -138,7 +169,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
             {rows.map((r) => (
               <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, alignItems: 'center', padding: '7px 2px', minHeight: 36, boxSizing: 'border-box' /* 30-33 -> 36 (OCD #494) */, borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', opacity: sel.has(r.ex.id) ? 1 : 0.72 }}>
                 <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 15, height: 15 }} />
-                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
+                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'break-word', unicodeBidi: 'plaintext', textAlign: readLang() === 'he' ? 'right' : 'left' /* the order follows the text, the alignment stays the screen's (plaintext makes 'start' follow the title) - with dir=auto a Latin title sat on the left edge of a Hebrew table and was cut */ }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{tt(r.reason)}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: (r.idRefs + r.titleRefs) ? C.or : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Math.max(r.idRefs, r.titleRefs) || '—'}</span>
                 <span style={{ textAlign: 'center', fontFamily: FN, fontSize: 9 }}>
@@ -149,6 +180,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
             ))}
           </div>
           </div>
+          )}
         </Card>
       )}
 

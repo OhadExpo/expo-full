@@ -7,7 +7,7 @@ import { C, FN, FB, FH, uid } from './theme';
 // x-height, missing ascenders/descenders). Same pattern that's already
 // applied to NotesWidget, PlansView, WorkoutReview.
 import { isHebrew } from './script';
-import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection, CaretGlyph } from './ui';
+import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection, CaretGlyph, ChipGrid } from './ui';
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
 import { useT, tr, readLang, dirOfText } from './i18n';
@@ -706,23 +706,19 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                           <div key={p.id} style={{marginTop: bi===0?2:10, paddingTop: bi===0?0:10, borderTop: bi===0?'none':`1px solid ${C.cardBd}`}}>
                             {blocks.length>1 && <div style={{fontFamily:FN,fontSize:10,color:C.td,letterSpacing:'0.08em',marginBottom:6}}>{p.name}</div>}
                             {/* Week to log into — chosen here, before the logger opens. */}
-                            {pw>1 && <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
-                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginInlineEnd:2}}>{tt('LOG INTO')}</span>
-                              {Array.from({length:pw},(_,i)=>i+1).map(wn=>(
-                                <button key={wn} onClick={()=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
-                                  style={{minWidth:32,height:24,boxSizing:'border-box',padding:'0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
-                              ))}
+                            {/* the weeks and the days as equal-cell grids (5.10 #574; the W chips stood
+                                24px beside 36px buttons). CoachDemo's Workouts tab mirrors both. */}
+                            {pw>1 && <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:8}}>
+                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,flexShrink:0}}>{tt('LOG INTO')}</span>
+                              <ChipGrid ariaLabel={tt('LOG INTO')} soft value={selWeek} onChange={(wn)=>setWeekByPlan(m=>({...m,[p.id]:wn}))} style={{flex:'1 1 auto'}}
+                                items={Array.from({length:pw},(_,i)=>i+1).map(wn=>({k:wn,label:`W${wn}`}))} />
                             </div>}
                             {(() => { const nextDay = nextDayInWeek(p, selWeek); return (
-                            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>{(p.dayNames||[]).map((dName,i)=>{
-                              const isNext = i===nextDay;
                               // The next workout gets a subtle tint — like the active/
                               // hovered ATHLETES item in the top nav: faint cyan wash +
-                              // cyan text, NO loud box, NO "NEXT" label.
-                              return <Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i,selWeek)}
-                                title={isNext?'Next workout — the one to do now':undefined}
-                                style={{fontSize:12,padding:"5px 12px",...(isNext?{background:'rgba(57,189,255,0.1)',color:C.ac}:{})}}>▶ {dName}</Btn>;
-                            })}</div>
+                              // cyan text, NO loud box, NO "NEXT" label - so the grid is `soft`.
+                              <ChipGrid ariaLabel={p.name} soft value={nextDay} onChange={(i)=>startWorkout(p,i,selWeek)}
+                                items={(p.dayNames||[]).map((dName,i)=>({k:i,label:`▶ ${dName}`,title:i===nextDay?'Next workout — the one to do now':undefined}))} />
                             ); })()}
                           </div>
                           );

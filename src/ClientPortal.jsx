@@ -13,7 +13,8 @@ import PushToggle from './PushToggle';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
-import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
+import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY, readStoredSession } from './supabase';
+import { subscribe as subscribeNet } from './connectivity';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
 // LAZY, because this is the athlete's phone. A static import of one component
@@ -34,8 +35,10 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
-import { useT as useAppT, tr, readLang } from './i18n';
+import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
+import { resolveStoredUrl } from './storageUrl';
+import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
@@ -121,7 +124,10 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
   // Both columns share ONE font size (driven by the longer value) so SETS and
   // REPS always render at the same size (Ohad), while a long value like
   // "10-20 SEC" still shrinks to fit rather than overflowing.
-  const valFont = Math.max(sStr.length, rStr.length) > 4 ? 15 : 19;
+  // A HOLD (#617 screen check, 10.10): '20 SEC' sat over the label REPS. When the cell is only a
+  // duration (+ an 'e' for each side) the number is the value and SEC the label: 3 SETS x 20 SEC.
+  const timed = rStr.match(/^(\d+(?:\s*[-–]\s*\d+)?)\s*(?:sec|secs|second|seconds|s|שנ׳|שניות)(?![a-z])\.?\s*(e)?$/i);
+  const valFont = Math.max(sStr.length, timed ? timed[1].length + 2 : rStr.length) > 4 ? 15 : 19;
   const col = (val, label) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       <span style={{ fontSize: valFont, color: C.ac, fontWeight: 700, fontFamily: FN, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</span>
@@ -132,7 +138,7 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
       {col(sStr, tt('SETS'))}
       <span style={{ fontSize: 14, color: C.tm, fontWeight: 400, fontFamily: FN, lineHeight: 1 }}>×</span>
-      {col(rStr, tt('REPS'))}
+      {timed ? col(timed[1].replace(/\s+/g, '') + (timed[2] ? ' E' : ''), tt('SEC')) : col(rStr, tt('REPS'))}
     </div>
   );
 }
@@ -359,6 +365,18 @@ function GooglePhotosEmbed({ url }) {
 }
 
 
+// A warm-up's structured sets/reps win over its written rx only when they are the
+// whole prescription: a lone `sets: 11` beside rx '1x12' (one live plan, audit #612
+// B4) showed the athlete a bare '11'. Half-filled fields + an rx = the rx.
+// The week inside a line of text: 'W2' in English, 'שבוע 2' in Hebrew (the coach app's
+// word, audit #612 B5). Its own isolated run - a bare 'שבוע 2' inside an LTR line
+// reorders to '2 שבוע'. Week CHIPS stay 'W2' in both languages (32px cells, as in the coach app).
+function WeekWord({ n, style }) {
+  const he = useHe();
+  return <span dir={he ? 'rtl' : 'ltr'} style={{ unicodeBidi: 'isolate', ...style }}>{he ? `שבוע ${n}` : `W${n}`}</span>;
+}
+const wuStructured = (w) => !!(w && (w.sets || w.reps) && ((w.sets && w.reps) || !w.rx));
+
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 // Completed (ticked) sets across a workout's exercises. The unit of "is this a
 // real workout": a row with 0 is refused by the logger (27.9).
@@ -390,7 +408,7 @@ function UnsavedWorkoutsBanner({ clientId }) {
   const retry = async () => {
     if (retrying) return;
     setRetrying(true);
-    try { await drainQueue(); } catch { /* stays parked; the banner stays */ }
+    try { await drainQueue({ now: true }); } catch { /* stays parked; the banner stays */ }
     setRetrying(false);
   };
   return (
@@ -402,8 +420,141 @@ function UnsavedWorkoutsBanner({ clientId }) {
   );
 }
 
+// ANALYSE MY SET (5.10 #552): the athlete reads his own set on the phone - reps,
+// seconds per rep, range - and the read rides on the form-video slot as
+// `analysis`, saved with the workout (finish() carries it; useSupaStore's
+// ATHLETE_FV_FIELDS merges it, so a re-save of an open log keeps it too).
+//  - The pose engine (MovementLab + poseLab, ~75 KB, and the MediaPipe model)
+//    is imported on TAP, never in the portal's first load.
+//  - The 'lite' model: 173 ms a frame on a phone-class CPU against full's 410.
+//    The pass SEEKS frame by frame (captureClipFrames), so the frame budget is
+//    sized from the clip: ~12 samples a second (a rep is never shorter than
+//    ~0.7 s, so 8+ samples per rep), at least 120, at most 900 - a 20 s set is
+//    240 frames, ~45 s of lite on a phone CPU instead of 600 at the clip's own rate.
+//  - Offline: the MediaPipe WASM and model come from CDNs. The service worker
+//    keeps them (CacheFirst 'mediapipe-v1', src/sw.js) once fetched, so only a
+//    device that never ran pose needs the network - it is told so, up front.
+//  - Never holds Complete or Next: it runs beside the logger, and closing the
+//    logger stops it (aliveRef -> shouldStop).
+//  - Blank > wrong: summarize() keeps every number null on a poor capture and
+//    the card says what to film instead.
+// ?setread=1 / ?setread=0 flips it on this device - so the coach can try it on
+// his own phone without a console (9.10); an athlete never meets the link
+const SET_ANALYSIS_ON = (() => { try {
+  const q = new URLSearchParams(window.location.search).get('setread');
+  if (q === '1') localStorage.setItem('expo-set-analysis', '1');
+  else if (q === '0') localStorage.removeItem('expo-set-analysis');
+  return localStorage.getItem('expo-set-analysis') === '1';
+} catch { return false; } })();
+const SET_READ_REASON = {
+  capture: "The camera didn't catch the movement. Film side-on, whole body in frame.",
+  'too-few-frames': "The camera didn't catch the movement. Film side-on, whole body in frame.",
+  unreadable: "The camera didn't catch the movement. Film side-on, whole body in frame.",
+  'no-reps': 'No reps found in the clip. Film side-on, whole body in frame.',
+  'not-counted': "The camera can't count this exercise yet.",
+  inconsistent: "The reps didn't look like one set - film only the set, side-on, whole body in frame.",
+  // a read from the old whole-clip counter (v1, 9.10): nothing wrong with the clip
+  old: 'An older measure. Analyse the set again.',
+};
+// The clip's length, read from its metadata only (null when the browser cannot
+// say - a MediaRecorder WebM reports Infinity until a full seek).
+function clipSeconds(url, crossOrigin) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    let done = false;
+    const end = (x) => { if (done) return; done = true; clearTimeout(to); try { v.removeAttribute('src'); v.load(); } catch { /* noop */ } resolve(x); };
+    const to = setTimeout(() => end(null), 8000);
+    if (crossOrigin) v.crossOrigin = 'anonymous';
+    v.preload = 'metadata'; v.muted = true;
+    v.onloadedmetadata = () => end(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : null);
+    v.onerror = () => end(null);
+    v.src = url;
+  });
+}
+async function poseFilesCached() {
+  try {
+    if (typeof caches === 'undefined') return false;
+    const urls = (await (await caches.open('mediapipe-v1')).keys()).map((r) => r.url);
+    return urls.some((u) => /pose_landmarker_lite/.test(u)) && urls.some((u) => /@mediapipe\/tasks-vision/.test(u));
+  } catch { return false; }
+}
+function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
+  const tt = useAppT();
+  const lang = React.useContext(LangCtx);
+  const [running, setRunning] = useState(false);
+  const [pct, setPct] = useState(0);
+  const [msg, setMsg] = useState(null);
+  const stopRef = useRef(false);
+  const aliveRef = useRef(true);
+  useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
+  const offline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+  const run = async () => {
+    if (!src || running) return;
+    setMsg(null);
+    if (offline() && !(await poseFilesCached())) { setMsg('The first analysis needs internet.'); return; }
+    stopRef.current = false; setPct(0); setRunning(true);
+    const t0 = Date.now();
+    try {
+      const [{ captureClipFrames }, { analyzeClip }] = await Promise.all([import('./MovementLab'), import('./poseLab')]);
+      // the local preview (blob:) reads as is; a stored clip reads through its signed URL, CORS on
+      const remote = !/^(blob:|data:)/.test(src);
+      const url = remote ? ((await resolveStoredUrl(src).catch(() => null)) || src) : src;
+      const secs = await clipSeconds(url, remote);
+      const maxFrames = setFrameBudget(secs);
+      const frames = await captureClipFrames(url, {
+        crossOrigin: remote, quality: 'lite', maxFrames,
+        onProgress: (p) => { if (aliveRef.current) setPct(p); },
+        shouldStop: () => stopRef.current || !aliveRef.current,
+      });
+      const a = summarizeSet(analyzeClip(frames, title || ''), { title: title || null, fileName: fileName || null, model: 'lite' });
+      if (!aliveRef.current) return;
+      setRunning(false);
+      if (a) onResult({ ...a, ms: Date.now() - t0 });
+    } catch (e) {
+      if (!aliveRef.current) return;
+      setRunning(false);
+      if (e && e.code === 'aborted') return;
+      const m = String((e && e.message) || '');
+      setMsg(offline() ? 'The first analysis needs internet.' : /read that video|no duration/i.test(m) ? "Couldn't open the clip." : 'The analysis failed. Try again.');
+    }
+  };
+  const btn = { height: 36, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const usable = isUsableSetRead(analysis);
+  return <div data-set-analysis style={{ marginTop: 8 }}>
+    {running ? (
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div data-set-analysis-progress style={{ ...btn, flex: 1, cursor: 'default', color: C.tm }}>{tt('ANALYSING… {p}%').replace('{p}', pct)}</div>
+        <button data-set-analysis-stop onClick={() => { stopRef.current = true; }} style={{ ...btn, color: C.tm }}>{tt('STOP')}</button>
+      </div>
+    ) : (
+      <button data-set-analysis-run onClick={run} disabled={!src} style={{ ...btn, width: '100%', opacity: src ? 1 : 0.4 }}>{tt(analysis ? 'ANALYSE AGAIN' : 'ANALYSE MY SET')}</button>
+    )}
+    {msg && <div dir="auto" style={{ marginTop: 6, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'start' }}>{tt(msg)}</div>}
+    {analysis && !running && (
+      <div data-set-analysis-card dir="auto" style={{ marginTop: 8, border: `1px solid ${C.cardBd}`, padding: '10px 12px', textAlign: 'start' }}>
+        <div style={{ fontSize: 11, fontFamily: FN, color: C.tm, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 6 }}>{tt('YOUR SET')}</div>
+        {usable ? (
+          <div data-set-analysis-numbers dir="auto" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 10px', fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>
+            {/* the dot rides with the item after it, so a wrap never leaves one hanging */}
+            <span style={{ whiteSpace: 'nowrap' }}>{countIn(lang, analysis.reps, 'rep')}</span>
+            {analysis.tempoS != null && <span style={{ whiteSpace: 'nowrap' }}><span style={{ color: C.td }}>· </span>{tt('{t} s/rep').replace('{t}', analysis.tempoS)}</span>}
+            {analysis.romDeg != null && <span style={{ whiteSpace: 'nowrap' }}><span style={{ color: C.td }}>· </span>{tt('Range')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{analysis.romDeg}°</span></span>}
+          </div>
+        ) : (
+          <div dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{tt(SET_READ_REASON[(analysis.v || 1) < 2 ? 'old' : analysis.reason] || SET_READ_REASON.capture)}</div>
+        )}
+        {usable && analysis.quality === 'ok' && <div dir="auto" style={{ marginTop: 4, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>{tt('Rough measure. Film steadier, whole body in frame.')}</div>}
+        <div dir="auto" style={{ marginTop: 6, fontFamily: FB, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{tt('Goes to your coach with the workout.')}</div>
+      </div>
+    )}
+  </div>;
+}
+
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
+  // the language the strings render in, from the same context as tt (1008b review:
+  // readLang() reads localStorage, written a render AFTER the portal toggle flips)
+  const heCtx = useHe();
   // A workout in progress: SwUpdateBanner neither shows nor reloads while this
   // is up (Ohad 2026-09-11 - the update notice must never meet a set).
   useEffect(() => { window.__expoWorkoutActive = (window.__expoWorkoutActive | 0) + 1; return () => { window.__expoWorkoutActive = Math.max(0, (window.__expoWorkoutActive | 0) - 1); }; }, []);
@@ -507,6 +658,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [liveCountForEid, setLiveCountForEid] = useState(null);
   const [fbOpenForEid, setFbOpenForEid] = useState(null);   // last-week coach video feedback, per exercise
   const submittingRef = useRef(false);   // guards Complete-Workout against a double-tap minting two workout rows
+  // THE UPLOADS IN FLIGHT, BY SLOT (5.10 #560): { blob, contentType, ext, path,
+  // abort, handedOff }. Complete reads this to hand a clip that is still
+  // uploading (or still compressing) to the blob queue, so the workout row never
+  // waits on a video. See finish().
+  const inflightRef = useRef({});
 
   // Group consecutive exercises sharing the same superset letter.
   // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
@@ -538,6 +694,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return wuCount > 0 ? 'wu0' : 'checkin';
   });
   const [notes, setNotes] = useState(_restoredSession?.notes || editOf?.notes || '');
+  // Complete reads the notes AFTER it waits for a clip's encode (up to minutes):
+  // the state captured when it was tapped missed what was typed meanwhile (9.10 review)
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
   // Readiness check-in (autoregulation) — collected between warm-ups and the
   // first exercise, saved onto the workout. (Ohad: "couldn't see the check-in")
   const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || (editOf?.autoregulation && Object.keys(editOf.autoregulation).length ? editOf.autoregulation : null) || { pain: '', sleep: '', energy: '' });
@@ -1093,8 +1253,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Supabase Storage REST API: POST raw body with Content-Type header.
   // URL/key sourced from src/supabase.js so there's a single
   // change-once point if/when the project is rotated.
-  const uploadWithProgress = (blob, path, contentType, onProgress) => new Promise(async (resolve, reject) => {
+  const uploadWithProgress = (blob, path, contentType, onProgress, inflight = null) => new Promise(async (resolve, reject) => {
     const url = `${SUPA_URL}/storage/v1/object/form-videos/${path}`;
+    // THE SESSION READ IS BOUNDED (5.10 #560): supabase-js guards getSession with
+    // the navigator lock, which this codebase has measured hanging across PWA
+    // tabs - and an upload that never starts looks exactly like one that hangs.
+    // After 3 s the session this device holds in storage is used as is.
+    const readSession = () => Promise.race([
+      supabase.auth.getSession().then((r) => (r && r.data && r.data.session) || null).catch(() => null),
+      new Promise((res) => setTimeout(() => res(readStoredSession()), 3000)),
+    ]);
     // Authenticate as the SIGNED-IN ATHLETE, not with the bundled anon key.
     // The anon key is public (it ships in the bundle), so an anon-authenticated
     // upload let anyone on the internet write to any folder — the source of the
@@ -1108,8 +1276,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // rather than fire an unauthenticated request that's guaranteed to 403.
     let bearer;
     try {
-      let { data } = await supabase.auth.getSession();
-      let s = data?.session;
+      let s = await readSession();
       const expSoon = !s?.expires_at || (s.expires_at * 1000 - Date.now() < 120000);
       if (expSoon) {
         // Try to refresh, then RE-READ the session — a failed refresh (e.g.
@@ -1117,8 +1284,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // before. Reading getSession again gives us the actually-current token
         // and its real expiry to validate below.
         try { await supabase.auth.refreshSession(); } catch { /* offline / refresh failed */ }
-        ({ data } = await supabase.auth.getSession());
-        s = data?.session;
+        s = await readSession();
       }
       // Refuse if the token is missing OR already past its expiry: firing it
       // would 403 server-side, and a generic 403 risks being misclassified
@@ -1165,6 +1331,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (now - lastTick > STALL_MS) fail408('Upload stalled — no progress');
       else if (now - startedAt > ABS_MAX_MS) fail408('Upload timed out');
     }, 3000);
+    // Complete can take this clip over (5.10 #560): the request is cut, and the
+    // blob queue - which already holds the bytes by then - finishes the job.
+    if (inflight) inflight.abort = () => fail408('handed to the offline queue');
+    // Complete may have taken the clip while readSession() waited on the auth
+    // lock (abort was still null then): cut this request at once instead of a
+    // second upload of the same bytes (9.10 review)
+    // (return: abort() on an opened-but-unsent XHR leaves it OPENED, and the
+    // send() below would still push the bytes)
+    if (inflight && inflight.handedOff) { fail408('handed to the offline queue'); return; }
 
     xhr.upload.onprogress = (e) => {
       lastTick = Date.now();
@@ -1216,7 +1391,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // object URL lives and dies with the tab and nothing is uploaded.
       if (localWrites) {
         const localUrl = URL.createObjectURL(file);
-        setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, pendingBlobId: null, videoError: false }; return n; });
+        setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, pendingBlobId: null, videoError: false, analysis: null }; return n; });   // a new clip drops the old clip's read (5.10 #552)
         return;
       }
       toast(tt('Demo mode — uploads disabled'), 'info');
@@ -1246,7 +1421,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const MAX_INPUT_BYTES = 750 * 1024 * 1024;
     if (file.size > MAX_INPUT_BYTES) {
       const sizeMB = Math.round(file.size / 1e6);
-      toast(`Video is ${sizeMB}MB — too large. Max 750MB.\nRecord a shorter clip and try again.`, 'error', { ttl: 8000 });
+      toast(tt('Video is {n}MB — too large. Max 750MB.\nRecord a shorter clip and try again.').replace('{n}', () => sizeMB), 'error', { ttl: 8000 });
       return;
     }
 
@@ -1262,7 +1437,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const compressionAvailable = canCompressVideo();
     if (!compressionAvailable && file.size > SUPA_MAX_BYTES) {
       const sizeMB = Math.round(file.size / 1e6);
-      toast(`Video is ${sizeMB}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.`, 'error', { ttl: 9000 });
+      toast(tt("Video is {n}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.").replace('{n}', () => sizeMB), 'error', { ttl: 9000 });
       return;
     }
 
@@ -1275,7 +1450,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null, videoError:false}; return n; });
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null, videoError:false, analysis:null}; return n; });   // a new clip drops the old clip's read (5.10 #552)
 
     // Hoist these so the catch handler (offline-queue path) can read them.
     // Inside-try-only declarations made the enqueueBlob() call silently
@@ -1285,6 +1460,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     let ext = file.name.match(/\.[^.]+$/)?.[0] || '.mp4';
     let contentType = file.type || 'video/mp4';
     let path = null;
+    // Registered BEFORE compression (5.10 #560): a Complete tapped while the
+    // encoder is still running hands the ORIGINAL file to the blob queue (under
+    // the 50 MB cap it uploads as is; over it the queue says so) rather than
+    // waiting a clip's length for the encode. Kept current below as the blob,
+    // extension and path are decided.
+    // COMPLETE WAITS FOR THE ENCODE, NEVER FOR THE NETWORK (5.10 review B2): a
+    // Complete tapped mid-encode used to hand the ORIGINAL file to the queue -
+    // over 50 MB it was dropped there as too large, under it a raw iPhone clip
+    // went up uncompressed. Now finish() awaits `compressDone` (compression runs
+    // on the phone, no network involved) and hands the compressed clip over.
+    // `settled` resolves when this upload ends either way, with where the clip
+    // went - finish() awaits it only for a clip the queue could not take (S1).
+    let compressResolve = null, settleResolve = null;
+    const inflight = { blob: file, contentType, ext, path: null, abort: null, handedOff: null, compressing: false,
+      compressDone: new Promise((r) => { compressResolve = r; }), settled: new Promise((r) => { settleResolve = r; }), cloudUrl: null, pendingBlobId: null };
+    inflightRef.current[exIdx] = inflight;
+    const handedToQueue = () => Object.assign(new Error('handed to the offline queue'), { handedOff: inflight.handedOff });
 
     try {
       // iPhone hands us .MOV / video/quicktime. Chrome/Edge on desktop refuse
@@ -1296,6 +1488,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         ext = '.mp4';
         contentType = 'video/mp4';
       }
+      inflight.ext = ext; inflight.contentType = contentType;
 
       // Compress if the browser exposes MediaRecorder + captureStream and the
       // file is large enough to be worth re-encoding. Failure here is non-fatal
@@ -1303,6 +1496,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const shouldCompress = compressionAvailable && file.size > 15 * 1024 * 1024;
 
       if (shouldCompress) {
+        inflight.compressing = true;
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'compress'}; return n; });
         // Compression runs at REAL TIME (playbackRate=1 — speeding it up bakes
         // fast-motion into the output), so a 120s clip needs ~120s to encode. A
@@ -1314,6 +1508,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // long-but-progressing encode is allowed to finish.
         const runCompress = async (cOpts) => {
           const ctrl = new AbortController();
+          inflight.abort = () => ctrl.abort();   // Complete can stop the encode (5.10 #560)
           let lastTick = Date.now(); const startedAt = lastTick; let watchdog;
           const STALL_MS = 30_000;       // no progress for 30s ⇒ encoder hung
           const ABS_MAX_MS = 240_000;    // absolute backstop (~120s clip + margin)
@@ -1348,10 +1543,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           ext = result.ext;
           contentType = result.blob.type;
         } catch (compressErr) {
+          if (inflight.handedOff) throw handedToQueue();   // Complete took the clip mid-encode
           console.warn('Compression failed/timed out, uploading original:', compressErr);
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
         }
       }
+      inflight.blob = uploadBlob; inflight.ext = ext; inflight.contentType = contentType; inflight.abort = null;
+      inflight.compressing = false; compressResolve();
+      if (inflight.handedOff) throw handedToQueue();
 
       // FINAL size gate — whatever we're about to ship (compressed or original
       // after a compression failure/timeout) must clear the 50MB server cap,
@@ -1360,7 +1559,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const sizeMB = Math.round(uploadBlob.size / 1e6);
         URL.revokeObjectURL(previewUrl);
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:`${sizeMB}MB > 50MB limit`}; return n; });
-        toast(`Video is ${sizeMB}MB after processing — over the 50MB upload limit.\nKeep the clip under ~2 minutes and try again.`, 'error', { ttl: 9000 });
+        toast(tt('Video is {n}MB after processing — over the 50MB upload limit.\nKeep the clip under ~2 minutes and try again.').replace('{n}', () => sizeMB), 'error', { ttl: 9000 });
         return;
       }
 
@@ -1382,6 +1581,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const ts = Date.now();
       const rand = Math.floor(Math.random() * 1e6).toString(36);
       path = `${clientId}/${ts}-${rand}-form${ext}`;
+      inflight.path = path;
 
       let publicUrl;
       // Tell SwUpdateBanner an upload is in flight so its idle timer doesn't
@@ -1392,9 +1592,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       try {
         const result = await uploadWithProgress(uploadBlob, path, contentType, pct => {
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploadProgress:pct}; return n; });
-        });
+        }, inflight);
         publicUrl = result.publicUrl;
       } catch (xhrErr) {
+        if (inflight.handedOff) throw handedToQueue();   // Complete took the clip mid-upload
         // A definite client-error status (4xx) is PERMANENT — re-throw without
         // attempting the fallback, so the outer catch surfaces it instead of
         // burning a second upload and then queueing a doomed retry.
@@ -1416,9 +1617,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // Switch the video element to the cloud URL BEFORE revoking the preview
       // blob — otherwise the next replay would try to re-fetch a dead blob URL
       // and the video would silently disappear from the player.
+      inflight.cloudUrl = publicUrl;
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, videoUrl:publicUrl, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null, pendingBlobId:null}; return n; });
       URL.revokeObjectURL(previewUrl);
     } catch(err) {
+      // Complete already handed this clip to the blob queue (5.10 #560): the
+      // bytes are in IndexedDB under that id and the saved row points at it.
+      // Nothing to classify, nothing to queue twice - keep the preview playable.
+      if (inflight.handingOff && !inflight.handedOff) { try { await inflight.handingOff; } catch { /* the queue refused it: this catch keeps it */ } }
+      if (inflight.handedOff) {
+        const handed = inflight.handedOff;
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:handed, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
+        return;
+      }
+      // From here this clip saves ITSELF to the queue (or fails): Complete waits
+      // for that (inflight.settled) instead of storing a second copy while the
+      // enqueue below is in progress (9.10 review: two copies, one orphaned for 7 days)
+      inflight.failing = true;
       console.error('Video upload error:', err);
       // If we appear to be offline (or this is a network-shaped error), persist
       // the blob to IndexedDB and let the blob queue replay it once connectivity
@@ -1453,6 +1668,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         try {
           const blobId = newBlobId();
           await enqueueBlob({ id: blobId, blob: uploadBlob, contentType, storagePath: path });
+          inflight.pendingBlobId = blobId;
           if (isAuth) toast('Session expired — sign back in. Your video is saved and will upload once you do.', 'warn', { ttl: 9000 });
           // Keep previewUrl alive — it's the only way to play the recording
           // until the blob queue uploads it. Browser GC reclaims it when the
@@ -1481,7 +1697,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       }
       URL.revokeObjectURL(previewUrl);
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
-      toast(`Video upload failed: ${msg}\nTry again or pick a shorter clip.`, 'error', { ttl: 7000 });
+      toast(tt('Video upload failed: {msg}\nTry again or pick a shorter clip.').replace('{msg}', () => msg), 'error', { ttl: 7000 });
+    } finally {
+      inflight.compressing = false; compressResolve();
+      settleResolve({ cloudUrl: inflight.cloudUrl, pendingBlobId: inflight.pendingBlobId });
+      if (inflightRef.current[exIdx] === inflight) delete inflightRef.current[exIdx];
     }
   };
 
@@ -1523,25 +1743,74 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const existingLog = editOf || findExistingLog(priorWorkouts, { emptyOnly: true });
     const workoutId = workoutIdRef.current || existingLog?.id || uid();
     workoutIdRef.current = workoutId;
+    // THE ROW GOES FIRST, THE VIDEO FOLLOWS (5.10 #560). Complete used to be
+    // replaced by "Video uploading..." for as long as a clip was in flight - on
+    // a dead wifi that is the upload's whole stall budget, with the athlete's
+    // sets waiting behind a 40 MB request. A clip still uploading (or still
+    // being encoded) is handed to the blob queue now - the bytes go to
+    // IndexedDB under a pendingBlobId, the in-flight request is cut - and the
+    // workout row is saved at once with that pointer; the queue uploads the
+    // clip when it can and patches the row. Only a device that cannot keep the
+    // blob (IndexedDB refused) lets the upload run on.
+    // a clip still being ENCODED finishes its encode first (B2): on the phone,
+    // no network involved - then the compressed clip is what the queue gets
+    for (const inf of Object.values(inflightRef.current)) {
+      if (inf && inf.compressing && inf.compressDone) { try { await inf.compressDone; } catch { /* resolved either way */ } }
+    }
+    const handed = {};
+    const unhanded = {};
+    for (const [k, inf] of Object.entries(inflightRef.current)) {
+      const i = Number(k);
+      if (!inf || inf.handedOff || !inf.blob) continue;
+      if (inf.failing) { if (inf.settled) unhanded[i] = inf.settled; continue; }   // its own catch is queuing it
+      try {
+        const blobId = newBlobId();
+        const storagePath = inf.path || `${clientId}/${Date.now()}-${Math.floor(Math.random() * 1e6).toString(36)}-form${inf.ext || '.mp4'}`;
+        // the upload can fail DURING this await: its catch waits on handingOff
+        // to learn whether the queue took the clip, instead of queuing a 2nd copy
+        inf.handingOff = enqueueBlob({ id: blobId, blob: inf.blob, contentType: inf.contentType || 'video/mp4', storagePath });
+        await inf.handingOff;
+        inf.handedOff = blobId;
+        handed[i] = blobId;
+        try { if (inf.abort) inf.abort(); } catch { /* already settled */ }
+      } catch (e) {
+        // the device could not keep the clip (private mode, storage full): the
+        // upload is the only copy, so Complete waits for it (5.10 review S1) -
+        // saving the row without it left the video in storage with nothing
+        // pointing at it
+        try { console.warn('[logger] could not hand the clip to the queue - waiting for its upload:', e?.message || e); } catch { /* no console */ }
+        if (inf.settled) unhanded[i] = inf.settled;
+      }
+    }
+    const landed = {};
+    for (const [k, p] of Object.entries(unhanded)) {
+      try { const r = await p; if (r && r.cloudUrl) landed[k] = r.cloudUrl; else if (r && r.pendingBlobId) handed[k] = r.pendingBlobId; } catch { /* the upload's own catch reported it */ }
+    }
     // Carry pendingBlobId on each form_video entry so the blob queue can find
     // and patch this workout once the upload eventually succeeds. Only the
     // athlete's own fields: the coach's (reviewNotes…) are merged from the
     // SERVER copy at write time (upsertWorkoutRow), never from this device's.
-    const formVideos = fv.map((f) => ({
-      has: f.has,
+    // the slots as they are NOW (the encode wait above can take minutes), and a
+    // video counts only with something to point at - a clip that came out over
+    // the size limit while Complete waited has neither (9.10 review)
+    const formVideos = (fvRef.current || fv).map((f, i) => ({
+      has: !!(f.cloudUrl || landed[i] || handed[i] || f.pendingBlobId),
       note: f.note,
       fileName: f.fileName || null,
-      cloudUrl: f.cloudUrl || null,
-      pendingBlobId: f.pendingBlobId || null,
+      cloudUrl: f.cloudUrl || landed[i] || null,
+      pendingBlobId: landed[i] ? null : (handed[i] || f.pendingBlobId || null),
+      // the athlete's own set read (5.10 #552) - null = none, and an empty field
+      // never blanks the server's (mergeFormVideoSlot)
+      analysis: f.analysis || null,
     }));
     // Attach the now-known workout id to each queued blob, then poke the
     // drainer in case we're online.
-    fv.forEach((f, i) => {
+    formVideos.forEach((f, i) => {
       if (f.pendingBlobId) {
         attachWorkout(f.pendingBlobId, workoutId, i).catch(() => {});
       }
     });
-    if (fv.some(f => f.pendingBlobId)) drainBlobs();
+    if (formVideos.some(f => f.pendingBlobId)) drainBlobs();
     // Capture per-session exercise substitutions so trainer review shows
     // what the trainee actually did, not just what was prescribed. The
     // workout exercise.title reflects the swap when one happened, and
@@ -1556,7 +1825,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
       // A re-saved log keeps the day it was trained and the coach's review mark.
       // (reviewedAt is deliberately absent: the coach's mark is never re-sent.)
-      week: weekNum + 1, date: existingLog?.date || finishedAt, notes, autoregulation: checkin,
+      week: weekNum + 1, date: existingLog?.date || finishedAt, notes: notesRef.current, autoregulation: checkin,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -1673,16 +1942,29 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return () => clearTimeout(t);
   }, [showResumedPill]);
   const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
-    <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:40}}>
-      <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
-      <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
-      {/* Right cluster — one flex box anchored right with marginLeft:'auto',
-          so ← Exit sits on the RIGHT EDGE always (Ohad). Previously only the
-          autosave pill carried the auto-margin, so before the first autosave
-          the Exit button hugged the logo on the left. */}
-      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+    {/* THREE COLUMNS, NOT AN ABSOLUTE LABEL (9.10 #585). The day label used to
+        be absolutely centred on the bar, outside the flow, so nothing could push
+        it aside: a BHBC athlete's crest + EXIT + the save tick printed over
+        "DAY A · W1" at 360, RESUMED did at every width. 1fr | label | 1fr keeps
+        the label exactly centred whenever it fits; when the bar is tight the
+        sides keep their content and the label gives way (ellipsis) - it is
+        never painted over. */}
+    <div style={{display:'grid',gridTemplateColumns:'1fr minmax(0,max-content) 1fr',alignItems:'center',columnGap:8,marginBottom:6,minHeight:40}}>
+      <EXPOMark theme="dark" height={36} style={{flexShrink:0,justifySelf:'start'}} />
+      {/* Only the day's NAME gives way on a tight bar - the week always shows. */}
+      {/* Three flex items - name · week - so the ORDER follows the direction and no
+          inline bidi is involved: dir="auto" makes the row RTL for a Hebrew day
+          name ("יום א · W2", right to left) and LTR for an English one ("Day A ·
+          W2"). As one text run with a joined " · W2" the Hebrew row read
+          "· W2 יום א" (1008b review), and the leading space collapsed ("Day A·").
+          overflow:hidden: on a 320 bar with a crest and many pending uploads the
+          unshrinkable week clips rather than paint over the logo or the cluster. */}
+      <span dir="auto" style={{display:'flex',justifyContent:'center',alignItems:'baseline',columnGap:'0.4em',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><WeekWord n={weekNum+1} style={{flexShrink:0}} /></span>
+      {/* Right cluster — anchored to the right edge of its column, so ← Exit
+          sits on the RIGHT EDGE always (Ohad). */}
+      <div style={{justifySelf:'end',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
-          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
+          <span title={pendingBlobs > 0 ? (pendingBlobs === 1 ? tt('1 video waiting to upload') : tt('{n} videos waiting to upload').replace('{n}', pendingBlobs)) : (sessionAutosave.status === 'error' ? tt('Last save failed — your edits are not safe yet') : tt('Session saved locally'))} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
             {/* Glyphs (✓/⚠/…) aren't in JetBrains Mono → they render in a
                 fallback font with a taller baseline. Splitting the mark into
                 its own flex item lets alignItems:center line it up with the
@@ -1693,15 +1975,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 on top of each other and neither could be read. A failed save is
                 also the most important thing on this screen, so it gets its own
                 full-width strip below instead of a corner it does not fit. */}
-            {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
+            {/* The glyph alone (9.10 #585): "… SAVING" was English inside the
+                Hebrew portal, and with a club crest + EXIT it made the cluster
+                wider than a 360 phone - EXIT was pushed off the screen while a
+                save ran. The colour already says it: saving / ✓ saved / red. */}
+            {sessionAutosave.status === 'saving' ? <span role="img" aria-label={tt('SAVING…')} style={{lineHeight:1}}>…</span> :
              sessionAutosave.status === 'error' ? <span aria-hidden="true" style={{width:7,height:7,borderRadius:'50%',background:'#E0574A',display:'inline-block'}} /> :
              lastSavedAt ? <span style={{lineHeight:1}}>✓</span> : ''}
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
-        {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
-        {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
+        {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt={tt('Bnei Herzliya')} style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
         {/* #472 (AUDIT-470): EXIT during a form-video upload orphaned the clip - the
             upload finished into an unmounted logger (no link) or failed into a queue
             entry with no workout. Leaving mid-upload now asks first. */}
@@ -1718,12 +2003,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* Group dots (one per superset group or solo exercise) */}
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
-    <div style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
+    {/* dir follows the UI language: in the LTR portal shell a Hebrew caption
+        with a RESUMED prefix laid out as "· הופעל מחדש ↻ 2/3 חימום" (9.10) */}
+    <div dir={heCtx ? 'rtl' : 'ltr'} style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
+      {/* RESUMED sat in the right cluster, beside the crest and EXIT. The day
+          label is absolutely centred on the bar (not in the flow), so the wider
+          cluster printed over it: "DAY A · W1" under "RESUMED" at 390 (9.10 #585,
+          the same collision as SAVE FAILED above). It lives on this full-width
+          centred line now, ahead of the step it resumed at. */}
+      {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap'}}>↻ {tt('RESUMED')} · </span>}
       {typeof step==='string'&&step.startsWith('wu') ? `${tt('Warm-Up')} ${parseInt(step.slice(2))+1}/${wuCount}` :
        step==='checkin' ? tt('Check-In') :
        step==='end' ? tt('Complete') :
-       groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
-       `Exercise ${step+1}/${groupCount}`}
+       // Hebrew athletes read "Exercise 1/4" in English on every exercise step
+       // (9.10, measured on /demo/athlete?lang=he) - the warm-up line was the
+       // only one translated.
+       groups[step]?.superset ? (heCtx ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · ${step+1}/${groupCount}` /* no 'Group': the counter is the same step count 'Exercise 2/8' uses (audit #612 B10) */) :
+       `${tt('Exercise')} ${step+1}/${groupCount}`}
     </div></div>;
 
   // ===== WARM-UP STEP =====
@@ -1754,7 +2050,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // them consistent). rx-only warm-ups pass the combined reps token, which
           // SetsRepsHero splits (or shows plainly if it can't).
           let heroSets = '', heroReps = '', tempo = wu.tempo || '';
-          if (wu.sets || wu.reps) {
+          if (wuStructured(wu)) {
             heroSets = wu.sets ?? ''; heroReps = wu.reps ?? '';
           } else {
             const parts = splitPrescription(wu.rx);
@@ -1784,9 +2080,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <StoredVideo src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
-          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
+          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
           <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-            {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
+            {/* one arrow direction through the whole workout (1008b review): the check-in
+                and exercise steps say 'הבא ←', the warm-ups said '… →' */}
+            {`${wi === wuCount - 1 ? tt('Start Check-In') : tt('Next Warm-Up')} ${heCtx ? '←' : '→'}`}</button></div>
       </div></div>;
   }
 
@@ -1803,11 +2101,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
-        {opts.map(([v,l],idx) => {
+        {opts.map(([v,l,heWord],idx) => {
           const on = checkin[field] === v;
           const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
           return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
-            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{tt(l)}</button>;
+            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{heCtx && heWord ? heWord : tt(l)}</button>;
         })}
       </div>
     );
@@ -1815,12 +2113,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
         <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24,unicodeBidi:'plaintext'}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
-        <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
-        <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
-        <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH','חזק'],['moderate','MODERATE','בינוני'],['mild','MILD','קל'],['none','NONE','אין']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{/* each scale agrees with its own noun in Hebrew (שינה / אנרגיה feminine, כאב masculine) - the shared GOOD/HIGH words read 'שינה חלש' (audit #612, native-checked) */}{scale('sleep',[['poor','POOR','גרועה'],['ok','OK','בסדר'],['good','GOOD','טובה'],['great','GREAT','מצוינת']], false)}</div>
+        <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW','נמוכה'],['ok','OK','בסדר'],['good','GOOD','טובה'],['high','HIGH','גבוהה']], false)}</div>
         <div style={{display:'flex',gap:8}}>
-          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
+          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
+          <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('Start Workout →')}</button>
         </div>
       </div></div>;
   }
@@ -1891,7 +2189,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           }}>
             {(() => {
               const nPr = newPRs.filter(p => !p.debut).length, nDeb = newPRs.filter(p => p.debut).length;
-              const heEnd = readLang() === 'he';
+              const heEnd = heCtx;
               const head = nPr ? (heEnd ? `🏆 ${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `🏆 ${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? '✨ רישום ראשון' : '✨ FIRST LOGS');
               const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל חדש' : `${nDeb} תרגילים חדשים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
               return head + tail;
@@ -1915,10 +2213,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* an EMPTY dir="auto" field resolves to LTR, which scrambled the Hebrew
           placeholder's question marks - empty follows the language, typed text
           follows itself */}
-      <textarea dir={notes ? 'auto' : (readLang() === 'he' ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
-      {fv.some(f => f.uploading) ? (
-        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ {tt('Video uploading...')}</button>
-      ) : (
+      <textarea dir={notes ? 'auto' : (heCtx ? 'rtl' : 'ltr')} value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
+      {/* Complete is never replaced by "Video uploading..." any more (5.10 #560):
+          a clip still in flight is handed to the blob queue by finish() and the
+          row saves at once. The athlete is told the clip follows on its own. */}
+      {fv.some(f => f.uploading) && (
+        <div dir="auto" data-upload-background style={{marginBottom:12,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{fv.some(f => f.uploading && f.phase === 'compress') ? tt('Preparing your video on the phone — Complete waits for it, then the upload carries on in the background.') : tt('Video uploading in the background — you can keep going.')}</div>
+      )}
+      {(
         <>
           {finishState === 'zero' && countDoneSets(allSets.map(sets => ({ sets }))) === 0 && countFilledUnticked(allSets) === 0 && !hasAttachedVideo() && (
             <div role="alert" dir="auto" data-finish-refused="zero" style={{marginBottom:12,padding:'10px 12px',border:`1px solid ${C.rd}`,color:C.rd,fontFamily:FB,fontSize:13,lineHeight:1.5,textAlign:'start'}}>
@@ -1996,6 +2298,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wrS = ex.wkS?.length > 0 ? pickWk(ex.wkS, weekNum, ex.s) : null;
     const setsForDisplay = wrS ?? ex.s;
     const repsForDisplay = wr ?? ex.r;
+    // A TIMED HOLD LOGS SECONDS (10.10 #617, audit #612 B3): '3 x 20 SEC' showed a REPS column. The
+    // number still saves to the set's reps field - nothing downstream changes - the column says SEC.
+    const timedHold = /\d\s*(sec|secs|second|seconds|s(?![a-z])|שנ)/i.test(String(repsForDisplay ?? '')) && !/rep|חזר/i.test(String(repsForDisplay ?? ''));   // '15 SEC to 10 Reps' logs reps
     // `|| {}`: fv is sized at mount, so if the coach adds an exercise to this day
     // mid-session, day.ex grows past fv and fv[ei] is undefined — f.uploaded/.has
     // would then throw and white-screen the workout (allSets[ei] was already
@@ -2106,7 +2411,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               onMouseEnter={e=>e.currentTarget.style.color=C.ac}
               onMouseLeave={e=>e.currentTarget.style.color=C.tm}>
               <span style={{opacity:0.5,marginRight:4}}>⇄</span>
-              EQUIPMENT BUSY? FIND ALTERNATE
+              {tt('EQUIPMENT BUSY? FIND ALTERNATE')}
             </button>
           ) : (
             <span style={{color:C.ac}}>
@@ -2150,7 +2455,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           cells span the full width, flush with the video box below (Ohad). */}
       {hw && <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginTop:12,marginBottom:14}}>
         {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
-          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
+          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>{heCtx ? `${tt('Week')} ${i+1}` : `WK ${i+1}`}</div>
           <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div>}
 
       {/* Cyan-polish pass: every neutral border on this view is now 1px
@@ -2189,7 +2494,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               <div style={{marginTop:(hasText||showNote)?10:0}}>
                 <button onClick={() => setFbOpenForEid(fbOpen ? null : ex.eid)}
                   style={{width:'100%',padding:'10px 8px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
-                  {fbOpen ? '▾ ' : '▸ '}{tt("Coach's video feedback ·")}{lastWeekFb.count} note{lastWeekFb.count===1?'':'s'}
+                  {fbOpen ? '▾ ' : '▸ '}{tt("Coach's video feedback ·")}{lastWeekFb.count===1 ? tt('1 note') : tt('{n} notes').replace('{n}', lastWeekFb.count)}
                 </button>
                 {fbOpen && (
                   <div style={{marginTop:8}}>
@@ -2209,7 +2514,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
-          {['',tt('REPS'),'KG','RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
+          {['',timedHold?tt('SEC'):tt('REPS'),tt('KG'),'RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
@@ -2245,7 +2550,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-              <input aria-label="Reps" value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
+              <input aria-label={timedHold ? tt('Seconds') : tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
               <input aria-label="RPE" value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
               {/* Whole cell is the tap target (not just the 18px box) so a
@@ -2261,9 +2566,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>{tt("FORM CHECK")}</div>
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>✓ UPLOADED</span></div>}
+            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>{tt('✓ UPLOADED')}</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `Compressing ${f.compressProgress||0}%` : `Uploading ${f.uploadProgress||0}%`}</span></div>}
+            <span dir="auto" style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? tt('Compressing {n}%').replace('{n}', () => f.compressProgress||0) : tt('Uploading {n}%').replace('{n}', () => f.uploadProgress||0)}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
@@ -2279,7 +2584,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   flight — otherwise picking a new file mid-upload would race
                   the previous upload's setFv against the new one's. */}
               <label style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box'}}>
-                Replace
+                {tt('Replace')}
                 <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => {
                   // Drop the slot's prior queued blob before enqueuing the new one —
                   // Replace overwrites pendingBlobId, so without this the old blob
@@ -2299,12 +2604,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   if (f.pendingBlobId) {
                     removeBlob(f.pendingBlobId).catch(() => {});
                   }
-                  setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null}; return n; });
+                  setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null,analysis:null}; return n; });
                 }}
                 style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
                 Remove
               </button>
             </div>
+            {/* ANALYSE MY SET (5.10 #552). The title is the plan row's (the swap's
+                when he swapped) - athletes cannot read the library. Keyed by the clip: a
+                new clip remounts it, which stops a read still running on the old one. */}
+            {/* OPT-IN until the rep count is proven on real phones (5.10 #552: the
+                same set read 3 and 20 reps on two captures). A test device turns it
+                on with localStorage 'expo-set-analysis' = '1'; athletes don't see it. */}
+            {SET_ANALYSIS_ON && <SetAnalysisPanel key={f.videoUrl} src={f.videoUrl} title={sub ? sub.title : (d.t || '')} fileName={f.fileName || null} analysis={f.analysis || null}
+              onResult={(a) => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], analysis:a}; return n; })} />}
           </div>
         ) : (
           <div style={{display:'flex',gap:8}}>
@@ -2318,9 +2631,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </label>
           </div>
         )}
-        <button onClick={() => setLiveCountForEid(ex.eid)} title="Live rep counter — camera + voice trigger"
+        <button onClick={() => setLiveCountForEid(ex.eid)} title={tt('Live rep counter — camera + voice trigger')}
           style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-          Live Rep Counter
+          {tt('LIVE REP COUNTER')}
         </button>
         <textarea dir="auto" value={f.note} onChange={e => { const v = e.target.value; setFv(prev => { const n=[...prev]; n[ei]={...n[ei],note:v}; return n; }); }} placeholder={tt('Notes for coach')} style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8,color:C.ac}}/>
       </div>
@@ -2330,16 +2643,21 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
       {isSuperset && <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
-        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>SUPERSET {group.superset} · {groupExs.length} EXERCISES</div>
-        <div style={{fontSize:11,color:C.tm,marginTop:3}}>Alternate between exercises each round</div>
+        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>{tt('SUPERSET')} {group.superset} · {countIn(heCtx ? 'he' : 'en', groupExs.length, 'exercise').toUpperCase()}</div>
+        <div style={{fontSize:11,color:C.tm,marginTop:3}}>{tt('Alternate between exercises each round')}</div>
       </div>}
 
       {groupExs.map(renderExerciseBlock)}
 
-      <div style={{display:'flex',gap:8,marginTop:20}}>
-        {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
-        <button data-step-next onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
-          {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
+      {/* The step is never held by a clip (5.10 #560): the upload's state lives
+          in the logger, not in this step, so it carries on in the background. */}
+      {anyUploading && (
+        <div dir="auto" data-upload-background style={{marginTop:20,fontFamily:FB,fontSize:12,color:C.tm,lineHeight:1.5,textAlign:'start'}}>{tt('Video uploading in the background — you can keep going.')}</div>
+      )}
+      <div style={{display:'flex',gap:8,marginTop:anyUploading?10:20}}>
+        {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{tt('← BACK')}</button>}
+        <button data-step-next onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
+          {step===groupCount-1 ? tt('FINISH →') : tt('NEXT →')}</button></div>
     </div></div>;
 }
 
@@ -2419,6 +2737,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   })();
   const [bw, setBw] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
+  // A live answer that lands while a workout is OPEN on the cached programme waits
+  // for the logger to close: a coach edit since the snapshot would re-shape the
+  // day under an athlete mid-set (sets line up by position) - 9.10 review
+  const lgOpenRef = useRef(false);
+  lgOpenRef.current = lg !== null;
+  const pendingPlansRef = useRef(null);
+  useEffect(() => {
+    if (lg === null && pendingPlansRef.current) { setClientPlans(pendingPlansRef.current); setPlansFromSnapshot(false); pendingPlansRef.current = null; }
+  }, [lg]);
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
   const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
   const bwDel = useDelayedUnmountValue(bwDeleteConfirm); // holds the entry through the exit animation
@@ -2459,6 +2786,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // Clearing the previous client's load error when ci flips (or goes
     // null) keeps a stale red banner from sticking when switching between
     // trainees on a dual-role account.
+    pendingPlansRef.current = null;   // a held answer belongs to the run that held it
     if (!ci) { setClientPlans([]); setPlansLoadError(null); setPlansFromSnapshot(false); return; }
     // Demo mode: skip Supabase entirely, render the prop-supplied plans.
     if (demoMode) {
@@ -2469,6 +2797,23 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     }
     let alive = true;
     setPlansLoadError(null);
+    // THE SNAPSHOT DOES NOT WAIT FOR THE SERVER TO GIVE UP (5.10 #560). On a dead
+    // wifi the read neither failed nor answered, and the athlete read "Loading
+    // your program…" for its whole timeout. The last programme this phone saw
+    // is shown after 5 s, or at once when the probe says the server is out of
+    // reach; a live answer still replaces it when it lands.
+    let shown = false;
+    const showSnapshot = () => {
+      if (!alive || shown) return;
+      const cached = readPlansSnapshot(ci);
+      if (!cached || !cached.length) return;
+      shown = true;
+      setClientPlans(cached);
+      setPlansFromSnapshot(true);
+      setPlansLoadError(null);
+    };
+    const snapTimer = setTimeout(showSnapshot, 5000);
+    const unsubNet = subscribeNet((st) => { if (st === 'offline') showSnapshot(); });
     (async () => {
       try {
         const { supabase: sb } = await import('./supabase');
@@ -2477,6 +2822,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         const ids = traineeIdsFor(ci);
         const { data, error } = await sb.from('plans').select('*').in('trainee_id', ids);
         if (!alive) return;
+        clearTimeout(snapTimer);
         if (error) throw error;
         if (data) {
           const mapped = data.map(p => ({
@@ -2488,8 +2834,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // whole-plan daily routine renders as a normal week-paced block.
             kind: p.data?.kind || undefined,
           }));
-          setClientPlans(mapped);
-          setPlansFromSnapshot(false);
+          if (shown && lgOpenRef.current) pendingPlansRef.current = mapped;
+          else { pendingPlansRef.current = null; setClientPlans(mapped); setPlansFromSnapshot(false); }
           // Keep a local copy so a session in a basement still has a session.
           // lsSnapshot refuses to write if it would crowd the space the
           // workout itself needs, so a big programme simply is not cached.
@@ -2517,7 +2863,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         }
       }
     })();
-    return () => { alive = false; };
+    return () => { alive = false; clearTimeout(snapTimer); unsubNet(); };
   }, [ci, plansReloadKey, demoMode, demoPlans]);
 
   // Presence heartbeat — let the coach know this client is online.
@@ -2643,7 +2989,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     if (wk > max) {
       // Surface the clamp so the trainee notices when a block-swap moves
       // them. Silent clamping was producing log-misdating reports.
-      toast(`Moved to week ${max + 1} — this block has ${activePlan.weeks || 4} weeks`, 'info', { ttl: 5000 });
+      toast(tt('Moved to week {n} — this block has {w} weeks').replace('{n}', () => max + 1).replace('{w}', () => activePlan.weeks || 4), 'info', { ttl: 5000 });
       setWk(max);
     }
   }, [activePlan?.weeks, wk]);
@@ -2856,7 +3202,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <div className="pv-toprow" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
           {/* Bnei Herzliya crest — top row, horizontally centered, sized to the
               EXPO mark's height (Ohad: "all the way up, same size as the EXPO logo"). */}
-          {isBnei && <img className="pv-crest" src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
+          {isBnei && <img className="pv-crest" src="/bnei-herzliya-logo-w.png" alt={tt('Bnei Herzliya')} style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
@@ -2869,7 +3215,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <span style={{width:36}} aria-hidden="true" />
             ) : onReturnToCoach && !demoMode ? (
               <button onClick={onReturnToCoach}
-                title="Switch to the coach portal"
+                title={tt('Switch to the coach portal')}
                 style={{background:'transparent',border:'none',padding:0,marginLeft:3,cursor:'pointer',display:'flex',alignItems:'center'}}>
                 <EXPOMark theme="dark" height={36} style={{marginLeft:0}} />
               </button>
@@ -2932,7 +3278,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <h1 dir="auto" style={{margin:0,lineHeight:1,fontFamily:FN,fontSize:21,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}><span style={/[֐-׿]/.test(clientName.split(' ')[0]) ? {fontFamily:FH} : undefined}>{clientName.split(' ')[0]}</span></h1>
           <div style={{width:24,height:1,background:C.ac,marginTop:12,opacity:0.5}}/>
           {isBnei && (
-            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',lineHeight:1,color:C.ac,marginTop:12,textAlign:'center'}}>BNEI HERZLIYA</div>
+            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',lineHeight:1,color:C.ac,marginTop:12,textAlign:'center'}}>{tt('Bnei Herzliya').toUpperCase()}</div>
           )}
         </div>
         {/* Three across: BLOCK (left) · THIS WEEK completion blocks (centred) ·
@@ -3257,7 +3603,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt("ENTRIES")}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt(bwData.length === 1 ? "ENTRY" : "ENTRIES") /* '1 ENTRIES' (audit #612 B10) */}</div>
         </div>
 
         {/* One condition for whether SAVE can act, read by both the handler
@@ -3376,7 +3722,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}>{d.bw} kg</span>
-              <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · W{d.week||'?'}</span>
+              <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · <WeekWord n={d.week||'?'} /></span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontSize:10,color:C.td,fontFamily:FN}}>{fmtPrettyDate(d.date)}</span>
@@ -3386,10 +3732,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         })}
         {bwHistOpen && bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>{tt("No bodyweight entries yet")}</div>}
       </div>
-      {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label="Delete bodyweight entry" className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
+      {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label={tt('Delete bodyweight entry')} className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} className={bwDel.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
           <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>{tt("DELETE ENTRY")}</div>
-          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDel.value.bw}kg from {bwDel.value.blockName || '?'} · W{bwDel.value.week || '?'}?</div>
+          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>{tt('Remove {kg}kg from {block} · W{week}?').replace('{kg}', () => bwDel.value.bw).replace('{block}', () => bwDel.value.blockName || '?').replace('{week}', () => bwDel.value.week || '?')}</div>
           <div style={{display:'flex',gap:8}}>
             <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("CANCEL")}</button>
             <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week && b.date===d.date))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("DELETE")}</button>
@@ -3413,8 +3759,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       {renderTopHeader()}
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
-          <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount}{tt('CHECK-IN')}{checkinCount===1?'':'S'}</div>
+          <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>{tt('← HISTORY')}</button>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {(lang || readLang()) === 'he' ? (checkinCount === 1 ? 'דיווח אחד' : `${checkinCount} דיווחים`) : `${checkinCount} CHECK-IN${checkinCount === 1 ? '' : 'S'}`}</div>
         </div>
         <CheckinTrends workouts={cw} />
       </div>
@@ -3448,7 +3794,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
             {/* order: DAY · W# · BLOCK — the week sits between the day and the
                 block (Ohad); the date moves to the right on its own. */}
-            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· W{w.week} ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· <WeekWord n={w.week} /> ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
             <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)}</div>
           </div>
           {/* Pre-workout readiness check-in the athlete logged for this session. */}
@@ -3818,7 +4164,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             tempoColor: TEMPO_COLOR,
             rows: vp.warmup.map((w,i) => ({
               num: i + 1,
-              rx: (w.sets || w.reps)
+              rx: wuStructured(w)
                 ? ((w.sets ?? '') && (w.reps ?? '') ? `${w.sets}×${w.reps}` : `${w.sets ?? ''}${w.reps ?? ''}`)
                 : (w.rx || ''),
               tempo: w.tempo,

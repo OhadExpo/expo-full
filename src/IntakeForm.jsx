@@ -11,6 +11,7 @@ import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
 import { sandboxLinkNote } from './sandboxLink';
 import { getForm } from './intakeFormSchemas';
+import { ChipGrid } from './ui';
 
 function deriveLocale() {
   const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/intake\/(he|en)\b/);
@@ -76,22 +77,12 @@ function Field({ q, value, onChange, dir }) {
     return (
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>{q.label}{required}</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, direction: dir }}>
-          {(q.choices || []).map(c => {
-            const isSel = selected.includes(c);
-            return (
-              <button key={c} type="button" onClick={() => toggle(c)}
-                style={{
-                  padding: '6px 12px', borderRadius: 0,
-                  border: `1px solid ${isSel ? C.ac : C.cardBd}`,
-                  background: isSel ? 'rgba(57,189,255,0.094)' : 'transparent',
-                  color: isSel ? C.ac : C.tm,
-                  fontFamily: dir === 'rtl' ? FH : FN, fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer',
-                }}>{c}</button>
-            );
-          })}
-        </div>
+        {/* the choices as equal cells, two to a row (5.10 #574) - the look stays:
+            the picked ones carry the cyan wash and cyan text, the words keep their case */}
+        <ChipGrid prose soft value={selected} onChange={toggle} style={{ direction: dir }}
+          cols={(q.choices || []).length <= 3 ? (q.choices || []).length : 2}
+          cellStyle={{ fontFamily: dir === 'rtl' ? FH : FN, fontWeight: 600 }}
+          items={(q.choices || []).map(c => ({ k: c, label: c }))} />
       </div>
     );
   }
@@ -340,7 +331,7 @@ export default function IntakeForm() {
     return (
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center', color: C.or, fontFamily: FN, fontSize: 11, marginBottom: 16 }}>
-          {dir === 'rtl' ? 'תצוגה מקדימה · בלי טוקן ·' : 'PREVIEW · NO TOKEN ·'} {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
+          {/* no code words (9.10 audit #612: 't=' drew as 'ד=' in the Hebrew line). Native-checked */}{dir === 'rtl' ? 'תצוגה מקדימה · בקישור שתשלח למתאמן יש קוד אישי' : 'PREVIEW · the link you send a client carries a personal code'}
         </div>
         <h2 style={{ fontFamily: FN, fontSize: 22, color: C.tx, margin: '0 0 8px' }}>{form?.title}</h2>
         <p style={{ fontSize: 13, color: C.tm, marginTop: 0, marginBottom: 24, lineHeight: 1.5 }}>{form?.intro}</p>
@@ -348,7 +339,7 @@ export default function IntakeForm() {
           <Field key={q.id} q={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} dir={labelDir(q.label)} />
         ))}
         <button disabled style={{ background: 'var(--c-sf)', border: `1px solid ${C.tm}`, color: C.tm, padding: '0 24px', minHeight: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, marginTop: 12, opacity: 0.5 }}>
-          {form?.submitLabel || 'Submit'} (preview)
+          {form?.submitLabel || 'Submit'}{/* the notice at the top already says PREVIEW; '(preview)' was English on the Hebrew form (audit #612 E6) */}
         </button>
       </div></div>
     );

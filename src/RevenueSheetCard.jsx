@@ -25,7 +25,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useT, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { CollapsibleSection, ScrollFade } from './ui';
+import { CollapsibleSection, ScrollFade, usePhone } from './ui';
 import { fmtNumericDate, monthAbbr } from './dates';
 import { noDangle } from './script';
 
@@ -63,6 +63,15 @@ const monthLabel = (iso) => {
   return monthAbbr(Number(m) - 1) + ' ' + y;
 };
 
+// A ROW THE SHEET SHIFTED ONE COLUMN (9.10 #609, Ohad: "300 שח as a name
+// doesnt make sense"): its name cell holds a price and its rate cell the
+// client's name. Read back in place, so the payment joins its client instead of
+// a "client" called 300 ש"ח. Only when the rate cell really is a name.
+const PRICE = /^\s*[0-9.,]+\s*(ש["״׳']?ח|₪)?\s*$/;
+const NAMEISH = /^[^0-9]*[A-Za-z\u0590-\u05FF][^0-9]*$/;
+const unshift = (e) => (e && PRICE.test(e.client_name || '') && NAMEISH.test(e.rate_text || '')
+  ? { ...e, client_name: e.rate_text, rate_text: e.client_name } : e);
+
 export function useSheetRevenue() {
   const [months, setMonths] = useState(null);
   const [events, setEvents] = useState(null);
@@ -92,7 +101,7 @@ export function useSheetRevenue() {
       // An RLS refusal and an empty table look the same here, and both mean
       // "show nothing" rather than an error the coach can act on.
       setMonths(m.data || []);
-      setEvents(e.data || []);
+      setEvents((e.data || []).map(unshift));
       const top = newest.data && newest.data[0];
       setHealth(top ? { newestRev: top.rev, newestTime: top.rev_time, harvestedAt: top.imported_at, cells: count.count || 0 } : null);
     })();
@@ -106,12 +115,14 @@ function groupClients(events) {
   const map = new Map();
   for (const e of events || []) {
     const k = e.trainee_id || 'name:' + e.client_name;
-    if (!map.has(k)) map.set(k, { key: k, names: new Set(), trainee_id: e.trainee_id, section: e.section, payments: [], sessions: 0, rates: [], estTotal: 0, unknown: 0, latest: null, rate: null });
+    if (!map.has(k)) map.set(k, { key: k, names: new Set(), trainee_id: e.trainee_id, section: e.section, payments: [], sessions: 0, rates: [], estTotal: 0, unknown: 0, unpaid: 0, latest: null, rate: null });
     const g = map.get(k);
     g.names.add(e.client_name);
     if (e.event_kind === 'payment' || e.event_kind === 'card_start') {
       g.payments.push(e);
-      if (e.amount_est == null) g.unknown++; else g.estTotal += Number(e.amount_est);
+      // MARKED UNPAID ON THE SHEET = NOT MONEY IN (9.10 audit: 23 such rows, ₪19,300, were summed as paid)
+      if (e.unpaid) g.unpaid++;
+      else if (e.amount_est == null) g.unknown++; else g.estTotal += Number(e.amount_est);
       if (!g.latest || e.event_date > g.latest) { g.latest = e.event_date; g.rate = e.rate_text; }
     } else if (e.event_kind === 'session') g.sessions += Number(e.sessions_count || 0);
     else if (e.event_kind === 'rate_change') g.rates.push(e);
@@ -121,13 +132,24 @@ function groupClients(events) {
     .sort((a, b) => ((a.latest || '') < (b.latest || '') ? 1 : -1));
 }
 
+// THE SHEET'S RATE IN THE APP'S MONEY FORMAT: '200 ש"ח' / '200/175 ש"ח' -> '₪200' /
+// '₪200/175', the way every other amount on the page reads (9.10 audit #612 C6). Anything
+// else - a note, a word - is shown as the sheet wrote it.
+const SHEKEL_RE = /^\s*(?:ש["״]ח\s*)?([\d.,]+(?:\s*\/\s*[\d.,]+)*)\s*(?:ש["״]ח)?\s*$/;
+function fmtRate(text) {
+  const m = SHEKEL_RE.exec(text || '');
+  return m && /ש["״]ח/.test(text) ? <span dir="ltr">₪{m[1].replace(/\s+/g, '')}</span> : <bdi>{text || '—'}</bdi>;
+}
+
+// THE ESTIMATE SITS NEXT TO THE DATE (9.10 audit #612 C6): last of six columns it was
+// past the right edge of a phone, so the one number the table exists for was off-screen.
 function PaymentRows({ payments, tt, td }) {
   return payments.map((p) => (
     <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
       <td style={td} dir="ltr">{fmtNumericDate(p.event_date)}</td>
-      <td style={{ ...td, color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
-      <td style={{ ...td, color: C.tm }}><bdi>{p.counter_before || (p.event_kind === 'card_start' ? tt('card start') : '—')}</bdi></td>
       <td style={{ ...td, textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
+      <td style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(p.rate_text)}</td>
+      <td style={{ ...td, color: C.tm }}><bdi>{p.counter_before || (p.event_kind === 'card_start' ? tt('card start') : '—')}</bdi></td>
       <td style={{ ...td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
         <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} title={tt(p.confidence || 'low')} />
         {tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}
@@ -141,17 +163,18 @@ function PaymentRows({ payments, tt, td }) {
 
 // The same history, for ONE trainee — the billing section of the athlete page.
 // Renders nothing for anyone but the owner (the tables answer empty).
-export function SheetBillingHistory({ traineeId }) {
+export function SheetBillingHistory({ traineeId, onCount }) {
   const tt = useT();
   const [rows, setRows] = useState(null);
   useEffect(() => {
+    onCount?.(0);   // a new athlete starts at 0, not at the previous athlete's count (review NIT)
     if (!traineeId) return undefined;
     let alive = true;
     supabase.from('revenue_sheet_event').select('*').eq('trainee_id', traineeId).in('event_kind', ['payment', 'card_start', 'session'])
       .order('event_date', { ascending: false }).limit(1000)
-      .then(({ data }) => { if (alive) setRows(data || []); });
+      .then(({ data }) => { if (alive) { setRows(data || []); onCount?.((data || []).filter((r) => r.event_kind !== 'session').length); } });
     return () => { alive = false; };
-  }, [traineeId]);
+  }, [traineeId]); // eslint-disable-line react-hooks/exhaustive-deps -- onCount is a setter
   if (!rows || !rows.length) return null;
   const payments = rows.filter((r) => r.event_kind !== 'session');
   const sessions = rows.filter((r) => r.event_kind === 'session').reduce((a, r) => a + Number(r.sessions_count || 0), 0);
@@ -166,21 +189,21 @@ export function SheetBillingHistory({ traineeId }) {
   return (
     <div style={{ marginTop: 14, borderTop: `1px solid ${C.cardBd}`, paddingTop: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8 }}>
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>{tt('From the sheet')} · {payments.length} {tt('payments')}</span>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>{tt('Payment history')} · {payments.length} {tt('payments')}</span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em' }}>
           {tt('Estimated total')} <b style={{ color: C.tx }}>{ILS(est)}</b>{unknown ? ` (${unknown} ${tt('without an amount')})` : ''} · {sessions} {tt('sessions counted')}
         </span>
       </div>
       {attendance.length > 0 && (
         <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em', marginBottom: 8 }}>
-          {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)} ${n}`).join(' · ')}
+          {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)}\u00A0${n}`).join(' · ')}
         </div>
       )}
       <ScrollFade>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
-            <th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
-            <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
+            <th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+            <th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
           </tr></thead>
           <tbody><PaymentRows payments={payments} tt={tt} td={td} /></tbody>
         </table>
@@ -192,8 +215,213 @@ export function SheetBillingHistory({ traineeId }) {
   );
 }
 
-export default function RevenueSheetCard() {
+
+// A MONTH'S FIGURES, ONE PLACE (the table and the phone cards read the same money):
+// BHBC is a club contract, not a roster client, so the roster estimate is set against
+// coaching MINUS the club. THE CURRENT MONTH HAS NO GAP YET (9.10 audit #612 A9: October
+// read '+₪4,075' against ₪0 - the finance sheet is filled in when the month closes): the
+// LOCAL month, and a month whose finance total is still empty, is open (1008k review S1).
+function monthFigures(g, est) {
+  const bhbc = Number(g.rows.find((x) => x.channel === 'bhbc')?.amount || 0);
+  const base = g.coaching - bhbc;
+  const nowD = new Date();
+  const monthOpen = String(g.month).slice(0, 7) === `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}` || !(g.coaching > 0);
+  const gap = est && !monthOpen ? est.est - base : null;
+  return { monthOpen, gap };
+}
+const signedILS = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + ILS(Math.abs(n));
+
+// ON A PHONE THE HISTORY IS CARDS, NOT 9- AND 11-COLUMN TABLES (9.10, the phone pattern after
+// #618/#619: the tables scrolled sideways and the money sat off-screen). A row = the name and
+// its money on one line, the rest as one line of small facts under it; tap for the payments.
+const P_ROW = { padding: '10px 0', borderBottom: `1px solid ${C.cardBd}` };
+const P_META = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 2, marginTop: 4 };
+const P_BTN = { display: 'block', width: '100%', padding: 0, background: 'transparent', border: 'none', textAlign: 'start', cursor: 'pointer', color: C.tx };
+function PhonePayments({ payments, tt }) {
+  return payments.map((p) => (
+    <div key={p.id} style={{ padding: '8px 0', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{fmtNumericDate(p.event_date)}</span>
+        <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }}>{p.amount_est == null ? '—' : ILS(p.amount_est)}</span>
+      </div>
+      <div style={P_META}>
+        {p.rate_text ? <span>{fmtRate(p.rate_text)}</span> : null}
+        {p.counter_before ? <bdi style={{ textTransform: 'none' }}>{p.counter_before}</bdi> : null}
+        <span>{tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}</span>
+        {p.event_kind === 'card_start' ? <span>{tt('card start')}</span> : null}
+        {p.unpaid ? <span style={{ color: C.rd }}>{tt('marked unpaid')}</span> : null}
+      </div>
+      {p.notes ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 2 }}><bdi>{p.notes}</bdi></div> : null}
+    </div>
+  ));
+}
+function ClientsPhone({ list, open, setOpen, statusOf, tt }) {
+  return (
+    <div>
+      {list.map((c) => {
+        const isOpen = open === c.key;
+        const st = statusOf(c);
+        return (
+          <div key={c.key} style={P_ROW}>
+            <button type="button" onClick={() => setOpen(isOpen ? null : c.key)} aria-expanded={isOpen} style={P_BTN}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, minWidth: 0 }}><Chev open={isOpen} /><bdi>{c.name}</bdi></span>
+                <span dir="ltr" style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>{ILS(c.estTotal)}</span>
+              </span>
+              {c.alsoKnownAs.length > 0 && <span style={{ display: 'block', fontSize: 11, color: C.td, paddingInlineStart: 14 }}><bdi>{c.alsoKnownAs.join(' · ')}</bdi></span>}
+              <span style={{ ...P_META, paddingInlineStart: 14 }}>
+                <span>{tt('Last payment')} <span dir="ltr">{c.latest ? fmtNumericDate(c.latest) : '—'}</span></span>
+                <span>{c.payments.length} {tt('payments')}</span>
+                {c.sessions ? <span>{c.sessions} {tt('Sessions')}</span> : null}
+                {c.rate ? <span>{fmtRate(c.rate)}</span> : null}
+                {c.unpaid ? <span style={{ color: C.rd }}>{tt('Unpaid')} {c.unpaid}</span> : null}
+                {c.unknown ? <span>{tt('No amount')} {c.unknown}</span> : null}
+                <span>{st ? tt(st) : tt('no record')}</span>
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ paddingInlineStart: 14, marginTop: 6 }}>
+                <PhonePayments payments={c.payments} tt={tt} />
+                {c.rates.length > 0 && (
+                  <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6 }}>
+                    {tt('Rate changes')}: {c.rates.slice().reverse().map((r, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi dir="ltr">{fmtNumericDate(r.event_date)}</bdi> {fmtRate(r.rate_text)}</React.Fragment>)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt }) {
+  return (
+    <div>
+      {byMonth.map((g) => {
+        const est = estByMonth.get(g.month);
+        const { monthOpen, gap } = monthFigures(g, est);
+        const isOpenM = openMonth === g.month;
+        const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
+        return (
+          <div key={g.month} style={P_ROW}>
+            <button type="button" onClick={() => setOpenMonth(isOpenM ? null : g.month)} aria-expanded={isOpenM} style={P_BTN}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><Chev open={isOpenM} />{monthLabel(g.month)}</span>
+                <span dir="ltr" style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap' }}>{ILS(g.coaching)}</span>
+              </span>
+              <span style={{ ...P_META, paddingInlineStart: 14 }}>
+                <span>{tt('Roster estimate')} <span dir="ltr">{est ? ILS(est.est) : '—'}</span></span>
+                {est && est.unknown ? <span>{tt('No amount')} {est.unknown}</span> : null}
+                <span>{tt('Gap')} {monthOpen ? tt('month open') : <span dir="ltr">{gap == null ? '—' : signedILS(gap)}</span>}</span>
+                {g.other ? <span>{noDangle(tt(CHANNEL_LABEL.national_insurance))} <span dir="ltr">{ILS(g.other)}</span></span> : null}
+              </span>
+            </button>
+            {isOpenM && (
+              <div style={{ paddingInlineStart: 14, marginTop: 6 }}>
+                <div style={{ ...P_META, marginTop: 0, marginBottom: 6 }}>
+                  {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => { const r = g.rows.find((x) => x.channel === c); return r && Number(r.amount) ? <span key={c}>{tt(CHANNEL_LABEL[c])} <span dir="ltr" style={{ color: C.tx }}>{ILS(r.amount)}</span></span> : null; })}
+                </div>
+                {monthPays.length === 0
+                  ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('The roster recorded no payment dated this month.')}</div>
+                  : monthPays.map((p) => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '6px 0', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+                      <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, minWidth: 0 }}><bdi>{p.client_name}</bdi> <span dir="ltr" style={{ color: C.tm, fontWeight: 400, fontSize: 12 }}>{fmtNumericDate(p.event_date)}</span></span>
+                      <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: p.unpaid ? C.rd : p.amount_est == null ? C.td : C.tx, whiteSpace: 'nowrap' }}>{p.unpaid ? tt('marked unpaid') : p.amount_est == null ? '—' : ILS(p.amount_est)}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// One table for both lists (active / inactive): the same columns, so the two read alike.
+// ONE GRID FOR BOTH (9.10 #608 "keep it perfect"): fixed columns at the same widths, so a
+// column of the inactive table sits exactly under the same column above. Wider than a
+// phone on purpose - it scrolls sideways in its ScrollFade, one row per client.
+const CLIENT_COLS = ['20%', '11%', '9%', '12%', '9%', '9%', '9%', '12%', '9%'];
+function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
+  return (
+    <ScrollFade>
+      <table className="rs-table" style={{ width: '100%', minWidth: 880, tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+        <colgroup>{CLIENT_COLS.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+        <thead>
+          <tr>
+            <th style={th}>{tt('Client')}</th>
+            <th style={th}>{tt('Last payment')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Payments')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated total')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('No amount')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Unpaid')}</th>
+            <th style={{ ...th, textAlign: 'end' }}>{tt('Sessions')}</th>
+            <th style={th}>{tt('Rate')}</th>
+            <th style={th}>{tt('In EXPO')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((c) => {
+            const isOpen = open === c.key;
+            const st = statusOf(c);
+            return (
+              <React.Fragment key={c.key}>
+                <tr onClick={() => setOpen(isOpen ? null : c.key)} style={{ cursor: 'pointer', height: 'var(--btn-h)', background: isOpen ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
+                  <td style={{ ...td, fontWeight: 600 }}>
+                    <Chev open={isOpen} />
+                    <bdi>{c.name}</bdi>
+                    {/* Named, not hidden: seeing the old spelling is how he
+                        can tell the two really are the same client. */}
+                    {c.alsoKnownAs.length > 0 && (
+                      <span style={{ display: 'block', fontSize: 11, color: C.td, fontWeight: 400, paddingInlineStart: 14 }}>
+                        <bdi>{c.alsoKnownAs.join(' · ')}</bdi>
+                      </span>
+                    )}
+                  </td>
+                  <td style={td} dir="ltr">{c.latest ? fmtNumericDate(c.latest) : '—'}</td>
+                  <td style={{ ...td, textAlign: 'end' }} dir="ltr">{c.payments.length}</td>
+                  <td style={{ ...td, textAlign: 'end', fontWeight: 700 }} dir="ltr">{ILS(c.estTotal)}</td>
+                  <td style={{ ...td, textAlign: 'end', color: c.unknown ? C.tx : C.td }} dir="ltr">{c.unknown || '—'}</td>
+                  <td style={{ ...td, textAlign: 'end', color: c.unpaid ? C.tx : C.td }} dir="ltr">{c.unpaid || '—'}</td>
+                  <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{c.sessions || '—'}</td>
+                  <td style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(c.rate)}</td>
+                  {/* what EXPO knows of him, in words: Active / Archived / no record */}
+                  <td style={{ ...td, color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                    {st ? tt(st) : tt('no record')}
+                  </td>
+                </tr>
+                {isOpen && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead><tr>
+                          <th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+                          <th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
+                        </tr></thead>
+                        <tbody><PaymentRows payments={c.payments} tt={tt} td={{ ...td, fontSize: 12, padding: '5px 10px' }} /></tbody>
+                      </table>
+                      {c.rates.length > 0 && (
+                        <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6 }}>
+                          {tt('Rate changes')}: {c.rates.slice().reverse().map((r, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi dir="ltr">{fmtNumericDate(r.event_date)}</bdi> {fmtRate(r.rate_text)}</React.Fragment>)}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </ScrollFade>
+  );
+}
+
+export default function RevenueSheetCard({ trainees = [] }) {
   const tt = useT();
+  const phone = usePhone();
   const PAD = 14;
   const { months, events, health } = useSheetRevenue();
   const [open, setOpen] = useState(null);
@@ -213,6 +441,13 @@ export default function RevenueSheetCard() {
   }, [months]);
 
   const clients = useMemo(() => groupClients(events), [events]);
+  const [showInactive, setShowInactive] = useState(false);
+  // active = linked to a trainee whose status is Active (the Dashboard's own rule)
+  const byId = useMemo(() => new Map((trainees || []).map((t) => [t.id, t])), [trainees]);
+  // a couple member's id (tr_x__0) belongs to the household row (1008k review S2; 0 such events today)
+  const statusOf = (c) => { const id = c.trainee_id && String(c.trainee_id).replace(/__\d+$/, ''); const t = id && byId.get(id); return t ? (t.status || 'Active') : null; };
+  const activeClients = clients.filter((c) => statusOf(c) === 'Active');
+  const inactiveClients = clients.filter((c) => statusOf(c) !== 'Active');
 
   // Roster estimate per month: Σ amount_est of payments dated in that month.
   const estByMonth = useMemo(() => {
@@ -221,7 +456,9 @@ export default function RevenueSheetCard() {
       if (e.event_kind !== 'payment') continue;
       const k = String(e.event_date).slice(0, 7) + '-01';
       const g = m.get(k) || { est: 0, n: 0, unknown: 0 };
-      g.n++; if (e.amount_est == null) g.unknown++; else g.est += Number(e.amount_est);
+      g.n++;
+      // marked unpaid on the sheet = not money in: out of the estimate (still a payment row)
+      if (!e.unpaid) { if (e.amount_est == null) g.unknown++; else g.est += Number(e.amount_est); }
       m.set(k, g);
     }
     return m;
@@ -241,7 +478,7 @@ export default function RevenueSheetCard() {
     // collapsible like OWED / REQUESTS / ROSTER on the same page (0 margin: Billing
     // stacks its cards with a 14px gap). ONE ROW: the meta rides `right` as
     // .strip-meta, which steps aside on a phone.
-    <CollapsibleSection title={tt('From the sheets')} storageKey="billing-from-sheets" padX={PAD} padY={PAD} style={{ marginBottom: 0 }}
+    <CollapsibleSection title={tt('Income history')} storageKey="billing-from-sheets" padX={PAD} padY={PAD} style={{ marginBottom: 0 }}
       right={
         <span className="strip-meta" style={{ flex: '0 1 auto', minWidth: 0, textAlign: 'end', fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85, color: 'var(--c-stripTx)' }}>
           {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')} · {totalPayments} {tt('payments')} · {totalSessions} {tt('sessions counted')}
@@ -270,6 +507,7 @@ export default function RevenueSheetCard() {
               sheets". Child combinators leave the nested history tables alone;
               the class out-ranks index.html's phone cell rule. */}
           <style>{`.rs-table > thead > tr > th:first-child, .rs-table > tbody > tr > td:first-child { padding-inline-start: 0 !important; }`}</style>
+          {phone ? <MonthsPhone byMonth={byMonth} estByMonth={estByMonth} events={events} openMonth={openMonth} setOpenMonth={setOpenMonth} tt={tt} /> : (
           <table className="rs-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -279,6 +517,7 @@ export default function RevenueSheetCard() {
                 ))}
                 <th style={{ ...th, textAlign: 'end', color: C.ac }}>{tt('Coaching income')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt('Roster estimate')}</th>
+                <th style={{ ...th, textAlign: 'end' }}>{tt('No amount')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt('Gap')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{noDangle(tt(CHANNEL_LABEL.national_insurance))}</th>
               </tr>
@@ -288,9 +527,7 @@ export default function RevenueSheetCard() {
                 const est = estByMonth.get(g.month);
                 // BHBC is a club contract, not a roster client, so the roster
                 // estimate is set against coaching MINUS the club.
-                const bhbc = Number(g.rows.find((x) => x.channel === 'bhbc')?.amount || 0);
-                const base = g.coaching - bhbc;
-                const gap = est ? est.est - base : null;
+                const { monthOpen, gap } = monthFigures(g, est);
                 const isOpenM = openMonth === g.month;
                 const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
                 return (
@@ -307,30 +544,34 @@ export default function RevenueSheetCard() {
                     })}
                     <td style={{ ...td, textAlign: 'end', color: C.ac, fontWeight: 700 }} dir="ltr">{ILS(g.coaching)}</td>
                     <td style={{ ...td, textAlign: 'end', color: est ? C.tx : C.td }} dir="ltr" title={est ? `${est.n} ${tt('payments')}${est.unknown ? ` · ${est.unknown} ${tt('without an amount')}` : ''}` : ''}>
-                      {est ? ILS(est.est) : '—'}{est && est.unknown ? <span style={{ color: C.or }}> +{est.unknown}?</span> : null}
+                      {est ? ILS(est.est) : '—'}
                     </td>
-                    <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : Math.abs(gap) <= Math.max(300, base * 0.1) ? C.gn : C.or }} dir="ltr">{gap == null ? '—' : (gap > 0 ? '+' : gap < 0 ? '−' : '') + ILS(Math.abs(gap))}</td>
+                    {/* THE PAYMENTS WITH NO PRICE ARE A COLUMN, NOT A "+1?" (9.10 #608, Ohad: "+1? and the
+                        yellow numbers is not easy to understand ... it makes the column un-aligned"):
+                        the estimate column holds money only, on one edge, and the gap is plain ink. */}
+                    <td style={{ ...td, textAlign: 'end', color: est && est.unknown ? C.tx : C.td }} dir="ltr">{est && est.unknown ? est.unknown : '—'}</td>
+                    <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : C.tx, whiteSpace: 'nowrap' }} dir={monthOpen ? undefined : 'ltr'}>{monthOpen ? tt('month open') : gap == null ? '—' : (gap > 0 ? '+' : gap < 0 ? '−' : '') + ILS(Math.abs(gap))}</td>
                     <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{g.other ? ILS(g.other) : '—'}</td>
                   </tr>
                   {isOpenM && (
                     <tr>
-                      <td colSpan={10} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+                      <td colSpan={11} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
                         {monthPays.length === 0 ? (
                           <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('The roster recorded no payment dated this month.')}</div>
                         ) : (
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead><tr>
-                              <th style={th}>{tt('Client')}</th><th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
-                              <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th>
+                              <th style={th}>{tt('Client')}</th><th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+                              <th style={th}>{tt('Method')}</th>
                             </tr></thead>
                             <tbody>
                               {monthPays.map((p) => (
                                 <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', fontWeight: 600 }}><bdi>{p.client_name}</bdi></td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px' }} dir="ltr">{fmtNumericDate(p.event_date)}</td>
-                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
-                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.counter_before || '—'}</bdi></td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(p.rate_text)}</td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.counter_before || '—'}</bdi></td>
                                   <td style={{ ...td, padding: '5px 10px', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                                     <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} />
                                     {tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}{p.unpaid ? <span style={{ color: C.rd }}> · {tt('marked unpaid')}</span> : null}
@@ -348,83 +589,34 @@ export default function RevenueSheetCard() {
               })}
             </tbody>
           </table>
+          )}
           <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6, lineHeight: 1.5 }}>
             {tt('Roster estimate = the payments the roster recorded that month, priced at the rate beside each date × the sessions counter when it was reset. Gap = estimate minus the sheet\'s coaching total without the club. A payment dated in one month is often banked in the next.')}
           </div>
         </ScrollFade>
       )}
 
-      {clients.length > 0 && (
+      {activeClients.length > 0 && (
         <>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 8 }}>
             {tt('Payments recorded per client')} · <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{tt('tap a row for the full history')}</span>
           </div>
-          <ScrollFade>
-            <table className="rs-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={th}>{tt('Client')}</th>
-                  <th style={th}>{tt('Last payment')}</th>
-                  <th style={{ ...th, textAlign: 'end' }}>{tt('Payments on record')}</th>
-                  <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated total')}</th>
-                  <th style={{ ...th, textAlign: 'end' }}>{tt('Sessions counted')}</th>
-                  <th style={th}>{tt('Rate')}</th>
-                  <th style={th}>{tt('In EXPO')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((c) => {
-                  const isOpen = open === c.key;
-                  return (
-                    <React.Fragment key={c.key}>
-                      <tr onClick={() => setOpen(isOpen ? null : c.key)} style={{ cursor: 'pointer', height: 'var(--btn-h)', background: isOpen ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
-                        <td style={{ ...td, fontWeight: 600 }}>
-                          <Chev open={isOpen} />
-                          <bdi>{c.name}</bdi>
-                          {/* Named, not hidden: seeing the old spelling is how he
-                              can tell the two really are the same client. */}
-                          {c.alsoKnownAs.length > 0 && (
-                            <span style={{ display: 'block', fontSize: 11, color: C.td, fontWeight: 400, paddingInlineStart: 14 }}>
-                              <bdi>{c.alsoKnownAs.join(' · ')}</bdi>
-                            </span>
-                          )}
-                        </td>
-                        <td style={td} dir="ltr">{c.latest ? fmtNumericDate(c.latest) : '—'}</td>
-                        <td style={{ ...td, textAlign: 'end' }} dir="ltr">{c.payments.length}</td>
-                        <td style={{ ...td, textAlign: 'end', fontWeight: 700 }} dir="ltr">{ILS(c.estTotal)}{c.unknown ? <span style={{ color: C.or, fontWeight: 400 }}> +{c.unknown}?</span> : null}</td>
-                        <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{c.sessions || '—'}</td>
-                        <td style={{ ...td, color: C.tm }}><bdi>{c.rate || '—'}</bdi></td>
-                        {/* A client who pays but has no trainee record is a real gap,
-                            not a display problem, so it is named rather than blank. */}
-                        <td style={{ ...td, color: c.trainee_id ? C.tm : C.or, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em' }}>
-                          {c.trainee_id ? tt('linked') : tt('no record')}
-                        </td>
-                      </tr>
-                      {isOpen && (
-                        <tr>
-                          <td colSpan={7} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                              <thead><tr>
-                                <th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
-                                <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th><th style={th}>{tt('Notes')}</th>
-                              </tr></thead>
-                              <tbody><PaymentRows payments={c.payments} tt={tt} td={{ ...td, fontSize: 12, padding: '5px 10px' }} /></tbody>
-                            </table>
-                            {c.rates.length > 0 && (
-                              <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6 }}>
-                                {tt('Rate changes')}: {c.rates.slice().reverse().map((r) => `${fmtNumericDate(r.event_date)} ${r.rate_text}`).join(' · ')}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </ScrollFade>
+          {phone ? <ClientsPhone list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} /> : <ClientsTable list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />}
         </>
+      )}
+
+      {/* NOT LINKED OR NOT ACTIVE = ITS OWN TABLE, CLOSED (9.10 #610, Ohad: an inactive
+          table, collapsed by default but expandable). Same columns as the table above. */}
+      {inactiveClients.length > 0 && (
+        <div style={{ marginTop: activeClients.length ? 18 : 0 }}>
+          <button type="button" onClick={() => setShowInactive((v) => !v)} aria-expanded={showInactive}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', height: 'var(--btn-h)', padding: 0, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, textAlign: 'start' }}>
+            <Chev open={showInactive} />
+            <span>{tt('Inactive clients')} · {inactiveClients.length}</span>
+            <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginInlineStart: 8 }}>{tt('not linked in EXPO, or not active')}</span>
+          </button>
+          {showInactive && <div style={{ marginTop: 8 }}>{phone ? <ClientsPhone list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} /> : <ClientsTable list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />}</div>}
+        </div>
       )}
 
       <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 12, lineHeight: 1.5 }}>

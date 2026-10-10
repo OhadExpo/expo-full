@@ -1,7 +1,7 @@
 // src/useSupaStore.js — Supabase-backed storage hook (replaces useStore)
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
-import { enqueue, enqueueEntry, removeEntry, patchEntry, getEntries, registerHandler, drain, setOnError } from './offlineQueue';
+import { enqueue, enqueueEntry, removeEntry, patchEntry, getEntries, registerHandler, drain, setOnError, ensurePersistentStorage } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
 import { mergeStoreValues, deepEqual } from './storeMerge';
@@ -321,7 +321,9 @@ async function withTimeout(build) {
 // Fields the ATHLETE owns on a form-video slot. Everything else on a slot
 // (reviewNotes, coach comments, replies, review marks) belongs to the coach,
 // and the server's copy of it always wins over a re-save's (possibly stale) one.
-const ATHLETE_FV_FIELDS = ['has', 'note', 'fileName', 'cloudUrl', 'pendingBlobId'];
+// 'analysis' (5.10 #552): the athlete's own read of the set - reps, tempo, range -
+// made on the phone; a re-save keeps it like the note (it was dropped as unknown)
+const ATHLETE_FV_FIELDS = ['has', 'note', 'fileName', 'cloudUrl', 'pendingBlobId', 'analysis'];
 const isEmptyVal = (v) => v === undefined || v === null || v === '' || v === false;
 function mergeFormVideoSlot(sv, mine) {
   if (!sv || typeof sv !== 'object') return mine;
@@ -376,6 +378,19 @@ export async function upsertWorkoutRow(row) {
     ({ error } = await withTimeout(() => supabase.from('client_workouts').upsert(rest)));
   }
   if (error) throw error;
+  // CONFIRMED BY THE SERVER, NOT BY THE REQUEST (5.10 #560). A write whose
+  // response was lost on a dead wifi looks exactly like one that landed - the
+  // client only knows the request went out. The row is read back by id; if it
+  // is not there, the save is treated as transient and retried (the upsert is
+  // idempotent and merges, so a second landing changes nothing). Only now does
+  // the queue let the entry go.
+  if (row && row.id) {
+    let chk;
+    try { chk = await withTimeout(() => supabase.from('client_workouts').select('id').eq('id', row.id).maybeSingle()); }
+    catch (e) { throw new Error('save not confirmed - network wait, retrying: ' + (e?.message || e)); }
+    if (chk && chk.error) throw new Error('save not confirmed - network wait, retrying: ' + (chk.error.message || chk.error));
+    if (!chk || !chk.data) throw new Error('save not confirmed - the row is not on the server yet, network wait, retrying');
+  }
 }
 
 // ONE WRITE AT A TIME PER ROW (review 27.9). The direct save and the queue
@@ -429,7 +444,7 @@ registerHandler('client_workouts.fvSlot', async ({ id, index, slot }) => {
   // go); the athlete's words (note, fileName) are set when given, never blanked
   for (const k of UPLOAD_FV_FIELDS) {
     if (slot && Object.prototype.hasOwnProperty.call(slot, k)) next[k] = slot[k];
-    else if (k !== 'note' && k !== 'fileName') delete next[k];
+    else if (k !== 'note' && k !== 'fileName' && k !== 'analysis') delete next[k];   // the athlete's words and read stay
   }
   fv[index] = next;
   const { error: e2 } = await supabase.from('client_workouts').update({ form_videos: fv }).eq('id', id);
@@ -1130,6 +1145,7 @@ export function useSupaClientWorkouts(initial = []) {
             if (!entryStillQueued(entry.id)) return; // a newer save replaced it, or the replay landed it
             await upsertWorkoutRow(row);
             removeEntry(entry.id); // confirmed — only now does the queue let go
+            ensurePersistentStorage();   // there is now something on this phone worth keeping (5.10 #560)
           });
           return { confirmed: true, durable: entry.durable };
         } catch (e) { failure = e; }

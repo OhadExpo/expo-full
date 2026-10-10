@@ -130,7 +130,7 @@ export const PROGRESS_HE = {
     { id: 'interests_note',  type: 'paragraph', label: 'אם "אחר" — פרט' },
     { id: 'goal_change',     type: 'choice',    label: 'יש שינויים במטרות האימון?', required: true, choices: ['לא, ממשיכים לעבוד', 'אחר'] },
     { id: 'goal_note',       type: 'paragraph', label: 'אם "אחר" — פרט' },
-    { id: 'frequency',       type: 'choice',    label: 'יש לך מספר אימונים בשבוע שאתה רוצה לעשות?', required: true, choices: ['לא, אני גמיש ואתאמן לפי התוכנית', 'אחר'] },
+    { id: 'frequency',       type: 'choice',    label: 'אתה רוצה מספר מסוים של אימונים בשבוע?', required: true, choices: ['לא, אני גמיש ואתאמן לפי התוכנית', 'אחר'] },
     { id: 'frequency_note',  type: 'short',     label: 'אם "אחר" — כמה?' },
     { id: 'communication',   type: 'choice',    label: 'הצעות לשיפור בתקשורת בינינו?', required: true, choices: ['לא, אני בסך הכל מרוצה', 'אחר'] },
     { id: 'communication_note', type: 'paragraph', label: 'אם "אחר" — פרט' },

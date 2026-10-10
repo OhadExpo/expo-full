@@ -20,7 +20,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn, ChipGrid } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -38,6 +38,12 @@ export function exById(exercises) {
 // Same module-singleton pattern, keyed on normalized title — so free-text rows
 // resolve their library target with an O(1) Map lookup instead of a linear
 // exercises.find() over ~1,500 entries per row on every render (keystroke lag).
+// AN EXERCISE NAME WRAPS BETWEEN WORDS AND AFTER A SLASH, NEVER MID-WORD (9.10 audit
+// #612: "PROTRACTION/RETRAC-TION" on a phone). A <wbr> after each "/" gives the long
+// slashed names a clean break; a single token wider than the whole cell may still wrap.
+const slashWbr = (s) => (typeof s === 'string' && s.includes('/')
+  ? s.split('/').flatMap((part, i, all) => (i < all.length - 1 ? [part, '/', <wbr key={i} />] : [part]))
+  : s);
 let _exTitleSrc = null, _exTitleMap = null;
 function exByTitle(exercises) {
   if (_exTitleSrc !== exercises) {
@@ -55,7 +61,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB } from './i18n';
+import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB, exercisesCount } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -63,6 +69,16 @@ const plural = (n, word, lang = 'en') => countIn(lang, n, word);
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
+// A day added to a plan whose days are lettered continues the letters in order - A, B -> C
+// (Ohad 9.10 #634: 'regular order.. abcd', 'applied everywhere'); a numbered plan keeps numbers.
+const nextDayName = (days) => {
+  const nm = (d) => String((d && (d.name || d.n)) || '');   // both plan shapes
+  const named = days.filter((d) => /^day\s/i.test(nm(d)));
+  const letters = named.map((d) => /^day\s+([a-z])(?![a-z])/i.exec(nm(d))).filter(Boolean).map((m) => m[1].toUpperCase().charCodeAt(0));
+  // after the HIGHEST letter, not the count: A, C (B deleted) + Add Day = D, never a second C (1008u review)
+  const next = letters.length ? Math.max(...letters) + 1 : 0;
+  return letters.length && letters.length === named.length && next <= 90 ? `Day ${String.fromCharCode(next)}` : `Day ${days.length + 1}`;
+};
 
 const PAGE_SIZE = 25;
 
@@ -753,7 +769,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
           {athleteName ? <span className="pp-athlete"><bdi>{athleteName}</bdi></span> : null}
           <span>{days.length} {days.length === 1 ? 'day' : 'days'}</span>
           <span>{weeks} {weeks === 1 ? 'week' : 'weeks'}</span>
-          <span>{tt('Printed')}{printedOn}</span>
+          <span>{tt('Printed')} {printedOn}</span>
         </div>
       </header>
 
@@ -827,7 +843,8 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
           {/* Count and volume as plain coloured text, not badges: badge padding
               breaks tight alignment, and this is a reading surface. */}
           <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, flexShrink: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-            {list.length} {tt('EX')}{sets ? ` · ${sets} ${tt('SETS')}` : ''}
+            {/* Hebrew in words: '8 EX' in a Hebrew line drew as 'EX 8' (audit #612 C2) */}
+            {readLang() === 'he' ? exercisesCount(list.length, 'he') : `${list.length} ${tt('EX')}`}{sets ? ` · ${sets} ${tt('SETS')}` : ''}
           </span>
         </div>
         <div>
@@ -908,7 +925,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
             boxShadow: 'inset 0 -1px 0 var(--c-cardBd)',
           }}>
             <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.or }}>{tt("Warm-up")}</span>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{warmRows.length} EX</span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{readLang() === 'he' ? exercisesCount(warmRows.length, 'he') : `${warmRows.length} EX`}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
             {warmRows.map((w, i) => {
@@ -997,7 +1014,9 @@ function ExPicker({ exercises, value, onChange, onPickName, onCreateLibrary, lab
 // so plans authored before the field split still render their original
 // rep prescription unchanged.
 function wuRx(w) {
-  if (w && (w.sets || w.reps)) {
+  // half-filled fields beside a written rx give way to the rx - the athlete portal's rule
+  // (wuStructured, audit #612 B4): a stray 'sets 11' beside '1x12' showed a bare '11'
+  if (w && (w.sets || w.reps) && ((w.sets && w.reps) || !w.rx)) {
     const sets = w.sets ?? '';
     const reps = w.reps ?? '';
     const core = sets && reps ? `${sets}×${reps}` : `${sets}${reps}`;
@@ -1231,7 +1250,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
                   style={{ color: C.tx, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}><CaretGlyph /></span>
-                  <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
+                  <span style={{ overflowWrap: 'break-word', wordBreak: 'normal', color: w.t ? C.tx : C.td }}>{w.t ? slashWbr(w.t) : 'New warm-up — click to name'}</span>
                 </div>
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
@@ -1571,7 +1590,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpEx(exKey); } }}
                                 style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderInlineStart:`3px solid ${pe.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
                                 <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
-                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
+                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{slashWbr(title)}</span>
                               </div>
                               <input value={pe.superset || ''} readOnly tabIndex={-1}
                                 style={{...tinyInputRO, background: pe.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: pe.superset ? `1px solid ${sc}` : tinyInputRO.border, color: pe.superset ? C.tx : C.td, fontFamily:FN, fontWeight: pe.superset ? 800 : 600, textAlign:'center'}} />
@@ -2209,7 +2228,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [leftPaneRef, leftSbInset] = useScrollbarInset(compareActive);
 
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
-  const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
+  const addDay = () => { setPlan(p => ({...p, days: [...p.days, { ...defaultDay(p.days.length+1), name: nextDayName(p.days) }]})); setActiveDay(plan.days.length); };
   const removeDay = i => { if (plan.days.length<=1) return; setPlan(p => ({...p, days: p.days.filter((_,idx)=>idx!==i)})); if (activeDay>=plan.days.length-1) setActiveDay(Math.max(0,plan.days.length-2)); };
   const addExWithId = (exerciseId) => {
     const ex = defaultPlanEx();
@@ -2861,7 +2880,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleOvExpand(ex.id); } }}
                         style={{color:C.tx, minWidth:0, borderInlineStart:`3px solid ${ex.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
                         <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
-                        <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
+                        <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{slashWbr(title)}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
@@ -3032,7 +3051,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     return (
                       <div key={w.id} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
                         <div style={{background:'var(--c-sf2)',borderInlineStart:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
-                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'}{w.week!=null && <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}> · W{w.week}</span>}</div>
+                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'}{w.week!=null && <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}> · {readLang() === 'he' ? <span dir="rtl" style={{unicodeBidi:'isolate'}}>{`שבוע ${w.week}`}</span> : `W${w.week}`}</span>}</div>
                           <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date || w.createdAt)}</div>
                         </div>
                         {exs.map((x,i)=>{
@@ -4507,7 +4526,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       const daysSince = lastTs ? Math.floor((now - lastTs) / 86400000) : null;
       rows.push({
         tid,
-        name: traineeMap[tid] || (tid === '__unassigned__' ? 'Unassigned' : tid),
+        name: traineeMap[tid] || (tid === '__unassigned__' ? tt('Unassigned') : tid),   // was English in the Hebrew list (audit #612)
         current,
         earlier,
         daysSince,
@@ -4828,12 +4847,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
       {displayGrouped && displayGrouped.length > 0 && progView === 'table' && phoneList && (
-        <div className={`prog-phone-list ${settle}`} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+        // ONE GRID FOR THE WHOLE LIST (4.10 #551, Ohad: "make it way better"): every
+        // row's columns ARE these columns (CSS subgrid) - name/program | status/+N |
+        // portal - so every status dot sits on one vertical line, every +N chip under
+        // its dot, every switch on the edge. Each row sized its own right side
+        // before, and dots, chips and labels landed at a different x on every row.
+        <div className={`prog-phone-list ${settle}`} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) max-content max-content' }}>
           {displayGrouped.map((row, ri) => {
             const top = ri === 0 ? 'none' : `1px solid ${C.cardBd}`;
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
+                <div key={row.tid} style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</bdi><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.or }}>{tt('No program yet')}</span>
@@ -4845,36 +4869,42 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const cur = row.current;
             const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
-            const tagText = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);
+            // the phone's short forms: the status column stays narrow, the names keep their room
+            const tagText = row.daysSince == null ? (he ? 'אין אימונים' : 'NO LOGS') : row.daysSince === 0 ? (he ? 'היום' : 'TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);
+            const tagFull = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : tagText;
             const vk = setPortalVis ? visKeyForPlan(cur, trainees) : null;
             const isVis = vk ? portalVis?.[vk] !== false : null;
             return (
-              <div key={row.tid} style={{ borderTop: top }}>
-                <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
-                  style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 10, rowGap: 4, alignItems: 'center', minHeight: 52, padding: '9px 12px', boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, height: 17 }}>
-                    <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{row.name}</bdi>
-                    <BhbcBadge tid={row.tid} trainees={trainees} />
+              <div key={row.tid} style={{ borderTop: top, gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid' }}>
+                <div role="button" tabIndex={0} onClick={() => handleOpenPlan(cur.id)} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; /* Enter on the +N chip or the switch is THEIRS (it opened the plan) */ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(cur.id); } }}
+                  style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', columnGap: 14, rowGap: 5, alignItems: 'center', minHeight: 56, paddingBlock: 10, paddingInlineStart: 12, paddingInlineEnd: 4, boxSizing: 'border-box', cursor: openingId === cur.id ? 'progress' : 'pointer', opacity: openingId === cur.id ? 0.55 : 1 }}>
+                  {/* the whole name, always: a word is never cut (his rule) - a long one takes a second line */}
+                  <span style={{ gridColumn: 1, gridRow: 1, display: 'block', minWidth: 0, minHeight: 18, lineHeight: '18px' }}>
+                    <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi>
+                    {/* inline after the LAST word: in a flex row it sat at the far end once a long name wrapped */}
+                    <span className="prog-badge-slot" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', justifySelf: 'end' }}>
+                  <span title={row.daysSince == null ? (he ? 'עוד לא רשם אימון' : 'No session logged yet') : tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull).toLowerCase())} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
-                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'anywhere' }}>{cur.name || 'Untitled'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
+                  <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap', flexBasis: he ? '100%' : undefined /* Hebrew: always its own line - beside the name it fitted on some rows and not others */ }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifySelf: 'end' }}>
+                  <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 /* on the program line */ }}>
                     {row.earlier.length > 0 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); toggleAthlete(row.tid); }} aria-expanded={expanded}
-                        title={he ? `${row.earlier.length} בלוקים קודמים` : `${row.earlier.length} previous blocks`}
+                        title={he ? (row.earlier.length === 1 ? 'בלוק קודם אחד' : `${row.earlier.length} בלוקים קודמים`) : (row.earlier.length === 1 ? '1 previous block' : `${row.earlier.length} previous blocks`)}
                         style={{ display: 'inline-flex', alignItems: 'center', height: 32, minHeight: 0, minWidth: 0, margin: '-9px 0', padding: 0, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer' }}>
                         {/* the tap area is 32 tall; the tag drawn inside is 16, as tall as the text line - filled, not bordered (a bordered control is 36, the house height) */}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 16, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'color-mix(in srgb, var(--c-ac) 18%, transparent)' : 'rgba(127,127,138,0.16)', color: expanded ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 16, minWidth: 44 /* one width for +1 and +27 */, padding: '0 7px', boxSizing: 'border-box', background: expanded ? 'color-mix(in srgb, var(--c-ac) 18%, transparent)' : 'rgba(127,127,138,0.16)', color: expanded ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', fontVariantNumeric: 'tabular-nums' }}>
                         <bdi dir="ltr">+{row.earlier.length}</bdi>
                         <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
                         </span>
                       </button>
                     )}
+                  </span>
+                  <span style={{ gridColumn: 3, gridRow: '1 / span 2', alignSelf: 'center', display: 'inline-flex' }}>
                     {vk && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); setPortalVis({ ...portalVis, [vk]: !isVis }); }} aria-pressed={isVis}
                         title={tr(readLang(), isVis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
@@ -4888,7 +4918,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                 </div>
                 {expanded && row.earlier.length > 0 && (
-                  <div className="prog-reveal" style={{ borderTop: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
+                  <div className="prog-reveal" style={{ gridColumn: '1 / -1', borderTop: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
                     {row.earlier.map((p) => (
                       <div key={p.id} role="button" tabIndex={0} onClick={() => handleOpenPlan(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(p.id); } }}
                         style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, padding: '10px 12px', boxSizing: 'border-box', cursor: 'pointer', opacity: openingId === p.id ? 0.45 : 0.85 }}>
@@ -4963,7 +4993,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         (Ohad #195 "colored but less colorful") and the pill has a
                         fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
                         size regardless of length. */}
-                    <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:124,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                    <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText).toLowerCase())} className="prog-recency" style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-start' /* starts its box: pushed to the far end, '6D AGO' floated mid-row on a phone (4.10 #550) */,gap:6,minWidth:124,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                       <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                     </span>
                   </span>
@@ -5081,9 +5111,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{display:'flex',whiteSpace:'nowrap',fontSize:11,lineHeight:'20px',color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}><SegWord full={tt('No program yet')} short={tt('No program')} /></div>
                   <div style={{flex:1}} />
                   {row.coupleMembers
-                    ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (
-                        <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ {String(m.name).toUpperCase()}</button>
-                      ))}</div>
+                    // one + NAME per member, equal cells, the orange of the orphan card (5.10 #574)
+                    ? <ChipGrid value={null} items={row.coupleMembers.map(m => ({ k: m.id, label: `+ ${String(m.name).toUpperCase()}`, tone: C.or, onClick: ()=>handleNewPlan(m.id) }))} />
                     : <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tb('+ ASSIGN PROGRAM')}</button>}
                 </div>
               );
@@ -5141,7 +5170,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
                     style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'transparent',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
-                  <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText))} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                  <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText))} className="prog-recency" style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-start' /* see the card strip (4.10 #550) */,gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>
                 </span>

@@ -10,8 +10,8 @@
 // THE SPEC, measured on every tab (Schedule in all three modes) at 1440 + 390:
 //   - anything in the zone that paints a full box (border on four sides, or a
 //     filled control) is 36 (--btn-h)
-//   - a title strip is 41; a control nested IN a strip is the nested height
-//     (26, 32 on a touch screen - --btn-h-in, Ohad 26.9)
+//   - a title strip is 41; a control nested IN a strip is 26 on every device, and on
+//     a touch screen its ::after band gives the finger 32 (#650, 10.10 - was a 32 box)
 //   - a segment of a segmented group is measured as the group
 //   - every grid/list row (.hl-rows) is at least 36
 // An action inside a row is a SEGMENT of the row (segBtn) and draws no box, so
@@ -80,10 +80,19 @@ try {
           // a FILLED segment (#514: the logged S&C is tinted) is still the row's own
           // segment when it spans the chip's whole inner height - a state of the row,
           // not a box drawn inside it. A shorter fill is a box in a box and stays caught.
-          if (e.classList.contains('bhbc-seg') && sides < 4) { const chip = e.closest('.bhbc-chip'); if (chip && Math.abs(h - chip.clientHeight) <= 1) continue; }
+          // Its ROW is the reference: a stacked chip (#643 phone planner) puts the actions on a
+          // second row under a hairline, so the chip is two rows tall and the segment fills one.
+          if (e.classList.contains('bhbc-seg') && sides < 4) { const row = e.closest('.bhbc-chip-acts, .bhbc-chip-acts-col') || e.closest('.bhbc-chip'); if (row && Math.abs(h - row.clientHeight) <= 1) continue; }
           const nested = !!e.parentElement && !!e.parentElement.closest('.title-strip');
-          const want = e.classList.contains('title-strip') ? 41 : nested ? (matchMedia('(pointer: coarse)').matches ? 32 : 26) : 36;
+          // #650 (10.10): a strip control is 26 on every device; on touch the FINGER gets 32 from
+          // an ::after band (inset -3px 0), so the box is 26 and the band is what is checked
+          const want = e.classList.contains('title-strip') ? 41 : nested ? 26 : 36;
           if (Math.abs(h - want) > 1) out.push({ tag: e.tagName.toLowerCase(), h, w: Math.round(r.width), txt: txt.slice(0, 34), cls: String(e.className || '').slice(0, 30) });
+          else if (nested && isCtl && matchMedia('(pointer: coarse)').matches) {
+            const af = getComputedStyle(e, '::after');
+            const band = af.content && af.content !== 'none' && af.position === 'absolute' ? h - (parseFloat(af.top) || 0) - (parseFloat(af.bottom) || 0) : h;
+            if (band < 31) out.push({ tag: e.tagName.toLowerCase(), h, w: Math.round(r.width), txt: `${txt.slice(0, 22)} (touch band ${Math.round(band)})`, cls: String(e.className || '').slice(0, 30) });
+          }
         }
         // grid rows (Lifts, Practice Attendance, every .hl-rows list) never under 36
         for (const r of zone.querySelectorAll('.hl-rows > *')) { const h = r.getBoundingClientRect().height; if (h && h < 35.5) out.push({ tag: 'row', h: Math.round(h * 10) / 10, w: Math.round(r.getBoundingClientRect().width), txt: (r.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 34), cls: 'hl-rows' }); }

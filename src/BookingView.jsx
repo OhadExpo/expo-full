@@ -288,7 +288,7 @@ export default function BookingView({ trainees }) {
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
-          <Input label={tt('Slug (public URL)')} value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
+          <Input label={tt('Slug (public URL)')} dir="ltr" value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
           <Input label={tt('Display name')} value={draftSettings?.display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name: e.target.value })} placeholder="Ohad — EXPO" />
           <Input label={tt('Duration (min)')} type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: clampSetting(e.target.value, 60, 5, 8 * 60) })} />
           <Input label={tt('Buffer (min)')} type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: clampSetting(e.target.value, 0, 0, 4 * 60) })} />
@@ -300,20 +300,20 @@ export default function BookingView({ trainees }) {
               nothing changes for a coach who writes one language. Shipping the
               columns without these inputs would have been half a feature. */}
           <Input label={tt('English name, optional')} value={draftSettings?.display_name_en || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name_en: e.target.value })} placeholder={draftSettings?.display_name || ''} />
-          <Input label={tt('Zoom URL')} style={{ textAlign: 'start' }} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
+          <Input label={tt('Zoom URL')} dir="ltr" /* a URL reads left to right; in Hebrew the placeholder rendered '…/https://zoom.us/j' (audit #612 C8) */ style={{ textAlign: 'start' }} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
         </div>
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('CANCELLATION POLICY')}</label>
-          <textarea dir="auto" rows={2} value={draftSettings?.cancellation_policy || ''}
+          <textarea dir="auto" rows={3} /* 3: the stock policy is three lines on a phone and the third was cut (audit #612 C8) */ value={draftSettings?.cancellation_policy || ''}
             onChange={e => setDraftSettings({ ...draftSettings, cancellation_policy: e.target.value })}
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
         </div>
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('CANCELLATION POLICY (EN, OPTIONAL)')}</label>
-          <textarea dir="auto" rows={2} value={draftSettings?.cancellation_policy_en || ''}
+          <textarea dir="auto" rows={3} value={draftSettings?.cancellation_policy_en || ''}
             onChange={e => setDraftSettings({ ...draftSettings, cancellation_policy_en: e.target.value })}
             placeholder={draftSettings?.cancellation_policy || ''}
-            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>{tt('PUBLIC URL:')}</span>
@@ -363,21 +363,22 @@ export default function BookingView({ trainees }) {
         ) : rules.map((r, ri) => (
           // the last rule draws no rule of its own - the box edge ends the list (#419)
           <div key={r.id} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-            borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none', flexWrap: 'wrap',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+            borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none',
+            // ONE ROW ON A PHONE: the two time boxes give way, the × stays on the row
+            // (audit #612 C8: at 390 the × wrapped alone onto a second line)
           }}>
             <select value={r.day_of_week} onChange={e => updateRule(r.id, { day_of_week: parseInt(e.target.value) })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }}>
               {DAY_LABELS.map((d, i) => <option key={i} value={i}>{tt(d)}</option>)}
             </select>
-            <input type="time" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRuleDebounced(r.id, { start_time: e.target.value })}
-              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
-            <span style={{ color: C.tm }}>→</span>
-            <input type="time" value={r.end_time?.slice(0, 5) || '17:00'} onChange={e => updateRuleDebounced(r.id, { end_time: e.target.value })}
-              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
-            <span style={{ flex: 1 }} />
-            <button onClick={() => removeRule(r.id)}
-              style={{ height: 23, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
+            <input type="time" dir="ltr" className="rule-time" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRuleDebounced(r.id, { start_time: e.target.value })}
+              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0, maxWidth: 150 }} />
+            <span style={{ color: C.tm }}>{readLang() === 'he' ? '←' : '→'}</span>
+            <input type="time" dir="ltr" className="rule-time" value={r.end_time?.slice(0, 5) || '17:00'} onChange={e => updateRuleDebounced(r.id, { end_time: e.target.value })}
+              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none', flex: '1 1 0', minWidth: 0, maxWidth: 150 }} />
+            <button onClick={() => removeRule(r.id)} aria-label={tt('Remove')}
+              style={{ flexShrink: 0, marginInlineStart: 'auto', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
           </div>
         ))}
       </CollapsibleSection>

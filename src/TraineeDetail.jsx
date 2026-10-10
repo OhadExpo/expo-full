@@ -34,7 +34,7 @@ import TraineeIntake from './TraineeIntake';
 import { rowKind } from './bhbcSession';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
-import { useT, tr, readLang } from './i18n';
+import { useT, tr, readLang, daysCount, exercisesCount } from './i18n';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
 // markers counts, the way PlansView already had to accept all three.
@@ -196,6 +196,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
     .sort((a,b) => new Date(a.date) - new Date(b.date));
   const [showPayForm,setShowPayForm]=useState(false);
   const [showContract,setShowContract]=useState(false);
+  const [sheetPays,setSheetPays]=useState(0); // payments in the roster sheet's history (owner-only), counted in the Billing header
   const [showEdit,setShowEdit]=useState(false);
   const [showAssign,setShowAssign]=useState(false);
   const [pendingAssignPlan,setPendingAssignPlan]=useState(null); // for couple member picker
@@ -498,7 +499,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               </button>
             )}
           </div>
-          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount||0} {t('days')} · {cur.exerciseCount||0} {t('exercises')}</div>
+          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{daysCount(cur.dayCount||0)} · {exercisesCount(cur.exerciseCount||0)}</div>
         </div>
 
         {/* Light text actions — PORTAL toggle (green, kept) + spacer + Only / Remove. */}
@@ -762,7 +763,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
           <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto",textAlign:"center"}}>
-            {[[t("Age"),td.age||"—"],[t("Weight"),td.weight?`${td.weight}kg`:"—"],[t("Height"),td.height?`${td.height}cm`:"—"],[t("Format"),td.format||"—"]].map(([l,v])=>{
+            {[[t("Age"),td.age||"—"],[t("Weight"),td.weight?`${td.weight} ${readLang()==='he'?'ק״ג':'kg'}`:"—"],[t("Height"),td.height?`${td.height} ${readLang()==='he'?'ס״מ':'cm'}`:"—"],[t("Format"),td.format?t(td.format):"—"]].map(([l,v])=>{
               const empty = v==="—";
               return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
             })}
@@ -781,7 +782,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
+      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length + sheetPays} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
           <div style={{display:'flex',gap:0}}>
@@ -813,7 +814,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           return <div key={l} style={{whiteSpace:'nowrap'}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
         })}
       </div>
-      {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>{t('No payments recorded.')}</div>:(
+      {tPay.length===0?(sheetPays ? null /* the sheet's history below has them - 'No payments recorded.' above '33 payments' contradicted it (audit #612 C6) */ : <div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>{t('No payments recorded.')}</div>):(
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
@@ -835,7 +836,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               <button onClick={()=>handleDeletePay(p.id)} aria-label={t('Delete payment')} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
       {/* The roster sheet's history for this client (owner-only; empty for staff). */}
-      <SheetBillingHistory traineeId={trainee} />
+      <SheetBillingHistory traineeId={trainee} onCount={setSheetPays} />
       </CollapsibleSection>
       {showContract && (
         <CoachContractComposer
@@ -1003,7 +1004,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           were already one record: the zone reads EXPO's plans. */}
       {isClubAthleteRow(td) && (() => {
         const rec = (bhbcLoads || {})[trainee] || {};
-        const KIND = { lift: t('Lift'), sc: t('S&C session'), game: t('Game'), practice: t('Practice'), other: t('Session') };
+        const KIND = { lift: t('Lift'), sc: t('S&C session'), warmup: t('Warm-up'), game: t('Game'), practice: t('Practice'), other: t('Session') };   // warm-up is not S&C (#643)
         const entries = [];
         for (const [date, list] of Object.entries(rec.sessions || {})) for (const r of (list || [])) entries.push({ date, r, kind: rowKind(r) });
         entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -1098,7 +1099,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               onMouseEnter={e=>e.currentTarget.style.background='rgba(57,189,255,0.094)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
               <div style={{fontWeight:700,color:C.ac,fontSize:13,fontFamily:FN,letterSpacing:'0.04em'}}>+ {tr(readLang(), 'START BLANK PROGRAM')}</div>
-              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{td.name} — {t('pick name, days, exercises.')}</div>
+              {/* English needs the space ("Empty editor forDana"); Hebrew's ל prefix stays attached to the name (5.10 #574) */}
+              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{readLang() === 'he' ? '' : ' '}{td.name} — {t('pick name, days, exercises.')}</div>
             </div>
             {(unassigned.length>0 || others.length>0) && (
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>{t('OR ASSIGN EXISTING')}</div>

@@ -66,14 +66,17 @@ async function freshPage(ctx, lang, w) {
   await pg.setBypassServiceWorker(true).catch(() => {});   // a stale SW bundle is not the code under test
   await setWidth(pg, w, heightFor(w));
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: THEME }]).catch(() => {});
-  await pg.evaluateOnNewDocument((L, T) => {
+  await pg.evaluateOnNewDocument((L, T, P) => {
     try {
       localStorage.setItem('expo-lang', L);
       localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L));   // the BHBC zone keeps its own language (usePersistentState, JSON)
       localStorage.setItem('expo-theme', T);
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
+      // PRESET='{"key":"value"}' opens a view that is not the default (4.10: the
+      // programs CARD view on a phone, where "6D AGO" floated)
+      for (const [k, v] of Object.entries(P || {})) localStorage.setItem(k, v);
     } catch (e) { /* private mode */ }
-  }, lang, THEME);
+  }, lang, THEME, (() => { try { return JSON.parse(process.env.PRESET || '{}'); } catch { return {}; } })());
   return pg;
 }
 

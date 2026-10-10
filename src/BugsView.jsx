@@ -12,7 +12,7 @@ import { useT, useTB, tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, toast, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, toast, stripBtnBase, ChipGrid } from './ui';
 
 const STATUS_PILLS = [
   { id: 'open',    label: 'OPEN',    color: C.rd },
@@ -102,22 +102,9 @@ export default function BugsView() {
         </div>
       </RefinedHeaderStrip>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 14 }}>
-        {STATUS_PILLS.map(p => {
-          const active = filter === p.id;
-          const n = p.id === 'all' ? rows.length : (counts[p.id] || 0);
-          return (
-            <button key={p.id} aria-pressed={active} onClick={() => setFilter(p.id)}
-              style={{
-                padding: '4px 10px', borderRadius: 0,
-                border: `1px solid ${active ? p.color : C.cardBd}`,
-                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                color: active ? p.color : C.tm,
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>{tb(p.label)}{n > 0 ? ` · ${n}` : ''}</button>
-          );
-        })}
-      </div>
+      {/* one equal-cell grid, the count beside the word, the status colour as the fill (5.10 #574) */}
+      <ChipGrid ariaLabel={tt('BUG REPORTS')} value={filter} onChange={setFilter} style={{ marginBottom: 14 }}
+        items={STATUS_PILLS.map(p => { const n = p.id === 'all' ? rows.length : (counts[p.id] || 0); return { k: p.id, label: tb(p.label), n: n > 0 ? n : undefined, color: p.color }; })} />
 
       {loading ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontFamily: FB, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>

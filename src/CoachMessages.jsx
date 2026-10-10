@@ -128,6 +128,14 @@ function useVoiceRecorder() {
   const reset = useCallback(() => {
     setBlob(null); setElapsed(0); setError(null);
   }, []);
+  // A note being recorded or not yet sent is never reloaded from under the athlete: the
+  // update banner reads this counter as busy (1008o review MUST, #626).
+  const holding = recording || !!blob;
+  useEffect(() => {
+    if (!holding) return undefined;
+    window.__expoRecording = (window.__expoRecording | 0) + 1;
+    return () => { window.__expoRecording = Math.max(0, (window.__expoRecording | 0) - 1); };
+  }, [holding]);
 
   const start = useCallback(async () => {
     setError(null); setBlob(null); setElapsed(0);

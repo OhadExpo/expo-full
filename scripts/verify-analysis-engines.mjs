@@ -66,6 +66,14 @@ const suites = [
   'verify-offline-queue.mjs',        // the offline write queue — where a bug silently destroys an athlete's logged workout
   'verify-storage-url.mjs',          // parseStoredUrl — the resolver that lets the media buckets go private without breaking playback
   'verify-plan-log-match.mjs',       // isLogOfPlan — a couple's identically-named plans must not cross-contaminate, WITHOUT regressing a recreated block (audit #31)
+  'verify-import-merge.mjs',         // Smart Import: a blank cell never erases an athlete's existing data (5.10 #554)
+  'verify-video-gaps.mjs',           // library video gaps: an approved video reaches ABSENT rows only, never over your '' or override (5.10 #559)
+  'verify-video-gaps-apply.mjs',     // the Videos screen's writes: guarded library setter, dry run, undo only on the version we wrote (5.10 #559)
+  'verify-block-ending.mjs',         // the dashboard's BLOCK ENDING card: last week, no next block written, real completion (5.10 #565)
+  'verify-pose-stable.mjs',          // the 3D skeleton: one length per bone, L/R flips undone, feet on the floor (5.10 #558)
+  'verify-sheet-parse.mjs',          // Smart Import's direct sheet reader: blank stays blank, superset groups, merges, waves (5.10 #554)
+  'verify-fetch-budget.mjs',         // a request's budget grows with its body, FormData uploads included (5.10 #560)
+  'verify-set-analysis.mjs',         // the athlete's own set read: a poor or scattered capture shows no number (5.10 #552)
   'verify-medical-out.mjs',          // medicalAvailOn - who is Out on a given DAY; was dead (not in the build) until 29.9 and then caught a real edge
 ];
 

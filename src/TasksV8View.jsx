@@ -29,7 +29,7 @@ import { localiseAutoBody } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn, ChipGrid } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase, isSandboxSeat } from './supabase';
@@ -358,7 +358,7 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
 // One height for every in-row pill/tag (status, urgency, date, athlete, shared)
 // so a row of tags lines up — no asymmetry (Ohad).
 const TASK_PILL_H = 24;
-function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
+function StatusPill({ status, theme, onSetStatus, readOnly = false, fill = false }) {
   const tt = useT();
   const tb = useTB();
   // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
@@ -367,26 +367,27 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
   const sc = statusColors(status, theme);
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
-  const filled = !!sc;
   const base = {
-    boxSizing: 'border-box', height: 'var(--btn-h)', width: 128, padding: '0 10px', borderRadius: 0,
+    boxSizing: 'border-box', height: 'var(--btn-h)', width: fill ? '100%' : 128, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
-    border: `1px solid ${pillColor}`,
-    background: filled ? pillColor : 'transparent',
-    color: filled ? (sc.fg || '#FFFFFF') : pillColor,
+    // A FRAME AND COLOURED WORDS, NEVER A FILL (5.10 design rule; 9.10 audit #612:
+    // IN PROGRESS sat as a solid yellow block beside the framed TO DO)
+    border: fill ? 'none' : `1px solid ${pillColor}`,
+    background: fill ? 'var(--c-sf)' : 'transparent',
+    color: pillColor,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
   if (readOnly) {
     return (
-      <span title={tr(readLang(), 'Read-only')} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
+      <span title={tr(readLang(), 'Read-only')} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', ...(fill ? { color: 'var(--c-td)' } : { opacity: 0.65 }) /* in the joined pair a see-through cell showed the hairline colour (review NIT) */ }}>
         {tb(opt.label)}
       </span>
     );
   }
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: fill ? '100%' : undefined }} onClick={(e) => e.stopPropagation()}>
       <select
         className="task-select"
         value={status}
@@ -459,22 +460,22 @@ const PRIORITY_PICK = [
   { id: 'normal', label: 'Normal', color: 'var(--c-tm)' },
   { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
 ];
-function PriorityPill({ priority, onSetPriority, readOnly = false }) {
+function PriorityPill({ priority, onSetPriority, readOnly = false, fill = false }) {
   const tt = useT();
   const tb = useTB();
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
-    boxSizing: 'border-box', height: 'var(--btn-h)', width: 96, padding: '0 8px', borderRadius: 0,
+    boxSizing: 'border-box', height: 'var(--btn-h)', width: fill ? '100%' : 96, padding: '0 8px', borderRadius: 0,
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
-    border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
+    border: fill ? 'none' : `1px solid ${cur.color}`, background: fill ? 'var(--c-sf)' : 'transparent', color: cur.color,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
-  if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
+  if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: fill ? '100%' : undefined }} onClick={(e) => e.stopPropagation()}>
       <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
         title={tt('Change urgency')} style={{ ...base, cursor: 'pointer' }}>
@@ -873,25 +874,23 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           </div>
           {/* Row 2 — Urgency */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <span style={cmpGroup}>
+            <span style={{ ...cmpGroup, flex: '1 1 auto', minWidth: 0 }}>
               <span style={cmpLabel}>{tt('Urgency')}</span>
-              {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
-                <button key={id}
-                  onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
-                  title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`}
-                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 'var(--btn-h)', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
-              ))}
+              {/* equal cells, each urgency filled in its own colour when picked (5.10 #574);
+                  mousedown keeps the composer's focus, as before */}
+              <ChipGrid ariaLabel={tt('Urgency')} value={priority} style={{ flex: '1 1 auto' }}
+                items={[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => ({
+                  k: id, label, color, tone: color, title: `${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`,
+                  onMouseDown: (e) => { e.preventDefault(); setPriority(id); },
+                }))} />
             </span>
           </div>
           {/* Row 3 — List + Athlete */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
               <span style={cmpLabel}>{tr(readLang(), 'List')}</span>
-              {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
-                <button key={id}
-                  onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
-                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 'var(--btn-h)', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
-              ))}
+              <ChipGrid ariaLabel={tr(readLang(), 'List')} value={source} phoneCols={1}
+                items={[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => ({ k: id, label, onMouseDown: (e) => { e.preventDefault(); setSource(id); } }))} />
             </span>
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
@@ -1611,6 +1610,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // meta and the status pill share the second — meta left, status right —
   // makes each task a tidy two-line block with no dead space.
   const phone = narrow && !board;
+  // THE PHONE ROW, ONE SHAPE (9.10 #618, Ohad's photo: "buttons and tags are awfully layed
+  // out" - a 128px status box on one side of the title, a 96px priority box alone under
+  // it, SHARED floating at the far edge). Now: the title has line 1; line 2 is status and
+  // priority as two EQUAL halves of ONE joined pair; line 3, only when there is any, is the plain
+  // meta (owner, athlete, shared, due) centred under them.
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1677,7 +1681,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // reserve a left gutter (26px) — the title/meta can never slide under it
           // in either LTR or RTL (Ohad: "checkmark and text overlap"). Non-board
           // rows keep their tight padding.
-          padding: board ? '5px 8px 5px 26px' : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
+          padding: board ? '5px 8px 5px 26px' : phone ? '10px 12px' /* equal sides: the two halves sit symmetric (#618) */ : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           border: `1px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
@@ -1709,11 +1713,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             // status read as a hole. The status now stays up on the title line where
             // his rule puts it (#189: priority left, title centred, status right) and
             // the chips own line 2 outright - two lines, packed left, always.
-            ? { order: 1, flexBasis: '100%', flexGrow: 0, flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
+            ? { order: 3, flexBasis: '100%', flexGrow: 0, flexShrink: 1, minWidth: 0, justifyContent: 'center', direction: 'inherit',
+                display: (showAvatar || showAthlete || row._owner === 'shared' || dateStr) ? 'flex' : 'none' }
             : wrapRow
               ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
               : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
-          <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
+          {phone && showAvatar && <AssigneeDot owner={row._owner} />}
+          {!phone && <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />}
           {/* Athlete chip in an ALWAYS-reserved column (like SHARED/DATE below) so a
               task WITH an athlete can't push the meta cluster wider than one without —
               chips line up vertically and titles keep an identical edge (Ohad #207). */}
@@ -1763,13 +1769,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             )}
           </span>
         </div>
-        {showAvatar && !board && <AssigneeDot owner={row._owner} />}
+        {showAvatar && !board && !phone && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
           // Board + phone: title leads line 1 and SHARES it with the status pill
           // (flex:1 pushes the pill to the right edge). The meta cluster wraps to
           // line 2 below (order:1). Was flexBasis:100% which forced the title onto
           // a line of its own and sprawled the row to 3-4 lines (Ohad: "trash").
-          ...(phone ? { order: -1, flex: '1 1 0%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
+          ...(phone ? { order: -1, flex: '1 1 100%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div dir="auto" style={{
             maxWidth: '100%', alignSelf: 'stretch',
             // ONE TYPE SYSTEM (29.9 #448 audit): a title with any Hebrew in it was set
@@ -1822,8 +1828,15 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             already states the status, so repeating it on every card is noise
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
-        {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 0 } : null) }}>
+        {phone ? (
+          // ONE JOINED PAIR (his 5.10 rule: a group of boxes is one equal-cell grid joined by
+          // hairlines, the colour in the words) - status and priority, equal halves
+          <span style={{ order: 1, flex: '1 1 100%', minWidth: 0, display: 'grid', gridTemplateColumns: hideStatus ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)' }}>
+            {!hideStatus && <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} fill />}
+            <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} fill />
+          </span>
+        ) : !hideStatus && (
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
@@ -3027,10 +3040,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} {tt('SELECTED')}</span>
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{tt('SET')}</span>
-          {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (
-            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`${tt('SET')} ${tt(o.label)}`}
-              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{tt(o.label)}</button>
-          ))}
+          {/* the five statuses as one equal-cell grid (5.10 #574); nothing is "active" - each is an action */}
+          <ChipGrid ariaLabel={tt('SET')} value={null}
+            items={STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => ({ k: o.id, label: tt(o.label), tone: 'var(--c-tx)', title: `${tt('SET')} ${tt(o.label)}`, onClick: () => bulkStatus(o.id) }))} />
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>{tr(readLang(), 'Delete')}</button>
           <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>{tr(readLang(), 'Clear')}</button>
