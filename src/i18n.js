@@ -2804,7 +2804,7 @@ export const HE = {
   'Every plan row whose exercise doesn’t resolve to the library, grouped by title. Accept a suggestion, Change it, or Skip. Applying writes the library link to all rows sharing that title.': 'כל שורה בתוכנית שהתרגיל שלה לא מתחבר לספרייה, מקובצת לפי שם. תאשר הצעה, תשנה אותה או דלג. ההחלה כותבת את הקישור לספרייה בכל השורות עם אותו שם.',
   'Classify Library': 'סיווג הספרייה',
   'Fill all fully-guessed': 'מילוי כל הניחושים השלמים',
-  'Fill all 3/3': 'מילוי כל הניחושים השלמים',   // #619: the English fits its half of the joined pair
+  'Fill all 3/3': 'מילוי הניחושים המלאים',   // #619: the English fits its half of the joined pair
   'Applying…': 'מחיל…',
   'Apply': 'החלה',
   'Categories guessed from each title, from the fixed category list. Review, edit any dropdown, or skip. Applying writes only the library — never programs.': 'הסיווג נוחש מכל שם (לפי הרשימה הקבועה). תעבור על זה, תשנה כל רשימה נפתחת או דלג. ההחלה כותבת רק לספרייה — אף פעם לא לתוכניות.',
