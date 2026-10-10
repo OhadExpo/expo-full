@@ -1301,7 +1301,7 @@ function CoupleCard({ t, onClick }) {
                   and paints at the WRONG END inside an RTL card — measured,
                   "+972503334455" came out as "972503334455+". The single card
                   above already does this; the couple card did not. */}
-              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{memberMeta[mi].phone}</span></div>}
+              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{displayPhoneIL(memberMeta[mi].phone)}</span></div>}
               {/* An address wraps rather than being sliced: it was cut by up to
                   60px, and half an email is not an email. */}
               {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email.split('@')[0]}@<wbr />{memberMeta[mi].email.split('@')[1]}</div>}
@@ -4485,7 +4485,7 @@ function DemoFloorBar({ roster, checkedIn }) {
           {!stacked && buttons}
         </div>
       </div>
-      {stacked && <div style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}
+      {stacked && <div data-strip-actions="" style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}   {/* the marker the real floor bar carries: stacked buttons are 36 (1010j review, parity) */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 14 }}>
         {roster.map((t, ai) => {
           const inn = !!checkedIn[ai];

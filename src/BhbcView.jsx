@@ -290,15 +290,36 @@ const initialName = (n) => { const p = String(n || '').trim().split(/\s+/); retu
 function PlayerName({ name, style, ...rest }) {
   const ref = React.useRef(null);
   const [last, setLast] = React.useState(false);
+  const lastRef = React.useRef(false); lastRef.current = last;
   React.useLayoutEffect(() => {
     const el = ref.current; if (!el) return undefined;
-    const check = () => { if (!last && el.scrollWidth > el.clientWidth + 1) setLast(true); };
-    const t = setTimeout(check, 300);   // after SegWord has chosen between full and short
-    let w = el.clientWidth;
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (Math.abs(el.clientWidth - w) > 1) { w = el.clientWidth; setLast(false); } }) : null;
-    if (ro) ro.observe(el);
-    return () => { clearTimeout(t); if (ro) ro.disconnect(); };
-  }, [last, name]);
+    const host = el.parentElement || el;
+    let t = 0, alive = true, widthAtStep = host.clientWidth;
+    // try the full / initial form again, then step to the surname if it still overruns
+    const evaluate = () => {
+      clearTimeout(t);
+      setLast(false);
+      t = setTimeout(() => {
+        const e = ref.current; if (!alive || !e) return;
+        if (e.scrollWidth > e.clientWidth + 1) { widthAtStep = host.clientWidth; setLast(true); }
+      }, 300);   // after SegWord has chosen between full and short
+    };
+    evaluate();
+    // Re-check when the COLUMN changes (1010j review): narrower while the full form shows, or
+    // wider while the surname shows. Only those two directions - the surname shrinking its own
+    // content-sized column must not flip it straight back (no loop).
+    let w = host.clientWidth;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {
+      const nw = host.clientWidth; if (Math.abs(nw - w) <= 1) return;
+      const narrower = nw < w; w = nw;
+      if (!lastRef.current && narrower) evaluate();
+      else if (lastRef.current && nw > widthAtStep + 1) evaluate();
+    }) : null;
+    if (ro) ro.observe(host);
+    // the web font lands after first paint and is narrower than the fallback (1010j review)
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (alive) evaluate(); }).catch(() => {});
+    return () => { alive = false; clearTimeout(t); if (ro) ro.disconnect(); };
+  }, [name]);
   return <span ref={ref} {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', ...style }}>{last ? <span style={{ flexShrink: 0 }}>{surnameOf(name)}</span> : <SegWord full={name} short={initialName(name)} />}</span>;
 }
 
@@ -1762,8 +1783,8 @@ function attendance28(rec, days) {
              is sized to its content now (date 76, count 34, gap 5, the S&C slot 54 via
              --past-sc-w), and below 380 the chevron steps aside (the whole row opens) */
           .bhbc-pp-row{ gap: 5px !important; }
-          .bhbc-pp-row > span:nth-child(1){ width: 76px !important; }
-          .bhbc-pp-row > span:nth-last-child(2){ width: 34px !important; min-width: 34px; }
+          .bhbc-pp-row > span:nth-child(1){ width: 82px !important; }   /* "Wed 23 Sep" is 82 (measured 10.10) */
+          .bhbc-pp-row > span:nth-last-child(2){ width: auto !important; min-width: 34px; }   /* 'all out' on a travel day is ~50px: it may take its row's width, never spill (1010j review) */
         .bhbc-labelrow{display:block!important}
           /* THE LABEL GOES ABOVE, NOT BESIDE — so every value starts on ONE column.
              It floated inline-start, which indents only the FIRST line and starts
