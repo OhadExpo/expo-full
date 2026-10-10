@@ -1486,6 +1486,66 @@ export function smoothFramesForDisplay(frames) {
     worldLandmarks: f.worldLandmarks ? wld.smooth(withVis(f.worldLandmarks, f.landmarks), f.t) : null,
   }));
 }
+// ZERO-LAG SMOOTHING FOR A WHOLE CLIP (11.10 #656, Ohad: "3/4d models can be much better ...
+// processing and output can be better"). The replay and the overlay draw a clip that is already
+// analysed, so the smoother may look AHEAD - the live One-Euro above cannot, and it trails the body
+// and keeps its spikes. Per joint coordinate, in time:
+//   1. a spike (a sample more than 3 MADs off its +-0.15 s window's median) takes the median;
+//   2. a low-visibility stretch up to 0.4 s is bridged from the confident samples either side;
+//   3. One-Euro forward, then the result backward - the backward pass cancels the forward lag.
+// Measured on 28 real captures (audit-out/_pose-score2.mjs): median limb jitter 135 -> 74 mm/frame^2
+// at the athletes' 6-17 fps (the causal pipeline left it near raw 141, and doubled it on c09); on
+// 25 fps clips 18.7 -> 6.3 (full) and 52.8 -> 16.8 (lite). The clean 25 fps squat keeps its range
+// (101% of the median-filtered raw angle; the causal pipeline 103%, raw noise 117%). DISPLAY only -
+// counting keeps the raw stream: fed this, the noise gate let three WRONG counts through.
+export function smoothFramesZeroPhase(frames, { win = 0.15, k = 3, minVis = 0.5, maxGap = 0.4 } = {}) {
+  const n = frames ? frames.length : 0;
+  if (n < 5) return smoothFramesForDisplay(frames || []);
+  const span = (frames[n - 1].t - frames[0].t) / 1000;
+  const fps = span > 0 ? (n - 1) / span : 30;
+  const h = Math.max(2, Math.round(win * fps)), gapMax = Math.max(1, Math.round(maxGap * fps));
+  const out = frames.map((f) => ({ ...f,
+    landmarks: f.landmarks ? f.landmarks.map((p) => (p ? { ...p } : p)) : null,
+    worldLandmarks: f.worldLandmarks ? f.worldLandmarks.map((p, i) => (p ? { ...p, ...(p.visibility == null && f.landmarks && f.landmarks[i] && f.landmarks[i].visibility != null ? { visibility: f.landmarks[i].visibility } : null) } : p)) : null }));
+  const vis = (i, j) => { const l = frames[i].landmarks; return l && l[j] && l[j].visibility != null ? l[j].visibility : 1; };
+  const T = frames[n - 1].t / 1000;
+  const buf = new Float64Array(2 * h + 1), dev = new Float64Array(2 * h + 1);   // reused: no allocation per sample
+  const s = new Float64Array(n), c = new Float64Array(n), fw = new Float64Array(n);
+  for (const key of ['worldLandmarks', 'landmarks']) {
+    const first = frames.find((f) => f[key]);
+    const J = first ? first[key].length : 0;
+    const params = key === 'worldLandmarks' ? ONE_EURO_WORLD : ONE_EURO_IMAGE;
+    for (let j = 0; j < J; j++) for (const ax of ['x', 'y', 'z']) {
+      for (let i = 0; i < n; i++) { const p = frames[i][key] && frames[i][key][j]; s[i] = p && isReal(p[ax]) && vis(i, j) >= minVis ? p[ax] : NaN; }
+      c.set(s);
+      for (let i = 0; i < n; i++) {
+        if (!isReal(s[i])) continue;
+        let m = 0;
+        for (let q = Math.max(0, i - h); q <= Math.min(n - 1, i + h); q++) if (isReal(s[q])) buf[m++] = s[q];
+        if (m < 3) continue;
+        const w = buf.subarray(0, m).sort(), med = w[m >> 1];
+        for (let q = 0; q < m; q++) dev[q] = Math.abs(w[q] - med);
+        const mad = 1.4826 * dev.subarray(0, m).sort()[m >> 1];
+        if (mad > 0 && Math.abs(s[i] - med) > k * mad) c[i] = med;
+      }
+      for (let i = 0; i < n; i++) {
+        if (isReal(c[i])) continue;
+        let b = i; while (b < n && !isReal(c[b])) b++;
+        const a = i - 1;
+        if (a >= 0 && b < n && b - a - 1 <= gapMax) for (let q = i; q < b; q++) c[q] = c[a] + (c[b] - c[a]) * (q - a) / (b - a);
+        i = b;
+      }
+      for (let i = 0; i < n; i++) if (!isReal(c[i])) { const p = frames[i][key] && frames[i][key][j]; c[i] = p && isReal(p[ax]) ? p[ax] : NaN; }
+      const f1 = createOneEuro(params), f2 = createOneEuro(params);
+      for (let i = 0; i < n; i++) fw[i] = isReal(c[i]) ? f1.filter(c[i], frames[i].t / 1000) : c[i];
+      for (let i = n - 1; i >= 0; i--) {
+        const v = isReal(fw[i]) ? f2.filter(fw[i], T - frames[i].t / 1000) : fw[i];
+        if (out[i][key] && out[i][key][j] && isReal(v)) out[i][key][j][ax] = v;
+      }
+    }
+  }
+  return out;
+}
 // ---------------------------------------------------------------------------
 // A STABLE 3D SKELETON (5.10 #558, Ohad: the 3D geometry "really works shitty.
 // Like 2/10"). MediaPipe estimates every frame's world skeleton on its own, so
@@ -1513,6 +1573,42 @@ const swapLR = (arr) => {
   return out;
 };
 const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+// The 3D views (MovementLab's 3D tab and Replay3D) both want the same stable skeleton of the same
+// clip: one computation per frames array, shared (11.10 #656 - it ran twice per clip).
+const replayCache = new WeakMap();
+export function stableReplayFrames(frames) {
+  if (!frames || !frames.length) return [];
+  let v = replayCache.get(frames);
+  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks)); replayCache.set(frames, v); }
+  return v;
+}
+// the feet step's per-frame body shift, smoothed in time (spike filter + forward-backward One-Euro)
+const FEET_OFFSET_SMOOTH = { win: 0.3, k: 3, minCutoff: 0.5, beta: 2, dCutoff: 1.0 };
+function smoothOffsets(off, ts, { win, k, minCutoff, beta, dCutoff }) {
+  const n = off.length;
+  const out = off.map((o) => (o ? { ...o } : null));
+  const span = n > 1 ? ts[n - 1] - ts[0] : 0;
+  const h = Math.max(2, Math.round(win * (span > 0 ? (n - 1) / span : 30)));
+  for (const ax of ['x', 'y', 'z']) {
+    const s = off.map((o) => (o && isReal(o[ax]) ? o[ax] : NaN));
+    const c = s.slice();
+    for (let i = 0; i < n; i++) {
+      if (!isReal(s[i])) continue;
+      const w = [];
+      for (let q = Math.max(0, i - h); q <= Math.min(n - 1, i + h); q++) if (isReal(s[q])) w.push(s[q]);
+      if (w.length < 3) continue;
+      w.sort((a, b) => a - b);
+      const med = w[w.length >> 1];
+      const dev = w.map((v) => Math.abs(v - med)).sort((a, b) => a - b), mad = 1.4826 * dev[dev.length >> 1];
+      if (mad > 0 && Math.abs(s[i] - med) > k * mad) c[i] = med;
+    }
+    const f1 = createOneEuro({ minCutoff, beta, dCutoff }), f2 = createOneEuro({ minCutoff, beta, dCutoff });
+    const fw = c.map((v, i) => (isReal(v) ? f1.filter(v, ts[i]) : v));
+    const T = ts[n - 1];
+    for (let i = n - 1; i >= 0; i--) { if (!out[i] || !isReal(fw[i])) continue; out[i][ax] = f2.filter(fw[i], T - ts[i]); }
+  }
+  return out;
+}
 export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true } = {}) {
   if (!frames || !frames.length) return [];
   const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
@@ -1539,7 +1635,7 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   // is the LAST step and no filter can stretch a limb again afterwards
   // (analysis passes smooth:false - the display filter lags and shaves peak angles, 10.10 #639)
   if (smooth) {
-    const sm = smoothFramesForDisplay(fixed);
+    const sm = smooth === 'causal' ? smoothFramesForDisplay(fixed) : smoothFramesZeroPhase(fixed);   // the whole clip is here: look ahead (#656)
     for (let i = 0; i < fixed.length; i++) fixed[i] = { ...fixed[i], landmarks: sm[i].landmarks, worldLandmarks: sm[i].worldLandmarks };
   }
   if (!bones) return fixed;
@@ -1584,13 +1680,28 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   // frames that have one): applied raw, the ankles' own frame-to-frame noise was
   // copied onto the WHOLE body - measured on a real squat, jitter 7 -> 23 mm/frame^2
   const off = rebuilt.map((f) => { const w = f.worldLandmarks; const a = ank(w); return a ? { x: ax - a.x, y: floor - footY(w), z: az - a.z } : null; });
-  const R = 4;
-  const sm2 = off.map((o, i) => {
-    if (!o) return null;
-    let n = 0, x = 0, y = 0, z = 0;
-    for (let k = Math.max(0, i - R); k <= Math.min(off.length - 1, i + R); k++) if (off[k]) { n++; x += off[k].x; y += off[k].y; z += off[k].z; }
-    return { x: x / n, y: y / n, z: z / n };
+  // ...and since 11.10 (#656) it is smoothed over TIME, not 9 frames: the 9-frame mean was 0.36 s
+  // at 25 fps but 0.8 s at 11 and still let the ankles' noise through - over 23 real captures the
+  // feet step alone took torso depth jumps from 20 to 265 and limb jitter from 42 to 75. A spike
+  // filter (+-0.3 s) and a zero-lag One-Euro pass with a low cutoff: the body still travels over
+  // its feet (a squat's hips go back over a second), the ankles' frame-to-frame guessing does not.
+  const ts = rebuilt.map((f) => f.t / 1000);
+  // EVERY FRAME GETS A SHIFT. A frame whose ankles were not confidently seen used to keep its
+  // hip-centred place while its neighbours moved by the shift - tens of centimetres - so wherever
+  // ankle confidence flickered the whole body jumped back and forth (that, not the ankles' noise,
+  // was most of the 265 depth jumps). Such a frame takes the shift interpolated from the frames
+  // either side (held at the clip's ends).
+  const known = off.map((o, i) => (o ? i : -1)).filter((i) => i >= 0);
+  const filled = off.map((o, i) => {
+    if (o || !known.length) return o;
+    let a = -1, b = -1;
+    for (const k of known) { if (k < i) a = k; else { b = k; break; } }
+    if (a < 0) return { ...off[b] };
+    if (b < 0) return { ...off[a] };
+    const u = (ts[i] - ts[a]) / (ts[b] - ts[a] || 1);
+    return { x: off[a].x + (off[b].x - off[a].x) * u, y: off[a].y + (off[b].y - off[a].y) * u, z: off[a].z + (off[b].z - off[a].z) * u };
   });
+  const sm2 = smoothOffsets(filled, ts, FEET_OFFSET_SMOOTH);
   return rebuilt.map((f, i) => {
     const w = f.worldLandmarks; const d = sm2[i];
     if (!w || !d) return f;

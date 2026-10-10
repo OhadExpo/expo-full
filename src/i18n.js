@@ -2530,6 +2530,8 @@ export const HE = {
   'SIDE': 'מהצד',
   'DRAG ORBIT · PINCH / WHEEL ZOOM': 'גרירה לסיבוב · צביטה או גלגלת לזום',
   'FRAME': 'פריים',
+  'PREV REP': 'חזרה קודמת',
+  'NEXT REP': 'חזרה הבאה',
   // 17.9 coach-side leftovers (bug report, portal preview bar, anatomy viewers, intake detail)
   'Report a bug': 'דיווח על באג',
   'REPORT A BUG': 'דיווח על באג',

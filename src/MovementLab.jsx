@@ -22,7 +22,7 @@ import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import {
   analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps,
   barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, buildPoseReport,
-  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, stabilizeWorldFrames, frameAt,
+  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, stabilizeWorldFrames, stableReplayFrames, frameAt,
 } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift, getLastPoseEntryBefore, saveJumpMetric, getLastJumpBefore } from './poseMetricsStore';
@@ -791,7 +791,7 @@ export default function MovementLab({
           <>
             {!romSpec && (
               <Section title={tt('3D SKELETON')}>
-                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result} />
               </Section>
             )}
             <Section title={tt('JOINT ANGLES')}>
@@ -1124,7 +1124,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} />}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} result={result} />}
     </div>
   );
 }
@@ -2317,12 +2317,17 @@ function drawScene3D(canvas, scene) {
 // the light canvas Viewer3D below shows the same skeleton.
 // a stale tab after a deploy cannot fetch the old chunk: fall back to the canvas viewer, never a crash (5.10 review N5)
 const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable(p) { React.useEffect(() => { if (p.onUnsupported) p.onUnsupported(); }, [p]); return null; } })));
-function ThreeDPanel({ frames, playheadT = null, onScrub = null }) {
+// the counted reps as times on the frames' own clock, for the replay's rep timeline (#656)
+const repTimes = (result, frames) => (result && Array.isArray(result.reps) && Array.isArray(frames)
+  ? result.reps.map((r) => ({ t0: frames[r.startIdx]?.t, tb: frames[r.bottomIdx]?.t, t1: frames[r.endIdx]?.t })).filter((r) => Number.isFinite(r.tb))
+  : null);
+function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null }) {
   const [fallback, setFallback] = useState(false);
+  const reps = useMemo(() => repTimes(result, frames), [result, frames]);
   if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
   return (
     <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
-      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} />
+      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} reps={reps} channel={result ? result.kind : null} />
     </Suspense>
   );
 }
@@ -2332,7 +2337,7 @@ function Viewer3D({ frames, playheadT = null }) {
   const tt = useT();
   const canvasRef = useRef(null);
   // the stable skeleton (5.10 #558): L/R continuity, one length per bone, feet on the floor
-  const poseFrames = useMemo(() => stabilizeWorldFrames((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
+  const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // shared with Replay3D (#656)
   const maxR = useMemo(() => computeFit(poseFrames), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
