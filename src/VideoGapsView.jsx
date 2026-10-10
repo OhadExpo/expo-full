@@ -189,7 +189,7 @@ export default function VideoGapsView({ exercises = [], setExercises, exercisesL
     for (const batch of chunk(links, 50)) {
       let j = null;
       try {
-        const res = await fetch('/api/video-health', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ urls: batch }) });
+        const res = await fetch('/api/resolve-video?health=1', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ urls: batch }) });
         // a local `vite preview` has no /api: a 404 or the SPA's HTML, never JSON
         if (res.ok && /json/i.test(res.headers.get('content-type') || '')) j = await res.json();
       } catch { j = null; }
