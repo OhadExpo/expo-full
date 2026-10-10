@@ -1920,6 +1920,12 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   /* one joined row (JoinedButtons): hairline gap, full width - 9.10 */
   .em-actions { display: grid !important; grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px !important; width: 100% !important; align-self: stretch !important; }
 }
+/* a suggestion on a phone (10.10 overflow sweep, #651: 'Chest-Supported T-Bar MID-POS Row' one
+   word per line in 74px beside its marks): the name takes the first line, the marks wrap under it */
+@media (max-width: 480px) {
+  .em-sugg-btn { flex-wrap: wrap !important; row-gap: 4px; }
+  .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 16px) !important; }
+}
 
 
 /* MICROCYCLE cards (29.9 #380): each phrase between the · / — separators is
@@ -2211,7 +2217,7 @@ select.avail-select:dir(rtl) {
 .bhbc-chip-acts-col > .bhbc-seg + .bhbc-seg { border-top: 1px solid var(--c-cardBd) !important; }
 /* past practices' warm-up + S&C slot: 'S&C 12 min' and two squares need 112px; a phone shows '12′' in 92 */
 :root { --past-sc-w: 112px; }
-@media (max-width: 420px) { :root { --past-sc-w: 92px; } }   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
+@media (max-width: 420px) { :root { --past-sc-w: 54px; } .pp-sc-word { display: none; } }   /* 10.10 #651: on a phone the slot is the squares + minutes (the legend under the list names them) - at 92 it squeezed the session label to 8px and 'Shootaround 60' painted over it */   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
 .bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
 .bhbc-seg:focus-visible { outline: 2px solid var(--c-ac); outline-offset: -2px; }
@@ -2320,7 +2326,8 @@ select.avail-select:dir(rtl) {
 @media (max-width: 620px) {
   .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 9px 0 11px !important; } /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
   .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
-  .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 76px 92px !important; }
+  /* the count is a number, the time is 'yesterday 21:32' (103px): 92 spilled it 11px (10.10 sweep) */
+  .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 60px 112px !important; }   /* 60: the ACTIONS header */
 }
 
 /* #530 analysis note composer: its cyan frame is the focus cue - the global ring spilled past it */
@@ -2389,3 +2396,8 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
   .rt-clip-date { display: none; }
   .rt-clip-subdate { display: inline; }
 }
+
+/* the waitlist's three fact cells on a phone (10.10 overflow sweep, #651): 'UNCONTACTED' needed 3px
+   more than a third of a 360 card left it - the gap gives them back */
+@media (max-width: 420px) { .wl-stats { gap: 6px !important; } }
+@media (max-width: 380px) { .bhbc-pp-row > svg:last-child { display: none !important; } }   /* 10.10 #651 - the row itself opens */

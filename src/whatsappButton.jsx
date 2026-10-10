@@ -13,6 +13,18 @@ export function normalizePhoneIL(raw) {
   return digits;
 }
 
+// How an Israeli number reads on a card: the local form (054-9877382), not +972549877382 - shorter
+// (it overran a phone-width athlete card by 13px, 10.10 overflow sweep) and the way a coach writes
+// it. Anything that is not an Israeli mobile/landline stays as typed.
+export function displayPhoneIL(raw) {
+  const d = normalizePhoneIL(raw);
+  if (!d || !d.startsWith('972')) return String(raw || '');
+  const local = '0' + d.slice(3);
+  if (/^05\d{8}$/.test(local)) return local.slice(0, 3) + '-' + local.slice(3);
+  if (/^0[2-9]\d{7}$/.test(local)) return local.slice(0, 2) + '-' + local.slice(2);
+  return String(raw || '');
+}
+
 // Build the prefilled Hebrew check-in, conjugated to the athlete's gender.
 // `gender` is 'male' | 'female' | undefined. Hebrew 2nd-person is gendered,
 // so we conjugate the verbs that differ (קופץ/קופצת, בוא/בואי). When gender

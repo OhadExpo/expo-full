@@ -12,6 +12,7 @@
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
 import React, { useState, useEffect } from 'react';
+import { displayPhoneIL } from './whatsappButton';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
@@ -1199,7 +1200,7 @@ function TraineeCard({ t, onClick }) {
       {/* 80px contact slot — WhatsApp / phone / email, centered. */}
       <div className="cd-contact" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
         <FakeWaButton />
-        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{t.phone}</span></div>}
+        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{displayPhoneIL(t.phone)}</span></div>}
         <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: '100%' }}>{t.email}</div>
       </div>
       <FinancialsBlock t={t} center />
@@ -4470,8 +4471,8 @@ function DemoFloorBar({ roster, checkedIn }) {
   const stripBtn = { ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' };
   const buttons = (
     <div ref={stacked ? undefined : btnsRef} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0, width: stacked ? '100%' : undefined }}>
-      <button title={T('Demo only')} style={{ ...stripBtn, minWidth: 88 }}>+ {tr(readLang(), 'ADD')}</button>
-      <button title={T('Demo only')} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tr(readLang(), 'FINISH')}</button>
+      <button className="strip-btn-stacks" title={T('Demo only')} style={{ ...stripBtn, minWidth: 88 }}>+ {tr(readLang(), 'ADD')}</button>
+      <button className="strip-btn-stacks" title={T('Demo only')} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tr(readLang(), 'FINISH')}</button>
     </div>
   );
   return (
