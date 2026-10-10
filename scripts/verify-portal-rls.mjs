@@ -65,9 +65,9 @@ const markerId = `rls-probe-${uid.slice(0, 8)}-${Date.now()}`;
   // proposed durability policy (supabase/proposed/2026-09-27-workout-durability.sql)
   // takes DELETE away from the athlete on purpose. Without this read-back the
   // check passed while the probe row stayed in the athlete's own history.
-  const { data: still } = await sb.from('client_workouts').select('id').eq('id', markerId);
-  let gone = !del.error && !(still && still.length);
-  let how = 'marker removed by the athlete seat';
+  const { data: still, error: stillErr } = await sb.from('client_workouts').select('id').eq('id', markerId);
+  let gone = !del.error && !stillErr && !(still && still.length);
+  let how = stillErr ? `read-back failed (${stillErr.message}) - removal not verified` : 'marker removed by the athlete seat';
   if (!gone && still && still.length) {
     const { ownerClient } = await import('./lib/store-client.mjs');
     const own = await ownerClient();

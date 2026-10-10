@@ -20,7 +20,7 @@
     // `ballPass: 'seek'` re-reads the ball around each release by seeking
     // (shotCapture seekBallPass); each analysed shot then says which
     // candidates its angle came from (ballSrc 'seek' or 'play').
-    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l), ...(opts.coarseRate ? { coarseRate: opts.coarseRate } : null), deterministic: opts.deterministic === 'coarse' ? 'coarse' : !!opts.deterministic, ballPass: opts.ballPass === 'seek' ? 'seek' : 'off' });
+    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l), ...(opts.coarseRate ? { coarseRate: opts.coarseRate } : null), deterministic: opts.deterministic === 'coarse' ? 'coarse' : !!opts.deterministic, ballPass: ['seek', 'seek+det'].includes(opts.ballPass) ? opts.ballPass : 'off' });
     window.__frames = frames;
     const hand = detectShootingHand(frames) || 'R';
     const series = buildSeries(frames, { hand, aspect: (frames.dims.w / frames.dims.h) });

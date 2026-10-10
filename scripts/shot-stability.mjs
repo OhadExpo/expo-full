@@ -43,6 +43,9 @@ for (const rate of RATES) {
     const angles = r && r.analyzed ? r.analyzed.filter((s) => s.ballDeg != null).length : 0;
     const seekShots = r && r.analyzed ? r.analyzed.filter((s) => s.ballSrc === 'seek').length : 0;
     const times = r && r.analyzed ? r.analyzed.map((s) => s.t) : [];
+    // the harness must have RUN the pass that was asked for - a silent 'off' compares the baseline with itself
+    const ranMode = r && r.stats && r.stats.ballPass ? r.stats.ballPass.mode : null;
+    if (BALLPASS && ranMode !== BALLPASS) { console.log(`  ball pass asked ${BALLPASS}, the capture ran ${ranMode} - not a measurement`); process.exit(1); }
     runs.push({ shots, angles, seekShots, degs: r && r.analyzed ? r.analyzed.map((s) => s.ballDeg) : [], frames: r && r.ballFramesSeen != null ? r.ballFramesSeen : null, secs, times });
     console.log(`  rate ${rate}  run ${i + 1}/${RUNS}: ${shots} shots, ${angles} with an angle, ${secs}s${BALLPASS ? `  seek-read ${seekShots}/${shots} ballPass=${JSON.stringify(r && r.stats ? r.stats.ballPass : null)}` : ''}  deg=${JSON.stringify(r && r.analyzed ? r.analyzed.map((s) => s.ballDeg) : [])}  t=${JSON.stringify(times.map((x) => x == null ? null : +Number(x).toFixed(2)))}  stats=${JSON.stringify(r && r.stats ? { coarse: r.stats.coarse, recovered: r.stats.recovered, capped: r.stats.recoveryCapped, recoverMs: r.stats.recoverMs, holes: r.stats.holes, planned: r.stats.planned, tried: r.stats.tried, msCoarse: r.stats.msCoarse } : null)}`);
   }
