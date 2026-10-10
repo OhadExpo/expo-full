@@ -4,7 +4,7 @@
 // SAFE: writes only the exercise library store (never trainee plans), confirm-gated.
 import React, { useState, useMemo } from 'react';
 import { C, FN, FB, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Card, Btn, Select, Modal, EmptyState, toast, JoinedButtons, usePhone } from './ui';
+import { Card, Btn, Select, Modal, EmptyState, toast, JoinedButtons, usePhone, CrossGlyph } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { useT, readLang } from './i18n';
 
@@ -26,7 +26,7 @@ function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <bdi style={{ flex: '1 1 0', minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', wordBreak: 'normal' }}>{slashWbr(e.title || e.t)}</bdi>
         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: GUESS_INK(g.filled), whiteSpace: 'nowrap' }}>{tt('{n}/3 guessed').replace('{n}', g.filled)}</span>
-        <button type="button" onClick={() => toggleSkip(e.id)} aria-label={skip ? tt('Un-skip') : tt('Skip')} title={skip ? tt('Un-skip') : tt('Skip')} style={{ width: 36, height: 36, flexShrink: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 12, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>{skip ? '↺' : '✕'}</button>
+        <button type="button" onClick={() => toggleSkip(e.id)} aria-label={skip ? tt('Un-skip') : tt('Skip')} title={skip ? tt('Un-skip') : tt('Skip')} style={{ width: 36, height: 36, flexShrink: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 12, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{skip ? '↺' : <CrossGlyph />}</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, auto) minmax(0, 1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
         {PHONE_FIELDS.map(([k, label, opts]) => (
@@ -155,7 +155,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
                       <td style={cell}><Select options={BODY_POSITIONS} value={val(e, g, 'bodyPosition')} onChange={(v) => setVal(e.id, 'bodyPosition', v)} placeholder="—" /></td>
                       <td style={cell}><Select options={MOVEMENT_TYPES} value={val(e, g, 'movementType')} onChange={(v) => setVal(e.id, 'movementType', v)} placeholder="—" /></td>
                       <td style={{ ...cell, textAlign: 'center' }}>
-                        <button onClick={() => toggleSkip(e.id)} title={skip ? tt('Un-skip') : tt('Skip')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 8px', cursor: 'pointer' }}>{skip ? '↺' : '✕'}</button>
+                        <button onClick={() => toggleSkip(e.id)} title={skip ? tt('Un-skip') : tt('Skip')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 8px', cursor: 'pointer' }}>{skip ? '↺' : <CrossGlyph />}</button>
                       </td>
                     </tr>
                   );
