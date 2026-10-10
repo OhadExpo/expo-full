@@ -782,6 +782,11 @@ function AuthedApp() {
   // the rail's far edge never shows half a tab (27.9, #304): the part of the
   // tab crossing the edge is clipped away, so only whole tabs show at rest
   useRailTrailMask(coachRailRef, { items: 'nav.hdr-scroll button, .hdr-right > *', maxWidth: 700, clip: true, active: 'nav.hdr-scroll [aria-current="page"], nav.hdr-scroll [aria-selected="true"]' });
+  // ...and between 700 and ~1100 (a tablet, Hebrew's longer words) it is the NAV itself that
+  // scrolls, with no mask: verify-rail-slices found 21 tabs sliced at 768 / 1024 on production
+  // 1010k ("משימות", "פורטל", "Incoming" - the active one among them). Same no-slice mask on the
+  // nav; it acts only while the nav overflows (11.10, B1).
+  useRailTrailMask(coachNavRef, { items: 'button', maxWidth: 100000, clip: true, active: '[aria-current="page"], [aria-selected="true"]' });
   // the section sub-tabs (Exercises: Library / Matching / Cleanup ...) scroll
   // the same way on a phone and get the same clean end
   const subtabRef = React.useRef(null);

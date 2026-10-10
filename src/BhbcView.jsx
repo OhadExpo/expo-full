@@ -968,7 +968,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the crest plate's width is the bar's snap padding (a tab rests right after it)
   React.useLayoutEffect(() => {
     const el = headRef.current; const id = el && el.querySelector('.bhbc-header-id');
-    if (el && id) el.style.setProperty('--crest-w', `${Math.round(id.getBoundingClientRect().width)}px`);
+    const v = el && id ? `${Math.round(id.getBoundingClientRect().width)}px` : null;
+    if (v && el.style.getPropertyValue('--crest-w') !== v) el.style.setProperty('--crest-w', v);   // every render ran this: write only a change (#654)
   });
 
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list

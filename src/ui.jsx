@@ -1820,9 +1820,11 @@ export function useEdgeFade(ref) {
         if (b.width < 0.5) continue;
         minL = Math.min(minL, b.left); maxR = Math.max(maxR, b.right);
       }
-      if (minL === Infinity) { el.dataset.fade = 'none'; return; }
+      // a write only on a change: this runs on every scroll event (#654)
+      const put = (v) => { if (el.dataset.fade !== v) el.dataset.fade = v; };
+      if (minL === Infinity) { put('none'); return; }
       const left = minL < r.left - 1, right = maxR > r.right + 1;
-      el.dataset.fade = left && right ? 'both' : left ? 'left' : right ? 'right' : 'none';
+      put(left && right ? 'both' : left ? 'left' : right ? 'right' : 'none');
     };
     // The element can mount a few frames after this effect first runs.
     const attach = () => {
