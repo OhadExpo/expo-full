@@ -45,10 +45,10 @@ const click = (page, src, first = false) => page.evaluate((s, f) => {
 
 // measured in the page: the label, its visible ink, and every other painted box in the bar
 const measure = (page) => page.evaluate(() => {
-  // name · W<n> as three flex items (1008b review: a joined " · W2" text run read
+  // name · W<n> (Hebrew: name · שבוע N since the 10.10 WeekWord) as three flex items (1008b review: a joined " · W2" text run read
   // "· W2 יום א" for a Hebrew day name)
-  const label = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()) && s.children.length === 3);
-  if (!label) return { err: 'no day label (a span holding name, "·", "W<n>") in the logger bar' };
+  const label = [...document.querySelectorAll('span')].find((s) => /·\s*(W\d+|שבוע\s*\d+)$/.test((s.textContent || '').trim()) && s.children.length === 3);
+  if (!label) return { err: 'no day label (a span holding name, "·", "W<n>" / "שבוע N") in the logger bar' };
   const bar = label.parentElement;
   const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
   const ink = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); const rs = [...rg.getClientRects()].filter((x) => x.width > 0); if (!rs.length) return null; return { l: Math.min(...rs.map((x) => x.left)), r: Math.max(...rs.map((x) => x.right)), t: Math.min(...rs.map((x) => x.top)), b: Math.max(...rs.map((x) => x.bottom)) }; };
@@ -132,7 +132,7 @@ const judge = (tag, w, r, need) => {
       judge(tag, w, r, [['resumed', 'the logger did not resume']]);
       if (lang === 'he') {
         expected++;
-        const swapped = await page.evaluate(() => { const l = [...document.querySelectorAll('span')].find((s) => /·\s*W\d+$/.test((s.textContent || '').trim()) && s.children.length === 3); if (!l) return false; l.children[0].textContent = 'יום א — דחיפה'; return true; });
+        const swapped = await page.evaluate(() => { const l = [...document.querySelectorAll('span')].find((s) => /·\s*(W\d+|שבוע\s*\d+)$/.test((s.textContent || '').trim()) && s.children.length === 3); if (!l) return false; l.children[0].textContent = 'יום א — דחיפה'; return true; });
         await wait(300);
         if (!swapped) { bad++; console.log(`FAIL demo-he-name ${w}: no label to swap - nothing measured`); }
         else {
