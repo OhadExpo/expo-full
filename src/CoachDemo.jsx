@@ -12,6 +12,7 @@
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
 import React, { useState, useEffect } from 'react';
+import { displayPhoneIL } from './whatsappButton';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
@@ -1199,7 +1200,7 @@ function TraineeCard({ t, onClick }) {
       {/* 80px contact slot — WhatsApp / phone / email, centered. */}
       <div className="cd-contact" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
         <FakeWaButton />
-        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{t.phone}</span></div>}
+        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{displayPhoneIL(t.phone)}</span></div>}
         <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: '100%' }}>{t.email}</div>
       </div>
       <FinancialsBlock t={t} center />
@@ -1300,7 +1301,7 @@ function CoupleCard({ t, onClick }) {
                   and paints at the WRONG END inside an RTL card — measured,
                   "+972503334455" came out as "972503334455+". The single card
                   above already does this; the couple card did not. */}
-              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{memberMeta[mi].phone}</span></div>}
+              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0, maxWidth: '100%' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{displayPhoneIL(memberMeta[mi].phone)}</span></div>}
               {/* An address wraps rather than being sliced: it was cut by up to
                   60px, and half an email is not an email. */}
               {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, maxWidth: '100%' }}>{memberMeta[mi].email.split('@')[0]}@<wbr />{memberMeta[mi].email.split('@')[1]}</div>}
@@ -4470,8 +4471,8 @@ function DemoFloorBar({ roster, checkedIn }) {
   const stripBtn = { ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' };
   const buttons = (
     <div ref={stacked ? undefined : btnsRef} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0, width: stacked ? '100%' : undefined }}>
-      <button title={T('Demo only')} style={{ ...stripBtn, minWidth: 88 }}>+ {tr(readLang(), 'ADD')}</button>
-      <button title={T('Demo only')} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tr(readLang(), 'FINISH')}</button>
+      <button className="strip-btn-stacks" title={T('Demo only')} style={{ ...stripBtn, minWidth: 88 }}>+ {tr(readLang(), 'ADD')}</button>
+      <button className="strip-btn-stacks" title={T('Demo only')} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tr(readLang(), 'FINISH')}</button>
     </div>
   );
   return (
@@ -4484,7 +4485,7 @@ function DemoFloorBar({ roster, checkedIn }) {
           {!stacked && buttons}
         </div>
       </div>
-      {stacked && <div style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}
+      {stacked && <div data-strip-actions="" style={{ display: 'flex', padding: '14px 14px 0' }}>{buttons}</div>}   {/* the marker the real floor bar carries: stacked buttons are 36 (1010j review, parity) */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 14 }}>
         {roster.map((t, ai) => {
           const inn = !!checkedIn[ai];

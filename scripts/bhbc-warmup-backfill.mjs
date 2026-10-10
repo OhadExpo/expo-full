@@ -42,11 +42,11 @@ const MIN = 5;
 const NOTE = 'Dynamic warm-up';
 // THE WARM-UP IS ITS OWN KIND (9.10 #643, Ohad: "S&C is different than dynamic warmup").
 // --kind warmup writes kind:'warmup' rows and drops the old "the day already has S&C" skip
-// (that rule existed only because the warm-up WAS an S&C row). The default stays 'sc' - the
-// old row shape - until the build that reads kind:'warmup' is live; production's code would
-// show a warmup row as 'other'. Either way an athlete who already has a warm-up for the slot
+// (that rule existed only because the warm-up WAS an S&C row). Default 'warmup' since 10.10
+// (deploy-1010i reads the kind; the 145 stored rows were converted with bhbc-warmup-kind-643);
+// --kind sc still writes the old shape. Either way an athlete who already has a warm-up for the slot
 // (either shape: rowKind reads the old rows as warm-ups) is never given a second one.
-const KIND = arg('kind', 'sc');
+const KIND = arg('kind', 'warmup');   // 10.10: production reads kind 'warmup' (deploy-1010i) - the daemon now writes it
 if (KIND !== 'sc' && KIND !== 'warmup') { console.log('--kind must be sc or warmup'); process.exit(1); }
 const BY = 'ohadyproductions@gmail.com';
 
@@ -154,7 +154,9 @@ const after = (await readStore(s, 'expo-bhbc-loads')) || {};
 let want = 0, ok = 0;
 for (const p of plan) for (const id of p.ids) {
   want++;
-  if ((((after[id] || {}).sessions || {})[p.date] || []).some((r) => r && r.kind === 'sc' && r.start === p.start && r.teamNote === NOTE)) ok++;
+  // the kind this run wrote (10.10: the 'sc'-only check read 0/259 back after a correct warmup write)
+  const rows = (((after[id] || {}).sessions || {})[p.date] || []);
+  if (KIND === 'warmup' ? rows.some((r) => r && r.kind === 'warmup' && ownsWarmupRow(r, p.start)) : rows.some((r) => r && r.kind === 'sc' && r.start === p.start && r.teamNote === NOTE)) ok++;
 }
 console.log(`\n${ok}/${want} rows read back from the database.`);
 process.exit(ok === want ? 0 : 1);

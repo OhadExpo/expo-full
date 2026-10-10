@@ -304,7 +304,7 @@ export default function WaitlistView({ trainees }) {
           on one row at every width, the gate bar under them and one sentence.
           Was a sentence of four facts wrapping ragged beside a second boxed card. */}
       <CollapsibleSection title={tt('COACH WAITLIST')} storageKey="waitlist-header" style={{ marginBottom: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+        <div className="wl-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
           <StatTile center label={tt('Total')} value={total} />
           <StatTile center label={tt('Uncontacted')} value={active} color={active ? C.or : undefined} />
           <StatTile center label={tt('Gate')} value={<span dir="ltr">{gateProgress}/{COACH_GATE}</span>} color={gateColor} />

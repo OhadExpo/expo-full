@@ -708,8 +708,10 @@ function FloorBar({ session, athletes, checkedIn, traineeById, onAdd, onFinish }
   const stacked = useStripFit(true, rowRef, titleRef, btnsRef, 0, [checkedIn, list.length]);
   const buttons = (
     <div ref={stacked ? undefined : btnsRef} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0, width: stacked ? '100%' : undefined /* under the strip: one full-width toolbar */ }}>
-      <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
-      <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
+      {/* strip-btn-stacks: under the strip (a long roster) they are page controls at the one
+          36px height - live with a 28-athlete floor ADD read 36 and FINISH 40 (10.10 battery) */}
+      <button onClick={onAdd} className="strip-btn-stacks" style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
+      <button onClick={onFinish} className="strip-btn-stacks" style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
     </div>
   );
   return (

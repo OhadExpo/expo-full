@@ -5,7 +5,7 @@ import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } fro
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast, CaretGlyph, useSettleIn } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { SideRail } from './SideRail';
-import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
+import { WhatsAppCheckInButton, normalizePhoneIL, displayPhoneIL } from './whatsappButton';
 
 // Clickable status pill for the athlete cards — same control as the trainee
 // page (Ohad: "click card status to change it"). stopPropagation everywhere so
@@ -976,7 +976,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                       identity block, so a couple card's first row (name +
                       WhatsApp) and its section dividers line up with single
                       cards across the grid, always. */}
-                  <div className="tv-contact-slot tv-couple" style={{display:'flex',width:'100%',alignSelf:'stretch',height:88,flexShrink:0,boxSizing:'border-box'}}>
+                  <div className="tv-contact-slot tv-couple" style={{display:'flex',width:'100%',alignSelf:'stretch',height:96 /* = the single card's slot; 88 squeezed a member's phone line to 10px (10.10 sweep) */,flexShrink:0,boxSizing:'border-box'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div className="tv-couple-div" style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
@@ -993,8 +993,8 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                               fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:0.5,textAlign:'center',width:'100%',
                               // 16px line: overflow:hidden on the default line box sliced 3px off the
                               // bottom of the digits (tablet overflow audit 29.9 #380)
-                              lineHeight:'16px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
-                            }} dir="ltr">{m.phone}</div>
+                              lineHeight:'16px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',flexShrink:0,
+                            }} dir="ltr" title={m.phone}>{displayPhoneIL(m.phone)}</div>
                           )}
                           <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, textAlign:'center', width:'100%' }} />
                         </div>
@@ -1081,12 +1081,12 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               {/* Content centred in the slot: with no phone the 28px WhatsApp
                   row used to stay, empty, at the TOP edge and the address
                   floated low (#314 rule, 27.9 #300). */}
-              <div className="tv-contact-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 88, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
+              <div className="tv-contact-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 96 /* the couple card's slot too: 88 squeezed a phone line to 10px (10.10 sweep) */, flexShrink: 0, justifyContent: 'center', overflow: 'hidden' }}>
                 {normalizePhoneIL(t.phone) && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 28 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>}
                 {t.phone && (
-                  <div dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center', unicodeBidi: 'isolate' }}>{t.phone}</div>
+                  <div dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center', unicodeBidi: 'isolate' }} title={t.phone}>{displayPhoneIL(t.phone)}</div>
                 )}
                 <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
               </div>

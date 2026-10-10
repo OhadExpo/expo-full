@@ -283,8 +283,44 @@ const navArrow = (off) => ({ fontFamily: FN, fontSize: 16, fontWeight: 700, line
 // name where it fits, the initial + surname where it would not - same size,
 // no cut.
 const initialName = (n) => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : String(n || ''); };
+// THIRD STEP (10.10 overflow sweep, #651): at 360 even 'D. Broughton' painted 4-44px past its
+// medical / lifts column. When the initial + surname still does not fit, the surname alone - the
+// same size, one row, never cut. Measured on the box itself; a resize starts again from the top.
+// (surnameOf is the zone's one surname helper, further down - 'Ohad calls the squad by last names')
 function PlayerName({ name, style, ...rest }) {
-  return <span {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', ...style }}><SegWord full={name} short={initialName(name)} /></span>;
+  const ref = React.useRef(null);
+  const [last, setLast] = React.useState(false);
+  const lastRef = React.useRef(false); lastRef.current = last;
+  React.useLayoutEffect(() => {
+    const el = ref.current; if (!el) return undefined;
+    const host = el.parentElement || el;
+    let t = 0, alive = true, widthAtStep = host.clientWidth;
+    // try the full / initial form again, then step to the surname if it still overruns
+    const evaluate = () => {
+      clearTimeout(t);
+      setLast(false);
+      t = setTimeout(() => {
+        const e = ref.current; if (!alive || !e) return;
+        if (e.scrollWidth > e.clientWidth + 1) { widthAtStep = host.clientWidth; setLast(true); }
+      }, 300);   // after SegWord has chosen between full and short
+    };
+    evaluate();
+    // Re-check when the COLUMN changes (1010j review): narrower while the full form shows, or
+    // wider while the surname shows. Only those two directions - the surname shrinking its own
+    // content-sized column must not flip it straight back (no loop).
+    let w = host.clientWidth;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {
+      const nw = host.clientWidth; if (Math.abs(nw - w) <= 1) return;
+      const narrower = nw < w; w = nw;
+      if (!lastRef.current && narrower) evaluate();
+      else if (lastRef.current && nw > widthAtStep + 1) evaluate();
+    }) : null;
+    if (ro) ro.observe(host);
+    // the web font lands after first paint and is narrower than the fallback (1010j review)
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (alive) evaluate(); }).catch(() => {});
+    return () => { alive = false; clearTimeout(t); if (ro) ro.disconnect(); };
+  }, [name]);
+  return <span ref={ref} {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', ...style }}>{last ? <span style={{ flexShrink: 0 }}>{surnameOf(name)}</span> : <SegWord full={name} short={initialName(name)} />}</span>;
 }
 
 // A LIST OF PLAYERS IS A ROLL, NOT A SENTENCE (5.10 #571). Jersey + name in
@@ -1743,6 +1779,12 @@ function attendance28(rec, days) {
           .bhbc-pp-row{ gap: 7px !important; }
           .bhbc-pp-row > span:nth-child(1){ width: 84px !important; }
           .bhbc-pp-row > span:nth-child(2){ width: 38px !important; }
+          /* 10.10 #651: at 360 the session label had 36px for 'Shoot · 60′' (78) - every column
+             is sized to its content now (date 76, count 34, gap 5, the S&C slot 54 via
+             --past-sc-w), and below 380 the chevron steps aside (the whole row opens) */
+          .bhbc-pp-row{ gap: 5px !important; }
+          .bhbc-pp-row > span:nth-child(1){ width: 82px !important; }   /* "Wed 23 Sep" is 82 (measured 10.10) */
+          .bhbc-pp-row > span:nth-last-child(2){ width: auto !important; min-width: 34px; }   /* 'all out' on a travel day is ~50px: it may take its row's width, never spill (1010j review) */
         .bhbc-labelrow{display:block!important}
           /* THE LABEL GOES ABOVE, NOT BESIDE — so every value starts on ONE column.
              It floated inline-start, which indents only the FIRST line and starts
@@ -5658,7 +5700,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                   {/* the warm-up's purple square leads the slot (#646): it is its own thing, not S&C,
                       and a word for it would not fit a 390 row beside 'S&C 12′' */}
                   {d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, marginInlineEnd: d.scMinutes > 0 ? 6 : 0, verticalAlign: 'middle' }} /> : null}
-                  {d.scMinutes > 0 ? <><span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, background: SC_COLOR, marginInlineEnd: 4, verticalAlign: 'middle' }} />{tr('S&C')} <MinTok n={d.scMinutes} /></> : null}
+                  {d.scMinutes > 0 ? <><span aria-hidden style={{ display: 'inline-block', width: 8, height: 8, background: SC_COLOR, marginInlineEnd: 4, verticalAlign: 'middle' }} /><span className="pp-sc-word">{tr('S&C')} </span><MinTok n={d.scMinutes} /></> : null}
                 </span>
                 {/* The two numbers a head coach actually asks for. */}
                 {/* THE WHOLE SQUAD OUT IS NOT A 0/10 PRACTICE (#305 B8) - on a
