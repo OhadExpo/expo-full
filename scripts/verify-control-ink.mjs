@@ -74,7 +74,14 @@ try {
         await wait(4500);
         if (BREAK) await pg.addStyleTag({ content: 'button, [role=button] { text-indent: 4px !important; }' }).catch(() => {});
         // the language the page actually RENDERED, not the one asked for
-        const heShown = await pg.evaluate(() => /[֐-׿]/.test(document.body ? document.body.innerText : '')).catch(() => false);
+        const heShown = await pg.evaluate(() => {
+          // the page's own direction first (the coach app and the demo set dir=rtl in Hebrew);
+          // else the SHARE of Hebrew letters - the language toggle itself says 'עב' on English pages
+          if (document.documentElement.dir === 'rtl' || document.querySelector('.app-root[dir="rtl"], #root > [dir="rtl"], #root > * > [dir="rtl"]') || document.body.dataset.lang === 'he' || document.body.dataset.athleteLang === 'he') return true;
+          const t = document.body ? document.body.innerText : '';
+          const he = (t.match(/[א-ת]/g) || []).length, en = (t.match(/[A-Za-z]/g) || []).length;
+          return he > 0.35 * (he + en);
+        }).catch(() => false);
         if ((L === 'he') !== heShown) { fails.push(`${W} ${L} ${route}: asked ${L}, the page rendered ${heShown ? 'Hebrew' : 'no Hebrew'} - not measured`); continue; }
         const handles = await pg.$$('button, [role=button], .chip-grid > *, .joined-buttons > *');
         let n = 0;
@@ -91,7 +98,8 @@ try {
           if (!info || !info.ok) continue;
           await el.evaluate((e) => e.scrollIntoView({ block: 'center', inline: 'center' })).catch(() => {});
           const buf = await el.screenshot().catch(() => null); if (!buf) continue;
-          const crop = { l: Math.ceil(info.border.l * 2) + 1, r: Math.ceil(info.border.r * 2) + 1, t: Math.ceil(info.border.t * 2) + 1, b: Math.ceil(info.border.b * 2) + 1 };
+          const cr = (v) => Math.max(3, Math.ceil(v * 2) + 1);   // at least 3 device px: a fractional box edge bleeds neighbour pixels
+          const crop = { l: cr(info.border.l), r: cr(info.border.r), t: cr(info.border.t), b: cr(info.border.b) };
           const k = inkBox(buf, crop); if (!k) continue;
           n++; measured++;
           const dx = (k.left - k.right) / 4, dy = (k.top - k.bottom) / 4;   // css px at dpr 2, from the box edges; + = ink right / low

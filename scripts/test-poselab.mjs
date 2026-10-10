@@ -149,6 +149,15 @@ ok('hold/iso → 0 reps, still ok', hold.ok && hold.repCount === 0, `reps ${hold
   const side = extendedJointRom(clip(0)).find((e) => e.name === 'L KNE±');
   const turned = extendedJointRom(clip(40)).find((e) => e.name === 'L KNE±');
   ok('knee over-extension: side-on and 40 deg turned agree (6 deg)', side && turned && side.overExtDeg === 6 && turned.overExtDeg === 6, `side ${side && side.overExtDeg} turned ${turned && turned.overExtDeg}`);
+  // a left/right label swap the upstream repair missed (6 frames mid-ascent) must not
+  // flip flexion into a hyperextension
+  const swapped = clip(0).map((f, i) => {
+    if (i < 30 || i > 35) return f;
+    const sw = (arr) => { const o = arr.slice(); for (const [l, r] of [[23, 24], [25, 26], [27, 28]]) { o[l] = arr[r]; o[r] = arr[l]; } return o; };
+    return { ...f, worldLandmarks: sw(f.worldLandmarks), landmarks: sw(f.landmarks) };
+  });
+  const sk = extendedJointRom(swapped).find((e) => e.name === 'L KNE±');
+  ok('knee over-extension: a missed L/R swap does not read as hyperextension', sk && sk.overExtDeg === 6, `over ${sk && sk.overExtDeg}`);
   const front = extendedJointRom(clip(90));
   ok('knee over-extension: a front-on clip is refused, not guessed', !front.some((e) => /KNE/.test(e.name)), JSON.stringify(front.map((e) => e.name)));
 }

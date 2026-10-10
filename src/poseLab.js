@@ -781,12 +781,28 @@ export function extendedJointRom(frames) {
   // hyperextension of a few degrees cannot be told from depth noise.
   const camera = estimateView(frames);
   const kneeOk = !(camera && camera.view === 'front');
+  // The sign comes from the hip axis (L -> R), so a left/right label swap the repair
+  // upstream missed would flip it: a frame whose axis turned more than 90 deg from
+  // the last good one is dropped, never read with the opposite sign (1010g review).
+  const axisOk = [];
+  {
+    let prev = null;
+    for (const f of frames) {
+      const w = f.worldLandmarks;
+      const hl = w && w[23], hr = w && w[24];
+      if (!hl || !hr) { axisOk.push(false); continue; }
+      const n = [hr.x - hl.x, hr.y - hl.y, (hr.z ?? 0) - (hl.z ?? 0)];
+      const ok = !prev || n[0] * prev[0] + n[1] * prev[1] + n[2] * prev[2] >= 0;
+      axisOk.push(ok);
+      if (ok) prev = n;
+    }
+  }
   for (const [name, hipI, kneeI, ankI] of kneeOk ? [['L KNE±', 23, 25, 27], ['R KNE±', 24, 26, 28]] : []) {
-    const raw = frames.map(f => {
-      const w = f.worldLandmarks; if (!w) return null;
-      if (!(visOK(f.landmarks, hipI) && visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI))) return null;
-      const sg = signedSagittalAt(w, hipI, kneeI, ankI);
-      return sg != null ? sg : signedDeviationAt(w, hipI, kneeI, ankI);
+    const raw = frames.map((f, fi) => {
+      const w = f.worldLandmarks; if (!w || !axisOk[fi]) return null;
+      // both hips: the plane is built from them, so the far one has to be seen too
+      if (!(visOK(f.landmarks, 23) && visOK(f.landmarks, 24) && visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI))) return null;
+      return signedSagittalAt(w, hipI, kneeI, ankI);
     });
     const s0 = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
     if (s0.length < 6) continue;

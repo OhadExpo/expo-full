@@ -44,8 +44,14 @@ for (const rate of RATES) {
     const seekShots = r && r.analyzed ? r.analyzed.filter((s) => s.ballSrc === 'seek').length : 0;
     const times = r && r.analyzed ? r.analyzed.map((s) => s.t) : [];
     // the harness must have RUN the pass that was asked for - a silent 'off' compares the baseline with itself
-    const ranMode = r && r.stats && r.stats.ballPass ? r.stats.ballPass.mode : null;
-    if (BALLPASS && ranMode !== BALLPASS) { console.log(`  ball pass asked ${BALLPASS}, the capture ran ${ranMode} - not a measurement`); process.exit(1); }
+    const bpS = r && r.stats ? r.stats.ballPass : null;
+    const ranMode = bpS ? bpS.mode : null;
+    // 'seek+det' only counts when the detector loaded AND produced at least one result
+    const detRan = ranMode !== 'seek+det' || (!bpS.detError && bpS.det && bpS.det.frames > bpS.det.errors);
+    if (BALLPASS && (ranMode !== BALLPASS || !detRan)) {
+      console.log(`  ball pass asked ${BALLPASS}, the capture ran ${ranMode}${detRan ? '' : ` with no working detector (${bpS.detError || JSON.stringify(bpS.det)})`} - not a measurement`);
+      await page.close().catch(() => {}); b.disconnect(); process.exit(1);   // never leave a tab behind (the analysis is timing-sensitive)
+    }
     runs.push({ shots, angles, seekShots, degs: r && r.analyzed ? r.analyzed.map((s) => s.ballDeg) : [], frames: r && r.ballFramesSeen != null ? r.ballFramesSeen : null, secs, times });
     console.log(`  rate ${rate}  run ${i + 1}/${RUNS}: ${shots} shots, ${angles} with an angle, ${secs}s${BALLPASS ? `  seek-read ${seekShots}/${shots} ballPass=${JSON.stringify(r && r.stats ? r.stats.ballPass : null)}` : ''}  deg=${JSON.stringify(r && r.analyzed ? r.analyzed.map((s) => s.ballDeg) : [])}  t=${JSON.stringify(times.map((x) => x == null ? null : +Number(x).toFixed(2)))}  stats=${JSON.stringify(r && r.stats ? { coarse: r.stats.coarse, recovered: r.stats.recovered, capped: r.stats.recoveryCapped, recoverMs: r.stats.recoverMs, holes: r.stats.holes, planned: r.stats.planned, tried: r.stats.tried, msCoarse: r.stats.msCoarse } : null)}`);
   }

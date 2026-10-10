@@ -68,7 +68,8 @@ const markerId = `rls-probe-${uid.slice(0, 8)}-${Date.now()}`;
   const { data: still, error: stillErr } = await sb.from('client_workouts').select('id').eq('id', markerId);
   let gone = !del.error && !stillErr && !(still && still.length);
   let how = stillErr ? `read-back failed (${stillErr.message}) - removal not verified` : 'marker removed by the athlete seat';
-  if (!gone && still && still.length) {
+  // also when the read-back failed: the owner delete is filtered to this probe row, so repeating it is safe
+  if (!gone && (stillErr || (still && still.length))) {
     const { ownerClient } = await import('./lib/store-client.mjs');
     const own = await ownerClient();
     const r = await own.from('client_workouts').delete().eq('id', markerId).eq('notes', 'rls-probe').select('id');
