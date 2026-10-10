@@ -124,7 +124,10 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
   // Both columns share ONE font size (driven by the longer value) so SETS and
   // REPS always render at the same size (Ohad), while a long value like
   // "10-20 SEC" still shrinks to fit rather than overflowing.
-  const valFont = Math.max(sStr.length, rStr.length) > 4 ? 15 : 19;
+  // A HOLD (#617 screen check, 10.10): '20 SEC' sat over the label REPS. When the cell is only a
+  // duration (+ an 'e' for each side) the number is the value and SEC the label: 3 SETS x 20 SEC.
+  const timed = rStr.match(/^(\d+(?:\s*[-–]\s*\d+)?)\s*(?:sec|secs|second|seconds|s|שנ׳|שניות)(?![a-z])\.?\s*(e)?$/i);
+  const valFont = Math.max(sStr.length, timed ? timed[1].length + 2 : rStr.length) > 4 ? 15 : 19;
   const col = (val, label) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       <span style={{ fontSize: valFont, color: C.ac, fontWeight: 700, fontFamily: FN, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</span>
@@ -135,7 +138,7 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
       {col(sStr, tt('SETS'))}
       <span style={{ fontSize: 14, color: C.tm, fontWeight: 400, fontFamily: FN, lineHeight: 1 }}>×</span>
-      {col(rStr, tt('REPS'))}
+      {timed ? col(timed[1].replace(/\s+/g, '') + (timed[2] ? ' E' : ''), tt('SEC')) : col(rStr, tt('REPS'))}
     </div>
   );
 }
