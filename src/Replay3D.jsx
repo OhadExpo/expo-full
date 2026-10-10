@@ -9,12 +9,12 @@
 // The geometry rules are poseLab's (frameToPoints3D: y up, a proper rotation;
 // lmVisible: a point MediaPipe is unsure of is not drawn). If WebGL is not there
 // the caller keeps the flat viewer (onUnsupported).
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { frameToPoints3D, stableReplayFrames, lmVisible } from './poseLab';
 import { C, FN } from './theme';
-import { useT } from './i18n';
+import { useT, LangCtx } from './i18n';
 import { ChipGrid, JoinedButtons } from './ui';
 
 const ACCENT = 0x39bdff, HIP_TRAIL = 0xf5a524, BODY = 0xe8eef5;
@@ -40,6 +40,8 @@ const CHANNEL_JOINTS = { knee: [[23, 25, 27], [24, 26, 28]], hip: [[11, 23, 25],
 // analysis); channel: the analysed joint. With both, a rep timeline sits under the scrubber (#656).
 export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null, reps = null, channel = null }) {
   const tt = useT();
+  // time runs the way the frame slider does: right to left in Hebrew (#656)
+  const rtl = useContext(LangCtx) === 'he';
   const hostRef = useRef(null), wrapRef = useRef(null);
   const stateRef = useRef(null);
   const [supported] = useState(() => webglOk());
@@ -326,15 +328,15 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         style={{ width: '100%', display: 'block', margin: '10px 0 0', accentColor: C.ac }} />
       {trace && (() => {
         const T0 = poseFrames[0].t, T1 = poseFrames[poseFrames.length - 1].t, span = Math.max(1, T1 - T0);
-        const X = (t) => (1000 * (t - T0)) / span, Y = (a) => 40 - (36 * (a - trace.lo)) / Math.max(1, trace.hi - trace.lo);
+        const X = (t) => { const x = (1000 * (t - T0)) / span; return rtl ? 1000 - x : x; }, Y = (a) => 40 - (36 * (a - trace.lo)) / Math.max(1, trace.hi - trace.lo);
         let d = '', pen = false;
         trace.v.forEach((a, i) => { if (a == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(poseFrames[i].t).toFixed(1)} ${Y(a).toFixed(1)} `; pen = true; });
         const tNow = poseFrames[idx] ? poseFrames[idx].t : T0;
         return (
           <div style={{ position: 'relative', height: 58, marginTop: 6, cursor: 'pointer' }} dir="ltr"
-            onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); seekTo(idxAt(T0 + ((e.clientX - r.left) / r.width) * span)); }}>
+            onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left) / r.width; seekTo(idxAt(T0 + (rtl ? 1 - u : u) * span)); }}>
             <svg viewBox="0 0 1000 44" preserveAspectRatio="none" width="100%" height="44" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
-              {repSpans.map((r, i) => <rect key={i} x={X(r.t0)} y="0" width={Math.max(2, X(r.t1) - X(r.t0))} height="44" fill="rgba(57,189,255,0.12)" />)}
+              {repSpans.map((r, i) => <rect key={i} x={Math.min(X(r.t0), X(r.t1))} y="0" width={Math.max(2, Math.abs(X(r.t1) - X(r.t0)))} height="44" fill="rgba(57,189,255,0.12)" />)}
               <path d={d} fill="none" stroke="#39BDFF" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
               <line x1={X(tNow)} x2={X(tNow)} y1="0" y2="44" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
             </svg>
@@ -348,7 +350,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         const tNow = poseFrames[idx] ? poseFrames[idx].t : 0;
         let cur = -1; repSpans.forEach((r, i) => { if (r.t0 <= tNow + 1) cur = i; });
         // PREV: inside a rep, back to its start first; at its start, the rep before
-        const prevK = cur < 0 ? 0 : (tNow > repSpans[cur].t0 + 150 ? cur : cur - 1);
+        const prevK = cur < 0 ? -1 : (tNow > repSpans[cur].t0 + 150 ? cur : cur - 1);   // before the first rep there is none
         const go = (k) => { const r = repSpans[Math.max(0, Math.min(repSpans.length - 1, k))]; if (r) seekTo(idxAt(r.t0)); };
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
