@@ -1301,6 +1301,9 @@ html.theme-switching *::after {
 [data-fade="both"]   { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
 /* The active tab must never sit under its own fade. */
 [data-fade] { scroll-padding-inline: 24px; }
+/* a rail's no-slice clip eases instead of snapping (#654; useRailTrailMask sets the marker) */
+[data-rail-ease] { transition: clip-path 150ms ease; }
+@media (prefers-reduced-motion: reduce) { [data-rail-ease] { transition: none; } }
 
 /* MANAGE ROSTER row: one line on a desktop, two on a phone - and the second
    line starts on the NAME column, not under the checkbox. */

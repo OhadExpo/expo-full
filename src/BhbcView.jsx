@@ -1927,6 +1927,13 @@ function attendance28(rec, days) {
              stopped at the last tab-start and the exit control stayed 23px past
              the edge for good (27.9, found by the scroller-tail gate) */
           .bhbc-header-ctrl{scroll-snap-align:end}
+          /* THE CREST SIDE NEVER FADES (11.10 #654): tabs pass UNDER the pinned crest, so there is
+             nothing to soften there - but the edge fade flipped to 'both' on the first scroll
+             event and faded the crest's own outer 22px in one frame. Only the far side fades. */
+          .bhbc-zone[dir="ltr"] .bhbc-header-inner[data-fade="both"]{-webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 22px),transparent 100%)!important;mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 22px),transparent 100%)!important}
+          .bhbc-zone[dir="ltr"] .bhbc-header-inner[data-fade="left"]{-webkit-mask-image:none!important;mask-image:none!important}
+          .bhbc-zone[dir="rtl"] .bhbc-header-inner[data-fade="both"]{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 22px,#000 100%)!important;mask-image:linear-gradient(to right,transparent 0,#000 22px,#000 100%)!important}
+          .bhbc-zone[dir="rtl"] .bhbc-header-inner[data-fade="right"]{-webkit-mask-image:none!important;mask-image:none!important}
           .bhbc-header-inner::-webkit-scrollbar{display:none}
           .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
           /* The pinned identity block must be OPAQUE and must have an EDGE, or
