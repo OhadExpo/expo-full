@@ -4765,7 +4765,9 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           ['pending', [], tr('Game not logged yet')],
           ...(showSc ? [[null, [SC_COLOR], tr('S&C')]] : []), ...(showLift ? [[null, [FX_COLOR.lift], tr('Lift')]] : []),
         ].map(([mark, overlays, lbl]) => (
-          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0 }}>
+          // the longest item takes a full row, like the dot line under it: in a half cell it broke
+          // 'Game not logged yet' one word per line (10.10 overflow sweep, 1440 and 360)
+          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, gridColumn: mark === 'pending' ? '1 / -1' : undefined }}>
             <span style={{ width: 14, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><AttMark mark={mark} overlays={overlays} /></span>{lbl}
           </span>
         ))}

@@ -24,8 +24,12 @@ function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
   return (
     <div style={{ padding: '12px 0', borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <bdi style={{ flex: '1 1 0', minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', wordBreak: 'normal' }}>{slashWbr(e.title || e.t)}</bdi>
-        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: GUESS_INK(g.filled), whiteSpace: 'nowrap' }}>{tt('{n}/3 guessed').replace('{n}', g.filled)}</span>
+        {/* the name takes the row; '{n}/3 guessed' sits under it - beside it, the name had 142px
+            at 360 and broke one word per line (10.10 overflow sweep) */}
+        <span style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <bdi style={{ minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', wordBreak: 'normal' }}>{slashWbr(e.title || e.t)}</bdi>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: GUESS_INK(g.filled), whiteSpace: 'nowrap' }}>{tt('{n}/3 guessed').replace('{n}', g.filled)}</span>
+        </span>
         <button type="button" onClick={() => toggleSkip(e.id)} aria-label={skip ? tt('Un-skip') : tt('Skip')} title={skip ? tt('Un-skip') : tt('Skip')} style={{ width: 36, height: 36, flexShrink: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 12, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>{skip ? '↺' : <CrossGlyph />}</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, auto) minmax(0, 1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>

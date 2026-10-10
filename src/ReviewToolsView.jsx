@@ -150,9 +150,9 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
                 style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 52px 72px', columnGap: 12, alignItems: 'center', width: '100%', minHeight: 48, padding: '6px 12px', boxSizing: 'border-box', background: 'transparent', border: 'none', borderTop: i ? `1px solid ${C.cardBd}` : 'none', boxShadow: on ? `inset 2px 0 0 ${C.ac}` : 'none', cursor: 'pointer', textAlign: 'start', color: C.tx, borderRadius: 0 }}>
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                   <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.ex.title}</bdi></span>
-                  <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.name}</bdi></span>
+                  <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{r.name}</bdi><span className="rt-clip-subdate" dir="ltr"> · {shortDate(r.ex.date)}</span></span>
                 </span>
-                <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{shortDate(r.ex.date)}</span>
+                <span className="rt-clip-date" dir="ltr" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{shortDate(r.ex.date)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: on ? C.gn : C.ac, textAlign: 'end', whiteSpace: 'nowrap' }}>{on ? tt('Loaded') : tt('Load')}</span>
               </button>
             );

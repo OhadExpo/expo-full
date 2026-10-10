@@ -2380,3 +2380,12 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
   .rt-work { grid-template-columns: minmax(0, 1fr) !important; }
   .rt-work > :first-child { position: static !important; }
 }
+/* the recent-clip row: on a wide screen the date has its own column; on a phone two fixed
+   columns (52 + 72) left an exercise name 84px and it broke one word per line (10.10 overflow
+   sweep) - the date moves under the athlete's name and LOAD takes only its word */
+.rt-clip-subdate { display: none; }
+@media (max-width: 480px) {
+  .rt-clip { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .rt-clip-date { display: none; }
+  .rt-clip-subdate { display: inline; }
+}
