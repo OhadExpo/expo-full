@@ -37,7 +37,10 @@ const scan = () => page.evaluate(() => {
     const hs = kids.map((k) => k.getBoundingClientRect().height);
     if (Math.max(...tops) - Math.min(...tops) > 6) out.push(`WRAP ${name}`);
     // a label broken onto two lines inside its own cell
-    kids.forEach((k) => { const t = (k.textContent || '').trim(); if (!t) return; const lh = parseFloat(getComputedStyle(k).fontSize) * 1.6; const r = document.createRange(); r.selectNodeContents(k); const lines = new Set([...r.getClientRects()].filter((q) => q.width > 1).map((q) => Math.round(q.top))); if (lines.size > 1 && k.getBoundingClientRect().height > lh) out.push(`2-LINE "${t.slice(0, 24)}" in ${name}`); });
+    // A DESIGNED stack is not a broken label: a cell holding a [data-stack] (the attendance grid's
+    // weekday over its date, #629 - 'Su 4' cannot fit a 22px day column on one line) is two lines
+    // on purpose, and passes only while the row stays one standard row (36px)
+    kids.forEach((k) => { const t = (k.textContent || '').trim(); if (!t) return; if (k.querySelector('[data-stack]') && row.getBoundingClientRect().height <= 37) return; const lh = parseFloat(getComputedStyle(k).fontSize) * 1.6; const r = document.createRange(); r.selectNodeContents(k); const lines = new Set([...r.getClientRects()].filter((q) => q.width > 1).map((q) => Math.round(q.top))); if (lines.size > 1 && k.getBoundingClientRect().height > lh) out.push(`2-LINE "${t.slice(0, 24)}" in ${name}`); });
     kids.forEach((k) => { if (k.scrollWidth > k.clientWidth + 1 && getComputedStyle(k).overflow !== 'visible') out.push(`CLIP "${(k.textContent || '').trim().slice(0, 24)}"`); });
     let clip = row.parentElement; while (clip && clip !== document.body && getComputedStyle(clip).overflowX === 'visible') clip = clip.parentElement;
     // a SCROLLER is not a cut: a wide table that scrolls sideways shows the rest on a swipe
