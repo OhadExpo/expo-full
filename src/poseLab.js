@@ -20,7 +20,7 @@
 // image-unit per frame (a mostly-vertical ruler keeps aspect-ratio error low).
 // A "frame" captured by the loop is { t (ms), landmarks, worldLandmarks }.
 
-import { ANGLE_DEFS, angleAt, signedDeviationAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
+import { ANGLE_DEFS, angleAt, signedDeviationAt, signedSagittalAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
 
 // MediaPipe Pose landmark indices we lean on.
 export const LM = {
@@ -774,12 +774,19 @@ export function extendedJointRom(frames) {
   const t = frames.map(f => f.t);
   const out = [];
 
-  // ---- signed knee → over-extension (needs a clean side-on view) ----
-  for (const [name, hipI, kneeI, ankI] of [['L KNE±', 23, 25, 27], ['R KNE±', 24, 26, 28]]) {
+  // ---- signed knee → over-extension ----
+  // Read in the body's sagittal plane (signedSagittalAt, 10.10 #639), so a camera
+  // turned off side-on no longer shrinks the number. A FRONT-on clip is refused:
+  // there the bend runs along the camera's depth axis, MediaPipe's weakest, and a
+  // hyperextension of a few degrees cannot be told from depth noise.
+  const camera = estimateView(frames);
+  const kneeOk = !(camera && camera.view === 'front');
+  for (const [name, hipI, kneeI, ankI] of kneeOk ? [['L KNE±', 23, 25, 27], ['R KNE±', 24, 26, 28]] : []) {
     const raw = frames.map(f => {
       const w = f.worldLandmarks; if (!w) return null;
       if (!(visOK(f.landmarks, hipI) && visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI))) return null;
-      return signedDeviationAt(w, hipI, kneeI, ankI);
+      const sg = signedSagittalAt(w, hipI, kneeI, ankI);
+      return sg != null ? sg : signedDeviationAt(w, hipI, kneeI, ankI);
     });
     const s0 = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
     if (s0.length < 6) continue;
@@ -792,7 +799,12 @@ export function extendedJointRom(frames) {
     // Need a REAL flexion sweep to trust the sign; a near-straight clip can't tell
     // a small flexion from a small hyperextension, so we refuse (overExtDeg=null).
     const calibrated = flexMax >= 25;
-    const overExtDeg = calibrated ? (hyper >= 5 ? Math.round(hyper) : 0) : null;
+    // A knee does not hyperextend 30+ degrees (genu recurvatum past ~20 is rare and clinical).
+    // On the 23 real set captures (10.10) every read above that was tracking: a leg the model
+    // lost for a moment and swung through the hip - 37 of 46 legs read over 20 on the old x,y
+    // read, 7 on the sagittal one. A number that cannot be a knee is refused, not shown.
+    const plausible = hyper <= 25;
+    const overExtDeg = calibrated && plausible ? (hyper >= 5 ? Math.round(hyper) : 0) : null;
     const rex = robustExtremes(s);
     out.push({ name, maxDeg: Math.round(flexMax), minDeg: Math.round(Math.min(...s)), hiDeg: rex.hiDeg, loDeg: rex.loDeg, romDeg: Math.round(flexMax - Math.min(...s)), overExtDeg, samples: s.length });
   }
