@@ -163,8 +163,11 @@ for (const lang of LANGS) {
                 if (bb.bottom < 0 || bb.top > vh) continue;
                 counted++;
 
+                // the ink of THIS text node, not the element's whole contents (11.10): a hidden child - the
+                // sort arrow BHBC Lifts keeps at visibility:hidden beside a day number - was read as ink,
+                // and '10' "spilled" 4px for weeks. Child text is walked as its own node anyway.
                 const rng = document.createRange();
-                rng.selectNodeContents(el);
+                rng.selectNodeContents(n);
                 const rects = [...rng.getClientRects()].filter((x) => x.width > 0 && x.height > 0);
                 if (!rects.length) continue;
                 const inkL = Math.min(...rects.map((x) => x.left));
@@ -199,7 +202,7 @@ for (const lang of LANGS) {
                   if (pb.width < 8) continue;
                   if (inkR - pb.right > 2 || pb.left - inkL > 2) spilled = Math.round(Math.max(inkR - pb.right, pb.left - inkL));
                 }
-                if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled, path: window.__gateDebugPath ? [el, el.parentElement, el.parentElement && el.parentElement.parentElement].filter(Boolean).map((e) => `${e.tagName.toLowerCase()}.${String(e.className || '').split(' ')[0]}[${Math.round(e.getBoundingClientRect().width)}]`).join(' < ') : undefined }); continue; }
+                if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled, path: window.__gateDebugPath ? [el, el.parentElement, el.parentElement && el.parentElement.parentElement].filter(Boolean).map((e) => { const q = e.getBoundingClientRect(); return `${e.tagName.toLowerCase()}.${String(e.className || '').split(' ')[0]}[${Math.round(q.left)}..${Math.round(q.right)}]`; }).join(' < ') + ` ink ${Math.round(inkL)}..${Math.round(inkR)}` : undefined }); continue; }
 
                 // ONEWORD — 3+ lines and barely a word on each.
                 const lineTops = new Set(rects.map((x) => Math.round(x.top)));
