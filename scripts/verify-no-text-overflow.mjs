@@ -46,6 +46,10 @@ import { signIn } from './lib/authed-page.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
 const OUT = process.env.OUT || 'audit-out/text-overflow';
+// A PAUSE BEFORE EVERY PAGE (11.10): the app pages all read the PRODUCTION database (a preview and the dev
+// server too). Two full sweeps back to back, unpaced, sent 3,105 requests in 7 minutes and the database
+// stopped taking connections (memory feedback_load_budget_one_heavy_thing). PACE_MS=0 for the old speed.
+const PACE_MS = process.env.PACE_MS != null ? +process.env.PACE_MS : 2500;
 fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -135,6 +139,7 @@ for (const lang of LANGS) {
               localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
             } catch (e) { /* private mode */ }
           }, lang, theme);
+          if (PACE_MS > 0) await wait(PACE_MS);
           await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
           let prev = -1, settled = false;
