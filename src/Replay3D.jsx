@@ -527,21 +527,22 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
             const path = (sh) => sh.map(([u, a], k) => `${k ? 'L' : 'M'}${X(u).toFixed(1)} ${Y(a).toFixed(1)}`).join(' ');
             const ref = lo - 1;
             const tNow = poseFrames[idx] ? poseFrames[idx].t : 0;
-            const curR = cur >= 0 && inSet(cur) ? repSpans[cur] : null;
+            // the current rep only while the frame is IN it - between reps and after the set there is none
+            // (it used to stick to the end of the last rep's curve, review 11.10)
+            const curR = cur >= 0 && inSet(cur) && tNow <= repSpans[cur].t1 && shapes[cur].length > 2 ? repSpans[cur] : null;
             const uNow = curR ? Math.max(0, Math.min(1, (tNow - curR.t0) / Math.max(1, curR.t1 - curR.t0))) : null;
-            const aNow = curR && shapes[cur].length ? shapes[cur].reduce((b, q) => (Math.abs(q[0] - uNow) < Math.abs(b[0] - uNow) ? q : b))[1] : null;
             return (
               <div style={{ marginTop: 10 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 14, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, marginBottom: 4 }}>
                   <span style={{ color: '#FFF', fontWeight: 700 }}>{tt('REP SHAPES')}</span>
-                  <span style={{ color: '#FFFFFF' }}>┅ {tt('REP {n}').replace('{n}', lo)}</span>
+                  {shapes[ref] && shapes[ref].length > 2 && <span style={{ color: '#FFFFFF' }}>┅ {tt('REP {n}').replace('{n}', lo)}</span>}
                   {curR && cur !== ref && <span style={{ color: '#39BDFF' }}>━ {tt('REP {n}').replace('{n}', cur + 1)}</span>}
                 </div>
                 <svg viewBox="0 0 1000 60" preserveAspectRatio="none" width="100%" height="60" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
                   {inSetIdx.filter((i) => i !== ref && i !== cur).map((i) => <path key={i} d={path(shapes[i])} fill="none" stroke="rgba(57,189,255,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
                   {shapes[ref] && shapes[ref].length > 2 && <path d={path(shapes[ref])} fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="5 4" vectorEffect="non-scaling-stroke" />}
                   {curR && cur !== ref && <path d={path(shapes[cur])} fill="none" stroke="#39BDFF" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
-                  {curR && aNow != null && <line x1={X(uNow)} x2={X(uNow)} y1="0" y2="60" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}
+                  {curR && <line x1={X(uNow)} x2={X(uNow)} y1="0" y2="60" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}
                 </svg>
               </div>
             );
