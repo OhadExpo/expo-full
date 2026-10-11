@@ -505,7 +505,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
           {onRange && cur >= 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
               <JoinedButtons maxWidth={420} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' }} items={[
-                { label: tt('FIRST REP'), onClick: () => onRange(cur + 1, Math.max(cur + 1, hi)) },
+                { label: tt('FIRST REP'), onClick: () => onRange(cur + 1, hi >= repSpans.length ? null : Math.max(cur + 1, hi)) },   // an untouched end stays open ('to the end'), so a re-read with more reps is not cut
                 { label: tt('LAST REP'), onClick: () => onRange(Math.min(lo, cur + 1), cur + 1) },
                 { label: tt('ALL REPS'), onClick: () => onRange(1, null), disabled: lo === 1 && hi === repSpans.length },
               ]} />

@@ -452,8 +452,11 @@ export default function MovementLab({
   const [result, setResult] = useState(null);
   // MOVEMENT LAB's 3D view had no first / last rep: the trim lives in AnalyzeResult (LIFT METRICS'
   // 3D tab), and this tool shows the replay on its own (11.10 #656). A trim per analysis, here.
-  const [labRange, setLabRange] = useState(null);
-  useEffect(() => { setLabRange(null); }, [result]);
+  // kept WITH the result it belongs to: a new read (another exercise picked) shows no stale trim, not even for
+  // one render (an effect reset it a render late - post-ship review 11.10)
+  const [labRangeFor, setLabRangeFor] = useState(null);
+  const labRange = labRangeFor && labRangeFor.forResult === result ? labRangeFor : null;
+  const setLabRange = (r) => setLabRangeFor(r ? { ...r, forResult: result } : null);
   const [jump, setJump] = useState(null);
   const [tab, setTab] = useState('velocity');
   const [progress, setProgress] = useState(0);
