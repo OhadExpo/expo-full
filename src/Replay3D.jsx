@@ -38,13 +38,16 @@ const CHANNEL_JOINTS = { knee: [[23, 25, 27], [24, 26, 28]], hip: [[11, 23, 25],
 
 // reps: [{ t0, tb, t1 }] in the frames' own ms (start / bottom / end of each counted rep, from the
 // analysis); channel: the analysed joint. With both, a rep timeline sits under the scrubber (#656).
-export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null, reps = null, channel = null }) {
+// range / onRange: the coach's first and last rep of the set (1-indexed, the same trim as ANALYZE REPS
+// in the speed / ROM tabs - Ohad: "set where is the first and last rep"). Reps outside it are dimmed.
+export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null, reps = null, channel = null, range = null, onRange = null }) {
   const tt = useT();
   // time runs the way the frame slider does: right to left in Hebrew (#656)
   const rtl = useContext(LangCtx) === 'he';
   const hostRef = useRef(null), wrapRef = useRef(null);
   const stateRef = useRef(null);
   const [supported] = useState(() => webglOk());
+  const [hostW, setHostW] = useState(0);   // the canvas width, for the rep-number rows (measured, not 360 on the first paint)
   const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // 5.10 #558; one shared computation per clip (#656)
   const pts = useMemo(() => poseFrames.map((f) => frameToPoints3D(f.worldLandmarks)), [poseFrames]);
   const [idx, setIdx] = useState(0);
@@ -52,6 +55,14 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const [speed, setSpeed] = useState(0.5);
   const [trails, setTrails] = useState(true);
   const idxRef = useRef(0); idxRef.current = idx;
+  // the trails show THIS rep (or the last 2 s outside one): drawn over the whole clip they piled
+  // the set-up and every rep into one tangle at the shoulder (11.10 #656, "output can be better")
+  const trailFromRef = useRef(() => 0);
+  // VS THE FIRST REP (11.10 #656): an outline of the set's first rep, at the same point of ITS rep as
+  // the frame on screen is of the current one, standing where he stands - so the drift of depth, back
+  // angle or bar path across the set is seen, not reconstructed from numbers. -1 = nothing to draw.
+  const [compare, setCompare] = useState(false);
+  const compareRef = useRef(() => -1);
 
   // THE REPS ON THE TIMELINE (11.10 #656, Ohad: "output can be better"): the 3D replay knew
   // nothing of the set - a coach scrubbed frame by frame to find rep 4. Now the analysed joint's
@@ -63,10 +74,71 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const trace = useMemo(() => {
     const J = CHANNEL_JOINTS[channel] || null;
     if (!J || !pts.length || !repSpans.length) return null;
-    const v = pts.map((p) => { const a = J.map(([i, j, k]) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)).filter((x) => x != null); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; });
+    // the sides are chosen ONCE per clip (as channelSignal does): averaging whichever side was seen
+    // at each frame jumped the trace by the L/R difference every time a side flickered. A chosen
+    // side missing for a frame takes the other side plus their usual offset; then a 5-median.
+    const side = J.map(([i, j, k]) => pts.map((p) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)));
+    const share = side.map((sv) => sv.filter((x) => x != null).length / Math.max(1, sv.length));
+    const use = share.map((x) => x >= 0.6).some(Boolean) ? share.map((x) => x >= 0.6) : share.map((x) => x === Math.max(...share));
+    const both = [], A = side[0], B = side[1];
+    for (let i = 0; i < pts.length; i++) if (A[i] != null && B[i] != null) both.push(A[i] - B[i]);
+    both.sort((x, y) => x - y);
+    const off = both.length ? both[both.length >> 1] : 0;   // L minus R, typical
+    const raw = pts.map((_, i) => {
+      const a = A[i], b = B[i];
+      if (use[0] && use[1]) return a != null && b != null ? (a + b) / 2 : a != null ? a - off / 2 : b != null ? b + off / 2 : null;
+      return use[0] ? (a != null ? a : b != null ? b + off : null) : (b != null ? b : a != null ? a - off : null);
+    });
+    const v = raw.map((_, i) => { const w = raw.slice(Math.max(0, i - 2), i + 3).filter((x) => x != null).sort((x, y) => x - y); return raw[i] == null || !w.length ? null : w[w.length >> 1]; });
     const ok = v.filter((x) => x != null); if (ok.length < 2) return null;
-    return { v, lo: Math.min(...ok), hi: Math.max(...ok) };
+    // scaled to the 2nd-98th percentile: one wild frame used to flatten every rep into the top band
+    const so = ok.slice().sort((x, y) => x - y), q = (f) => so[Math.min(so.length - 1, Math.floor(f * so.length))];
+    // the clamp is for DRAWING only: the rep stats read `raw` - clamped, a long clip's bottom 2% is the
+    // rep bottoms themselves and every deep rep read the same range (review 11.10)
+    return { raw: v, v: v.map((x) => (x == null ? null : Math.max(q(0.02), Math.min(q(0.98), x)))), lo: q(0.02), hi: Math.max(q(0.98), q(0.02) + 1) };
   }, [pts, channel, repSpans.length]);
+  // per rep: the analysed joint's range and the rep's time. (A "shorter than the set" mark was tried
+  // and measured against his hand-noted reps on 23 clips: it flagged 19% of the false reps and 15% of
+  // the true ones - no help telling them apart, so it is not shown.)
+  const repStats = useMemo(() => {
+    if (!trace) return [];
+    const st = repSpans.map((r) => {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = idxAt(r.t0); i < poseFrames.length && poseFrames[i].t <= r.t1; i++) { const a = trace.raw[i]; if (a != null) { if (a < lo) lo = a; if (a > hi) hi = a; } }
+      // DEPTH = the joint's smallest angle in the rep - the bottom of a squat / hinge; for an elbow the
+      // smallest angle is the TOP of a curl, so depth is shown for knee and hip work only
+      return { rom: hi > lo ? Math.round(hi - lo) : null, depth: (channel === 'knee' || channel === 'hip') && Number.isFinite(lo) ? Math.round(lo) : null, sec: Math.max(0, (r.t1 - r.t0) / 1000) };
+    });
+    return st;
+  }, [trace, repSpans, poseFrames, channel]);   // eslint-disable-line react-hooks/exhaustive-deps
+  compareRef.current = (i) => {
+    if (!compare || !poseFrames[i]) return -1;
+    const t = poseFrames[i].t;
+    const k = repSpans.findIndex((q) => t >= q.t0 && t <= q.t1);
+    const ref = repSpans[lo - 1];
+    if (k < 0 || !ref || k === lo - 1) return -1;
+    const cur = repSpans[k], u = (t - cur.t0) / Math.max(1, cur.t1 - cur.t0);
+    return idxAt(ref.t0 + u * (ref.t1 - ref.t0));
+  };
+  // REP SHAPES (11.10 #656): every rep's joint-angle curve, each stretched to the same length and laid
+  // over the others - the set's depth consistency, and the rep whose shape breaks (a pause, a cut
+  // bottom, a grind out of the hole), at a glance. The measured trace, never the drawing clamp.
+  const shapes = useMemo(() => {
+    if (!trace) return null;
+    const out = repSpans.map((r) => {
+      const pts2 = [];
+      for (let i = idxAt(r.t0); i < poseFrames.length && poseFrames[i].t <= r.t1; i++) { const a = trace.raw[i]; if (a != null) pts2.push([(poseFrames[i].t - r.t0) / Math.max(1, r.t1 - r.t0), a]); }
+      return pts2;
+    });
+    return out;
+  }, [trace, repSpans, poseFrames]);   // eslint-disable-line react-hooks/exhaustive-deps
+  trailFromRef.current = (i) => {
+    const t = poseFrames[i] ? poseFrames[i].t : 0;
+    const r = repSpans.find((q) => t >= q.t0 && t <= q.t1 + 250);
+    return idxAt(r ? r.t0 : t - 2000);
+  };
+  const lo = range && range.from > 0 ? range.from : 1, hi = range && range.to > 0 ? range.to : repSpans.length;
+  const inSet = (i) => i + 1 >= lo && i + 1 <= hi;
   const seekTo = (i) => { const k = Math.max(0, Math.min(poseFrames.length - 1, i)); setPlaying(false); setIdx(k); if (onSeek && poseFrames[k] && poseFrames[0]) onSeek(poseFrames[k].t - poseFrames[0].t); };
 
   useEffect(() => { if (!supported && onUnsupported) onUnsupported(); }, [supported, onUnsupported]);
@@ -77,6 +149,19 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     for (const p of pts) for (const k of FEET) { const q = p && p[k]; if (q && lmVisible(q) && q.y < m) m = q.y; }
     return isFinite(m) ? m : -0.95;
   }, [pts]);
+
+  // where the body is over the whole clip (1st-99th percentile of the seen points): the camera
+  // frames HIM, not a fixed box - at 1440 he stood small in the middle of a wide canvas
+  const bounds = useMemo(() => {
+    const X = [], Y = [], Z = [];
+    pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 0; k < p.length; k++) { const q = p[k]; if (q && lmVisible(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } });
+    if (X.length < 20) return null;
+    const pc = (a, f) => { const s2 = a.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(f * s2.length))]; };
+    const r = (a) => [pc(a, 0.01), pc(a, 0.99)];
+    const [x0, x1] = r(X), [y0, y1] = r(Y), [z0, z1] = r(Z);
+    const yb = Math.min(y0, floorY);
+    return { c: [(x0 + x1) / 2, (yb + y1) / 2, (z0 + z1) / 2], h: y1 - yb, w: Math.max(x1 - x0, z1 - z0) };
+  }, [pts, floorY]);
 
   // build the scene once per clip
   useEffect(() => {
@@ -96,10 +181,17 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     scene.background = new THREE.Color(0x0b0d10);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 50);
     const centreY = floorY + 0.95;
+    const tgt = bounds ? new THREE.Vector3(bounds.c[0], bounds.c[1], bounds.c[2]) : new THREE.Vector3(0, centreY, 0);
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, centreY, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.target.copy(tgt); controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.minDistance = 1.2; controls.maxDistance = 9; controls.maxPolarAngle = Math.PI * 0.495;
-    camera.position.set(2.1, centreY + 0.5, 2.6);
+    // the distance that fits his height (and his width at a narrow aspect), with a margin
+    const fit = (dir) => {
+      const tf = Math.tan((camera.fov * Math.PI) / 360), H = bounds ? Math.max(0.9, bounds.h) : 1.9, W = bounds ? Math.max(0.6, bounds.w) : 0.9;
+      const d = Math.abs(dir.y) > 0.9 ? (Math.max(W, 0.9) * 0.6) / Math.min(tf, tf * camera.aspect) : Math.max((H * 0.58) / tf, (W * 0.58) / (tf * camera.aspect));
+      camera.position.copy(tgt).addScaledVector(dir.clone().normalize(), Math.max(1.4, Math.min(8.5, d)));
+      controls.target.copy(tgt); controls.update();
+    };
 
     scene.add(new THREE.HemisphereLight(0xdfefff, 0x141820, 0.6));
     const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(2.5, 4, 3); key.castShadow = true;
@@ -127,6 +219,12 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const LEFT_MAT = new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.35, emissive: 0x06283a });
     const RIGHT_MAT = new THREE.MeshStandardMaterial({ color: HIP_TRAIL, roughness: 0.35, emissive: 0x3a2405 });
     const visorMat = new THREE.MeshStandardMaterial({ color: 0x0b0d10, roughness: 0.2, metalness: 0.3 });
+    // A JOINT THE CAMERA DID NOT SEE (11.10 #656): it used to vanish, so a lift filmed from the side
+    // drew a man with one arm. MediaPipe still places it (smoothed on its own stretch, poseLab) -
+    // it is drawn FADED, never solid, and casts no shadow: a guess looks like a guess.
+    const ghostOf = (m) => { const g = m.clone(); g.transparent = true; g.opacity = 0.26; g.depthWrite = false; return g; };
+    const skinG = ghostOf(skin), trunkG = ghostOf(trunkMat), LEFT_G = ghostOf(LEFT_MAT), RIGHT_G = ghostOf(RIGHT_MAT);
+    const look = (m, seen, solid, faded) => { m.material = seen ? solid : faded; m.castShadow = seen; m.visible = true; };
     const addMesh = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; scene.add(m); return m; };
     // a limb: an open tapered tube, radius r0 at the joint it leaves and r1 at the one it reaches
     const LIMBS = [[11, 13, 0.050, 0.041], [13, 15, 0.040, 0.030], [12, 14, 0.050, 0.041], [14, 16, 0.040, 0.030],
@@ -155,6 +253,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     };
     const handTrail = mkTrail((p) => mid(p, 15, 16), ACCENT);
     const hipTrail = mkTrail((p) => mid(p, 23, 24), HIP_TRAIL);
+    // the first rep's outline: thin bones, no volume, never casts a shadow
+    const REF_BONES = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32], [29, 31], [30, 32], [27, 29], [28, 30]];
+    const refGeo = new THREE.BufferGeometry(); refGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(REF_BONES.length * 6), 3));
+    const refLines = new THREE.LineSegments(refGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, depthTest: false }));
+    refLines.renderOrder = 2; refLines.visible = false; scene.add(refLines);
 
     const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3(), q = new THREE.Quaternion();
     const V = (P) => new THREE.Vector3(P.x, P.y, P.z);
@@ -166,18 +269,24 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const pose = (i) => {
       const p = pts[Math.max(0, Math.min(pts.length - 1, i))] || [];
       const ok = (k) => lmVisible(p[k]);
+      const has = (k) => !!p[k] && Number.isFinite(p[k].x) && Number.isFinite(p[k].y) && Number.isFinite(p[k].z);
       for (const o of limbs) {
-        if (!ok(o.a) || !ok(o.b)) { o.m.visible = false; continue; }
+        if (!has(o.a) || !has(o.b)) { o.m.visible = false; continue; }
         const a = V(p[o.a]), b = V(p[o.b]); const len = a.distanceTo(b);
         if (len < 1e-4) { o.m.visible = false; continue; }
-        o.m.visible = true; o.m.position.copy(a).add(b).multiplyScalar(0.5); o.m.scale.set(1, len, 1);
+        look(o.m, ok(o.a) && ok(o.b), skin, skinG); o.m.position.copy(a).add(b).multiplyScalar(0.5); o.m.scale.set(1, len, 1);
         q.setFromUnitVectors(up, tmp.copy(b).sub(a).normalize()); o.m.quaternion.copy(q);
       }
-      for (const j of joints) { j.m.visible = ok(j.k); if (j.m.visible) j.m.position.copy(V(p[j.k])); }
+      for (const j of joints) {
+        if (!has(j.k)) { j.m.visible = false; continue; }
+        look(j.m, ok(j.k), j.k % 2 ? LEFT_MAT : RIGHT_MAT, j.k % 2 ? LEFT_G : RIGHT_G); j.m.position.copy(V(p[j.k]));
+      }
       // the trunk, on his own spine and shoulder line
-      const trunk = ok(11) && ok(12) && ok(23) && ok(24);
+      const trunk = has(11) && has(12) && has(23) && has(24);
       let spineUp = null;
       if (trunk) {
+        const tSeen = ok(11) && ok(12) && ok(23) && ok(24);
+        look(chest, tSeen, trunkMat, trunkG); look(core, tSeen, trunkMat, trunkG); look(pelvis, tSeen, trunkMat, trunkG); look(neck, tSeen, skin, skinG);
         const S = V(p[11]).add(V(p[12])).multiplyScalar(0.5), H = V(p[23]).add(V(p[24])).multiplyScalar(0.5);
         const spine = S.clone().sub(H); const L = Math.max(0.2, spine.length());
         const sideS = V(p[12]).sub(V(p[11])), sideH = V(p[24]).sub(V(p[23]));
@@ -211,24 +320,40 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       // hands: from the wrist toward the knuckles (index + pinky), or along the forearm
       [[15, 17, 19, 13], [16, 18, 20, 14]].forEach(([w, pk, ix, el], n) => {
         const m = hands[n];
-        if (!ok(w)) { m.visible = false; return; }
+        if (!has(w)) { m.visible = false; return; }
         const W = V(p[w]);
-        const dir = ok(pk) && ok(ix) ? V(p[pk]).add(V(p[ix])).multiplyScalar(0.5).sub(W) : ok(el) ? W.clone().sub(V(p[el])) : null;
+        const dir = has(pk) && has(ix) ? V(p[pk]).add(V(p[ix])).multiplyScalar(0.5).sub(W) : has(el) ? W.clone().sub(V(p[el])) : null;
         if (!dir || dir.lengthSq() < 1e-8) { m.visible = false; return; }
-        dir.normalize(); m.visible = true;
+        dir.normalize(); look(m, ok(w), skin, skinG);
         m.position.copy(W).addScaledVector(dir, 0.062); m.quaternion.setFromUnitVectors(up, dir); m.scale.set(0.036, 0.072, 0.036);
       });
       // feet: heel to toe, resting on the floor line
       [[29, 31], [30, 32]].forEach(([he, to], n) => {
         const m = feet[n];
-        if (!ok(he) || !ok(to)) { m.visible = false; return; }
+        if (!has(he) || !has(to)) { m.visible = false; return; }
         const Hh = V(p[he]), T = V(p[to]); const d = T.clone().sub(Hh); const len = d.length();
         if (len < 1e-3) { m.visible = false; return; }
-        d.normalize(); m.visible = true;
+        d.normalize(); look(m, ok(he) && ok(to), skin, skinG);
         m.position.copy(Hh).add(T).multiplyScalar(0.5).addScaledVector(up, 0.022);
         m.quaternion.setFromUnitVectors(up, d); m.scale.set(0.042, len * 0.58, 0.042);
       });
-      handTrail.geometry.setDrawRange(0, i + 1); hipTrail.geometry.setDrawRange(0, i + 1);
+      // the first rep's outline, moved so its hips sit on his hips at this frame
+      const ri = compareRef.current(i), rp = ri >= 0 ? pts[ri] : null;
+      const fin = (P) => !!P && Number.isFinite(P.x) && Number.isFinite(P.y) && Number.isFinite(P.z);
+      const hipOf = (q) => (q && fin(q[23]) && fin(q[24]) ? { x: (q[23].x + q[24].x) / 2, y: (q[23].y + q[24].y) / 2, z: (q[23].z + q[24].z) / 2 } : null);
+      const hc = hipOf(p), hr = hipOf(rp);
+      if (rp && hc && hr) {
+        const arr = refGeo.attributes.position.array; let n = 0, any = false;
+        for (const [a, b] of REF_BONES) {
+          const A = rp[a], B = rp[b];
+          if (fin(A) && fin(B)) { arr.set([A.x - hr.x + hc.x, A.y - hr.y + hc.y, A.z - hr.z + hc.z, B.x - hr.x + hc.x, B.y - hr.y + hc.y, B.z - hr.z + hc.z], n); any = true; }
+          else arr.fill(0, n, n + 6);
+          n += 6;
+        }
+        refGeo.attributes.position.needsUpdate = true; refGeo.computeBoundingSphere(); refLines.visible = any;
+      } else refLines.visible = false;
+      const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
+      handTrail.geometry.setDrawRange(from, i - from + 1); hipTrail.geometry.setDrawRange(from, i - from + 1);
     };
 
     const size = () => {
@@ -236,22 +361,25 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
     };
     size();
-    const ro = new ResizeObserver(size); ro.observe(host);
+    fit(new THREE.Vector3(2.1, 0.5, 2.6));
+    const ro = new ResizeObserver(() => { size(); setHostW(host.clientWidth || 0); }); ro.observe(host); setHostW(host.clientWidth || 0);
     let raf = 0, alive = true;
     const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
     loop();
-    stateRef.current = { pose, camera, controls, centreY, handTrail, hipTrail };
+    stateRef.current = { pose, camera, controls, centreY, handTrail, hipTrail, fit };
     pose(idxRef.current);
     return () => {
       alive = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
       scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose()); });
+      // the solid / faded pairs: a mesh holds only one of them at a time
+      [skin, trunkMat, LEFT_MAT, RIGHT_MAT, skinG, trunkG, LEFT_G, RIGHT_G].forEach((m) => m.dispose());
       renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       stateRef.current = null;
     };
-  }, [supported, pts, floorY]);
+  }, [supported, pts, floorY, bounds]);
 
   // the frame on screen
-  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx]);
+  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range, repSpans]);   // the outline follows a toggle / a new first rep at once
   useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.visible = trails; s.hipTrail.visible = trails; } }, [trails]);
 
   // follow the clip while not playing on its own
@@ -279,9 +407,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
 
   const view = (k) => {
     const s = stateRef.current; if (!s) return;
-    const y = s.centreY, d = 2.9;
-    const P = { front: [0, y + 0.25, d], side: [d, y + 0.25, 0], top: [0.001, y + 3.6, 0.001], behind: [0, y + 0.25, -d] }[k];
-    s.camera.position.set(P[0], P[1], P[2]); s.controls.target.set(0, y, 0); s.controls.update();
+    const D = { front: [0, 0.09, 1], side: [1, 0.09, 0], top: [0.001, 1, 0.001], behind: [0, 0.09, -1] }[k];
+    s.fit(new THREE.Vector3(D[0], D[1], D[2]));
   };
   const full = () => { const el = wrapRef.current; if (!el) return; if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); };
 
@@ -289,7 +416,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   if (!pts.length) return <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, padding: 12 }}>{tt('No 3D pose captured in that clip.')}</div>;
 
   const p = pts[idx] || [];
-  const a = (i, j, k) => (lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null);
+  // a joint the camera did not see: the angle is the faded body's - shown grey with ~ (a guess)
+  const a = (i, j, k) => { const v = p[i] && p[j] && p[k] ? angle3(p[i], p[j], p[k]) : null; return v == null ? null : { v, seen: lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) }; };
   const angles = [
     [tt('KNEE'), a(23, 25, 27), a(24, 26, 28)],
     [tt('HIP'), a(11, 23, 25), a(12, 24, 26)],
@@ -298,6 +426,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // the ten controls as one equal-cell grid (5.10 #574): 10 on a desktop row, 2 x 5 on a
   // phone; white resting text as the pills had - this canvas is dark in every theme
   const pill = (k, label, on, active) => ({ k, label, onClick: on, active: !!active, tone: '#FFF' });
+  // the camera's VIEWPOINTS have their own Hebrew (11.10): 'TOP' and 'FRONT' are shared keys - the rep
+  // phase ('למעלה', up) and the front camera ('קדמית') - and read wrong here. English shows the word.
+  const vt = (k) => { const v = tt(`view·${k}`); return v === `view·${k}` ? k : v; };
   return (
     <div ref={wrapRef} style={{ background: '#0b0d10', position: 'relative' }}>
       {/* five a row (5.10 #556): ten in one row cut FULLSCREEN to "ULLSCREE" beside a clip */}
@@ -305,10 +436,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         items={[
           pill('play', playing ? tt('PAUSE') : tt('PLAY'), () => setPlaying((v) => !v), playing),
           ...[0.25, 0.5, 1].map((s) => pill(`x${s}`, `${s}×`, () => setSpeed(s), speed === s)),
-          pill('front', tt('FRONT'), () => view('front')),
-          pill('side', tt('SIDE'), () => view('side')),
-          pill('top', tt('TOP'), () => view('top')),
-          pill('behind', tt('BEHIND'), () => view('behind')),
+          pill('front', vt('FRONT'), () => view('front')),
+          pill('side', vt('SIDE'), () => view('side')),
+          pill('top', vt('TOP'), () => view('top')),
+          pill('behind', vt('BEHIND'), () => view('behind')),
           pill('trails', tt('TRAILS'), () => setTrails((v) => !v), trails),
           pill('full', tt('FULL'), full),
         ]} />
@@ -317,9 +448,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         {/* the true 3D angles at this frame - left / right */}
         <div style={{ position: 'absolute', insetInlineStart: 8, top: 8, display: 'grid', gridTemplateColumns: 'auto auto auto', columnGap: 10, rowGap: 2, padding: '6px 8px', background: 'rgba(10,10,11,0.72)', fontFamily: FN, fontSize: 10, color: '#FFF', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>
           <span /> <span style={{ color: '#39BDFF', fontWeight: 700 }}>{tt('L')}</span><span style={{ color: '#F5A524', fontWeight: 700 }}>{tt('R')}</span>
-          {angles.map(([k, l, r]) => (<React.Fragment key={k}><span style={{ color: C.tm, letterSpacing: '0.1em' }}>{k}</span><span>{l == null ? '—' : `${l}°`}</span><span>{r == null ? '—' : `${r}°`}</span></React.Fragment>))}
+          {angles.map(([k, l, r]) => (<React.Fragment key={k}><span style={{ color: C.tm, letterSpacing: '0.1em' }}>{k}</span>{[l, r].map((x, n) => <span key={n} dir="ltr" style={{ color: x && !x.seen ? '#6b7480' : '#FFF', unicodeBidi: 'isolate' }}>{x == null ? '—' : `${x.seen ? '' : '~'}${x.v}°`}</span>)}</React.Fragment>))}
         </div>
         <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, display: 'flex', gap: 10, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }}>
+          <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
+          {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
           {trails && <><span style={{ color: '#39BDFF' }}>━ {tt('HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
         </div>
       </div>
@@ -332,16 +465,21 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         let d = '', pen = false;
         trace.v.forEach((a, i) => { if (a == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(poseFrames[i].t).toFixed(1)} ${Y(a).toFixed(1)} `; pen = true; });
         const tNow = poseFrames[idx] ? poseFrames[idx].t : T0;
+        // rep numbers never overlap: one closer than 16px to the last on its line drops a line (two
+        // reps 0.3 s apart at the end of a clip painted "8" over "9")
+        const wPx = hostW || 360, ends = [];
+        const rowOf = repSpans.map((r) => { const px = (X(r.tb) / 1000) * wPx; let k = 0; while (ends[k] != null && Math.abs(px - ends[k]) < 16) k++; ends[k] = px; return k; });
+        const rows = rowOf.length ? Math.max(...rowOf) + 1 : 1;
         return (
-          <div style={{ position: 'relative', height: 58, marginTop: 6, cursor: 'pointer' }} dir="ltr"
+          <div style={{ position: 'relative', height: 47 + 11 * rows, marginTop: 6, cursor: 'pointer' }} dir="ltr"
             onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left) / r.width; seekTo(idxAt(T0 + (rtl ? 1 - u : u) * span)); }}>
             <svg viewBox="0 0 1000 44" preserveAspectRatio="none" width="100%" height="44" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
-              {repSpans.map((r, i) => <rect key={i} x={Math.min(X(r.t0), X(r.t1))} y="0" width={Math.max(2, Math.abs(X(r.t1) - X(r.t0)))} height="44" fill="rgba(57,189,255,0.12)" />)}
+              {repSpans.map((r, i) => <rect key={i} x={Math.min(X(r.t0), X(r.t1))} y="0" width={Math.max(2, Math.abs(X(r.t1) - X(r.t0)))} height="44" fill={inSet(i) ? 'rgba(57,189,255,0.14)' : 'rgba(255,255,255,0.04)'} />)}
               <path d={d} fill="none" stroke="#39BDFF" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
               <line x1={X(tNow)} x2={X(tNow)} y1="0" y2="44" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
             </svg>
             {repSpans.map((r, i) => (
-              <span key={i} style={{ position: 'absolute', top: 46, left: `${X(r.tb) / 10}%`, transform: 'translateX(-50%)', fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#39BDFF', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>{i + 1}</span>
+              <span key={i} style={{ position: 'absolute', top: 46 + 11 * rowOf[i], left: `${X(r.tb) / 10}%`, transform: 'translateX(-50%)', fontFamily: FN, fontSize: 9, fontWeight: 700, color: inSet(i) ? '#39BDFF' : '#5c636e', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>{i + 1}</span>
             ))}
           </div>
         );
@@ -352,15 +490,66 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         // PREV: inside a rep, back to its start first; at its start, the rep before
         const prevK = cur < 0 ? -1 : (tNow > repSpans[cur].t0 + 150 ? cur : cur - 1);   // before the first rep there is none
         const go = (k) => { const r = repSpans[Math.max(0, Math.min(repSpans.length - 1, k))]; if (r) seekTo(idxAt(r.t0)); };
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-            <JoinedButtons maxWidth={320} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
+        const st = cur >= 0 ? repStats[cur] : null;
+        return (<>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 8, marginTop: 10 }}>
+            {/* three buttons + the rep label: on a phone the label drops a line so each button keeps ~110px
+                (sharing the line it got ~80, and PREV REP was one letter from an ellipsis at 360) */}
+            <JoinedButtons maxWidth={480} style={{ flex: '1 1 300px', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
               { label: `‹ ${tt('PREV REP')}`, onClick: () => go(prevK), disabled: prevK < 0 },
               { label: `${tt('NEXT REP')} ›`, onClick: () => go(cur + 1), disabled: cur >= repSpans.length - 1 },
+              ...(repSpans.length > 1 ? [{ label: tt('VS REP {n}').replace('{n}', lo), onClick: () => setCompare((v) => !v), tone: compare ? 'accent' : undefined, title: tt('An outline of the first rep of the set, over this rep') }] : []),
             ]} />
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#FFF', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{tt('REP')} {cur < 0 ? '–' : cur + 1} / {repSpans.length}</span>
           </div>
-        );
+          {onRange && cur >= 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+              <JoinedButtons maxWidth={420} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' }} items={[
+                { label: tt('FIRST REP'), onClick: () => onRange(cur + 1, Math.max(cur + 1, hi)) },
+                { label: tt('LAST REP'), onClick: () => onRange(Math.min(lo, cur + 1), cur + 1) },
+                { label: tt('ALL REPS'), onClick: () => onRange(1, null), disabled: lo === 1 && hi === repSpans.length },
+              ]} />
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#FFF', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{tt('IN THE SET: {n}').replace('{n}', Math.max(0, hi - lo + 1))}</span>
+            </div>
+          )}
+          {st && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 2, marginTop: 8, fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', color: '#FFF', fontVariantNumeric: 'tabular-nums' }}>
+              {st.depth != null && <span><span style={{ color: C.tm }}>{tt('DEPTH')}</span> <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{st.depth}°</span></span>}
+              {st.rom != null && <span><span style={{ color: C.tm }}>{tt('RANGE')}</span> <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{st.rom}°</span></span>}
+              <span><span style={{ color: C.tm }}>{tt('DURATION')}</span> {st.sec.toFixed(1)} {tt('SEC')}</span>
+            </div>
+          )}
+          {shapes && hi - lo >= 1 && (() => {
+            const inSetIdx = shapes.map((_, i) => i).filter((i) => inSet(i) && shapes[i].length > 2);
+            if (inSetIdx.length < 2) return null;
+            let yLo = Infinity, yHi = -Infinity;
+            inSetIdx.forEach((i) => shapes[i].forEach(([, a]) => { if (a < yLo) yLo = a; if (a > yHi) yHi = a; }));
+            if (!(yHi > yLo)) return null;
+            const X = (u) => (rtl ? 1000 - u * 1000 : u * 1000), Y = (a) => 56 - (52 * (a - yLo)) / (yHi - yLo);
+            const path = (sh) => sh.map(([u, a], k) => `${k ? 'L' : 'M'}${X(u).toFixed(1)} ${Y(a).toFixed(1)}`).join(' ');
+            const ref = lo - 1;
+            const tNow = poseFrames[idx] ? poseFrames[idx].t : 0;
+            // the current rep only while the frame is IN it - between reps and after the set there is none
+            // (it used to stick to the end of the last rep's curve, review 11.10)
+            const curR = cur >= 0 && inSet(cur) && tNow <= repSpans[cur].t1 && shapes[cur].length > 2 ? repSpans[cur] : null;
+            const uNow = curR ? Math.max(0, Math.min(1, (tNow - curR.t0) / Math.max(1, curR.t1 - curR.t0))) : null;
+            return (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 14, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, marginBottom: 4 }}>
+                  <span style={{ color: '#FFF', fontWeight: 700 }}>{tt('REP SHAPES')}</span>
+                  {shapes[ref] && shapes[ref].length > 2 && <span style={{ color: '#FFFFFF' }}>┅ {tt('REP {n}').replace('{n}', lo)}</span>}
+                  {curR && cur !== ref && <span style={{ color: '#39BDFF' }}>━ {tt('REP {n}').replace('{n}', cur + 1)}</span>}
+                </div>
+                <svg viewBox="0 0 1000 60" preserveAspectRatio="none" width="100%" height="60" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
+                  {inSetIdx.filter((i) => i !== ref && i !== cur).map((i) => <path key={i} d={path(shapes[i])} fill="none" stroke="rgba(57,189,255,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
+                  {shapes[ref] && shapes[ref].length > 2 && <path d={path(shapes[ref])} fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="5 4" vectorEffect="non-scaling-stroke" />}
+                  {curR && cur !== ref && <path d={path(shapes[cur])} fill="none" stroke="#39BDFF" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
+                  {curR && <line x1={X(uNow)} x2={X(uNow)} y1="0" y2="60" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}
+                </svg>
+              </div>
+            );
+          })()}
+        </>);
       })()}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 6 }}>
         <span>{tt('FRAME')} {idx + 1} / {poseFrames.length}</span>

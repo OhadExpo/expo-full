@@ -235,6 +235,13 @@ await runSweep({
   async measure(pg, meta) {
     const install = () => pg.evaluate(installProbe, TOL);
     await install();
+    // A HIDDEN PAGE RENDERS NO FRAMES, SO ITS ResizeObservers NEVER FIRE (11.10): the rail mask re-measures
+    // when the bar's content changes (the data lands, a count appears) through a ResizeObserver and a
+    // 1/s poll that runs only in a visible tab - in the gate's hidden page neither ran, and 10 'at rest'
+    // slices on 1010r were the mask still sized for the half-loaded bar (the same routes in a visible page:
+    // no item cut). The window 'resize' the mask also listens to stands in for them; then 2.5 s, since a
+    // hidden page clamps the mask's timers to ~1/s. AT_REST_KICK=0 measures without it.
+    if (process.env.AT_REST_KICK !== '0') { await pg.evaluate(() => window.dispatchEvent(new Event('resize'))); await wait(2500); await waitScrollIdle(pg); await install(); }
     const rest = await pg.evaluate(() => window.__railProbe.measure('at rest'));
     let elements = rest.items;
     const all = [...rest.failures];
@@ -247,7 +254,12 @@ await runSweep({
         await install();
         const ok = await pg.evaluate((key, t) => window.__railProbe.clickTab(key, t), r.key, text).catch(() => false);
         if (!ok) continue;
-        await wait(700);
+        // 2.5 s, not 0.7 (11.10): a gate page opened in a throwaway context is HIDDEN, and a hidden
+        // page clamps its timers to ~1 per second - the rail mask's 140 ms settle ran ~1000 ms after
+        // the bar moved (logged inside the hook), so at 0.7 s the gate measured the PREVIOUS state's
+        // plate and called the half tab beside it SLICED (36 on production; the same taps in a
+        // visible tab settle in ~300 ms). CLICK_WAIT=ms overrides.
+        await wait(Number(process.env.CLICK_WAIT || 2500));
         await waitScrollIdle(pg);
         await install();
         const m = await pg.evaluate((ph) => window.__railProbe.measure(ph), `after clicking "${text}"`);

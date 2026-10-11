@@ -77,6 +77,17 @@ async function freshPage(ctx, lang, w) {
       for (const [k, v] of Object.entries(P || {})) localStorage.setItem(k, v);
     } catch (e) { /* private mode */ }
   }, lang, THEME, (() => { try { return JSON.parse(process.env.PRESET || '{}'); } catch { return {}; } })());
+  // A GATE TAB IS HIDDEN, AND A HIDDEN TAB NEVER RUNS A CSS TRANSITION (11.10): the rail mask's
+  // clip eases in over 150 ms, and in the gate's tab its computed value sat at inset(0px) a full
+  // second after the style was set - rail-slices on production read a clipped half tab as SLICED
+  // (the same build had read 0 failures in a tab that happened to be visible). Every sweep measures
+  // the settled page, so transitions are off here; GATE_TRANSITIONS=1 keeps them.
+  if (!process.env.GATE_TRANSITIONS) {
+    await pg.evaluateOnNewDocument(() => {
+      const add = () => { const st = document.createElement('style'); st.setAttribute('data-gate', 'no-transitions'); st.textContent = '*, *::before, *::after { transition: none !important; }'; (document.head || document.documentElement).appendChild(st); };
+      if (document.head || document.documentElement) add(); else document.addEventListener('DOMContentLoaded', add, { once: true });
+    });
+  }
   return pg;
 }
 
