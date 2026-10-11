@@ -3431,7 +3431,7 @@ function Segmented({ text, style, keepDots = false }) {
     <span className={keepDots ? 'seg-run seg-run--keep' : 'seg-run'} style={style}>
       {parts.map((p2, i) => (i % 2
         ? <span key={i} className="seg-dot" aria-hidden>{keepDots ? ` ${p2} ` : p2}</span>
-        : <span key={i} style={{ whiteSpace: 'nowrap' }}>{p2}</span>))}
+        : <span key={i}>{p2}</span>))}   {/* a segment that fits moves whole to the next line (flex-wrap); only one longer than the line breaks at its own spaces - never on a separator, those are their own spans (11.10 #651: 'Hadar Yosef, Tel Aviv' painted 2px past 146px) */}
     </span>
   );
 }
