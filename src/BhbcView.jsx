@@ -5052,6 +5052,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
 
 function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen, onMedical, today }) {
   const tr = useT();
+  const he = useHe();
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
   const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
@@ -5160,7 +5161,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                           const since = ll && today ? dayDiff(today, ll) : null;
                           return (
                             <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: (since == null || since >= 7) && (avail || 1) < 4 && !(t.arrival && t.arrival > today) ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
-                              {tr('Last lift')} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
+                              {tr(he ? 'Last lift' : 'Lift') /* 'LAST LIFT · YESTERDAY' ran 5px past the 146px name column at 360 (11.10); the roster's phone line says 'Lift' too. Hebrew fits as it is */} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                             </span>
                           );
                         })()}
