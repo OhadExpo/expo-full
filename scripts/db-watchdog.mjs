@@ -78,7 +78,9 @@ export function startDbWatch(say, stateFile, deps = {}) {
       fails++; if (!downSince) downSince = now();
       say(`watchdog: database NOT answering ${fails}/${FAILS_TO_ACT} (${p.detail})`);
       const st = load();
-      if (!st.pendingNotice) { st.pendingNotice = { downSince, at: new Date(downSince).toTimeString().slice(0, 5) }; save(st); }
+      // the 'was down' notice is armed only once it was a real outage (3 straight minutes) - armed on the first miss,
+      // a one-minute stall still pushed him 'database was down' (11.10 20:35), against the 3-minute rule above
+      if (fails >= FAILS_TO_ACT && !st.pendingNotice) { st.pendingNotice = { downSince, at: new Date(downSince).toTimeString().slice(0, 5) }; save(st); }
       if (fails === FAILS_TO_ACT) {
         // tell him NOW (the push service lives on Vercel; it may not reach his
         // phone while the database is down - it is retried every minute below)

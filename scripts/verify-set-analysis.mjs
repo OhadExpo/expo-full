@@ -22,6 +22,9 @@ const good = { ok: true, counted: true, repCount: 6, countMethod: 'joint', romTe
 const s1 = summarize(good, { title: 'Back Squat', fileName: 'a.mp4', at: '2026-10-05T10:00:00Z' });
 ok(s1.reps === 6 && s1.tempoS === 2.1 && s1.romDeg === 95 && s1.quality === 'good', `good capture -> 6 reps, 2.1 s/rep, ROM 95 (got ${s1.reps}/${s1.tempoS}/${s1.romDeg}/${s1.quality})`);
 ok(s1.model === 'lite' && s1.title === 'Back Squat' && s1.fileName === 'a.mp4', 'carries model lite, the plan-row title and the clip file name');
+// the gate is calibrated on LITE frames (11.10: heavy 5 wrong, the coach's full-model upload 3 wrong on 23
+// hand-counted clips) - a read from any other model gets no number
+for (const m of ['full', 'heavy']) { const sm = summarize(good, { title: 'Back Squat', model: m }); ok(sm.reps === null && sm.reason === 'model' && !isUsable(sm), `a ${m}-model read -> no number (reason model; got ${sm.reps}/${sm.reason})`); }
 
 const poor = { ...good, captureQuality: { grade: 'poor', coverage: 0.4 } };
 const s2 = summarize(poor, {});

@@ -271,12 +271,15 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                       const conf = confidenceLabel(s.score);
                       const on = chosen && chosen.id === s.ex.id;
                       return (
+                        // a long reason tag ('ipsilateral↔contralateral', 174px, no shrink) squeezed the exercise's name to
+                        // 144px - one word a line at 1440 (#651). The tag is as wide as its longest half and breaks only at its arrow; the
+                        // name keeps all the free space (a 220px base or wrapping the row both made it worse - shot 11.10)
                         <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} className="em-sugg-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} />
                           <span className="em-sugg-title" style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
-                          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf], unicodeBidi: 'isolate' }} dir="ltr" /* '+plate' / '-horizontal' are diff marks: their sign stays on the left in Hebrew */>{tr(readLang(), s.why)}</span>
+                          <span style={{ flex: '0 0 auto', width: 'min-content', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf], unicodeBidi: 'isolate', textAlign: 'end' }} dir="ltr" /* '+plate' / '-horizontal' are diff marks: their sign stays on the left in Hebrew */>{String(tr(readLang(), s.why)).split('↔').map((part, k, all) => <React.Fragment key={k}>{k ? <wbr /> : null}<span style={{ whiteSpace: 'nowrap' }}>{part}{k < all.length - 1 ? '↔' : ''}</span></React.Fragment>)}</span>
                           <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
                             style={VIEW_TAG}>{tt('VIEW')}</span>

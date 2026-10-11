@@ -75,6 +75,7 @@ const suites = [
   'verify-fetch-budget.mjs',         // a request's budget grows with its body, FormData uploads included (5.10 #560)
   'verify-set-analysis.mjs',         // the athlete's own set read: a poor or scattered capture shows no number (5.10 #552)
   'verify-medical-out.mjs',          // medicalAvailOn - who is Out on a given DAY; was dead (not in the build) until 29.9 and then caught a real edge
+  'verify-db-watchdog.mjs',          // the database watchdog's push decisions (3 straight minutes, never a restart); not in the build until 11.10, when a 1-minute stall pushed 'was down'
 ];
 
 let anyFail = false;

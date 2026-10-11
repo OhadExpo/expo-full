@@ -1862,6 +1862,13 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .chip-grid[data-allspan] > :first-child { grid-column: 1 / -1; }
 }
 
+/* Intake's five form tabs share one row on a desktop; at tablet widths (768-900) that left ~120px for
+   'ASSESSMENT · ENGLISH' and cut it (11.10 tablet sweep). There they stack as they do on a phone -
+   letting them wrap was tried first and gave three-line Hebrew tabs at 768. */
+@media (max-width: 900px) {
+  .chip-grid.intake-form-tabs { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
 /* A trip leg on a phone: direction + when on one row, where on the row under
    it, starting under the date (27.9 #300). */
 @media (max-width: 480px) {
@@ -1895,7 +1902,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    one-word kind (full or short, same size); the venue lives in the week and
    list views. */
 @media (max-width: 1199px) {
-  .bhbc-cal-chip { flex-direction: column; align-items: flex-start !important; gap: 0 !important; }
+  .bhbc-cal-chip { flex-direction: column; align-items: flex-start !important; gap: 0 !important; flex-wrap: nowrap !important; /* the chip's inline wrap (desktop: the venue on its own line) made every column line as wide as its own text, so the kind's stretch below reached only its own word and 'Shootaround' ran 4px out again (11.10) */ }
   .bhbc-cal-where { display: none !important; }
   /* the kind takes the chip's width, so the full-or-short word can SEE the
      column (sized to its own text it always chose the full word: "Shootaround"

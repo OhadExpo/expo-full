@@ -46,6 +46,10 @@ import { signIn } from './lib/authed-page.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
 const OUT = process.env.OUT || 'audit-out/text-overflow';
+// A PAUSE BEFORE EVERY PAGE (11.10): the app pages all read the PRODUCTION database (a preview and the dev
+// server too). Two full sweeps back to back, unpaced, sent 3,105 requests in 7 minutes and the database
+// stopped taking connections (memory feedback_load_budget_one_heavy_thing). PACE_MS=0 for the old speed.
+const PACE_MS = process.env.PACE_MS != null ? +process.env.PACE_MS : 2500;
 fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -93,6 +97,13 @@ let measured = 0, nodes = 0;
 // Signed-in sets sign in ONCE per language x width x theme and walk every route
 // in that one context; the demo set keeps one fresh context per combination.
 const signedCtx = new Map();
+// the debug + break-test hooks, for BOTH paths (11.10: they sat in the signed path only, so on the demo
+// set DEBUG_PATH and PLANT silently did nothing)
+async function gateHooks(pg) {
+  if (process.env.DEBUG_PATH) await pg.evaluateOnNewDocument(() => { window.__gateDebugPath = true; });
+  // PLANT=1: a known spill inside an ABSOLUTE box, to prove the gate still sees one (break test, 11.10)
+  if (process.env.PLANT) await pg.evaluateOnNewDocument(() => { addEventListener('DOMContentLoaded', () => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:20px;top:160px;width:60px;z-index:99999;font:12px sans-serif;white-space:nowrap;background:#fff;color:#000'; d.innerHTML = '<span>PLANTED SPILL TEXT</span>'; document.body.appendChild(d); }); });
+}
 async function pageFor(lang, w, h, theme) {
   if (!SIGNED) { const ctx = await b.createBrowserContext(); return { ctx, pg: await ctx.newPage(), fresh: true }; }
   const key = `${lang}|${w}|${theme}`;
@@ -100,6 +111,7 @@ async function pageFor(lang, w, h, theme) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   await setWidth(pg, w, h, { tablet: TABLET });
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
+  await gateHooks(pg);
   await pg.evaluateOnNewDocument((L, T) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-shot-lang', L); localStorage.setItem('expo-theme', T); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } }, lang, theme);
   await signIn(pg, BASE);
   const v = { ctx, pg, fresh: false };
@@ -114,6 +126,7 @@ for (const lang of LANGS) {
         const { ctx, pg, fresh } = await pageFor(lang, w, h, theme);
         try {
           if (fresh) await setWidth(pg, w, h, { tablet: TABLET });   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
+          if (fresh) await gateHooks(pg);
           await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
           await pg.evaluateOnNewDocument((L, T) => {
             try {
@@ -126,6 +139,7 @@ for (const lang of LANGS) {
               localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
             } catch (e) { /* private mode */ }
           }, lang, theme);
+          if (PACE_MS > 0) await wait(PACE_MS);
           await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
           let prev = -1, settled = false;
@@ -162,8 +176,11 @@ for (const lang of LANGS) {
                 if (bb.bottom < 0 || bb.top > vh) continue;
                 counted++;
 
+                // the ink of THIS text node, not the element's whole contents (11.10): a hidden child - the
+                // sort arrow BHBC Lifts keeps at visibility:hidden beside a day number - was read as ink,
+                // and '10' "spilled" 4px for weeks. Child text is walked as its own node anyway.
                 const rng = document.createRange();
-                rng.selectNodeContents(el);
+                rng.selectNodeContents(n);
                 const rects = [...rng.getClientRects()].filter((x) => x.width > 0 && x.height > 0);
                 if (!rects.length) continue;
                 const inkL = Math.min(...rects.map((x) => x.left));
@@ -193,12 +210,14 @@ for (const lang of LANGS) {
                 for (let d = 0; p && d < 4 && !spilled; p = p.parentElement, d++) {
                   const pcs = getComputedStyle(p);
                   if (/auto|scroll/.test(pcs.overflowX) || /auto|scroll/.test(pcs.overflowY)) break;
-                  if (pcs.position === 'absolute' || pcs.position === 'fixed') break;
+                  // an absolute / fixed box is still the box its text must fit: measure it, THEN stop - above it the
+                  // layout is no longer the text's (11.10 review: a popover's or badge's overflow was never judged)
+                  const pinned = pcs.position === 'absolute' || pcs.position === 'fixed';
                   const pb = p.getBoundingClientRect();
-                  if (pb.width < 8) continue;
-                  if (inkR - pb.right > 2 || pb.left - inkL > 2) spilled = Math.round(Math.max(inkR - pb.right, pb.left - inkL));
+                  if (pb.width >= 8 && (inkR - pb.right > 2 || pb.left - inkL > 2)) spilled = Math.round(Math.max(inkR - pb.right, pb.left - inkL));
+                  if (pinned) break;
                 }
-                if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled }); continue; }
+                if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled, path: window.__gateDebugPath ? [el, el.parentElement, el.parentElement && el.parentElement.parentElement].filter(Boolean).map((e) => { const q = e.getBoundingClientRect(); return `${e.tagName.toLowerCase()}.${String(e.className || '').split(' ')[0]}[${Math.round(q.left)}..${Math.round(q.right)}]`; }).join(' < ') + ` ink ${Math.round(inkL)}..${Math.round(inkR)}` : undefined }); continue; }
 
                 // ONEWORD — 3+ lines and barely a word on each.
                 const lineTops = new Set(rects.map((x) => Math.round(x.top)));
@@ -221,7 +240,7 @@ for (const lang of LANGS) {
             };
             push('CUT', r.cut, (x) => `"${x.t}" ink cut by ${x.x}px across / ${x.y}px down`);
             push('ELLIPSIS', r.ell, (x) => `"${x.t}" truncated — ${x.lost}px of the word is not shown`);
-            push('SPILL', r.spill, (x) => `"${x.t}" paints ${x.by}px outside its container`);
+            push('SPILL', r.spill, (x) => `"${x.t}" paints ${x.by}px outside its container${x.path ? ` (${x.path})` : ''}`);
             push('ONEWORD', r.oneword, (x) => `"${x.t}" ${x.words} words over ${x.lines} lines in ${x.w}px`);
           }
           // A signed-in route that lands on the login screen was NOT measured.

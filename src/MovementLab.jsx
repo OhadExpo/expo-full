@@ -452,8 +452,11 @@ export default function MovementLab({
   const [result, setResult] = useState(null);
   // MOVEMENT LAB's 3D view had no first / last rep: the trim lives in AnalyzeResult (LIFT METRICS'
   // 3D tab), and this tool shows the replay on its own (11.10 #656). A trim per analysis, here.
-  const [labRange, setLabRange] = useState(null);
-  useEffect(() => { setLabRange(null); }, [result]);
+  // kept WITH the result it belongs to: a new read (another exercise picked) shows no stale trim, not even for
+  // one render (an effect reset it a render late - post-ship review 11.10)
+  const [labRangeFor, setLabRangeFor] = useState(null);
+  const labRange = labRangeFor && labRangeFor.forResult === result ? labRangeFor : null;
+  const setLabRange = (r) => setLabRangeFor(r ? { ...r, forResult: result } : null);
   const [jump, setJump] = useState(null);
   const [tab, setTab] = useState('velocity');
   const [progress, setProgress] = useState(0);
@@ -499,6 +502,8 @@ export default function MovementLab({
   // One place turns captured frames into a result, for every capture path.
   const finishFrames = useCallback((frames) => {
     framesRef.current = frames;
+    // a measurement harness can take the coach path's frames (audit-out/_coach-capture.mjs) - inert unless set
+    try { if (typeof window !== 'undefined' && typeof window.__expoCaptureHook === 'function') window.__expoCaptureHook(frames); } catch { /* the harness's problem */ }
     setDisplayFrames(stabilizeWorldFrames(frames, { plantFeet: false }));   // L/R continuity + steady limbs for the overlay too (5.10 #558); the 2D overlay keeps its image position
     if (mode === 'jump') {
       const j = computeJump(frames, jumpKind);

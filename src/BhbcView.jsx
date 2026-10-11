@@ -5052,6 +5052,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
 
 function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen, onMedical, today }) {
   const tr = useT();
+  const he = useHe();
   const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
   const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
   const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '132px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
@@ -5160,7 +5161,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                           const since = ll && today ? dayDiff(today, ll) : null;
                           return (
                             <span className="bhbc-mob-lift" title={ll ? monDay(ll) : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: (since == null || since >= 7) && (avail || 1) < 4 && !(t.arrival && t.arrival > today) ? '#DE4E3B' : C.tm, lineHeight: '14px' }}>
-                              {tr('Last lift')} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
+                              {tr(he ? 'Last lift' : 'Lift') /* 'LAST LIFT · YESTERDAY' ran 5px past the 146px name column at 360 (11.10); the roster's phone line says 'Lift' too. Hebrew fits as it is */} · {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                             </span>
                           );
                         })()}
@@ -6702,14 +6703,14 @@ function GameWarmupView({ data = {} }) {
               {sct.name && <div style={{ ...mini, marginBottom: 6, textAlign: 'start' }}>{gwSection(sct.name, lang)}</div>}
               <div style={{ border: `1px solid ${C.cardBd}` }}>
                 {(sct.drills || []).map((d0, di) => { const d = { ...d0, ...gwDrill(d0, lang) }; return (
-                  <div key={di} dir={d.he ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 92px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
+                  <div key={di} dir={lang === 'he' ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 92px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>{d.n != null ? d.n : '·'}</span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: d.he ? 'right' : 'left' }}>{d.name}</span>
-                      {d.cue && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.cue}</span>}
+                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: lang === 'he' ? 'right' : 'left' }}>{d.name}</span>
+                      {d.cue && <span dir={d.he || lang !== 'he' ? undefined : 'auto'} style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: lang === 'he' ? 'right' : 'left' }}>{d.cue}</span>}
                       {d.note && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.note}</span>}
                     </span>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: 'end', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{d.dose}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: lang === 'he' ? 'left' : 'right' /* the row's outer edge: 'end' would follow a sheet volume's own dir='auto' inward (review 11.10) */, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', unicodeBidi: 'isolate' }} dir={d.doseHe ? undefined : 'auto'}>{d.dose}</span>
                   </div>
                 ); })}
               </div>

@@ -54,6 +54,7 @@ export function gwDrill(d, lang) {
     cue: mine ? (lang === 'he' ? o.he.cue : o.en.cue) : d.cue,
     dose: dose ? (lang === 'he' ? dose.he : dose.en) : d.dose,
     he: mine && lang === 'he',
+    doseHe: !!dose && lang === 'he',   // a volume the map does not cover keeps its own direction (a sheet edit)
   };
 }
 export function gwSection(name, lang) {
