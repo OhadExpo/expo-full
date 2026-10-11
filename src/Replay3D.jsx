@@ -492,8 +492,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         const go = (k) => { const r = repSpans[Math.max(0, Math.min(repSpans.length - 1, k))]; if (r) seekTo(idxAt(r.t0)); };
         const st = cur >= 0 ? repStats[cur] : null;
         return (<>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-            <JoinedButtons maxWidth={480} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 8, marginTop: 10 }}>
+            {/* three buttons + the rep label: on a phone the label drops a line so each button keeps ~110px
+                (sharing the line it got ~80, and PREV REP was one letter from an ellipsis at 360) */}
+            <JoinedButtons maxWidth={480} style={{ flex: '1 1 300px', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
               { label: `‹ ${tt('PREV REP')}`, onClick: () => go(prevK), disabled: prevK < 0 },
               { label: `${tt('NEXT REP')} ›`, onClick: () => go(cur + 1), disabled: cur >= repSpans.length - 1 },
               ...(repSpans.length > 1 ? [{ label: tt('VS REP {n}').replace('{n}', lo), onClick: () => setCompare((v) => !v), tone: compare ? 'accent' : undefined, title: tt('An outline of the first rep of the set, over this rep') }] : []),
