@@ -2,7 +2,7 @@
 // Synthetic clip: a squat where MediaPipe's per-frame estimate stretches the shin,
 // flips the left/right labels for one frame and drifts the feet with the hips.
 // BREAK=1 runs the old display path (smoothing only) - must FAIL.
-import { stabilizeWorldFrames, smoothFramesForDisplay } from '../src/poseLab.js';
+import { stabilizeWorldFrames, smoothFramesForDisplay, smoothFramesZeroPhase } from '../src/poseLab.js';
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log('  ok   ' + m); } else { fail++; console.log('  FAIL ' + m); } };
@@ -48,6 +48,23 @@ ok(drift < 0.02, `the feet stay planted through the rep (max drift ${(drift * 10
 const foot = out.map((f) => Math.max(...[27, 28, 29, 30, 31, 32].map((k) => f.worldLandmarks[k].y)));
 ok(Math.max(...foot) - Math.min(...foot) < 0.02, `the lowest foot point stays on one floor height (spread ${((Math.max(...foot) - Math.min(...foot)) * 100).toFixed(1)} cm)`);
 ok(frames[30].worldLandmarks[23].x > 0, 'the input frames are not mutated');
+// NO BLEED FROM A HIDDEN STRETCH (11.10 review of #656): a still wrist at x 0.5, then 1 s where the
+// model cannot see it and guesses 0.9 +- noise. The seen frames on either side must stay where they
+// were - run straight through, the zero-lag smoother pulled them ~12% toward the guesses.
+// BLEED=1 smooths with the hidden guesses treated as seen - must FAIL.
+{
+  const M = 100, fr = [];
+  for (let i = 0; i < M; i++) {
+    const hid = i >= 40 && i < 65;
+    const v = hid ? 0.9 + 0.05 * Math.sin(i * 2.3) : 0.5;
+    const w = base().map((q) => ({ ...q })); w[15] = { x: v, y: 0.02, z: 0, visibility: hid ? 0.1 : 0.99 };
+    const l = w.map((q) => ({ x: 0.5 + q.x, y: 0.5 + q.y, z: 0, visibility: q.visibility }));
+    fr.push({ t: i * 40, landmarks: l, worldLandmarks: w });
+  }
+  const sm = smoothFramesZeroPhase(fr, process.env.BLEED ? { minVis: 0 } : undefined);
+  const edge = Math.max(...[36, 37, 38, 39, 65, 66, 67, 68].map((i) => Math.abs(sm[i].worldLandmarks[15].x - 0.5)));
+  ok(edge < 0.01, `a hidden stretch does not pull the seen frames beside it (worst ${(edge * 100).toFixed(1)} cm off; 40 cm jump)`);
+}
 ok(stabilizeWorldFrames([]).length === 0 && stabilizeWorldFrames(null).length === 0, 'empty in, empty out');
 
 console.log(`POSE STABLE: ${pass} passed, ${fail} failed`);

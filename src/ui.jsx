@@ -1545,7 +1545,8 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
             el.style.clipPath = v;
           } else if (el.style.clipPath) {
             el.style.clipPath = ZERO;
-            el.__rtmClipT = setTimeout(() => { if (el && el.__rtmClip === '') el.style.clipPath = ''; }, FADE_MS);
+            const node = el;   // this rail, even if the ref moves on
+            node.__rtmClipT = setTimeout(() => { if (node.__rtmClip === '') node.style.clipPath = ''; }, FADE_MS);
           }
         }
       }
@@ -1559,7 +1560,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         if (!width) {
           if (n.style.display === 'none') return;
           if (calm()) { n.style.display = 'none'; return; }
-          n.style.opacity = '0';
+          n.style.opacity = '0'; n.style.pointerEvents = 'none';   // fading out: taps go through (review 11.10)
           n.__rtmT = setTimeout(() => { if (n.__rtm === 'none') n.style.display = 'none'; }, FADE_MS);
           return;
         }
@@ -1567,7 +1568,8 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         n.style.width = `${width}px`;
         n.style.left = ''; n.style.right = '';
         n.style[side] = `${off}px`;
-        if (calm()) { n.style.opacity = ''; n.style.display = 'block'; return; }
+        n.style.pointerEvents = '';
+        if (calm()) { n.style.transition = ''; n.style.opacity = ''; n.style.display = 'block'; return; }
         if (n.style.display === 'none') { n.style.opacity = '0'; n.style.display = 'block'; void n.offsetWidth; }
         n.style.transition = `opacity ${FADE_MS}ms ease, width ${FADE_MS}ms ease`;   // a re-measure while shown slides, too
         n.style.opacity = '1';

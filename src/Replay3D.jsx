@@ -34,7 +34,7 @@ function angle3(a, b, c) {
 }
 
 // the analysed joint's 3D angle, L/R averaged where both are seen (the rep timeline's trace)
-const CHANNEL_JOINTS = { knee: [[23, 25, 27], [24, 26, 28]], hip: [[11, 23, 25], [12, 24, 26]], elbow: [[11, 13, 15], [12, 14, 16]], shoulder: [[13, 11, 23], [14, 12, 24]] };
+const CHANNEL_JOINTS = { knee: [[23, 25, 27], [24, 26, 28]], hip: [[11, 23, 25], [12, 24, 26]], elbow: [[11, 13, 15], [12, 14, 16]], sho: [[13, 11, 23], [14, 12, 24]] };   // keys = the analysis' kind ('sho', not 'shoulder' - review 11.10)
 
 // reps: [{ t0, tb, t1 }] in the frames' own ms (start / bottom / end of each counted rep, from the
 // analysis); channel: the analysed joint. With both, a rep timeline sits under the scrubber (#656).
@@ -354,7 +354,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         const go = (k) => { const r = repSpans[Math.max(0, Math.min(repSpans.length - 1, k))]; if (r) seekTo(idxAt(r.t0)); };
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-            <JoinedButtons maxWidth={320} style={{ flex: '1 1 auto' }} items={[
+            <JoinedButtons maxWidth={320} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
               { label: `‹ ${tt('PREV REP')}`, onClick: () => go(prevK), disabled: prevK < 0 },
               { label: `${tt('NEXT REP')} ›`, onClick: () => go(cur + 1), disabled: cur >= repSpans.length - 1 },
             ]} />

@@ -1498,20 +1498,23 @@ export function smoothFramesForDisplay(frames) {
 // 25 fps clips 18.7 -> 6.3 (full) and 52.8 -> 16.8 (lite). The clean 25 fps squat keeps its range
 // (101% of the median-filtered raw angle; the causal pipeline 103%, raw noise 117%). DISPLAY only -
 // counting keeps the raw stream: fed this, the noise gate let three WRONG counts through.
-export function smoothFramesZeroPhase(frames, { win = 0.15, k = 3, minVis = 0.5, maxGap = 0.4 } = {}) {
+export function smoothFramesZeroPhase(frames, { win = 0.15, k = 3, minVis = 0.5, maxGap = 0.4, keys = ['worldLandmarks', 'landmarks'] } = {}) {
   const n = frames ? frames.length : 0;
   if (n < 5) return smoothFramesForDisplay(frames || []);
   const span = (frames[n - 1].t - frames[0].t) / 1000;
   const fps = span > 0 ? (n - 1) / span : 30;
-  const h = Math.max(2, Math.round(win * fps)), gapMax = Math.max(1, Math.round(maxGap * fps));
+  // the spike window: +-0.15 s, at most 4 frames a side (a spike is a frame or two; at 60 fps a
+  // wider window only costs time - the review measured ~10x the old smoother before the cap)
+  const h = Math.min(4, Math.max(2, Math.round(win * fps))), gapMax = Math.max(1, Math.round(maxGap * fps));
   const out = frames.map((f) => ({ ...f,
     landmarks: f.landmarks ? f.landmarks.map((p) => (p ? { ...p } : p)) : null,
     worldLandmarks: f.worldLandmarks ? f.worldLandmarks.map((p, i) => (p ? { ...p, ...(p.visibility == null && f.landmarks && f.landmarks[i] && f.landmarks[i].visibility != null ? { visibility: f.landmarks[i].visibility } : null) } : p)) : null }));
   const vis = (i, j) => { const l = frames[i].landmarks; return l && l[j] && l[j].visibility != null ? l[j].visibility : 1; };
   const T = frames[n - 1].t / 1000;
-  const buf = new Float64Array(2 * h + 1), dev = new Float64Array(2 * h + 1);   // reused: no allocation per sample
+  const buf = new Float64Array(2 * h + 1), dev = new Float64Array(2 * h + 1);   // sorted in place: no allocation per sample
+  const ins = (arr, m, v) => { let q = m - 1; while (q >= 0 && arr[q] > v) { arr[q + 1] = arr[q]; q--; } arr[q + 1] = v; };
   const s = new Float64Array(n), c = new Float64Array(n), fw = new Float64Array(n);
-  for (const key of ['worldLandmarks', 'landmarks']) {
+  for (const key of keys) {
     const first = frames.find((f) => f[key]);
     const J = first ? first[key].length : 0;
     const params = key === 'worldLandmarks' ? ONE_EURO_WORLD : ONE_EURO_IMAGE;
@@ -1521,13 +1524,14 @@ export function smoothFramesZeroPhase(frames, { win = 0.15, k = 3, minVis = 0.5,
       for (let i = 0; i < n; i++) {
         if (!isReal(s[i])) continue;
         let m = 0;
-        for (let q = Math.max(0, i - h); q <= Math.min(n - 1, i + h); q++) if (isReal(s[q])) buf[m++] = s[q];
+        for (let q = Math.max(0, i - h); q <= Math.min(n - 1, i + h); q++) if (isReal(s[q])) { ins(buf, m, s[q]); m++; }
         if (m < 3) continue;
-        const w = buf.subarray(0, m).sort(), med = w[m >> 1];
-        for (let q = 0; q < m; q++) dev[q] = Math.abs(w[q] - med);
-        const mad = 1.4826 * dev.subarray(0, m).sort()[m >> 1];
+        const med = buf[m >> 1];
+        for (let q = 0; q < m; q++) ins(dev, q, Math.abs(buf[q] - med));
+        const mad = 1.4826 * dev[m >> 1];
         if (mad > 0 && Math.abs(s[i] - med) > k * mad) c[i] = med;
       }
+      // a short hidden stretch is bridged; a longer one stays out of the filter (below)
       for (let i = 0; i < n; i++) {
         if (isReal(c[i])) continue;
         let b = i; while (b < n && !isReal(c[b])) b++;
@@ -1535,11 +1539,26 @@ export function smoothFramesZeroPhase(frames, { win = 0.15, k = 3, minVis = 0.5,
         if (a >= 0 && b < n && b - a - 1 <= gapMax) for (let q = i; q < b; q++) c[q] = c[a] + (c[b] - c[a]) * (q - a) / (b - a);
         i = b;
       }
-      for (let i = 0; i < n; i++) if (!isReal(c[i])) { const p = frames[i][key] && frames[i][key][j]; c[i] = p && isReal(p[ax]) ? p[ax] : NaN; }
+      // an unbridged hidden stretch is smoothed ON ITS OWN: the filter restarts at each edge (the
+      // live smoother's rule: a joint starts from where it IS). Run straight through, the hidden
+      // guesses pulled the visible frames either side ~12% of the way toward them (review 11.10);
+      // left raw, they kept their jitter (median 42 -> 65 over the 23 captures). seg: 1 = seen
+      // (or bridged), 2 = a hidden guess, 0 = no point at all.
+      const seg = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        if (isReal(c[i])) { seg[i] = 1; continue; }
+        const p = frames[i][key] && frames[i][key][j];
+        if (p && isReal(p[ax])) { c[i] = p[ax]; seg[i] = 2; } else seg[i] = 0;
+      }
       const f1 = createOneEuro(params), f2 = createOneEuro(params);
-      for (let i = 0; i < n; i++) fw[i] = isReal(c[i]) ? f1.filter(c[i], frames[i].t / 1000) : c[i];
+      for (let i = 0; i < n; i++) {
+        if (i > 0 && seg[i] !== seg[i - 1]) f1.reset();
+        fw[i] = seg[i] ? f1.filter(c[i], frames[i].t / 1000) : NaN;
+      }
       for (let i = n - 1; i >= 0; i--) {
-        const v = isReal(fw[i]) ? f2.filter(fw[i], T - frames[i].t / 1000) : fw[i];
+        if (i < n - 1 && seg[i] !== seg[i + 1]) f2.reset();
+        if (!seg[i]) continue;
+        const v = f2.filter(fw[i], T - frames[i].t / 1000);
         if (out[i][key] && out[i][key][j] && isReal(v)) out[i][key][j][ax] = v;
       }
     }
@@ -1579,7 +1598,7 @@ const replayCache = new WeakMap();
 export function stableReplayFrames(frames) {
   if (!frames || !frames.length) return [];
   let v = replayCache.get(frames);
-  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks)); replayCache.set(frames, v); }
+  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks), { smoothKeys: ['worldLandmarks'] }); replayCache.set(frames, v); }   // the 3D views draw world points only
   return v;
 }
 // the feet step's per-frame body shift, smoothed in time (spike filter + forward-backward One-Euro)
@@ -1609,7 +1628,7 @@ function smoothOffsets(off, ts, { win, k, minCutoff, beta, dCutoff }) {
   }
   return out;
 }
-export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true } = {}) {
+export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true, smoothKeys = undefined } = {}) {
   if (!frames || !frames.length) return [];
   const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
   // world points carry no visibility in every build - borrow the image landmark's
@@ -1635,7 +1654,7 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   // is the LAST step and no filter can stretch a limb again afterwards
   // (analysis passes smooth:false - the display filter lags and shaves peak angles, 10.10 #639)
   if (smooth) {
-    const sm = smooth === 'causal' ? smoothFramesForDisplay(fixed) : smoothFramesZeroPhase(fixed);   // the whole clip is here: look ahead (#656)
+    const sm = smooth === 'causal' ? smoothFramesForDisplay(fixed) : smoothFramesZeroPhase(fixed, smoothKeys ? { keys: smoothKeys } : undefined);   // the whole clip is here: look ahead (#656)
     for (let i = 0; i < fixed.length; i++) fixed[i] = { ...fixed[i], landmarks: sm[i].landmarks, worldLandmarks: sm[i].worldLandmarks };
   }
   if (!bones) return fixed;
@@ -1692,10 +1711,11 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   // was most of the 265 depth jumps). Such a frame takes the shift interpolated from the frames
   // either side (held at the clip's ends).
   const known = off.map((o, i) => (o ? i : -1)).filter((i) => i >= 0);
+  let kp = 0;   // two pointers: the known frames before / after i
   const filled = off.map((o, i) => {
+    while (kp < known.length && known[kp] < i) kp++;
     if (o || !known.length) return o;
-    let a = -1, b = -1;
-    for (const k of known) { if (k < i) a = k; else { b = k; break; } }
+    const a = kp > 0 ? known[kp - 1] : -1, b = kp < known.length ? known[kp] : -1;
     if (a < 0) return { ...off[b] };
     if (b < 0) return { ...off[a] };
     const u = (ts[i] - ts[a]) / (ts[b] - ts[a] || 1);

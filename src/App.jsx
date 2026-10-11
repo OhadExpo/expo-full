@@ -786,7 +786,7 @@ function AuthedApp() {
   // scrolls, with no mask: verify-rail-slices found 21 tabs sliced at 768 / 1024 on production
   // 1010k ("משימות", "פורטל", "Incoming" - the active one among them). Same no-slice mask on the
   // nav; it acts only while the nav overflows (11.10, B1).
-  useRailTrailMask(coachNavRef, { items: 'button', maxWidth: 100000, clip: true, active: '[aria-current="page"], [aria-selected="true"]' });
+  useRailTrailMask(coachNavRef, { items: 'button', maxWidth: 1400, clip: true, active: '[aria-current="page"], [aria-selected="true"]' });
   // the section sub-tabs (Exercises: Library / Matching / Cleanup ...) scroll
   // the same way on a phone and get the same clean end
   const subtabRef = React.useRef(null);

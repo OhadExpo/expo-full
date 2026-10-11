@@ -2318,9 +2318,14 @@ function drawScene3D(canvas, scene) {
 // a stale tab after a deploy cannot fetch the old chunk: fall back to the canvas viewer, never a crash (5.10 review N5)
 const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable(p) { React.useEffect(() => { if (p.onUnsupported) p.onUnsupported(); }, [p]); return null; } })));
 // the counted reps as times on the frames' own clock, for the replay's rep timeline (#656)
-const repTimes = (result, frames) => (result && Array.isArray(result.reps) && Array.isArray(frames)
-  ? result.reps.map((r) => ({ t0: frames[r.startIdx]?.t, tb: frames[r.bottomIdx]?.t, t1: frames[r.endIdx]?.t })).filter((r) => Number.isFinite(r.tb))
-  : null);
+// - the same reps the number is made of: a trailing re-rack is subtracted from the count, so it is
+// not on the timeline either; a jump counted by FLIGHT has no joint reps to show (review 11.10)
+const repTimes = (result, frames) => {
+  if (!result || result.countMethod !== 'joint' || !Array.isArray(result.reps) || !Array.isArray(frames)) return null;
+  const per = (result.velocity && result.velocity.perRep) || [];
+  return result.reps.map((r, k) => (per[k] && per[k].rerack ? null : { t0: frames[r.startIdx]?.t, tb: frames[r.bottomIdx]?.t, t1: frames[r.endIdx]?.t }))
+    .filter((r) => r && Number.isFinite(r.tb));
+};
 function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null }) {
   const [fallback, setFallback] = useState(false);
   const reps = useMemo(() => repTimes(result, frames), [result, frames]);
