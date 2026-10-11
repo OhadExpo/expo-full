@@ -335,7 +335,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       if (!(u > 0) || !b) return a;
       for (let k = 0; k < a.length; k++) {
         const A = a[k], B = b[k];
-        if (!A || !B) { blend[k] = A || null; continue; }
+        if (!A || !B) { blend[k] = A ? { x: A.x, y: A.y, z: A.z, visibility: A.visibility } : null; continue; }   // a COPY: a stored reference got written into later - the captured frame itself (review 12.10)
         const o = blend[k] || (blend[k] = {});
         o.x = A.x + (B.x - A.x) * u; o.y = A.y + (B.y - A.y) * u; o.z = A.z + (B.z - A.z) * u;
         o.visibility = u < 0.5 ? A.visibility : B.visibility;

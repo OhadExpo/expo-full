@@ -300,8 +300,10 @@ function NameScopeProvider({ children }) {
   const [state, setState] = React.useState({ level: 0, dup: '' });
   const report = React.useCallback((id, lvl, name) => {
     if (lvl == null) rows.current.delete(id); else rows.current.set(id, { lvl, name });
-    let level = 0; const seen = new Map();
-    for (const r of rows.current.values()) { if (r.lvl > level) level = r.lvl; const sn = surnameOf(r.name).toLowerCase(); seen.set(sn, (seen.get(sn) || 0) + 1); }
+    // a surname is SHARED only between two different players - one player on two rows (two injury records) is not a clash
+    let level = 0; const seen = new Map(), names = new Set();
+    for (const r of rows.current.values()) { if (r.lvl > level) level = r.lvl; names.add(String(r.name || '').trim().toLowerCase()); }
+    for (const n of names) { const sn = surnameOf(n).toLowerCase(); seen.set(sn, (seen.get(sn) || 0) + 1); }
     const dup = [...seen].filter(([, n]) => n > 1).map(([k]) => k).sort().join('|');
     setState((p) => (p.level === level && p.dup === dup ? p : { level, dup }));
   }, []);
@@ -7507,10 +7509,14 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 <StatusWord status={status} />
                 {/* THE ROW'S ACTIONS ARE ONE JOINED PAIR (11.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - they
                     were two loose boxes 10px apart. One width in every row, so the pairs stand in one column. */}
-                <JoinedButtons className="bhbc-rh-actions" style={{ width: 176, flexShrink: 0 }} items={[
-                  onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
-                  canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
-                ]} />
+                {/* 240: two equal halves that hold the Hebrew 'רישום כוח אישי' (cut 8px at 176); nothing to do = the same
+                    width, empty, never an empty bordered bar (pre-deploy review 12.10) */}
+                {onLog || canMedical ? (
+                  <JoinedButtons className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} items={[
+                    onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
+                    canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
+                  ]} />
+                ) : <span className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} />}
               </div>
             );
           })}
