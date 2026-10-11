@@ -897,6 +897,8 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
   const repCount = result?.repCount || 0;
   const effTo = repTo == null ? repCount : Math.min(repTo, repCount);
   const effFrom = Math.min(Math.max(1, repFrom), effTo || 1);
+  // the header's count follows the trim too (11.10 #656): with the first / last rep marked - in
+  // ANALYZE REPS or from the 3D replay - it reads "6 REPS OF 10", the set over what was found
   const trimmed = effFrom > 1 || (repTo != null && effTo < repCount);
   const trimmedVelocity = useMemo(() => {
     if (!result?.ok || !trimmed || !frames) return result?.velocity ?? null;
@@ -964,7 +966,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         </div>
       )}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
-        {neutral ? tt('Neutral read') : (result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount))} · {result.fps}fps · {result.frameCount} {tt('frames')}
+        {neutral ? tt('Neutral read') : (() => { const n = trimmed ? Math.max(0, effTo - effFrom + 1) : result.repCount; return <>{n === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', n)}{trimmed && <> {tt('OF {n}').replace('{n}', result.repCount)}</>}</>; })()} · {result.fps}fps · {result.frameCount} {tt('frames')}
         {result.countMethod === 'flight' && (
           <span style={{ color: C.pu || '#8b7cf0' }} title={tt('Counted from the flight phase (jumps/hops) — the tracked joint barely moves on ballistic work, so the joint counter saw only {n}. Per-rep bar-speed/ROM below still track the joint.').replace('{n}', result.jointRepCount)}>
             {' · '}{tt('from flight')}
