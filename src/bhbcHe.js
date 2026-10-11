@@ -913,7 +913,7 @@ Object.assign(HE, {
   'Game warm-up': 'חימום למשחק',
   'drill': 'תרגיל',
   'drills': 'תרגילים',
-  'From the sheet · synced': 'מהגיליון · עודכן',
+  'From the sheet · last changed': 'מהגיליון · עודכן',
   'Not synced yet - the warm-up comes from the sheet within 20 minutes.': 'עוד לא עודכן - החימום יגיע מהגיליון תוך 20 דקות.',
   'Remove': 'הסרה',   // as the app's own (i18n.js)
   'Warm-ups': 'חימומים',

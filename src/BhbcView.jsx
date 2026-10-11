@@ -14,6 +14,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy, useTransition } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
+import { gwDrill, gwSection } from './gameWarmupText';
 import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
@@ -6676,11 +6677,15 @@ function fixturesToGames(fixtures) {
 // sheets ... the design needs to be ocd, amazing, and flawless"). His sheet, read-only, synced by the
 // daemon every 20 min. One card; a section is a label over one framed list; a drill is one row -
 // its number, the drill and its cue, the volume - in three fixed columns so every row lines up.
-// His words are English, so the list reads left to right in both languages; the labels translate.
+// The coach's version (#658, gameWarmupText.js) reads in the page's language: Hebrew cues right to left, drill names English.
 function GameWarmupView({ data = {} }) {
   const tr = useT();
+  // the coach's version of his sheet (#658, src/gameWarmupText.js): his lines, rewritten for the court
+  const lang = useHe() ? 'he' : 'en';
   const sections = Array.isArray(data.sections) ? data.sections : [];
   const total = sections.reduce((n, sct) => n + (sct.drills || []).length, 0);
+  // syncedAt is written when the sheet CHANGES (the daemon checks every 20 min and writes nothing when it
+  // did not) - so it is the last change, and the label says so (it read 'synced', a day and a half old)
   const synced = data.syncedAt ? new Date(data.syncedAt) : null;
   const pad2 = (n) => String(n).padStart(2, '0');
   const syncedTxt = synced && !Number.isNaN(synced.getTime()) ? `${pad2(synced.getHours())}:${pad2(synced.getMinutes())} · ${pad2(synced.getDate())}/${pad2(synced.getMonth() + 1)}` : null;
@@ -6694,23 +6699,23 @@ function GameWarmupView({ data = {} }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {sections.map((sct, si) => (
             <div key={si}>
-              {sct.name && <div dir="ltr" style={{ ...mini, marginBottom: 6, textAlign: 'left' }}>{sct.name}</div>}
-              <div dir="ltr" style={{ border: `1px solid ${C.cardBd}` }}>
-                {(sct.drills || []).map((d, di) => (
-                  <div key={di} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 76px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'left' }}>
+              {sct.name && <div style={{ ...mini, marginBottom: 6, textAlign: 'start' }}>{gwSection(sct.name, lang)}</div>}
+              <div style={{ border: `1px solid ${C.cardBd}` }}>
+                {(sct.drills || []).map((d0, di) => { const d = { ...d0, ...gwDrill(d0, lang) }; return (
+                  <div key={di} dir={d.he ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 92px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>{d.n != null ? d.n : '·'}</span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere' }}>{d.name}</span>
+                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: d.he ? 'right' : 'left' }}>{d.name}</span>
                       {d.cue && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.cue}</span>}
                       {d.note && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.note}</span>}
                     </span>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: 'right', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{d.dose}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: 'end', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{d.dose}</span>
                   </div>
-                ))}
+                ); })}
               </div>
             </div>
           ))}
-          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr('From the sheet · synced')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
+          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr('From the sheet · last changed')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
         </div>
       )}
     </Card>
