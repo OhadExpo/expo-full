@@ -82,6 +82,30 @@ ok(stabilizeWorldFrames([]).length === 0 && stabilizeWorldFrames(null).length ==
   const raw = stabilizeWorldFrames(tilted, { upright: false, plantFeet: false });
   ok(Math.abs(kneeAng(o1[15].worldLandmarks) - kneeAng(raw[15].worldLandmarks)) < 0.01, 'the rotation leaves joint angles as they were');
 }
+// A FOOT ON THE FLOOR STAYS PUT (11.10 #656): a standing clip whose ankle guess wanders +-3 cm a frame
+// is drawn with the foot still; a real step (0.6 m in 0.4 s) still travels; the measured points are
+// kept in worldMeasured so no angle reads the drawn foot. BREAK=3 skips the pin - must FAIL.
+{
+  const pin = process.env.BREAK === '3' ? false : true;
+  const wob = (i) => 0.03 * Math.sin(i * 2.1);
+  const mk = (stepAt) => Array.from({ length: 75 }, (_, i) => {
+    const w = base().map((q) => ({ ...q }));
+    const step = stepAt != null ? Math.max(0, Math.min(1, (i - stepAt) / 12)) * 0.6 : 0;   // 12 frames at 30 fps = 0.4 s
+    for (const k of [27, 29, 31]) { w[k].x += wob(i); w[k].z += wob(i + 1) + step; }
+    w[25].z += step / 2;
+    return { t: i * 33.3, landmarks: w.map((q) => ({ x: 0.5 + q.x, y: 0.5 + q.y, z: 0, visibility: 0.99 })), worldLandmarks: w };
+  });
+  const spread = (fr, k) => { const xs = fr.map((f) => f.worldLandmarks[k].x), zs = fr.map((f) => f.worldLandmarks[k].z); return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)); };
+  const still = stabilizeWorldFrames(mk(null), { plantFeet: true, smooth: false, pinFeet: pin });
+  const s27 = spread(still.slice(5, 70), 27);
+  ok(s27 < 0.01, `a planted foot whose guess wanders +-3 cm is drawn still (left ankle travel ${(s27 * 100).toFixed(1)} cm)`);
+  const stepped = stabilizeWorldFrames(mk(30), { plantFeet: false, smooth: false, pinFeet: pin });
+  const z0 = stepped[10].worldLandmarks[27].z, z1 = stepped[65].worldLandmarks[27].z;
+  ok(Math.abs(z1 - z0) > 0.5, `a real step still travels (${((z1 - z0) * 100).toFixed(0)} cm of 60)`);
+  const raw = stabilizeWorldFrames(mk(null), { plantFeet: true, smooth: false, pinFeet: false });
+  const kept = still.every((f, i) => !f.worldMeasured || Math.abs(f.worldMeasured[25].z - raw[i].worldLandmarks[25].z) < 1e-9);
+  ok(kept && still.some((f) => f.worldMeasured), 'the measured points are kept beside the drawn ones (worldMeasured)');
+}
 
 console.log(`POSE STABLE: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

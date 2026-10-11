@@ -1598,7 +1598,7 @@ const replayCache = new WeakMap();
 export function stableReplayFrames(frames) {
   if (!frames || !frames.length) return [];
   let v = replayCache.get(frames);
-  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks), { smoothKeys: ['worldLandmarks'], upright: true }); replayCache.set(frames, v); }   // the 3D views draw world points only
+  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks), { smoothKeys: ['worldLandmarks'], upright: true, pinFeet: true }); replayCache.set(frames, v); }   // the 3D views draw world points only
   return v;
 }
 // the feet step's per-frame body shift, smoothed in time (spike filter + forward-backward One-Euro)
@@ -1673,7 +1673,7 @@ const rotateWorld = (w, R) => w.map((p) => (p && isReal(p.x) && isReal(p.y) ? { 
   x: R[0][0] * p.x + R[0][1] * p.y + R[0][2] * (p.z ?? 0),
   y: R[1][0] * p.x + R[1][1] * p.y + R[1][2] * (p.z ?? 0),
   z: R[2][0] * p.x + R[2][1] * p.y + R[2][2] * (p.z ?? 0) } : p));
-export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true, smoothKeys = undefined, upright = false } = {}) {
+export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true, smoothKeys = undefined, upright = false, pinFeet = false } = {}) {
   if (!frames || !frames.length) return [];
   const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
   // world points carry no visibility in every build - borrow the image landmark's
@@ -1771,10 +1771,103 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
     return { x: off[a].x + (off[b].x - off[a].x) * u, y: off[a].y + (off[b].y - off[a].y) * u, z: off[a].z + (off[b].z - off[a].z) * u };
   });
   const sm2 = smoothOffsets(filled, ts, FEET_OFFSET_SMOOTH);
-  return rebuilt.map((f, i) => {
+  const planted = rebuilt.map((f, i) => {
     const w = f.worldLandmarks; const d = sm2[i];
     if (!w || !d) return f;
     return { ...f, worldLandmarks: w.map((p) => (p ? { ...p, x: p.x + d.x, y: p.y + d.y, z: (p.z ?? 0) + d.z } : p)) };
+  });
+  return pinFeet ? pinPlantedFeet(planted, confident) : planted;
+}
+
+// A FOOT ON THE FLOOR IS DRAWN STAYING PUT (11.10 #656). After the feet step the ankles still
+// skated ~31 cm/s (median, 32 real captures) - a squat's feet do not move, so that is the model's
+// frame-to-frame guessing. Per ankle, CONTACT is read from its own speed: wherever the ankle's
+// horizontal speed (over +-0.15 s) stays under PIN_SPEED for PIN_MIN_S or longer, the foot is on the
+// floor and is held at the median x/z of that stretch (height is kept - a heel rise or a jump still
+// leaves the floor). The correction is carried smoothly across the frames between stretches (a step),
+// and the knee is re-solved by two-bone IK at the measured thigh and shin lengths, bending the way it
+// was measured. A walking lunge's stepping foot moves between two holds; a squat's foot is one hold.
+// (A first version pinned a foot to ONE spot when it stayed within 12 cm: walking lunges read the same
+// spread as a squat's noise after the feet step - that would have glued the stepping foot.)
+// Every frame keeps the measured world points in worldMeasured: angles are read from those, never
+// from the drawn feet. Replay only.
+const PIN_SPEED = 0.8, PIN_MIN_S = 0.3, PIN_WIN_S = 0.25;
+function pinPlantedFeet(frames, confident) {
+  const legs = [[23, 25, 27, [29, 31]], [24, 26, 28, [30, 32]]];
+  const n = frames.length;
+  const med = (a) => { const s2 = a.slice().sort((x, y) => x - y); return s2.length ? s2[s2.length >> 1] : NaN; };
+  const d3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
+  const ts = frames.map((f) => f.t / 1000);
+  const plans = legs.map(([h, k, a]) => {
+    const P = frames.map((f) => { const w = f.worldLandmarks; return w && confident(w[a]) ? { x: w[a].x, z: w[a].z ?? 0 } : null; });
+    const seenLegs = frames.map((f) => f.worldLandmarks).filter((w) => w && confident(w[a]) && confident(w[k]) && confident(w[h]));
+    if (seenLegs.length < 10) return null;
+    // speed over a +-PIN_WIN_S window (the endpoints seen nearest the window's edges)
+    const contact = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      if (!P[i]) continue;
+      let lo = i, hi = i;
+      while (lo > 0 && ts[i] - ts[lo - 1] <= PIN_WIN_S) lo--;
+      while (hi < n - 1 && ts[hi + 1] - ts[i] <= PIN_WIN_S) hi++;
+      while (lo < i && !P[lo]) lo++;
+      while (hi > i && !P[hi]) hi--;
+      const dt = ts[hi] - ts[lo];
+      contact[i] = dt > 0 && Math.hypot(P[hi].x - P[lo].x, P[hi].z - P[lo].z) / dt < PIN_SPEED ? 1 : 0;
+    }
+    // stretches of contact >= PIN_MIN_S, each held at its own median
+    const target = new Array(n).fill(null);
+    for (let i = 0; i < n; i++) {
+      if (!contact[i]) continue;
+      let j = i; while (j + 1 < n && contact[j + 1]) j++;
+      if (ts[j] - ts[i] >= PIN_MIN_S) {
+        const seg = P.slice(i, j + 1).filter(Boolean);
+        const tx = med(seg.map((q) => q.x)), tz = med(seg.map((q) => q.z));
+        for (let q = i; q <= j; q++) if (P[q]) target[q] = { x: tx, z: tz };
+      }
+      i = j;
+    }
+    // the correction (target - measured), carried linearly across the frames between holds; none
+    // before the first hold or after the last
+    const off = target.map((t2, i) => (t2 && P[i] ? { x: t2.x - P[i].x, z: t2.z - P[i].z } : null));
+    const known = off.map((o, i) => (o ? i : -1)).filter((i) => i >= 0);
+    if (!known.length) return null;
+    for (let q = 0; q + 1 < known.length; q++) {
+      const i0 = known[q], i1 = known[q + 1];
+      for (let i = i0 + 1; i < i1; i++) { const u = (ts[i] - ts[i0]) / Math.max(1e-6, ts[i1] - ts[i0]); off[i] = { x: off[i0].x + (off[i1].x - off[i0].x) * u, z: off[i0].z + (off[i1].z - off[i0].z) * u }; }
+    }
+    return { off };
+  });
+  if (!plans.some(Boolean)) return frames;
+  return frames.map((f, i) => {
+    const w = f.worldLandmarks; if (!w) return f;
+    const out = w.slice();
+    let moved = false;
+    legs.forEach(([h, k, a, foot], li) => {
+      const P = plans[li], o = P && P.off[i], H = w[h], K = w[k], A = w[a];
+      if (!o || !H || !K || !A || !isReal(H.x) || !isReal(K.x) || !isReal(A.x)) return;
+      const T = { x: A.x + o.x, y: A.y, z: (A.z ?? 0) + o.z };
+      // this frame's own thigh / shin (the bone rebuild already made them one length per clip): exact, so
+      // pinning never changes a bone (medians from the seen frames read 1.4% off on one clip)
+      const L1 = d3(H, K), L2 = d3(K, A);
+      const dx = T.x - H.x, dy = T.y - H.y, dz = T.z - (H.z ?? 0);
+      let d = Math.hypot(dx, dy, dz); if (!(d > 1e-6)) return;
+      const ux = dx / d, uy = dy / d, uz = dz / d;
+      d = Math.min(d, (L1 + L2) * 0.999);
+      // the knee: along hip->ankle by ka, out by hh in the direction it was measured to bend
+      const ka = (L1 * L1 - L2 * L2 + d * d) / (2 * d);
+      if (!(L1 * L1 - ka * ka >= 0)) return;   // the target closer than the leg can fold: keep this frame's leg as measured
+      const hh = Math.sqrt(L1 * L1 - ka * ka);
+      let vx = K.x - H.x, vy = K.y - H.y, vz = (K.z ?? 0) - (H.z ?? 0);
+      const along = vx * ux + vy * uy + vz * uz; vx -= along * ux; vy -= along * uy; vz -= along * uz;
+      const vn = Math.hypot(vx, vy, vz); if (!(vn > 1e-6)) return;   // a dead-straight leg: keep it as measured
+      vx /= vn; vy /= vn; vz /= vn;
+      out[k] = { ...K, x: H.x + ka * ux + hh * vx, y: H.y + ka * uy + hh * vy, z: (H.z ?? 0) + ka * uz + hh * vz };
+      const nA = { ...A, x: H.x + d * ux, y: H.y + d * uy, z: (H.z ?? 0) + d * uz };
+      const sx = nA.x - A.x, sy = nA.y - A.y, sz = nA.z - (A.z ?? 0);
+      out[a] = nA; moved = true;
+      for (const q of foot) if (w[q] && isReal(w[q].x)) out[q] = { ...w[q], x: w[q].x + sx, y: w[q].y + sy, z: (w[q].z ?? 0) + sz };
+    });
+    return moved ? { ...f, worldLandmarks: out, worldMeasured: w } : f;
   });
 }
 

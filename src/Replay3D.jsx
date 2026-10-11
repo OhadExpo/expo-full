@@ -50,6 +50,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const [hostW, setHostW] = useState(0);   // the canvas width, for the rep-number rows (measured, not 360 on the first paint)
   const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // 5.10 #558; one shared computation per clip (#656)
   const pts = useMemo(() => poseFrames.map((f) => frameToPoints3D(f.worldLandmarks)), [poseFrames]);
+  // the MEASURED points (before the planted feet are pinned): every angle on screen reads these, the
+  // body is drawn from pts - a pinned foot must never change a number (poseLab pinPlantedFeet)
+  const mpts = useMemo(() => poseFrames.map((f) => frameToPoints3D(f.worldMeasured || f.worldLandmarks)), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(0.5);
@@ -77,7 +80,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // the sides are chosen ONCE per clip (as channelSignal does): averaging whichever side was seen
     // at each frame jumped the trace by the L/R difference every time a side flickered. A chosen
     // side missing for a frame takes the other side plus their usual offset; then a 5-median.
-    const side = J.map(([i, j, k]) => pts.map((p) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)));
+    const side = J.map(([i, j, k]) => mpts.map((p) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)));
     const share = side.map((sv) => sv.filter((x) => x != null).length / Math.max(1, sv.length));
     const use = share.map((x) => x >= 0.6).some(Boolean) ? share.map((x) => x >= 0.6) : share.map((x) => x === Math.max(...share));
     const both = [], A = side[0], B = side[1];
@@ -96,7 +99,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // the clamp is for DRAWING only: the rep stats read `raw` - clamped, a long clip's bottom 2% is the
     // rep bottoms themselves and every deep rep read the same range (review 11.10)
     return { raw: v, v: v.map((x) => (x == null ? null : Math.max(q(0.02), Math.min(q(0.98), x)))), lo: q(0.02), hi: Math.max(q(0.98), q(0.02) + 1) };
-  }, [pts, channel, repSpans.length]);
+  }, [mpts, channel, repSpans.length]);
   // per rep: the analysed joint's range and the rep's time. (A "shorter than the set" mark was tried
   // and measured against his hand-noted reps on 23 clips: it flagged 19% of the false reps and 15% of
   // the true ones - no help telling them apart, so it is not shown.)
@@ -402,7 +405,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   if (!supported) return null;
   if (!pts.length) return <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, padding: 12 }}>{tt('No 3D pose captured in that clip.')}</div>;
 
-  const p = pts[idx] || [];
+  const p = mpts[idx] || [];
   // a joint the camera did not see: the angle is the faded body's - shown grey with ~ (a guess)
   const a = (i, j, k) => { const v = p[i] && p[j] && p[k] ? angle3(p[i], p[j], p[k]) : null; return v == null ? null : { v, seen: lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) }; };
   const angles = [
