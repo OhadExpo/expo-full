@@ -100,10 +100,13 @@ export default function SwUpdateBanner() {
       if (window.location.pathname === last) return;
       last = window.location.pathname;
       window.__expoLastNav = Date.now();
-      try { regRef.current && regRef.current.update && regRef.current.update(); } catch { /* offline */ }
+      check();
     }, 800);
-    // #626: a check every 10 minutes while visible, and one on coming back to the foreground
-    const check = () => { try { const p = regRef.current && regRef.current.update && regRef.current.update(); if (p && p.catch) p.catch(() => {}); } catch { /* offline */ } };
+    // #626: a check every 10 minutes while visible, and one on coming back to the foreground.
+    // update() REJECTS (offline, or a registration that is gone - InvalidStateError): the promise is
+    // caught here; the URL-change path above used to call update() bare and every navigation on such a
+    // page threw an unhandled rejection (seen on production 1010u, 11.10)
+    function check() { try { const p = regRef.current && regRef.current.update && regRef.current.update(); if (p && p.catch) p.catch(() => {}); } catch { /* offline */ } }
     const ivCheck = setInterval(() => { if (document.visibilityState === 'visible') check(); }, 10 * 60 * 1000);
     const onResume = () => { if (document.visibilityState === 'visible') { window.__expoResumeAt = Date.now(); check(); } };
     const onInput = () => { window.__expoLastInput = Date.now(); };
