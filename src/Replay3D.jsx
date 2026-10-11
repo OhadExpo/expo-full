@@ -47,6 +47,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const hostRef = useRef(null), wrapRef = useRef(null);
   const stateRef = useRef(null);
   const [supported] = useState(() => webglOk());
+  const [hostW, setHostW] = useState(0);   // the canvas width, for the rep-number rows (measured, not 360 on the first paint)
   const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // 5.10 #558; one shared computation per clip (#656)
   const pts = useMemo(() => poseFrames.map((f) => frameToPoints3D(f.worldLandmarks)), [poseFrames]);
   const [idx, setIdx] = useState(0);
@@ -87,7 +88,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const ok = v.filter((x) => x != null); if (ok.length < 2) return null;
     // scaled to the 2nd-98th percentile: one wild frame used to flatten every rep into the top band
     const so = ok.slice().sort((x, y) => x - y), q = (f) => so[Math.min(so.length - 1, Math.floor(f * so.length))];
-    return { v: v.map((x) => (x == null ? null : Math.max(q(0.02), Math.min(q(0.98), x)))), lo: q(0.02), hi: Math.max(q(0.98), q(0.02) + 1) };
+    // the clamp is for DRAWING only: the rep stats read `raw` - clamped, a long clip's bottom 2% is the
+    // rep bottoms themselves and every deep rep read the same range (review 11.10)
+    return { raw: v, v: v.map((x) => (x == null ? null : Math.max(q(0.02), Math.min(q(0.98), x)))), lo: q(0.02), hi: Math.max(q(0.98), q(0.02) + 1) };
   }, [pts, channel, repSpans.length]);
   // per rep: the analysed joint's range and the rep's time. (A "shorter than the set" mark was tried
   // and measured against his hand-noted reps on 23 clips: it flagged 19% of the false reps and 15% of
@@ -96,7 +99,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     if (!trace) return [];
     const st = repSpans.map((r) => {
       let lo = Infinity, hi = -Infinity;
-      for (let i = idxAt(r.t0); i < poseFrames.length && poseFrames[i].t <= r.t1; i++) { const a = trace.v[i]; if (a != null) { if (a < lo) lo = a; if (a > hi) hi = a; } }
+      for (let i = idxAt(r.t0); i < poseFrames.length && poseFrames[i].t <= r.t1; i++) { const a = trace.raw[i]; if (a != null) { if (a < lo) lo = a; if (a > hi) hi = a; } }
       return { rom: hi > lo ? Math.round(hi - lo) : null, sec: Math.max(0, (r.t1 - r.t0) / 1000) };
     });
     return st;
@@ -311,7 +314,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     };
     size();
     fit(new THREE.Vector3(2.1, 0.5, 2.6));
-    const ro = new ResizeObserver(size); ro.observe(host);
+    const ro = new ResizeObserver(() => { size(); setHostW(host.clientWidth || 0); }); ro.observe(host); setHostW(host.clientWidth || 0);
     let raf = 0, alive = true;
     const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
     loop();
@@ -320,6 +323,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     return () => {
       alive = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
       scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose()); });
+      // the solid / faded pairs: a mesh holds only one of them at a time
+      [skin, trunkMat, LEFT_MAT, RIGHT_MAT, skinG, trunkG, LEFT_G, RIGHT_G].forEach((m) => m.dispose());
       renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       stateRef.current = null;
     };
@@ -410,7 +415,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         const tNow = poseFrames[idx] ? poseFrames[idx].t : T0;
         // rep numbers never overlap: one closer than 16px to the last on its line drops a line (two
         // reps 0.3 s apart at the end of a clip painted "8" over "9")
-        const wPx = (hostRef.current && hostRef.current.clientWidth) || 360, ends = [];
+        const wPx = hostW || 360, ends = [];
         const rowOf = repSpans.map((r) => { const px = (X(r.tb) / 1000) * wPx; let k = 0; while (ends[k] != null && Math.abs(px - ends[k]) < 16) k++; ends[k] = px; return k; });
         const rows = rowOf.length ? Math.max(...rowOf) + 1 : 1;
         return (

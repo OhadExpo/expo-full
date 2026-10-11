@@ -1656,7 +1656,7 @@ export function uprightRotation(frames, minVis = VIS_MIN) {
   const L = Math.hypot(sx, sy, sz); const a = [sx / L, sy / L, sz / L];
   // MediaPipe y points DOWN: up is (0, -1, 0)
   const tilt = (Math.acos(Math.max(-1, Math.min(1, -a[1]))) * 180) / Math.PI;
-  if (tilt > UPRIGHT_MAX_DEG || tilt < 1) return null;   // under 1°: nothing to do
+  if (!(tilt >= 1 && tilt <= UPRIGHT_MAX_DEG)) return null;   // under 1°: nothing to do; NaN (a zero axis): never rotate
   // Rodrigues: the rotation taking a onto b = (0, -1, 0)
   const b = [0, -1, 0];
   const k = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];

@@ -79,9 +79,10 @@ const STRINGS = {
   'feat.video.tag':      { en: 'VIDEO ENGINE',         he: 'מנוע וידאו' },
   'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
   // 5.10 parity: + Movement Lab's 3D replay (Replay3D: front / side / top / behind, slow motion, hand + hip trails)
+  // 11.10 parity (#656): + the rep timeline, PREV / NEXT REP and the first / last rep marks
   'feat.video.body': {
-    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side. Movement Lab rebuilds the lift as a 3D skeleton you can rotate — front, side, top, behind, slow motion, hand and hip paths.',
-    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני. במעבדת התנועה ההרמה נבנית כשלד בתלת-ממד שאפשר לסובב — מלפנים, מהצד, מלמעלה, מאחור, בהילוך איטי, עם המסלול של הידיים והאגן.',
+    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side. Movement Lab rebuilds the lift as a 3D skeleton you can rotate — front, side, top, behind, slow motion, hand and hip paths — with every rep on a timeline: jump rep to rep and mark where the set starts and ends.',
+    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני. במעבדת התנועה ההרמה נבנית כשלד בתלת-ממד שאפשר לסובב — מלפנים, מהצד, מלמעלה, מאחור, בהילוך איטי, עם המסלול של הידיים והאגן. כל חזרה מופיעה על ציר זמן: קופצים מחזרה לחזרה ומסמנים איפה הסט מתחיל ואיפה הוא נגמר.',
   },
   'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
   'feat.prog.title':     { en: 'Block-based plans', he: 'בניית תוכניות בבלוקים' },
