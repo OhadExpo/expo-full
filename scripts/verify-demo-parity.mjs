@@ -80,7 +80,7 @@ const norm = (s) => String(s || '')
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(8)} ${o.tab.padEnd(12)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });   // CDP= lets a gate chain keep off his visible Chrome (11.10)
 
 const shapeOf = async (pg, url) => {
   await pg.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 60000 });
