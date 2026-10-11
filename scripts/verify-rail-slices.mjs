@@ -235,6 +235,13 @@ await runSweep({
   async measure(pg, meta) {
     const install = () => pg.evaluate(installProbe, TOL);
     await install();
+    // A HIDDEN PAGE RENDERS NO FRAMES, SO ITS ResizeObservers NEVER FIRE (11.10): the rail mask re-measures
+    // when the bar's content changes (the data lands, a count appears) through a ResizeObserver and a
+    // 1/s poll that runs only in a visible tab - in the gate's hidden page neither ran, and 10 'at rest'
+    // slices on 1010r were the mask still sized for the half-loaded bar (the same routes in a visible page:
+    // no item cut). The window 'resize' the mask also listens to stands in for them; then 2.5 s, since a
+    // hidden page clamps the mask's timers to ~1/s. AT_REST_KICK=0 measures without it.
+    if (process.env.AT_REST_KICK !== '0') { await pg.evaluate(() => window.dispatchEvent(new Event('resize'))); await wait(2500); await waitScrollIdle(pg); await install(); }
     const rest = await pg.evaluate(() => window.__railProbe.measure('at rest'));
     let elements = rest.items;
     const all = [...rest.failures];
