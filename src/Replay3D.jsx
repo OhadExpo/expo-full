@@ -58,6 +58,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // the trails show THIS rep (or the last 2 s outside one): drawn over the whole clip they piled
   // the set-up and every rep into one tangle at the shoulder (11.10 #656, "output can be better")
   const trailFromRef = useRef(() => 0);
+  // VS THE FIRST REP (11.10 #656): an outline of the set's first rep, at the same point of ITS rep as
+  // the frame on screen is of the current one, standing where he stands - so the drift of depth, back
+  // angle or bar path across the set is seen, not reconstructed from numbers. -1 = nothing to draw.
+  const [compare, setCompare] = useState(false);
+  const compareRef = useRef(() => -1);
 
   // THE REPS ON THE TIMELINE (11.10 #656, Ohad: "output can be better"): the 3D replay knew
   // nothing of the set - a coach scrubbed frame by frame to find rep 4. Now the analysed joint's
@@ -106,6 +111,15 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     });
     return st;
   }, [trace, repSpans, poseFrames, channel]);   // eslint-disable-line react-hooks/exhaustive-deps
+  compareRef.current = (i) => {
+    if (!compare || !poseFrames[i]) return -1;
+    const t = poseFrames[i].t;
+    const k = repSpans.findIndex((q) => t >= q.t0 && t <= q.t1);
+    const ref = repSpans[lo - 1];
+    if (k < 0 || !ref || k === lo - 1) return -1;
+    const cur = repSpans[k], u = (t - cur.t0) / Math.max(1, cur.t1 - cur.t0);
+    return idxAt(ref.t0 + u * (ref.t1 - ref.t0));
+  };
   trailFromRef.current = (i) => {
     const t = poseFrames[i] ? poseFrames[i].t : 0;
     const r = repSpans.find((q) => t >= q.t0 && t <= q.t1 + 250);
@@ -227,6 +241,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     };
     const handTrail = mkTrail((p) => mid(p, 15, 16), ACCENT);
     const hipTrail = mkTrail((p) => mid(p, 23, 24), HIP_TRAIL);
+    // the first rep's outline: thin bones, no volume, never casts a shadow
+    const REF_BONES = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32], [29, 31], [30, 32], [27, 29], [28, 30]];
+    const refGeo = new THREE.BufferGeometry(); refGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(REF_BONES.length * 6), 3));
+    const refLines = new THREE.LineSegments(refGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, depthTest: false }));
+    refLines.renderOrder = 2; refLines.visible = false; scene.add(refLines);
 
     const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3(), q = new THREE.Quaternion();
     const V = (P) => new THREE.Vector3(P.x, P.y, P.z);
@@ -306,6 +325,20 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         m.position.copy(Hh).add(T).multiplyScalar(0.5).addScaledVector(up, 0.022);
         m.quaternion.setFromUnitVectors(up, d); m.scale.set(0.042, len * 0.58, 0.042);
       });
+      // the first rep's outline, moved so its hips sit on his hips at this frame
+      const ri = compareRef.current(i), rp = ri >= 0 ? pts[ri] : null;
+      const hipOf = (q) => (q && q[23] && q[24] ? { x: (q[23].x + q[24].x) / 2, y: (q[23].y + q[24].y) / 2, z: (q[23].z + q[24].z) / 2 } : null);
+      const hc = hipOf(p), hr = hipOf(rp);
+      if (rp && hc && hr) {
+        const arr = refGeo.attributes.position.array; let n = 0, any = false;
+        for (const [a, b] of REF_BONES) {
+          const A = rp[a], B = rp[b];
+          if (A && B) { arr.set([A.x - hr.x + hc.x, A.y - hr.y + hc.y, A.z - hr.z + hc.z, B.x - hr.x + hc.x, B.y - hr.y + hc.y, B.z - hr.z + hc.z], n); any = true; }
+          else arr.fill(0, n, n + 6);
+          n += 6;
+        }
+        refGeo.attributes.position.needsUpdate = true; refGeo.computeBoundingSphere(); refLines.visible = any;
+      } else refLines.visible = false;
       const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
       handTrail.geometry.setDrawRange(from, i - from + 1); hipTrail.geometry.setDrawRange(from, i - from + 1);
     };
@@ -333,7 +366,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   }, [supported, pts, floorY, bounds]);
 
   // the frame on screen
-  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx]);
+  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range]);   // the outline follows a toggle / a new first rep at once
   useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.visible = trails; s.hipTrail.visible = trails; } }, [trails]);
 
   // follow the clip while not playing on its own
@@ -403,6 +436,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         </div>
         <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, display: 'flex', gap: 10, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }}>
           <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
+          {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
           {trails && <><span style={{ color: '#39BDFF' }}>━ {tt('HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
         </div>
       </div>
@@ -443,9 +477,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         const st = cur >= 0 ? repStats[cur] : null;
         return (<>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-            <JoinedButtons maxWidth={320} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
+            <JoinedButtons maxWidth={480} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
               { label: `‹ ${tt('PREV REP')}`, onClick: () => go(prevK), disabled: prevK < 0 },
               { label: `${tt('NEXT REP')} ›`, onClick: () => go(cur + 1), disabled: cur >= repSpans.length - 1 },
+              ...(repSpans.length > 1 ? [{ label: tt('VS REP {n}').replace('{n}', lo), onClick: () => setCompare((v) => !v), tone: compare ? 'accent' : undefined, title: tt('An outline of the first rep of the set, over this rep') }] : []),
             ]} />
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#FFF', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{tt('REP')} {cur < 0 ? '–' : cur + 1} / {repSpans.length}</span>
           </div>

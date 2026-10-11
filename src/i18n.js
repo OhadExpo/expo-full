@@ -2541,6 +2541,9 @@ export const HE = {
   'FIRST REP': 'חזרה ראשונה',
   'LAST REP': 'חזרה אחרונה',
   'ALL REPS': 'כל החזרות',
+  'VS REP {n}': 'מול חזרה {n}',
+  'REP {n}': 'חזרה {n}',
+  'An outline of the first rep of the set, over this rep': 'קווי המתאר של החזרה הראשונה בסט, על החזרה הזאת',
   'IN THE SET: {n}': 'בסט: {n}',
   // 17.9 coach-side leftovers (bug report, portal preview bar, anatomy viewers, intake detail)
   'Report a bug': 'דיווח על באג',
