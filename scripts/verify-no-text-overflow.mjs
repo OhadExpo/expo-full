@@ -93,6 +93,13 @@ let measured = 0, nodes = 0;
 // Signed-in sets sign in ONCE per language x width x theme and walk every route
 // in that one context; the demo set keeps one fresh context per combination.
 const signedCtx = new Map();
+// the debug + break-test hooks, for BOTH paths (11.10: they sat in the signed path only, so on the demo
+// set DEBUG_PATH and PLANT silently did nothing)
+async function gateHooks(pg) {
+  if (process.env.DEBUG_PATH) await pg.evaluateOnNewDocument(() => { window.__gateDebugPath = true; });
+  // PLANT=1: a known spill inside an ABSOLUTE box, to prove the gate still sees one (break test, 11.10)
+  if (process.env.PLANT) await pg.evaluateOnNewDocument(() => { addEventListener('DOMContentLoaded', () => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:20px;top:160px;width:60px;z-index:99999;font:12px sans-serif;white-space:nowrap;background:#fff;color:#000'; d.innerHTML = '<span>PLANTED SPILL TEXT</span>'; document.body.appendChild(d); }); });
+}
 async function pageFor(lang, w, h, theme) {
   if (!SIGNED) { const ctx = await b.createBrowserContext(); return { ctx, pg: await ctx.newPage(), fresh: true }; }
   const key = `${lang}|${w}|${theme}`;
@@ -100,7 +107,7 @@ async function pageFor(lang, w, h, theme) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   await setWidth(pg, w, h, { tablet: TABLET });
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
-  if (process.env.DEBUG_PATH) await pg.evaluateOnNewDocument(() => { window.__gateDebugPath = true; });
+  await gateHooks(pg);
   await pg.evaluateOnNewDocument((L, T) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-shot-lang', L); localStorage.setItem('expo-theme', T); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } }, lang, theme);
   await signIn(pg, BASE);
   const v = { ctx, pg, fresh: false };
@@ -115,6 +122,7 @@ for (const lang of LANGS) {
         const { ctx, pg, fresh } = await pageFor(lang, w, h, theme);
         try {
           if (fresh) await setWidth(pg, w, h, { tablet: TABLET });   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
+          if (fresh) await gateHooks(pg);
           await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
           await pg.evaluateOnNewDocument((L, T) => {
             try {
@@ -197,10 +205,12 @@ for (const lang of LANGS) {
                 for (let d = 0; p && d < 4 && !spilled; p = p.parentElement, d++) {
                   const pcs = getComputedStyle(p);
                   if (/auto|scroll/.test(pcs.overflowX) || /auto|scroll/.test(pcs.overflowY)) break;
-                  if (pcs.position === 'absolute' || pcs.position === 'fixed') break;
+                  // an absolute / fixed box is still the box its text must fit: measure it, THEN stop - above it the
+                  // layout is no longer the text's (11.10 review: a popover's or badge's overflow was never judged)
+                  const pinned = pcs.position === 'absolute' || pcs.position === 'fixed';
                   const pb = p.getBoundingClientRect();
-                  if (pb.width < 8) continue;
-                  if (inkR - pb.right > 2 || pb.left - inkL > 2) spilled = Math.round(Math.max(inkR - pb.right, pb.left - inkL));
+                  if (pb.width >= 8 && (inkR - pb.right > 2 || pb.left - inkL > 2)) spilled = Math.round(Math.max(inkR - pb.right, pb.left - inkL));
+                  if (pinned) break;
                 }
                 if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled, path: window.__gateDebugPath ? [el, el.parentElement, el.parentElement && el.parentElement.parentElement].filter(Boolean).map((e) => { const q = e.getBoundingClientRect(); return `${e.tagName.toLowerCase()}.${String(e.className || '').split(' ')[0]}[${Math.round(q.left)}..${Math.round(q.right)}]`; }).join(' < ') + ` ink ${Math.round(inkL)}..${Math.round(inkR)}` : undefined }); continue; }
 
