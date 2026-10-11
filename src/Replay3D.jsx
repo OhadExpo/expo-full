@@ -426,6 +426,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // the ten controls as one equal-cell grid (5.10 #574): 10 on a desktop row, 2 x 5 on a
   // phone; white resting text as the pills had - this canvas is dark in every theme
   const pill = (k, label, on, active) => ({ k, label, onClick: on, active: !!active, tone: '#FFF' });
+  // the camera's VIEWPOINTS have their own Hebrew (11.10): 'TOP' and 'FRONT' are shared keys - the rep
+  // phase ('למעלה', up) and the front camera ('קדמית') - and read wrong here. English shows the word.
+  const vt = (k) => { const v = tt(`view·${k}`); return v === `view·${k}` ? k : v; };
   return (
     <div ref={wrapRef} style={{ background: '#0b0d10', position: 'relative' }}>
       {/* five a row (5.10 #556): ten in one row cut FULLSCREEN to "ULLSCREE" beside a clip */}
@@ -433,10 +436,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         items={[
           pill('play', playing ? tt('PAUSE') : tt('PLAY'), () => setPlaying((v) => !v), playing),
           ...[0.25, 0.5, 1].map((s) => pill(`x${s}`, `${s}×`, () => setSpeed(s), speed === s)),
-          pill('front', tt('FRONT'), () => view('front')),
-          pill('side', tt('SIDE'), () => view('side')),
-          pill('top', tt('TOP'), () => view('top')),
-          pill('behind', tt('BEHIND'), () => view('behind')),
+          pill('front', vt('FRONT'), () => view('front')),
+          pill('side', vt('SIDE'), () => view('side')),
+          pill('top', vt('TOP'), () => view('top')),
+          pill('behind', vt('BEHIND'), () => view('behind')),
           pill('trails', tt('TRAILS'), () => setTrails((v) => !v), trails),
           pill('full', tt('FULL'), full),
         ]} />
