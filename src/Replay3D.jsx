@@ -9,13 +9,13 @@
 // The geometry rules are poseLab's (frameToPoints3D: y up, a proper rotation;
 // lmVisible: a point MediaPipe is unsure of is not drawn). If WebGL is not there
 // the caller keeps the flat viewer (onUnsupported).
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { frameToPoints3D, stabilizeWorldFrames, lmVisible } from './poseLab';
+import { frameToPoints3D, stableReplayFrames, lmVisible } from './poseLab';
 import { C, FN } from './theme';
-import { useT } from './i18n';
-import { ChipGrid } from './ui';
+import { useT, LangCtx } from './i18n';
+import { ChipGrid, JoinedButtons } from './ui';
 
 const ACCENT = 0x39bdff, HIP_TRAIL = 0xf5a524, BODY = 0xe8eef5;
 const FEET = [27, 28, 29, 30, 31, 32];
@@ -33,18 +33,41 @@ function angle3(a, b, c) {
   return Math.round((Math.acos(Math.max(-1, Math.min(1, (u.x * v.x + u.y * v.y + u.z * v.z) / d))) * 180) / Math.PI);
 }
 
-export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null }) {
+// the analysed joint's 3D angle, L/R averaged where both are seen (the rep timeline's trace)
+const CHANNEL_JOINTS = { knee: [[23, 25, 27], [24, 26, 28]], hip: [[11, 23, 25], [12, 24, 26]], elbow: [[11, 13, 15], [12, 14, 16]], sho: [[13, 11, 23], [14, 12, 24]] };   // keys = the analysis' kind ('sho', not 'shoulder' - review 11.10)
+
+// reps: [{ t0, tb, t1 }] in the frames' own ms (start / bottom / end of each counted rep, from the
+// analysis); channel: the analysed joint. With both, a rep timeline sits under the scrubber (#656).
+export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null, reps = null, channel = null }) {
   const tt = useT();
+  // time runs the way the frame slider does: right to left in Hebrew (#656)
+  const rtl = useContext(LangCtx) === 'he';
   const hostRef = useRef(null), wrapRef = useRef(null);
   const stateRef = useRef(null);
   const [supported] = useState(() => webglOk());
-  const poseFrames = useMemo(() => stabilizeWorldFrames((frames || []).filter((f) => f && f.worldLandmarks)), [frames]);   // 5.10 #558
+  const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // 5.10 #558; one shared computation per clip (#656)
   const pts = useMemo(() => poseFrames.map((f) => frameToPoints3D(f.worldLandmarks)), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(0.5);
   const [trails, setTrails] = useState(true);
   const idxRef = useRef(0); idxRef.current = idx;
+
+  // THE REPS ON THE TIMELINE (11.10 #656, Ohad: "output can be better"): the 3D replay knew
+  // nothing of the set - a coach scrubbed frame by frame to find rep 4. Now the analysed joint's
+  // angle runs under the scrubber, each counted rep shaded and numbered at its bottom, and
+  // PREV / NEXT REP jump the replay (and the video) to the start of a rep.
+  const repSpans = useMemo(() => (Array.isArray(reps) ? reps : []).filter((r) => r && Number.isFinite(r.tb))
+    .map((r) => ({ t0: Number.isFinite(r.t0) ? r.t0 : r.tb, tb: r.tb, t1: Number.isFinite(r.t1) ? r.t1 : r.tb })).sort((a, b) => a.tb - b.tb), [reps]);
+  const idxAt = (t) => { let lo = 0, hi = poseFrames.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (poseFrames[m].t < t) lo = m + 1; else hi = m; } return lo; };
+  const trace = useMemo(() => {
+    const J = CHANNEL_JOINTS[channel] || null;
+    if (!J || !pts.length || !repSpans.length) return null;
+    const v = pts.map((p) => { const a = J.map(([i, j, k]) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)).filter((x) => x != null); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; });
+    const ok = v.filter((x) => x != null); if (ok.length < 2) return null;
+    return { v, lo: Math.min(...ok), hi: Math.max(...ok) };
+  }, [pts, channel, repSpans.length]);
+  const seekTo = (i) => { const k = Math.max(0, Math.min(poseFrames.length - 1, i)); setPlaying(false); setIdx(k); if (onSeek && poseFrames[k] && poseFrames[0]) onSeek(poseFrames[k].t - poseFrames[0].t); };
 
   useEffect(() => { if (!supported && onUnsupported) onUnsupported(); }, [supported, onUnsupported]);
 
@@ -301,8 +324,44 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         </div>
       </div>
       <input type="range" min={0} max={Math.max(0, poseFrames.length - 1)} value={idx} aria-label={tt('FRAME')}
-        onChange={(e) => { const i = +e.target.value; setPlaying(false); setIdx(i); if (onSeek && poseFrames[i] && poseFrames[0]) onSeek(poseFrames[i].t - poseFrames[0].t); }}
+        onChange={(e) => seekTo(+e.target.value)}
         style={{ width: '100%', display: 'block', margin: '10px 0 0', accentColor: C.ac }} />
+      {trace && (() => {
+        const T0 = poseFrames[0].t, T1 = poseFrames[poseFrames.length - 1].t, span = Math.max(1, T1 - T0);
+        const X = (t) => { const x = (1000 * (t - T0)) / span; return rtl ? 1000 - x : x; }, Y = (a) => 40 - (36 * (a - trace.lo)) / Math.max(1, trace.hi - trace.lo);
+        let d = '', pen = false;
+        trace.v.forEach((a, i) => { if (a == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(poseFrames[i].t).toFixed(1)} ${Y(a).toFixed(1)} `; pen = true; });
+        const tNow = poseFrames[idx] ? poseFrames[idx].t : T0;
+        return (
+          <div style={{ position: 'relative', height: 58, marginTop: 6, cursor: 'pointer' }} dir="ltr"
+            onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left) / r.width; seekTo(idxAt(T0 + (rtl ? 1 - u : u) * span)); }}>
+            <svg viewBox="0 0 1000 44" preserveAspectRatio="none" width="100%" height="44" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
+              {repSpans.map((r, i) => <rect key={i} x={Math.min(X(r.t0), X(r.t1))} y="0" width={Math.max(2, Math.abs(X(r.t1) - X(r.t0)))} height="44" fill="rgba(57,189,255,0.12)" />)}
+              <path d={d} fill="none" stroke="#39BDFF" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+              <line x1={X(tNow)} x2={X(tNow)} y1="0" y2="44" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            </svg>
+            {repSpans.map((r, i) => (
+              <span key={i} style={{ position: 'absolute', top: 46, left: `${X(r.tb) / 10}%`, transform: 'translateX(-50%)', fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#39BDFF', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>{i + 1}</span>
+            ))}
+          </div>
+        );
+      })()}
+      {repSpans.length > 0 && (() => {
+        const tNow = poseFrames[idx] ? poseFrames[idx].t : 0;
+        let cur = -1; repSpans.forEach((r, i) => { if (r.t0 <= tNow + 1) cur = i; });
+        // PREV: inside a rep, back to its start first; at its start, the rep before
+        const prevK = cur < 0 ? -1 : (tNow > repSpans[cur].t0 + 150 ? cur : cur - 1);   // before the first rep there is none
+        const go = (k) => { const r = repSpans[Math.max(0, Math.min(repSpans.length - 1, k))]; if (r) seekTo(idxAt(r.t0)); };
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+            <JoinedButtons maxWidth={320} style={{ flex: '1 1 auto', '--c-sf': '#14181e', '--c-tx': '#FFFFFF', '--c-td': '#5c636e' /* this panel is dark in every theme */ }} items={[
+              { label: `‹ ${tt('PREV REP')}`, onClick: () => go(prevK), disabled: prevK < 0 },
+              { label: `${tt('NEXT REP')} ›`, onClick: () => go(cur + 1), disabled: cur >= repSpans.length - 1 },
+            ]} />
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#FFF', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{tt('REP')} {cur < 0 ? '–' : cur + 1} / {repSpans.length}</span>
+          </div>
+        );
+      })()}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 6 }}>
         <span>{tt('FRAME')} {idx + 1} / {poseFrames.length}</span>
         <span>{tt('DRAG ORBIT · PINCH / WHEEL ZOOM')}</span>

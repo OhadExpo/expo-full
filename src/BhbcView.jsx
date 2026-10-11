@@ -968,7 +968,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the crest plate's width is the bar's snap padding (a tab rests right after it)
   React.useLayoutEffect(() => {
     const el = headRef.current; const id = el && el.querySelector('.bhbc-header-id');
-    if (el && id) el.style.setProperty('--crest-w', `${Math.round(id.getBoundingClientRect().width)}px`);
+    const v = el && id ? `${Math.round(id.getBoundingClientRect().width)}px` : null;
+    if (v && el.style.getPropertyValue('--crest-w') !== v) el.style.setProperty('--crest-w', v);   // every render ran this: write only a change (#654)
   });
 
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
@@ -1927,6 +1928,13 @@ function attendance28(rec, days) {
              stopped at the last tab-start and the exit control stayed 23px past
              the edge for good (27.9, found by the scroller-tail gate) */
           .bhbc-header-ctrl{scroll-snap-align:end}
+          /* THE CREST SIDE NEVER FADES (11.10 #654): tabs pass UNDER the pinned crest, so there is
+             nothing to soften there - but the edge fade flipped to 'both' on the first scroll
+             event and faded the crest's own outer 22px in one frame. Only the far side fades. */
+          .bhbc-zone[dir="ltr"] .bhbc-header-inner[data-fade="both"]{-webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 22px),transparent 100%)!important;mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 22px),transparent 100%)!important}
+          .bhbc-zone[dir="ltr"] .bhbc-header-inner[data-fade="left"]{-webkit-mask-image:none!important;mask-image:none!important}
+          .bhbc-zone[dir="rtl"] .bhbc-header-inner[data-fade="both"]{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 22px,#000 100%)!important;mask-image:linear-gradient(to right,transparent 0,#000 22px,#000 100%)!important}
+          .bhbc-zone[dir="rtl"] .bhbc-header-inner[data-fade="right"]{-webkit-mask-image:none!important;mask-image:none!important}
           .bhbc-header-inner::-webkit-scrollbar{display:none}
           .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
           /* The pinned identity block must be OPAQUE and must have an EDGE, or
@@ -3423,7 +3431,7 @@ function Segmented({ text, style, keepDots = false }) {
     <span className={keepDots ? 'seg-run seg-run--keep' : 'seg-run'} style={style}>
       {parts.map((p2, i) => (i % 2
         ? <span key={i} className="seg-dot" aria-hidden>{keepDots ? ` ${p2} ` : p2}</span>
-        : <span key={i} style={{ whiteSpace: 'nowrap' }}>{p2}</span>))}
+        : <span key={i}>{p2}</span>))}   {/* a segment that fits moves whole to the next line (flex-wrap); only one longer than the line breaks at its own spaces - never on a separator, those are their own spans (11.10 #651: 'Hadar Yosef, Tel Aviv' painted 2px past 146px) */}
     </span>
   );
 }
@@ -5392,7 +5400,8 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   bottom borders"): the right group's wrapper kept the default line box
                   and sat its text ~2px low, and the height was 11px beside 10px.
                   Every piece is 10px on line-height 1, aligned on the baseline. */}
-              <div className="bhbc-rc-foot" style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0, lineHeight: 1 }}>
+              {/* gap 4 and the sessions label at 0.04em (11.10 #651): height · flag · PPG · '32 SESSIONS · 6H' ran 5px past a 242px footer at 1440 */}
+              <div className="bhbc-rc-foot" style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0, lineHeight: 1 }}>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
@@ -5413,7 +5422,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                      athlete who trained twenty times in a month is being told
                      something false. Say what is known. */
                   : (att && att.n > 0
-                    ? <span title={tr('Last 28 days')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min >= 60 ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? ` · ${att.min}′` : ''}</span>
+                    ? <span title={tr('Last 28 days')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min >= 60 ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? ` · ${att.min}′` : ''}</span>
                     : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>
@@ -5696,7 +5705,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, medical 
                   {densityOf(f) ? <span style={{ flexShrink: 0 }}>{'\u00A0·\u00A0'}<DensityBit f={f} /></span> : null}
                 </span>
                 {/* the S&C slot: on every row while the list has any S&C (empty where none ran), gone when it has none (anySc) */}
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 'var(--past-sc-w)', flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
+                <span className="pp-sc-slot" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, width: 'var(--past-sc-w)', flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', display: anySc ? undefined : 'none' }}>
                   {/* the warm-up's purple square leads the slot (#646): it is its own thing, not S&C,
                       and a word for it would not fit a 390 row beside 'S&C 12′' */}
                   {d.wuCount > 0 ? <span role="img" aria-label={`${tr('Warm-up')} ${WARMUP_MIN} ${tr('min')}`} title={`${tr('Warm-up')} · ${WARMUP_MIN} ${tr('min')}`} style={{ display: 'inline-block', width: 8, height: 8, background: WARMUP_COLOR, marginInlineEnd: d.scMinutes > 0 ? 6 : 0, verticalAlign: 'middle' }} /> : null}
@@ -7375,8 +7384,12 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
               <div key={t.id} className="bhbc-row bhbc-rh-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 14, rowGap: 8, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 140, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
-                  <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
-                  {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} {tr(hist > 1 ? 'records' : 'record')}</span>}
+                  {/* the record count UNDER the name (11.10 #651): beside it, "· 3 records" took 75 of a phone's
+                      172px and even the surname alone overran - "Broughton" by 26px at 360 */}
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: '1 1 auto' }}>
+                    <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
+                    {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em' }}>{hist === 1 ? tr('1 record') : `${hist} ${tr('records')}`}</span>}
+                  </span>
                 </div>
                 {/* ONE STATUS COLUMN (29.9 #416, Ohad: "the colors and the status
                     looks misaligned"): a FIXED width, so the buttons after it

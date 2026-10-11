@@ -81,20 +81,25 @@ export const signedSagittalAt = (lms, ai, bi, ci, li = 23, ri = 24) => {
   return (s > 0 ? 1 : s < 0 ? -1 : 0) * (180 - interior);
 };
 
+// 11.10 (#656): "Knee Extension" counted the ELBOW - the elbow rule's `extension` (triceps) caught it
+// because the knee rule knew only "leg extension" (real clip c13: 15 extensions read 3). Same hole:
+// hamstring / knee curls fell to the elbow's `curl`, back / hip extensions to the elbow, and calf
+// raises to the shoulder's `raise` - each now goes to the joint that moves (calf raises: not counted,
+// there is no ankle channel - a blank beats a shoulder count).
 // Title-regex → channel pair. Order matters — `none` first so isometric /
 // carry / hold / anti-rotation exercises skip counting. An UNMATCHED title
 // returns matched:false so the caller knows the channel is a fallback guess,
 // not a confident read (adversarial-review 2026-08-12: a silent knee default
 // on an off-catalog upper-body lift counts on a barely-moving channel).
 export const CHANNEL_RULES = [
-  { kind: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|pallof|anti[-\s]?rotation|bird[-\s]?dog|dead[-\s]?bug)\b/i,
+  { kind: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|pallof|anti[-\s]?rotation|bird[-\s]?dog|dead[-\s]?bug|calf[-\s]?raises?|calves)\b/i,
     channels: [] },
-  { kind: 'hip',   rx: /\b(hip[-\s]?thrust|glute[-\s]?bridge|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|jefferson|clean|snatch|swing|kettlebell\s*swing|crab|reverse[-\s]?tabletop)\b/i,
+  { kind: 'hip',   rx: /\b(hip[-\s]?thrust|glute[-\s]?bridge|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|jefferson|clean|snatch|swing|kettlebell\s*swing|crab|reverse[-\s]?tabletop|back[-\s]?extensions?|hip[-\s]?extensions?|hyper[-\s]?extensions?|reverse[-\s]?hypers?)\b/i,
     channels: ['L HIP', 'R HIP'] },
   // plurals and the coach's own abbreviations count too (27.9 review: FFESS,
   // Walking Lunges, Step Ups, Step-Down and "Squats/Leg Pressing" had fallen
   // out of rep counting when the silent knee fallback was removed)
-  { kind: 'knee',  rx: /\b(squats?|lunges?|step[-\s]?(?:up|down)s?|split[-\s]?squats?|rfess|ffess|bulgarian|pistols?|leg[-\s]?press(?:es|ing)?|leg[-\s]?extensions?|leg[-\s]?curls?|jumps?|bounces?|goblet|thrusters?|pogos?)\b/i,
+  { kind: 'knee',  rx: /\b(squats?|lunges?|step[-\s]?(?:up|down)s?|split[-\s]?squats?|rfess|ffess|bulgarian|pistols?|leg[-\s]?press(?:es|ing)?|leg[-\s]?extensions?|leg[-\s]?curls?|knee[-\s]?(?:extensions?|curls?|flexions?)|hamstring[-\s]?curls?|nordics?|jumps?|bounces?|goblet|thrusters?|pogos?)\b/i,
     channels: ['L KNE', 'R KNE'] },
   { kind: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|face[-\s]?pull|curl|extension|tricep|skull|dip|pushdown|kick[-\s]?back|pullover|hammer)\b/i,
     channels: ['L ELB', 'R ELB'] },

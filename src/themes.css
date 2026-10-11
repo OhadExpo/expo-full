@@ -1301,6 +1301,9 @@ html.theme-switching *::after {
 [data-fade="both"]   { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
 /* The active tab must never sit under its own fade. */
 [data-fade] { scroll-padding-inline: 24px; }
+/* a rail's no-slice clip eases instead of snapping (#654; useRailTrailMask sets the marker) */
+[data-rail-ease] { transition: clip-path 150ms ease; }
+@media (prefers-reduced-motion: reduce) { [data-rail-ease] { transition: none; } }
 
 /* MANAGE ROSTER row: one line on a desktop, two on a phone - and the second
    line starts on the NAME column, not under the checkbox. */
@@ -2217,6 +2220,9 @@ select.avail-select:dir(rtl) {
 .bhbc-chip-acts-col > .bhbc-seg + .bhbc-seg { border-top: 1px solid var(--c-cardBd) !important; }
 /* past practices' warm-up + S&C slot: 'S&C 12 min' and two squares need 112px; a phone shows '12′' in 92 */
 :root { --past-sc-w: 112px; }
+@media (min-width: 421px) and (max-width: 460px) { :root { --past-sc-w: 54px; } .pp-sc-word, .pp-sc-slot .min-unit { display: none; } .pp-sc-slot .min-tick { display: inline; } }   /* a 430 phone is a phone in English too (review 11.10: 'min' ran into the slot at 430 - on production as well) */
+@media (min-width: 621px) { .bhbc-zone[dir="rtl"] { --past-sc-w: 128px; } }   /* 11.10 #651: 'כוח קבוצתי 60′ דק׳' ran 11px past 112 in Hebrew at 1440 */
+@media (min-width: 421px) and (max-width: 620px) { .bhbc-zone[dir="rtl"] { --past-sc-w: 54px; } .bhbc-zone[dir="rtl"] .pp-sc-word, .bhbc-zone[dir="rtl"] .pp-sc-slot .min-unit { display: none; } .bhbc-zone[dir="rtl"] .pp-sc-slot .min-tick { display: inline; } }   /* a big phone in Hebrew is a phone (review 11.10: at 128 the session label's 'דק׳' ran into the slot at 421-430) */
 @media (max-width: 420px) { :root { --past-sc-w: 54px; } .pp-sc-word { display: none; } }   /* 10.10 #651: on a phone the slot is the squares + minutes (the legend under the list names them) - at 92 it squeezed the session label to 8px and 'Shootaround 60' painted over it */   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
 .bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
@@ -2347,6 +2353,7 @@ select.avail-select:dir(rtl) {
    right after ANALYSIS (no reserved box), real and demo alike; an athlete without
    a club badge has no empty badge slot to push a blank second line */
 @media (max-width: 620px) { .prog-striphdr .prog-recency { min-width: 0 !important; } }
+.prog-badge-slot { display: inline-block; }   /* here, not inline: an inline display beat the :empty rule and a non-club athlete kept an empty 8px box that could drop to a blank line (11.10 review) */
 .prog-badge-slot:empty { display: none; }
 
 /* BOOKING AVAILABILITY RULE ON A PHONE (9.10 audit #612 C8): day + two times + × on one

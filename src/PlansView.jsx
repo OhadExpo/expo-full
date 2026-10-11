@@ -4859,7 +4859,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               return (
                 <div key={row.tid} style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</bdi><BhbcBadge tid={row.tid} trainees={trainees} /></span>
+                    {/* the whole name, as on the rows with a program (11.10 #651: "Dusty Hannahs" lost 9px to an ellipsis at 360) */}
+                    <span style={{ display: 'block', minWidth: 0, lineHeight: '18px' }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi><span className="prog-badge-slot" style={{ verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span></span>
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.or }}>{tt('No program yet')}</span>
                   </span>
                   <button type="button" onClick={() => handleNewPlan(row.coupleMembers ? row.coupleMembers[0].id : row.tid)} style={{ height: 32, padding: '0 12px', background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>{tb('+ ASSIGN PROGRAM')}</button>
@@ -4882,7 +4883,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span style={{ gridColumn: 1, gridRow: 1, display: 'block', minWidth: 0, minHeight: 18, lineHeight: '18px' }}>
                     <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi>
                     {/* inline after the LAST word: in a flex row it sat at the far end once a long name wrapped */}
-                    <span className="prog-badge-slot" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
+                    <span className="prog-badge-slot" style={{ verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                   </span>
                   <span title={row.daysSince == null ? (he ? 'עוד לא רשם אימון' : 'No session logged yet') : tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull).toLowerCase())} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}

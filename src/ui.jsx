@@ -1524,12 +1524,31 @@ export function ScrollFade({ children, style, className }) {
 export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
   React.useEffect(() => {
     let el = null, t = 0, ro = null, lastActive = null, alive = true, scrolling = false, selfScroll = false;
+    // THE MASK FADES, IT DOES NOT POP (11.10 #654, Ohad: "Bhbc top menu side scrolling is still laggy
+    // and the titles just pop"). Measured with a finger swipe at 4x CPU: no frame over 34ms, but on
+    // every settle a 66px opaque plate appeared in one frame over the half tab at the edge, and
+    // vanished in one frame on the next touch. The plates now fade (and a clip eases) over 150ms;
+    // reduced motion keeps the instant switch.
+    const FADE_MS = 150, ZERO = 'inset(0px 0px 0px 0px)';
+    const calm = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
     const apply = (w, lw, lx, rtl) => {
       if (!el) return;
       if (clip) {
         const v = w || lw ? (rtl ? `inset(0 ${lw}px 0 ${w}px)` : `inset(0 ${w}px 0 ${lw}px)`) : '';
-        if (el.style.clipPath !== v) el.style.clipPath = v;
+        if (el.__rtmClip !== v) {
+          el.__rtmClip = v; clearTimeout(el.__rtmClipT);
+          if (calm()) el.style.clipPath = v;
+          else if (v) {
+            // ease in from a zero inset ([data-rail-ease] carries the transition; none cannot interpolate)
+            if (!el.style.clipPath) { el.style.clipPath = ZERO; void getComputedStyle(el).clipPath; }
+            el.style.clipPath = v;
+          } else if (el.style.clipPath) {
+            el.style.clipPath = ZERO;
+            const node = el;   // this rail, even if the ref moves on
+            node.__rtmClipT = setTimeout(() => { if (node.__rtmClip === '') node.style.clipPath = ''; }, FADE_MS);
+          }
+        }
       }
       // a write only when the plate actually changes (9.10 #621/#625: every scroll event rewrote
       // both plates - six style writes per gesture on the club and demo menus, each a visible pop)
@@ -1537,11 +1556,23 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         const n = p && p.current; if (!n) return;
         const want = width ? `${width}|${side}|${off}` : 'none';
         if (n.__rtm === want) return;
-        n.__rtm = want;
-        if (!width) { n.style.display = 'none'; return; }
-        n.style.display = 'block'; n.style.width = `${width}px`;
+        n.__rtm = want; clearTimeout(n.__rtmT);
+        if (!width) {
+          if (n.style.display === 'none') return;
+          if (calm()) { n.style.display = 'none'; return; }
+          n.style.opacity = '0'; n.style.pointerEvents = 'none';   // fading out: taps go through (review 11.10)
+          n.__rtmT = setTimeout(() => { if (n.__rtm === 'none') n.style.display = 'none'; }, FADE_MS);
+          return;
+        }
+        if (n.style.display === 'none') n.style.transition = 'none';   // back from hidden: no slide from a stale width
+        n.style.width = `${width}px`;
         n.style.left = ''; n.style.right = '';
         n.style[side] = `${off}px`;
+        n.style.pointerEvents = '';
+        if (calm()) { n.style.transition = ''; n.style.opacity = ''; n.style.display = 'block'; return; }
+        if (n.style.display === 'none') { n.style.opacity = '0'; n.style.display = 'block'; void n.offsetWidth; }
+        n.style.transition = `opacity ${FADE_MS}ms ease, width ${FADE_MS}ms ease`;   // a re-measure while shown slides, too
+        n.style.opacity = '1';
       };
       put(trailRef, w, rtl ? 'left' : 'right', 0);
       put(leadRef, lw, rtl ? 'right' : 'left', lx);
@@ -1556,6 +1587,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
         if (ro) { ro.disconnect(); ro = null; }
         el = cur || null;
         if (el) {
+          if (clip) el.setAttribute('data-rail-ease', '');
           el.addEventListener('scroll', later, { passive: true });
           if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(later); ro.observe(el); }
         }
@@ -1622,7 +1654,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     return () => {
       alive = false; clearTimeout(t); clearTimeout(ts); clearTimeout(t2); clearInterval(iv);
       window.removeEventListener('resize', later);
-      if (el) { el.removeEventListener('scroll', later); if (clip) el.style.clipPath = ''; }
+      if (el) { el.removeEventListener('scroll', later); if (clip) { clearTimeout(el.__rtmClipT); el.__rtmClip = undefined; el.style.clipPath = ''; } }
       if (ro) ro.disconnect();
     };
   }, [ref, items, lead, maxWidth, active, clip, trailRef, leadRef]);
@@ -1790,9 +1822,11 @@ export function useEdgeFade(ref) {
         if (b.width < 0.5) continue;
         minL = Math.min(minL, b.left); maxR = Math.max(maxR, b.right);
       }
-      if (minL === Infinity) { el.dataset.fade = 'none'; return; }
+      // a write only on a change: this runs on every scroll event (#654)
+      const put = (v) => { if (el.dataset.fade !== v) el.dataset.fade = v; };
+      if (minL === Infinity) { put('none'); return; }
       const left = minL < r.left - 1, right = maxR > r.right + 1;
-      el.dataset.fade = left && right ? 'both' : left ? 'left' : right ? 'right' : 'none';
+      put(left && right ? 'both' : left ? 'left' : right ? 'right' : 'none');
     };
     // The element can mount a few frames after this effect first runs.
     const attach = () => {

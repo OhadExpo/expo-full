@@ -22,7 +22,7 @@ import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import {
   analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps,
   barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, buildPoseReport,
-  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, stabilizeWorldFrames, frameAt,
+  MOVEMENTS, movementByKey, buildScene2D, buildScene3D, createPoseSmoother, ONE_EURO_IMAGE, stabilizeWorldFrames, stableReplayFrames, frameAt,
 } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift, getLastPoseEntryBefore, saveJumpMetric, getLastJumpBefore } from './poseMetricsStore';
@@ -56,7 +56,7 @@ Object.assign(HE, {
   'Neutral read': 'מדידה ניטרלית',
   'No exercise picked, so reps are not counted. Speed and joint angles below are measured as they are. Pick the exercise to add reps, bar speed per rep, tempo and form.': 'לא נבחר תרגיל, אז החזרות לא נספרות. המהירות וזוויות המפרקים למטה נמדדות כמו שהן. תבחר תרגיל כדי להוסיף חזרות, מהירות מוט לכל חזרה, טמפו וטכניקה.',
   "This lift isn't mapped to a joint, so reps are not counted. Speed and joint angles below are still measured.": 'התרגיל הזה לא משויך למפרק, אז החזרות לא נספרות. המהירות וזוויות המפרקים למטה עדיין נמדדות.',
-  'A hold, or a movement too small or too off-angle for the camera to split into reps. Per-rep speed, tempo and form need counted reps; the traces still show.': 'החזקה, או תנועה קטנה מדי או בזווית לא טובה — המצלמה לא הצליחה לחלק אותה לחזרות. בלי חזרות שנספרו אין מהירות לכל חזרה, טמפו וטכניקה. הגרפים עדיין מוצגים.',
+  'A hold, or a movement too small or too off-angle for the camera to split into reps. Per-rep speed, tempo and form need counted reps; the traces still show.': 'זו החזקה, או שהתנועה קטנה מדי או מצולמת בזווית לא טובה, אז המצלמה לא הצליחה לחלק אותה לחזרות. בלי חזרות שנספרו אין מהירות לכל חזרה, טמפו וטכניקה. הגרפים עדיין מוצגים.',
   'Side-on, full body in frame, ~2–3m back. Record, or upload a clip — stand still for a second, then jump.': 'מהצד, כל הגוף בפריים, בערך 2–3 מטר אחורה. צלם או תעלה קליפ — עמוד שנייה בלי לזוז, ואז קפוץ.',
   'Side-on, full body in frame, ~2–3m back. Record a set, or upload a clip — keep the whole lift in shot.': 'מהצד, כל הגוף בפריים, בערך 2–3 מטר אחורה. צלם סט או תעלה קליפ — כל התרגיל בתוך הפריים.',
   'Stand still — jump once REC starts.': 'עמוד בלי לזוז — קפוץ כשההקלטה מתחילה.',
@@ -68,10 +68,10 @@ Object.assign(HE, {
   'almost no eccentric control — slow the negative for more stimulus and safer joints.': 'כמעט אין שליטה בירידה — תאט את הירידה בשביל יותר גירוי ומפרקים מוגנים יותר.',
   'Controlled {s}s eccentric.': 'ירידה מבוקרת של {s} שניות.',
   'Last rep {p} slower than the best': 'החזרה האחרונה איטית ב-{p} מהחזרה הכי טובה',
-  'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.': 'אחרי ירידה של בערך 20–30% במהירות, הסט הוא כבר עייפות ולא כוח מתפרץ — תעצור מוקדם יותר אם המטרה היא מהירות.',
-  'Bar speed held ({p}% loss) — quality reps throughout.': 'מהירות המוט נשמרה (ירידה של {p}%) — חזרות איכותיות לאורך כל הסט.',
+  'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.': 'אחרי ירידה של בערך 20–30 אחוז במהירות, הסט כבר מייצר עייפות מיותרת ולא כוח מתפרץ — תעצור מוקדם יותר אם המטרה היא מהירות.',
+  'Bar speed held ({p}% loss) — quality reps throughout.': 'מהירות המוט נשמרה (ירידה של {p} אחוז) — חזרות איכותיות לאורך כל הסט.',
   'Stopping high (knee bends to ~{d}°)': 'עוצר גבוה (הברך מתכופפת עד {d} מעלות בערך)',
-  'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.': 'מתחת למקביל זה בערך 90 מעלות בברך — מקצר עומק. מוביליטי או כוונה.',
+  'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.': 'מתחת למקביל זה בערך 90 מעלות בברך — מקצר עומק — בגלל מוביליטי או בכוונה.',
   'Hitting depth (below parallel).': 'מגיע לעומק (מתחת למקביל).',
   'Short lockout (elbow to ~{d}°)': 'נעילה חלקית (המרפק עד {d} מעלות בערך)',
   'not finishing the press — cue full lockout or drop the load.': 'לא מסיים את הלחיצה — תבקש נעילה מלאה או תוריד משקל.',
@@ -791,7 +791,7 @@ export default function MovementLab({
           <>
             {!romSpec && (
               <Section title={tt('3D SKELETON')}>
-                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result} />
               </Section>
             )}
             <Section title={tt('JOINT ANGLES')}>
@@ -1124,7 +1124,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} />}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} result={result} />}
     </div>
   );
 }
@@ -2317,12 +2317,22 @@ function drawScene3D(canvas, scene) {
 // the light canvas Viewer3D below shows the same skeleton.
 // a stale tab after a deploy cannot fetch the old chunk: fall back to the canvas viewer, never a crash (5.10 review N5)
 const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable(p) { React.useEffect(() => { if (p.onUnsupported) p.onUnsupported(); }, [p]); return null; } })));
-function ThreeDPanel({ frames, playheadT = null, onScrub = null }) {
+// the counted reps as times on the frames' own clock, for the replay's rep timeline (#656)
+// - the same reps the number is made of: a trailing re-rack is subtracted from the count, so it is
+// not on the timeline either; a jump counted by FLIGHT has no joint reps to show (review 11.10)
+const repTimes = (result, frames) => {
+  if (!result || result.countMethod !== 'joint' || !Array.isArray(result.reps) || !Array.isArray(frames)) return null;
+  const per = (result.velocity && result.velocity.perRep) || [];
+  return result.reps.map((r, k) => (per[k] && per[k].rerack ? null : { t0: frames[r.startIdx]?.t, tb: frames[r.bottomIdx]?.t, t1: frames[r.endIdx]?.t }))
+    .filter((r) => r && Number.isFinite(r.tb));
+};
+function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null }) {
   const [fallback, setFallback] = useState(false);
+  const reps = useMemo(() => repTimes(result, frames), [result, frames]);
   if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
   return (
     <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
-      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} />
+      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} reps={reps} channel={result ? result.kind : null} />
     </Suspense>
   );
 }
@@ -2332,7 +2342,7 @@ function Viewer3D({ frames, playheadT = null }) {
   const tt = useT();
   const canvasRef = useRef(null);
   // the stable skeleton (5.10 #558): L/R continuity, one length per bone, feet on the floor
-  const poseFrames = useMemo(() => stabilizeWorldFrames((frames || []).filter(f => f && f.worldLandmarks)), [frames]);
+  const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // shared with Replay3D (#656)
   const maxR = useMemo(() => computeFit(poseFrames), [poseFrames]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);

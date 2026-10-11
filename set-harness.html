@@ -37,7 +37,8 @@
   window.runSet = async (url, title, opts = {}) => {
     const t0 = performance.now();
     const secs = await clipSeconds(url, true);
-    const maxFrames = setFrameBudget(secs);
+    // opts.fps (11.10 #656): measure a denser sample than the athlete's ~12 a second - same cap logic
+    const maxFrames = Number.isFinite(opts.fps) && opts.fps > 0 && Number.isFinite(secs) && secs > 0 ? Math.min(1800, Math.max(120, Math.ceil(secs * opts.fps))) : setFrameBudget(secs);
     // opts.quality (10.10 #552/#639): the athlete's pipeline is 'lite'; 'full' / 'heavy' are
     // here only to MEASURE whether a bigger model counts the hand-counted sets better
     const quality = ['full', 'heavy'].includes(opts.quality) ? opts.quality : 'lite';
