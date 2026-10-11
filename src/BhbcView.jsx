@@ -15,7 +15,7 @@ import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffe
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
 import { gwDrill, gwSection } from './gameWarmupText';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone, JoinedButtons } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -2004,6 +2004,7 @@ function attendance28(rec, days) {
              wide ... symmetric around the logo"): it was 14px before the crest and 32px after, ~80 x 56. Now 56 x 56, the
              bar's own height, the crest centred both ways - on the one-row phone bar (<=520), where it is pinned. */
           [dir="rtl"] .bhbc-header-id{box-shadow:-8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          @media (max-width:520px){.bhbc-rh-actions{width:100%!important;flex:1 1 100%!important;max-width:none!important}}   /* a phone card's second line is the joined actions, full width (9.10 phone pattern, #673) */
           @media (max-width:520px){.bhbc-header-id{padding:0!important;width:56px!important;min-width:56px!important;box-sizing:border-box!important;justify-content:center!important;gap:0!important}}   /* only where the crest is PINNED (one row); 521-760 is two rows, crest on the tab row's edge */
           /* the plate OWNS the gap before the first visible tab: a tab rests at
              its edge, and no tail of the tab before it shows in between (27.9
@@ -7211,6 +7212,19 @@ function GameMinutesModal({ game, roster, bhbcLoads, medical = {}, onClose, onSa
 // row of filled amber/red/green boxes. The rule says a status is a small
 // coloured DOT plus a calm muted label. The dot keeps the colour; the box does
 // not. minWidth 96 so OUT and NON-CONTACT are the same box down the column.
+// A STATUS IN A TABLE IS A DOT AND A WORD (11.10 #673 BHBC table system; his 5.10 rule: no colour fills in
+// cells). One fixed width so whatever follows stands on one x in every row; the exception reads in full
+// ink, Available stays calm - the Roster Health form, now the only one in the tables.
+function StatusWord({ status }) {
+  const tr = useT();
+  const s = MED_STATUS[status] || MED_STATUS.available;
+  return (
+    <span data-status={status} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, width: 124, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: status === 'available' ? C.tm : C.tx, whiteSpace: 'nowrap', flexShrink: 0 }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+      {tr(s.label)}
+    </span>
+  );
+}
 function StatusPill({ status, small, full }) {
   const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
@@ -7366,6 +7380,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 bar says the same in short words, spread across the row. */}
             <SortBar sort={sort} className="bhbc-inj-sortbar" cols={[['name', tr('Athlete')], ['injury', tr('Injury')], ['status', tr('Status')], ['since', tr('Since')], ['by', tr('By')]]}
               style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 16px', margin: '0 -14px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+            <NameScopeProvider>
             {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
@@ -7377,7 +7392,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
-                  <StatusPill status={inj.status} />
+                  <StatusWord status={inj.status} />
                   {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
                       reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
                   <div className="bhbc-inj-meta" style={{ display: 'contents' }}>
@@ -7404,6 +7419,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 </div>
               );
             })}
+            </NameScopeProvider>
           </div>
         </Card>
       )}
@@ -7418,6 +7434,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
           <Card padding={14} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
             headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{past.length}</span>}>
             <div>
+              <NameScopeProvider>
               {past.map(({ t, inj }) => (
                 <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
@@ -7437,6 +7454,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 </div>
               ))}
+              </NameScopeProvider>
             </div>
           </Card>
         );
@@ -7447,6 +7465,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
 
       <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}>
         <div>
+          <NameScopeProvider>
           {roster.map((t) => {
             const act = activeInjuries(medical, t.id);
             // the WORST of his active records, in the board's order (#305 N-M1):
@@ -7470,26 +7489,17 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     has its dot in the zone's colours (green Available too, as on
                     the load board), and the words start on one x. An exception
                     reads in full ink, Available stays calm. */}
-                <span data-status={status} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, width: 124, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: status === 'available' ? C.tm : C.tx, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
-                  {tr((MED_STATUS[status] || MED_STATUS.available).label)}
-                </span>
-                    {/* This one carried .bhbc-ghost-btn and nothing else, and that
-                        class only defines :hover - so it fell through to the
-                        BROWSER's chrome: rgb(240,240,240) fill and a 1.6px black
-                        border, neither of which exists in this palette. Every one
-                        of its fifteen siblings supplies the look inline. minWidth 84
-                        matches the medical button beside it, one size per column. */}
-                {onLog && (
-                  <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title={tr('Log a lift for this athlete')}
-                    style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tr('Log lift')}</button>
-                )}
-                {canMedical
-                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 'var(--btn-h)', boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
-                  : <span style={{ width: 84, flexShrink: 0 }} />}
+                <StatusWord status={status} />
+                {/* THE ROW'S ACTIONS ARE ONE JOINED PAIR (11.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - they
+                    were two loose boxes 10px apart. One width in every row, so the pairs stand in one column. */}
+                <JoinedButtons className="bhbc-rh-actions" style={{ width: 176, flexShrink: 0 }} items={[
+                  onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
+                  canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
+                ]} />
               </div>
             );
           })}
+          </NameScopeProvider>
         </div>
       </Card>
 
