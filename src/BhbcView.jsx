@@ -288,7 +288,62 @@ const initialName = (n) => { const p = String(n || '').trim().split(/\s+/); retu
 // medical / lifts column. When the initial + surname still does not fit, the surname alone - the
 // same size, one row, never cut. Measured on the box itself; a resize starts again from the top.
 // (surnameOf is the zone's one surname helper, further down - 'Ohad calls the squad by last names')
-function PlayerName({ name, style, ...rest }) {
+// ONE NAME FORM PER TABLE (11.10 #673 BHBC table system): each PlayerName above chooses its own form, so
+// one column read 'D. FRANCIS · BROUGHTON · ROY SOLOMON'. Inside a NameScope every row reports the most
+// compact form IT needs (0 full, 1 initial + surname, 2 surname - he calls the squad by last names) and
+// all rows show the table's most compact one; two players sharing a surname keep their initial. The
+// need is measured on canvas with the row's own font (no hidden copy in the page - the overflow gate
+// read one as a spill, 27.9).
+const NameScope = React.createContext(null);
+function NameScopeProvider({ children }) {
+  const rows = React.useRef(new Map());
+  const [state, setState] = React.useState({ level: 0, dup: '' });
+  const report = React.useCallback((id, lvl, name) => {
+    if (lvl == null) rows.current.delete(id); else rows.current.set(id, { lvl, name });
+    let level = 0; const seen = new Map();
+    for (const r of rows.current.values()) { if (r.lvl > level) level = r.lvl; const sn = surnameOf(r.name).toLowerCase(); seen.set(sn, (seen.get(sn) || 0) + 1); }
+    const dup = [...seen].filter(([, n]) => n > 1).map(([k]) => k).sort().join('|');
+    setState((p) => (p.level === level && p.dup === dup ? p : { level, dup }));
+  }, []);
+  const api = React.useMemo(() => ({ ...state, report }), [state, report]);
+  return <NameScope.Provider value={api}>{children}</NameScope.Provider>;
+}
+let nameCanvas = null;
+const textW = (el, str) => {
+  const cs = getComputedStyle(el);
+  const c = nameCanvas || (nameCanvas = document.createElement('canvas').getContext('2d'));
+  c.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const t = cs.textTransform === 'uppercase' ? str.toUpperCase() : str;
+  return c.measureText(t).width + (parseFloat(cs.letterSpacing) || 0) * t.length;
+};
+function ScopedPlayerName({ name, style, scope, ...rest }) {
+  const ref = React.useRef(null), id = React.useId();
+  const { report } = scope;
+  React.useLayoutEffect(() => {
+    const el = ref.current; if (!el) return undefined;
+    let alive = true;
+    const need = () => {
+      if (!alive || !ref.current) return;
+      const w = ref.current.clientWidth;
+      if (!(w > 0)) return;
+      const lvl = textW(ref.current, name) <= w + 0.5 ? 0 : textW(ref.current, initialName(name)) <= w + 0.5 ? 1 : 2;
+      report(id, lvl, name);
+    };
+    need();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(need) : null;
+    if (ro) ro.observe(el);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(need).catch(() => {});
+    return () => { alive = false; if (ro) ro.disconnect(); report(id, null, name); };
+  }, [name, id, report]);
+  const dupd = scope.dup && scope.dup.split('|').includes(surnameOf(name).toLowerCase());
+  const shown = scope.level === 0 ? name : scope.level === 1 || dupd ? initialName(name) : surnameOf(name);
+  return <span ref={ref} {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', ...style }}>{shown}</span>;
+}
+function PlayerName(props) {
+  const scope = React.useContext(NameScope);
+  return scope ? <ScopedPlayerName {...props} scope={scope} /> : <FreePlayerName {...props} />;
+}
+function FreePlayerName({ name, style, ...rest }) {
   const ref = React.useRef(null);
   const [last, setLast] = React.useState(false);
   const lastRef = React.useRef(false); lastRef.current = last;
@@ -419,7 +474,7 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 // scrolls (only the days move). The row paints its own background under a
 // pinned cell, so it covers the days sliding beneath it.
 const LIFT_DUE_DAYS = 6;
-const LIFTS_NAME_W = 186;
+const LIFTS_NAME_W = 212;   // the longest FULL name fits (LUCAS GOLDENBERG) - one name form per table needs every row to (11.10 #673); 212 + 150 + 31 x 24 = 1106 in the 1162 card
 const LIFTS_LAST_W = 150;
 const pinStart = (bg) => ({ position: 'sticky', insetInlineStart: 0, zIndex: 1, background: bg, marginInlineStart: -14, paddingInlineStart: 14 });
 const pinEnd = (bg) => ({ position: 'sticky', insetInlineEnd: 0, zIndex: 1, background: bg, marginInlineEnd: -14, paddingInlineEnd: 14 });
@@ -4988,7 +5043,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
         <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
           {/* the column widths are CSS variables: a phone narrows them (themes.css, 1.10 #499) */}
           <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
               <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
                 d.future
@@ -4997,13 +5052,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
               ))}
               <SortHeader data-end-head="" k="last" sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '4px 14px 5px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` /* the count row is part of the header band (5.10 #572) */ }}>
-              <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
-              {liftedPerDay.map((n, i) => (
-                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
-              ))}
-              <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch' }} />
-            </div>
+            <NameScopeProvider>
             <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {sort.rows.map(({ t, cells, since, last, todayCode }) => (
                 // A table row is never under 36 (24.9).
@@ -5011,7 +5060,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
                   style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch' }}>
+                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                     <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
@@ -5023,7 +5072,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                     const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
                     return (
                       <span key={c.iso} title={c.future ? monDay(c.iso) : title}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}`, background: 'transparent' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent' }}>
                         <CellMarks bands={bands} label={title} />
                       </span>
                     );
@@ -5038,6 +5087,17 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   </span>
                 </div>
               ))}
+            </div>
+            </NameScopeProvider>
+            {/* THE DAY'S COUNT IS THE FOOTER (11.10 #673 BHBC table system): one header band, rows with
+                hairlines only, the totals in a band like the header at the bottom - it was a second, smaller
+                band under the header that read as a row of data. */}
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
+              <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('lifted')}</span>
+              {liftedPerDay.map((n, i) => (
+                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: n == null ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
+              ))}
+              <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }} />
             </div>
           </div>
         </div>
