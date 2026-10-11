@@ -58,6 +58,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const [speed, setSpeed] = useState(0.5);
   const [trails, setTrails] = useState(true);
   const idxRef = useRef(0); idxRef.current = idx;
+  const playingRef = useRef(false); playingRef.current = playing;
   // the trails show THIS rep (or the last 2 s outside one): drawn over the whole clip they piled
   // the set-up and every rep into one tangle at the shoulder (11.10 #656, "output can be better")
   const trailFromRef = useRef(() => 0);
@@ -324,8 +325,28 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const place = (m, c, ax, ay, az, sx, sy, sz) => { basis.makeBasis(ax, ay, az); m.quaternion.setFromRotationMatrix(basis); m.position.copy(c); m.scale.set(sx, sy, sz); m.visible = true; };
     // axes from a side vector and an up vector: y = up, x = side without its up part, z = x * y
     const axesOf = (side, upv) => { const y = upv.clone().normalize(); const x = side.clone().addScaledVector(y, -side.dot(y)).normalize(); return [x, y, new THREE.Vector3().crossVectors(x, y).normalize()]; };
-    const pose = (i) => {
-      const p = pts[Math.max(0, Math.min(pts.length - 1, i))] || [];
+    // BETWEEN TWO CAPTURED FRAMES (11.10 #671): the capture runs ~9-10 fps and the replay plays at half
+    // speed, so it showed ~5 poses a second - a slideshow. Playback now draws every screen frame, each
+    // landmark blended between frame i and i+1 by the clock (u in 0..1); a pause shows the frame itself.
+    const blend = [];
+    const at = (i, u) => {
+      const a = pts[Math.max(0, Math.min(pts.length - 1, i))] || [];
+      const b = pts[i + 1];
+      if (!(u > 0) || !b) return a;
+      for (let k = 0; k < a.length; k++) {
+        const A = a[k], B = b[k];
+        if (!A || !B) { blend[k] = A || null; continue; }
+        const o = blend[k] || (blend[k] = {});
+        o.x = A.x + (B.x - A.x) * u; o.y = A.y + (B.y - A.y) * u; o.z = A.z + (B.z - A.z) * u;
+        o.visibility = u < 0.5 ? A.visibility : B.visibility;
+      }
+      blend.length = a.length;
+      return blend;
+    };
+    const pose = (i, u = 0) => {
+      const p = at(i, u);
+      // a measurement harness can count the poses drawn (audit-out/_3d-smooth.mjs) - inert unless set
+      try { if (typeof window !== 'undefined' && typeof window.__expoPoseHook === 'function') window.__expoPoseHook(i, u); } catch { /* the harness's problem */ }
       const ok = (k) => lmVisible(p[k]);
       const has = (k) => !!p[k] && Number.isFinite(p[k].x) && Number.isFinite(p[k].y) && Number.isFinite(p[k].z);
       for (const o of limbs) {
@@ -411,8 +432,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         refGeo.attributes.position.needsUpdate = true; refGeo.computeBoundingSphere(); refLines.visible = any;
       } else refLines.visible = false;
       const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
-      const at = Math.max(0, Math.min(pts.length - 1, i));
-      handTrail.show(Math.min(from, at), at); hipTrail.show(Math.min(from, at), at);
+      const ti = Math.max(0, Math.min(pts.length - 1, i));
+      handTrail.show(Math.min(from, ti), ti); hipTrail.show(Math.min(from, ti), ti);
     };
 
     const size = () => {
@@ -439,7 +460,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   }, [supported, pts, floorY, bounds, facing, channel]);
 
   // the frame on screen
-  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range, repSpans]);   // the outline follows a toggle / a new first rep at once
+  // while it plays, the playback loop draws (blended between frames); this would snap the body back to
+  // the captured frame ~9 times a second. Stopping redraws the exact frame.
+  useEffect(() => { const s = stateRef.current; if (s && !playingRef.current) s.pose(idx); }, [idx, compare, range, repSpans, playing]);   // the outline follows a toggle / a new first rep at once
   useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.on = trails; s.hipTrail.on = trails; s.pose(idxRef.current); } }, [trails]);
 
   // follow the clip while not playing on its own
@@ -459,7 +482,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       clock += (now - last) * speed; last = now;
       if (clock > end) clock = poseFrames[0].t;
       let i = idxRef.current; while (i + 1 < poseFrames.length && poseFrames[i + 1].t <= clock) i++; if (poseFrames[i].t > clock) i = 0;
-      setIdx(i); raf = requestAnimationFrame(tick);
+      const nx = poseFrames[i + 1], u = nx ? (clock - poseFrames[i].t) / Math.max(1, nx.t - poseFrames[i].t) : 0;
+      const s = stateRef.current; if (s) s.pose(i, Math.max(0, Math.min(1, u)));
+      if (i !== idxRef.current) { idxRef.current = i; setIdx(i); }   // React (slider, angles) only at a new captured frame
+      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
