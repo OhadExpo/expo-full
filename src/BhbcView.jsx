@@ -1945,7 +1945,11 @@ function attendance28(rec, days) {
              content visibly passes behind it. align-items centre so the crest
              sits on the row's axis, not its top. */
           .bhbc-header-id{position:sticky!important;inset-inline-start:-14px!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-inline-start:-14px!important;padding-block:0!important;padding-inline:14px 32px!important;box-shadow:8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          /* A SQUARE AROUND THE CREST (11.10 #672, Ohad: "use a square box space around the constant area it's a little bit too
+             wide ... symmetric around the logo"): it was 14px before the crest and 32px after, ~80 x 56. Now 56 x 56, the
+             bar's own height, the crest centred both ways - on the one-row phone bar (<=520), where it is pinned. */
           [dir="rtl"] .bhbc-header-id{box-shadow:-8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          @media (max-width:520px){.bhbc-header-id{padding:0!important;width:56px!important;min-width:56px!important;box-sizing:border-box!important;justify-content:center!important;gap:0!important}}   /* only where the crest is PINNED (one row); 521-760 is two rows, crest on the tab row's edge */
           /* the plate OWNS the gap before the first visible tab: a tab rests at
              its edge, and no tail of the tab before it shows in between (27.9
              LOOK: a sliver of OVERVIEW's last letter sat in that gap) */
