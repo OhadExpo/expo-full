@@ -12,6 +12,9 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { frameToPoints3D, stableReplayFrames, lmVisible } from './poseLab';
 import { C, FN } from './theme';
 import { useT, LangCtx } from './i18n';
@@ -270,17 +273,44 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const hands = [0, 1].map(() => addMesh(unit, skin));
     const feet = [0, 1].map(() => addMesh(unit, skin));
 
-    // 3D trails over the whole clip, revealed up to the frame on screen
-    const mid = (p, i, j) => (p && lmVisible(p[i]) && lmVisible(p[j]) ? new THREE.Vector3((p[i].x + p[j].x) / 2, (p[i].y + p[j].y) / 2, (p[i].z + p[j].z) / 2) : null);
+    // 3D trails over the whole clip, revealed up to the frame on screen. THICK and drawn OVER the body
+    // (11.10 #671): as 1px depth-tested lines the hip path ran inside the pelvis and the bar path inside
+    // the shoulders - in every shot of a full rep neither was visible. A dot marks where they are now.
+    // A PAIR'S PATH (11.10 #671): always the midpoint of the two (the replay places both - a faded one too),
+    // drawn while at least one of them is SEEN; a gap is bridged for at most GAP frames, then the trail
+    // restarts. It used to need both seen and carry the last value through any gap: in a back squat the
+    // 'bar path' sat at his hip, where his hands had hung in the walk-in; switching between one wrist and
+    // the midpoint drew sideways jumps of the grip's width.
+    const GAP = 3;
+    const fin3 = (q) => !!q && Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.z);
+    const pairMid = (p, i, j) => { if (!p || !(lmVisible(p[i]) || lmVisible(p[j]))) return null; if (fin3(p[i]) && fin3(p[j])) return mid2(p[i], p[j]); const q = fin3(p[i]) ? p[i] : fin3(p[j]) ? p[j] : null; return q ? new THREE.Vector3(q.x, q.y, q.z) : null; };
+    const mid2 = (a, b) => new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    const lineMats = [];
     const mkTrail = (pick, color) => {
-      const arr = new Float32Array(pts.length * 3); let last = null;
-      pts.forEach((p, i) => { const v = pick(p) || last; last = v; if (v) { arr[i * 3] = v.x; arr[i * 3 + 1] = v.y; arr[i * 3 + 2] = v.z; } });
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-      const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 }));
-      scene.add(line); return line;
+      const arr = new Float32Array(pts.length * 3), fresh = new Int32Array(pts.length).fill(-1); let last = null, lastAt = -1;
+      pts.forEach((p, i) => { const v = pick(p); if (v) { last = v; lastAt = i; } if (last && i - lastAt <= GAP) { arr[i * 3] = last.x; arr[i * 3 + 1] = last.y; arr[i * 3 + 2] = last.z; fresh[i] = lastAt; } });
+      const mat = new LineMaterial({ color, linewidth: 3.5, transparent: true, opacity: 0.95, depthTest: false });
+      lineMats.push(mat);
+      const line = new Line2(new LineGeometry(), mat); line.renderOrder = 3; line.frustumCulled = false; line.visible = false; scene.add(line);
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 12), new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true }));
+      dot.renderOrder = 4; dot.visible = false; scene.add(dot);
+      return { arr, line, dot, on: true, show(from, i) {
+        // nothing measured here (a long gap): no dot, no line
+        if (fresh[i] < 0) { this.dot.visible = false; this.line.visible = false; return; }
+        // the trail starts after the last long gap inside this rep
+        let a = i; while (a > from && fresh[a - 1] >= 0) a--;
+        from = a; const n = i - from + 1;
+        this.dot.visible = this.on; this.dot.position.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]);
+        if (!this.on || n < 2) { this.line.visible = false; return; }
+        this.line.geometry.setPositions(arr.subarray(from * 3, (i + 1) * 3)); this.line.visible = true;
+      } };
     };
-    const handTrail = mkTrail((p) => mid(p, 15, 16), ACCENT);
-    const hipTrail = mkTrail((p) => mid(p, 23, 24), HIP_TRAIL);
+    // THE BAR PATH follows where the bar is: on his back in a squat (the shoulders - his hands are behind his
+    // head there, out of the camera's sight, and their 'seen' points floated above it), in his hands for a
+    // hinge, a row, a press or a curl
+    const BAR = channel === 'knee' ? [11, 12] : [15, 16];
+    const handTrail = mkTrail((p) => pairMid(p, BAR[0], BAR[1]), ACCENT);
+    const hipTrail = mkTrail((p) => pairMid(p, 23, 24), HIP_TRAIL);
     // the first rep's outline: thin bones, no volume, never casts a shadow
     const REF_BONES = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32], [29, 31], [30, 32], [27, 29], [28, 30]];
     const refGeo = new THREE.BufferGeometry(); refGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(REF_BONES.length * 6), 3));
@@ -381,12 +411,14 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         refGeo.attributes.position.needsUpdate = true; refGeo.computeBoundingSphere(); refLines.visible = any;
       } else refLines.visible = false;
       const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
-      handTrail.geometry.setDrawRange(from, i - from + 1); hipTrail.geometry.setDrawRange(from, i - from + 1);
+      const at = Math.max(0, Math.min(pts.length - 1, i));
+      handTrail.show(Math.min(from, at), at); hipTrail.show(Math.min(from, at), at);
     };
 
     const size = () => {
       const w = host.clientWidth || 320, h = Math.round(Math.min(560, w * 1.15));
       renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+      for (const m of lineMats) m.resolution.set(w, h);   // a fat line's width is in screen pixels
     };
     size();
     fit(facing ? new THREE.Vector3(facing.F[0] * 0.75 + facing.seen[0] * 0.66, 0.36, facing.F[1] * 0.75 + facing.seen[1] * 0.66) : new THREE.Vector3(2.1, 0.5, 2.6));
@@ -404,11 +436,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       stateRef.current = null;
     };
-  }, [supported, pts, floorY, bounds, facing]);
+  }, [supported, pts, floorY, bounds, facing, channel]);
 
   // the frame on screen
   useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range, repSpans]);   // the outline follows a toggle / a new first rep at once
-  useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.visible = trails; s.hipTrail.visible = trails; } }, [trails]);
+  useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.on = trails; s.hipTrail.on = trails; s.pose(idxRef.current); } }, [trails]);
 
   // follow the clip while not playing on its own
   useEffect(() => {
@@ -483,7 +515,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, display: 'flex', gap: 10, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }}>
           <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
           {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
-          {trails && <><span style={{ color: '#39BDFF' }}>━ {tt('HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
+          {trails && <><span style={{ color: '#39BDFF' }}>━ {tt(channel === 'knee' ? 'SHOULDERS' : 'HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
         </div>
       </div>
       <input type="range" min={0} max={Math.max(0, poseFrames.length - 1)} value={idx} aria-label={tt('FRAME')}
