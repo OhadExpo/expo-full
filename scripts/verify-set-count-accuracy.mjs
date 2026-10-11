@@ -45,6 +45,8 @@ const ONLY = (process.env.ONLY || '').split(',').map((s) => s.trim()).filter(Boo
 const HARNESS_BUILD = 'set-3';
 // QUALITY=full|heavy measures a bigger pose model on the same clips (the athlete's pipeline is lite)
 const QUALITY = ['full', 'heavy'].includes(process.env.QUALITY) ? process.env.QUALITY : 'lite';
+// FPS=20 samples the clip denser than the athlete's ~12 a second (a measurement, 11.10 #656)
+const FPS = Number(process.env.FPS) || null;
 
 const nothing = (why) => { console.log(`verify-set-count-accuracy: NOTHING MEASURED - ${why}`); process.exit(1); };
 
@@ -130,7 +132,7 @@ for (const c of present) {
       raw = result && result.ok !== false ? { repCount: result.repCount, jointRepCount: result.jointRepCount, countMethod: result.countMethod, grade: result.captureQuality && result.captureQuality.grade, bottomsT: (result.reps || []).map((r) => Math.round(fr[r.bottomIdx].t)), rejected: result.rejectedReps } : result;
       frames = fr.length;
     } else {
-      const r = await page.evaluate((u, title, keep, q) => window.runSet(u, title, { keepFrames: keep, quality: q }), `${clipOrigin}/${encodeURIComponent(c.file)}`, c.title || '', !!SAVE, QUALITY);
+      const r = await page.evaluate((u, title, keep, q, fps) => window.runSet(u, title, { keepFrames: keep, quality: q, fps }), `${clipOrigin}/${encodeURIComponent(c.file)}`, c.title || '', !!SAVE, QUALITY, FPS);
       if (!r || r.harnessBuild !== HARNESS_BUILD) { console.log(`harness build mismatch (got ${r && r.harnessBuild}, want ${HARNESS_BUILD}) - a stale page would test old code`); process.exit(1); }
       read = r.read; raw = r.raw; ms = r.ms; frames = r.frameCount; countedT = r.countedT;
       if (SAVE) { fs.mkdirSync(SAVE, { recursive: true }); fs.writeFileSync(path.join(SAVE, `${c.file}-run${k}.json`), JSON.stringify({ file: c.file, title: c.title, secs: r.secs, maxFrames: r.maxFrames, dims: r.dims, frames: r.frames })); }

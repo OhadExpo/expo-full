@@ -2841,7 +2841,7 @@ export const HE = {
   'titles': 'שמות',
   'Accept all high-confidence': 'אישור כל ההתאמות הבטוחות',
   // Matching / Cleanup tops, joined actions (9.10, after #619) - native-checked
-  'Accept all high': 'אישור כל ההתאמות הבטוחות',
+  'Accept all high': 'אישור כל הבטוחות',   // the joined button's half (11.10 #651: the long form lost 11px at 360; native-checked)
   'Plan rows whose exercise is not in the library, by title. Accept, change or skip - Apply links every row with that title.': 'שורות תוכנית שהתרגיל שלהן לא בספרייה, לפי שם. תאשר, תשנה או תדלג - ההחלה מקשרת כל שורה עם אותו שם.',
   'Pre-checked: definite, in no plan, no video or cues. Deleting sends any plan row that used one to Matching.': 'מסומנים מראש: ודאיים, לא בשום תוכנית, בלי סרטון או דגשים. מחיקה שולחת כל שורת תוכנית שהשתמשה באחד מהם למסך ההתאמה.',
   'Preview this library exercise — video, cues, classification': 'תצוגה מקדימה של תרגיל מהספרייה — סרטון, דגשים, סיווג',
