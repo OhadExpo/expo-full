@@ -5400,7 +5400,8 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                   bottom borders"): the right group's wrapper kept the default line box
                   and sat its text ~2px low, and the height was 11px beside 10px.
                   Every piece is 10px on line-height 1, aligned on the baseline. */}
-              <div className="bhbc-rc-foot" style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0, lineHeight: 1 }}>
+              {/* gap 4 and the sessions label at 0.04em (11.10 #651): height · flag · PPG · '32 SESSIONS · 6H' ran 5px past a 242px footer at 1440 */}
+              <div className="bhbc-rc-foot" style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 'auto', paddingTop: 12, height: 31, boxSizing: 'border-box', borderTop: `1px solid ${C.cardBd}`, flexShrink: 0, lineHeight: 1 }}>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{flag(t.nationality)}</span>
                 {/* THE PPG MUST NOT WRAP.
@@ -5421,7 +5422,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                      athlete who trained twenty times in a month is being told
                      something false. Say what is known. */
                   : (att && att.n > 0
-                    ? <span title={tr('Last 28 days')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min >= 60 ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? ` · ${att.min}′` : ''}</span>
+                    ? <span title={tr('Last 28 days')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min >= 60 ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : att.min > 0 ? ` · ${att.min}′` : ''}</span>
                     : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>
