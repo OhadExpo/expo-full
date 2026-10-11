@@ -450,6 +450,10 @@ export default function MovementLab({
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(0);
   const [result, setResult] = useState(null);
+  // MOVEMENT LAB's 3D view had no first / last rep: the trim lives in AnalyzeResult (LIFT METRICS'
+  // 3D tab), and this tool shows the replay on its own (11.10 #656). A trim per analysis, here.
+  const [labRange, setLabRange] = useState(null);
+  useEffect(() => { setLabRange(null); }, [result]);
   const [jump, setJump] = useState(null);
   const [tab, setTab] = useState('velocity');
   const [progress, setProgress] = useState(0);
@@ -791,12 +795,13 @@ export default function MovementLab({
           <>
             {!romSpec && (
               <Section title={tt('3D SKELETON')}>
-                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result} />
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result}
+                  range={result && result.repCount > 1 ? (labRange || { from: 1, to: null }) : null} onRange={result && result.repCount > 1 ? (a, b) => setLabRange({ from: a, to: b }) : null} />
               </Section>
             )}
             <Section title={tt('JOINT ANGLES')}>
               {result?.ok
-                ? <>{!romSpec && <ReadSummary result={result} movement={movement} />}<RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} /></>
+                ? <>{!romSpec && <ReadSummary result={result} movement={movement} range={labRange} />}<RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} /></>
                 : <Empty msg={tt("Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame.")} />}
             </Section>
           </>
@@ -846,7 +851,7 @@ export default function MovementLab({
 }
 
 // The read's header line: capture quality + counts, all translated.
-function ReadSummary({ result, movement }) {
+function ReadSummary({ result, movement, range = null }) {
   const tt = useT();
   if (!result?.ok) return null;
   const cq = result.captureQuality;
@@ -859,7 +864,12 @@ function ReadSummary({ result, movement }) {
   return (
     <div style={{ fontFamily: FN, fontSize: 11, lineHeight: 1.6, letterSpacing: '0.04em', color: C.tm, marginBottom: 12 }}>
       {counted
-        ? <div>{result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount)} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>
+        ? <div>{(() => {
+          // the coach's first / last rep (from the 3D replay): the set over what was found, '6 REPS OF 10'
+          const all = result.repCount || 0, f = range && range.from > 0 ? range.from : 1, t = range && range.to > 0 ? Math.min(range.to, all) : all;
+          const trimmed = all > 1 && (f > 1 || t < all), n = trimmed ? Math.max(0, t - f + 1) : all;
+          return <>{n === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', n)}{trimmed && <> {tt('OF {n}').replace('{n}', all)}</>}</>;
+        })()} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>
         : <div>{tt('Neutral read')} · {result.fps}fps · {result.frameCount} {tt('frames')}</div>}
       {cqLine && <div style={{ color: cq.grade === 'poor' ? C.or : C.tm }}>{cqLine}</div>}
       {cq && cq.camera && <div style={{ color: cq.camera.view === 'angled' ? C.or : C.tm }}>{cq.camera.view === 'side' ? tt('Camera: side view.') : cq.camera.view === 'front' ? tt('Camera: front or back view.') : tt('Camera: about {n}° off a side view - joint angles read best side-on.').replace('{n}', cq.camera.offSideDeg)}</div>}
