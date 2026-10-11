@@ -6710,7 +6710,7 @@ function GameWarmupView({ data = {} }) {
                       {d.cue && <span dir={d.he || lang !== 'he' ? undefined : 'auto'} style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: lang === 'he' ? 'right' : 'left' }}>{d.cue}</span>}
                       {d.note && <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{d.note}</span>}
                     </span>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: 'end', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', unicodeBidi: 'isolate' }} dir={d.doseHe ? undefined : 'auto'}>{d.dose}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.tx, textAlign: lang === 'he' ? 'left' : 'right' /* the row's outer edge: 'end' would follow a sheet volume's own dir='auto' inward (review 11.10) */, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', unicodeBidi: 'isolate' }} dir={d.doseHe ? undefined : 'auto'}>{d.dose}</span>
                   </div>
                 ); })}
               </div>
