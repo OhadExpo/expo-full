@@ -1124,7 +1124,8 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} result={result} />}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} result={result}
+        range={repCount > 1 ? { from: effFrom, to: effTo } : null} onRange={repCount > 1 ? (a, b) => { setRepFrom(a); setRepTo(b); } : null} />}
     </div>
   );
 }
@@ -2326,13 +2327,13 @@ const repTimes = (result, frames) => {
   return result.reps.map((r, k) => (per[k] && per[k].rerack ? null : { t0: frames[r.startIdx]?.t, tb: frames[r.bottomIdx]?.t, t1: frames[r.endIdx]?.t }))
     .filter((r) => r && Number.isFinite(r.tb));
 };
-function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null }) {
+function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null, range = null, onRange = null }) {
   const [fallback, setFallback] = useState(false);
   const reps = useMemo(() => repTimes(result, frames), [result, frames]);
   if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
   return (
     <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
-      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} reps={reps} channel={result ? result.kind : null} />
+      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} reps={reps} channel={result ? result.kind : null} range={range} onRange={onRange} />
     </Suspense>
   );
 }

@@ -2535,6 +2535,13 @@ export const HE = {
   'HANDS': 'ידיים',
   'PREV REP': 'חזרה קודמת',
   'NEXT REP': 'חזרה הבאה',
+  'FADED = NOT SEEN': 'שקוף = לא נראה בצילום',
+  'RANGE': 'טווח',
+  'DURATION': 'משך',
+  'FIRST REP': 'חזרה ראשונה',
+  'LAST REP': 'חזרה אחרונה',
+  'ALL REPS': 'כל החזרות',
+  'IN THE SET: {n}': 'בסט: {n}',
   // 17.9 coach-side leftovers (bug report, portal preview bar, anatomy viewers, intake detail)
   'Report a bug': 'דיווח על באג',
   'REPORT A BUG': 'דיווח על באג',

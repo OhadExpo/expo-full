@@ -1598,7 +1598,7 @@ const replayCache = new WeakMap();
 export function stableReplayFrames(frames) {
   if (!frames || !frames.length) return [];
   let v = replayCache.get(frames);
-  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks), { smoothKeys: ['worldLandmarks'] }); replayCache.set(frames, v); }   // the 3D views draw world points only
+  if (!v) { v = stabilizeWorldFrames(frames.filter((f) => f && f.worldLandmarks), { smoothKeys: ['worldLandmarks'], upright: true }); replayCache.set(frames, v); }   // the 3D views draw world points only
   return v;
 }
 // the feet step's per-frame body shift, smoothed in time (spike filter + forward-backward One-Euro)
@@ -1628,7 +1628,52 @@ function smoothOffsets(off, ts, { win, k, minCutoff, beta, dCutoff }) {
   }
   return out;
 }
-export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true, smoothKeys = undefined } = {}) {
+// THE CLIP STANDS UP (11.10 #656). MediaPipe's world frame is the CAMERA's: a phone pitched down
+// or propped on a bench tilts the whole skeleton. Over 29 real captures the standing body (both
+// knees and hips straight) leaned a median 14° off vertical, 22 clips over 10° - a back squat
+// replayed as a man falling backwards. Straight legs standing put the hips over the ankles, so the
+// mean ankle -> hip direction over the standing frames IS the clip's up: rotate the clip so it is
+// vertical. Joint angles do not change (one rigid rotation per clip). Not applied when the
+// clip has fewer than 10 standing frames, or when that axis is more than 35° off (a plank, a
+// push-up: straight legs, but not standing) - those keep the camera's frame.
+const UPRIGHT_MAX_DEG = 35, UPRIGHT_MIN_FRAMES = 10;
+export function uprightRotation(frames, minVis = VIS_MIN) {
+  const ok = (p) => !!p && isReal(p.x) && isReal(p.y) && isReal(p.z) && (p.visibility == null || p.visibility >= minVis);
+  const ang = (a, b, c) => { const u = [a.x - b.x, a.y - b.y, a.z - b.z], v = [c.x - b.x, c.y - b.y, c.z - b.z]; const d = Math.hypot(u[0], u[1], u[2]) * Math.hypot(v[0], v[1], v[2]); return d ? (Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / d))) * 180) / Math.PI : 0; };
+  let sx = 0, sy = 0, sz = 0, n = 0;
+  for (const f of frames) {
+    const w = f && f.worldLandmarks;
+    if (!w || ![11, 12, 23, 24, 25, 26, 27, 28].every((k) => ok(w[k]))) continue;
+    // MediaPipe puts the hip landmark forward of the joint: a man standing tall reads ~148° at the
+    // hip (median over 5 real squat / lunge clips), so 'straight' is > 140 there
+    if (!(ang(w[23], w[25], w[27]) > 160 && ang(w[24], w[26], w[28]) > 160 && ang(w[11], w[23], w[25]) > 140 && ang(w[12], w[24], w[26]) > 140)) continue;
+    // the LEGS' axis (ankles -> hips), not the trunk's: a soft hinge leans the trunk, not the straight legs
+    const vx = (w[23].x + w[24].x - w[27].x - w[28].x) / 2, vy = (w[23].y + w[24].y - w[27].y - w[28].y) / 2, vz = (w[23].z + w[24].z - w[27].z - w[28].z) / 2;
+    const L = Math.hypot(vx, vy, vz); if (!(L > 1e-6)) continue;
+    sx += vx / L; sy += vy / L; sz += vz / L; n++;
+  }
+  if (n < UPRIGHT_MIN_FRAMES) return null;
+  const L = Math.hypot(sx, sy, sz); const a = [sx / L, sy / L, sz / L];
+  // MediaPipe y points DOWN: up is (0, -1, 0)
+  const tilt = (Math.acos(Math.max(-1, Math.min(1, -a[1]))) * 180) / Math.PI;
+  if (tilt > UPRIGHT_MAX_DEG || tilt < 1) return null;   // under 1°: nothing to do
+  // Rodrigues: the rotation taking a onto b = (0, -1, 0)
+  const b = [0, -1, 0];
+  const k = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const sn = Math.hypot(k[0], k[1], k[2]), c = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const kx = k[0] / sn, ky = k[1] / sn, kz = k[2] / sn, C1 = 1 - c;
+  const R = [
+    [c + kx * kx * C1, kx * ky * C1 - kz * sn, kx * kz * C1 + ky * sn],
+    [ky * kx * C1 + kz * sn, c + ky * ky * C1, ky * kz * C1 - kx * sn],
+    [kz * kx * C1 - ky * sn, kz * ky * C1 + kx * sn, c + kz * kz * C1],
+  ];
+  return { R, tilt, frames: n };
+}
+const rotateWorld = (w, R) => w.map((p) => (p && isReal(p.x) && isReal(p.y) ? { ...p,
+  x: R[0][0] * p.x + R[0][1] * p.y + R[0][2] * (p.z ?? 0),
+  y: R[1][0] * p.x + R[1][1] * p.y + R[1][2] * (p.z ?? 0),
+  z: R[2][0] * p.x + R[2][1] * p.y + R[2][2] * (p.z ?? 0) } : p));
+export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6, plantFeet = true, smooth = true, bones = true, smoothKeys = undefined, upright = false } = {}) {
   if (!frames || !frames.length) return [];
   const confident = (p) => !!p && isReal(p.x) && isReal(p.y) && (p.visibility == null || p.visibility >= minVis);
   // world points carry no visibility in every build - borrow the image landmark's
@@ -1680,6 +1725,10 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
     }
     return { ...f, worldLandmarks: out };
   });
+  if (upright) {
+    const U = uprightRotation(rebuilt, minVis);
+    if (U) for (let i = 0; i < rebuilt.length; i++) if (rebuilt[i].worldLandmarks) rebuilt[i] = { ...rebuilt[i], worldLandmarks: rotateWorld(rebuilt[i].worldLandmarks, U.R) };
+  }
   if (!plantFeet) return rebuilt;
   // 3. the feet stay on the floor. World landmarks are HIP-centred: in a squat
   // the hips drop and travel back, so drawn from the hips the feet slid forward

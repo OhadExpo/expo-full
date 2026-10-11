@@ -6,7 +6,7 @@ import { stabilizeWorldFrames, smoothFramesForDisplay, smoothFramesZeroPhase } f
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log('  ok   ' + m); } else { fail++; console.log('  FAIL ' + m); } };
-const run = process.env.BREAK ? (fr) => smoothFramesForDisplay(fr) : (fr) => stabilizeWorldFrames(fr);
+const run = process.env.BREAK === '1' ? (fr) => smoothFramesForDisplay(fr) : (fr) => stabilizeWorldFrames(fr);
 
 // a standing body in MediaPipe world coords (metres, hip-centred, y DOWN)
 const base = () => {
@@ -66,6 +66,22 @@ ok(frames[30].worldLandmarks[23].x > 0, 'the input frames are not mutated');
   ok(edge < 0.01, `a hidden stretch does not pull the seen frames beside it (worst ${(edge * 100).toFixed(1)} cm off; 40 cm jump)`);
 }
 ok(stabilizeWorldFrames([]).length === 0 && stabilizeWorldFrames(null).length === 0, 'empty in, empty out');
+// THE CLIP STANDS UP (11.10 #656): a standing clip filmed by a phone pitched 15° - the replay's
+// legs must come out vertical; a plank (straight legs, 80° off) must be left in the camera's frame;
+// joint angles do not change. BREAK=2 skips the rotation - must FAIL.
+{
+  const tiltX = (w, deg) => { const a = (deg * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a); return w.map((q) => ({ ...q, y: c * q.y - sn * q.z, z: sn * q.y + c * q.z })); };
+  const mk = (deg) => Array.from({ length: 30 }, (_, i) => { const w = tiltX(base(), deg).map((q) => ({ ...q, x: q.x + 0.002 * Math.sin(i) })); return { t: i * 40, landmarks: w.map((q) => ({ x: 0.5 + q.x, y: 0.5 + q.y, z: 0, visibility: 0.99 })), worldLandmarks: w }; });
+  const legTilt = (fr) => { const w = fr[15].worldLandmarks; const v = [(w[23].x + w[24].x - w[27].x - w[28].x) / 2, (w[23].y + w[24].y - w[27].y - w[28].y) / 2, (w[23].z + w[24].z - w[27].z - w[28].z) / 2]; return (Math.acos(-v[1] / Math.hypot(...v)) * 180) / Math.PI; };
+  const kneeAng = (w) => { const a = w[23], b = w[25], c = w[27]; const u = [a.x - b.x, a.y - b.y, a.z - b.z], v = [c.x - b.x, c.y - b.y, c.z - b.z]; return (Math.acos((u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / (Math.hypot(...u) * Math.hypot(...v))) * 180) / Math.PI; };
+  const up = process.env.BREAK === '2' ? false : true;
+  const tilted = mk(15), o1 = stabilizeWorldFrames(tilted, { upright: up, plantFeet: false });
+  ok(legTilt(tilted) > 14 && legTilt(o1) < 1, `a clip filmed 15° pitched stands up (legs ${legTilt(tilted).toFixed(1)}° -> ${legTilt(o1).toFixed(1)}° off vertical)`);
+  const plank = mk(80), o2 = stabilizeWorldFrames(plank, { upright: up, plantFeet: false });
+  ok(Math.abs(legTilt(o2) - legTilt(plank)) < 0.5, `a plank (straight legs 80° off) keeps the camera's frame (${legTilt(plank).toFixed(1)}° -> ${legTilt(o2).toFixed(1)}°)`);
+  const raw = stabilizeWorldFrames(tilted, { upright: false, plantFeet: false });
+  ok(Math.abs(kneeAng(o1[15].worldLandmarks) - kneeAng(raw[15].worldLandmarks)) < 0.01, 'the rotation leaves joint angles as they were');
+}
 
 console.log(`POSE STABLE: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
