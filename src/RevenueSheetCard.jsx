@@ -570,7 +570,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', fontWeight: 600 }}><bdi>{p.client_name}</bdi></td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px' }} dir="ltr">{fmtNumericDate(p.event_date)}</td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
-                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(p.rate_text)}</td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}>{fmtRate(p.rate_text)}</td>
                                   <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.counter_before || '—'}</bdi></td>
                                   <td style={{ ...td, padding: '5px 10px', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                                     <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} />
