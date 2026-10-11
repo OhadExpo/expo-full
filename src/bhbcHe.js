@@ -720,6 +720,7 @@ Object.assign(HE, {
   // The chevron turns with the text: it points the way the reader is going.
   'Update ›': 'עדכון ‹',
   'record': 'רשומה',
+  '1 record': 'רשומה אחת',
   'records': 'רשומות',
   'Update the medical report': 'עדכון הדוח הרפואי',
   'Report an injury': 'דיווח על פציעה',

@@ -7383,8 +7383,12 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
               <div key={t.id} className="bhbc-row bhbc-rh-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 14, rowGap: 8, padding: '11px 0', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ flex: '1 1 160px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 140, cursor: 'pointer' }} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }}>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'end', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
-                  <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
-                  {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} {tr(hist > 1 ? 'records' : 'record')}</span>}
+                  {/* the record count UNDER the name (11.10 #651): beside it, "· 3 records" took 75 of a phone's
+                      172px and even the surname alone overran - "Broughton" by 26px at 360 */}
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: '1 1 auto' }}>
+                    <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }} />
+                    {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em' }}>{hist === 1 ? tr('1 record') : `${hist} ${tr('records')}`}</span>}
+                  </span>
                 </div>
                 {/* ONE STATUS COLUMN (29.9 #416, Ohad: "the colors and the status
                     looks misaligned"): a FIXED width, so the buttons after it
