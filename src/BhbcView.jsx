@@ -15,7 +15,7 @@ import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffe
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
 import { gwDrill, gwSection } from './gameWarmupText';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone, JoinedButtons, ChipGrid } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -288,7 +288,64 @@ const initialName = (n) => { const p = String(n || '').trim().split(/\s+/); retu
 // medical / lifts column. When the initial + surname still does not fit, the surname alone - the
 // same size, one row, never cut. Measured on the box itself; a resize starts again from the top.
 // (surnameOf is the zone's one surname helper, further down - 'Ohad calls the squad by last names')
-function PlayerName({ name, style, ...rest }) {
+// ONE NAME FORM PER TABLE (11.10 #673 BHBC table system): each PlayerName above chooses its own form, so
+// one column read 'D. FRANCIS · BROUGHTON · ROY SOLOMON'. Inside a NameScope every row reports the most
+// compact form IT needs (0 full, 1 initial + surname, 2 surname - he calls the squad by last names) and
+// all rows show the table's most compact one; two players sharing a surname keep their initial. The
+// need is measured on canvas with the row's own font (no hidden copy in the page - the overflow gate
+// read one as a spill, 27.9).
+const NameScope = React.createContext(null);
+function NameScopeProvider({ children }) {
+  const rows = React.useRef(new Map());
+  const [state, setState] = React.useState({ level: 0, dup: '' });
+  const report = React.useCallback((id, lvl, name) => {
+    if (lvl == null) rows.current.delete(id); else rows.current.set(id, { lvl, name });
+    // a surname is SHARED only between two different players - one player on two rows (two injury records) is not a clash
+    let level = 0; const seen = new Map(), names = new Set();
+    for (const r of rows.current.values()) { if (r.lvl > level) level = r.lvl; names.add(String(r.name || '').trim().toLowerCase()); }
+    for (const n of names) { const sn = surnameOf(n).toLowerCase(); seen.set(sn, (seen.get(sn) || 0) + 1); }
+    const dup = [...seen].filter(([, n]) => n > 1).map(([k]) => k).sort().join('|');
+    setState((p) => (p.level === level && p.dup === dup ? p : { level, dup }));
+  }, []);
+  const api = React.useMemo(() => ({ ...state, report }), [state, report]);
+  return <NameScope.Provider value={api}>{children}</NameScope.Provider>;
+}
+let nameCanvas = null;
+const textW = (el, str) => {
+  const cs = getComputedStyle(el);
+  const c = nameCanvas || (nameCanvas = document.createElement('canvas').getContext('2d'));
+  c.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const t = cs.textTransform === 'uppercase' ? str.toUpperCase() : str;
+  return c.measureText(t).width + (parseFloat(cs.letterSpacing) || 0) * t.length;
+};
+function ScopedPlayerName({ name, style, scope, ...rest }) {
+  const ref = React.useRef(null), id = React.useId();
+  const { report } = scope;
+  React.useLayoutEffect(() => {
+    const el = ref.current; if (!el) return undefined;
+    let alive = true;
+    const need = () => {
+      if (!alive || !ref.current) return;
+      const w = ref.current.clientWidth;
+      if (!(w > 0)) return;
+      const lvl = textW(ref.current, name) <= w + 0.5 ? 0 : textW(ref.current, initialName(name)) <= w + 0.5 ? 1 : 2;
+      report(id, lvl, name);
+    };
+    need();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(need) : null;
+    if (ro) ro.observe(el);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(need).catch(() => {});
+    return () => { alive = false; if (ro) ro.disconnect(); report(id, null, name); };
+  }, [name, id, report]);
+  const dupd = scope.dup && scope.dup.split('|').includes(surnameOf(name).toLowerCase());
+  const shown = scope.level === 0 ? name : scope.level === 1 || dupd ? initialName(name) : surnameOf(name);
+  return <span ref={ref} {...rest} style={{ display: 'flex', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', ...style }}>{shown}</span>;
+}
+function PlayerName(props) {
+  const scope = React.useContext(NameScope);
+  return scope ? <ScopedPlayerName {...props} scope={scope} /> : <FreePlayerName {...props} />;
+}
+function FreePlayerName({ name, style, ...rest }) {
   const ref = React.useRef(null);
   const [last, setLast] = React.useState(false);
   const lastRef = React.useRef(false); lastRef.current = last;
@@ -419,7 +476,7 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 // scrolls (only the days move). The row paints its own background under a
 // pinned cell, so it covers the days sliding beneath it.
 const LIFT_DUE_DAYS = 6;
-const LIFTS_NAME_W = 186;
+const LIFTS_NAME_W = 212;   // the longest FULL name fits (LUCAS GOLDENBERG) - one name form per table needs every row to (11.10 #673); 212 + 150 + 31 x 24 = 1106 in the 1162 card
 const LIFTS_LAST_W = 150;
 const pinStart = (bg) => ({ position: 'sticky', insetInlineStart: 0, zIndex: 1, background: bg, marginInlineStart: -14, paddingInlineStart: 14 });
 const pinEnd = (bg) => ({ position: 'sticky', insetInlineEnd: 0, zIndex: 1, background: bg, marginInlineEnd: -14, paddingInlineEnd: 14 });
@@ -781,7 +838,9 @@ function sortRowsBy(rows, spec, dir) {
 // the zone's table cells (#340): one header band, one row height, numbers end-aligned
 const BHBC_TH = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, height: 36, padding: '0 12px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap', verticalAlign: 'middle' };
 const BHBC_TD = { fontFamily: FN, fontSize: 13, height: 40, padding: '0 12px', textAlign: 'end', fontVariantNumeric: 'tabular-nums', verticalAlign: 'middle', borderBottom: '1px solid color-mix(in srgb, var(--c-cardBd) 65%, transparent)' };
-const BHBC_TD_SORTED = { background: `color-mix(in srgb, ${ORANGE} 6%, transparent)`, fontWeight: 800 };
+// the sorted column is marked by its header's colour and BOLD values - never a tinted column (his 5.10 rule:
+// no colour fills in cells; the 6% orange wash was the last one, #673)
+const BHBC_TD_SORTED = { fontWeight: 800 };
 function useSort(rows, cols, defaultKey = null, defaultDir = null) {
   const firstDir = (k) => (k && cols[k] && sortSpec(cols[k]).asc ? 'asc' : 'desc');
   const [st, setSt] = useState(() => ({ key: defaultKey, dir: defaultDir || firstDir(defaultKey) }));
@@ -1945,7 +2004,13 @@ function attendance28(rec, days) {
              content visibly passes behind it. align-items centre so the crest
              sits on the row's axis, not its top. */
           .bhbc-header-id{position:sticky!important;inset-inline-start:-14px!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-inline-start:-14px!important;padding-block:0!important;padding-inline:14px 32px!important;box-shadow:8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          /* A SQUARE AROUND THE CREST (11.10 #672, Ohad: "use a square box space around the constant area it's a little bit too
+             wide ... symmetric around the logo"): it was 14px before the crest and 32px after, ~80 x 56. Now 56 x 56, the
+             bar's own height, the crest centred both ways - on the one-row phone bar (<=520), where it is pinned. */
           [dir="rtl"] .bhbc-header-id{box-shadow:-8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          @media (max-width:520px){.gw-row{--gw-dose-w:92px}}
+          @media (max-width:520px){.bhbc-rh-actions{width:100%!important;flex:1 1 100%!important;max-width:none!important}}   /* a phone card's second line is the joined actions, full width (9.10 phone pattern, #673) */
+          @media (max-width:520px){.bhbc-header-id{padding:0!important;width:56px!important;min-width:56px!important;box-sizing:border-box!important;justify-content:center!important;gap:0!important}}   /* only where the crest is PINNED (one row); 521-760 is two rows, crest on the tab row's edge */
           /* the plate OWNS the gap before the first visible tab: a tab rests at
              its edge, and no tail of the tab before it shows in between (27.9
              LOOK: a sliver of OVERVIEW's last letter sat in that gap) */
@@ -3456,7 +3521,7 @@ function HAChip({ home }) {
   // Theme-aware brand tone — the raw navy is unreadable on the dark page.
   const c = isHome ? 'var(--bhbc-ha-home, ' + NAVY + ')' : 'var(--bhbc-ha-away, ' + ORANGE_DEEP + ')';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: 'none', padding: '2px 7px', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: 'transparent' /* colour in the word only (his 5.10 rule; the Games list's own form, #673) */, border: 'none', padding: '2px 7px', whiteSpace: 'nowrap' }}>
       {isHome ? tr('HOME') : tr('AWAY')}
     </span>
   );
@@ -3678,7 +3743,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                       (27.9: in the badge column they squeezed the name and the
                       Porto row broke into seven lines at 360) */}
                   {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
-                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1A1205', background: '#E0A73A', padding: '1px 6px', whiteSpace: 'nowrap' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
+                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bhbc-amber-text, #E0A73A)', whiteSpace: 'nowrap' /* amber WORDS, not an amber box (#673) */ }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
                 {/* Competition and date on one line, the VENUE on its own.
                     Joined with " · " they were one text run, and once the badge
@@ -4748,7 +4813,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           of 36 (they were 26 - under the zone's row height). */}
       <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
             <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
             {days.list.map((d) => (
               d.future
@@ -4757,21 +4822,14 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
             ))}
             <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('made')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '4px 14px 5px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` /* the count row is part of the header band (5.10 #570) */ }}>
-            <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('present')}</span>
-            {perDay.map((v, i) => (
-              // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
-              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
-            ))}
-            <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch' }} />
-          </div>
+          <NameScopeProvider>
           <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
             {sort.rows.map(({ t, cells, last, todayCode, went, owed }) => (
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
                 onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
                 style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch' }}>
+                <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                   <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
@@ -4788,7 +4846,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   if (showLift && c.lift) overlays.push(FX_COLOR.lift);
                   return (
                     <span key={c.iso} title={label}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent' }}>
                       <AttMark mark={mark} overlays={overlays} label={label} />
                     </span>
                   );
@@ -4801,6 +4859,16 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                 </span>
               </div>
             ))}
+          </div>
+          </NameScopeProvider>
+          {/* the day's count is the footer - the BHBC table system (#673), as on Lifts */}
+          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
+            <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('present')}</span>
+            {perDay.map((v, i) => (
+              // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
+              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
+            ))}
+            <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }} />
           </div>
         </div>
       </div>
@@ -4984,7 +5052,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
         <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
           {/* the column widths are CSS variables: a phone narrows them (themes.css, 1.10 #499) */}
           <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, marginBottom: 6, gap: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
               <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
               {days.list.map((d) => (
                 d.future
@@ -4993,13 +5061,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
               ))}
               <SortHeader data-end-head="" k="last" sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '4px 14px 5px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` /* the count row is part of the header band (5.10 #572) */ }}>
-              <span style={{ ...pinStart('var(--c-sf2)'), fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('lifted')}</span>
-              {liftedPerDay.map((n, i) => (
-                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
-              ))}
-              <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch' }} />
-            </div>
+            <NameScopeProvider>
             <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {sort.rows.map(({ t, cells, since, last, todayCode }) => (
                 // A table row is never under 36 (24.9).
@@ -5007,7 +5069,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
                   style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch' }}>
+                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                     <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
@@ -5019,7 +5081,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                     const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
                     return (
                       <span key={c.iso} title={c.future ? monDay(c.iso) : title}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, borderInlineStart: `1px solid ${C.cardBd}`, background: 'transparent' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent' }}>
                         <CellMarks bands={bands} label={title} />
                       </span>
                     );
@@ -5034,6 +5096,17 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   </span>
                 </div>
               ))}
+            </div>
+            </NameScopeProvider>
+            {/* THE DAY'S COUNT IS THE FOOTER (11.10 #673 BHBC table system): one header band, rows with
+                hairlines only, the totals in a band like the header at the bottom - it was a second, smaller
+                band under the header that read as a row of data. */}
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
+              <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('lifted')}</span>
+              {liftedPerDay.map((n, i) => (
+                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: n == null ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
+              ))}
+              <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }} />
             </div>
           </div>
         </div>
@@ -6505,18 +6578,28 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
   // a column, the jersey muted, and colour for ONE thing only - the column the
   // table is sorted by (its cells tinted, its values bold). PPG used to be
   // orange whatever the sort, which put colour on the rule, not the exception.
+  // A PHONE SHOWS ONE STAT AT A TIME (11.10 #673; his 9.10 rule: a table that scrolls sideways on a phone is a
+  // bug): PLAYER, GP and the stat the table is sorted by; one row of equal chips picks the stat (and sorts by it).
+  const phone = usePhone();
+  const pick = cols.some((c) => c.k === sort.key) ? sort.key : 'ppg';
+  const shown = phone ? cols.filter((c) => c.k === 'gp' || c.k === pick) : cols;
   const th = (k, h, first) => (
     <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center' }} />
   );
   return (
-    <div className="bhbc-list" style={{ overflowX: 'auto' }}>
+    <div className="bhbc-list" style={{ overflowX: phone ? 'visible' : 'auto' }}>
+      {phone && (
+        // all eight, GP too: two full rows of four - seven in one row cut 'עונשין %' in Hebrew
+        <ChipGrid ariaLabel={tr('Sort by')} cols={4} phoneCols={4} value={pick} onChange={(k) => { if (sort.key !== k) sort.toggle(k); }}
+          style={{ marginBottom: 10 }} items={cols.map((c) => ({ k: c.k, label: he && c.hs ? c.hs : tr(c.h) }))} />
+      )}
       {/* THE TABLE FILLS ITS SCROLLER (27.9, Ohad: "why the extra white space?
           useless"): index.html turns every table into display:block under
           769px, so the rows stopped at their content width inside a 620px box.
           display:table (themes.css .bhbc-stats-table) + the player column
           pinned while the numbers scroll. */}
-      <table className="bhbc-stats-table bhbc-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
-        <thead><tr>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, he && c.hs ? c.hs : tr(c.h)))}</tr></thead>
+      <table className="bhbc-stats-table bhbc-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: phone ? 0 : 620 }}>
+        <thead><tr>{th('name', tr('Player'), true)}{shown.map((c) => th(c.k, he && c.hs ? c.hs : tr(c.h)))}</tr></thead>
         <tbody>
           {sort.rows.map(({ t, s }) => {
             const td = { ...BHBC_TD, color: s ? C.tx : C.tm };
@@ -6524,7 +6607,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
             return (
               <tr key={t.id} className="bhbc-row bhbc-trow" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ cursor: 'pointer' }}>
                 <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
-                {cols.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
+                {shown.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
               </tr>
             );
           })}
@@ -6697,13 +6780,15 @@ function GameWarmupView({ data = {} }) {
       {!total ? (
         <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{tr('Not synced yet - the warm-up comes from the sheet within 20 minutes.')}</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        // THE BHBC TABLE SYSTEM (11.10 #673): the sheet's sections are group BANDS across the card (as Activity's days
+        // are) with the drills as hairline rows under them - each section was a framed box inside the card
+        <div style={{ display: 'flex', flexDirection: 'column', margin: '-14px -14px 0' }}>
           {sections.map((sct, si) => (
             <div key={si}>
-              {sct.name && <div style={{ ...mini, marginBottom: 6, textAlign: 'start' }}>{gwSection(sct.name, lang)}</div>}
-              <div style={{ border: `1px solid ${C.cardBd}` }}>
+              {sct.name && <div style={{ ...mini, display: 'flex', alignItems: 'center', minHeight: 36, padding: '0 14px', boxSizing: 'border-box', background: 'var(--c-sf2)', borderTop: si ? `1px solid ${C.cardBd}` : 'none', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'start' }}>{gwSection(sct.name, lang)}</div>}
+              <div>
                 {(sct.drills || []).map((d0, di) => { const d = { ...d0, ...gwDrill(d0, lang) }; return (
-                  <div key={di} dir={lang === 'he' ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 92px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
+                  <div key={di} dir={lang === 'he' ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) var(--gw-dose-w, 150px)' /* one line for THERE & BACK on a desktop; 92 on a phone */, columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 14px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>{d.n != null ? d.n : '·'}</span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: lang === 'he' ? 'right' : 'left' }}>{d.name}</span>
@@ -6716,7 +6801,7 @@ function GameWarmupView({ data = {} }) {
               </div>
             </div>
           ))}
-          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr('From the sheet · last changed')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
+          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td, padding: '10px 14px 0', borderTop: `1px solid ${C.cardBd}` }}>{tr('From the sheet · last changed')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
         </div>
       )}
     </Card>
@@ -7144,6 +7229,19 @@ function GameMinutesModal({ game, roster, bhbcLoads, medical = {}, onClose, onSa
 // row of filled amber/red/green boxes. The rule says a status is a small
 // coloured DOT plus a calm muted label. The dot keeps the colour; the box does
 // not. minWidth 96 so OUT and NON-CONTACT are the same box down the column.
+// A STATUS IN A TABLE IS A DOT AND A WORD (11.10 #673 BHBC table system; his 5.10 rule: no colour fills in
+// cells). One fixed width so whatever follows stands on one x in every row; the exception reads in full
+// ink, Available stays calm - the Roster Health form, now the only one in the tables.
+function StatusWord({ status }) {
+  const tr = useT();
+  const s = MED_STATUS[status] || MED_STATUS.available;
+  return (
+    <span data-status={status} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, width: 124, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: status === 'available' ? C.tm : C.tx, whiteSpace: 'nowrap', flexShrink: 0 }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+      {tr(s.label)}
+    </span>
+  );
+}
 function StatusPill({ status, small, full }) {
   const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
@@ -7299,6 +7397,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 bar says the same in short words, spread across the row. */}
             <SortBar sort={sort} className="bhbc-inj-sortbar" cols={[['name', tr('Athlete')], ['injury', tr('Injury')], ['status', tr('Status')], ['since', tr('Since')], ['by', tr('By')]]}
               style={{ flexWrap: 'nowrap', justifyContent: 'space-between', columnGap: 8, alignItems: 'center', minHeight: 36, padding: '0 16px', margin: '0 -14px', background: 'var(--c-sf2)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }} />
+            <NameScopeProvider>
             {sort.rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
@@ -7310,7 +7409,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
-                  <StatusPill status={inj.status} />
+                  <StatusWord status={inj.status} />
                   {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
                       reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
                   <div className="bhbc-inj-meta" style={{ display: 'contents' }}>
@@ -7337,6 +7436,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 </div>
               );
             })}
+            </NameScopeProvider>
           </div>
         </Card>
       )}
@@ -7351,6 +7451,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
           <Card padding={14} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
             headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{past.length}</span>}>
             <div>
+              <NameScopeProvider>
               {past.map(({ t, inj }) => (
                 <div key={t.id + inj.id} className="bhbc-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
@@ -7370,6 +7471,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 </div>
               ))}
+              </NameScopeProvider>
             </div>
           </Card>
         );
@@ -7380,6 +7482,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
 
       <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}>
         <div>
+          <NameScopeProvider>
           {roster.map((t) => {
             const act = activeInjuries(medical, t.id);
             // the WORST of his active records, in the board's order (#305 N-M1):
@@ -7403,26 +7506,21 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     has its dot in the zone's colours (green Available too, as on
                     the load board), and the words start on one x. An exception
                     reads in full ink, Available stays calm. */}
-                <span data-status={status} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, width: 124, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: status === 'available' ? C.tm : C.tx, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
-                  {tr((MED_STATUS[status] || MED_STATUS.available).label)}
-                </span>
-                    {/* This one carried .bhbc-ghost-btn and nothing else, and that
-                        class only defines :hover - so it fell through to the
-                        BROWSER's chrome: rgb(240,240,240) fill and a 1.6px black
-                        border, neither of which exists in this palette. Every one
-                        of its fifteen siblings supplies the look inline. minWidth 84
-                        matches the medical button beside it, one size per column. */}
-                {onLog && (
-                  <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title={tr('Log a lift for this athlete')}
-                    style={{ height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tr('Log lift')}</button>
-                )}
-                {canMedical
-                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 'var(--btn-h)', boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
-                  : <span style={{ width: 84, flexShrink: 0 }} />}
+                <StatusWord status={status} />
+                {/* THE ROW'S ACTIONS ARE ONE JOINED PAIR (11.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - they
+                    were two loose boxes 10px apart. One width in every row, so the pairs stand in one column. */}
+                {/* 240: two equal halves that hold the Hebrew 'רישום כוח אישי' (cut 8px at 176); nothing to do = the same
+                    width, empty, never an empty bordered bar (pre-deploy review 12.10) */}
+                {onLog || canMedical ? (
+                  <JoinedButtons className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} items={[
+                    onLog && { label: tr('Log lift'), title: tr('Log a lift for this athlete'), onClick: () => onLog(t.id) },
+                    canMedical && { label: act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report'), onClick: () => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id)) },
+                  ]} />
+                ) : <span className="bhbc-rh-actions" style={{ width: 240, flexShrink: 0 }} />}
               </div>
             );
           })}
+          </NameScopeProvider>
         </div>
       </Card>
 

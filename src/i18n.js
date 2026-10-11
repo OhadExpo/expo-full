@@ -2533,6 +2533,8 @@ export const HE = {
   'BEHIND': 'מאחור',
   'TRAILS': 'מסלולים',
   'HANDS': 'ידיים',
+  'HIPS': 'אגן',   // the pelvis path in the 3D replay - his word (אגן 29 : ירכיים 0 in his writing)
+  'SHOULDERS': 'כתפיים',   // the bar path of a squat (the bar is on his back)
   'PREV REP': 'חזרה קודמת',
   'NEXT REP': 'חזרה הבאה',
   'FADED = NOT SEEN': 'שקוף = לא נראה בצילום',

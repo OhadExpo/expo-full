@@ -12,6 +12,9 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { frameToPoints3D, stableReplayFrames, lmVisible } from './poseLab';
 import { C, FN } from './theme';
 import { useT, LangCtx } from './i18n';
@@ -55,6 +58,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const [speed, setSpeed] = useState(0.5);
   const [trails, setTrails] = useState(true);
   const idxRef = useRef(0); idxRef.current = idx;
+  const playingRef = useRef(false); playingRef.current = playing;
   // the trails show THIS rep (or the last 2 s outside one): drawn over the whole clip they piled
   // the set-up and every rep into one tangle at the shoulder (11.10 #656, "output can be better")
   const trailFromRef = useRef(() => 0);
@@ -150,18 +154,44 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     return isFinite(m) ? m : -0.95;
   }, [pts]);
 
-  // where the body is over the whole clip (1st-99th percentile of the seen points): the camera
-  // frames HIM, not a fixed box - at 1440 he stood small in the middle of a wide canvas
+  // where the body is over the whole clip: the camera frames HIM, not a fixed box (at 1440 he stood
+  // small in a wide canvas). EVERY point that is drawn counts - a faded (unseen) arm is drawn too, and
+  // framing only the seen points cut a raised arm off the top of the canvas (11.10 #671) - trimmed to
+  // the 0.5-99.5th percentile against a wild frame, plus the head above the ears.
   const bounds = useMemo(() => {
     const X = [], Y = [], Z = [];
-    pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 0; k < p.length; k++) { const q = p[k]; if (q && lmVisible(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } });
+    const fin = (q) => q && Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.z);
+    pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 11; k < p.length; k++) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } for (const k of [0, 7, 8]) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y + 0.13); Z.push(q.z); } } });
     if (X.length < 20) return null;
     const pc = (a, f) => { const s2 = a.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(f * s2.length))]; };
-    const r = (a) => [pc(a, 0.01), pc(a, 0.99)];
+    const r = (a) => [pc(a, 0.005), pc(a, 0.995)];
     const [x0, x1] = r(X), [y0, y1] = r(Y), [z0, z1] = r(Z);
     const yb = Math.min(y0, floorY);
     return { c: [(x0 + x1) / 2, (yb + y1) / 2, (z0 + z1) / 2], h: y1 - yb, w: Math.max(x1 - x0, z1 - z0) };
   }, [pts, floorY]);
+
+  // HIS front, not the world's (11.10 #671): FRONT / SIDE / BEHIND were fixed world axes, so a lifter
+  // facing the camera was shown from BEHIND under 'FRONT'. Front = where his toes point (heel -> toe,
+  // level), else his nose; side = the side the camera saw more of (his left joints are the odd ones).
+  const facing = useMemo(() => {
+    let fx = 0, fz = 0, sx = 0, sz = 0, nx = 0, nz = 0, visL = 0, visR = 0;
+    for (const p of pts) {
+      if (!p) continue;
+      for (const [h, t] of [[29, 31], [30, 32]]) if (lmVisible(p[h]) && lmVisible(p[t])) { fx += p[t].x - p[h].x; fz += p[t].z - p[h].z; }
+      for (const [l, r] of [[11, 12], [23, 24]]) if (p[l] && p[r] && Number.isFinite(p[l].x) && Number.isFinite(p[r].x)) { sx += p[r].x - p[l].x; sz += p[r].z - p[l].z; }
+      if (lmVisible(p[0]) && (lmVisible(p[7]) || lmVisible(p[8]))) { const e = [7, 8].filter((k) => lmVisible(p[k])); const ex = e.reduce((a, k) => a + p[k].x, 0) / e.length, ez = e.reduce((a, k) => a + p[k].z, 0) / e.length; nx += p[0].x - ex; nz += p[0].z - ez; }
+      for (const k of [11, 13, 15, 23, 25, 27]) { if (p[k]) visL += p[k].visibility || 0; if (p[k + 1]) visR += p[k + 1].visibility || 0; }
+    }
+    const sl = Math.hypot(sx, sz); if (!(sl > 1e-6)) return null;
+    const S = [sx / sl, sz / sl];   // his left -> right, level
+    // forward is perpendicular to the hip / shoulder line; the toes (else the nose) choose which way
+    let F = [-S[1], S[0]];
+    const vote = Math.hypot(fx, fz) > 1e-6 ? fx * F[0] + fz * F[1] : nx * F[0] + nz * F[1];
+    if (vote < 0) F = [-F[0], -F[1]];
+    // the camera saw his left side more: the side camera goes to his left (toward -S)
+    const seen = visL >= visR ? [-S[0], -S[1]] : S;
+    return { F, seen };
+  }, [pts]);
 
   // build the scene once per clip
   useEffect(() => {
@@ -188,8 +218,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // the distance that fits his height (and his width at a narrow aspect), with a margin
     const fit = (dir) => {
       const tf = Math.tan((camera.fov * Math.PI) / 360), H = bounds ? Math.max(0.9, bounds.h) : 1.9, W = bounds ? Math.max(0.6, bounds.w) : 0.9;
-      const d = Math.abs(dir.y) > 0.9 ? (Math.max(W, 0.9) * 0.6) / Math.min(tf, tf * camera.aspect) : Math.max((H * 0.58) / tf, (W * 0.58) / (tf * camera.aspect));
-      camera.position.copy(tgt).addScaledVector(dir.clone().normalize(), Math.max(1.4, Math.min(8.5, d)));
+      // from above the distance runs from the top of his head, not from his middle (the TOP view sat inside
+      // his shoulders, 11.10 #671)
+      const d = Math.abs(dir.y) > 0.9 ? H * 0.5 + (Math.max(W, 0.9) * 0.62) / Math.min(tf, tf * camera.aspect) : Math.max((H * 0.58) / tf, (W * 0.58) / (tf * camera.aspect));
+      camera.position.copy(tgt).addScaledVector(dir.clone().normalize(), Math.max(1.4, Math.min(controls.maxDistance, d)));
       controls.target.copy(tgt); controls.update();
     };
 
@@ -242,17 +274,44 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const hands = [0, 1].map(() => addMesh(unit, skin));
     const feet = [0, 1].map(() => addMesh(unit, skin));
 
-    // 3D trails over the whole clip, revealed up to the frame on screen
-    const mid = (p, i, j) => (p && lmVisible(p[i]) && lmVisible(p[j]) ? new THREE.Vector3((p[i].x + p[j].x) / 2, (p[i].y + p[j].y) / 2, (p[i].z + p[j].z) / 2) : null);
+    // 3D trails over the whole clip, revealed up to the frame on screen. THICK and drawn OVER the body
+    // (11.10 #671): as 1px depth-tested lines the hip path ran inside the pelvis and the bar path inside
+    // the shoulders - in every shot of a full rep neither was visible. A dot marks where they are now.
+    // A PAIR'S PATH (11.10 #671): always the midpoint of the two (the replay places both - a faded one too),
+    // drawn while at least one of them is SEEN; a gap is bridged for at most GAP frames, then the trail
+    // restarts. It used to need both seen and carry the last value through any gap: in a back squat the
+    // 'bar path' sat at his hip, where his hands had hung in the walk-in; switching between one wrist and
+    // the midpoint drew sideways jumps of the grip's width.
+    const GAP = 3;
+    const fin3 = (q) => !!q && Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.z);
+    const pairMid = (p, i, j) => { if (!p || !(lmVisible(p[i]) || lmVisible(p[j]))) return null; if (fin3(p[i]) && fin3(p[j])) return mid2(p[i], p[j]); const q = fin3(p[i]) ? p[i] : fin3(p[j]) ? p[j] : null; return q ? new THREE.Vector3(q.x, q.y, q.z) : null; };
+    const mid2 = (a, b) => new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    const lineMats = [];
     const mkTrail = (pick, color) => {
-      const arr = new Float32Array(pts.length * 3); let last = null;
-      pts.forEach((p, i) => { const v = pick(p) || last; last = v; if (v) { arr[i * 3] = v.x; arr[i * 3 + 1] = v.y; arr[i * 3 + 2] = v.z; } });
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-      const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 }));
-      scene.add(line); return line;
+      const arr = new Float32Array(pts.length * 3), fresh = new Int32Array(pts.length).fill(-1); let last = null, lastAt = -1;
+      pts.forEach((p, i) => { const v = pick(p); if (v) { last = v; lastAt = i; } if (last && i - lastAt <= GAP) { arr[i * 3] = last.x; arr[i * 3 + 1] = last.y; arr[i * 3 + 2] = last.z; fresh[i] = lastAt; } });
+      const mat = new LineMaterial({ color, linewidth: 3.5, transparent: true, opacity: 0.95, depthTest: false });
+      lineMats.push(mat);
+      const line = new Line2(new LineGeometry(), mat); line.renderOrder = 3; line.frustumCulled = false; line.visible = false; scene.add(line);
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 12), new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true }));
+      dot.renderOrder = 4; dot.visible = false; scene.add(dot);
+      return { arr, line, dot, on: true, show(from, i) {
+        // nothing measured here (a long gap): no dot, no line
+        if (fresh[i] < 0) { this.dot.visible = false; this.line.visible = false; return; }
+        // the trail starts after the last long gap inside this rep
+        let a = i; while (a > from && fresh[a - 1] >= 0) a--;
+        from = a; const n = i - from + 1;
+        this.dot.visible = this.on; this.dot.position.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]);
+        if (!this.on || n < 2) { this.line.visible = false; return; }
+        this.line.geometry.setPositions(arr.subarray(from * 3, (i + 1) * 3)); this.line.visible = true;
+      } };
     };
-    const handTrail = mkTrail((p) => mid(p, 15, 16), ACCENT);
-    const hipTrail = mkTrail((p) => mid(p, 23, 24), HIP_TRAIL);
+    // THE BAR PATH follows where the bar is: on his back in a squat (the shoulders - his hands are behind his
+    // head there, out of the camera's sight, and their 'seen' points floated above it), in his hands for a
+    // hinge, a row, a press or a curl
+    const BAR = channel === 'knee' ? [11, 12] : [15, 16];
+    const handTrail = mkTrail((p) => pairMid(p, BAR[0], BAR[1]), ACCENT);
+    const hipTrail = mkTrail((p) => pairMid(p, 23, 24), HIP_TRAIL);
     // the first rep's outline: thin bones, no volume, never casts a shadow
     const REF_BONES = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32], [29, 31], [30, 32], [27, 29], [28, 30]];
     const refGeo = new THREE.BufferGeometry(); refGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(REF_BONES.length * 6), 3));
@@ -266,8 +325,28 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const place = (m, c, ax, ay, az, sx, sy, sz) => { basis.makeBasis(ax, ay, az); m.quaternion.setFromRotationMatrix(basis); m.position.copy(c); m.scale.set(sx, sy, sz); m.visible = true; };
     // axes from a side vector and an up vector: y = up, x = side without its up part, z = x * y
     const axesOf = (side, upv) => { const y = upv.clone().normalize(); const x = side.clone().addScaledVector(y, -side.dot(y)).normalize(); return [x, y, new THREE.Vector3().crossVectors(x, y).normalize()]; };
-    const pose = (i) => {
-      const p = pts[Math.max(0, Math.min(pts.length - 1, i))] || [];
+    // BETWEEN TWO CAPTURED FRAMES (11.10 #671): the capture runs ~9-10 fps and the replay plays at half
+    // speed, so it showed ~5 poses a second - a slideshow. Playback now draws every screen frame, each
+    // landmark blended between frame i and i+1 by the clock (u in 0..1); a pause shows the frame itself.
+    const blend = [];
+    const at = (i, u) => {
+      const a = pts[Math.max(0, Math.min(pts.length - 1, i))] || [];
+      const b = pts[i + 1];
+      if (!(u > 0) || !b) return a;
+      for (let k = 0; k < a.length; k++) {
+        const A = a[k], B = b[k];
+        if (!A || !B) { blend[k] = A ? { x: A.x, y: A.y, z: A.z, visibility: A.visibility } : null; continue; }   // a COPY: a stored reference got written into later - the captured frame itself (review 12.10)
+        const o = blend[k] || (blend[k] = {});
+        o.x = A.x + (B.x - A.x) * u; o.y = A.y + (B.y - A.y) * u; o.z = A.z + (B.z - A.z) * u;
+        o.visibility = u < 0.5 ? A.visibility : B.visibility;
+      }
+      blend.length = a.length;
+      return blend;
+    };
+    const pose = (i, u = 0) => {
+      const p = at(i, u);
+      // a measurement harness can count the poses drawn (audit-out/_3d-smooth.mjs) - inert unless set
+      try { if (typeof window !== 'undefined' && typeof window.__expoPoseHook === 'function') window.__expoPoseHook(i, u); } catch { /* the harness's problem */ }
       const ok = (k) => lmVisible(p[k]);
       const has = (k) => !!p[k] && Number.isFinite(p[k].x) && Number.isFinite(p[k].y) && Number.isFinite(p[k].z);
       for (const o of limbs) {
@@ -353,15 +432,17 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         refGeo.attributes.position.needsUpdate = true; refGeo.computeBoundingSphere(); refLines.visible = any;
       } else refLines.visible = false;
       const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
-      handTrail.geometry.setDrawRange(from, i - from + 1); hipTrail.geometry.setDrawRange(from, i - from + 1);
+      const ti = Math.max(0, Math.min(pts.length - 1, i));
+      handTrail.show(Math.min(from, ti), ti); hipTrail.show(Math.min(from, ti), ti);
     };
 
     const size = () => {
       const w = host.clientWidth || 320, h = Math.round(Math.min(560, w * 1.15));
       renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+      for (const m of lineMats) m.resolution.set(w, h);   // a fat line's width is in screen pixels
     };
     size();
-    fit(new THREE.Vector3(2.1, 0.5, 2.6));
+    fit(facing ? new THREE.Vector3(facing.F[0] * 0.75 + facing.seen[0] * 0.66, 0.36, facing.F[1] * 0.75 + facing.seen[1] * 0.66) : new THREE.Vector3(2.1, 0.5, 2.6));
     const ro = new ResizeObserver(() => { size(); setHostW(host.clientWidth || 0); }); ro.observe(host); setHostW(host.clientWidth || 0);
     let raf = 0, alive = true;
     const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
@@ -376,11 +457,13 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       stateRef.current = null;
     };
-  }, [supported, pts, floorY, bounds]);
+  }, [supported, pts, floorY, bounds, facing, channel]);
 
   // the frame on screen
-  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range, repSpans]);   // the outline follows a toggle / a new first rep at once
-  useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.visible = trails; s.hipTrail.visible = trails; } }, [trails]);
+  // while it plays, the playback loop draws (blended between frames); this would snap the body back to
+  // the captured frame ~9 times a second. Stopping redraws the exact frame.
+  useEffect(() => { const s = stateRef.current; if (s && !playingRef.current) s.pose(idx); }, [idx, compare, range, repSpans, playing]);   // the outline follows a toggle / a new first rep at once
+  useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.on = trails; s.hipTrail.on = trails; s.pose(idxRef.current); } }, [trails]);
 
   // follow the clip while not playing on its own
   useEffect(() => {
@@ -399,7 +482,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       clock += (now - last) * speed; last = now;
       if (clock > end) clock = poseFrames[0].t;
       let i = idxRef.current; while (i + 1 < poseFrames.length && poseFrames[i + 1].t <= clock) i++; if (poseFrames[i].t > clock) i = 0;
-      setIdx(i); raf = requestAnimationFrame(tick);
+      const nx = poseFrames[i + 1], u = nx ? (clock - poseFrames[i].t) / Math.max(1, nx.t - poseFrames[i].t) : 0;
+      const s = stateRef.current; if (s) s.pose(i, Math.max(0, Math.min(1, u)));
+      if (i !== idxRef.current) { idxRef.current = i; setIdx(i); }   // React (slider, angles) only at a new captured frame
+      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -407,7 +493,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
 
   const view = (k) => {
     const s = stateRef.current; if (!s) return;
-    const D = { front: [0, 0.09, 1], side: [1, 0.09, 0], top: [0.001, 1, 0.001], behind: [0, 0.09, -1] }[k];
+    const F = facing ? facing.F : [0, 1], Sd = facing ? facing.seen : [1, 0];
+    // top: from straight above, a hair behind him, so his front is the top of the screen
+    const D = { front: [F[0], 0.09, F[1]], side: [Sd[0], 0.09, Sd[1]], top: [-F[0] * 0.002, 1, -F[1] * 0.002], behind: [-F[0], 0.09, -F[1]] }[k];
     s.fit(new THREE.Vector3(D[0], D[1], D[2]));
   };
   const full = () => { const el = wrapRef.current; if (!el) return; if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); };
@@ -453,7 +541,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, display: 'flex', gap: 10, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }}>
           <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
           {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
-          {trails && <><span style={{ color: '#39BDFF' }}>━ {tt('HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
+          {trails && <><span style={{ color: '#39BDFF' }}>━ {tt(channel === 'knee' ? 'SHOULDERS' : 'HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
         </div>
       </div>
       <input type="range" min={0} max={Math.max(0, poseFrames.length - 1)} value={idx} aria-label={tt('FRAME')}

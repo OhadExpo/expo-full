@@ -1376,7 +1376,7 @@ html.theme-switching *::after {
    Mirrored edge for edge. */
 @media (max-width: 520px) {
   .bhbc-zone[dir="rtl"] .bhbc-header-inner { padding: 0 14px 0 0 !important; }
-  .bhbc-zone[dir="rtl"] .bhbc-header-id { left: auto !important; right: -14px !important; margin-left: 0 !important; margin-right: -14px !important; padding: 0 14px 0 12px !important; box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7) !important; }
+  .bhbc-zone[dir="rtl"] .bhbc-header-id { left: auto !important; right: -14px !important; margin-left: 0 !important; margin-right: -14px !important; padding: 0 !important /* the 56px square centres the crest (#672) - this 14/12 pad set it 1px off in Hebrew */; box-shadow: -8px 0 12px -8px rgba(0,0,0,0.7) !important; }
   .bhbc-zone[dir="rtl"] .bhbc-header-ctrl { padding: 0 0 0 14px !important; }
 }
 
