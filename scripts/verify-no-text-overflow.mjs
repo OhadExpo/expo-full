@@ -90,6 +90,9 @@ const THEMES = process.env.THEMES ? process.env.THEMES.split(',') : ['dark', 'li
 
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.padEnd(30)} ${o.detail}`); };
+// text nodes each page was judged on, written to nodes.json: the baseline a later run is compared with (#670 -
+// pages loaded during a database stall read ~40% of their usual count and were still judged clean, 11.10)
+const pageNodes = {};
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, nodes = 0;
@@ -230,6 +233,7 @@ for (const lang of LANGS) {
               return out;
             });
             nodes += r.counted || 0;
+            pageNodes[id] = (pageNodes[id] || 0) + (r.counted || 0);
             const push = (kind, arr, fmt) => {
               for (const x of arr) {
                 const k = kind + '|' + JSON.stringify(x);
@@ -259,6 +263,7 @@ for (const { ctx } of signedCtx.values()) await ctx.close().catch(() => {});
 b.disconnect();
 
 fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));
+fs.writeFileSync(`${OUT}/nodes.json`, JSON.stringify(pageNodes, null, 1));
 const by = {};
 for (const f of findings) by[f.kind] = (by[f.kind] || 0) + 1;
 const total = SURFACES.length * LANGS.length * WIDTHS.length * THEMES.length;
