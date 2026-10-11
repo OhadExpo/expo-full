@@ -120,6 +120,18 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const cur = repSpans[k], u = (t - cur.t0) / Math.max(1, cur.t1 - cur.t0);
     return idxAt(ref.t0 + u * (ref.t1 - ref.t0));
   };
+  // REP SHAPES (11.10 #656): every rep's joint-angle curve, each stretched to the same length and laid
+  // over the others - the set's depth consistency, and the rep whose shape breaks (a pause, a cut
+  // bottom, a grind out of the hole), at a glance. The measured trace, never the drawing clamp.
+  const shapes = useMemo(() => {
+    if (!trace) return null;
+    const out = repSpans.map((r) => {
+      const pts2 = [];
+      for (let i = idxAt(r.t0); i < poseFrames.length && poseFrames[i].t <= r.t1; i++) { const a = trace.raw[i]; if (a != null) pts2.push([(poseFrames[i].t - r.t0) / Math.max(1, r.t1 - r.t0), a]); }
+      return pts2;
+    });
+    return out;
+  }, [trace, repSpans, poseFrames]);   // eslint-disable-line react-hooks/exhaustive-deps
   trailFromRef.current = (i) => {
     const t = poseFrames[i] ? poseFrames[i].t : 0;
     const r = repSpans.find((q) => t >= q.t0 && t <= q.t1 + 250);
@@ -502,6 +514,35 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
               <span><span style={{ color: C.tm }}>{tt('DURATION')}</span> {st.sec.toFixed(1)} {tt('SEC')}</span>
             </div>
           )}
+          {shapes && hi - lo >= 1 && (() => {
+            const inSetIdx = shapes.map((_, i) => i).filter((i) => inSet(i) && shapes[i].length > 2);
+            if (inSetIdx.length < 2) return null;
+            let yLo = Infinity, yHi = -Infinity;
+            inSetIdx.forEach((i) => shapes[i].forEach(([, a]) => { if (a < yLo) yLo = a; if (a > yHi) yHi = a; }));
+            if (!(yHi > yLo)) return null;
+            const X = (u) => (rtl ? 1000 - u * 1000 : u * 1000), Y = (a) => 56 - (52 * (a - yLo)) / (yHi - yLo);
+            const path = (sh) => sh.map(([u, a], k) => `${k ? 'L' : 'M'}${X(u).toFixed(1)} ${Y(a).toFixed(1)}`).join(' ');
+            const ref = lo - 1;
+            const tNow = poseFrames[idx] ? poseFrames[idx].t : 0;
+            const curR = cur >= 0 && inSet(cur) ? repSpans[cur] : null;
+            const uNow = curR ? Math.max(0, Math.min(1, (tNow - curR.t0) / Math.max(1, curR.t1 - curR.t0))) : null;
+            const aNow = curR && shapes[cur].length ? shapes[cur].reduce((b, q) => (Math.abs(q[0] - uNow) < Math.abs(b[0] - uNow) ? q : b))[1] : null;
+            return (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 14, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, marginBottom: 4 }}>
+                  <span style={{ color: '#FFF', fontWeight: 700 }}>{tt('REP SHAPES')}</span>
+                  <span style={{ color: '#FFFFFF' }}>┅ {tt('REP {n}').replace('{n}', lo)}</span>
+                  {curR && cur !== ref && <span style={{ color: '#39BDFF' }}>━ {tt('REP {n}').replace('{n}', cur + 1)}</span>}
+                </div>
+                <svg viewBox="0 0 1000 60" preserveAspectRatio="none" width="100%" height="60" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
+                  {inSetIdx.filter((i) => i !== ref && i !== cur).map((i) => <path key={i} d={path(shapes[i])} fill="none" stroke="rgba(57,189,255,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
+                  {shapes[ref] && shapes[ref].length > 2 && <path d={path(shapes[ref])} fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="5 4" vectorEffect="non-scaling-stroke" />}
+                  {curR && cur !== ref && <path d={path(shapes[cur])} fill="none" stroke="#39BDFF" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
+                  {curR && aNow != null && <line x1={X(uNow)} x2={X(uNow)} y1="0" y2="60" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}
+                </svg>
+              </div>
+            );
+          })()}
         </>);
       })()}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 6 }}>

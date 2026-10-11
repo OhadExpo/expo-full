@@ -2542,6 +2542,7 @@ export const HE = {
   'LAST REP': 'חזרה אחרונה',
   'ALL REPS': 'כל החזרות',
   'VS REP {n}': 'מול חזרה {n}',
+  'REP SHAPES': 'צורות החזרות',
   'REP {n}': 'חזרה {n}',
   'An outline of the first rep of the set, over this rep': 'קווי המתאר של החזרה הראשונה בסט, על החזרה הזאת',
   'IN THE SET: {n}': 'בסט: {n}',
