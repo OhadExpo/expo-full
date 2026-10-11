@@ -247,7 +247,12 @@ await runSweep({
         await install();
         const ok = await pg.evaluate((key, t) => window.__railProbe.clickTab(key, t), r.key, text).catch(() => false);
         if (!ok) continue;
-        await wait(700);
+        // 2.5 s, not 0.7 (11.10): a gate page opened in a throwaway context is HIDDEN, and a hidden
+        // page clamps its timers to ~1 per second - the rail mask's 140 ms settle ran ~1000 ms after
+        // the bar moved (logged inside the hook), so at 0.7 s the gate measured the PREVIOUS state's
+        // plate and called the half tab beside it SLICED (36 on production; the same taps in a
+        // visible tab settle in ~300 ms). CLICK_WAIT=ms overrides.
+        await wait(Number(process.env.CLICK_WAIT || 2500));
         await waitScrollIdle(pg);
         await install();
         const m = await pg.evaluate((ph) => window.__railProbe.measure(ph), `after clicking "${text}"`);
