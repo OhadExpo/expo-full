@@ -2220,6 +2220,7 @@ select.avail-select:dir(rtl) {
 .bhbc-chip-acts-col > .bhbc-seg + .bhbc-seg { border-top: 1px solid var(--c-cardBd) !important; }
 /* past practices' warm-up + S&C slot: 'S&C 12 min' and two squares need 112px; a phone shows '12′' in 92 */
 :root { --past-sc-w: 112px; }
+@media (min-width: 421px) { .bhbc-zone[dir="rtl"] { --past-sc-w: 128px; } }   /* 11.10 #651: 'כוח קבוצתי 60′ דק׳' ran 11px past 112 in Hebrew at 1440 */
 @media (max-width: 420px) { :root { --past-sc-w: 54px; } .pp-sc-word { display: none; } }   /* 10.10 #651: on a phone the slot is the squares + minutes (the legend under the list names them) - at 92 it squeezed the session label to 8px and 'Shootaround 60' painted over it */   /* --wu-w: the warm-up segment, 'WARM-UP 5′' (#643) */
 @media (max-width: 480px) { :root { --sc-w: 84px; } }
 .bhbc-seg:hover { background: color-mix(in srgb, currentColor 9%, transparent) !important; }
