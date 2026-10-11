@@ -2006,6 +2006,7 @@ function attendance28(rec, days) {
              wide ... symmetric around the logo"): it was 14px before the crest and 32px after, ~80 x 56. Now 56 x 56, the
              bar's own height, the crest centred both ways - on the one-row phone bar (<=520), where it is pinned. */
           [dir="rtl"] .bhbc-header-id{box-shadow:-8px 0 12px -8px rgba(0,0,0,0.7)!important}
+          @media (max-width:520px){.gw-row{--gw-dose-w:92px}}
           @media (max-width:520px){.bhbc-rh-actions{width:100%!important;flex:1 1 100%!important;max-width:none!important}}   /* a phone card's second line is the joined actions, full width (9.10 phone pattern, #673) */
           @media (max-width:520px){.bhbc-header-id{padding:0!important;width:56px!important;min-width:56px!important;box-sizing:border-box!important;justify-content:center!important;gap:0!important}}   /* only where the crest is PINNED (one row); 521-760 is two rows, crest on the tab row's edge */
           /* the plate OWNS the gap before the first visible tab: a tab rests at
@@ -6777,13 +6778,15 @@ function GameWarmupView({ data = {} }) {
       {!total ? (
         <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{tr('Not synced yet - the warm-up comes from the sheet within 20 minutes.')}</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        // THE BHBC TABLE SYSTEM (11.10 #673): the sheet's sections are group BANDS across the card (as Activity's days
+        // are) with the drills as hairline rows under them - each section was a framed box inside the card
+        <div style={{ display: 'flex', flexDirection: 'column', margin: '-14px -14px 0' }}>
           {sections.map((sct, si) => (
             <div key={si}>
-              {sct.name && <div style={{ ...mini, marginBottom: 6, textAlign: 'start' }}>{gwSection(sct.name, lang)}</div>}
-              <div style={{ border: `1px solid ${C.cardBd}` }}>
+              {sct.name && <div style={{ ...mini, display: 'flex', alignItems: 'center', minHeight: 36, padding: '0 14px', boxSizing: 'border-box', background: 'var(--c-sf2)', borderTop: si ? `1px solid ${C.cardBd}` : 'none', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'start' }}>{gwSection(sct.name, lang)}</div>}
+              <div>
                 {(sct.drills || []).map((d0, di) => { const d = { ...d0, ...gwDrill(d0, lang) }; return (
-                  <div key={di} dir={lang === 'he' ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 92px', columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 12px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
+                  <div key={di} dir={lang === 'he' ? 'rtl' : 'ltr'} className="gw-row" style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) var(--gw-dose-w, 150px)' /* one line for THERE & BACK on a desktop; 92 on a phone */, columnGap: 12, alignItems: 'center', minHeight: 52, padding: '8px 14px', boxSizing: 'border-box', borderTop: di ? `1px solid ${C.cardBd}` : 'none', textAlign: 'start' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>{d.n != null ? d.n : '·'}</span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere', unicodeBidi: 'isolate', textAlign: lang === 'he' ? 'right' : 'left' }}>{d.name}</span>
@@ -6796,7 +6799,7 @@ function GameWarmupView({ data = {} }) {
               </div>
             </div>
           ))}
-          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr('From the sheet · last changed')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
+          {syncedTxt && <div style={{ fontFamily: FB, fontSize: 11, color: C.td, padding: '10px 14px 0', borderTop: `1px solid ${C.cardBd}` }}>{tr('From the sheet · last changed')} <span dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{syncedTxt}</span></div>}
         </div>
       )}
     </Card>
