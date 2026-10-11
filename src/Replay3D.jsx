@@ -100,10 +100,12 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const st = repSpans.map((r) => {
       let lo = Infinity, hi = -Infinity;
       for (let i = idxAt(r.t0); i < poseFrames.length && poseFrames[i].t <= r.t1; i++) { const a = trace.raw[i]; if (a != null) { if (a < lo) lo = a; if (a > hi) hi = a; } }
-      return { rom: hi > lo ? Math.round(hi - lo) : null, sec: Math.max(0, (r.t1 - r.t0) / 1000) };
+      // DEPTH = the joint's smallest angle in the rep - the bottom of a squat / hinge; for an elbow the
+      // smallest angle is the TOP of a curl, so depth is shown for knee and hip work only
+      return { rom: hi > lo ? Math.round(hi - lo) : null, depth: (channel === 'knee' || channel === 'hip') && Number.isFinite(lo) ? Math.round(lo) : null, sec: Math.max(0, (r.t1 - r.t0) / 1000) };
     });
     return st;
-  }, [trace, repSpans, poseFrames]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [trace, repSpans, poseFrames, channel]);   // eslint-disable-line react-hooks/exhaustive-deps
   trailFromRef.current = (i) => {
     const t = poseFrames[i] ? poseFrames[i].t : 0;
     const r = repSpans.find((q) => t >= q.t0 && t <= q.t1 + 250);
@@ -459,6 +461,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
           )}
           {st && (
             <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 14, rowGap: 2, marginTop: 8, fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', color: '#FFF', fontVariantNumeric: 'tabular-nums' }}>
+              {st.depth != null && <span><span style={{ color: C.tm }}>{tt('DEPTH')}</span> <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{st.depth}°</span></span>}
               {st.rom != null && <span><span style={{ color: C.tm }}>{tt('RANGE')}</span> <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{st.rom}°</span></span>}
               <span><span style={{ color: C.tm }}>{tt('DURATION')}</span> {st.sec.toFixed(1)} {tt('SEC')}</span>
             </div>
