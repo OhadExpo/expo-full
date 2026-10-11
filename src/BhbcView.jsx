@@ -3519,7 +3519,7 @@ function HAChip({ home }) {
   // Theme-aware brand tone — the raw navy is unreadable on the dark page.
   const c = isHome ? 'var(--bhbc-ha-home, ' + NAVY + ')' : 'var(--bhbc-ha-away, ' + ORANGE_DEEP + ')';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: 'none', padding: '2px 7px', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: 'transparent' /* colour in the word only (his 5.10 rule; the Games list's own form, #673) */, border: 'none', padding: '2px 7px', whiteSpace: 'nowrap' }}>
       {isHome ? tr('HOME') : tr('AWAY')}
     </span>
   );
@@ -3741,7 +3741,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                       (27.9: in the badge column they squeezed the name and the
                       Porto row broke into seven lines at 360) */}
                   {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
-                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1A1205', background: '#E0A73A', padding: '1px 6px', whiteSpace: 'nowrap' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
+                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bhbc-amber-text, #E0A73A)', whiteSpace: 'nowrap' /* amber WORDS, not an amber box (#673) */ }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
                 {/* Competition and date on one line, the VENUE on its own.
                     Joined with " · " they were one text run, and once the badge
