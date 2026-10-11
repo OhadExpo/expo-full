@@ -33,6 +33,7 @@
 // REAL client data, which is why it prints only labels, never row content.
 //
 //   node scripts/verify-demo-parity.mjs [--only <tab>]
+import { signIn } from './lib/authed-page.mjs';
 import fs from 'node:fs';
 import P from 'puppeteer-core';
 
@@ -116,6 +117,11 @@ const pg = await b.newPage();
 await pg.setViewport({ width: 1440, height: 950, deviceScaleFactor: 1 });
 await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); } catch (e) { /* private */ } });
 
+// SIGN IN AS THE OWNER, never trust the profile's session (11.10): on the 1010s chain the gate browser
+// held the fixture ATHLETE's session for that origin, the 'not a login page' check passed, and the
+// coach screens it compared were the athlete portal - 26 lines of 'missing' that were the wrong seat.
+// signIn() logs in as the owner and refuses a wrong seat.
+await signIn(pg, BASE);
 // Prove we are actually signed in before believing a single "missing".
 await pg.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await wait(6000);
