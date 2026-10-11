@@ -150,18 +150,44 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     return isFinite(m) ? m : -0.95;
   }, [pts]);
 
-  // where the body is over the whole clip (1st-99th percentile of the seen points): the camera
-  // frames HIM, not a fixed box - at 1440 he stood small in the middle of a wide canvas
+  // where the body is over the whole clip: the camera frames HIM, not a fixed box (at 1440 he stood
+  // small in a wide canvas). EVERY point that is drawn counts - a faded (unseen) arm is drawn too, and
+  // framing only the seen points cut a raised arm off the top of the canvas (11.10 #671) - trimmed to
+  // the 0.5-99.5th percentile against a wild frame, plus the head above the ears.
   const bounds = useMemo(() => {
     const X = [], Y = [], Z = [];
-    pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 0; k < p.length; k++) { const q = p[k]; if (q && lmVisible(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } });
+    const fin = (q) => q && Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.z);
+    pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 11; k < p.length; k++) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } for (const k of [0, 7, 8]) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y + 0.13); Z.push(q.z); } } });
     if (X.length < 20) return null;
     const pc = (a, f) => { const s2 = a.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(f * s2.length))]; };
-    const r = (a) => [pc(a, 0.01), pc(a, 0.99)];
+    const r = (a) => [pc(a, 0.005), pc(a, 0.995)];
     const [x0, x1] = r(X), [y0, y1] = r(Y), [z0, z1] = r(Z);
     const yb = Math.min(y0, floorY);
     return { c: [(x0 + x1) / 2, (yb + y1) / 2, (z0 + z1) / 2], h: y1 - yb, w: Math.max(x1 - x0, z1 - z0) };
   }, [pts, floorY]);
+
+  // HIS front, not the world's (11.10 #671): FRONT / SIDE / BEHIND were fixed world axes, so a lifter
+  // facing the camera was shown from BEHIND under 'FRONT'. Front = where his toes point (heel -> toe,
+  // level), else his nose; side = the side the camera saw more of (his left joints are the odd ones).
+  const facing = useMemo(() => {
+    let fx = 0, fz = 0, sx = 0, sz = 0, nx = 0, nz = 0, visL = 0, visR = 0;
+    for (const p of pts) {
+      if (!p) continue;
+      for (const [h, t] of [[29, 31], [30, 32]]) if (lmVisible(p[h]) && lmVisible(p[t])) { fx += p[t].x - p[h].x; fz += p[t].z - p[h].z; }
+      for (const [l, r] of [[11, 12], [23, 24]]) if (p[l] && p[r] && Number.isFinite(p[l].x) && Number.isFinite(p[r].x)) { sx += p[r].x - p[l].x; sz += p[r].z - p[l].z; }
+      if (lmVisible(p[0]) && (lmVisible(p[7]) || lmVisible(p[8]))) { const e = [7, 8].filter((k) => lmVisible(p[k])); const ex = e.reduce((a, k) => a + p[k].x, 0) / e.length, ez = e.reduce((a, k) => a + p[k].z, 0) / e.length; nx += p[0].x - ex; nz += p[0].z - ez; }
+      for (const k of [11, 13, 15, 23, 25, 27]) { if (p[k]) visL += p[k].visibility || 0; if (p[k + 1]) visR += p[k + 1].visibility || 0; }
+    }
+    const sl = Math.hypot(sx, sz); if (!(sl > 1e-6)) return null;
+    const S = [sx / sl, sz / sl];   // his left -> right, level
+    // forward is perpendicular to the hip / shoulder line; the toes (else the nose) choose which way
+    let F = [-S[1], S[0]];
+    const vote = Math.hypot(fx, fz) > 1e-6 ? fx * F[0] + fz * F[1] : nx * F[0] + nz * F[1];
+    if (vote < 0) F = [-F[0], -F[1]];
+    // the camera saw his left side more: the side camera goes to his left (toward -S)
+    const seen = visL >= visR ? [-S[0], -S[1]] : S;
+    return { F, seen };
+  }, [pts]);
 
   // build the scene once per clip
   useEffect(() => {
@@ -188,8 +214,10 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // the distance that fits his height (and his width at a narrow aspect), with a margin
     const fit = (dir) => {
       const tf = Math.tan((camera.fov * Math.PI) / 360), H = bounds ? Math.max(0.9, bounds.h) : 1.9, W = bounds ? Math.max(0.6, bounds.w) : 0.9;
-      const d = Math.abs(dir.y) > 0.9 ? (Math.max(W, 0.9) * 0.6) / Math.min(tf, tf * camera.aspect) : Math.max((H * 0.58) / tf, (W * 0.58) / (tf * camera.aspect));
-      camera.position.copy(tgt).addScaledVector(dir.clone().normalize(), Math.max(1.4, Math.min(8.5, d)));
+      // from above the distance runs from the top of his head, not from his middle (the TOP view sat inside
+      // his shoulders, 11.10 #671)
+      const d = Math.abs(dir.y) > 0.9 ? H * 0.5 + (Math.max(W, 0.9) * 0.62) / Math.min(tf, tf * camera.aspect) : Math.max((H * 0.58) / tf, (W * 0.58) / (tf * camera.aspect));
+      camera.position.copy(tgt).addScaledVector(dir.clone().normalize(), Math.max(1.4, Math.min(controls.maxDistance, d)));
       controls.target.copy(tgt); controls.update();
     };
 
@@ -361,7 +389,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
     };
     size();
-    fit(new THREE.Vector3(2.1, 0.5, 2.6));
+    fit(facing ? new THREE.Vector3(facing.F[0] * 0.75 + facing.seen[0] * 0.66, 0.36, facing.F[1] * 0.75 + facing.seen[1] * 0.66) : new THREE.Vector3(2.1, 0.5, 2.6));
     const ro = new ResizeObserver(() => { size(); setHostW(host.clientWidth || 0); }); ro.observe(host); setHostW(host.clientWidth || 0);
     let raf = 0, alive = true;
     const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
@@ -376,7 +404,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       stateRef.current = null;
     };
-  }, [supported, pts, floorY, bounds]);
+  }, [supported, pts, floorY, bounds, facing]);
 
   // the frame on screen
   useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range, repSpans]);   // the outline follows a toggle / a new first rep at once
@@ -407,7 +435,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
 
   const view = (k) => {
     const s = stateRef.current; if (!s) return;
-    const D = { front: [0, 0.09, 1], side: [1, 0.09, 0], top: [0.001, 1, 0.001], behind: [0, 0.09, -1] }[k];
+    const F = facing ? facing.F : [0, 1], Sd = facing ? facing.seen : [1, 0];
+    // top: from straight above, a hair behind him, so his front is the top of the screen
+    const D = { front: [F[0], 0.09, F[1]], side: [Sd[0], 0.09, Sd[1]], top: [-F[0] * 0.002, 1, -F[1] * 0.002], behind: [-F[0], 0.09, -F[1]] }[k];
     s.fit(new THREE.Vector3(D[0], D[1], D[2]));
   };
   const full = () => { const el = wrapRef.current; if (!el) return; if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); };
