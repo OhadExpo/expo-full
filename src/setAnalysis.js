@@ -146,6 +146,12 @@ export function summarize(result, opts = {}) {
     reps: null, tempoS: null, romDeg: null,
   };
   if (result.ok === false) return { ...base, quality: 'poor', reason: result.reason === 'too-few-frames' ? 'too-few-frames' : 'unreadable' };
+  // THE GATE IS CALIBRATED ON LITE FRAMES ONLY (11.10, measured on the 23 hand-counted clips): SET_RULES
+  // and the snr line come from the lite model's noise. Fed the heavy model it showed 5 WRONG counts;
+  // fed the coach's upload path (full model, the clip's own rate) 3 WRONG (c09 12/13, c31 9/7, c38 7/6).
+  // The athlete's read is lite by construction (ClientPortal forces quality 'lite'); any other model
+  // gets no number - blank, never wrong - until the gate is re-calibrated for it.
+  if (opts.model && opts.model !== 'lite') return { ...base, quality: 'poor', reason: 'model' };
   const cq = result.captureQuality || {};
   const quality = GRADE[cq.grade] || 'poor';
   const frames = isNum(result.frameCount) ? result.frameCount : null;

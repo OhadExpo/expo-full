@@ -294,6 +294,9 @@ export function validateReps(reps, angle, frames = null, fps = 30) {
 export function segmentReps(angle, fps = 30, frames = null) {
   const minDist = Math.max(4, Math.round(fps * 0.4)); // ≥0.4s between reps
   const inv = angle.map(v => (isReal(v) ? -v : v));
+  // (11.10 #656: a relative-prominence filter against reps split at a wobbly bottom was measured on the
+  // 23 hand-counted clips, lite AND coach-path frames - precision 0.38/0.39 -> 0.41 at best, true reps
+  // lost - and removed. audit-out/_relprom.mjs)
   const bottoms = findPeaks(inv, 25, minDist).map(p => p.idx).sort((a, b) => a - b);
   const reps = [];
   for (let k = 0; k < bottoms.length; k++) {
