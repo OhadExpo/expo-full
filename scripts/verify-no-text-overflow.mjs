@@ -93,6 +93,8 @@ const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.p
 // text nodes each page was judged on, written to nodes.json: the baseline a later run is compared with (#670 -
 // pages loaded during a database stall read ~40% of their usual count and were still judged clean, 11.10)
 const pageNodes = {};
+// BASELINE=<a good run's nodes.json>: a page reading under half its own baseline is NOT judged (a stalled or empty load)
+const BASELINE = process.env.BASELINE ? JSON.parse(fs.readFileSync(process.env.BASELINE, 'utf8')) : null;
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, nodes = 0;
@@ -249,6 +251,7 @@ for (const lang of LANGS) {
           }
           // A signed-in route that lands on the login screen was NOT measured.
           if (SIGNED && await pg.evaluate(() => !!document.querySelector('input[type="password"]'))) { add({ kind: 'UNSET', id, detail: 'landed on the login screen - NOT judged' }); continue; }
+          if (BASELINE && BASELINE[id] > 0 && (pageNodes[id] || 0) < 0.5 * BASELINE[id]) { add({ kind: 'UNSET', id, detail: `read ${pageNodes[id] || 0} text nodes, under half its baseline ${BASELINE[id]} - a stalled or empty load, NOT judged` }); continue; }
           measured++;
         } catch (e) {
           add({ kind: 'ERROR', id, detail: 'harness: ' + String(e.message || e).slice(0, 110) });
