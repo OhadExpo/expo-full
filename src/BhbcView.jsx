@@ -15,7 +15,7 @@ import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffe
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
 import { gwDrill, gwSection } from './gameWarmupText';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone, JoinedButtons } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone, JoinedButtons, ChipGrid } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -836,7 +836,9 @@ function sortRowsBy(rows, spec, dir) {
 // the zone's table cells (#340): one header band, one row height, numbers end-aligned
 const BHBC_TH = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, height: 36, padding: '0 12px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap', verticalAlign: 'middle' };
 const BHBC_TD = { fontFamily: FN, fontSize: 13, height: 40, padding: '0 12px', textAlign: 'end', fontVariantNumeric: 'tabular-nums', verticalAlign: 'middle', borderBottom: '1px solid color-mix(in srgb, var(--c-cardBd) 65%, transparent)' };
-const BHBC_TD_SORTED = { background: `color-mix(in srgb, ${ORANGE} 6%, transparent)`, fontWeight: 800 };
+// the sorted column is marked by its header's colour and BOLD values - never a tinted column (his 5.10 rule:
+// no colour fills in cells; the 6% orange wash was the last one, #673)
+const BHBC_TD_SORTED = { fontWeight: 800 };
 function useSort(rows, cols, defaultKey = null, defaultDir = null) {
   const firstDir = (k) => (k && cols[k] && sortSpec(cols[k]).asc ? 'asc' : 'desc');
   const [st, setSt] = useState(() => ({ key: defaultKey, dir: defaultDir || firstDir(defaultKey) }));
@@ -6573,18 +6575,28 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
   // a column, the jersey muted, and colour for ONE thing only - the column the
   // table is sorted by (its cells tinted, its values bold). PPG used to be
   // orange whatever the sort, which put colour on the rule, not the exception.
+  // A PHONE SHOWS ONE STAT AT A TIME (11.10 #673; his 9.10 rule: a table that scrolls sideways on a phone is a
+  // bug): PLAYER, GP and the stat the table is sorted by; one row of equal chips picks the stat (and sorts by it).
+  const phone = usePhone();
+  const pick = cols.some((c) => c.k === sort.key) ? sort.key : 'ppg';
+  const shown = phone ? cols.filter((c) => c.k === 'gp' || c.k === pick) : cols;
   const th = (k, h, first) => (
     <SortHeader as="th" key={k} k={k} sort={sort} label={h} style={{ ...BHBC_TH, textAlign: first ? 'start' : 'center' }} />
   );
   return (
-    <div className="bhbc-list" style={{ overflowX: 'auto' }}>
+    <div className="bhbc-list" style={{ overflowX: phone ? 'visible' : 'auto' }}>
+      {phone && (
+        // all eight, GP too: two full rows of four - seven in one row cut 'עונשין %' in Hebrew
+        <ChipGrid ariaLabel={tr('Sort by')} cols={4} phoneCols={4} value={pick} onChange={(k) => { if (sort.key !== k) sort.toggle(k); }}
+          style={{ marginBottom: 10 }} items={cols.map((c) => ({ k: c.k, label: he && c.hs ? c.hs : tr(c.h) }))} />
+      )}
       {/* THE TABLE FILLS ITS SCROLLER (27.9, Ohad: "why the extra white space?
           useless"): index.html turns every table into display:block under
           769px, so the rows stopped at their content width inside a 620px box.
           display:table (themes.css .bhbc-stats-table) + the player column
           pinned while the numbers scroll. */}
-      <table className="bhbc-stats-table bhbc-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
-        <thead><tr>{th('name', tr('Player'), true)}{cols.map((c) => th(c.k, he && c.hs ? c.hs : tr(c.h)))}</tr></thead>
+      <table className="bhbc-stats-table bhbc-table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: phone ? 0 : 620 }}>
+        <thead><tr>{th('name', tr('Player'), true)}{shown.map((c) => th(c.k, he && c.hs ? c.hs : tr(c.h)))}</tr></thead>
         <tbody>
           {sort.rows.map(({ t, s }) => {
             const td = { ...BHBC_TD, color: s ? C.tx : C.tm };
@@ -6592,7 +6604,7 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
             return (
               <tr key={t.id} className="bhbc-row bhbc-trow" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ cursor: 'pointer' }}>
                 <td style={{ ...cell('name'), textAlign: 'start', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'end', color: C.tm, fontWeight: 700, marginInlineEnd: 12, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
-                {cols.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
+                {shown.map((c) => <td key={c.k} style={{ ...cell(c.k), textAlign: 'center' }}>{dash(c.k, s ? s[c.k] : null)}</td>)}
               </tr>
             );
           })}
