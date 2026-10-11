@@ -100,6 +100,7 @@ async function pageFor(lang, w, h, theme) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   await setWidth(pg, w, h, { tablet: TABLET });
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
+  if (process.env.DEBUG_PATH) await pg.evaluateOnNewDocument(() => { window.__gateDebugPath = true; });
   await pg.evaluateOnNewDocument((L, T) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-shot-lang', L); localStorage.setItem('expo-theme', T); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } }, lang, theme);
   await signIn(pg, BASE);
   const v = { ctx, pg, fresh: false };
@@ -198,7 +199,7 @@ for (const lang of LANGS) {
                   if (pb.width < 8) continue;
                   if (inkR - pb.right > 2 || pb.left - inkL > 2) spilled = Math.round(Math.max(inkR - pb.right, pb.left - inkL));
                 }
-                if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled }); continue; }
+                if (spilled) { out.spill.push({ t: t.slice(0, 34), by: spilled, path: window.__gateDebugPath ? [el, el.parentElement, el.parentElement && el.parentElement.parentElement].filter(Boolean).map((e) => `${e.tagName.toLowerCase()}.${String(e.className || '').split(' ')[0]}[${Math.round(e.getBoundingClientRect().width)}]`).join(' < ') : undefined }); continue; }
 
                 // ONEWORD — 3+ lines and barely a word on each.
                 const lineTops = new Set(rects.map((x) => Math.round(x.top)));
@@ -221,7 +222,7 @@ for (const lang of LANGS) {
             };
             push('CUT', r.cut, (x) => `"${x.t}" ink cut by ${x.x}px across / ${x.y}px down`);
             push('ELLIPSIS', r.ell, (x) => `"${x.t}" truncated — ${x.lost}px of the word is not shown`);
-            push('SPILL', r.spill, (x) => `"${x.t}" paints ${x.by}px outside its container`);
+            push('SPILL', r.spill, (x) => `"${x.t}" paints ${x.by}px outside its container${x.path ? ` (${x.path})` : ''}`);
             push('ONEWORD', r.oneword, (x) => `"${x.t}" ${x.words} words over ${x.lines} lines in ${x.w}px`);
           }
           // A signed-in route that lands on the login screen was NOT measured.
