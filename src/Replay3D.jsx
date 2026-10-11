@@ -68,9 +68,26 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const trace = useMemo(() => {
     const J = CHANNEL_JOINTS[channel] || null;
     if (!J || !pts.length || !repSpans.length) return null;
-    const v = pts.map((p) => { const a = J.map(([i, j, k]) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)).filter((x) => x != null); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; });
+    // the sides are chosen ONCE per clip (as channelSignal does): averaging whichever side was seen
+    // at each frame jumped the trace by the L/R difference every time a side flickered. A chosen
+    // side missing for a frame takes the other side plus their usual offset; then a 5-median.
+    const side = J.map(([i, j, k]) => pts.map((p) => (p && lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) ? angle3(p[i], p[j], p[k]) : null)));
+    const share = side.map((sv) => sv.filter((x) => x != null).length / Math.max(1, sv.length));
+    const use = share.map((x) => x >= 0.6).some(Boolean) ? share.map((x) => x >= 0.6) : share.map((x) => x === Math.max(...share));
+    const both = [], A = side[0], B = side[1];
+    for (let i = 0; i < pts.length; i++) if (A[i] != null && B[i] != null) both.push(A[i] - B[i]);
+    both.sort((x, y) => x - y);
+    const off = both.length ? both[both.length >> 1] : 0;   // L minus R, typical
+    const raw = pts.map((_, i) => {
+      const a = A[i], b = B[i];
+      if (use[0] && use[1]) return a != null && b != null ? (a + b) / 2 : a != null ? a - off / 2 : b != null ? b + off / 2 : null;
+      return use[0] ? (a != null ? a : b != null ? b + off : null) : (b != null ? b : a != null ? a - off : null);
+    });
+    const v = raw.map((_, i) => { const w = raw.slice(Math.max(0, i - 2), i + 3).filter((x) => x != null).sort((x, y) => x - y); return raw[i] == null || !w.length ? null : w[w.length >> 1]; });
     const ok = v.filter((x) => x != null); if (ok.length < 2) return null;
-    return { v, lo: Math.min(...ok), hi: Math.max(...ok) };
+    // scaled to the 2nd-98th percentile: one wild frame used to flatten every rep into the top band
+    const so = ok.slice().sort((x, y) => x - y), q = (f) => so[Math.min(so.length - 1, Math.floor(f * so.length))];
+    return { v: v.map((x) => (x == null ? null : Math.max(q(0.02), Math.min(q(0.98), x)))), lo: q(0.02), hi: Math.max(q(0.98), q(0.02) + 1) };
   }, [pts, channel, repSpans.length]);
   // per rep: the analysed joint's range and the rep's time. (A "shorter than the set" mark was tried
   // and measured against his hand-noted reps on 23 clips: it flagged 19% of the false reps and 15% of
@@ -391,8 +408,13 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         let d = '', pen = false;
         trace.v.forEach((a, i) => { if (a == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(poseFrames[i].t).toFixed(1)} ${Y(a).toFixed(1)} `; pen = true; });
         const tNow = poseFrames[idx] ? poseFrames[idx].t : T0;
+        // rep numbers never overlap: one closer than 16px to the last on its line drops a line (two
+        // reps 0.3 s apart at the end of a clip painted "8" over "9")
+        const wPx = (hostRef.current && hostRef.current.clientWidth) || 360, ends = [];
+        const rowOf = repSpans.map((r) => { const px = (X(r.tb) / 1000) * wPx; let k = 0; while (ends[k] != null && Math.abs(px - ends[k]) < 16) k++; ends[k] = px; return k; });
+        const rows = rowOf.length ? Math.max(...rowOf) + 1 : 1;
         return (
-          <div style={{ position: 'relative', height: 58, marginTop: 6, cursor: 'pointer' }} dir="ltr"
+          <div style={{ position: 'relative', height: 47 + 11 * rows, marginTop: 6, cursor: 'pointer' }} dir="ltr"
             onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left) / r.width; seekTo(idxAt(T0 + (rtl ? 1 - u : u) * span)); }}>
             <svg viewBox="0 0 1000 44" preserveAspectRatio="none" width="100%" height="44" style={{ display: 'block', border: `1px solid ${C.cardBd}` }} aria-hidden="true">
               {repSpans.map((r, i) => <rect key={i} x={Math.min(X(r.t0), X(r.t1))} y="0" width={Math.max(2, Math.abs(X(r.t1) - X(r.t0)))} height="44" fill={inSet(i) ? 'rgba(57,189,255,0.14)' : 'rgba(255,255,255,0.04)'} />)}
@@ -400,7 +422,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
               <line x1={X(tNow)} x2={X(tNow)} y1="0" y2="44" stroke="#F5A524" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
             </svg>
             {repSpans.map((r, i) => (
-              <span key={i} style={{ position: 'absolute', top: 46, left: `${X(r.tb) / 10}%`, transform: 'translateX(-50%)', fontFamily: FN, fontSize: 9, fontWeight: 700, color: inSet(i) ? '#39BDFF' : '#5c636e', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>{i + 1}</span>
+              <span key={i} style={{ position: 'absolute', top: 46 + 11 * rowOf[i], left: `${X(r.tb) / 10}%`, transform: 'translateX(-50%)', fontFamily: FN, fontSize: 9, fontWeight: 700, color: inSet(i) ? '#39BDFF' : '#5c636e', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>{i + 1}</span>
             ))}
           </div>
         );
