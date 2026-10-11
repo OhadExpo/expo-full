@@ -232,7 +232,7 @@ export const HE = {
   'MED': 'רפואי',
   'Show': 'הצג',
   'This season only': 'רק העונה הזו',
-  'Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.': 'כל משחק שנרשם העונה — משחקים ודקות סופרים את כולם; נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה (מנהלת הליגה, basket.co.il). לחיצה על שחקן — המשחקים שלו.',
+  'Every game logged this season - GP and minutes count them all; points, rebounds, assists and shooting come from the games with a box score (league, basket.co.il). Tap an athlete for his games.': 'כל משחק שנרשם העונה — משחקים ודקות — מכל המשחקים; נקודות, ריבאונדים, אסיסטים ונתוני זריקה — רק מהמשחקים שיש להם דף סטטיסטיקה (מנהלת הליגה, basket.co.il). לחיצה על שחקן — המשחקים שלו.',
   'Every official game this season - cup, league and Europe; scrimmages do not count. Points, rebounds, assists and shooting come from the games with a box score. Tap an athlete for his games.': 'כל משחק רשמי העונה — גביע, ליגה ואירופה; משחקי אימון לא נספרים. נקודות, ריבאונדים, אסיסטים וקליעה מהמשחקים שיש להם דף סטטיסטיקה. לחיצה על שחקן — המשחקים שלו.',
   'Season': 'עונה',
   'PIR': 'מדד',
@@ -759,7 +759,7 @@ Object.assign(HE, {
   'there': 'הגיעו',
   // practice attendance, clearer marks (9.10 #629) - native-checked
   'present': 'נוכחים',
-  'made': 'השתתף',
+  'made': 'נכח',
   'Injured or away': 'פצוע או נעדר',   // one line in the legend column (was 'Out (injured or away)', wrapped at 390)
   'Game not logged yet': 'המשחק עוד לא נרשם',
   'Dot by the name = today’s availability': 'נקודה ליד השם = הזמינות היום',
