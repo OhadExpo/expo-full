@@ -1776,7 +1776,7 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
     if (!w || !d) return f;
     return { ...f, worldLandmarks: w.map((p) => (p ? { ...p, x: p.x + d.x, y: p.y + d.y, z: (p.z ?? 0) + d.z } : p)) };
   });
-  return pinFeet ? pinPlantedFeet(planted, confident) : planted;
+  return pinFeet ? pinPlantedFeet(planted, confident, rebuilt) : planted;
 }
 
 // A FOOT ON THE FLOOR IS DRAWN STAYING PUT (11.10 #656). After the feet step the ankles still
@@ -1791,29 +1791,53 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
 // spread as a squat's noise after the feet step - that would have glued the stepping foot.)
 // Every frame keeps the measured world points in worldMeasured: angles are read from those, never
 // from the drawn feet. Replay only.
-const PIN_SPEED = 0.8, PIN_MIN_S = 0.3, PIN_WIN_S = 0.25;
-function pinPlantedFeet(frames, confident) {
+const PIN_SPEED = 0.8, PIN_MIN_S = 0.3, PIN_WIN_S = 0.25, PIN_EASE_S = 0.2, PIN_STANCE = 0.9;
+// CONTACT IS READ BEFORE THE FEET STEP (review 11.10): the feet step moves the whole body to keep the
+// ankle MIDPOINT still, so one foot's step shows at about half its speed after it - a 1.5 m/s step read
+// 0.69 m/s and the stepping foot was glued for the whole clip. Speed comes from `speedFrames` (the
+// hip-centred skeleton, where a stepping foot moves at its own speed and a squat's planted foot moves
+// only as fast as the hips travel over it, ~0.2-0.4 m/s); the hold targets come from the drawn frames.
+function pinPlantedFeet(frames, confident, speedFrames = frames) {
   const legs = [[23, 25, 27, [29, 31]], [24, 26, 28, [30, 32]]];
   const n = frames.length;
   const med = (a) => { const s2 = a.slice().sort((x, y) => x - y); return s2.length ? s2[s2.length >> 1] : NaN; };
   const d3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
   const ts = frames.map((f) => f.t / 1000);
-  const plans = legs.map(([h, k, a]) => {
+  const reads = legs.map(([h, k, a]) => {
     const P = frames.map((f) => { const w = f.worldLandmarks; return w && confident(w[a]) ? { x: w[a].x, z: w[a].z ?? 0 } : null; });
+    const S = speedFrames.map((f) => { const w = f && f.worldLandmarks; return w && confident(w[a]) ? { x: w[a].x, z: w[a].z ?? 0 } : null; });
     const seenLegs = frames.map((f) => f.worldLandmarks).filter((w) => w && confident(w[a]) && confident(w[k]) && confident(w[h]));
     if (seenLegs.length < 10) return null;
     // speed over a +-PIN_WIN_S window (the endpoints seen nearest the window's edges)
     const contact = new Uint8Array(n);
     for (let i = 0; i < n; i++) {
-      if (!P[i]) continue;
+      if (!P[i] || !S[i]) continue;
       let lo = i, hi = i;
       while (lo > 0 && ts[i] - ts[lo - 1] <= PIN_WIN_S) lo--;
       while (hi < n - 1 && ts[hi + 1] - ts[i] <= PIN_WIN_S) hi++;
-      while (lo < i && !P[lo]) lo++;
-      while (hi > i && !P[hi]) hi--;
+      while (lo < i && !S[lo]) lo++;
+      while (hi > i && !S[hi]) hi--;
       const dt = ts[hi] - ts[lo];
-      contact[i] = dt > 0 && Math.hypot(P[hi].x - P[lo].x, P[hi].z - P[lo].z) / dt < PIN_SPEED ? 1 : 0;
+      contact[i] = dt > 0 && Math.hypot(S[hi].x - S[lo].x, S[hi].z - S[lo].z) / dt < PIN_SPEED ? 1 : 0;
     }
+    return { P, contact };
+  });
+  // A FOOT IS HELD ONLY WHILE BOTH ARE DOWN (review 11.10): the feet step keeps the ankle MIDPOINT
+  // still, so while one foot steps the standing foot is drawn sliding back by half the step - held at
+  // one spot through that, the gap between the feet came out 27 cm for a 57 cm step. Any step ends
+  // both feet's holds; each foot is held again, at its new spot, once both are down.
+  // STANCE LIFTS ONLY: both feet down in PIN_STANCE of the frames that see both. A clip with steps or
+  // jumps (walking lunges: the feet-gap range drew 22 -> 13 cm, noise or a squashed step - not
+  // knowable from the clip) is drawn as measured.
+  if (!reads[0] || !reads[1]) return frames;
+  let both = 0, seenBoth = 0;
+  for (let i = 0; i < n; i++) if (reads[0].P[i] && reads[1].P[i]) { seenBoth++; if (reads[0].contact[i] && reads[1].contact[i]) both++; }
+  if (!(seenBoth >= 10 && both / seenBoth >= PIN_STANCE)) return frames;
+  const plans = legs.map((leg, li) => {
+    const R = reads[li], O = reads[1 - li];
+    if (!R) return null;
+    const { P } = R;
+    const contact = R.contact.map((c, i) => (c && (!O || O.contact[i] || !O.P[i]) ? 1 : 0));
     // stretches of contact >= PIN_MIN_S, each held at its own median
     const target = new Array(n).fill(null);
     for (let i = 0; i < n; i++) {
@@ -1826,8 +1850,9 @@ function pinPlantedFeet(frames, confident) {
       }
       i = j;
     }
-    // the correction (target - measured), carried linearly across the frames between holds; none
-    // before the first hold or after the last
+    // the correction (target - measured), carried linearly across the frames between holds, and eased
+    // in / out over PIN_EASE_S before the first hold and after the last (it used to start at full size
+    // - the drawn foot snapped by that much at the edge, review 11.10)
     const off = target.map((t2, i) => (t2 && P[i] ? { x: t2.x - P[i].x, z: t2.z - P[i].z } : null));
     const known = off.map((o, i) => (o ? i : -1)).filter((i) => i >= 0);
     if (!known.length) return null;
@@ -1835,6 +1860,9 @@ function pinPlantedFeet(frames, confident) {
       const i0 = known[q], i1 = known[q + 1];
       for (let i = i0 + 1; i < i1; i++) { const u = (ts[i] - ts[i0]) / Math.max(1e-6, ts[i1] - ts[i0]); off[i] = { x: off[i0].x + (off[i1].x - off[i0].x) * u, z: off[i0].z + (off[i1].z - off[i0].z) * u }; }
     }
+    const f0 = known[0], f1 = known[known.length - 1];
+    for (let i = f0 - 1; i >= 0 && ts[f0] - ts[i] < PIN_EASE_S; i--) { const u = 1 - (ts[f0] - ts[i]) / PIN_EASE_S; off[i] = { x: off[f0].x * u, z: off[f0].z * u }; }
+    for (let i = f1 + 1; i < n && ts[i] - ts[f1] < PIN_EASE_S; i++) { const u = 1 - (ts[i] - ts[f1]) / PIN_EASE_S; off[i] = { x: off[f1].x * u, z: off[f1].z * u }; }
     return { off };
   });
   if (!plans.some(Boolean)) return frames;
@@ -1857,7 +1885,12 @@ function pinPlantedFeet(frames, confident) {
       const ka = (L1 * L1 - L2 * L2 + d * d) / (2 * d);
       if (!(L1 * L1 - ka * ka >= 0)) return;   // the target closer than the leg can fold: keep this frame's leg as measured
       const hh = Math.sqrt(L1 * L1 - ka * ka);
+      // the bend side is read against the MEASURED hip->ankle line (against the new one, a near-straight
+      // leg could flip and draw the knee bent backwards - review 11.10), then made square to the new line
       let vx = K.x - H.x, vy = K.y - H.y, vz = (K.z ?? 0) - (H.z ?? 0);
+      const mx = A.x - H.x, my = A.y - H.y, mz = (A.z ?? 0) - (H.z ?? 0), mn = Math.hypot(mx, my, mz);
+      if (!(mn > 1e-6)) return;
+      const am = (vx * mx + vy * my + vz * mz) / (mn * mn); vx -= am * mx; vy -= am * my; vz -= am * mz;
       const along = vx * ux + vy * uy + vz * uz; vx -= along * ux; vy -= along * uy; vz -= along * uz;
       const vn = Math.hypot(vx, vy, vz); if (!(vn > 1e-6)) return;   // a dead-straight leg: keep it as measured
       vx /= vn; vy /= vn; vz /= vn;

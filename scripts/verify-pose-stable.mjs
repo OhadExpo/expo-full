@@ -99,9 +99,14 @@ ok(stabilizeWorldFrames([]).length === 0 && stabilizeWorldFrames(null).length ==
   const still = stabilizeWorldFrames(mk(null), { plantFeet: true, smooth: false, pinFeet: pin });
   const s27 = spread(still.slice(5, 70), 27);
   ok(s27 < 0.01, `a planted foot whose guess wanders +-3 cm is drawn still (left ankle travel ${(s27 * 100).toFixed(1)} cm)`);
-  const stepped = stabilizeWorldFrames(mk(30), { plantFeet: false, smooth: false, pinFeet: pin });
-  const z0 = stepped[10].worldLandmarks[27].z, z1 = stepped[65].worldLandmarks[27].z;
-  ok(Math.abs(z1 - z0) > 0.5, `a real step still travels (${((z1 - z0) * 100).toFixed(0)} cm of 60)`);
+  // the FULL replay path (plantFeet on - with it off the pin never ran, and this check passed on a
+  // version that glued the stepping foot: review 11.10). A step is read where it is unambiguous: the
+  // gap between the two ankles, which the feet step's whole-body shift does not change
+  const gap = (fr, i) => fr[i].worldLandmarks[27].z - fr[i].worldLandmarks[28].z;
+  const stepped = stabilizeWorldFrames(mk(30), { plantFeet: true, smooth: false, pinFeet: pin });
+  const steppedRaw = stabilizeWorldFrames(mk(30), { plantFeet: true, smooth: false, pinFeet: false });
+  const g0 = gap(stepped, 10), g1 = gap(stepped, 65), r0 = gap(steppedRaw, 10), r1 = gap(steppedRaw, 65);
+  ok(Math.abs((g1 - g0) - (r1 - r0)) < 0.06 && Math.abs(g1 - g0) > 0.5, `a real step still travels (the feet drawn ${((g1 - g0) * 100).toFixed(0)} cm further apart, measured ${((r1 - r0) * 100).toFixed(0)})`);
   const raw = stabilizeWorldFrames(mk(null), { plantFeet: true, smooth: false, pinFeet: false });
   const kept = still.every((f, i) => !f.worldMeasured || Math.abs(f.worldMeasured[25].z - raw[i].worldLandmarks[25].z) < 1e-9);
   ok(kept && still.some((f) => f.worldMeasured), 'the measured points are kept beside the drawn ones (worldMeasured)');

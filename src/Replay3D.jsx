@@ -330,13 +330,14 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       });
       // the first rep's outline, moved so its hips sit on his hips at this frame
       const ri = compareRef.current(i), rp = ri >= 0 ? pts[ri] : null;
-      const hipOf = (q) => (q && q[23] && q[24] ? { x: (q[23].x + q[24].x) / 2, y: (q[23].y + q[24].y) / 2, z: (q[23].z + q[24].z) / 2 } : null);
+      const fin = (P) => !!P && Number.isFinite(P.x) && Number.isFinite(P.y) && Number.isFinite(P.z);
+      const hipOf = (q) => (q && fin(q[23]) && fin(q[24]) ? { x: (q[23].x + q[24].x) / 2, y: (q[23].y + q[24].y) / 2, z: (q[23].z + q[24].z) / 2 } : null);
       const hc = hipOf(p), hr = hipOf(rp);
       if (rp && hc && hr) {
         const arr = refGeo.attributes.position.array; let n = 0, any = false;
         for (const [a, b] of REF_BONES) {
           const A = rp[a], B = rp[b];
-          if (A && B) { arr.set([A.x - hr.x + hc.x, A.y - hr.y + hc.y, A.z - hr.z + hc.z, B.x - hr.x + hc.x, B.y - hr.y + hc.y, B.z - hr.z + hc.z], n); any = true; }
+          if (fin(A) && fin(B)) { arr.set([A.x - hr.x + hc.x, A.y - hr.y + hc.y, A.z - hr.z + hc.z, B.x - hr.x + hc.x, B.y - hr.y + hc.y, B.z - hr.z + hc.z], n); any = true; }
           else arr.fill(0, n, n + 6);
           n += 6;
         }
@@ -369,7 +370,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   }, [supported, pts, floorY, bounds]);
 
   // the frame on screen
-  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range]);   // the outline follows a toggle / a new first rep at once
+  useEffect(() => { const s = stateRef.current; if (s) s.pose(idx); }, [idx, compare, range, repSpans]);   // the outline follows a toggle / a new first rep at once
   useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.visible = trails; s.hipTrail.visible = trails; } }, [trails]);
 
   // follow the clip while not playing on its own
