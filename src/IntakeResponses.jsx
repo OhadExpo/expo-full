@@ -147,7 +147,7 @@ export default function IntakeResponses({ submissions = [], traineeNameFor }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* which form */}
         {/* equal cells, the response count beside the title; a form with no responses is dimmed (5.10 #574) */}
-        <ChipGrid ariaLabel={tt('Responses')} value={cur.key} onChange={(k) => { setFormKey(k); setQIdx(0); setPIdx(0); }} phoneCols={1}
+        <ChipGrid ariaLabel={tt('Responses')} value={cur.key} onChange={(k) => { setFormKey(k); setQIdx(0); setPIdx(0); }} phoneCols={1} className="intake-form-tabs"
           items={forms.map((f) => ({ k: f.key, label: formTabLabel(f.key, f.form), n: f.subs.length, dim: !f.subs.length }))} />
         {/* which view */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>

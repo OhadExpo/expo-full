@@ -138,7 +138,7 @@ function groupClients(events) {
 const SHEKEL_RE = /^\s*(?:ש["״]ח\s*)?([\d.,]+(?:\s*\/\s*[\d.,]+)*)\s*(?:ש["״]ח)?\s*$/;
 function fmtRate(text) {
   const m = SHEKEL_RE.exec(text || '');
-  return m && /ש["״]ח/.test(text) ? <span dir="ltr">₪{m[1].replace(/\s+/g, '')}</span> : <bdi>{text || '—'}</bdi>;
+  return m && /ש["״]ח/.test(text) ? <span dir="ltr" style={{ whiteSpace: 'nowrap' }}>₪{m[1].replace(/\s+/g, '')}</span> : <bdi>{text || '—'}</bdi>;   // the AMOUNT never breaks; a note may wrap (11.10: 'עד בלוק #17 (כולל)' ran 5-21px out of a nowrap cell at tablet widths)
 }
 
 // THE ESTIMATE SITS NEXT TO THE DATE (9.10 audit #612 C6): last of six columns it was
@@ -148,7 +148,7 @@ function PaymentRows({ payments, tt, td }) {
     <tr key={p.id} style={{ height: 'var(--btn-h)' }}>
       <td style={td} dir="ltr">{fmtNumericDate(p.event_date)}</td>
       <td style={{ ...td, textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
-      <td style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(p.rate_text)}</td>
+      <td style={{ ...td, color: C.tm }}>{fmtRate(p.rate_text)}</td>
       <td style={{ ...td, color: C.tm }}><bdi>{p.counter_before || (p.event_kind === 'card_start' ? tt('card start') : '—')}</bdi></td>
       <td style={{ ...td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
         <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} title={tt(p.confidence || 'low')} />
@@ -386,7 +386,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
                   <td style={{ ...td, textAlign: 'end', color: c.unknown ? C.tx : C.td }} dir="ltr">{c.unknown || '—'}</td>
                   <td style={{ ...td, textAlign: 'end', color: c.unpaid ? C.tx : C.td }} dir="ltr">{c.unpaid || '—'}</td>
                   <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{c.sessions || '—'}</td>
-                  <td style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{fmtRate(c.rate)}</td>
+                  <td style={{ ...td, color: C.tm }}>{fmtRate(c.rate)}</td>
                   {/* what EXPO knows of him, in words: Active / Archived / no record */}
                   <td style={{ ...td, color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                     {st ? tt(st) : tt('no record')}
