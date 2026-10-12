@@ -117,7 +117,7 @@ const STRINGS = {
   'feat.export.body': {
     // 5.10 parity: + the library's VIDEOS tool (#559, videoGaps.js)
     en: 'Export everything in one file, anytime — every plan, exercise and workout log. Bring your existing exercise library in: xlsx, sheets, or whatever export your previous app gave you. Bulk import is part of onboarding. The Videos tool ranks the exercises missing a video by how many athletes miss it, suggests only safe matches, shows a dry run before it writes, and checks your links for dead videos.',
-    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים בלי סרטון לפי כמה מתאמנים חסר להם הסרטון, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר שבורים.',
+    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים שאין להם סרטון לפי כמה מתאמנים צריכים אותו, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר שבורים.',
   },
 
   // About
