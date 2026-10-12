@@ -1760,6 +1760,18 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 
 /* A popup title is ONE row (26.9): its lead words step aside on a phone. */
 @media (max-width: 520px) { .bm-lead { display: none; } }
+/* Coach preview strip on a phone (12.10): the eye tag already says PREVIEW, so the verb goes and the name wraps whole
+   instead of an ellipsis ('PREVIEWING BLOC…' at 390). */
+@media (max-width: 520px) { .cpp-prefix { display: none; } .cpp-label { white-space: normal !important; line-height: 1.3 !important; } }
+/* Library videos stats on a phone (12.10): a third of the row left 70-78px and 'מתאמנים שחסר להם סרטון' read one word per
+   line - the stats become one row each, the number beside its label (the phone stats-line pattern). */
+@media (max-width: 520px) {
+  .vg-stats { grid-template-columns: minmax(0, 1fr) !important; }
+  .vg-stat-cell { border-inline-start: none !important; }
+  .vg-stat-cell + .vg-stat-cell { border-top: 1px solid var(--c-cardBd); }
+  .vg-stat { flex-direction: row !important; align-items: baseline; gap: 10px !important; min-height: 36px; box-sizing: border-box; }
+  .vg-stat > span:first-child { min-width: 44px; }   /* one slot for the number, so the three labels start on one line */
+}
 
 /* minutes: 120′ on a phone, "120 MIN" where it fits (26.9) - week chips, past practices */
 .min-tick { display: none; }

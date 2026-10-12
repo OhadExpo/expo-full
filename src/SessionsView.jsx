@@ -576,7 +576,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: null } }); } catch { /* noop */ }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
-    if (completed.length) toast(readLang() === 'he' ? (completed.length === 1 ? 'מתאמן אחד נרשם להיסטוריה שלו' : `${completed.length} מתאמנים נרשמו להיסטוריה שלהם`) : `${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
+    if (completed.length) toast(readLang() === 'he' ? (completed.length === 1 ? 'האימון נשמר בהיסטוריה של מתאמן אחד' : `האימון נשמר בהיסטוריה של ${completed.length} מתאמנים`) : `${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
     } finally {
       finishingRef.current = false;
     }

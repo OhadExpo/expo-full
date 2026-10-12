@@ -60,7 +60,7 @@ export default function ConsentFrame({ src, title, heb, height, filter }) {
       </div>
       <p style={{ margin: 0, maxWidth: 420, fontSize: 14, lineHeight: 1.6, color: C.tm }}>
         {heb
-          ? 'היומן נטען מ-Google, וטעינה שלו שומרת קובצי עוגיות של Google בדפדפן שלך. לוחצים כדי לטעון אותו ולראות את הזמנים הפנויים.'
+          ? 'היומן מגיע מ-Google, וכשהוא נטען Google שומרת עוגיות בדפדפן שלך. לוחצים כדי לטעון אותו ולראות את הזמנים הפנויים.'
           : 'The calendar loads from Google, and loading it stores Google cookies in your browser. Tap to load it and see the open slots.'}
       </p>
       <button type="button" onClick={show} style={{

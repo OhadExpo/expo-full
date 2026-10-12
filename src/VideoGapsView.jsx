@@ -148,7 +148,9 @@ export default function VideoGapsView({ exercises = [], setExercises, exercisesL
   const [run, setRun] = useState(null);            // { kind:'apply'|'undo', busy, done, total, lib, results:[] }
   const [undo, setUndo] = useState(() => readUndo());
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  // set true on EVERY mount: StrictMode (dev) mounts, cleans up, mounts again - a ref only cleared stayed false and the
+  // page sat on '…' forever in dev (12.10; a production build loads in 5 s)
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   const loadPlans = useCallback(async () => {
     const { data, error } = await supabase.from('plans').select('id, trainee_id, name, active, data, updated_at, created_at');
@@ -282,7 +284,7 @@ export default function VideoGapsView({ exercises = [], setExercises, exercisesL
   if (err) return <Card header={tt('Library videos')}><div style={{ fontFamily: FB, color: C.rd }}>{tt("Couldn't load programs:")} {err}</div></Card>;
 
   const stat = (n, label, color) => (
-    <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, justifyContent: 'center' }}>
+    <div className="vg-stat" style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, justifyContent: 'center' }}>
       <span style={{ fontFamily: FN, fontSize: 20, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{n}</span>
       <span style={{ ...LABEL, letterSpacing: he ? 0 : LABEL.letterSpacing, fontSize: he ? 11 : 9, lineHeight: 1.25 }}>{label}</span>
     </div>
@@ -292,25 +294,25 @@ export default function VideoGapsView({ exercises = [], setExercises, exercisesL
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px', minWidth: 0 }}>
       <Card leftStripe={C.ac} header={tt('Library videos')}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
+        <div className="vg-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
           {[
             stat(loading ? '…' : gaps.length, tt('Without a video'), C.tx),
             stat(loading ? '…' : athletesMissing, tt('Athletes missing one'), athletesMissing ? C.acText : C.tx),
             stat(health.status === 'done' ? dead.length : '—', tt('Dead links'), dead.length ? C.rd : C.tx),
-          ].map((cell, i) => <div key={i} style={{ borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', minWidth: 0, display: 'flex' }}>{cell}</div>)}
+          ].map((cell, i) => <div key={i} className="vg-stat-cell" style={{ borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', minWidth: 0, display: 'flex' }}>{cell}</div>)}
         </div>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, lineHeight: 1.5, marginBottom: 12 }}>
           {tt('An athlete sees a video only when it is on their program row. Approve writes the library and every program row that has no video of its own - your "no video" rows and your own links stay as they are.')}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'stretch' }}>
           <ChipGrid ariaLabel={tt('Videos')} value={filter} onChange={(k) => { setFilter(k); setLimit(PAGE); }} style={{ flex: '3 1 260px' }}
-            items={[{ k: 'missed', label: tt('Athletes miss it'), n: loading ? null : missed.length }, { k: 'all', label: tt('All'), n: loading ? null : gaps.length }]} />
+            items={[{ k: 'missed', label: tt('In programs'), n: loading ? null : missed.length }, { k: 'all', label: tt('All'), n: loading ? null : gaps.length }]} />
           <Btn variant="ghost" disabled={!libReady || health.status === 'running'} onClick={checkLinks} style={{ ...btnH, flex: '1 1 200px' }}>
             {health.status === 'running' ? `${tt('Checking links…')} ${health.checked}/${health.total}` : tt('Check links')}
           </Btn>
         </div>
         {health.status === 'unavailable' && <div style={{ fontFamily: FB, fontSize: 12, color: C.or, marginTop: 10 }}>{tt('Link check is unavailable here')}</div>}
-        {health.status === 'done' && !dead.length && <div style={{ fontFamily: FB, fontSize: 12, color: C.gn, marginTop: 10 }}>{count(he, health.total, 'link checked - none dead.', 'links checked - none dead.', 'קישור אחד נבדק - הוא תקין.', 'קישורים נבדקו - אף אחד לא מת.')}</div>}
+        {health.status === 'done' && !dead.length && <div style={{ fontFamily: FB, fontSize: 12, color: C.gn, marginTop: 10 }}>{count(he, health.total, 'link checked - none dead.', 'links checked - none dead.', 'קישור אחד נבדק - הוא תקין.', 'קישורים נבדקו - כולם תקינים.')}</div>}
         {undo && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
             <span style={{ flex: '1 1 220px', minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx }}>

@@ -14,7 +14,7 @@
 
 const N = '(⁨[^⁩]*⁩|[^·—]+?)'; // a bidi-wrapped name, or a bare one
 
-const days = (d) => (Number(d) === 1 ? 'יום אחד' : `${d} ימים`);
+const days = (d) => (Number(d) === 1 ? 'יום אחד' : Number(d) === 2 ? 'יומיים' : `${d} ימים`);
 // A HEBREW PREFIX ON A LATIN NAME TAKES A HYPHEN (9.10 audit #612: 'להתקשר לYOAV SHAMRI'):
 // ל / מ / ב glue straight onto a Hebrew word but are joined to a foreign one with '-'.
 const pre = (p, name) => (/^\u2068?[A-Za-z0-9]/.test(name || '') ? `${p}-${name}` : `${p}${name}`);

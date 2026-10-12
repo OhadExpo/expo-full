@@ -115,7 +115,7 @@ export default function EntryChooser() {
             ? 'מרכז ביצועים שבנוי על אימון כוח לפי תוכנית, ניידות וריקאברי שמשולב באימון. אימון בקבוצות קטנות עם תוכנית אישית, וטיפול חודשי שכלול במנוי.'
             : 'A performance center built around programmed strength, mobility, and integrated recovery. Small-group coaching with your own program and a monthly massage in the membership.'}
           benefits={heb
-            ? ['קבוצות של 4-7', 'ריקאברי בתוך המחיר', 'תוכנית מתעדכנת שבועית']
+            ? ['קבוצות של 4-7', 'ריקאברי בתוך המחיר', 'תוכנית שמתעדכנת כל שבוע']
             : ['Groups of 4–7', 'Recovery in the price', 'Weekly program updates']}
           cta={heb ? 'הזמנת אימון' : 'BOOK A SESSION'}
           href="#/gym"

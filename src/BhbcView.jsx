@@ -787,8 +787,7 @@ function BandPill({ band, value }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700,
-      letterSpacing: '0.03em', color: c, background: `color-mix(in srgb, ${c} 13%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap', lineHeight: 1,
+      letterSpacing: '0.03em', color: c, background: 'transparent', border: 'none' /* no fill (his 5.10 rule, #673) */, borderRadius: 0, padding: 0, whiteSpace: 'nowrap', lineHeight: 1,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
       {value != null && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</span>}
@@ -2911,13 +2910,13 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               widths, so the injury after them started at two x's) */}
           <PopHead dataKey="medical" label={tr('Medical')} flush={!injuries.length}
             meta={injuries.length ? null : <><span style={{ width: 7, height: 7, borderRadius: '50%', background: MED_STATUS.available.color }} />{tr('Available')}</>}
-            right={onInjury ? <button onClick={onInjury} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{injuries.length ? tr('Update') : `+ ${tr('Report injury')}`}</button> : null} />
+            right={onInjury ? <button onClick={onInjury} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, height: 'var(--btn-h-in)', minHeight: 'var(--btn-h-in)', boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', whiteSpace: 'nowrap' }}>{injuries.length ? tr('Update') : `+ ${tr('REPORT')}` /* Roster Health's own words ('+ REPORT' / '+ דיווח'); '+ REPORT INJURY' ran 3px out of its button at 360 (the athlete-card gate, 12.10) - in the MEDICAL header the short word is unambiguous */}</button> : null} />
           {injuries.map((inj) => {
             const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
             const lastP = (inj.progress || [])[0];
             return (
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusPill status={inj.status} small full /></span>
+                <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusWord status={inj.status} /></span>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
@@ -3043,9 +3042,14 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                     </span>
                   )}
                   {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
-                    <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4, flexShrink: 0, justifyContent: 'flex-end', minWidth: 54 }}>
-                      <button onClick={() => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig })} title={tr('Edit minutes')} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}><PencilGlyph /></button>
-                      {onDeleteSession && <button onClick={() => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); }} title={tr('Delete session')} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}><CrossGlyph /></button>}
+                    // EDIT + DELETE ARE ONE JOINED PAIR (12.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - two loose boxes
+                    // the pair's taps and keys stay its own: on a logged GAME the row opens the game popup, so edit / delete
+                    // also opened it (and Enter opened only the popup) - pre-deploy review 12.10
+                    <span style={{ display: 'contents' }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                    <JoinedButtons style={{ marginInlineStart: 'auto', flexShrink: 0, width: onDeleteSession ? 80 : 40 }} items={[
+                        { label: <PencilGlyph />, title: tr('Edit minutes'), onClick: () => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig }) },
+                        onDeleteSession && { label: <CrossGlyph />, title: tr('Delete session'), onClick: () => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); } },
+                      ]} />
                     </span>
                   )}
                   {a.load != null && <span style={{ marginInlineStart: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
@@ -3072,7 +3076,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             : { date: lastG.date, opp: lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : null, min: lastG.min, box: lastG, source: 'basket.co.il' };
           const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
           const agoLabel = ago == null ? '' : heM
-            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
+            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago === 2 ? 'לפני יומיים' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : Math.round(ago / 30) === 2 ? 'לפני חודשיים' : `לפני ${Math.round(ago / 30)} חודשים`)
             : (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`);
           // THE AVERAGES READ WITH THE SAME FOUR WORDS AS THE LAST GAME ABOVE,
           // under one "season average" caption (27.9: "נק׳ למשחק" wrapped to two
@@ -3645,7 +3649,7 @@ function ActivityView({ activity = [], tr, he }) {
     <>
       <Card padding={14} leftStripe={NAVY} header={secTitle('Who has been in, last 30 days')}>
         {people.length === 0
-          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. מעכשיו כל כניסה וכל שינוי יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
           : <>
             <div className="bhbc-act-people bhbc-act-head" style={{ ...band, borderTop: 'none', marginTop: -14, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12 }}>
               <span style={lbl}>{tr('Person')}</span>
@@ -3782,7 +3786,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const he = useHe();
   const tr = useT();
   const days = dayDiff(nextGame.date, today);
-  const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? `בעוד ${days} ימים` : `In ${days} days`);
+  const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? (days === 2 ? 'בעוד יומיים' : `בעוד ${days} ימים`) : `In ${days} days`);
   const timeLabel = nextGame.timeTBD || !nextGame.start ? tr('Time TBD') : nextGame.start;
   return (
     <Card padding={14} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{when}</span>{onEdit && <button className="bhbc-strip-btn" onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
@@ -4252,7 +4256,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               const flies = outLeg && outLeg.date && outLeg.date < nextGame.date && outLeg.date >= today
                 ? `${tr('flies')} ${outLeg.date === today ? tr('today') : `${dow(outLeg.date)} ${monDay(outLeg.date)}`}` : null;
               const facts = [
-                gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd === 1 ? 'יום אחד' : `${gd} ימים`}` : `in ${gd} day${gd === 1 ? '' : 's'}`),
+                gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd === 1 ? 'יום אחד' : gd === 2 ? 'יומיים' : `${gd} ימים`}` : `in ${gd} day${gd === 1 ? '' : 's'}`),
                 ...(flies ? [flies] : []),
                 // 'Venue TBD' only when the venue IS unknown (#305 N-G2): a neutral
                 // cup tie with its arena typed in read "Venue TBD · Begin Arena"
@@ -4451,7 +4455,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
   const av = { full: 0, mod: 0, out: 0 };
   rows.forEach((r) => { if (r.avail <= 1) av.full++; else if (r.avail <= 3) av.mod++; else av.out++; });
   const gd = fx.nextGame ? dayDiff(today, fx.nextGame.date) : null;
-  const gdLabel = gd == null ? null : gd === 0 ? tr('GAME DAY') : gd < 0 ? (he ? `עוד ${-gd === 1 ? 'יום אחד' : `${-gd} ימים`} למשחק` : `${-gd} day${gd === -1 ? '' : 's'} to game`) : null;
+  const gdLabel = gd == null ? null : gd === 0 ? tr('GAME DAY') : gd < 0 ? (he ? `עוד ${-gd === 1 ? 'יום אחד' : -gd === 2 ? 'יומיים' : `${-gd} ימים`} למשחק` : `${-gd} day${gd === -1 ? '' : 's'} to game`) : null;
   // time (with date when it's a future/next session) highlighted in a navy
   // segment; all text one size.
   // A session chip and its density line. No plan under it: practice plans are
@@ -4494,7 +4498,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingTop: 7, paddingBottom: 7, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* the house 36 (#509: it was a 22px pill beside 36px controls); line-height 1 keeps the caps centred (#467) */, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* the house 36 (#509: it was a 22px pill beside 36px controls); line-height 1 keeps the caps centred (#467) */, letterSpacing: '0.06em', color: focusC, background: 'transparent' /* the frame + the words carry it, no fill (#673) */, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
           <Segmented text={tr(focus.emphasis)} style={{ fontFamily: FB, fontSize: 13, color: C.tx }} />
         </div>
       )}
@@ -5586,9 +5590,7 @@ function MicrocycleView({ fx, today }) {
               border: `1px solid ${d.isToday ? TODAY_INK : d.isGame ? ORANGE : C.cardBd}`,   // one 1px line, no inset double (#567)
               borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`,
               padding: '10px 10px 12px',
-              background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)`
-                : d.isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)`
-                : 'var(--c-sf)',
+              background: 'var(--c-sf)' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */,
               display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* minWidth:0 + flexWrap so a squeezed label breaks at its space
                   and the TODAY chip drops to its own line, rather than the
@@ -6000,11 +6002,11 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
           const isToday = d === today;
           return (
             <div key={d} data-week-date={d} data-week-n={list.length} className={horizontalWeek ? undefined : 'bhbc-week-row'} style={horizontalWeek
-              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? TODAY_INK : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
+              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? TODAY_INK : 'transparent'}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, minWidth: 0 }
               // 12px sides on EVERY row, so today's tint has an inset and the
               // day label never sits on its edge (26.9: "sat, sep 26 is too close
               // to the dark grey edge"); all rows share it, so nothing shifts.
-              : { display: 'flex', gap: 12, alignItems: 'center', padding: '6px 12px', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+              : { display: 'flex', gap: 12, alignItems: 'center', padding: '6px 12px', borderTop: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
               <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0 }}>
                 <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? TODAY_INK : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
@@ -6158,7 +6160,7 @@ function ScheduleList({ fx, today }) {
         return (
           // TODAY IS THE ROW'S TINT, as on the planner - "FRI · TODAY" broke the
           // day column onto two lines (#509).
-          <div key={d.date} data-list-date={d.date} style={{ display: 'flex', gap: 14, padding: '8px 10px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+          <div key={d.date} data-list-date={d.date} style={{ display: 'flex', gap: 14, padding: '8px 10px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
             <div style={{ width: 84, flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 12, color: isToday ? TODAY_INK : C.tx }}>{dow(d.date)}</div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{monDay(d.date)}</div>
@@ -6252,14 +6254,14 @@ function ScheduleWeek({ fixtures, today }) {
           ))}
           <span />
           {days.map((x) => (
-            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ position: 'relative', borderInlineStart: `1px solid ${C.cardBd}`, background: x.iso === today ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ position: 'relative', borderInlineStart: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
               {placed(x.items).map(({ f, s0, e0, L, n }, i) => {
                 const col = FX_COLOR[f.type] || NAVY;
                 const where = fxWhere(f);
                 return (
                   <div key={i} className={'bhbc-wk-ev' + (isCancelled(f) ? ' fx-cancelled' : '')}
                     title={[f.start, fxLabelFor(f.type, FX_LABEL[f.type] || 'Session'), Number(f.minutes) > 0 ? `${f.minutes} ${tr('min')}` : '', where].filter(Boolean).join(' · ')}
-                    style={{ position: 'absolute', zIndex: 1, top: `${pctOf(s0)}%`, height: `${pctOf(e0) - pctOf(s0)}%`, insetInlineStart: `calc(${(L / n) * 100}% + 3px)`, width: `calc(${100 / n}% - 6px)`, boxSizing: 'border-box', overflow: 'hidden', padding: '4px 6px', background: `color-mix(in srgb, ${col} 13%, var(--c-sf))`, borderInlineStart: `3px solid ${col}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    style={{ position: 'absolute', zIndex: 1, top: `${pctOf(s0)}%`, height: `${pctOf(e0) - pctOf(s0)}%`, insetInlineStart: `calc(${(L / n) * 100}% + 3px)`, width: `calc(${100 / n}% - 6px)`, boxSizing: 'border-box', overflow: 'hidden', padding: '4px 6px', background: 'var(--c-sf)' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, borderInlineStart: `3px solid ${col}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {/* time + length on line 1, the kind on its own line (#511: at a
                         768 tablet a ~95px day column cut "PRACTICE" to "PRA…") */}
                     <span style={{ display: 'flex', gap: 5, alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap' }}>
@@ -6269,7 +6271,7 @@ function ScheduleWeek({ fixtures, today }) {
                     <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: col, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>
                       <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} />
                     </span>
-                    {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{where}</span>}
+                    {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, whiteSpace: 'normal', overflowWrap: 'anywhere', unicodeBidi: 'isolate' /* wraps, never '…' (his rule: never truncate - 'VS RAMAT GAN · HAYOVE…', #673) */ }}>{where}</span>}
                   </div>
                 );
               })}
@@ -6281,7 +6283,7 @@ function ScheduleWeek({ fixtures, today }) {
         {days.map((x) => {
           const isToday = x.iso === today;
           return (
-            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ flex: '1 0 auto', display: 'flex', gap: 10, alignItems: 'center', padding: '6px 10px', minHeight: 48, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ flex: '1 0 auto', display: 'flex', gap: 10, alignItems: 'center', padding: '6px 10px', minHeight: 48, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
               <div style={{ width: 52, flexShrink: 0 }}>
                 <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? TODAY_INK : C.tx }}>{dowFor(x.d, DOW[x.d.getDay()])}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(x.iso)}</div>
@@ -6325,10 +6327,10 @@ function ScheduleMonth({ fixtures, today }) {
     // the 2px ring sat on the cell's own 1px grid lines and read as a 3px
     // frame on the phone (Ohad 5.10 #567: "too thick and annoying").
     return (
-      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 1px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
+      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: 'var(--c-sf)' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 1px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? TODAY_INK : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
-          <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', flexWrap: 'wrap' /* the venue takes its own line (flexBasis 100%) - without wrap it squeezed the kind to a 19px stub (AUDIT-470) */, alignItems: 'center', gap: 5, rowGap: 1, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
+          <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', flexWrap: 'wrap' /* the venue takes its own line (flexBasis 100%) - without wrap it squeezed the kind to a 19px stub (AUDIT-470) */, alignItems: 'center', gap: 5, rowGap: 1, fontFamily: FN, fontSize: 10, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
             {/* one word, never broken: the full kind, or its short form when the
                 column is too narrow (SegWord measures) */}
@@ -6419,7 +6421,7 @@ const relTime = (iso, he = false) => {
   const diff = (Date.now() - t) / 60000;
   if (diff < 1) return he ? 'עכשיו' : 'just now';
   if (diff < 60) return he ? `לפני ${Math.round(diff)} דק׳` : `${Math.round(diff)}m ago`;
-  if (diff < 1440) { const h = Math.round(diff / 60); return he ? (h === 1 ? 'לפני שעה' : `לפני ${h} שעות`) : `${h}h ago`; }
+  if (diff < 1440) { const h = Math.round(diff / 60); return he ? (h === 1 ? 'לפני שעה' : h === 2 ? 'לפני שעתיים' : `לפני ${h} שעות`) : `${h}h ago`; }
   return `${he ? 'נכון ל-' : 'as of '}${ddmm(localISO(new Date(t)))}`;
 };
 
@@ -6467,7 +6469,7 @@ function StandingsTable({ standings }) {
             const bh = isBH(s.team);
             const td = { fontFamily: FN, fontSize: 13, color: C.tx, padding: '9px 10px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
-              <tr key={s.team} className="bhbc-row" style={{ borderBottom: `1px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 8%, transparent)` : 'transparent', borderInlineStart: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
+              <tr key={s.team} className="bhbc-row" style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673) */ /* our row: the orange stripe, the orange rank and the bold name */, borderInlineStart: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
                 <td style={{ ...td, fontWeight: 800, color: bh ? ORANGE_DEEP : C.td }}>{s.rank}</td>
                 <td style={{ ...td, textAlign: 'start', fontWeight: bh ? 800 : 600, color: C.tx, whiteSpace: 'nowrap' }}>{s.team}</td>
                 <td style={td}>{s.gp}</td>
@@ -7242,18 +7244,6 @@ function StatusWord({ status }) {
     </span>
   );
 }
-function StatusPill({ status, small, full }) {
-  const tr = useT();
-  const s = MED_STATUS[status] || MED_STATUS.available;
-  const exc = !!MED_STATUS[status] && status !== 'available';
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : 136, padding: '0 9px',   /* ONE width for every status (#511: min-width 96 let AVAILABLE grow past OUT - three pill widths in one column); 136 holds the widest, NON-CONTACT */ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: exc ? `color-mix(in srgb, ${s.color} 12%, transparent)` : 'var(--c-sf)', border: exc ? `1px solid color-mix(in srgb, ${s.color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
-      {/* tinted by status like the load board's chips, and like them ONLY for the
-          exceptions (27.9: "colour only the exceptions") - AVAILABLE is plain */}
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
-    </span>
-  );
-}
 
 
 // Ohad 2026-08-28: "make sure the medical stuff has an output of rpe x time of
@@ -7625,7 +7615,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
     if (n < 0) return he ? 'בעתיד' : 'in the future';
     if (n === 0) return he ? 'היום' : 'today';
     if (n === 1) return he ? 'אתמול' : 'yesterday';
-    return he ? `לפני ${n} ימים` : `${n} days ago`;
+    return he ? (n === 2 ? 'לפני יומיים' : `לפני ${n} ימים`) : `${n} days ago`;
   };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (

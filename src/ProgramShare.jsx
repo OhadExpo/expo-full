@@ -190,10 +190,13 @@ function SectionCard({ label, children }) {
 }
 
 function ExerciseLine({ idx, ex }) {
-  const name = ex?.name || ex?.title || ex?.ex || 'Exercise';
+  // a warm-up row is the legacy shape { t, rx, vid, note } (12.10: every shared warm-up read 'Exercise')
+  const name = ex?.name || ex?.title || ex?.t || ex?.ex || 'Exercise';
   const sets = ex?.sets ?? ex?.s;
   const reps = ex?.reps ?? ex?.r;
-  const notes = ex?.notes || ex?.coachNotes || ex?.n;
+  const notes = ex?.notes || ex?.coachNotes || ex?.n || ex?.note;
+  // sets x reps when they are a pair (or there is no rx) - the athlete portal's wuStructured rule; else the written rx
+  const structured = !!((sets && reps) || ((sets || reps) && !ex?.rx));
   const heb = isHebrew(name);
   return (
     <div style={{
@@ -207,7 +210,10 @@ function ExerciseLine({ idx, ex }) {
         <div dir="auto" style={{ fontSize: 14, color: 'var(--c-tx)', fontFamily: heb ? FH : FB, fontWeight: 600 }}>
           {name}
         </div>
-        {(sets || reps) && (
+        {!structured && ex?.rx && (
+          <div dir="auto" style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-tm)', letterSpacing: '0.04em', marginTop: 2 }}>{ex.rx}</div>
+        )}
+        {structured && (
           <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-tm)', letterSpacing: '0.04em', marginTop: 2 }}>
             {sets ? `${sets} × ` : ''}{reps || ''}
           </div>

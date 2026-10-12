@@ -293,7 +293,7 @@ export default function IntakeForm() {
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.or, margin: 0 }}>
-            {dir === 'rtl' ? 'הקישור כבר שומש' : 'Link already used'}
+            {dir === 'rtl' ? 'כבר השתמשו בקישור הזה' : 'Link already used'}
           </h2>
           <p style={{ fontSize: 14, color: C.tm, marginTop: 12 }}>
             {dir === 'rtl' ? 'אם זה היה בטעות — בקש קישור חדש מהמאמן.' : 'If that was a mistake, ask the coach for a fresh link.'}

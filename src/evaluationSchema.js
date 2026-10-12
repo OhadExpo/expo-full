@@ -26,7 +26,8 @@ export const EVAL_SCHEMA = {
       id: 'jumping',
       title: 'Jumping & Landing',
       tests: [
-        { id: 'cmj',         label: 'Countermovement Jump',            unit: 'cm',  goal: 'cm' },
+        // a soft hyphen (12.10): COUNTERMOVEMENT is the catalogue's one word wider than a phone's name column (spilled 13-17px)
+        { id: 'cmj',         label: 'Counter\u00ADmovement Jump',            unit: 'cm',  goal: 'cm' },
         { id: 'svj',         label: 'Standing Vertical Jump',          unit: 'cm',  goal: 'cm' },
         { id: 'drop_jump',   label: 'Incremental Drop Jump (RSI)',     unit: 'cm/ms/rsi', goal: 'cm / ms / rsi',
           composite: [

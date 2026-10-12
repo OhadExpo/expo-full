@@ -57,6 +57,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(0.5);
   const [trails, setTrails] = useState(true);
+  const trailsRef = useRef(true); trailsRef.current = trails;   // a rebuilt scene keeps the toggle (review 12.10)
   const idxRef = useRef(0); idxRef.current = idx;
   const playingRef = useRef(false); playingRef.current = playing;
   // the trails show THIS rep (or the last 2 s outside one): drawn over the whole clip they piled
@@ -295,15 +296,21 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       const line = new Line2(new LineGeometry(), mat); line.renderOrder = 3; line.frustumCulled = false; line.visible = false; scene.add(line);
       const dot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 12), new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true }));
       dot.renderOrder = 4; dot.visible = false; scene.add(dot);
-      return { arr, line, dot, on: true, show(from, i) {
+      return { arr, line, dot, on: trailsRef.current, key: '', show(from, i, u = 0) {
         // nothing measured here (a long gap): no dot, no line
         if (fresh[i] < 0) { this.dot.visible = false; this.line.visible = false; return; }
         // the trail starts after the last long gap inside this rep
         let a = i; while (a > from && fresh[a - 1] >= 0) a--;
         from = a; const n = i - from + 1;
-        this.dot.visible = this.on; this.dot.position.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]);
-        if (!this.on || n < 2) { this.line.visible = false; return; }
-        this.line.geometry.setPositions(arr.subarray(from * 3, (i + 1) * 3)); this.line.visible = true;
+        // the dot rides with the BLENDED body between captured frames (it stepped ~10 times a second, 12.10 review)
+        const j = u > 0 && i + 1 < pts.length && fresh[i + 1] >= 0 ? i + 1 : i, w = j === i ? 0 : u;
+        this.dot.visible = this.on;
+        this.dot.position.set(arr[i * 3] + (arr[j * 3] - arr[i * 3]) * w, arr[i * 3 + 1] + (arr[j * 3 + 1] - arr[i * 3 + 1]) * w, arr[i * 3 + 2] + (arr[j * 3 + 2] - arr[i * 3 + 2]) * w);
+        if (!this.on || n < 2) { this.line.visible = false; this.key = ''; return; }
+        // the line is rebuilt only when its range changes - not 60 times a second for the same frames (12.10 review)
+        const k = from + ':' + i;
+        if (k !== this.key) { this.line.geometry.setPositions(arr.subarray(from * 3, (i + 1) * 3)); this.key = k; }
+        this.line.visible = true;
       } };
     };
     // THE BAR PATH follows where the bar is: on his back in a squat (the shoulders - his hands are behind his
@@ -433,7 +440,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       } else refLines.visible = false;
       const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
       const ti = Math.max(0, Math.min(pts.length - 1, i));
-      handTrail.show(Math.min(from, ti), ti); hipTrail.show(Math.min(from, ti), ti);
+      handTrail.show(Math.min(from, ti), ti, u); hipTrail.show(Math.min(from, ti), ti, u);
     };
 
     const size = () => {
@@ -538,7 +545,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
           <span /> <span style={{ color: '#39BDFF', fontWeight: 700 }}>{tt('L')}</span><span style={{ color: '#F5A524', fontWeight: 700 }}>{tt('R')}</span>
           {angles.map(([k, l, r]) => (<React.Fragment key={k}><span style={{ color: C.tm, letterSpacing: '0.1em' }}>{k}</span>{[l, r].map((x, n) => <span key={n} dir="ltr" style={{ color: x && !x.seen ? '#6b7480' : '#FFF', unicodeBidi: 'isolate' }}>{x == null ? '—' : `${x.seen ? '' : '~'}${x.v}°`}</span>)}</React.Fragment>))}
         </div>
-        <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, display: 'flex', gap: 10, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, maxWidth: 'calc(100% - 16px)', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', columnGap: 10, rowGap: 4, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }} /* wraps inside the canvas on a narrow phone, never off its edge (12.10) */>
           <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
           {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
           {trails && <><span style={{ color: '#39BDFF' }}>━ {tt(channel === 'knee' ? 'SHOULDERS' : 'HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}

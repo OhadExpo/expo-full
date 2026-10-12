@@ -44,7 +44,8 @@ import { setWidth } from './lib/viewport.mjs';
 import { signIn } from './lib/authed-page.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
-const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
+// --only OR env ONLY (12.10: ONLY=... in the env was silently ignored and a 'four screen' run became a full sweep against prod)
+const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : process.env.ONLY || null; })();
 const OUT = process.env.OUT || 'audit-out/text-overflow';
 // A PAUSE BEFORE EVERY PAGE (11.10): the app pages all read the PRODUCTION database (a preview and the dev
 // server too). Two full sweeps back to back, unpaced, sent 3,105 requests in 7 minutes and the database
@@ -57,11 +58,49 @@ const COACH_TABS = ['dashboard', 'trainees', 'programs', 'exercises', 'sessions'
 const SET = process.env.SET || 'demo';
 const BHBC_TABS = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'];
 const APP_SURFACES = [
-  ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'bugs', 'chat-audit']
+  ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'exercise-videos', 'bugs', 'chat-audit']
     .map((t) => [`app-${t}`, `/coach/${t}`]),
-  ...BHBC_TABS.map((t) => [`bhbc-${t}`, `/coach/bhbc/${t}`]),
+  // a remembered sub-view would make a tab measure whatever the LAST page left open, so the views a tab holds are
+  // each tapped explicitly (12.10: the week view's cut venue and the warm-up sub-view were never swept)
+  ...BHBC_TABS.map((t) => [`bhbc-${t}`, `/coach/bhbc/${t}`, t === 'schedule' ? '^(MONTH|חודש)$' : t === 'games' ? '^(GAMES|משחקים)$' : null]),
+  ['bhbc-schedule-week', '/coach/bhbc/schedule', '^(WEEK|שבוע)$'],
+  ['bhbc-schedule-list', '/coach/bhbc/schedule', '^(LIST|רשימה)$'],
+  ['bhbc-games-warmup', '/coach/bhbc/games', '^(GAME WARM-UP|חימום למשחק)$'],
+  // the athlete card (a modal): 'row:' taps the player's own ROW, not a button - the Lifts rows open it at every width
+  ['bhbc-athlete-card', '/coach/bhbc/lifts', 'row:Bryant|ברייאנט'],
+  // the zone's forms (opening one writes nothing): Log lift, Log S&C session, Report injury
+  ['bhbc-form-lift', '/coach/bhbc/lifts', '^(LOG LIFT|רישום כוח אישי)$'],
+  ['bhbc-form-sc', '/coach/bhbc/practices', '^(LOG S&C SESSION|רישום כוח קבוצתי)$'],
+  ['bhbc-form-injury', '/coach/bhbc/medical', '^(\\+ REPORT|\\+ דיווח)$'],
+  // the detail screens a coach reaches by a click have URLs, so they are surfaces (the fixture athlete and his latest plan)
+  ['app-athlete-detail', '/coach/athletes/tr_diego'],
+  ['app-athlete-preview', '/coach/athletes/tr_diego/preview'],
+  ['app-program-editor', '/coach/programs/plan_ww15cnz51jnmo91eocg'],
+  ['app-program-preview', '/coach/programs/plan_ww15cnz51jnmo91eocg/preview'],
+  // the athlete page's dialogs - each tap was probed with every database write BLOCKED: each opens one dialog, 0 writes (12.10)
+  ['app-dlg-payment', '/coach/athletes/tr_diego', '^(\\+ ADD PAYMENT|\\+ הוסף תשלום)$'],
+  ['app-dlg-contract', '/coach/athletes/tr_diego', '^(CONTRACT|חוזה)$'],
+  ['app-dlg-history-log', '/coach/athletes/tr_diego', '^(\\+ LOG|\\+ רישום)$'],
+  ['app-dlg-evaluation', '/coach/athletes/tr_diego', '^(\\+ NEW EVALUATION|\\+ הערכה חדשה)$'],
+  ['app-dlg-new-program', '/coach/athletes/tr_diego', '^(\\+ New Program|\\+ תוכנית חדשה)$'],
+  // the other tabs' dialogs, each probed with writes blocked (12.10). NEVER tap '+ New Program' / '+ ASSIGN PROGRAM' on
+  // /coach/programs: they CREATE a plan on the tap. Twin-label buttons hold both languages, in either order by UI language.
+  ['app-dlg-add-exercise', '/coach/exercises', '^\\+ (Add Exercise|Add|הוספת תרגיל|הוסף)$'],
+  ['app-dlg-start-session', '/coach/sessions', '^(\\+ START SESSION|\\+ התחל אימון)$'],
+  ['app-dlg-payment-request', '/coach/billing', '^\\+ (NEW REQUEST|בקשה חדשה)(\\+ (NEW REQUEST|בקשה חדשה))?$'],
+  ['app-dlg-new-challenge', '/coach/challenges', '^\\+ (NEW CHALLENGE|אתגר חדש)(\\+ (NEW CHALLENGE|אתגר חדש))?$'],
+  ['app-dlg-intake-link', '/coach/intake', '^\\+ (Generate Link|קישור חדש)(\\+ (Generate Link|קישור חדש))?$'],
 ];
-const ATHLETE_SURFACES = [['portal', '/']];
+// the portal's tabs, each tapped (12.10: only PROGRAM, the default, was ever swept). Run as the fixture athlete:
+// EXPO_EMAIL=diego@diegoday.com SET=athlete (opening Messages / History can mark coach notes read - test data only)
+const ATHLETE_SURFACES = [
+  ['portal', '/', '^(PROGRAM|תוכנית)$'],
+  ['portal-bw', '/', '^(BW|משקל)$'],
+  ['portal-meal', '/', '^(MEAL LOG|יומן אוכל)$'],
+  ['portal-history', '/', '^(HISTORY|היסטוריה)( \\(\\d+\\))?$'],
+  ['portal-prs', '/', '^(PRs|שיאים)$'],
+  ['portal-messages', '/', '^(MESSAGES|הודעות)$'],
+];
 const DEMO_SURFACES = [
   ['landing', '/demo'],
   ['landing-he', '/demo/he'],
@@ -78,6 +117,12 @@ const DEMO_SURFACES = [
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],
   ['booking', '/book'],
+  // the public intake form; with no ?t= it renders the whole form as a preview and submits nothing (12.10: never swept)
+  ['intake-form-he', '/intake/he'],
+  ['intake-form-en', '/intake/en'],
+  // the public shared-program page; the fixture token lives OUTSIDE this public repo (SHARE_TOKEN=..., a test athlete's plan).
+  // Every open bumps that share's view_count, so never point it at a real client's share.
+  ...(process.env.SHARE_TOKEN ? [['program-share', `/p/${process.env.SHARE_TOKEN}`]] : []),
 ];
 const SURFACES = (SET === 'app' ? APP_SURFACES : SET === 'athlete' ? ATHLETE_SURFACES : DEMO_SURFACES).filter(([n]) => !ONLY || ONLY.split(',').some((o) => n.includes(o)));
 const SIGNED = SET === 'app' || SET === 'athlete';
@@ -104,7 +149,19 @@ let measured = 0, nodes = 0;
 const signedCtx = new Map();
 // the debug + break-test hooks, for BOTH paths (11.10: they sat in the signed path only, so on the demo
 // set DEBUG_PATH and PLANT silently did nothing)
+// BLOCK_WRITES=1: a sweep never writes. Every PostgREST write (PATCH/PUT/DELETE, POST to a table - an /rpc/ POST is a read
+// here: get_shared_program, verify_intake_token) is ABORTED and listed at the end, so a page that writes on open is named, not run.
+const blockedWrites = [];
 async function gateHooks(pg) {
+  if (process.env.BLOCK_WRITES) {
+    await pg.setRequestInterception(true);
+    pg.on('request', (r) => {
+      const u = r.url(), m = r.method();
+      if (/\/rest\/v1\//.test(u) && (m === 'PATCH' || m === 'PUT' || m === 'DELETE' || (m === 'POST' && !/\/rest\/v1\/rpc\//.test(u)))) {
+        blockedWrites.push(`${m} ${u.replace(/^.*\/rest\/v1\//, '').slice(0, 90)}`); r.abort();
+      } else r.continue();
+    });
+  }
   if (process.env.DEBUG_PATH) await pg.evaluateOnNewDocument(() => { window.__gateDebugPath = true; });
   // PLANT=1: a known spill inside an ABSOLUTE box, to prove the gate still sees one (break test, 11.10)
   if (process.env.PLANT) await pg.evaluateOnNewDocument(() => { addEventListener('DOMContentLoaded', () => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:20px;top:160px;width:60px;z-index:99999;font:12px sans-serif;white-space:nowrap;background:#fff;color:#000'; d.innerHTML = '<span>PLANTED SPILL TEXT</span>'; document.body.appendChild(d); }); });
@@ -126,8 +183,9 @@ async function pageFor(lang, w, h, theme) {
 for (const lang of LANGS) {
   for (const [w, h] of WIDTHS) {
     for (const theme of THEMES) {
-      for (const [name, route] of SURFACES) {
-        const id = `${name}/${lang}/${w}/${theme}`;
+      for (const [name, route, tap] of SURFACES) {
+        // the HEIGHT too on a tablet: 1024x768 and 1024x1366 shared one id - their findings merged and nodes.json added the two (12.10)
+        const id = `${name}/${lang}/${TABLET ? `${w}x${h}` : w}/${theme}`;
         const { ctx, pg, fresh } = await pageFor(lang, w, h, theme);
         try {
           if (fresh) await setWidth(pg, w, h, { tablet: TABLET });   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
@@ -155,6 +213,24 @@ for (const lang of LANGS) {
             prev = len;
           }
           if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
+          // A PAGE THAT IS STILL LOADING IS NOT A CLEAN PAGE (12.10): right after a fresh sign-in a loading state held still
+          // for 600 ms and was judged - three BHBC tabs 'passed' on 2 text nodes. Fewer than 10 = wait up to 10 s more, then UNSET.
+          // (20 flagged real small pages: Sessions / Challenges / Smart Import read 17-18 on every combination, 12.10)
+          {
+            const tn = () => pg.evaluate(() => { const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let k = 0, n; while ((n = wk.nextNode())) if ((n.nodeValue || '').trim().length > 1) k++; return k; });
+            let k = await tn();
+            for (let tries = 0; k < 10 && tries < 10; tries++) { await wait(1000); k = await tn(); }
+            if (k < 10) { add({ kind: 'UNSET', id, detail: `only ${k} text nodes on the page after 10 s - a loading or empty screen, NOT judged` }); continue; }
+          }
+          // a sub-view: tap its button (the LAST match - the top nav can carry the same word), then let it settle
+          if (tap) {
+            const hit = await pg.evaluate((t) => {
+              if (t.startsWith('row:')) { const re = new RegExp(t.slice(4), 'i'); const rows = [...document.querySelectorAll('[role="button"]')].filter((x) => x.offsetHeight > 20 && x.offsetHeight < 140 && re.test(x.textContent || '')); const r = rows.sort((a, b) => a.offsetHeight - b.offsetHeight)[0]; if (r) r.click(); return !!r; }
+              const all = [...document.querySelectorAll('button, [role="tab"]')].filter((x) => new RegExp(t, 'i').test((x.textContent || '').trim())); const b2 = all[all.length - 1]; if (b2) b2.click(); return !!b2;
+            }, tap);
+            if (!hit) { add({ kind: 'UNSET', id, detail: `no button for ${tap} - the sub-view was NOT judged` }); continue; }
+            await wait(2500);
+          }
 
           const pageH = await pg.evaluate(() => document.documentElement.scrollHeight);
           const seen = new Set();
@@ -271,6 +347,7 @@ const by = {};
 for (const f of findings) by[f.kind] = (by[f.kind] || 0) + 1;
 const total = SURFACES.length * LANGS.length * WIDTHS.length * THEMES.length;
 console.log(`\n${measured} of ${total} combinations measured, ${nodes} text nodes examined.`);
+if (process.env.BLOCK_WRITES) console.log(`writes blocked: ${blockedWrites.length}${blockedWrites.length ? ' - ' + [...new Set(blockedWrites)].slice(0, 8).join(' | ') : ''}`);
 console.log(Object.keys(by).length ? Object.entries(by).map(([k, v]) => `  ${k.padEnd(9)} ${v}`).join('\n') : '  none');
 console.log(`-> ${OUT}/findings.json`);
 process.exit(findings.length ? 1 : 0);

@@ -122,7 +122,7 @@ function summaryLine(e, tt) {
   if (s && s.onlineDue) return facts([`${tt('Monthly')} ${s.prices.month}`, `${tt('last paid')} ${shortDate(s.last_payment)}`]);
   if (e.requests.length) return `${e.requests.length} ${tt('Pending requests')}`;
   // "ago", or it reads as "paid for the last 12 days" (AUDIT-470)
-  if (e.overdue) return e.overdue.never ? tt('No payment recorded') : (readLang() === 'he' ? `שילם לפני ${e.overdue.days} ימים` : `last paid ${e.overdue.days} days ago`);
+  if (e.overdue) return e.overdue.never ? tt('No payment recorded') : (readLang() === 'he' ? (e.overdue.days === 2 ? 'שילם לפני יומיים' : `שילם לפני ${e.overdue.days} ימים`) : `last paid ${e.overdue.days} days ago`);
   return '';
 }
 

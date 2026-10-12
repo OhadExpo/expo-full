@@ -67,14 +67,14 @@ export const PROGRAMS = [
     summary:
       'Learn the seven primary movement patterns. The base every other program assumes.',
     summaryHe:
-      'לומדים את שבע תבניות התנועה העיקריות. הבסיס שכל תוכנית אחרת בנויה עליו.',
+      'לומדים את שבעת דפוסי התנועה העיקריים. הבסיס שכל תוכנית אחרת בנויה עליו.',
     highlights: [
       'Hinge / squat / push / pull / carry / rotation in every microcycle',
       'Tempo + ROM emphasis before load',
       'Barbell + dumbbells, no machines required',
     ],
     highlightsHe: [
-      'ציר/סקוואט/דחיפה/משיכה/נשיאה/סיבוב בכל מיקרוסייקל',
+      'הינג׳/סקוואט/דחיפה/משיכה/נשיאה/סיבוב בכל מיקרוסייקל',
       'דגש על טמפו וטווח תנועה לפני עומס',
       'מוט ומשקולות יד, בלי מכונות',
     ],

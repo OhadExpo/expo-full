@@ -1534,14 +1534,10 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
       {/* Title is NOT repeated here — the row above shows it in full once
           expanded. Detail starts at tags / approval / calendar / comments. */}
       {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: uiDir() }}>
-          {tags.map(t => (
-            <span key={t} style={{
-              fontFamily: FN, fontSize: 9, fontWeight: 700,
-              letterSpacing: '0.1em', color: 'var(--c-ac)',
-              background: 'rgba(57,189,255,0.12)', padding: '3px 8px',
-            }}>{labelTag(t)}</span>
-          ))}
+        // plain cyan words, no filled boxes (#675: tags in one quiet line, the meta-line grammar)
+        <div style={{ marginTop: 6, direction: uiDir(), fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-ac)', lineHeight: 1.5 }}>
+          {/* one span per tag with a clear gap - labelTag already joins a namespaced tag's parts with ' · ' (12.10 review) */}
+          {tags.map((tg) => <span key={tg} style={{ display: 'inline-block', marginInlineEnd: 16, whiteSpace: 'nowrap' }}>{labelTag(tg)}</span>)}
         </div>
       )}
       {readOnly && (
@@ -2000,7 +1996,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             if (fail === 0) {
               toast(readLang() === 'he' ? `${done === 1 ? 'משימה קיימת אחת סונכרנה' : `${done} משימות קיימות סונכרנו`} ליומן ✓` : `Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
             } else {
-              toast(readLang() === 'he' ? `${done === 1 ? 'אחת סונכרנה' : `${done} סונכרנו`} ו-${fail === 1 ? 'אחת נכשלה' : `${fail} נכשלו`} — פתח את השורה מחדש כדי לנסות שוב` : `Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
+              toast(readLang() === 'he' ? `${done === 1 ? 'אחת סונכרנה' : `${done} סונכרנו`} ו${fail === 1 ? 'אחת נכשלה' : `־${fail} נכשלו`} — פתח את השורה מחדש כדי לנסות שוב` : `Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
             }
           }
         } catch (err) {

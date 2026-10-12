@@ -1106,7 +1106,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // rAF draw loop and a MediaRecorder that would otherwise keep running if the
   // user navigates away mid-upload (memory leak + orphan MediaRecorder).
   const aliveRef = useRef(true);
-  useEffect(() => () => { aliveRef.current = false; }, []);
+  // true on every mount: StrictMode (dev) mounts twice, and a cleanup-only ref stayed false - every dev upload 'aborted' (12.10)
+  useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
 
   // Feature-detect compression capability. UA-sniffing for Safari was unreliable
   // — iOS 14.5+ ships MediaRecorder and canvas.captureStream, but quality varies.

@@ -28,6 +28,8 @@ const HOUR = 60 * 60 * 1000;
 
 export async function logAppOpen(surface) {
   try {
+    // a verification script's browser (scripts/lib/authed-page.mjs sets it) is not a person opening the app
+    if (localStorage.getItem('expo-gate') === '1') return false;
     const last = Number(localStorage.getItem(MARK) || 0);
     if (Number.isFinite(last) && Date.now() - last < HOUR) return false;
   } catch (e) { /* private mode — fall through and log it */ }

@@ -78,16 +78,19 @@ function TestRow({ index, test, value, onChange, onTest }) {
   return (
     <div className="eval-row" style={{
       display: 'grid',
-      gridTemplateColumns: isMobile ? '16px minmax(0,1.5fr) 42px minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
+      // phone (12.10): no GOAL column - 42px cut 'NORMATIVE' and the TEST · L / R pair; the goal is a line under the name and
+      // the test buttons get their own full-width line under the row
+      gridTemplateColumns: isMobile ? '16px minmax(0,1.4fr) minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
       gap: isMobile ? 6 : 10, padding: '7px 0', alignItems: 'center',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
       <div>
         <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
-        <TestButtons test={test} onTest={onTest} />
+        {isMobile && test.goal && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3, marginTop: 2 }}>{test.goal}</div>}
+        {!isMobile && <TestButtons test={test} onTest={onTest} />}
       </div>
-      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>
+      {!isMobile && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>}
       <div style={{ minWidth: 0 }}>
         {/* simple — capped width so a lone number doesn't float in a huge box */}
         {!hasSides && !isComposite && (
@@ -145,6 +148,7 @@ function TestRow({ index, test, value, onChange, onTest }) {
           </div>
         )}
       </div>
+      {isMobile && toolForTest(test.id) && <div style={{ gridColumn: '2 / -1' }}><TestButtons test={test} onTest={onTest} /></div>}
     </div>
   );
 }
@@ -272,11 +276,11 @@ function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
         display: 'grid',
         gridTemplateColumns: isMovements
           ? (isMobile ? '16px minmax(0,1.3fr) minmax(0,1.5fr) minmax(0,1.4fr)' : '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px')
-          : (isMobile ? '16px minmax(0,1.5fr) 42px minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)'),
+          : (isMobile ? '16px minmax(0,1.4fr) minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)'),
         gap: isMovements ? (isMobile ? 6 : 12) : (isMobile ? 6 : 10), padding: '4px 0 6px',
         borderBottom: `1px solid var(--c-cardBd)`,
       }}>
-        {['#', tt('TEST'), isMovements ? tt('WATCH') : tt('GOAL'), tt('SCORE')].map((h, i) => (
+        {(isMovements || !isMobile ? ['#', tt('TEST'), isMovements ? tt('WATCH') : tt('GOAL'), tt('SCORE')] : ['#', tt('TEST'), tt('SCORE')]).map((h, i) => (
           <div key={i} style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>{h}</div>
         ))}
       </div>

@@ -119,7 +119,7 @@ const STRINGS = {
   'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז בהרמה.' },
   'inside.body': {
     en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with the athletes I coach, no manual stopwatch.',
-    he: 'צלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור ידנית.',
+    he: 'צלם כל סט בטלפון. הפורטל מריץ זיהוי תנוחה על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור ידנית.',
   },
 
   // Phone 1 — pose landmarker
@@ -147,8 +147,8 @@ const STRINGS = {
   'inside.rep.tag':      { en: 'REP COUNT',         he: 'ספירת חזרות' },
   'inside.rep.h':        { en: 'Auto rep counter',  he: 'ספירת חזרות אוטומטית' },
   'inside.rep.d': {
-    en: 'Detects troughs in the bar path, not peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
-    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות רגילה ברגע שההעלאה נגמרת.',
+    en: 'Finds the bottom of every rep in the measured joint angle, not its peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
+    he: 'מזהה את נקודת התחתית של כל חזרה בזווית המפרק שנמדד, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות רגילה ברגע שההעלאה נגמרת.',
   },
   'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
   'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
@@ -159,7 +159,7 @@ const STRINGS = {
   'inside.cmp.h':        { en: 'Side-by-side check',he: 'השוואה צד לצד' },
   'inside.cmp.d': {
     en: 'Every clip slots into your library by exercise + weight. Two taps to see today against your last attempt at the same load — ROM, tempo, depth, all visible.',
-    he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות ואתה רואה את הסט של היום מול הסט הקודם באותו משקל. ROM, טמפו, עומק — הכל גלוי.',
+    he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות ואתה רואה את הסט של היום מול הסט הקודם באותו משקל. ROM, טמפו, עומק — רואים הכל.',
   },
   'inside.cmp.last.t':   { en: 'LAST · 90 KG',      he: 'קודם · 90 ק״ג' },
   'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · הרביעית כבדה' },
@@ -222,7 +222,7 @@ const STRINGS = {
   'about.values.t3':     { en: 'Build for the long run',      he: 'בונים לטווח הארוך' },
   'about.values.d3': {
     en: 'Pain check-ins, deload weeks, and reassess windows are baked into every block. You don\'t get strong by training through dysfunction.',
-    he: 'דיווחי כאב, שבועות דילואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן על תנועה לא תקינה לא מתחזק.',
+    he: 'דיווחי כאב, שבועות דילואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן עם תנועה לא תקינה לא מתחזק.',
   },
 
   'about.photo.note': {
@@ -232,7 +232,7 @@ const STRINGS = {
 
   // ─── Why templates (price anchor) ─────────────────────────────────
   'why.badge':           { en: 'WHY TEMPLATES',   he: 'למה תבניות' },
-  'why.h2':              { en: 'Programmed, without a weekly show-up.', he: 'אימון לפי תוכנית, בלי להגיע שבוע-שבוע.' },
+  'why.h2':              { en: 'Programmed, without a weekly show-up.', he: 'אימון לפי תוכנית, בלי להגיע לאימון כל שבוע.' },
   'why.body': {
     en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private athlete gets, at a fraction of the price, with you as the operator.",
     he: 'רוב המתאמנים נמצאים באחת משלוש קטגוריות. תבניות הן האמצע — כמעט כל מה שמקבל ספורטאי בליווי אישי, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
@@ -337,7 +337,7 @@ const STRINGS = {
     he: '{title} · EXPO',
   },
   'doc.title.notfound':  { en: 'Program not found · EXPO', he: 'התוכנית לא נמצאה · EXPO' },
-  'doc.title.gym':       { en: 'EXPO · Athletic Performance Center', he: 'EXPO · מרכז ביצועים אתלטי' },
+  'doc.title.gym':       { en: 'EXPO · Athletic Performance Center', he: 'EXPO · מרכז לביצועים אתלטיים' },
   'doc.title.chooser':   { en: 'EXPO · Choose your path',            he: 'EXPO · בחר את הדרך' },
   'doc.title.privacy':   { en: 'EXPO · Privacy policy',              he: 'EXPO · מדיניות פרטיות' },
   'doc.title.terms':     { en: 'EXPO · Terms of use',                he: 'EXPO · תנאי שימוש' },
@@ -405,7 +405,7 @@ const STRINGS = {
   'faq.q2':           { en: 'Do I need a gym, or can I run this at home?', he: 'צריך חדר כושר או שאפשר בבית?' },
   'faq.a2': {
     en: 'Depends on the program — every card lists the equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag or use the quiz to see only what fits your setup.',
-    he: 'תלוי בתוכנית. בכל כרטיס רשום הציוד (בית, חדר כושר מלא, מינימלי). תסנן בקטלוג לפי תגית או תעבור על השאלון ותראה רק מה שמתאים לסטאפ שלך.',
+    he: 'תלוי בתוכנית. בכל כרטיס רשום הציוד (בית, חדר כושר מלא, מינימלי). תסנן בקטלוג לפי תגית או תמלא את השאלון ותראה רק מה שמתאים לסטאפ שלך.',
   },
   'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל מאפס. זה יהיה גבוה מדי בשבילי?' },
   'faq.a3': {
@@ -430,8 +430,8 @@ const STRINGS = {
   },
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {
-    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count reps from the bar path, and there is no real coach answering your WhatsApp. EXPO templates are the same engine the athletes I coach run — programmed by me, not generated.",
-    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות לפי מסלול המוט, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב, לא AI.',
+    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count your reps from the video, and there is no real coach answering your WhatsApp. EXPO templates are the same engine the athletes I coach run — programmed by me, not generated.",
+    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות מהסרטון, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב, לא AI.',
   },
   'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לפנות אליך אחרי הקנייה?' },
   'faq.a8': {
@@ -441,7 +441,7 @@ const STRINGS = {
 
   // ─── Quiz (routing questionnaire) ─────────────────────────────────
   'quiz.badge':       { en: 'NOT SURE WHICH BLOCK?', he: 'לא בטוח איזה בלוק?' },
-  'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. תקבל התאמה.' },
+  'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. התוכנית שמתאימה לך.' },
   'quiz.body': {
     en: "I built this from the same intake form I use with the athletes I coach — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
     he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם הספורטאים שאני מאמן — רק קצר יותר. דקה. ההערכה המלאה מחכה לך אחרי זה, כשתהיה מוכן.',
@@ -541,13 +541,13 @@ const STRINGS = {
   'demo.rep.h':       { en: 'Rep counter · interactive', he: 'ספירת חזרות · אינטראקטיבי' },
   'demo.rep.body': {
     en: "Tap the bar to add a rep. The path lights a trough at each tap — that's exactly how the portal counts off your real video.",
-    he: 'תלחץ על הגרף כדי להוסיף חזרה. המסלול מאיר נקודת תחתית בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
+    he: 'תלחץ על הגרף כדי להוסיף חזרה. המסלול מאיר נקודת תחתית בכל לחיצה — בדיוק ככה הפורטל סופר חזרות בסרטון האמיתי שלך.',
   },
   'demo.rep.reset':   { en: '↺ RESET',              he: '↺ איפוס' },
   'demo.cmp.h':       { en: 'Side-by-side · interactive', he: 'השוואה צד-לצד · אינטראקטיבי' },
   'demo.cmp.body': {
     en: 'Tap a tile to focus it — same UI as the portal when you compare today against your last attempt at the same load.',
-    he: 'תלחץ על סרטון כדי להתמקד בו — אותו ממשק כמו בפורטל כשמשווים את היום מול הסט הקודם באותו עומס.',
+    he: 'תלחץ על סרטון כדי להתמקד בו — אותו ממשק כמו בפורטל, כשמשווים את הסט של היום לסט הקודם באותו עומס.',
   },
 };
 

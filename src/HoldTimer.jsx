@@ -123,7 +123,7 @@ export default function HoldTimer({
         {!running && !done && <button onClick={start} style={btn(C.gn, '#000', C.gn)}>▶ {tt('START')}</button>}
         {running && <button onClick={stop} style={btn('#000', C.rd, C.rd)}>■ {tt('STOP')}</button>}
         {done && <>
-          <button onClick={reset} style={btn('transparent', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.3)')}>↺ {tt('REDO')}</button>
+          <button onClick={reset} style={btn('transparent', 'rgba(255,255,255,0.7)', 'rgba(255,255,255,0.3)')}>↺ {tt('Go again')}</button>
           <button onClick={start} style={btn('transparent', C.gn, C.gn)}>▶ {tt('RESUME')}</button>
           <button onClick={() => onSave && onSave(seconds)} style={btn(C.ac, '#fff', C.ac)}>{tt('✓ LOG {s}s').replace('{s}', () => seconds)}</button>
         </>}

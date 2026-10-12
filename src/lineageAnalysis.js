@@ -431,7 +431,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
   const fatigueBits = () => {
     const bits = [];
     const dropTitle = anyDropping ? staples.find(isRegressing)?.title : null;
-    if (lowerGrind) bits.push(he ? `מפספס ${region.lower.pct}% מהטופ סטים בפלג גוף תחתון` : `missing ${region.lower.pct}% of lower-body top sets`);
+    if (lowerGrind) bits.push(he ? `מפספס ${region.lower.pct}% מהטופ סטים בפלג הגוף התחתון` : `missing ${region.lower.pct}% of lower-body top sets`);
     if (anyDropping) bits.push(he ? `ה־e1RM ב־${dropTitle} יורד` : `${dropTitle} e1RM slipping`);
     if (velHigh) bits.push(he ? `מהירות המוט ירדה ב־${velocity.lossPct}% בסט המצולם האחרון` : `bar speed down ${velocity.lossPct}% on the last filmed set`);
     if (highAcwr) bits.push(he ? `יחס העומס קפץ ל־${acwr.acwr}` : `load ratio spiked to ${acwr.acwr}`);
@@ -476,7 +476,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
       : (progressing.length ? `He's responding — keep progressing.` : `Steady block — nothing's flashing red.`);
     sub = he
       ? (progressing.length
-        ? `${progressing.slice(0, 3).join(', ')} ${progressing.length === 1 ? 'עולה' : 'עולים'} במאמץ המתוכנן. תמשיך להעלות משקל בבלוק הבא.`
+        ? `${progressing.slice(0, 3).join(', ')} ${progressing.length === 1 ? 'עולה' : 'עולים'} במשקל באותו מאמץ מתוכנן. תמשיך להעלות משקל בבלוק הבא.`
         : 'המשקלים והמאמץ יציבים. תעלה איפה שיש לו מקום, ותשאיר איפה שאין.')
       : (progressing.length
         ? `${progressing.slice(0, 3).join(', ')} climbing at an on-target effort. Keep adding load next block.`
