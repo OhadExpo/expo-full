@@ -787,8 +787,7 @@ function BandPill({ band, value }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700,
-      letterSpacing: '0.03em', color: c, background: `color-mix(in srgb, ${c} 13%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${c} 38%, transparent)`, borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap', lineHeight: 1,
+      letterSpacing: '0.03em', color: c, background: 'transparent', border: 'none' /* no fill (his 5.10 rule, #673) */, borderRadius: 0, padding: 0, whiteSpace: 'nowrap', lineHeight: 1,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
       {value != null && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</span>}
@@ -2917,7 +2916,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             const lastP = (inj.progress || [])[0];
             return (
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusPill status={inj.status} small full /></span>
+                <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusWord status={inj.status} /></span>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
@@ -4494,7 +4493,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingTop: 7, paddingBottom: 7, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* the house 36 (#509: it was a 22px pill beside 36px controls); line-height 1 keeps the caps centred (#467) */, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 800, lineHeight: 1 /* the house 36 (#509: it was a 22px pill beside 36px controls); line-height 1 keeps the caps centred (#467) */, letterSpacing: '0.06em', color: focusC, background: 'transparent' /* the frame + the words carry it, no fill (#673) */, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
           <Segmented text={tr(focus.emphasis)} style={{ fontFamily: FB, fontSize: 13, color: C.tx }} />
         </div>
       )}
@@ -6465,7 +6464,7 @@ function StandingsTable({ standings }) {
             const bh = isBH(s.team);
             const td = { fontFamily: FN, fontSize: 13, color: C.tx, padding: '9px 10px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
-              <tr key={s.team} className="bhbc-row" style={{ borderBottom: `1px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 8%, transparent)` : 'transparent', borderInlineStart: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
+              <tr key={s.team} className="bhbc-row" style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673) */ /* our row: the orange stripe, the orange rank and the bold name */, borderInlineStart: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
                 <td style={{ ...td, fontWeight: 800, color: bh ? ORANGE_DEEP : C.td }}>{s.rank}</td>
                 <td style={{ ...td, textAlign: 'start', fontWeight: bh ? 800 : 600, color: C.tx, whiteSpace: 'nowrap' }}>{s.team}</td>
                 <td style={td}>{s.gp}</td>
