@@ -147,8 +147,8 @@ const STRINGS = {
   'inside.rep.tag':      { en: 'REP COUNT',         he: 'ספירת חזרות' },
   'inside.rep.h':        { en: 'Auto rep counter',  he: 'ספירת חזרות אוטומטית' },
   'inside.rep.d': {
-    en: 'Detects troughs in the bar path, not peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
-    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות רגילה ברגע שההעלאה נגמרת.',
+    en: 'Finds the bottom of every rep in the measured joint angle, not its peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
+    he: 'מזהה את נקודת התחתית של כל חזרה בזווית המפרק שנמדד, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות רגילה ברגע שההעלאה נגמרת.',
   },
   'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
   'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
@@ -430,8 +430,8 @@ const STRINGS = {
   },
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {
-    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count reps from the bar path, and there is no real coach answering your WhatsApp. EXPO templates are the same engine the athletes I coach run — programmed by me, not generated.",
-    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות לפי מסלול המוט, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב, לא AI.',
+    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count your reps from the video, and there is no real coach answering your WhatsApp. EXPO templates are the same engine the athletes I coach run — programmed by me, not generated.",
+    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות מהסרטון, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב, לא AI.',
   },
   'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לפנות אליך אחרי הקנייה?' },
   'faq.a8': {
