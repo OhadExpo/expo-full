@@ -609,8 +609,8 @@ export const zoneT = (s) => bhbcT(_dateLang, s);
 // Counts composed at the call site ('1 מוגבלים', '22d באיחור' on the Hebrew screen, 17.9).
 // A key may carry a singular form as HE['key#1'].
 export const countWord = (n, key) => (_dateLang === 'he' && n === 1 && HE[key + '#1']) ? HE[key + '#1'] : bhbcT(_dateLang, key);
-export const daysFor = (n) => (_dateLang === 'he' ? (n === 1 ? 'יום אחד' : `${n} ימים`) : `${n}d`);
-export const overdueFor = (n) => (_dateLang === 'he' ? (n === 1 ? 'באיחור של יום' : `באיחור של ${n} ימים`) : `${n}d overdue`);
+export const daysFor = (n) => (_dateLang === 'he' ? (n === 1 ? 'יום אחד' : n === 2 ? 'יומיים' : `${n} ימים`) : `${n}d`);
+export const overdueFor = (n) => (_dateLang === 'he' ? (n === 1 ? 'באיחור של יום' : n === 2 ? 'באיחור של יומיים' : `באיחור של ${n} ימים`) : `${n}d overdue`);
 
 // א׳-ש׳ with a geresh, which is how an Israeli coach writes a weekday short.
 const DOW_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];

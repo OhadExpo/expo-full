@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isSafeTraineeId } from './traineeUtils';
-import ClientPortal from './ClientPortal';
-
+import ClientPortal from './ClientPortal';
 import { useT, readLang } from './i18n';
 
 // Coach-side preview. Two modes:
