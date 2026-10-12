@@ -196,7 +196,7 @@ function ExerciseLine({ idx, ex }) {
   const reps = ex?.reps ?? ex?.r;
   const notes = ex?.notes || ex?.coachNotes || ex?.n || ex?.note;
   // sets x reps when they are a pair (or there is no rx) - the athlete portal's wuStructured rule; else the written rx
-  const structured = (sets && reps) || ((sets || reps) && !ex?.rx);
+  const structured = !!((sets && reps) || ((sets || reps) && !ex?.rx));
   const heb = isHebrew(name);
   return (
     <div style={{

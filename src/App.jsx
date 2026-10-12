@@ -932,6 +932,8 @@ function AuthedApp() {
       // jsonb stores object keys in its own order, so compare with sorted keys
       const stable = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => { o[kk] = x[kk]; return o; }, {}) : x));
       if (!readErr && data && stable(data.value) === stable(roster)) return;
+      // a newer roster arrived while this read was in flight: its own effect writes it - never land the older one after it
+      if (bhbcRosterSig.current !== sig) return;
       supabase.from('store').upsert({ key: 'expo-bhbc-roster', value: roster }).then(({ error }) => { if (error) console.warn('[bhbc-roster sync]', error.message); });
     });
   }, [trainees, isOwner, tL]);
