@@ -44,7 +44,8 @@ import { setWidth } from './lib/viewport.mjs';
 import { signIn } from './lib/authed-page.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
-const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
+// --only OR env ONLY (12.10: ONLY=... in the env was silently ignored and a 'four screen' run became a full sweep against prod)
+const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : process.env.ONLY || null; })();
 const OUT = process.env.OUT || 'audit-out/text-overflow';
 // A PAUSE BEFORE EVERY PAGE (11.10): the app pages all read the PRODUCTION database (a preview and the dev
 // server too). Two full sweeps back to back, unpaced, sent 3,105 requests in 7 minutes and the database
@@ -71,6 +72,11 @@ const APP_SURFACES = [
   ['bhbc-form-lift', '/coach/bhbc/lifts', '^(LOG LIFT|רישום כוח אישי)$'],
   ['bhbc-form-sc', '/coach/bhbc/practices', '^(LOG S&C SESSION|רישום כוח קבוצתי)$'],
   ['bhbc-form-injury', '/coach/bhbc/medical', '^(\\+ REPORT|\\+ דיווח)$'],
+  // the detail screens a coach reaches by a click have URLs, so they are surfaces (the fixture athlete and his latest plan)
+  ['app-athlete-detail', '/coach/athletes/tr_diego'],
+  ['app-athlete-preview', '/coach/athletes/tr_diego/preview'],
+  ['app-program-editor', '/coach/programs/plan_ww15cnz51jnmo91eocg'],
+  ['app-program-preview', '/coach/programs/plan_ww15cnz51jnmo91eocg/preview'],
 ];
 const ATHLETE_SURFACES = [['portal', '/']];
 const DEMO_SURFACES = [

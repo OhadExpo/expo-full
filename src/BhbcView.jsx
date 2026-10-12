@@ -3076,7 +3076,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             : { date: lastG.date, opp: lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : null, min: lastG.min, box: lastG, source: 'basket.co.il' };
           const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
           const agoLabel = ago == null ? '' : heM
-            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : `לפני ${Math.round(ago / 30)} חודשים`)
+            ? (ago === 0 ? 'היום' : ago === 1 ? 'אתמול' : ago === 2 ? 'לפני יומיים' : ago < 31 ? `לפני ${ago} ימים` : ago < 60 ? 'בחודש שעבר' : Math.round(ago / 30) === 2 ? 'לפני חודשיים' : `לפני ${Math.round(ago / 30)} חודשים`)
             : (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`);
           // THE AVERAGES READ WITH THE SAME FOUR WORDS AS THE LAST GAME ABOVE,
           // under one "season average" caption (27.9: "נק׳ למשחק" wrapped to two
@@ -3786,7 +3786,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const he = useHe();
   const tr = useT();
   const days = dayDiff(nextGame.date, today);
-  const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? `בעוד ${days} ימים` : `In ${days} days`);
+  const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? (days === 2 ? 'בעוד יומיים' : `בעוד ${days} ימים`) : `In ${days} days`);
   const timeLabel = nextGame.timeTBD || !nextGame.start ? tr('Time TBD') : nextGame.start;
   return (
     <Card padding={14} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{when}</span>{onEdit && <button className="bhbc-strip-btn" onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
@@ -4256,7 +4256,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               const flies = outLeg && outLeg.date && outLeg.date < nextGame.date && outLeg.date >= today
                 ? `${tr('flies')} ${outLeg.date === today ? tr('today') : `${dow(outLeg.date)} ${monDay(outLeg.date)}`}` : null;
               const facts = [
-                gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd === 1 ? 'יום אחד' : `${gd} ימים`}` : `in ${gd} day${gd === 1 ? '' : 's'}`),
+                gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd === 1 ? 'יום אחד' : gd === 2 ? 'יומיים' : `${gd} ימים`}` : `in ${gd} day${gd === 1 ? '' : 's'}`),
                 ...(flies ? [flies] : []),
                 // 'Venue TBD' only when the venue IS unknown (#305 N-G2): a neutral
                 // cup tie with its arena typed in read "Venue TBD · Begin Arena"
@@ -4455,7 +4455,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
   const av = { full: 0, mod: 0, out: 0 };
   rows.forEach((r) => { if (r.avail <= 1) av.full++; else if (r.avail <= 3) av.mod++; else av.out++; });
   const gd = fx.nextGame ? dayDiff(today, fx.nextGame.date) : null;
-  const gdLabel = gd == null ? null : gd === 0 ? tr('GAME DAY') : gd < 0 ? (he ? `עוד ${-gd === 1 ? 'יום אחד' : `${-gd} ימים`} למשחק` : `${-gd} day${gd === -1 ? '' : 's'} to game`) : null;
+  const gdLabel = gd == null ? null : gd === 0 ? tr('GAME DAY') : gd < 0 ? (he ? `עוד ${-gd === 1 ? 'יום אחד' : -gd === 2 ? 'יומיים' : `${-gd} ימים`} למשחק` : `${-gd} day${gd === -1 ? '' : 's'} to game`) : null;
   // time (with date when it's a future/next session) highlighted in a navy
   // segment; all text one size.
   // A session chip and its density line. No plan under it: practice plans are
@@ -6421,7 +6421,7 @@ const relTime = (iso, he = false) => {
   const diff = (Date.now() - t) / 60000;
   if (diff < 1) return he ? 'עכשיו' : 'just now';
   if (diff < 60) return he ? `לפני ${Math.round(diff)} דק׳` : `${Math.round(diff)}m ago`;
-  if (diff < 1440) { const h = Math.round(diff / 60); return he ? (h === 1 ? 'לפני שעה' : `לפני ${h} שעות`) : `${h}h ago`; }
+  if (diff < 1440) { const h = Math.round(diff / 60); return he ? (h === 1 ? 'לפני שעה' : h === 2 ? 'לפני שעתיים' : `לפני ${h} שעות`) : `${h}h ago`; }
   return `${he ? 'נכון ל-' : 'as of '}${ddmm(localISO(new Date(t)))}`;
 };
 
@@ -7615,7 +7615,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
     if (n < 0) return he ? 'בעתיד' : 'in the future';
     if (n === 0) return he ? 'היום' : 'today';
     if (n === 1) return he ? 'אתמול' : 'yesterday';
-    return he ? `לפני ${n} ימים` : `${n} days ago`;
+    return he ? (n === 2 ? 'לפני יומיים' : `לפני ${n} ימים`) : `${n} days ago`;
   };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (

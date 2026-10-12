@@ -320,7 +320,7 @@ export default function NotesInline({
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
                     color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '2px 8px',
-                  }}>⚠ {readLang() === 'he' ? `לחזור לזה · ${staleDays === 1 ? 'יום אחד' : `${staleDays} ימים`}` : `FOLLOW UP ${staleDays}d`}</span>
+                  }}>⚠ {readLang() === 'he' ? `לחזור לזה · ${staleDays === 1 ? 'יום אחד' : staleDays === 2 ? 'יומיים' : `${staleDays} ימים`}` : `FOLLOW UP ${staleDays}d`}</span>
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
