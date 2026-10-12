@@ -312,7 +312,7 @@ export default function VideoGapsView({ exercises = [], setExercises, exercisesL
           </Btn>
         </div>
         {health.status === 'unavailable' && <div style={{ fontFamily: FB, fontSize: 12, color: C.or, marginTop: 10 }}>{tt('Link check is unavailable here')}</div>}
-        {health.status === 'done' && !dead.length && <div style={{ fontFamily: FB, fontSize: 12, color: C.gn, marginTop: 10 }}>{count(he, health.total, 'link checked - none dead.', 'links checked - none dead.', 'קישור אחד נבדק - הוא תקין.', 'קישורים נבדקו - אף אחד לא מת.')}</div>}
+        {health.status === 'done' && !dead.length && <div style={{ fontFamily: FB, fontSize: 12, color: C.gn, marginTop: 10 }}>{count(he, health.total, 'link checked - none dead.', 'links checked - none dead.', 'קישור אחד נבדק - הוא תקין.', 'קישורים נבדקו - כולם תקינים.')}</div>}
         {undo && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
             <span style={{ flex: '1 1 220px', minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx }}>

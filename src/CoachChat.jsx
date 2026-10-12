@@ -299,7 +299,7 @@ export default function CoachChat() {
                 background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '12px 14px',
               }}>
-                {L("Hey — I can answer basic questions about EXPO (pricing, features, who it's for, how to try it). For anything specific, email Ohad and he'll reply himself.", 'היי — אני עונה על שאלות בסיסיות על EXPO: מחירים, פיצ׳רים, למי זה מתאים ואיך לנסות. לכל דבר ספציפי, שלח מייל לאוהד והוא יחזור אליך בעצמו.')}
+                {L("Hey — I can answer basic questions about EXPO (pricing, features, who it's for, how to try it). For anything specific, email Ohad and he'll reply himself.", 'היי — אני עונה על שאלות בסיסיות על EXPO: מחירים, פיצ׳רים, למי זה מתאים ואיך לנסות. שאלה ספציפית? שלח מייל לאוהד והוא יחזור אליך בעצמו.')}
               </div>
             )}
             {messages.map((m, i) => {

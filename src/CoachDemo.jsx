@@ -22,7 +22,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid } from './ui';
+import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid, TagStack } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -3617,22 +3617,24 @@ function DemoExercises() {
         </div>
       ) : view === 'grid' ? (
         // GRID — card per exercise, mirroring the real ExercisesView card grammar.
-        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
+        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', alignItems: 'start' /* each card its own height - a row no longer stretches short cards into empty space (#677) */ }}>
           {filtered.map((e, i) => {
-            const tags = [...String(e.primaryMuscles || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 4), ...String(e.primaryJoints || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3)];
+            const joints = String(e.primaryJoints || '').split(',').map(x => x.trim()).filter(Boolean); const muscles = String(e.primaryMuscles || '').split(',').map(x => x.trim()).filter(Boolean);
             return (
               <div key={i} className="ex-card" style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0, marginInlineStart: -8.5, marginInlineEnd: -3.5 }} /* hangs in the 14px gutter so the name starts on the body's edge (26.9) */ />
-                    <span title={e.name} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
+                    <span title={e.name} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: 'var(--c-stripTx)', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{e.name}</span>
                   </span>
                   {demoHasVideo(e) && <span style={{ color: C.ac, fontSize: 12 }}>▶</span>}
                 </div>
-                <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                {/* no body at all when the exercise has nothing classified yet - an empty strip is the useless space of #677 */}
+                {([e.resistanceType, e.bodyPosition, e.movementType].some(Boolean) || joints.length > 0 || muscles.length > 0) && <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
                   <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{[e.resistanceType, e.bodyPosition, e.movementType].filter(Boolean).join('  ·  ')}</div>
-                  {tags.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{tags.map((x, j) => <span key={j} style={{ display: 'inline-block', minWidth: 0, flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{x}</span>)}</div>}
-                </div>
+                  {/* joints, then muscles: two quiet lines in the meta line's grammar, never a row of boxes (#675) */}
+                  {[joints, muscles].filter((l) => l.length).map((l, j) => <div key={j} data-l10n-data="" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', lineHeight: 1.45, color: C.td }}>{l.map((x) => taxoHe(x, readLang())).join('  ·  ')}</div>)}
+                </div>}
               </div>
             );
           })}
@@ -3701,18 +3703,12 @@ function DemoExercises() {
                 // taxo: the six CLOSED lists get their Hebrew name; the anatomy
                 // columns pass through taxoHe untouched and stay English,
                 // which is what an Israeli S&C coach actually says.
-                // the real chipCell: a multi-value column is one small chip per value (up to
-                // 3, then +n), the row of chips wraps - never a value broken one word per line
+                // the real chipCell: one value per line (TagStack, #675) - never a boxed chip row with values wherever the width put them
                 const chips = (v, max = 210) => {
                   const vals = String(v || '').split(',').map((x) => x.trim()).filter(Boolean);
                   return (
                     <td className="cd-ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max }}>
-                      {vals.length === 0 ? <span style={{ color: C.td }}>·</span> : (
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
-                          {vals.slice(0, 3).map((x, n) => <span key={n} data-l10n-data="" style={{ display: 'inline-block', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', padding: '2px 6px' }}>{taxoHe(x, readLang())}</span>)}
-                          {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap' }}>+{vals.length - 3}</span>}
-                        </div>
-                      )}
+                      {vals.length === 0 ? <span style={{ color: C.td }}>·</span> : <TagStack values={vals} fmt={(x) => taxoHe(x, readLang())} />}
                     </td>
                   );
                 };

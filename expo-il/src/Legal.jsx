@@ -87,10 +87,10 @@ export function Privacy() {
 
       <H2>{heb ? 'עוגיות ואחסון בדפדפן' : 'Cookies and browser storage'}</H2>
       <P>{heb
-        ? 'האתר לא מציב עוגיות פרסום או מעקב. מה שכן נשמר בדפדפן שלך: השפה שבחרת, ושני סימונים טכניים לאורך הביקור (טעינה מחדש אחרי עדכון גרסה, והאם כבר הוצגה לך הודעת יציאה).'
+        ? 'האתר לא שומר עוגיות פרסום או מעקב. מה שכן נשמר בדפדפן שלך: השפה שבחרת, ושני סימונים טכניים לאורך הביקור (טעינה מחדש אחרי עדכון גרסה, והאם כבר הוצגה לך הודעת יציאה).'
         : 'The site sets no advertising or tracking cookies. What is kept in your browser is: the language you chose, and two technical flags for the length of your visit (a reload guard after a version update, and whether the exit prompt has already been shown).'}</P>
       <P>{heb
-        ? 'מדידת תנועה נעשית ב־Vercel Analytics, שאינה משתמשת בעוגיות.'
+        ? 'סטטיסטיקת הביקורים באתר נאספת ב־Vercel Analytics, שלא משתמש בעוגיות.'
         : 'Traffic measurement uses Vercel Analytics, which does not use cookies.'}</P>
       <P>{heb
         ? 'יומן הפגישות של Google נטען רק אחרי שאתה לוחץ להציג אותו. עד הלחיצה הזאת לא נשלחת אף בקשה ל־Google ולא נשמרות עוגיות שלהם.'

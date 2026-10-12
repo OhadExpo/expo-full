@@ -770,7 +770,7 @@ function ShareButton({ programId, programTitle, size = 'sm' }) {
 // The catalogue in Hebrew says its level and equipment in Hebrew (9.10 audit #612: the
 // /he#/online cards read 'BARBELL · DUMBBELLS · BENCH' beside 'מתחילים'). Native-checked;
 // 'מוט' is his own word (6:0 over 'ברבל' in his exercise notes).
-const LEVEL_HE = { Beginner: 'מתחילים', Intermediate: 'בינוני' };
+const LEVEL_HE = { Beginner: 'מתחילים', Intermediate: 'ביניים' };
 const EQUIP_HE = { Barbell: 'מוט', Dumbbells: 'משקולות יד', Bench: 'ספסל', Cables: 'כבלים', Machines: 'מכונות', Bands: 'גומיות', 'Track or open space': 'מסלול או שטח פתוח' };
 function ProgramMeta({ p }) {
   const [lang] = useLang();

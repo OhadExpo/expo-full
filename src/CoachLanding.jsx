@@ -66,7 +66,7 @@ const STRINGS = {
   'demo.h2':             { en: 'Upload a clip. Watch the engine work.', he: 'תעלה סרטון. תראה את המנוע עובד.' },
   'demo.body': {
     en: 'The full engine, running below — same code your clients film with. For the deeper tour (dashboard, plan editor, review tool), open the full coach demo in a new tab.',
-    he: 'המנוע המלא עובד כאן למטה — אותו קוד שרץ כשהמתאמנים שלך מצלמים. לסיור המלא (דשבורד, עורך תוכניות, כלי בקרה) — פתח את הדגמת המאמן.',
+    he: 'המנוע המלא עובד כאן למטה — אותו קוד שרץ כשהמתאמנים שלך מצלמים. לסיור המלא (דשבורד, עורך תוכניות, כלי בדיקה) — פתח את הדגמת המאמן.',
   },
   'demo.embed.loading':  { en: 'LOADING ENGINE…',      he: 'טוען מנוע…' },
   'demo.embed.modelfoot':{ en: 'POSE MODEL · ~6MB · FIRST LOAD ONLY', he: 'מודל תנוחה · בערך 6MB · רק בטעינה הראשונה' },
@@ -75,7 +75,7 @@ const STRINGS = {
 
   // Features
   'features.badge':      { en: 'WHAT YOU GET',         he: 'מה אתה מקבל' },
-  'features.h2':         { en: 'The whole stack — not just video review.', he: 'הכל בפנים — לא רק בקרת וידאו.' },
+  'features.h2':         { en: 'The whole stack — not just video review.', he: 'הכל בפנים — לא רק בדיקת וידאו.' },
   'feat.video.tag':      { en: 'VIDEO ENGINE',         he: 'מנוע וידאו' },
   'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
   // 5.10 parity: + Movement Lab's 3D replay (Replay3D: front / side / top / behind, slow motion, hand + hip trails)
@@ -89,14 +89,14 @@ const STRINGS = {
   'feat.prog.body': {
     // 5.10 parity: Smart Import (#554) reads his own sheet layout directly - no longer "bulk import from xlsx"
     en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Import a program sheet — every exercise matched to your library (you pick when unsure), a day-by-day preview, then assigned to the athlete you choose.',
-    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. תייבא גיליון תוכנית — כל תרגיל מותאם לספרייה שלך (כשיש ספק, אתה בוחר), תצוגה יום אחרי יום, ואז התוכנית עוברת למתאמן שבחרת.',
+    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. תייבא גיליון תוכנית — כל תרגיל מותאם לספרייה שלך (כשיש ספק, אתה בוחר), אתה רואה את התוכנית יום אחרי יום, ואז היא עוברת למתאמן שבחרת.',
   },
   'feat.portal.tag':     { en: 'ATHLETE PORTAL',       he: 'פורטל מתאמנים' },
   'feat.portal.title':   { en: 'Branded portals', he: 'פורטל אישי לכל מתאמן' },
   'feat.portal.body': {
     // 5.10 parity: the offline queue (#560) - sets logged without signal sync when it returns
     en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in. No signal at the gym? Sets are saved on the phone and sync on their own when the connection returns.',
-    he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים. אין קליטה בחדר כושר? הסטים נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
+    he: 'לכל מתאמן יש מסך אישי עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים. אין קליטה בחדר כושר? הסטים נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
   },
   'feat.ops.tag':        { en: 'OPS',                  he: 'תפעול' },
   'feat.ops.title':      { en: 'WhatsApp nudges', he: 'תזכורות בוואטסאפ' },
@@ -105,19 +105,19 @@ const STRINGS = {
     en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record. It also lists athletes in the last week of a block with no next block written yet — with how much of the block they completed and the best set of their main lift.",
     he: 'המסך הראשי מציג את המתאמנים שלא התאמנו כבר כמה ימים. לחיצה אחת פותחת וואטסאפ עם הודעה מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן. הוא גם מציג מתאמנים בשבוע האחרון של הבלוק שעוד אין להם בלוק הבא — כמה מהבלוק הם כבר השלימו, והסט הכי טוב שלהם בתרגיל המרכזי.',
   },
-  'feat.review.tag':     { en: 'REVIEW',               he: 'בקרה' },
-  'feat.review.title':   { en: 'Per-rep video review', he: 'בקרת וידאו לכל חזרה' },
+  'feat.review.tag':     { en: 'REVIEW',               he: 'בדיקה' },
+  'feat.review.title':   { en: 'Per-rep video review', he: 'בדיקת וידאו לכל חזרה' },
   'feat.review.body': {
     // 5.10 parity: the review player's speeds (0.125x .. 2x) and frame step
     en: 'Pause on any frame, step frame by frame, slow it down to 0.125x, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
     he: 'עצירה על כל פריים, מעבר פריים אחרי פריים, האטה עד פי שמונה, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבדיקה באותו פורטל — בלי הלוך ושוב במיילים.',
   },
-  'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי נעילה' },
+  'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'לא כבול למערכת' },
   'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך — אתה מחליט' },
   'feat.export.body': {
     // 5.10 parity: + the library's VIDEOS tool (#559, videoGaps.js)
     en: 'Export everything in one file, anytime — every plan, exercise and workout log. Bring your existing exercise library in: xlsx, sheets, or whatever export your previous app gave you. Bulk import is part of onboarding. The Videos tool ranks the exercises missing a video by how many athletes miss it, suggests only safe matches, shows a dry run before it writes, and checks your links for dead videos.',
-    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים שאין להם סרטון לפי כמה מתאמנים צריכים אותו, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר שבורים.',
+    he: 'אפשר לייצא הכל בקובץ אחד, בכל רגע — כל תוכנית, כל תרגיל וכל לוג אימון. ותביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף. כלי הסרטונים מסדר את התרגילים שאין להם סרטון לפי כמה מתאמנים צריכים כל אחד מהם, מציע רק התאמות בטוחות, מראה מה ישתנה לפני שהוא שומר, ובודק אילו קישורים כבר שבורים.',
   },
 
   // About
@@ -138,25 +138,25 @@ const STRINGS = {
   'pricing.note':        { en: "NO CARD NOW · WAITLIST ONLY · I'LL REACH OUT TO LOCK PRICING", he: 'בלי כרטיס אשראי עכשיו · רק רשימת המתנה · אני אחזור אליך לסגור מחיר' },
   'pricing.popular':     { en: 'MOST POPULAR',         he: 'הכי פופולרי' },
 
-  'tier.starter.name':   { en: 'STARTER',              he: 'מתחיל' },
+  'tier.starter.name':   { en: 'STARTER',              he: 'בסיסי' },
   'tier.starter.slots':  { en: 'Up to 10 active clients', he: 'עד 10 מתאמנים פעילים' },
-  'tier.starter.f1':     { en: 'Full video review engine', he: 'מנוע בקרת וידאו מלא' },
+  'tier.starter.f1':     { en: 'Full video review engine', he: 'מנוע בדיקת וידאו מלא' },
   'tier.starter.f2':     { en: 'Plan authoring + program-sheet import', he: 'בניית תוכניות + ייבוא גיליון תוכנית' }, // 5.10 parity: Smart Import
   'tier.starter.f3':     { en: 'Athlete portals + couple cards', he: 'פורטל מתאמנים + כרטיסי זוגות' },
   'tier.starter.f4':     { en: 'Dormant-WhatsApp nudges', he: 'תזכורות וואטסאפ למתאמנים ששקטו' },
 
-  'tier.growth.name':    { en: 'GROWTH',               he: 'צמיחה' },
+  'tier.growth.name':    { en: 'GROWTH',               he: 'מתקדם' },
   'tier.growth.slots':   { en: 'Up to 30 active clients', he: 'עד 30 מתאמנים פעילים' },
-  'tier.growth.f1':      { en: 'Everything in Starter', he: 'כל מה שיש בחבילת מתחיל' },
+  'tier.growth.f1':      { en: 'Everything in Starter', he: 'כל מה שיש בחבילה הבסיסית' },
   'tier.growth.f2':      { en: 'Bulk plan duplication across clients', he: 'שכפול תוכניות בין מתאמנים בלחיצה' },
   'tier.growth.f3':      { en: 'Bodyweight + session payment tracking', he: 'מעקב משקל גוף + תשלומי אימונים' },
-  'tier.growth.f4':      { en: 'Priority email support', he: 'תמיכה במייל בעדיפות' },
+  'tier.growth.f4':      { en: 'Priority email support', he: 'מענה מועדף במייל' },
 
-  'tier.founding.name':  { en: 'FOUNDING PARTNER',     he: 'שותף מייסד' },
+  'tier.founding.name':  { en: 'FOUNDING PARTNER',     he: 'מאמן מייסד' },
   'tier.founding.slots': { en: 'Unlimited clients · roadmap influence', he: 'מתאמנים בלי הגבלה · השפעה על מה שנבנה הלאה' },
-  'tier.founding.f1':    { en: 'Everything in Growth', he: 'כל מה שיש בחבילת צמיחה' },
+  'tier.founding.f1':    { en: 'Everything in Growth', he: 'כל מה שיש בחבילה המתקדמת' },
   'tier.founding.f2':    { en: 'Direct line for product requests + roadmap input', he: 'קו ישיר לבקשות פיצ׳רים + השפעה על מה שנבנה הלאה' },
-  'tier.founding.f3':    { en: 'Quarterly product strategy call', he: 'שיחת אסטרטגיה רבעונית' },
+  'tier.founding.f3':    { en: 'Quarterly product strategy call', he: 'שיחת אסטרטגיה פעם ברבעון' },
   'tier.founding.f4':    { en: 'First access to features as they ship', he: 'ראשון לקבל פיצ׳רים חדשים, ברגע שהם עולים' },
 
   'tier.cta.waitlist':   { en: 'JOIN WAITLIST',        he: 'הצטרפות לרשימה' },
@@ -470,10 +470,10 @@ function FeatureCard({ tag, title, body, isHe }) {
 // still living in tabs. Two parallel columns; ✓/✕ are symbols, not emojis.
 function ComparisonSection({ isHe }) {
   const T = isHe ? {
-    badge: 'גיליון אלקטרוני מול EXPO', h2: 'מה אתה משאיר מאחור.',
-    sheet: 'גיליון אלקטרוני', expo: 'EXPO',
+    badge: 'אקסל מול EXPO', h2: 'מה אתה משאיר מאחור.',
+    sheet: 'אקסל', expo: 'EXPO',
     rows: [
-      ['הסרטונים נתקעים בגלריה בטלפון', 'בקרה לפי חזרה, עם חותמת זמן — בתוך האפליקציה'],
+      ['הסרטונים נתקעים בגלריה בטלפון', 'בדיקה לכל חזרה, עם חותמת זמן — בתוך האפליקציה'],
       ['ספירת חזרות בעין', 'ספירה אוטומטית — זיהוי תנוחה'],
       ['אין פורטל — שולחים צילומי מסך', 'פורטל ממותג לכל מתאמן'],
       ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא גיליון תוכנית'], // 5.10 parity: Smart Import
@@ -768,6 +768,7 @@ export default function CoachLanding({ lang = 'en' }) {
           <div style={{
             display: 'grid', gap: 14,
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            alignItems: 'start',   // each card its own height - a row no longer stretches short cards into empty space (#677)
           }}>
             <FeatureCard isHe={isHe} tag={t('feat.video.tag')} title={t('feat.video.title')} body={t('feat.video.body')} />
             <FeatureCard isHe={isHe} tag={t('feat.prog.tag')} title={t('feat.prog.title')} body={t('feat.prog.body')} />

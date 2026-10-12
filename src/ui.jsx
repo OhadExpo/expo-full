@@ -1718,6 +1718,25 @@ export function JoinedButtons({ items, vertical = false, maxWidth = 560, classNa
   );
 }
 
+// A MULTI-VALUE CELL as plain text, one value per line (#675, 12.10). Ohad, on the library table: "too much mess in the
+// tags (look at horizontal adduction box) and random knee hip ankle layout. make it way more aesthetic. and do it
+// everywhere where we have tables." Boxed chips in a flex-wrap put KNEE HIP / ANKLE wherever the width let them and broke
+// a two-word value inside its box. Here every value is a line in the same quiet classification type as a single-value
+// cell, in the data's order, so a column reads as a list; a long value wraps under itself. Up to `max`, then '+N'.
+// `fmt` maps a value to its display text (taxoHe for the Hebrew screen).
+export function TagStack({ values, max = 3, fmt = (x) => x, size = 10.5, color = 'var(--c-tm)' }) {
+  const vals = (values || []).filter(Boolean);
+  if (!vals.length) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+      {vals.slice(0, max).map((x, i) => (
+        <span key={i} data-l10n-data="" style={{ fontFamily: FN, fontSize: size, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1.25, color, overflowWrap: 'break-word' }}>{fmt(x)}</span>
+      ))}
+      {vals.length > max && <span style={{ fontFamily: FN, fontSize: size - 1, fontWeight: 700, lineHeight: 1.25, color: 'var(--c-td)' }}>+{vals.length - max}</span>}
+    </div>
+  );
+}
+
 export function ChipGrid({ items, value, onChange, cols = null, phoneCols = null, soft = false, prose = false, ariaLabel, className = '', style = null, cellStyle = null }) {
   const list = items || [];
   const n = list.length;

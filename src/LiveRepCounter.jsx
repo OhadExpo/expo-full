@@ -113,7 +113,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const startVoice = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setError(readLang() === 'he' ? 'הפעלה בקול צריכה את Web Speech API — פתח ב-Chrome או ב-Edge.' : 'Voice trigger needs the Web Speech API — open in Chrome or Edge.');
+      setError(readLang() === 'he' ? 'הפעלה קולית עובדת רק ב-Chrome או ב-Edge.' : 'Voice trigger needs the Web Speech API — open in Chrome or Edge.');
       return;
     }
     const rec = new SR();

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret, PlayGlyph, NotesGlyph } from './ui';
+import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret, PlayGlyph, NotesGlyph, TagStack } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
@@ -290,24 +290,13 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{taxoHe(v, readLang())}</span> : emptyDot}
     </td>
   );
-  // Multi-value classification — small chips (up to 3) + "+N", or a faint dot.
+  // Multi-value classification - one value per line (TagStack, #675), or a faint dot. Never cut, never boxed: the old
+  // chip row put KNEE HIP / ANKLE wherever the width let them and broke HORIZONTAL ADDUCTION inside its box.
   const chipCell = (v, max = 320) => {
     const vals = splitVals(v);
     return (
-      <td className="ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max, overflow: 'hidden' }}>
-        {vals.length === 0 ? emptyDot : (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
-            {/* The ROW wraps instead of the chips being cut. Ohad: never
-                truncate - "i cant see some of the words". Letting a chip
-                ellipsise hid the muscle it names; letting it overflow a
-                nowrap row spilled it over the next column. Wrapping keeps
-                every chip whole and grows the row instead. */}
-            {vals.slice(0, 3).map((x, i) => (
-              <span key={i} style={{ display: 'inline-block', minWidth: 0, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: 'none', padding: '2px 6px' }}>{x}</span>
-            ))}
-            {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap', flexShrink: 0 }}>+{vals.length - 3}</span>}
-          </div>
-        )}
+      <td className="ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max }}>
+        {vals.length === 0 ? emptyDot : <TagStack values={vals} />}
       </td>
     );
   };
@@ -458,7 +447,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       ) : view === 'grid' ? (
         // GRID — card per exercise, mirroring the Programs card grammar EXACTLY
         // (cyan strip header + accent bar + name, calm body, light text actions).
-        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
+        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', alignItems: 'start' /* each card its own height - a row no longer stretches short cards into empty space (#677) */ }}>
           {rows.map(ex => {
             const note = hasNotes(ex);
             const meta = [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean);

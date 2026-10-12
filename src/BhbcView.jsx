@@ -3649,7 +3649,7 @@ function ActivityView({ activity = [], tr, he }) {
     <>
       <Card padding={14} leftStripe={NAVY} header={secTitle('Who has been in, last 30 days')}>
         {people.length === 0
-          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. מעכשיו כל כניסה וכל שינוי יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
           : <>
             <div className="bhbc-act-people bhbc-act-head" style={{ ...band, borderTop: 'none', marginTop: -14, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12 }}>
               <span style={lbl}>{tr('Person')}</span>

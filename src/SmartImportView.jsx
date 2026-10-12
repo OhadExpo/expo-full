@@ -653,7 +653,7 @@ export default function SmartImportView() {
           titles.add(t.toLowerCase()); added++;
         }
         await writeStoreForImport('expo-exercises', libRead.base, lib);
-        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף תרגיל חדש אחד' : `נוספו ${added} תרגילים חדשים`} (${transform.items.length - added === 1 ? 'כפילות אחת דולגה' : `${transform.items.length - added} כפילויות דולגו`}).` : `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
+        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף תרגיל חדש אחד' : `נוספו ${added} תרגילים חדשים`} (${transform.items.length - added === 1 ? 'כפילות אחת לא נוספה' : `${transform.items.length - added} כפילויות לא נוספו`}).` : `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
       } else if (target === 'athletes') {
         const rosterRead = await readStoreForImport('expo-trainees');
         const arr = rosterRead.value;
@@ -682,7 +682,7 @@ export default function SmartImportView() {
           }
         }
         await writeStoreForImport('expo-trainees', rosterRead.base, arr);
-        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף מתאמן חדש אחד' : `נוספו ${added} מתאמנים חדשים`}, ${updated === 1 ? 'מתאמן אחד עודכן' : `${updated} עודכנו`}.` + (skippedNameless ? ` ${skippedNameless === 1 ? 'דולגה שורה אחת בלי שם' : `דולגו ${skippedNameless} שורות בלי שם`}.` : '') : `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
+        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף מתאמן חדש אחד' : `נוספו ${added} מתאמנים חדשים`}, ${updated === 1 ? 'מתאמן אחד עודכן' : `${updated} עודכנו`}.` + (skippedNameless ? ` ${skippedNameless === 1 ? 'שורה אחת בלי שם לא יובאה' : `${skippedNameless} שורות בלי שם לא יובאו`}.` : '') : `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
       } else if (target === 'programs') {
         // 5.10 #554: the coach's picks, the athlete, and the plan row are all
         // decided in the preview; nothing here guesses. Refuse if any is open.
@@ -727,7 +727,7 @@ export default function SmartImportView() {
           if (error) throw error;
           created++;
         }
-        summary = readLang() === 'he' ? `${created === 1 ? 'נוספה תוכנית אחת' : `נוספו ${created} תוכניות`} (${newLibEntries.length === 1 ? 'רשומה חדשה אחת בספרייה' : `${newLibEntries.length} רשומות חדשות בספרייה`}).` : `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
+        summary = readLang() === 'he' ? `${created === 1 ? 'נוספה תוכנית אחת' : `נוספו ${created} תוכניות`} (${newLibEntries.length === 1 ? 'תרגיל חדש אחד בספרייה' : `${newLibEntries.length} תרגילים חדשים בספרייה`}).` : `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
       }
       // Auto-reload after a successful import. The commit upserted plans/store
       // DIRECTLY to Supabase, so the running app's in-memory useSupaStore arrays
@@ -884,7 +884,7 @@ export default function SmartImportView() {
           )}
           {transform.errors.length > 0 && (
             <details style={{ marginTop: 8 }}>
-              <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שורה אחת דולגה' : `${transform.errors.length} שורות דולגו`) : `${transform.errors.length} skipped row${transform.errors.length === 1 ? '' : 's'}`}</summary>
+              <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שורה אחת לא יובאה' : `${transform.errors.length} שורות לא יובאו`) : `${transform.errors.length} skipped row${transform.errors.length === 1 ? '' : 's'}`}</summary>
               <ul style={{ margin: '4px 0 0 16px', padding: 0, color: C.tm, fontSize: 11 }}>
                 {transform.errors.slice(0, 30).map((e, i) => <li key={i}>row {e.rowIdx}: {e.msg}</li>)}
               </ul>
