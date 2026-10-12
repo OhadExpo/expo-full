@@ -67,6 +67,10 @@ const APP_SURFACES = [
   ['bhbc-games-warmup', '/coach/bhbc/games', '^(GAME WARM-UP|חימום למשחק)$'],
   // the athlete card (a modal): 'row:' taps the player's own ROW, not a button - the Lifts rows open it at every width
   ['bhbc-athlete-card', '/coach/bhbc/lifts', 'row:Bryant|ברייאנט'],
+  // the zone's forms (opening one writes nothing): Log lift, Log S&C session, Report injury
+  ['bhbc-form-lift', '/coach/bhbc/lifts', '^(LOG LIFT|רישום כוח אישי)$'],
+  ['bhbc-form-sc', '/coach/bhbc/practices', '^(LOG S&C SESSION|רישום כוח קבוצתי)$'],
+  ['bhbc-form-injury', '/coach/bhbc/medical', '^(\\+ REPORT|\\+ דיווח)$'],
 ];
 const ATHLETE_SURFACES = [['portal', '/']];
 const DEMO_SURFACES = [
