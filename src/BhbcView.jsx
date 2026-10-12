@@ -3043,10 +3043,14 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                   )}
                   {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
                     // EDIT + DELETE ARE ONE JOINED PAIR (12.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - two loose boxes
+                    // the pair's taps and keys stay its own: on a logged GAME the row opens the game popup, so edit / delete
+                    // also opened it (and Enter opened only the popup) - pre-deploy review 12.10
+                    <span style={{ display: 'contents' }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                     <JoinedButtons style={{ marginInlineStart: 'auto', flexShrink: 0, width: onDeleteSession ? 80 : 40 }} items={[
-                      { label: <PencilGlyph />, title: tr('Edit minutes'), onClick: () => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig }) },
-                      onDeleteSession && { label: <CrossGlyph />, title: tr('Delete session'), onClick: () => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); } },
-                    ]} />
+                        { label: <PencilGlyph />, title: tr('Edit minutes'), onClick: () => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig }) },
+                        onDeleteSession && { label: <CrossGlyph />, title: tr('Delete session'), onClick: () => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); } },
+                      ]} />
+                    </span>
                   )}
                   {a.load != null && <span style={{ marginInlineStart: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
