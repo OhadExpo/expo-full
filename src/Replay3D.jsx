@@ -545,7 +545,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
           <span /> <span style={{ color: '#39BDFF', fontWeight: 700 }}>{tt('L')}</span><span style={{ color: '#F5A524', fontWeight: 700 }}>{tt('R')}</span>
           {angles.map(([k, l, r]) => (<React.Fragment key={k}><span style={{ color: C.tm, letterSpacing: '0.1em' }}>{k}</span>{[l, r].map((x, n) => <span key={n} dir="ltr" style={{ color: x && !x.seen ? '#6b7480' : '#FFF', unicodeBidi: 'isolate' }}>{x == null ? '—' : `${x.seen ? '' : '~'}${x.v}°`}</span>)}</React.Fragment>))}
         </div>
-        <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, display: 'flex', gap: 10, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, maxWidth: 'calc(100% - 16px)', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', columnGap: 10, rowGap: 4, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }} /* wraps inside the canvas on a narrow phone, never off its edge (12.10) */>
           <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
           {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
           {trails && <><span style={{ color: '#39BDFF' }}>━ {tt(channel === 'knee' ? 'SHOULDERS' : 'HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
