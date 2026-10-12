@@ -3042,10 +3042,11 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                     </span>
                   )}
                   {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
-                    <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4, flexShrink: 0, justifyContent: 'flex-end', minWidth: 54 }}>
-                      <button onClick={() => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig })} title={tr('Edit minutes')} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}><PencilGlyph /></button>
-                      {onDeleteSession && <button onClick={() => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); }} title={tr('Delete session')} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}><CrossGlyph /></button>}
-                    </span>
+                    // EDIT + DELETE ARE ONE JOINED PAIR (12.10 #673; his 9.10 rule: 2+ actions = JoinedButtons) - two loose boxes
+                    <JoinedButtons style={{ marginInlineStart: 'auto', flexShrink: 0, width: onDeleteSession ? 80 : 40 }} items={[
+                      { label: <PencilGlyph />, title: tr('Edit minutes'), onClick: () => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig }) },
+                      onDeleteSession && { label: <CrossGlyph />, title: tr('Delete session'), onClick: () => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); } },
+                    ]} />
                   )}
                   {a.load != null && <span style={{ marginInlineStart: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
@@ -7236,18 +7237,6 @@ function StatusWord({ status }) {
     <span data-status={status} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, width: 124, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: status === 'available' ? C.tm : C.tx, whiteSpace: 'nowrap', flexShrink: 0 }}>
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
       {tr(s.label)}
-    </span>
-  );
-}
-function StatusPill({ status, small, full }) {
-  const tr = useT();
-  const s = MED_STATUS[status] || MED_STATUS.available;
-  const exc = !!MED_STATUS[status] && status !== 'available';
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 'var(--btn-h)', boxSizing: 'border-box', width: full ? '100%' : 136, padding: '0 9px',   /* ONE width for every status (#511: min-width 96 let AVAILABLE grow past OUT - three pill widths in one column); 136 holds the widest, NON-CONTACT */ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, background: exc ? `color-mix(in srgb, ${s.color} 12%, transparent)` : 'var(--c-sf)', border: exc ? `1px solid color-mix(in srgb, ${s.color} 45%, transparent)` : `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
-      {/* tinted by status like the load board's chips, and like them ONLY for the
-          exceptions (27.9: "colour only the exceptions") - AVAILABLE is plain */}
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
     </span>
   );
 }
