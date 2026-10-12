@@ -59,7 +59,12 @@ const BHBC_TABS = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medi
 const APP_SURFACES = [
   ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'bugs', 'chat-audit']
     .map((t) => [`app-${t}`, `/coach/${t}`]),
-  ...BHBC_TABS.map((t) => [`bhbc-${t}`, `/coach/bhbc/${t}`]),
+  // a remembered sub-view would make a tab measure whatever the LAST page left open, so the views a tab holds are
+  // each tapped explicitly (12.10: the week view's cut venue and the warm-up sub-view were never swept)
+  ...BHBC_TABS.map((t) => [`bhbc-${t}`, `/coach/bhbc/${t}`, t === 'schedule' ? '^(MONTH|חודש)$' : t === 'games' ? '^(GAMES|משחקים)$' : null]),
+  ['bhbc-schedule-week', '/coach/bhbc/schedule', '^(WEEK|שבוע)$'],
+  ['bhbc-schedule-list', '/coach/bhbc/schedule', '^(LIST|רשימה)$'],
+  ['bhbc-games-warmup', '/coach/bhbc/games', '^(GAME WARM-UP|חימום למשחק)$'],
 ];
 const ATHLETE_SURFACES = [['portal', '/']];
 const DEMO_SURFACES = [
@@ -126,7 +131,7 @@ async function pageFor(lang, w, h, theme) {
 for (const lang of LANGS) {
   for (const [w, h] of WIDTHS) {
     for (const theme of THEMES) {
-      for (const [name, route] of SURFACES) {
+      for (const [name, route, tap] of SURFACES) {
         // the HEIGHT too on a tablet: 1024x768 and 1024x1366 shared one id - their findings merged and nodes.json added the two (12.10)
         const id = `${name}/${lang}/${TABLET ? `${w}x${h}` : w}/${theme}`;
         const { ctx, pg, fresh } = await pageFor(lang, w, h, theme);
@@ -157,12 +162,19 @@ for (const lang of LANGS) {
           }
           if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
           // A PAGE THAT IS STILL LOADING IS NOT A CLEAN PAGE (12.10): right after a fresh sign-in a loading state held still
-          // for 600 ms and was judged - three BHBC tabs 'passed' on 2 text nodes. Fewer than 20 = wait up to 10 s more, then UNSET.
+          // for 600 ms and was judged - three BHBC tabs 'passed' on 2 text nodes. Fewer than 10 = wait up to 10 s more, then UNSET.
+          // (20 flagged real small pages: Sessions / Challenges / Smart Import read 17-18 on every combination, 12.10)
           {
             const tn = () => pg.evaluate(() => { const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let k = 0, n; while ((n = wk.nextNode())) if ((n.nodeValue || '').trim().length > 1) k++; return k; });
             let k = await tn();
-            for (let tries = 0; k < 20 && tries < 10; tries++) { await wait(1000); k = await tn(); }
-            if (k < 20) { add({ kind: 'UNSET', id, detail: `only ${k} text nodes on the page after 10 s - a loading or empty screen, NOT judged` }); continue; }
+            for (let tries = 0; k < 10 && tries < 10; tries++) { await wait(1000); k = await tn(); }
+            if (k < 10) { add({ kind: 'UNSET', id, detail: `only ${k} text nodes on the page after 10 s - a loading or empty screen, NOT judged` }); continue; }
+          }
+          // a sub-view: tap its button (the LAST match - the top nav can carry the same word), then let it settle
+          if (tap) {
+            const hit = await pg.evaluate((re) => { const all = [...document.querySelectorAll('button, [role="tab"]')].filter((x) => new RegExp(re, 'i').test((x.textContent || '').trim())); const b2 = all[all.length - 1]; if (b2) b2.click(); return !!b2; }, tap);
+            if (!hit) { add({ kind: 'UNSET', id, detail: `no button for ${tap} - the sub-view was NOT judged` }); continue; }
+            await wait(2500);
           }
 
           const pageH = await pg.evaluate(() => document.documentElement.scrollHeight);
