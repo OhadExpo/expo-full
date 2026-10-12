@@ -1123,6 +1123,7 @@ export const HE = {
   Choose: 'תבחר',
   Tap: 'תלחץ',
   Add: 'הוסף',
+  'Add Exercise': 'הוסף תרגיל',   // the library's + button at desktop width read English on the Hebrew screen (12.10)
   'EXPO opens full-screen from your home screen.': 'EXPO נפתחת במסך מלא ממסך הבית.',
 
   // ---- athlete portal: the workout flow ----------------------------------

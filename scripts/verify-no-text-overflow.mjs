@@ -83,6 +83,13 @@ const APP_SURFACES = [
   ['app-dlg-history-log', '/coach/athletes/tr_diego', '^(\\+ LOG|\\+ רישום)$'],
   ['app-dlg-evaluation', '/coach/athletes/tr_diego', '^(\\+ NEW EVALUATION|\\+ הערכה חדשה)$'],
   ['app-dlg-new-program', '/coach/athletes/tr_diego', '^(\\+ New Program|\\+ תוכנית חדשה)$'],
+  // the other tabs' dialogs, each probed with writes blocked (12.10). NEVER tap '+ New Program' / '+ ASSIGN PROGRAM' on
+  // /coach/programs: they CREATE a plan on the tap. Twin-label buttons hold both languages, in either order by UI language.
+  ['app-dlg-add-exercise', '/coach/exercises', '^\\+ (Add Exercise|Add|הוסף תרגיל|הוסף)$'],
+  ['app-dlg-start-session', '/coach/sessions', '^(\\+ START SESSION|\\+ התחל אימון)$'],
+  ['app-dlg-payment-request', '/coach/billing', '^\\+ (NEW REQUEST|בקשה חדשה)(\\+ (NEW REQUEST|בקשה חדשה))?$'],
+  ['app-dlg-new-challenge', '/coach/challenges', '^\\+ (NEW CHALLENGE|אתגר חדש)(\\+ (NEW CHALLENGE|אתגר חדש))?$'],
+  ['app-dlg-intake-link', '/coach/intake', '^\\+ (Generate Link|קישור חדש)(\\+ (Generate Link|קישור חדש))?$'],
 ];
 // the portal's tabs, each tapped (12.10: only PROGRAM, the default, was ever swept). Run as the fixture athlete:
 // EXPO_EMAIL=diego@diegoday.com SET=athlete (opening Messages / History can mark coach notes read - test data only)
