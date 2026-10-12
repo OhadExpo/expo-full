@@ -77,6 +77,12 @@ const APP_SURFACES = [
   ['app-athlete-preview', '/coach/athletes/tr_diego/preview'],
   ['app-program-editor', '/coach/programs/plan_ww15cnz51jnmo91eocg'],
   ['app-program-preview', '/coach/programs/plan_ww15cnz51jnmo91eocg/preview'],
+  // the athlete page's dialogs - each tap was probed with every database write BLOCKED: each opens one dialog, 0 writes (12.10)
+  ['app-dlg-payment', '/coach/athletes/tr_diego', '^(\\+ ADD PAYMENT|\\+ הוסף תשלום)$'],
+  ['app-dlg-contract', '/coach/athletes/tr_diego', '^(CONTRACT|חוזה)$'],
+  ['app-dlg-history-log', '/coach/athletes/tr_diego', '^(\\+ LOG|\\+ רישום)$'],
+  ['app-dlg-evaluation', '/coach/athletes/tr_diego', '^(\\+ NEW EVALUATION|\\+ הערכה חדשה)$'],
+  ['app-dlg-new-program', '/coach/athletes/tr_diego', '^(\\+ New Program|\\+ תוכנית חדשה)$'],
 ];
 // the portal's tabs, each tapped (12.10: only PROGRAM, the default, was ever swept). Run as the fixture athlete:
 // EXPO_EMAIL=diego@diegoday.com SET=athlete (opening Messages / History can mark coach notes read - test data only)
@@ -136,7 +142,19 @@ let measured = 0, nodes = 0;
 const signedCtx = new Map();
 // the debug + break-test hooks, for BOTH paths (11.10: they sat in the signed path only, so on the demo
 // set DEBUG_PATH and PLANT silently did nothing)
+// BLOCK_WRITES=1: a sweep never writes. Every PostgREST write (PATCH/PUT/DELETE, POST to a table - an /rpc/ POST is a read
+// here: get_shared_program, verify_intake_token) is ABORTED and listed at the end, so a page that writes on open is named, not run.
+const blockedWrites = [];
 async function gateHooks(pg) {
+  if (process.env.BLOCK_WRITES) {
+    await pg.setRequestInterception(true);
+    pg.on('request', (r) => {
+      const u = r.url(), m = r.method();
+      if (/\/rest\/v1\//.test(u) && (m === 'PATCH' || m === 'PUT' || m === 'DELETE' || (m === 'POST' && !/\/rest\/v1\/rpc\//.test(u)))) {
+        blockedWrites.push(`${m} ${u.replace(/^.*\/rest\/v1\//, '').slice(0, 90)}`); r.abort();
+      } else r.continue();
+    });
+  }
   if (process.env.DEBUG_PATH) await pg.evaluateOnNewDocument(() => { window.__gateDebugPath = true; });
   // PLANT=1: a known spill inside an ABSOLUTE box, to prove the gate still sees one (break test, 11.10)
   if (process.env.PLANT) await pg.evaluateOnNewDocument(() => { addEventListener('DOMContentLoaded', () => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:20px;top:160px;width:60px;z-index:99999;font:12px sans-serif;white-space:nowrap;background:#fff;color:#000'; d.innerHTML = '<span>PLANTED SPILL TEXT</span>'; document.body.appendChild(d); }); });
@@ -322,6 +340,7 @@ const by = {};
 for (const f of findings) by[f.kind] = (by[f.kind] || 0) + 1;
 const total = SURFACES.length * LANGS.length * WIDTHS.length * THEMES.length;
 console.log(`\n${measured} of ${total} combinations measured, ${nodes} text nodes examined.`);
+if (process.env.BLOCK_WRITES) console.log(`writes blocked: ${blockedWrites.length}${blockedWrites.length ? ' - ' + [...new Set(blockedWrites)].slice(0, 8).join(' | ') : ''}`);
 console.log(Object.keys(by).length ? Object.entries(by).map(([k, v]) => `  ${k.padEnd(9)} ${v}`).join('\n') : '  none');
 console.log(`-> ${OUT}/findings.json`);
 process.exit(findings.length ? 1 : 0);

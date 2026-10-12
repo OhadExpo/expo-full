@@ -926,7 +926,14 @@ function AuthedApp() {
     const sig = JSON.stringify(roster);
     if (sig === bhbcRosterSig.current) return;
     bhbcRosterSig.current = sig;
-    supabase.from('store').upsert({ key: 'expo-bhbc-roster', value: roster }).then(({ error }) => { if (error) console.warn('[bhbc-roster sync]', error.message); });
+    // READ before writing (12.10): the ref starts empty, so every owner page load re-wrote the same 13 players - one store
+    // write per load, each a realtime change pushed to every club coach who is connected. Write only what differs.
+    supabase.from('store').select('value').eq('key', 'expo-bhbc-roster').maybeSingle().then(({ data, error: readErr }) => {
+      // jsonb stores object keys in its own order, so compare with sorted keys
+      const stable = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => { o[kk] = x[kk]; return o; }, {}) : x));
+      if (!readErr && data && stable(data.value) === stable(roster)) return;
+      supabase.from('store').upsert({ key: 'expo-bhbc-roster', value: roster }).then(({ error }) => { if (error) console.warn('[bhbc-roster sync]', error.message); });
+    });
   }, [trainees, isOwner, tL]);
 
   // Pre-warm pose analysis in the BACKGROUND across every athlete as soon as the

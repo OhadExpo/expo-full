@@ -72,6 +72,9 @@ export async function safeEval(page, fn, arg, tries = 4) {
 // in by hand works for both accounts every time. So a single miss should cost a
 // retry, not the whole run; two misses in a row is a real problem and throws.
 export async function signIn(page, base) {
+  // Mark this browser as a GATE before the app loads: logAppOpen (src/logAppOpen.js) skips it. 12.10: the usage trail held
+  // ~1,800 rows from scripts - 46 of them 'opens' in a real club coach's trail, from the seat checks that sign in as him.
+  await page.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-gate', '1'); } catch (e) { /* private mode */ } });
   try {
     return await signInOnce(page, base);
   } catch (e) {
