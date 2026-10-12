@@ -65,6 +65,8 @@ const APP_SURFACES = [
   ['bhbc-schedule-week', '/coach/bhbc/schedule', '^(WEEK|שבוע)$'],
   ['bhbc-schedule-list', '/coach/bhbc/schedule', '^(LIST|רשימה)$'],
   ['bhbc-games-warmup', '/coach/bhbc/games', '^(GAME WARM-UP|חימום למשחק)$'],
+  // the athlete card (a modal): 'row:' taps the player's own ROW, not a button - the Lifts rows open it at every width
+  ['bhbc-athlete-card', '/coach/bhbc/lifts', 'row:Bryant|ברייאנט'],
 ];
 const ATHLETE_SURFACES = [['portal', '/']];
 const DEMO_SURFACES = [
@@ -172,7 +174,10 @@ for (const lang of LANGS) {
           }
           // a sub-view: tap its button (the LAST match - the top nav can carry the same word), then let it settle
           if (tap) {
-            const hit = await pg.evaluate((re) => { const all = [...document.querySelectorAll('button, [role="tab"]')].filter((x) => new RegExp(re, 'i').test((x.textContent || '').trim())); const b2 = all[all.length - 1]; if (b2) b2.click(); return !!b2; }, tap);
+            const hit = await pg.evaluate((t) => {
+              if (t.startsWith('row:')) { const re = new RegExp(t.slice(4), 'i'); const rows = [...document.querySelectorAll('[role="button"]')].filter((x) => x.offsetHeight > 20 && x.offsetHeight < 140 && re.test(x.textContent || '')); const r = rows.sort((a, b) => a.offsetHeight - b.offsetHeight)[0]; if (r) r.click(); return !!r; }
+              const all = [...document.querySelectorAll('button, [role="tab"]')].filter((x) => new RegExp(t, 'i').test((x.textContent || '').trim())); const b2 = all[all.length - 1]; if (b2) b2.click(); return !!b2;
+            }, tap);
             if (!hit) { add({ kind: 'UNSET', id, detail: `no button for ${tap} - the sub-view was NOT judged` }); continue; }
             await wait(2500);
           }
