@@ -2930,7 +2930,7 @@ export const HE = {
   'Athletes missing one': 'מתאמנים שחסר להם סרטון',
   'Dead links': 'קישורים שבורים',
   'An athlete sees a video only when it is on their program row. Approve writes the library and every program row that has no video of its own - your "no video" rows and your own links stay as they are.': 'מתאמן רואה סרטון רק כשהוא מופיע בשורה שלו בתוכנית. אישור שומר את הסרטון בספרייה ובכל שורה בתוכנית שאין לה סרטון משלה - שורות שסימנת "בלי סרטון" והקישורים שלך נשארים כמו שהם.',
-  'Athletes miss it': 'חסר למתאמנים',
+  'In programs': 'חסר למתאמנים',   // the filter: no video AND on an athlete's program (12.10: 'Athletes miss it' was cut at 360)
   'Check links': 'בדיקת קישורים',
   'Checking links…': 'בודק קישורים…',
   'Link check is unavailable here': 'בדיקת קישורים לא זמינה כאן',
