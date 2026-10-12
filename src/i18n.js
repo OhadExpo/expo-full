@@ -491,7 +491,7 @@ export const HE = {
   "No coaching alerts — all clear.": "אין התראות אימון — הכול תקין.",
   "No open tasks — you're all clear.": "אין משימות פתוחות — הכול סגור.",
   "Share program to…": "שיתוף התוכנית עם…",
-  "No program assigned": "לא שויכה תוכנית",
+  "No program assigned": "עוד אין תוכנית",
   "Loading program...": "טוען תוכנית…",
   "No programs yet": "עוד אין תוכניות",
   "Intensity (%1RM from reps)": "עצימות (%1RM לפי חזרות)",

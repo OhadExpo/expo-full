@@ -35,8 +35,8 @@ export const HE = {
   "No game scheduled — running a general prep block. Add a fixture to anchor the training week.": "אין משחק מתוכנן — עובדים על בלוק הכנה כללי. תוסיף משחק כדי לבנות את השבוע סביבו.",
   "Last game": "המשחק האחרון",
   "Logs this session for": "רושם את האימון ל",
-  "available athlete": "מתאמן זמין",
-  "available athletes": "מתאמנים זמינים",
+  "available athlete": "שחקן זמין",
+  "available athletes": "שחקנים זמינים",
   "skips anyone Out.": "מדלג על מי שבחוץ.",
   "Mark resolved / cleared to play": "סימון: הטיפול הסתיים / כשיר לשחק",
   "Fixtures load as the league publishes them.": "המשחקים ייטענו כשהליגה תפרסם אותם.",
@@ -149,7 +149,7 @@ export const HE = {
   'Injury': 'פציעה',
   'Status': 'סטטוס',
   'Since · pain': 'מאז · כאב',
-  'Reported by': 'דווח ע״י',
+  'Reported by': 'מי דיווח',
   'Since': 'מאז',
   'By': 'מדווח',
   'Point Guard': 'פוינט גארד',
@@ -472,8 +472,8 @@ export const HE = {
   'this week': 'השבוע',
   'of his own pre-injury week': 'מהשבוע שלו לפני הפציעה',
   'guide': 'המלצה',
-  'CUT TODAY': 'להוריד עומס היום',
-  'WATCH': 'לעקוב',
+  'CUT TODAY': 'הורדת עומס היום',
+  'WATCH': 'מעקב',
   'Minutes played': 'דקות משחק',
   'ADD MINUTES': 'הוספת דקות',
   'logged': 'נרשמו',
@@ -694,7 +694,7 @@ Object.assign(HE, {
   'Good markers — confirm pain first': 'מדדים טובים — קודם תבדוק רמת כאב',
   'Recovered — train pain-free': 'התאושש — מתאמנים בלי כאב',
   'Looks good — train as planned': 'נראה טוב — לפי התוכנית',
-  'Recovered — full send': 'התאושש — אפשר ללחוץ',
+  'Recovered — full send': 'התאושש — אפשר לתת הכול',
   'A bit under — trim, don\'t grind': 'קצת מתחת — מקצרים, לא טוחנים',
   'Run down — back off today': 'שחוק — מורידים עומס היום',
   // ---- return-to-play ladder + the two safety rules under it -----------
@@ -791,7 +791,7 @@ Object.assign(HE, {
   'Dec': 'דצמבר',
 
   // ---- the load board ---------------------------------------------------
-  'last lift': 'אימון אחרון',
+  'last lift': 'הרמה אחרונה',
   'Athlete': 'שחקן',
   '7d': '7 ימים',
   '14-day': '14 יום',
@@ -830,7 +830,7 @@ Object.assign(HE, {
   'Full line': 'כל הנתונים',
   'Change availability': 'שינוי זמינות',
   'pts': 'נק׳',
-  'S&C minutes': 'דקות כוח',
+  'S&C minutes': 'דקות כוח קבוצתי',
   'Which practice': 'איזה אימון',
   'This practice': 'האימון הזה',
   'In': 'נוכח',
@@ -845,7 +845,7 @@ Object.assign(HE, {
   'e.g. lower body · 4 lifts': 'למשל פלג גוף תחתון · 4 תרגילים',
   'A bar is a lift he logged. The tint is the restriction on the day.': 'פס זה הרמה שנרשמה לו. הגוון זה ההגבלה של אותו יום.',
   'Log a lift for this athlete': 'רישום הרמה לשחקן הזה',
-  'no S&C session logged': 'לא נרשם אימון כוח',
+  'no S&C session logged': 'לא נרשם כוח קבוצתי',
 
   PRE_SEASON: 'טרום עונה',
 });
@@ -862,14 +862,14 @@ Object.assign(HE, {
   'Premier League': 'ליגת העל',
   'Official league feed (basket.co.il). Only games the league has published appear here.': 'הנתונים הרשמיים של הליגה (basket.co.il). מופיעים כאן רק משחקים שהליגה כבר פרסמה.',
   // E: consistency
-  'None assigned': 'עוד לא שויך בלוק',
+  'None assigned': 'עוד אין בלוק',
   '1 practice': 'אימון אחד',
   practices: 'אימונים',
   // F: safety
   'Marked out on this date - the minutes win for the day': 'רשום בחוץ בתאריך הזה — הדקות קובעות לאותו יום',
   'was out': 'היה בחוץ',
   // G: the Today card
-  'S&C not logged yet': 'כוח עוד לא נרשם',
+  'S&C not logged yet': 'כוח קבוצתי עוד לא נרשם',
   flies: 'טסים',
   // H: the head coach report - where each line comes from
   'From the club calendar': 'מהלו״ז של המועדון',
