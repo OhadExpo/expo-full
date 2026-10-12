@@ -1760,6 +1760,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 
 /* A popup title is ONE row (26.9): its lead words step aside on a phone. */
 @media (max-width: 520px) { .bm-lead { display: none; } }
+/* Coach preview strip on a phone (12.10): the eye tag already says PREVIEW, so the verb goes and the name wraps whole
+   instead of an ellipsis ('PREVIEWING BLOC…' at 390). */
+@media (max-width: 520px) { .cpp-prefix { display: none; } .cpp-label { white-space: normal !important; line-height: 1.3 !important; } }
 
 /* minutes: 120′ on a phone, "120 MIN" where it fits (26.9) - week chips, past practices */
 .min-tick { display: none; }

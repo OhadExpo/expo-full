@@ -983,12 +983,14 @@ function ExPicker({ exercises, value, onChange, onPickName, onCreateLibrary, lab
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{label}</label>}
-      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', cursor: 'pointer', position: 'relative', borderColor: unlinked ? 'rgba(255,165,2,0.376)' : undefined, paddingInlineEnd: 24 }}>
+      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', cursor: 'pointer', position: 'relative', borderColor: unlinked ? 'rgba(255,165,2,0.376)' : undefined, paddingInlineEnd: 24, paddingBlock: 6 }}>
         {/* Text takes the full button width with text-align:center, so the
             displayed exercise name lands at the true column center —
             matching where the EXERCISE label above is centered. The ▼
             sits absolutely on the right so it doesn't shift the text. */}
-        <span style={{ color: hasDisplay ? C.tx : C.td, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {/* The whole name, wrapped (12.10: one ellipsized line hid 18-112px of a long name in a phone's half-width column);
+            minHeight keeps a one-line name at the field height. */}
+        <span style={{ color: hasDisplay ? C.tx : C.td, display: 'block', whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1.25 }}>
           {unlinked && <span style={{ color: C.or, marginInlineEnd: 6, fontSize: 10 }}>📝</span>}
           {hasDisplay ? displayTitle : 'Select exercise...'}
         </span>
@@ -1212,7 +1214,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
               video lives in the expanded panel like day rows). compact
               (compare mode): minmax(0,…) columns so it compresses to the
               half-width pane with no inner horizontal scrollbar. */}
-          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', position: 'relative', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 480 }}>
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', position: 'relative', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 536 }}>
             {['#', tt('EXERCISE'), tt('SETS'), tt('REPS'), tt('TEMPO'), ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -2794,7 +2796,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   )}
                 </div>
               ) :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(180px,3.3fr) 64px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(180px,3.3fr) 64px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : 492 + 8*8 + Math.max(56,weeks*22) + Math.max(64,weeks*26)}}>
                   {["#",tt("EXERCISE"),tt("GRP"),tt("SETS"),tt("REPS"),tt("TEMPO"),tt("LOAD"),"RPE",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>

@@ -425,9 +425,11 @@ export default function NotesInline({
                     is centred so a mixed Heb/En task no longer flips the whole row
                     right and strands the checkbox. (No athlete-name zone here —
                     it's a single athlete's page, unlike the cross-athlete dash.) */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                {/* The body keeps a 160px basis so on a phone the DONE date drops to its own line instead of squeezing
+                    the body to one word per line (12.10: 91px wide at 360). */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px 12px', flexWrap: 'wrap' }}>
                   <span dir="auto" style={{
-                    flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
+                    flex: '1 1 160px', minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
                     textAlign: 'center', overflowWrap: 'break-word', fontFamily: FB,
                   }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>

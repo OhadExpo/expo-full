@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isSafeTraineeId } from './traineeUtils';
-import ClientPortal from './ClientPortal';
+import ClientPortal from './ClientPortal';
+
 import { useT, readLang } from './i18n';
 
 // Coach-side preview. Two modes:
@@ -94,8 +95,8 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   if (plans === null) return <div style={{padding:40,textAlign:'center',color:C.tm,fontFamily:FN,letterSpacing:'0.18em'}}>{tt('LOADING PREVIEW…')}</div>;
 
   const headerLabel = planId
-    ? <>{tt('Previewing')} <span style={{color:C.ac,fontWeight:700}}>{plans[0]?.name || tt('Program')}</span>{trainee && <> · {trainee.name}</>}</>
-    : <>{tt('Viewing as')} <span style={{color:C.ac,fontWeight:700}}>{trainee?.name || tt('Trainee')}</span></>;
+    ? <><span className="cpp-prefix">{tt('Previewing')} </span><span style={{color:C.ac,fontWeight:700}}>{plans[0]?.name || tt('Program')}</span>{trainee && <> · {trainee.name}</>}</>
+    : <><span className="cpp-prefix">{tt('Viewing as')} </span><span style={{color:C.ac,fontWeight:700}}>{trainee?.name || tt('Trainee')}</span></>;
 
   return (
     <div style={{position:'relative'}}>
@@ -105,7 +106,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
             10/13/10px in two fonts, the Hebrew name floated off the Latin). */}
         <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,fontFamily:FN,fontSize:11,lineHeight:1,letterSpacing:'0.1em',textTransform:'uppercase'}}>
           <div style={{color:C.ac,fontWeight:700,whiteSpace:'nowrap'}}>👁 {tt('PREVIEW')}</div>
-          <div style={{color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
+          <div className="cpp-label" style={{color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
         </div>
         <button onClick={onBack} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0,whiteSpace:'nowrap',flexShrink:0,display:'inline-flex',alignItems:'center',gap:5}}>{tt('← BACK')}</button>
       </div>
