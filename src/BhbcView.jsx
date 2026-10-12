@@ -5586,9 +5586,7 @@ function MicrocycleView({ fx, today }) {
               border: `1px solid ${d.isToday ? TODAY_INK : d.isGame ? ORANGE : C.cardBd}`,   // one 1px line, no inset double (#567)
               borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`,
               padding: '10px 10px 12px',
-              background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)`
-                : d.isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)`
-                : 'var(--c-sf)',
+              background: 'var(--c-sf)' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */,
               display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* minWidth:0 + flexWrap so a squeezed label breaks at its space
                   and the TODAY chip drops to its own line, rather than the
@@ -6000,11 +5998,11 @@ function WeekPlanner({ fixtures = [], today, loads = {}, athleteIds = [], onUpse
           const isToday = d === today;
           return (
             <div key={d} data-week-date={d} data-week-n={list.length} className={horizontalWeek ? undefined : 'bhbc-week-row'} style={horizontalWeek
-              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? TODAY_INK : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
+              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? TODAY_INK : 'transparent'}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, minWidth: 0 }
               // 12px sides on EVERY row, so today's tint has an inset and the
               // day label never sits on its edge (26.9: "sat, sep 26 is too close
               // to the dark grey edge"); all rows share it, so nothing shifts.
-              : { display: 'flex', gap: 12, alignItems: 'center', padding: '6px 12px', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+              : { display: 'flex', gap: 12, alignItems: 'center', padding: '6px 12px', borderTop: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
               <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0 }}>
                 <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? TODAY_INK : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
@@ -6158,7 +6156,7 @@ function ScheduleList({ fx, today }) {
         return (
           // TODAY IS THE ROW'S TINT, as on the planner - "FRI · TODAY" broke the
           // day column onto two lines (#509).
-          <div key={d.date} data-list-date={d.date} style={{ display: 'flex', gap: 14, padding: '8px 10px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+          <div key={d.date} data-list-date={d.date} style={{ display: 'flex', gap: 14, padding: '8px 10px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
             <div style={{ width: 84, flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 12, color: isToday ? TODAY_INK : C.tx }}>{dow(d.date)}</div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{monDay(d.date)}</div>
@@ -6252,14 +6250,14 @@ function ScheduleWeek({ fixtures, today }) {
           ))}
           <span />
           {days.map((x) => (
-            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ position: 'relative', borderInlineStart: `1px solid ${C.cardBd}`, background: x.iso === today ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ position: 'relative', borderInlineStart: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
               {placed(x.items).map(({ f, s0, e0, L, n }, i) => {
                 const col = FX_COLOR[f.type] || NAVY;
                 const where = fxWhere(f);
                 return (
                   <div key={i} className={'bhbc-wk-ev' + (isCancelled(f) ? ' fx-cancelled' : '')}
                     title={[f.start, fxLabelFor(f.type, FX_LABEL[f.type] || 'Session'), Number(f.minutes) > 0 ? `${f.minutes} ${tr('min')}` : '', where].filter(Boolean).join(' · ')}
-                    style={{ position: 'absolute', zIndex: 1, top: `${pctOf(s0)}%`, height: `${pctOf(e0) - pctOf(s0)}%`, insetInlineStart: `calc(${(L / n) * 100}% + 3px)`, width: `calc(${100 / n}% - 6px)`, boxSizing: 'border-box', overflow: 'hidden', padding: '4px 6px', background: `color-mix(in srgb, ${col} 13%, var(--c-sf))`, borderInlineStart: `3px solid ${col}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    style={{ position: 'absolute', zIndex: 1, top: `${pctOf(s0)}%`, height: `${pctOf(e0) - pctOf(s0)}%`, insetInlineStart: `calc(${(L / n) * 100}% + 3px)`, width: `calc(${100 / n}% - 6px)`, boxSizing: 'border-box', overflow: 'hidden', padding: '4px 6px', background: 'var(--c-sf)' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, borderInlineStart: `3px solid ${col}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {/* time + length on line 1, the kind on its own line (#511: at a
                         768 tablet a ~95px day column cut "PRACTICE" to "PRA…") */}
                     <span style={{ display: 'flex', gap: 5, alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap' }}>
@@ -6269,7 +6267,7 @@ function ScheduleWeek({ fixtures, today }) {
                     <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: col, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip' }}>
                       <SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} />
                     </span>
-                    {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{where}</span>}
+                    {where && <span style={{ fontFamily: FB, fontSize: 9.5, color: C.tm, whiteSpace: 'normal', overflowWrap: 'anywhere', unicodeBidi: 'isolate' /* wraps, never '…' (his rule: never truncate - 'VS RAMAT GAN · HAYOVE…', #673) */ }}>{where}</span>}
                   </div>
                 );
               })}
@@ -6281,7 +6279,7 @@ function ScheduleWeek({ fixtures, today }) {
         {days.map((x) => {
           const isToday = x.iso === today;
           return (
-            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ flex: '1 0 auto', display: 'flex', gap: 10, alignItems: 'center', padding: '6px 10px', minHeight: 48, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
+            <div key={x.iso} data-wk-date={x.iso} data-wk-n={x.items.length} style={{ flex: '1 0 auto', display: 'flex', gap: 10, alignItems: 'center', padding: '6px 10px', minHeight: 48, boxSizing: 'border-box', borderBottom: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */ }}>
               <div style={{ width: 52, flexShrink: 0 }}>
                 <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? TODAY_INK : C.tx }}>{dowFor(x.d, DOW[x.d.getDay()])}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(x.iso)}</div>
@@ -6325,10 +6323,10 @@ function ScheduleMonth({ fixtures, today }) {
     // the 2px ring sat on the cell's own 1px grid lines and read as a 3px
     // frame on the phone (Ohad 5.10 #567: "too thick and annoying").
     return (
-      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 1px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
+      <div key={di} className="bhbc-cal-cell" data-cal-date={di} data-cal-n={items.length} style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: 'var(--c-sf)' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, display: 'flex', flexDirection: 'column', gap: 3, ...(isToday ? { boxShadow: `inset 0 0 0 1px var(--bhbc-ha-home, ${NAVY})` } : null), ...(di < today ? { opacity: 0.55 } : null) }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? TODAY_INK : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
-          <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', flexWrap: 'wrap' /* the venue takes its own line (flexBasis 100%) - without wrap it squeezed the kind to a 19px stub (AUDIT-470) */, alignItems: 'center', gap: 5, rowGap: 1, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
+          <div key={i} className={isCancelled(f) ? 'bhbc-cal-chip fx-cancelled' : 'bhbc-cal-chip'} style={{ display: 'flex', flexWrap: 'wrap' /* the venue takes its own line (flexBasis 100%) - without wrap it squeezed the kind to a 19px stub (AUDIT-470) */, alignItems: 'center', gap: 5, rowGap: 1, fontFamily: FN, fontSize: 10, background: 'transparent' /* no fill (his 5.10 rule, #673): the frame / stripe / words carry it */, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
             {/* one word, never broken: the full kind, or its short form when the
                 column is too narrow (SegWord measures) */}
