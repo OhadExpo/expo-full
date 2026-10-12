@@ -58,7 +58,7 @@ const COACH_TABS = ['dashboard', 'trainees', 'programs', 'exercises', 'sessions'
 const SET = process.env.SET || 'demo';
 const BHBC_TABS = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'];
 const APP_SURFACES = [
-  ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'bugs', 'chat-audit']
+  ...['dashboard', 'athletes', 'trainees', 'programs', 'exercises', 'sessions', 'sessions-single', 'workouts', 'review', 'review-tools', 'tasks', 'billing', 'calendar', 'challenges', 'intake', 'waitlist', 'smart-import', 'exercise-matching', 'exercise-classify', 'exercise-cleanup', 'exercise-videos', 'bugs', 'chat-audit']
     .map((t) => [`app-${t}`, `/coach/${t}`]),
   // a remembered sub-view would make a tab measure whatever the LAST page left open, so the views a tab holds are
   // each tapped explicitly (12.10: the week view's cut venue and the warm-up sub-view were never swept)
@@ -78,7 +78,16 @@ const APP_SURFACES = [
   ['app-program-editor', '/coach/programs/plan_ww15cnz51jnmo91eocg'],
   ['app-program-preview', '/coach/programs/plan_ww15cnz51jnmo91eocg/preview'],
 ];
-const ATHLETE_SURFACES = [['portal', '/']];
+// the portal's tabs, each tapped (12.10: only PROGRAM, the default, was ever swept). Run as the fixture athlete:
+// EXPO_EMAIL=diego@diegoday.com SET=athlete (opening Messages / History can mark coach notes read - test data only)
+const ATHLETE_SURFACES = [
+  ['portal', '/', '^(PROGRAM|תוכנית)$'],
+  ['portal-bw', '/', '^(BW|משקל)$'],
+  ['portal-meal', '/', '^(MEAL LOG|יומן אוכל)$'],
+  ['portal-history', '/', '^(HISTORY|היסטוריה)( \\(\\d+\\))?$'],
+  ['portal-prs', '/', '^(PRs|שיאים)$'],
+  ['portal-messages', '/', '^(MESSAGES|הודעות)$'],
+];
 const DEMO_SURFACES = [
   ['landing', '/demo'],
   ['landing-he', '/demo/he'],
