@@ -127,7 +127,8 @@ for (const lang of LANGS) {
   for (const [w, h] of WIDTHS) {
     for (const theme of THEMES) {
       for (const [name, route] of SURFACES) {
-        const id = `${name}/${lang}/${w}/${theme}`;
+        // the HEIGHT too on a tablet: 1024x768 and 1024x1366 shared one id - their findings merged and nodes.json added the two (12.10)
+        const id = `${name}/${lang}/${TABLET ? `${w}x${h}` : w}/${theme}`;
         const { ctx, pg, fresh } = await pageFor(lang, w, h, theme);
         try {
           if (fresh) await setWidth(pg, w, h, { tablet: TABLET });   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
@@ -155,6 +156,14 @@ for (const lang of LANGS) {
             prev = len;
           }
           if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
+          // A PAGE THAT IS STILL LOADING IS NOT A CLEAN PAGE (12.10): right after a fresh sign-in a loading state held still
+          // for 600 ms and was judged - three BHBC tabs 'passed' on 2 text nodes. Fewer than 20 = wait up to 10 s more, then UNSET.
+          {
+            const tn = () => pg.evaluate(() => { const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let k = 0, n; while ((n = wk.nextNode())) if ((n.nodeValue || '').trim().length > 1) k++; return k; });
+            let k = await tn();
+            for (let tries = 0; k < 20 && tries < 10; tries++) { await wait(1000); k = await tn(); }
+            if (k < 20) { add({ kind: 'UNSET', id, detail: `only ${k} text nodes on the page after 10 s - a loading or empty screen, NOT judged` }); continue; }
+          }
 
           const pageH = await pg.evaluate(() => document.documentElement.scrollHeight);
           const seen = new Set();
