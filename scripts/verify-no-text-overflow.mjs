@@ -104,6 +104,9 @@ const DEMO_SURFACES = [
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],
   ['booking', '/book'],
+  // the public intake form; with no ?t= it renders the whole form as a preview and submits nothing (12.10: never swept)
+  ['intake-form-he', '/intake/he'],
+  ['intake-form-en', '/intake/en'],
   // the public shared-program page; the fixture token lives OUTSIDE this public repo (SHARE_TOKEN=..., a test athlete's plan).
   // Every open bumps that share's view_count, so never point it at a real client's share.
   ...(process.env.SHARE_TOKEN ? [['program-share', `/p/${process.env.SHARE_TOKEN}`]] : []),
