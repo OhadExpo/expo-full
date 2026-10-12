@@ -36,6 +36,8 @@ import { RefinedHeaderStrip, useIsMobile } from './ui';
 // the same late-addition pattern bhbcHe.js uses, so the whole Movement Lab reads
 // in one register. Exercise names (Squat, Hinge…) stay English by his rule.
 Object.assign(HE, {
+  // the tempo PHASE (a noun, beside eccentric / concentric); the player's PAUSE button stays 'השהה' (12.10 review)
+  pause: 'עצירה',
   'GET READY': 'היכון',
   'Pick the exercise to count reps and read bar speed, range and tempo. Without it you get the neutral read: skeleton, joint angles and raw speed.': 'תבחר תרגיל כדי לספור חזרות ולמדוד מהירות מוט, טווח תנועה וטמפו. בלי תרגיל תקבל מדידה כללית: שלד, זוויות מפרקים ומהירות גולמית.',
   'Starting the camera and pose model…': 'מפעיל מצלמה וזיהוי תנוחה…',

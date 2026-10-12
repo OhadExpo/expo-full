@@ -3631,7 +3631,7 @@ function DemoExercises() {
                 </div>
                 {/* no body at all when the exercise has nothing classified yet - an empty strip is the useless space of #677 */}
                 {([e.resistanceType, e.bodyPosition, e.movementType].some(Boolean) || joints.length > 0 || muscles.length > 0) && <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-                  <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{[e.resistanceType, e.bodyPosition, e.movementType].filter(Boolean).join('  ·  ')}</div>
+                  {[e.resistanceType, e.bodyPosition, e.movementType].some(Boolean) && <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{[e.resistanceType, e.bodyPosition, e.movementType].filter(Boolean).join('  ·  ')}</div>}
                   {/* joints, then muscles: two quiet lines in the meta line's grammar, never a row of boxes (#675) */}
                   {[joints, muscles].filter((l) => l.length).map((l, j) => <div key={j} data-l10n-data="" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', lineHeight: 1.45, color: C.td }}>{l.map((x) => taxoHe(x, readLang())).join('  ·  ')}</div>)}
                 </div>}

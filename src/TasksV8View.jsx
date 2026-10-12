@@ -1536,7 +1536,8 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
       {tags.length > 0 && (
         // plain cyan words, no filled boxes (#675: tags in one quiet line, the meta-line grammar)
         <div style={{ marginTop: 6, direction: uiDir(), fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-ac)', lineHeight: 1.5 }}>
-          {tags.map(labelTag).join('  ·  ')}
+          {/* one span per tag with a clear gap - labelTag already joins a namespaced tag's parts with ' · ' (12.10 review) */}
+          {tags.map((tg) => <span key={tg} style={{ display: 'inline-block', marginInlineEnd: 16, whiteSpace: 'nowrap' }}>{labelTag(tg)}</span>)}
         </div>
       )}
       {readOnly && (

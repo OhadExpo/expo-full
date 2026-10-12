@@ -1038,7 +1038,8 @@ export const HE = {
   Athlete: 'מתאמן',
   Unassigned: 'לא משויך',
   UNDO: 'בטל',
-  REDO: 'שוב',
+  REDO: 'ביצוע מחדש',   // the plan editor's redo (beside UNDO); the hold timer has its own 'Go again'
+  'Go again': 'שוב',
   'FROM LIBRARY': 'מהספרייה',
   'EXERCISE DATABASE': 'מאגר התרגילים',
   VOLUME: 'נפח',
