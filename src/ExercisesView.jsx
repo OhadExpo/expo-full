@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret, PlayGlyph, NotesGlyph, TagStack } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
 import { taxoHe } from './taxonomyHe';
+import { wrapNeed } from './wrapNeed';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -186,6 +187,47 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     return () => { try { if (window.cancelIdleCallback) window.cancelIdleCallback(h); else clearTimeout(h); } catch { /* */ } };
   }, [cap]);
   const rows = showAll ? filtered : filtered.slice(0, Math.min(cap, ROW_CAP));
+  // COLUMNS SIZED BY WHAT IS IN THEM (14.10 #751, Ohad: "8 is bad" - 44 cells broke one word per line: "Lower Body Push
+  // (Eccentric Focus)" stood 5 words on 4 lines in a 79px column while most columns sat ~90% empty). No sideways scroll
+  // and never a cut word stay; what changed is who gets the width. Every value needs the narrowest width at which it
+  // wraps into few enough lines - one or two words a line, never one (3-4 words: 2 lines, 5: 3 ...) - and each column
+  // claims what its widest-needing value needs, in the language on screen.
+  const TAXO_KEYS = ['resistanceType', 'bodyPosition', 'movementType', 'primaryJoints', 'jointMovements', 'primaryMuscles', 'secondaryMuscles'];
+  // Measured, not counted: the cell's own font through a canvas (a character count missed Nord's wide capitals by 2px -
+  // 'Shoulder Horizontal' still broke), re-measured once the web font has loaded.
+  const [fontsTick, setFontsTick] = useState(0);
+  useEffect(() => { let on = true; try { document.fonts && document.fonts.ready.then(() => { if (on) setFontsTick((x) => x + 1); }); } catch { /* old browser */ } return () => { on = false; }; }, []);
+  const colNeed = useMemo(() => {
+    const lang = readLang();
+    // (Hebrew pages letter-space everything 0.02em - themes.css body[data-lang=he], !important)
+    const heLS = lang === 'he' ? 0.02 : 0;
+    const taxo = TAXO_KEYS.map((k) => {
+      const vals = []; for (const ex of filtered) for (const v of splitVals(ex[k])) vals.push(taxoHe(v, lang) || v);
+      return Math.max(54, Math.min(190, wrapNeed(vals, { font: `600 10px ${FN}`, ls: heLS * 10, perChar: 7.3 })));
+    });
+    // the NAME too (its own 13px font): its floor is what its longest-needing title needs - on 200px titles broke
+    // one word a line ('A-Stance Continuous MED-Ball Throw')
+    const title = wrapNeed(filtered.map((ex) => ex.title || ''), { font: `600 13px ${FB}`, ls: heLS * 13, perChar: 8 });
+    return { taxo, title: Math.max(200, Math.min(240, Math.ceil(title) + 9 + 6 + 26 /* dot + gap + padding */)) };
+  }, [filtered, fontsTick]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // ...against the table's MEASURED width (percentages under-gave every column): a column = its need + 12px of padding
+  // + 2px to spare; the name takes the rest, never under its own need; on a screen too narrow for all of it every taxonomy
+  // column gives way by the same share
+  const tableWrapRef = useRef(null);
+  const [tableW, setTableW] = useState(0);
+  useEffect(() => {
+    const el = tableWrapRef.current; if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setTableW(el.clientWidth)); ro.observe(el); setTableW(el.clientWidth);
+    return () => ro.disconnect();
+  });
+  const colShares = useMemo(() => {
+    const fixed = 58 + (narrowUI ? 0 : 64), TITLE_MIN = colNeed.title;
+    if (!tableW) return { title: '30%', taxo: colNeed.taxo.map(() => (62 / colNeed.taxo.length).toFixed(2) + '%') };
+    let px = colNeed.taxo.map((n) => Math.ceil(n) + 14);
+    const room = tableW - fixed - TITLE_MIN, sum = px.reduce((a, b) => a + b, 0);
+    if (sum > room) px = px.map((x) => Math.floor((x * room) / sum));
+    return { title: 'auto', taxo: px.map((x) => x + 'px') };
+  }, [colNeed, tableW, narrowUI]);
 
   const handleSave = () => {
     if (!form.title) return;
@@ -286,8 +328,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   // Wrap, never ellipsise. Ohad: "i cant see some of the words... never do."
   // A classification value cut to "Shoulder Horizontal Adducti…" is not a
   // classification. The row gets taller; the word stays whole.
-    <td className="ex-taxo" title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'normal', overflowWrap: 'break-word', ...extra }}>
-      {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{taxoHe(v, readLang())}</span> : emptyDot}
+    <td className="ex-taxo" title={v || undefined} style={{ padding: '9px 6px' /* 12 between columns: the width goes to the words (#751) */, whiteSpace: 'normal', overflowWrap: 'break-word', ...extra }}>
+      {v ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, letterSpacing: 0 /* 10 / 0: the long values keep two words a line (#751) */, color: C.tm }}>{taxoHe(v, readLang())}</span> : emptyDot}
     </td>
   );
   // Multi-value classification - one value per line (TagStack, #675), or a faint dot. Never cut, never boxed: the old
@@ -295,8 +337,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   const chipCell = (v, max = 320) => {
     const vals = splitVals(v);
     return (
-      <td className="ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max }}>
-        {vals.length === 0 ? emptyDot : <TagStack values={vals} />}
+      <td className="ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 6px', maxWidth: max }}>
+        {vals.length === 0 ? emptyDot : <TagStack values={vals} size={10} spacing={0} />}
       </td>
     );
   };
@@ -488,7 +530,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           })}
         </div>
       ) : (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'hidden' }}>
+        <div ref={tableWrapRef} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'hidden' }}>
           {/* table-layout:fixed + colgroup: every column shares 100% of the width
               so the table NEVER overflows horizontally (Ohad: "too much scrolling
               left and right"). Long comma-lists truncate with … (full on hover). */}
@@ -500,14 +542,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                   (1,379/1,476 unclassified) so they don't need equal billing; they
                   stay wide enough for their populated values and 2-line headers.
                   All %s still sum to 100 → no horizontal scroll. (Ohad #219.) */}
-              <col style={{ width: '30%' }} />
-              <col className="ex-taxo" style={{ width: '8%' }} />
-              <col className="ex-taxo" style={{ width: '8%' }} />
-              <col className="ex-taxo" style={{ width: '9%' }} />
-              <col className="ex-taxo" style={{ width: '9%' }} />
-              <col className="ex-taxo" style={{ width: '10%' }} />
-              <col className="ex-taxo" style={{ width: '9%' }} />
-              <col className="ex-taxo" style={{ width: '9%' }} />
+              <col style={colShares.title === 'auto' ? undefined : { width: colShares.title }} />
+              {colShares.taxo.map((w, i) => <col key={TAXO_KEYS[i]} className="ex-taxo" style={{ width: w }} />)}
               <col style={{ width: '58px' }} />
               {!narrowUI && <col style={{ width: '64px' }} />}
             </colgroup>
@@ -519,7 +555,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements', 'Joint Actions'], ['primaryMuscles', 'Primary Muscles', 'Primary'], ['secondaryMuscles', 'Secondary Muscles', 'Secondary']].map(([k, l, ls]) => {
                   const active = sortKey === k;
                   return (
-                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: ls ? 'nowrap' : 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: k === 'title' ? '9px 12px' : '9px 6px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: ls ? 'nowrap' : 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
                       {ls ? <SegWord full={tt(l)} short={tt(ls)} /> : tt(l)}{active && <span style={{ marginInlineStart: 5 }}><SortArrow up={sortDir === 'asc'} /></span>}
                     </th>
                   );
@@ -581,7 +617,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       )}
       {/* Shared row-cap notice — applies to both table and grid. */}
       {filtered.length > 0 && !showAll && filtered.length > ROW_CAP && (
-        <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <div style={{ padding: '12px 12px 0' /* 13.10 #735: 13 under the last row, 24 over the card's edge - its own 12 stacked on the card's */, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>{tt('Showing')} {ROW_CAP} {tt('of')} {filtered.length.toLocaleString()} {tt('— refine the search, or')}</span>
           <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>{tb("SHOW ALL")}</button>
         </div>

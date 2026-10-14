@@ -19,7 +19,9 @@ const days = (d) => (Number(d) === 1 ? 'יום אחד' : Number(d) === 2 ? 'יו
 // ל / מ / ב glue straight onto a Hebrew word but are joined to a foreign one with '-'.
 const pre = (p, name) => (/^\u2068?[A-Za-z0-9]/.test(name || '') ? `${p}-${name}` : `${p}${name}`);
 // A PLAN NAMED 'Block #N' IS SAID IN HEBREW (the sentence read 'ב-BLOCK #4')
-const block = (name) => String(name || '').replace(/Block #(\d+)/g, 'בלוק #$1');
+const block = (name) => String(name || '').replace(/Block #(\d+)/gi, 'בלוק #$1'); // any case: a plan named 'block #28' read 'ב-block #28' (12.10)
+// WHERE A LEAD CAME FROM is stored as a code ('coach_waitlist'); the Hebrew card printed the code (12.10 rendered audit)
+const CTX_HE = { coach_waitlist: 'רשימת ההמתנה למאמנים', chat_capture: 'הצ׳אט באתר', footer: 'הטופס בתחתית האתר', exit_intent: 'החלון ביציאה מהאתר', hero: 'הטופס בראש האתר' };
 
 // The merged outreach card lists its reasons by AUTO_KIND_LABEL; those codes were showing
 // in Hebrew on the dashboard ('2 reasons: • WEEK SKIPPED • PAYMENT OVERDUE', 17.9).
@@ -45,7 +47,7 @@ const RULES = [
     (m) => `לגבות תשלום ${pre('מ', m[1])} · שילם לאחרונה לפני ${days(m[2])}${m[3] ? ` · ₪${m[3]} לתשלום` : ''}`],
   [new RegExp(`^Run athletic eval on ${N} · first-session baseline$`), (m) => `לעשות הערכה אתלטית ${pre('ל', m[1])} · מדידת בסיס באימון הראשון`],
   [new RegExp(`^Call back ${N} · (\\d+)d since signup(?: via (.+?))?(?: — (.+))?$`),
-    (m) => `לחזור ${pre('ל', m[1])} · ${days(m[2])} מההרשמה${m[3] ? ` · דרך ${m[3]}` : ''}${m[4] ? ` — ${m[4]}` : ''}`],
+    (m) => `לחזור ${pre('ל', m[1])} · ${days(m[2])} מההרשמה${m[3] && CTX_HE[m[3]] ? ` · דרך ${CTX_HE[m[3]]}` : ''}${m[4] ? ` — ${m[4]}` : ''}`],
   [new RegExp(`^Build first training program for ${N} · eval is done$`), (m) => `לבנות תוכנית ראשונה ${pre('ל', m[1])} · ההערכה כבר נעשתה`],
 ];
 
@@ -60,13 +62,28 @@ function quiet(s) {
   return t;
 }
 
-/** The Hebrew reading of an auto-task body, or the body itself when it is not one. */
-export function localiseAutoBody(core) {
+// THE ATHLETE'S HEBREW SPELLING (12.10 B7): a body carries the athlete's display name ('Call ⁨Dana Levi⁩ ...'), so
+// the Hebrew card read 'להתקשר ל-DANA LEVI' with 'דנה לוי' printed right under it. An athlete with a nameLocal is
+// said by it in Hebrew, as the owed card does. The screens that hold the roster register it (TasksV8View, NotesWidget,
+// NotesInline); only the bidi-wrapped names inside a recognised template are swapped - a typed task is never touched.
+const LOCAL = new Map();
+export function addLocalNames(trainees) {
+  for (const t of trainees || []) if (t && t.name && t.nameLocal && t.nameLocal !== t.name) LOCAL.set(t.name, t.nameLocal);
+}
+/** The athlete's Hebrew spelling for a stored display name (the name itself when there is none). */
+export const localNameFor = (n) => LOCAL.get(n) || n;
+const localNames = (s) => (LOCAL.size ? s.replace(/⁨([^⁩]*)⁩/g, (all, n) => (LOCAL.has(n) ? `⁨${LOCAL.get(n)}⁩` : all)) : s);
+
+/** The Hebrew reading of an auto-task body, or the body itself when it is not one. names:false keeps the display
+ *  names as stored - the calendar sync's projection must not move when a roster spelling loads (12.10 review C2). */
+export function localiseAutoBody(core, { names = true } = {}) {
   const s = String(core || '').trim();
   if (!s) return s;
   for (const [re, say] of RULES) {
-    const m = s.match(re);
-    if (m) return say(m);
+    if (!re.test(s)) continue;
+    const s2 = names ? localNames(s) : s;
+    const m = s2.match(re) || s.match(re);
+    return say(m);
   }
   return s;
 }

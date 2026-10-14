@@ -1521,6 +1521,7 @@ export function ScrollFade({ children, style, className }) {
 //                   that is left alone
 // It writes straight to the DOM - no React state - so scrolling the bar never
 // re-renders the page (27.9 review). Direction-aware: RTL trails left.
+const RAIL_FADE = true;   // #759: fade the rail's edges instead of hiding half-visible tabs (false = the old clip / plates)
 export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, active = null, clip = false, trailRef = null, leadRef = null } = {}) {
   React.useEffect(() => {
     let el = null, t = 0, ro = null, lastActive = null, alive = true, scrolling = false, selfScroll = false;
@@ -1532,8 +1533,32 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     const FADE_MS = 150, ZERO = 'inset(0px 0px 0px 0px)';
     const calm = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const hide = (p) => { if (p && p.current) p.current.style.display = 'none'; };
+    // THE EDGES FADE, NO TEXT IS HIDDEN (14.10 #759 + #699, Ohad: "Top menu is still not showing through the entire empty
+    // space. I wanna see all the text that fits in"; "if the text is not fully shown it just sometimes dissapears"). The
+    // rail used to clip or plate over every half-visible tab, which left an empty strip before the icons on his tablet
+    // and made tabs vanish mid-swipe. Now a tab that does not fit is drawn up to the edge, and the edge fades over ~28px
+    // only where there is more to scroll - after a pinned lead (a logo) the fade starts at its edge. One mask write, and
+    // only when the start / end state changes.
+    let lastFade = null, leadX = 0;
+    const setFade = () => {
+      if (!el) return;
+      const sw = el.scrollWidth, cw = el.clientWidth;
+      let g = '';
+      if (!(window.innerWidth > maxWidth || sw <= cw + 1)) {
+        const rtl = getComputedStyle(el).direction === 'rtl';
+        const pos = Math.abs(el.scrollLeft), atStart = pos < 1, atEnd = pos + cw >= sw - 1;
+        const lx = Math.max(0, leadX);
+        const head = atStart ? '#000 0' : (lx ? `#000 0, #000 ${lx}px, transparent ${lx}px, #000 ${lx + 22}px` : 'transparent 0, #000 22px');
+        const tail = atEnd ? '#000 100%' : '#000 calc(100% - 28px), transparent 100%';
+        g = `linear-gradient(${rtl ? 'to left' : 'to right'}, ${head}, ${tail})`;
+      }
+      if (g === lastFade) return;
+      lastFade = g;
+      el.style.maskImage = g; el.style.webkitMaskImage = g;
+    };
     const apply = (w, lw, lx, rtl) => {
       if (!el) return;
+      if (RAIL_FADE) { if (w || lw || lx || rtl) leadX = lx || 0;   /* the swipe's release call (all zeros) keeps the measured lead */ if (el.style.clipPath) el.style.clipPath = ''; hide(trailRef); hide(leadRef); setFade(); return; }
       if (clip) {
         const v = w || lw ? (rtl ? `inset(0 ${lw}px 0 ${w}px)` : `inset(0 ${w}px 0 ${lw}px)`) : '';
         if (el.__rtmClip !== v) {
@@ -1633,6 +1658,7 @@ export function useRailTrailMask(ref, { items, lead = null, maxWidth = 760, acti
     // menu sat sliced from first load, caught by verify-rail-scroll-smooth).
     let ts = 0;
     function later(e) {
+      if (RAIL_FADE && e && e.type === 'scroll') setFade();
       if (e && e.type === 'scroll') {
         // our own instant scroll to the active item is not a finger: measure, do not release (1008o review)
         if (selfScroll) { selfScroll = false; if (!scrolling) { measure(); return; } }
@@ -1724,13 +1750,13 @@ export function JoinedButtons({ items, vertical = false, maxWidth = 560, classNa
 // a two-word value inside its box. Here every value is a line in the same quiet classification type as a single-value
 // cell, in the data's order, so a column reads as a list; a long value wraps under itself. Up to `max`, then '+N'.
 // `fmt` maps a value to its display text (taxoHe for the Hebrew screen).
-export function TagStack({ values, max = 3, fmt = (x) => x, size = 10.5, color = 'var(--c-tm)' }) {
+export function TagStack({ values, max = 3, fmt = (x) => x, size = 10.5, color = 'var(--c-tm)', spacing = '0.02em' }) {
   const vals = (values || []).filter(Boolean);
   if (!vals.length) return null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
       {vals.slice(0, max).map((x, i) => (
-        <span key={i} data-l10n-data="" style={{ fontFamily: FN, fontSize: size, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1.25, color, overflowWrap: 'break-word' }}>{fmt(x)}</span>
+        <span key={i} data-l10n-data="" style={{ fontFamily: FN, fontSize: size, fontWeight: 600, letterSpacing: spacing, lineHeight: 1.25, color, overflowWrap: 'break-word' }}>{fmt(x)}</span>
       ))}
       {vals.length > max && <span style={{ fontFamily: FN, fontSize: size - 1, fontWeight: 700, lineHeight: 1.25, color: 'var(--c-td)' }}>+{vals.length - max}</span>}
     </div>
@@ -1805,7 +1831,24 @@ export function SegWord({ full, short }) {
     const gap = parseFloat(cs.columnGap) || 0;
     let others = 0;
     for (const k of btn.children) if (k !== el) others += k.getBoundingClientRect().width + gap;
-    const next = fullW.current + others + pad > btn.clientWidth + 0.5;
+    // ONCE SHORT, THE BOX HUGS THE SHORT WORD (12.10 B7): where the word's own box is content-sized (the club chip's kind
+    // span), it shrank to 'זריקות' and the full word could never fit it again - one resize (a rotation, the keyboard, a
+    // full-page capture) left the short word for good with 100px+ free in the row. The room is the box PLUS what its
+    // row still has free; the 2px keeps the two states from trading places.
+    let slack = 0;
+    const row = useShortRef.current && btn.parentElement;
+    if (row) {
+      const rs = getComputedStyle(row);
+      const rgap = parseFloat(rs.columnGap) || 0;
+      let used = (parseFloat(rs.paddingLeft) || 0) + (parseFloat(rs.paddingRight) || 0);
+      for (const k of row.children) used += k.getBoundingClientRect().width;
+      used += rgap * Math.max(0, row.children.length - 1);
+      // fractional row width (clientWidth rounds) and a 2px margin, so rounding can never pick a full word that overflows
+      // by a fraction and trades places with the short one on the next resize (12.10 review P1)
+      const rowW = row.getBoundingClientRect().width - (parseFloat(rs.borderLeftWidth) || 0) - (parseFloat(rs.borderRightWidth) || 0);
+      if (rs.display.includes('flex') && rs.flexDirection.startsWith('row')) slack = Math.max(0, rowW - used - 2);
+    }
+    const next = fullW.current + others + pad > btn.clientWidth + slack + 0.5;
     setUseShort((p) => (p === next ? p : next));
   }, [short]);
   // while the FULL word shows, take its width, then decide
@@ -1819,7 +1862,7 @@ export function SegWord({ full, short }) {
     const el = ref.current; const btn = el && el.parentElement;
     if (!btn || !short) return undefined;
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(decide) : null;
-    if (ro) ro.observe(btn);
+    if (ro) { ro.observe(btn); if (btn.parentElement) ro.observe(btn.parentElement); } // the row too: a hugging box never resizes when only its row grows
     // the web font changes the full word's width: take it again, once
     let alive = true;
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (alive) setUseShort(false); }).catch(() => {});

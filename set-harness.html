@@ -42,7 +42,8 @@
     // opts.quality (10.10 #552/#639): the athlete's pipeline is 'lite'; 'full' / 'heavy' are
     // here only to MEASURE whether a bigger model counts the hand-counted sets better
     const quality = ['full', 'heavy'].includes(opts.quality) ? opts.quality : 'lite';
-    const frames = await captureClipFrames(url, { crossOrigin: true, quality, maxFrames, onProgress: (p) => say(p + '%') });
+    const all = opts.allPoses ? [] : null;   // 13.10 #719: every detected person per seek
+    const frames = await captureClipFrames(url, { crossOrigin: true, quality, maxFrames, allPoses: all, onProgress: (p) => say(p + '%') });
     const result = analyzeClip(frames, title || '');
     const read = summarize(result, { title: title || null, fileName: null, model: quality });
     const set = readSet(result);
@@ -65,6 +66,7 @@
       // the captured pose stream, so the counting can be re-scored offline
       frames: opts.keepFrames ? frames.map((f) => ({ t: Math.round(f.t), l: pack(f.landmarks), w: pack(f.worldLandmarks) })) : undefined,
       dims: frames.dims || null,
+      allPoses: all ? all.map((x) => ({ t: Math.round(x.t), pick: x.pick, l: x.l.map(pack), w: x.w.map(pack) })) : undefined,
     };
   };
   window.__ready = true;

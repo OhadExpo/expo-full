@@ -31,7 +31,22 @@ export function appendActivity(list, entry) {
   const dup = prev.find((x) => x && x.by === e.by && x.kind === e.kind && x.what === e.what
     && Math.abs(new Date(now) - new Date(x.at)) < 60000);
   if (dup) return prev;
-  return [e, ...prev].slice(0, ACTIVITY_CAP);
+  return capActivity([e, ...prev]);
+}
+
+// VISITS NEVER PUSH CHANGES OUT (12.10 B7): of the 400 lines the trail keeps, 384 were 'opened the club zone', so the
+// changes it exists for - who logged, edited, deleted - fell off after 16. At the cap the OLDEST VISIT goes first; a
+// change line is dropped only when no visit is left. The trail never shrinks below the cap on one write: the store's
+// shrink guard refuses a write that halves a list (a 400 -> 77 trim was refused and every owner line after it lost -
+// 12.10 review C1), so it fills with changes over time instead. The coaches' writes go through bhbc_activity_append,
+// which caps the same way once its migration is applied.
+export function capActivity(list) {
+  const arr = Array.isArray(list) ? list : [];
+  let over = arr.length - ACTIVITY_CAP;
+  if (over <= 0) return arr;
+  const drop = new Set();
+  for (let i = arr.length - 1; i >= 0 && over > 0; i--) if (arr[i] && arr[i].kind === 'open') { drop.add(i); over--; }
+  return arr.filter((_, i) => !drop.has(i)).slice(0, ACTIVITY_CAP);
 }
 
 /** "today 14:32" / "yesterday 09:05" / "12 Sep 18:40" — the coach reads a time, not an ISO string. */

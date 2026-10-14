@@ -357,7 +357,7 @@ export default function BookingView({ trainees }) {
             style={{ ...stripBtnBase, border: `1px solid ${C.cardBd}`, color: C.tm, height: 26 }}>{tb('SYNC NOW')}</button>
         </div>
         {rules.length === 0 ? (
-          <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
+          <div style={{ padding: '14px 14px 12px' /* the line's leading is the other 2 (#735) */, textAlign: 'center', color: C.td, fontSize: 13 }}>
             {tt('No availability rules. Add one to allow bookings.')}
           </div>
         ) : rules.map((r, ri) => (
@@ -365,6 +365,8 @@ export default function BookingView({ trainees }) {
           <div key={r.id} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
             borderBottom: ri < rules.length - 1 ? `1px solid ${C.cardBd}` : 'none',
+            // ...and sits on the edge, as the sync row sits on the strip (14.10 #735: 9 over it, 22 under - the card's 14 on its 8)
+            marginBottom: ri === rules.length - 1 ? -PAD : 0,
             // ONE ROW ON A PHONE: the two time boxes give way, the × stays on the row
             // (audit #612 C8: at 390 the × wrapped alone onto a second line)
           }}>
@@ -392,7 +394,7 @@ export default function BookingView({ trainees }) {
             those out. With busy rows and no real bookings the card rendered
             neither the message nor a single row: a blank box. */}
         {realBookings.length === 0 ? (
-          <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
+          <div style={{ padding: '14px 14px 12px' /* the line's leading is the other 2 (#735) */, textAlign: 'center', color: C.td, fontSize: 13 }}>
             {tt('No bookings yet. Share the public URL above.')}
           </div>
         ) : realBookings.map((b, i) => {

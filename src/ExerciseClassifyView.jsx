@@ -22,7 +22,7 @@ const CELL_SELECT = { width: '100%', height: 36, boxSizing: 'border-box', border
 const PHONE_FIELDS = [['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES]];
 function PhoneRow({ e, g, skip, val, setVal, toggleSkip, tt }) {
   return (
-    <div style={{ padding: '12px 0', borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ padding: '10px 0 12px', borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1, display: 'flex', flexDirection: 'column', gap: 10 /* 14.10 #735: the name + skip 13 under the row's line, 9 over the field grid -> 11 / 11 */ }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* the name takes the row; '{n}/3 guessed' sits under it - beside it, the name had 142px
             at 360 and broke one word per line (10.10 overflow sweep) */}
@@ -146,7 +146,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
               <tbody>
                 {rows.map(({ e, g }) => {
                   const skip = (edits[e.id] || {}).skip;
-                  const cell = { padding: '6px 8px', verticalAlign: 'middle' };
+                  const cell = { padding: '5px 8px 7px' /* 14.10 #735: the 36px controls sat 7.5 under the row's line, 5.5 over the next -> even */, verticalAlign: 'middle' };
                   return (
                     <tr key={e.id} style={{ borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1 }}>
                       <td style={{ ...cell, minWidth: 220 }}>

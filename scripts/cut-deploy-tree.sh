@@ -28,7 +28,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 NAME="${1:-deploy-$(date +%m%d)}"
-SRC=bhbc-hebrew
+SRC=${SRC:-bhbc-hebrew}   # 14.10: the working branch moved to anatomy-3d - SRC=anatomy-3d bash scripts/cut-deploy-tree.sh
 # HOLD="a b" names the held views for THIS cut (29.9: D6 ships the audited
 # athlete portal and holds only TrySandbox, as D5 did); default = all three.
 # shellcheck disable=SC2206
@@ -85,9 +85,11 @@ git diff --stat "$PROD" HEAD | tail -1
 
 SHIP=""
 if [ "$FAIL" = "0" ]; then
-  SHIP=$(git commit-tree "HEAD^{tree}" -p "$PROD" -p HEAD -m "deploy $NAME: $SRC at $(git rev-parse --short "$SRC")
+  # ONE parent (14.10): the repo is PUBLIC, and a second parent published every local commit message with the push -
+  # names included. The ship commit is the cut's tree on top of production: still a fast-forward, history stays local.
+  SHIP=$(git commit-tree "HEAD^{tree}" -p "$PROD" -m "deploy $NAME: $SRC at $(git rev-parse --short "$SRC")
 
-Tree = $NAME exactly (held at production: ${HELD[*]:-none}). Parent 1 = production,
+Tree = $NAME exactly (held at production: ${HELD[*]:-none}). Parent = production,
 so the push is a fast-forward.")
   git branch -f "ship-$NAME" "$SHIP"
 fi

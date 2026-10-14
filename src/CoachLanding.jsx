@@ -80,9 +80,11 @@ const STRINGS = {
   'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
   // 5.10 parity: + Movement Lab's 3D replay (Replay3D: front / side / top / behind, slow motion, hand + hip trails)
   // 11.10 parity (#656): + the rep timeline, PREV / NEXT REP and the first / last rep marks
+  // 13.10 parity (#690): the 3D replay is an anatomy body now (skeleton + muscle layers, a joint-angle box, 0.4 s joint
+  // tails instead of whole-rep paths)
   'feat.video.body': {
-    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side. Movement Lab rebuilds the lift as a 3D skeleton you can rotate — front, side, top, behind, slow motion, hand and hip paths — with every rep on a timeline: jump rep to rep and mark where the set starts and ends.',
-    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני. במעבדת התנועה ההרמה נבנית כשלד בתלת-ממד שאפשר לסובב — מלפנים, מהצד, מלמעלה, מאחור, בהילוך איטי, עם המסלול של הידיים והאגן. כל חזרה מופיעה על ציר זמן: קופצים מחזרה לחזרה ומסמנים איפה הסט מתחיל ואיפה הוא נגמר.',
+    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side. Movement Lab rebuilds the lift as a 3D anatomy body beside the original clip — the skeleton and three muscle layers, deep to surface — you can rotate: front, side, top, behind, slow motion, the angle of every joint in all three planes, the centre of mass over the feet and a short trail on the hands and hips — with every rep on a timeline: jump rep to rep and mark where the set starts and ends.',
+    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני. במעבדת התנועה ההרמה נבנית כגוף אנטומי בתלת־ממד ליד הסרטון המקורי, שלד ושלוש שכבות שרירים מהעמוקה לשטחית, שאפשר לסובב — מלפנים, מהצד, מלמעלה, מאחור, בהילוך איטי, עם הזווית של כל מפרק בשלושת המישורים, מרכז הכובד מעל כפות הרגליים ושובל קצר של הידיים והאגן. כל חזרה מופיעה על ציר זמן: קופצים מחזרה לחזרה ומסמנים איפה הסט מתחיל ואיפה הוא נגמר.',
   },
   'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
   'feat.prog.title':     { en: 'Block-based plans', he: 'בניית תוכניות בבלוקים' },
@@ -150,7 +152,7 @@ const STRINGS = {
   'tier.growth.f1':      { en: 'Everything in Starter', he: 'כל מה שיש בחבילה הבסיסית' },
   'tier.growth.f2':      { en: 'Bulk plan duplication across clients', he: 'שכפול תוכניות בין מתאמנים בלחיצה' },
   'tier.growth.f3':      { en: 'Bodyweight + session payment tracking', he: 'מעקב משקל גוף + תשלומי אימונים' },
-  'tier.growth.f4':      { en: 'Priority email support', he: 'מענה מועדף במייל' },
+  'tier.growth.f4':      { en: 'Priority email support', he: 'מענה בעדיפות במייל' },
 
   'tier.founding.name':  { en: 'FOUNDING PARTNER',     he: 'מאמן מייסד' },
   'tier.founding.slots': { en: 'Unlimited clients · roadmap influence', he: 'מתאמנים בלי הגבלה · השפעה על מה שנבנה הלאה' },
@@ -448,7 +450,7 @@ function FeatureCard({ tag, title, body, isHe }) {
   return (
     <div className="cl-card" style={{
       background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-      padding: 22, textAlign: isHe ? 'right' : 'left',
+      padding: '22px 22px 17px' /* 13.10 #735: the last body line's leading sat 5px under its text - 24 / 28.9 -> even */, textAlign: isHe ? 'right' : 'left',
     }}>
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700,
@@ -502,7 +504,7 @@ function ComparisonSection({ isHe }) {
         color: win ? C.ac : C.tm, marginBottom: 14 }}>{title}</div>
       {T.rows.map((r, i) => (
         <div key={i} style={{
-          display: 'flex', gap: 10, alignItems: 'flex-start', padding: '9px 0',
+          display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0 8px' /* #735: 14 / 16.3 -> even */,
           borderTop: i ? `1px solid ${C.cardBd}` : 'none',
           flexDirection: isHe ? 'row-reverse' : 'row',
         }}>

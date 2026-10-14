@@ -12,16 +12,30 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { frameToPoints3D, stableReplayFrames, lmVisible } from './poseLab';
 import { C, FN } from './theme';
 import { useT, LangCtx } from './i18n';
+import AngleNum, { AngleHead } from './AngleNum';
 import { ChipGrid, JoinedButtons } from './ui';
+import { createAnatomyBody } from './anatomy/AnatomyBody';
+import { buildTrack, sampleTrack, fk, carry, modelAngles, S as SEG, PIVOT, RJ, NSEG as SEG_COUNT } from './anatomy/rig';
+import { anatomyFrames } from './anatomy/lift2d';
+import { modelBalance } from './anatomy/balance';
+import { modelJointAxes } from './anatomy/jointAxes';
+import { createPoseOverlay } from './poseOverlay';
 
 const ACCENT = 0x39bdff, HIP_TRAIL = 0xf5a524, BODY = 0xe8eef5;
 const FEET = [27, 28, 29, 30, 31, 32];
+// the anatomy layers: bones alone, muscles alone, or the muscles see-through over the bones
+// THE LAYERS, as an anatomy app peels them (13.10 #721, Ohad: "skeleton > deeper muscles > superficial (however many
+// layers there are)"): the bake measured three muscle layers; each view shows the skeleton and every layer from the
+// chosen one inward, opaque
+const LAYERS = { skeleton: { bones: true, muscles: false }, deep: { bones: true, muscles: true, muscleOpacity: 1, depth: 3 }, middle: { bones: true, muscles: true, muscleOpacity: 1, depth: 2 }, surface: { bones: true, muscles: true, muscleOpacity: 1, depth: 1 } };
+const LAYER_OLD = { bones: 'skeleton', muscles: 'surface', both: 'surface' };   // a choice remembered from before the layers
 
 function webglOk() {
   try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch { return false; }
@@ -43,7 +57,7 @@ const CHANNEL_JOINTS = { knee: [[23, 25, 27], [24, 26, 28]], hip: [[11, 23, 25],
 // analysis); channel: the analysed joint. With both, a rep timeline sits under the scrubber (#656).
 // range / onRange: the coach's first and last rep of the set (1-indexed, the same trim as ANALYZE REPS
 // in the speed / ROM tabs - Ohad: "set where is the first and last rep"). Reps outside it are dimmed.
-export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null, reps = null, channel = null, range = null, onRange = null }) {
+export default function Replay3D({ frames, playheadT = null, onUnsupported, onSeek = null, reps = null, channel = null, range = null, onRange = null, clipSrc = null, exerciseTitle = '' }) {
   const tt = useT();
   // time runs the way the frame slider does: right to left in Hebrew (#656)
   const rtl = useContext(LangCtx) === 'he';
@@ -51,14 +65,110 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const stateRef = useRef(null);
   const [supported] = useState(() => webglOk());
   const [hostW, setHostW] = useState(0);   // the canvas width, for the rep-number rows (measured, not 360 on the first paint)
+  // THE CLIP BESIDE THE BODY (13.10 #713, Ohad: "show me the original clip next to it"): the video the body was read
+  // from, in the same row, on the same clock - while playing the clip IS the clock (slow motion included), paused it
+  // follows the slider. A portrait clip stands beside the canvas, a landscape one above it.
+  const clipRef = useRef(null), rowRef = useRef(null);
+  const [clipAR, setClipAR] = useState(0.75);   // width / height, from the video once it loads
+  const [rowW, setRowW] = useState(0);
+  const clipSide = !!clipSrc && clipAR <= 1.05;
+  const clipSideRef = useRef(clipSide); clipSideRef.current = clipSide;
+  const clipARRef = useRef(clipAR); clipARRef.current = clipAR;
+  // beside a portrait clip both stand at the clip's own height: the row = the clip + a canvas of 3:4 (as the side-by-side
+  // videos he was sent - a fixed 1.15 x width height left the clip in black bars on a phone, 13.10)
+  const sideH = (W) => Math.round(Math.min(560, (W - 8) / (clipARRef.current + 0.75)));
   const poseFrames = useMemo(() => stableReplayFrames(frames), [frames]);   // 5.10 #558; one shared computation per clip (#656)
   const pts = useMemo(() => poseFrames.map((f) => frameToPoints3D(f.worldLandmarks)), [poseFrames]);
   const [idx, setIdx] = useState(0);
+  // the clip beside the body carries the two on-video tools too (14.10 #766): SKELETON + JOINT ANGLES, both on
+  const [clipSkel, setClipSkel] = useState(true);
+  const [clipAng, setClipAng] = useState(true);
+  const clipCanvasRef = useRef(null), clipOvlRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(0.5);
   const [trails, setTrails] = useState(true);
+  // the joint box's PLANE (13.10 #716): sagittal (the joint angles), frontal, transverse
+  const [plane, setPlane] = useState(() => { try { const v = localStorage.getItem('expo-anatomy-plane'); return ['sag', 'front', 'trans'].includes(v) ? v : 'sag'; } catch { return 'sag'; } });
+  useEffect(() => { try { localStorage.setItem('expo-anatomy-plane', plane); } catch { /* private mode */ } }, [plane]);
+  // THE ANATOMY BODY (13.10 #690, Ohad: "anatomy models based on skeleton and muscle layers"): the Z-Anatomy skeleton
+  // and muscles on one rig, played from a 60-a-second track (#691). The mannequin below is only the fallback when the
+  // model cannot load. layer: 'bones' | 'muscles' | 'both'
+  // the body is built from the frames LIFTED onto the picture (anatomy/lift2d.js): where the video shows each joint,
+  // depth solved from bone lengths - MediaPipe's own 3D folded a leaning trunk (13.10 #705)
+  const track = useMemo(() => {
+    // NOT stableReplayFrames: its smoothing averaged a fast leg away (c31 9.5 s: a 22 cm leg lift -> -1 cm) and its
+    // feet step pinned a lifted foot down. The rig keeps its own outlier rejection, feet and smoothing.
+    // Guarded (13.10 review): a throw in ~1,200 lines of track maths must cost the anatomy body, never the whole tool -
+    // no track = the stick figure
+    if (!Array.isArray(frames) || !frames.length) return null;
+    try {
+    const lifted = anatomyFrames(frames, frames && frames.dims);
+    const byT = new Map(lifted.map((f) => [f.t, f]));
+    // a frame read as ANOTHER PERSON (13.10, c13) is no knot - its old points would put the stranger back
+    const other = lifted.otherPerson || new Set();
+    const tr = buildTrack(poseFrames.map((f, i) => { const g = byT.get(f.t); return { t: f.t, pts: g ? frameToPoints3D(g.worldLandmarks) : pts[i], img: (g || f).landmarks || null }; }).filter((f) => !other.has(f.t)), { dims: frames && frames.dims, exercise: exerciseTitle });
+    // a harness can read what the replay was given (audit-out/_3d-shot.mjs ANATDBG=1) - inert unless set
+    try { if (typeof window !== 'undefined' && window.__anatDebugOn) window.__anatDebug = { dims: frames && frames.dims, n: frames && frames.length, lifted: lifted.length, track: tr, frames, lifted0: lifted[0], uprightR: lifted.uprightR || null }; } catch { /* the harness's problem */ }
+    return tr;
+    } catch (e) { console.warn('anatomy track', e); return null; }
+  }, [frames, poseFrames, pts, exerciseTitle]);
+  const [anat, setAnat] = useState('loading');   // loading | ready | error
+  // the stage (floor, framing, facing, trails) follows the anatomy body - unless the model could not load: then the
+  // stick figure stands on its own points (13.10 review: it floated on the body's floor with trails beside it)
+  const stageTrack = anat === 'error' ? null : track;
+  // HOW MUCH OF THE CLIP WAS READ (13.10): the share of the clip with him in view - under 70%, the replay says so (he
+  // left the picture, or was too far): a guess is never passed off as a reading
+  // HOW STEADY THE 3D READ IS (13.10, measured): segments turning over 20 degrees in one 60 Hz frame while seen, per
+  // second in view - 12 clips measured: good ones 0-4.7, a bench press from a low camera (c27) 39, a far rear view (c38)
+  // 19. Over 10 the replay says the angle reads poorly: a body that flips in depth still matches the picture, so it is
+  // never hidden by that
+  const popRate = useMemo(() => {
+    if (!track || !track.quats || !track.m) return 0;
+    const N = SEG_COUNT, q = track.quats, sn = track.seen; let pops = 0, inV = 0;
+    for (let k = 0; k + 1 < track.m; k++) {
+      const t = track.t0 + (k * 1000) / track.hz; if (track.inView && !track.inView(t)) continue; inV++;
+      for (let s2 = 0; s2 < N; s2++) {
+        if (!sn[k * N + s2] || !sn[(k + 1) * N + s2]) continue;
+        const a = k * N * 4 + s2 * 4, b = a + N * 4, d = Math.abs(q[a] * q[b] + q[a + 1] * q[b + 1] + q[a + 2] * q[b + 2] + q[a + 3] * q[b + 3]);
+        if (2 * Math.acos(Math.min(1, d)) > (20 * Math.PI) / 180) pops++;
+      }
+    }
+    return inV ? pops / (inV / track.hz) : 0;
+  }, [track]);
+  const readShare = useMemo(() => { if (!track || !track.inView) return 1; let n = 0, k = 0; for (let t = track.t0; t <= track.t1; t += 100) { n++; if (track.inView(t)) k++; } return n ? k / n : 1; }, [track]);
+  const openedAt = useRef(false);
+  const [layer, setLayer] = useState(() => { try { const v = localStorage.getItem('expo-anatomy-layer') || 'surface'; return LAYERS[v] ? v : LAYER_OLD[v] || 'surface'; } catch { return 'surface'; } });
+  const layerRef = useRef(layer); layerRef.current = layer;
   const trailsRef = useRef(true); trailsRef.current = trails;   // a rebuilt scene keeps the toggle (review 12.10)
   const idxRef = useRef(0); idxRef.current = idx;
+  // the original frames, in the replay's order (stableReplayFrames keeps the frames that have world points, in order)
+  const rawFrames = useMemo(() => (frames || []).filter((f) => f && f.worldLandmarks), [frames]);
+  useEffect(() => {
+    const cv = clipCanvasRef.current, v = clipRef.current;
+    if (!cv || !v) return undefined;
+    const paint = () => {
+      const bw = v.clientWidth, bh = v.clientHeight, vw = v.videoWidth, vh = v.videoHeight;
+      const dpr = Math.min(3, window.devicePixelRatio || 1);
+      if (cv.width !== Math.round(bw * dpr)) cv.width = Math.round(bw * dpr);
+      if (cv.height !== Math.round(bh * dpr)) cv.height = Math.round(bh * dpr);
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+      // the replay frames hold rotated WORLD points only: the clip is drawn from the original frame, same index
+      const f = rawFrames[idxRef.current] || null;
+      if (!f || !f.landmarks || !vw || !vh || !bw || !bh || (!clipSkel && !clipAng)) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const sc = Math.min(bw / vw, bh / vh), dw = vw * sc, dh = vh * sc, ox = (bw - dw) / 2, oy = (bh - dh) / 2;
+      if (!clipOvlRef.current) clipOvlRef.current = createPoseOverlay();
+      clipOvlRef.current.update(f.landmarks, f.worldLandmarks, (f.t || 0) / 1000);
+      clipOvlRef.current.draw(ctx, { w: bw, h: bh, px: (p) => ox + p.x * dw, py: (p) => oy + p.y * dh, skeleton: clipSkel, angles: clipAng });
+    };
+    paint();
+    // the clip loads after the first paint, and its box resizes with the layout: redraw then too
+    v.addEventListener('loadeddata', paint); v.addEventListener('seeked', paint);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(paint) : null;
+    if (ro) ro.observe(v);
+    return () => { v.removeEventListener('loadeddata', paint); v.removeEventListener('seeked', paint); if (ro) ro.disconnect(); };
+  }, [idx, clipSkel, clipAng, clipAR, rawFrames]);   // eslint-disable-line react-hooks/exhaustive-deps
   const playingRef = useRef(false); playingRef.current = playing;
   // the trails show THIS rep (or the last 2 s outside one): drawn over the whole clip they piled
   // the set-up and every rep into one tangle at the shoulder (11.10 #656, "output can be better")
@@ -76,6 +186,19 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const repSpans = useMemo(() => (Array.isArray(reps) ? reps : []).filter((r) => r && Number.isFinite(r.tb))
     .map((r) => ({ t0: Number.isFinite(r.t0) ? r.t0 : r.tb, tb: r.tb, t1: Number.isFinite(r.t1) ? r.t1 : r.tb })).sort((a, b) => a.tb - b.tb), [reps]);
   const idxAt = (t) => { let lo = 0, hi = poseFrames.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (poseFrames[m].t < t) lo = m + 1; else hi = m; } return lo; };
+  // THE SET (13.10 #714, Ohad: "only the exercise part. Cut the video before and after"): the first rep's start to the
+  // last rep's end, 0.3 s either side - the replay opens on it and PLAY loops it; without counted reps, the whole clip
+  const setSpan = useMemo(() => (repSpans.length ? [repSpans[0].t0 - 300, repSpans[repSpans.length - 1].t1 + 300] : null), [repSpans]);
+  const setSpanRef = useRef(setSpan); setSpanRef.current = setSpan;
+  // the replay OPENS on the set, or where he is in view (13.10: it opened on him walking past the phone); a parent that
+  // drives the frame with no way to move it (the shot analyzer) keeps its own
+  useEffect(() => {
+    if (openedAt.current || !track || !poseFrames.length || (playheadT != null && !onSeek)) return;
+    openedAt.current = true;
+    const t = setSpan ? Math.max(setSpan[0], poseFrames[0].t) : track.firstInView;
+    if (!(t > poseFrames[0].t)) return;
+    const k = idxAt(t); setIdx(k); if (onSeek) onSeek(poseFrames[k].t - poseFrames[0].t);
+  }, [track, poseFrames, playheadT, onSeek, setSpan]);   // eslint-disable-line react-hooks/exhaustive-deps
   const trace = useMemo(() => {
     const J = CHANNEL_JOINTS[channel] || null;
     if (!J || !pts.length || !repSpans.length) return null;
@@ -150,10 +273,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
 
   // the floor: the lowest a foot gets anywhere in the clip (the body never sinks into it)
   const floorY = useMemo(() => {
+    if (stageTrack) return stageTrack.floor;   // the anatomy body's own soles, the lowest they get
     let m = Infinity;
     for (const p of pts) for (const k of FEET) { const q = p && p[k]; if (q && lmVisible(q) && q.y < m) m = q.y; }
     return isFinite(m) ? m : -0.95;
-  }, [pts]);
+  }, [pts, stageTrack]);
 
   // where the body is over the whole clip: the camera frames HIM, not a fixed box (at 1440 he stood
   // small in a wide canvas). EVERY point that is drawn counts - a faded (unseen) arm is drawn too, and
@@ -162,19 +286,42 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const bounds = useMemo(() => {
     const X = [], Y = [], Z = [];
     const fin = (q) => q && Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.z);
-    pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 11; k < p.length; k++) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } for (const k of [0, 7, 8]) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y + 0.13); Z.push(q.z); } } });
+    if (stageTrack) {
+      // THE MODEL IS FRAMED, not the raw points (13.10: in the app the anatomy body - built on the picture - stood
+      // outside the raw points' box and was cut off at the top): every pivot, the crown and the toes, sampled over the clip
+      const Q = PIVOT.map(() => new THREE.Quaternion()), root = new THREE.Vector3(), piv = PIVOT.map(() => new THREE.Vector3()), v = new THREE.Vector3();
+      for (let k = 0; k < stageTrack.m; k += 6) {
+        sampleTrack(stageTrack, stageTrack.t0 + (k * 1000) / stageTrack.hz, Q, root); fk(Q, root, stageTrack, piv);
+        for (const q of piv) { X.push(q.x); Y.push(q.y); Z.push(q.z); }
+        for (const [seg, pt] of [[SEG.head, RJ.crown], [SEG.footL, RJ.toeL], [SEG.footR, RJ.toeR], [SEG.handL, RJ.handTipL], [SEG.handR, RJ.handTipR]]) { carry(seg, pt, Q, piv, stageTrack, v); X.push(v.x); Y.push(v.y); Z.push(v.z); }
+      }
+    } else pts.forEach((p, n) => { if (!p || n % 2) return; for (let k = 11; k < p.length; k++) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y); Z.push(q.z); } } for (const k of [0, 7, 8]) { const q = p[k]; if (fin(q)) { X.push(q.x); Y.push(q.y + 0.13); Z.push(q.z); } } });
     if (X.length < 20) return null;
     const pc = (a, f) => { const s2 = a.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(f * s2.length))]; };
     const r = (a) => [pc(a, 0.005), pc(a, 0.995)];
     const [x0, x1] = r(X), [y0, y1] = r(Y), [z0, z1] = r(Z);
     const yb = Math.min(y0, floorY);
     return { c: [(x0 + x1) / 2, (yb + y1) / 2, (z0 + z1) / 2], h: y1 - yb, w: Math.max(x1 - x0, z1 - z0) };
-  }, [pts, floorY]);
+  }, [pts, floorY, stageTrack]);
 
   // HIS front, not the world's (11.10 #671): FRONT / SIDE / BEHIND were fixed world axes, so a lifter
   // facing the camera was shown from BEHIND under 'FRONT'. Front = where his toes point (heel -> toe,
   // level), else his nose; side = the side the camera saw more of (his left joints are the odd ones).
   const facing = useMemo(() => {
+    // with the anatomy body: ITS front (the pelvis's forward, averaged over the clip) - the raw points stand in another
+    // frame than the body built on the picture (13.10)
+    if (stageTrack) {
+      const Q = PIVOT.map(() => new THREE.Quaternion()), root = new THREE.Vector3(); let fx = 0, fz = 0, sL = 0, sR = 0;
+      for (let k = 0; k < stageTrack.m; k += 6) {
+        const smp = sampleTrack(stageTrack, stageTrack.t0 + (k * 1000) / stageTrack.hz, Q, root);
+        const f = new THREE.Vector3(0, 0, 1).applyQuaternion(Q[SEG.pelvis]); fx += f.x; fz += f.z;
+        sL += smp.seen[SEG.uarmL] + smp.seen[SEG.thighL]; sR += smp.seen[SEG.uarmR] + smp.seen[SEG.thighR];
+      }
+      const l = Math.hypot(fx, fz); if (l > 1e-6) {
+        const F = [fx / l, fz / l], S2 = [-F[1], F[0]];   // his right, level (forward x up)
+        return { F, seen: sL >= sR ? [-S2[0], -S2[1]] : S2 };
+      }
+    }
     let fx = 0, fz = 0, sx = 0, sz = 0, nx = 0, nz = 0, visL = 0, visR = 0;
     for (const p of pts) {
       if (!p) continue;
@@ -192,7 +339,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // the camera saw his left side more: the side camera goes to his left (toward -S)
     const seen = visL >= visR ? [-S[0], -S[1]] : S;
     return { F, seen };
-  }, [pts]);
+  }, [pts, stageTrack]);
 
   // build the scene once per clip
   useEffect(() => {
@@ -210,6 +357,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     renderer.domElement.style.touchAction = 'none';
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0d10);
+    // a soft studio environment: the anatomy's bone and wet muscle read as real materials, not flat colour (research 13.10)
+    const pmrem = new THREE.PMREMGenerator(renderer); const room = new RoomEnvironment(), envTex = pmrem.fromScene(room, 0.04).texture;
+    scene.environment = envTex; scene.environmentIntensity = 0.45;
     const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 50);
     const centreY = floorY + 0.95;
     const tgt = bounds ? new THREE.Vector3(bounds.c[0], bounds.c[1], bounds.c[2]) : new THREE.Vector3(0, centreY, 0);
@@ -238,7 +388,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const plane = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.ShadowMaterial({ opacity: 0.35 }));
     plane.rotation.x = -Math.PI / 2; plane.position.y = floorY; plane.receiveShadow = true; scene.add(plane);
     // a lit floor disc under him, so he stands somewhere rather than in a void
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(1.7, 64), new THREE.MeshStandardMaterial({ color: 0x161d25, roughness: 0.95 }));
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(1.7, 64), new THREE.MeshStandardMaterial({ color: 0x161d25, roughness: 0.95, envMapIntensity: 0.12 }));   // the studio light is for the body, not the floor
     disc.rotation.x = -Math.PI / 2; disc.position.y = floorY - 0.002; disc.receiveShadow = true; scene.add(disc);
     const grid = new THREE.GridHelper(6, 24, 0x2a3a4a, 0x1a242e); grid.position.y = floorY + 0.001; scene.add(grid);
 
@@ -288,9 +438,23 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const pairMid = (p, i, j) => { if (!p || !(lmVisible(p[i]) || lmVisible(p[j]))) return null; if (fin3(p[i]) && fin3(p[j])) return mid2(p[i], p[j]); const q = fin3(p[i]) ? p[i] : fin3(p[j]) ? p[j] : null; return q ? new THREE.Vector3(q.x, q.y, q.z) : null; };
     const mid2 = (a, b) => new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
     const lineMats = [];
+    // THE TRAILS RIDE THE BODY ON SCREEN (13.10 #705, Ohad: "the lines don't even fit the skeleton"): with the anatomy
+    // body the trail points are the MODEL's own joints at each captured frame - its hip centre, its wrists, its
+    // shoulders - so the line can never run beside the bones. (They were MediaPipe's raw points; the body is the rig's.)
+    const trailPts = stageTrack ? (() => {
+      const Q = PIVOT.map(() => new THREE.Quaternion()), root = new THREE.Vector3(), piv = PIVOT.map(() => new THREE.Vector3());
+      const P = (v, src) => ({ x: v.x, y: v.y, z: v.z, visibility: src ? src.visibility : 1 });
+      return poseFrames.map((f, i) => {
+        sampleTrack(stageTrack, f.t, Q, root); fk(Q, root, stageTrack, piv);
+        const o = pts[i] ? pts[i].slice() : [];
+        o[11] = P(piv[SEG.uarmL], o[11]); o[12] = P(piv[SEG.uarmR], o[12]); o[15] = P(piv[SEG.handL], o[15]); o[16] = P(piv[SEG.handR], o[16]);
+        o[23] = P(piv[SEG.thighL], o[23]); o[24] = P(piv[SEG.thighR], o[24]);
+        return o;
+      });
+    })() : pts;
     const mkTrail = (pick, color) => {
       const arr = new Float32Array(pts.length * 3), fresh = new Int32Array(pts.length).fill(-1); let last = null, lastAt = -1;
-      pts.forEach((p, i) => { const v = pick(p); if (v) { last = v; lastAt = i; } if (last && i - lastAt <= GAP) { arr[i * 3] = last.x; arr[i * 3 + 1] = last.y; arr[i * 3 + 2] = last.z; fresh[i] = lastAt; } });
+      trailPts.forEach((p, i) => { const v = pick(p); if (v) { last = v; lastAt = i; } if (last && i - lastAt <= GAP) { arr[i * 3] = last.x; arr[i * 3 + 1] = last.y; arr[i * 3 + 2] = last.z; fresh[i] = lastAt; } });
       const mat = new LineMaterial({ color, linewidth: 3.5, transparent: true, opacity: 0.95, depthTest: false });
       lineMats.push(mat);
       const line = new Line2(new LineGeometry(), mat); line.renderOrder = 3; line.frustumCulled = false; line.visible = false; scene.add(line);
@@ -319,6 +483,69 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     const BAR = channel === 'knee' ? [11, 12] : [15, 16];
     const handTrail = mkTrail((p) => pairMid(p, BAR[0], BAR[1]), ACCENT);
     const hipTrail = mkTrail((p) => pairMid(p, 23, 24), HIP_TRAIL);
+    // 0.4 s (13.10: at 0.6 s a fast arm swing drew a long hook beside him - c31 9.5 s, c22 - the "blue line" again)
+    const TAIL_N = 28, TAIL_MS = 400, TAIL_MAX_V = 12, BG = new THREE.Color(0x0b0d10);
+    // the time between the two readings around t (0 on a reading)
+    const knotGap = (tr, t) => { const K = tr.knotT; if (!K || !K.length) return 0; let lo = 0, hi = K.length - 1; if (t <= K[0] || t >= K[hi]) return 0; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (K[m] <= t) lo = m; else hi = m; } return K[hi] - K[lo]; };
+    const mkTail = (color) => {
+      const mat = new LineMaterial({ color: 0xffffff, vertexColors: true, linewidth: 4, transparent: true, opacity: 1, depthTest: false });
+      lineMats.push(mat);
+      const geo = new LineGeometry(); const line = new Line2(geo, mat); line.renderOrder = 3; line.frustumCulled = false; line.visible = false; scene.add(line);
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.026, 16, 12), new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true }));
+      dot.renderOrder = 4; dot.visible = false; scene.add(dot);
+      // colours: the joint's colour at the dot, fading into the background along the tail
+      const cols = new Float32Array(TAIL_N * 3), c0 = new THREE.Color(color);
+      for (let k = 0; k < TAIL_N; k++) { const w = 1 - k / (TAIL_N - 1); const c = BG.clone().lerp(c0, w * w); cols.set([c.r, c.g, c.b], k * 3); }
+      return { line, dot, geo, cols, pos: new Float32Array(TAIL_N * 3) };
+    };
+    const handTail = mkTail(ACCENT), handTail2 = mkTail(ACCENT), hipTail = mkTail(HIP_TRAIL);
+    // THE CENTRE OF MASS (13.10 #715): a white dot at the body's centre of mass, its plumb line to the floor, and the base
+    // of support (the heels and toes on the floor) outlined under him - white while the plumb point is inside it,
+    // orange when it is outside
+    const COM_IN = 0xffffff, COM_OUT = 0xf5a524;
+    const comDot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 18, 14), new THREE.MeshBasicMaterial({ color: COM_IN, depthTest: false, transparent: true }));
+    comDot.renderOrder = 5; comDot.visible = false; scene.add(comDot);
+    const mkLine = (w, o) => { const mat = new LineMaterial({ color: COM_IN, linewidth: w, transparent: true, opacity: o, depthTest: false }); lineMats.push(mat); const ln = new Line2(new LineGeometry(), mat); ln.renderOrder = 4; ln.frustumCulled = false; ln.visible = false; scene.add(ln); return ln; };
+    const plumb = mkLine(2, 0.75), baseLine = mkLine(2, 0.55);
+    const plumbFoot = new THREE.Mesh(new THREE.RingGeometry(0.018, 0.03, 24), new THREE.MeshBasicMaterial({ color: COM_IN, depthTest: false, transparent: true, side: THREE.DoubleSide }));
+    plumbFoot.rotation.x = -Math.PI / 2; plumbFoot.renderOrder = 5; plumbFoot.visible = false; scene.add(plumbFoot);
+    const setLine = (ln, ps) => { const g = new LineGeometry(); g.setPositions(ps.flatMap((p) => [p.x, p.y, p.z])); ln.geometry.dispose(); ln.geometry = g; ln.computeLineDistances(); };
+    const showBalance = (tNow) => {
+      const tr = track, inV = tr && (!tr.inView || tr.inView(tNow));
+      const B = inV ? modelBalance(tr, tNow) : null;
+      const on = !!B; comDot.visible = plumb.visible = plumbFoot.visible = on; baseLine.visible = on && B.base.length >= 2;
+      if (!on) return;
+      const col = B.inBase === false ? COM_OUT : COM_IN, op = B.seen ? 1 : 0.4;   // a body the camera did not see: faded
+      comDot.position.copy(B.com); comDot.material.color.setHex(col); comDot.material.opacity = op;
+      plumbFoot.position.copy(B.plumb); plumbFoot.position.y += 0.003; plumbFoot.material.color.setHex(col); plumbFoot.material.opacity = op;
+      setLine(plumb, [B.com, B.plumb]); plumb.material.color.setHex(col); plumb.material.opacity = 0.75 * op;
+      if (B.base.length >= 2) { setLine(baseLine, [...B.base, B.base[0]]); baseLine.material.color.setHex(col); baseLine.material.opacity = 0.55 * op; }
+    };
+    const tQ = PIVOT.map(() => new THREE.Quaternion()), tRoot = new THREE.Vector3(), tPiv = PIVOT.map(() => new THREE.Vector3());
+    const tail = (o, tNow, [sa, sb]) => {
+      const tr = track, seenNow = tr && sampleTrack(tr, tNow, tQ, tRoot).seen;
+      // not in view: the body is hidden, and so are its dots and tails (13.10, c05 0-2 s: two dots floated in an empty scene)
+      const inV = !tr || !tr.inView || tr.inView(tNow);
+      const on = inV && trailsRef.current && tr && seenNow[sa] && seenNow[sb];
+      o.dot.visible = !!(inV && tr && seenNow[sa] && seenNow[sb]);
+      if (!tr) { o.line.visible = false; return; }
+      let n = 0;
+      for (let k = 0; k < TAIL_N; k++) {
+        const t = Math.max(tr.t0, tNow) - (k * TAIL_MS) / (TAIL_N - 1); if (k && t < tr.t0) break;   // before the first reading: the dot on the first pose, no tail
+        const sm = sampleTrack(tr, t, tQ, tRoot); fk(tQ, tRoot, tr, tPiv);
+        if (k && !(sm.seen[sa] && sm.seen[sb])) break;   // the tail stops where the joint was not seen
+        if (k && knotGap(tr, t) > 300) break;   // ... and where no reading was taken (a bridged gap is drawn, never traced - c40 3.6 s)
+        const x = (tPiv[sa].x + tPiv[sb].x) / 2, y = Math.max(tr.floor + 0.01, (tPiv[sa].y + tPiv[sb].y) / 2), z = (tPiv[sa].z + tPiv[sb].z) / 2;   // a tail never draws under the floor
+        // nor a step faster than a hand moves (13.10, c13 42 s: the camera picked up another man as he walked to the phone,
+        // the hand read 15 m/s and its tail streaked across the screen; a shot's release is ~7 m/s)
+        if (k && Math.hypot(x - o.pos[(k - 1) * 3], y - o.pos[(k - 1) * 3 + 1], z - o.pos[(k - 1) * 3 + 2]) > (TAIL_MAX_V * TAIL_MS) / (TAIL_N - 1) / 1000) break;
+        if (!k) o.dot.position.set(x, y, z);
+        o.pos.set([x, y, z], k * 3); n++;
+      }
+      if (!on || n < 3) { o.line.visible = false; return; }
+      o.geo = new LineGeometry(); o.geo.setPositions(o.pos.subarray(0, n * 3)); o.geo.setColors(o.cols.subarray(0, n * 3));
+      o.line.geometry.dispose(); o.line.geometry = o.geo; o.line.visible = true;
+    };
     // the first rep's outline: thin bones, no volume, never casts a shadow
     const REF_BONES = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32], [29, 31], [30, 32], [27, 29], [28, 30]];
     const refGeo = new THREE.BufferGeometry(); refGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(REF_BONES.length * 6), 3));
@@ -335,6 +562,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // BETWEEN TWO CAPTURED FRAMES (11.10 #671): the capture runs ~9-10 fps and the replay plays at half
     // speed, so it showed ~5 poses a second - a slideshow. Playback now draws every screen frame, each
     // landmark blended between frame i and i+1 by the clock (u in 0..1); a pause shows the frame itself.
+    let body = null;
+    const mannequin = [...limbs.map((o) => o.m), ...joints.map((j) => j.m), core, chest, pelvis, neck, head, visor, ...hands, ...feet];
     const blend = [];
     const at = (i, u) => {
       const a = pts[Math.max(0, Math.min(pts.length - 1, i))] || [];
@@ -356,6 +585,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       try { if (typeof window !== 'undefined' && typeof window.__expoPoseHook === 'function') window.__expoPoseHook(i, u); } catch { /* the harness's problem */ }
       const ok = (k) => lmVisible(p[k]);
       const has = (k) => !!p[k] && Number.isFinite(p[k].x) && Number.isFinite(p[k].y) && Number.isFinite(p[k].z);
+      // the anatomy body plays its own 60 Hz track at this exact time; the mannequin is drawn only without it
+      if (body) { const a0 = poseFrames[Math.max(0, Math.min(poseFrames.length - 1, i))], a1 = poseFrames[i + 1]; body.setTime(a0.t + (a1 && u > 0 ? (a1.t - a0.t) * u : 0)); }
+      else {
       for (const o of limbs) {
         if (!has(o.a) || !has(o.b)) { o.m.visible = false; continue; }
         const a = V(p[o.a]), b = V(p[o.b]); const len = a.distanceTo(b);
@@ -423,12 +655,19 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         m.position.copy(Hh).add(T).multiplyScalar(0.5).addScaledVector(up, 0.022);
         m.quaternion.setFromUnitVectors(up, d); m.scale.set(0.042, len * 0.58, 0.042);
       });
+      }
       // the first rep's outline, moved so its hips sit on his hips at this frame
-      const ri = compareRef.current(i), rp = ri >= 0 ? pts[ri] : null;
+      // a harness can see the captured points over the body (audit-out/_anat-lab-shot.mjs STICKS=1) - inert unless set
+      const sticks = typeof window !== 'undefined' && window.__anatSticks;
+      const ri = sticks ? i : compareRef.current(i), rp = ri >= 0 ? (sticks ? p : pts[ri]) : null;
       const fin = (P) => !!P && Number.isFinite(P.x) && Number.isFinite(P.y) && Number.isFinite(P.z);
       const hipOf = (q) => (q && fin(q[23]) && fin(q[24]) ? { x: (q[23].x + q[24].x) / 2, y: (q[23].y + q[24].y) / 2, z: (q[23].z + q[24].z) / 2 } : null);
       const hc = hipOf(p), hr = hipOf(rp);
-      if (rp && hc && hr) {
+      if (sticks && rp) {
+        const arr = refGeo.attributes.position.array; let n = 0;
+        for (const [a, b] of REF_BONES) { const A = rp[a], B = rp[b]; if (fin(A) && fin(B)) arr.set([A.x, A.y, A.z, B.x, B.y, B.z], n); else arr.fill(0, n, n + 6); n += 6; }
+        refGeo.attributes.position.needsUpdate = true; refGeo.computeBoundingSphere(); refLines.visible = true;
+      } else if (rp && hc && hr) {
         const arr = refGeo.attributes.position.array; let n = 0, any = false;
         for (const [a, b] of REF_BONES) {
           const A = rp[a], B = rp[b];
@@ -440,11 +679,26 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       } else refLines.visible = false;
       const from = Math.max(0, Math.min(i, trailFromRef.current(i)));
       const ti = Math.max(0, Math.min(pts.length - 1, i));
-      handTrail.show(Math.min(from, ti), ti, u); hipTrail.show(Math.min(from, ti), ti, u);
+      if (body) {
+        // THE ANATOMY'S TRAILS (13.10 #706, Ohad: "Wtf is that blue line"): a whole-rep path of captured points ran off
+        // into the air with kinks. Now each is a short tail - the last 0.4 s of the MODEL's own joint, sampled 28 times
+        // from its 60 Hz track - fading out behind the dot, which sits on the joint. A joint the camera did not see has
+        // no tail.
+        const a0 = poseFrames[Math.max(0, Math.min(poseFrames.length - 1, i))], a1 = poseFrames[i + 1];
+        const tNow = a0.t + (a1 && u > 0 ? (a1.t - a0.t) * u : 0);
+        // a squat's bar is on his back (between the shoulders); otherwise EACH hand has its own tail on its own wrist -
+        // the midpoint of two hands apart is a point in the air
+        if (channel === 'knee') { tail(handTail, tNow, [SEG.uarmL, SEG.uarmR]); handTail2.line.visible = handTail2.dot.visible = false; }
+        else { tail(handTail, tNow, [SEG.handL, SEG.handL]); tail(handTail2, tNow, [SEG.handR, SEG.handR]); }
+        tail(hipTail, tNow, [SEG.thighL, SEG.thighR]);
+        showBalance(tNow);
+        handTrail.line.visible = hipTrail.line.visible = handTrail.dot.visible = hipTrail.dot.visible = false;
+      } else { handTrail.show(Math.min(from, ti), ti, u); hipTrail.show(Math.min(from, ti), ti, u); }
     };
 
     const size = () => {
-      const w = host.clientWidth || 320, h = Math.round(Math.min(560, w * 1.15));
+      // beside a clip the canvas is the clip's height (the two stand level)
+      const w = host.clientWidth || 320, h = clipSideRef.current && rowRef.current ? sideH(rowRef.current.clientWidth || w) : Math.round(Math.min(560, w * 1.15));
       renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
       for (const m of lineMats) m.resolution.set(w, h);   // a fat line's width is in screen pixels
     };
@@ -454,23 +708,41 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     let raf = 0, alive = true;
     const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
     loop();
-    stateRef.current = { pose, camera, controls, centreY, handTrail, hipTrail, fit };
+    stateRef.current = { pose, camera, controls, centreY, handTrail, hipTrail, fit, size, body: null };
+    // a recorder can drive the replay frame by frame (audit-out/_anat-lab-render.mjs: an exact 60 fps video) - inert unless set
+    try { if (typeof window !== 'undefined' && typeof window.__anatDrive === 'function') window.__anatDrive({ pose, camera, controls, renderer, scene, frames: poseFrames }); } catch { /* the recorder's problem */ }
     pose(idxRef.current);
+    // the anatomy model: loads once per page, then this replay's body takes over from the mannequin
+    if (track) {
+      createAnatomyBody().then((b) => {
+        if (!alive) { b.dispose(); return; }
+        body = b; b.setTrack(track); b.setLayers(LAYERS[layerRef.current] || LAYERS.surface);
+        scene.add(b.group);
+        for (const m of mannequin) m.visible = false;
+        if (stateRef.current) stateRef.current.body = b;
+        pose(idxRef.current); setAnat('ready');
+      }).catch((e) => { console.warn('anatomy model', e); if (alive) setAnat('error'); });
+    }
     return () => {
       alive = false; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
+      if (body) { body.dispose(); body = null; }   // its geometry is the page's cache: out of the scene before the disposal below
       scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose()); });
       // the solid / faded pairs: a mesh holds only one of them at a time
       [skin, trunkMat, LEFT_MAT, RIGHT_MAT, skinG, trunkG, LEFT_G, RIGHT_G].forEach((m) => m.dispose());
-      renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+      envTex.dispose(); pmrem.dispose();
+      // the body's geometry is shared by the page, and three keeps every renderer that drew it alive through it - the
+      // context is let go of explicitly (13.10 review: each mount leaked a WebGL context + ~10-25 MB of buffers)
+      renderer.forceContextLoss(); renderer.dispose(); room.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       stateRef.current = null;
     };
-  }, [supported, pts, floorY, bounds, facing, channel]);
+  }, [supported, pts, floorY, bounds, facing, channel, track, stageTrack]);
 
   // the frame on screen
   // while it plays, the playback loop draws (blended between frames); this would snap the body back to
   // the captured frame ~9 times a second. Stopping redraws the exact frame.
   useEffect(() => { const s = stateRef.current; if (s && !playingRef.current) s.pose(idx); }, [idx, compare, range, repSpans, playing]);   // the outline follows a toggle / a new first rep at once
   useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.on = trails; s.hipTrail.on = trails; s.pose(idxRef.current); } }, [trails]);
+  useEffect(() => { const s = stateRef.current; if (s && s.body) s.body.setLayers(LAYERS[layer] || LAYERS.surface); try { localStorage.setItem('expo-anatomy-layer', layer); } catch { /* private mode */ } }, [layer]);
 
   // follow the clip while not playing on its own
   useEffect(() => {
@@ -480,23 +752,44 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     setIdx(best);
   }, [playheadT, playing, poseFrames]);
 
-  // own playback, at the chosen speed, on the clip's real timeline
+  // own playback, at the chosen speed, on the clip's real timeline - looping the set when there is one (#714)
   useEffect(() => {
     if (!playing || poseFrames.length < 2) return undefined;
+    const sp = setSpanRef.current, first = poseFrames[0].t, end = poseFrames[poseFrames.length - 1].t;
+    const lo = sp ? Math.max(first, sp[0]) : first, hi = sp ? Math.min(end, sp[1]) : end;
     let raf = 0, last = performance.now(), clock = poseFrames[idxRef.current].t;
-    const end = poseFrames[poseFrames.length - 1].t;
+    if (clock < lo || clock >= hi) clock = lo;
+    // the clip beside it plays too, at the same speed, and is the clock while it runs (#713)
+    const v = clipRef.current;
+    const seekClip = (t) => { if (v) { try { v.currentTime = t / 1000; } catch { /* not loaded yet */ } } };
+    if (v) { try { v.playbackRate = speed; } catch { /* a rate the browser refuses: it plays at 1x, the clock still follows it */ } seekClip(clock); v.play().catch(() => {}); }
     const tick = (now) => {
-      clock += (now - last) * speed; last = now;
-      if (clock > end) clock = poseFrames[0].t;
-      let i = idxRef.current; while (i + 1 < poseFrames.length && poseFrames[i + 1].t <= clock) i++; if (poseFrames[i].t > clock) i = 0;
+      if (v && !v.paused && !v.seeking && v.readyState >= 2) clock = v.currentTime * 1000; else clock += (now - last) * speed;
+      last = now;
+      if (clock > hi) { clock = lo; seekClip(lo); }
+      let i = idxRef.current; if (poseFrames[i].t > clock) i = 0; while (i + 1 < poseFrames.length && poseFrames[i + 1].t <= clock) i++;
       const nx = poseFrames[i + 1], u = nx ? (clock - poseFrames[i].t) / Math.max(1, nx.t - poseFrames[i].t) : 0;
       const s = stateRef.current; if (s) s.pose(i, Math.max(0, Math.min(1, u)));
       if (i !== idxRef.current) { idxRef.current = i; setIdx(i); }   // React (slider, angles) only at a new captured frame
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); if (v) v.pause(); };
   }, [playing, speed, poseFrames]);
+  // paused, the clip shows the frame on screen (the slider, PREV / NEXT REP, the parent's playhead)
+  useEffect(() => {
+    const v = clipRef.current;
+    if (!v || playing || !poseFrames[idx]) return;
+    const t = poseFrames[idx].t / 1000;
+    if (Math.abs((v.currentTime || 0) - t) > 0.03) { try { v.currentTime = t; } catch { /* not loaded yet: loadedmetadata seeks */ } }
+  }, [idx, playing, poseFrames, clipSrc]);
+  useEffect(() => { const st = stateRef.current; if (st && st.size) st.size(); }, [clipAR, rowW, clipSide]);
+  // the row's width sets the canvas height and the clip's width
+  useEffect(() => {
+    const el = rowRef.current; if (!el || !clipSrc) return undefined;
+    const ro = new ResizeObserver(() => setRowW(el.clientWidth || 0)); ro.observe(el); setRowW(el.clientWidth || 0);
+    return () => ro.disconnect();
+  }, [clipSrc, pts.length, supported]);
 
   const view = (k) => {
     const s = stateRef.current; if (!s) return;
@@ -513,7 +806,47 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const p = pts[idx] || [];
   // a joint the camera did not see: the angle is the faded body's - shown grey with ~ (a guess)
   const a = (i, j, k) => { const v = p[i] && p[j] && p[k] ? angle3(p[i], p[j], p[k]) : null; return v == null ? null : { v, seen: lmVisible(p[i]) && lmVisible(p[j]) && lmVisible(p[k]) }; };
-  const angles = [
+  // EVERY JOINT FROM THE BODY ON SCREEN (13.10 #709 / #710): with the anatomy body the box reads the model's own joints
+  // (the number and the bones always agree; the ankle from the corrected foot, never MediaPipe's tipped foot points)
+  const inViewNow = !track || !track.inView || !poseFrames[idx] || track.inView(poseFrames[idx].t);
+  const MA = anat === 'ready' && track && poseFrames[idx] ? modelAngles(track, poseFrames[idx].t) : null;
+  // the centre of mass and the bar (the hands) ahead of (+) / behind (−) mid-foot, cm (#715)
+  const MB = MA && inViewNow ? modelBalance(track, poseFrames[idx].t) : null;
+  const cm = (v, seen) => (MB && Number.isFinite(v) ? { v: Math.round(v * 100), seen, signed: true, unit: '' } : null);
+  const m = (k) => (inViewNow && MA && MA[k] && MA[k].v != null ? { v: Math.round(MA[k].v), seen: MA[k].seen, signed: MA[k].signed } : null);   // not in view: no numbers
+  // every joint, every plane (#716): the frontal and transverse rows name the motion their + is; a transverse value
+  // (a twist) is an estimate from a single camera - always shown so (~, grey)
+  const AXS = MA && inViewNow && plane !== 'sag' ? modelJointAxes(track, poseFrames[idx].t) : null;
+  const ax = (k, f, est = false) => (AXS && AXS[k] && Number.isFinite(AXS[k][f]) ? { v: Math.round(AXS[k][f]), seen: est ? false : AXS[k].seen, signed: true } : null);
+  const LR = (lab, k, f, est) => [lab, ax(k + 'L', f, est), ax(k + 'R', f, est)];
+  const angles = MA ? (plane === 'front' ? [
+    LR(tt('HIP · ABDUCTION'), 'hip', 'abd'),
+    LR(tt('KNEE · VALGUS'), 'knee', 'valgus'),
+    LR(tt('ANKLE · INVERSION'), 'ankle', 'inv'),
+    LR(tt('SHOULDER · ABDUCTION'), 'shoulder', 'abd'),
+    LR(tt('WRIST · ULNAR DEVIATION'), 'wrist', 'ulnar'),
+    [tt('TRUNK · SIDE BEND'), ax('trunk', 'side'), null, true],
+    [tt('NECK · SIDE BEND'), ax('neck', 'side'), null, true],
+  ] : plane === 'trans' ? [
+    LR(tt('HIP · INTERNAL ROTATION'), 'hip', 'rot', true),
+    LR(tt('KNEE · INTERNAL ROTATION'), 'knee', 'rot', true),
+    LR(tt('FOOT · TOE-OUT'), 'ankle', 'toeOut', true),
+    LR(tt('SHOULDER · INTERNAL ROTATION'), 'shoulder', 'rot', true),
+    LR(tt('FOREARM · PRONATION'), 'forearm', 'pron', true),
+    [tt('TRUNK · ROTATION'), ax('trunk', 'rot', true), null, true],
+    [tt('NECK · ROTATION'), ax('neck', 'rot', true), null, true],
+  ] : [
+    [tt('KNEE'), m('kneeL'), m('kneeR')],
+    [tt('HIP'), m('hipL'), m('hipR')],
+    [tt('ANKLE'), m('ankleL'), m('ankleR')],
+    [tt('SHOULDER'), m('shoulderL'), m('shoulderR')],
+    [tt('ELBOW'), m('elbowL'), m('elbowR')],
+    [tt('WRIST'), m('wristL'), m('wristR')],
+    [tt('TRUNK'), m('trunk'), null, true],
+    [tt('NECK'), m('neck'), null, true],
+    [tt('COM (CM)'), cm(MB && MB.comAhead, MB && MB.seen), null, true],
+    [tt('BAR / HANDS (CM)'), cm(MB && MB.barAhead, MB && MB.seen), null, true],
+  ]) : [
     [tt('KNEE'), a(23, 25, 27), a(24, 26, 28)],
     [tt('HIP'), a(11, 23, 25), a(12, 24, 26)],
     [tt('ELBOW'), a(11, 13, 15), a(12, 14, 16)],
@@ -524,6 +857,33 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // the camera's VIEWPOINTS have their own Hebrew (11.10): 'TOP' and 'FRONT' are shared keys - the rep
   // phase ('למעלה', up) and the front camera ('קדמית') - and read wrong here. English shows the word.
   const vt = (k) => { const v = tt(`view·${k}`); return v === `view·${k}` ? k : v; };
+  // THE JOINT BOX (8 rows with the anatomy): over the canvas on a wide screen; on a phone UNDER it - over the canvas it
+  // covered his head and trunk (13.10, 390)
+  const boxBelow = !!MA && ((hostW > 0 && hostW < 600) || !!clipSrc);   // beside a clip the row is the clip's height: the box goes under it, never over the body
+  // the clip's column: its own shape at the row's height
+  const rowH = sideH(rowW || 360), clipW = Math.round(rowH * clipAR);
+  const jointBox = (
+    <div style={{ ...(boxBelow ? { marginTop: 8, border: `1px solid ${C.cardBd}`, gridTemplateColumns: '1fr auto auto', maxWidth: 560 } : { position: 'absolute', insetInlineStart: 8, top: 8, gridTemplateColumns: 'auto auto auto' }), display: 'grid', columnGap: boxBelow ? 18 : 10, rowGap: 2, padding: '6px 8px', background: 'rgba(10,10,11,0.72)', fontFamily: FN, fontSize: 10, color: '#FFF', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>
+          {/* L / R centred over their columns; every value one width (AngleNum) so the digits stack (13.10 #723) */}
+          <span /> <AngleHead style={{ color: '#39BDFF', fontWeight: 700, justifySelf: 'center' }}>{tt('L')}</AngleHead><AngleHead style={{ color: '#F5A524', fontWeight: 700, justifySelf: 'center' }}>{tt('R')}</AngleHead>
+          {angles.map(([k, l, r, one]) => (<React.Fragment key={k}><span style={{ color: C.tm, letterSpacing: '0.1em' }}>{k}</span>{[l, r].map((x, n) => (one && n === 1 ? <span key={n} /> : <AngleNum key={n} v={x ? x.v : null} seen={!x || x.seen} signed={!!(x && x.signed)} unit={x && x.unit != null ? x.unit : '°'} style={{ justifySelf: 'center', color: x && !x.seen ? '#6b7480' : '#FFF' }} />))}</React.Fragment>))}
+          {MA && plane === 'sag' && <span style={{ gridColumn: '1 / -1', color: '#8a939e', fontSize: 9, letterSpacing: '0.06em', marginTop: 2 }}>{tt('ANKLE + DORSI · − PLANTAR')}</span>}
+          {MA && plane === 'sag' && <span style={{ gridColumn: '1 / -1', color: '#8a939e', fontSize: 9, letterSpacing: '0.06em' }}>{tt('COM / BAR: + AHEAD OF MID-FOOT · − BEHIND')}</span>}
+          {MA && plane !== 'sag' && <span style={{ gridColumn: '1 / -1', color: '#8a939e', fontSize: 9, letterSpacing: '0.06em', marginTop: 2 }}>{tt('+ = THE MOTION NAMED · − = ITS OPPOSITE · TRUNK / NECK + = TO HIS LEFT')}</span>}
+          {MA && plane === 'trans' && <span style={{ gridColumn: '1 / -1', color: '#8a939e', fontSize: 9, letterSpacing: '0.06em' }}>{tt('~ = ESTIMATED: ONE CAMERA SEES A TWIST ONLY THROUGH THE JOINTS AROUND IT')}</span>}
+    </div>
+  );
+  // the legend: over the canvas - or, beside a clip on a narrow canvas (a phone), UNDER the row: wrapped to three lines it
+  // covered his legs (13.10, 390)
+  const legendBelow = !!clipSrc && hostW > 0 && hostW < 400;
+  const legendEl = (
+        <div style={{ ...(legendBelow ? { marginTop: 6 } : { position: 'absolute', insetInlineEnd: 8, bottom: 8, maxWidth: 'calc(100% - 16px)' }), display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', columnGap: 10, rowGap: 4, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }} /* wraps inside the canvas on a narrow phone, never off its edge (12.10) */>
+          <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
+          {anat === 'ready' && <span style={{ color: '#5c636e' }} dir="ltr">Z-ANATOMY · CC BY-SA</span>}
+          {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
+          {trails && <><span style={{ color: '#39BDFF' }}>━ {tt(channel === 'knee' ? 'SHOULDERS' : 'HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
+        </div>
+  );
   return (
     <div ref={wrapRef} style={{ background: '#0b0d10', position: 'relative' }}>
       {/* five a row (5.10 #556): ten in one row cut FULLSCREEN to "ULLSCREE" beside a clip */}
@@ -538,19 +898,60 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
           pill('trails', tt('TRAILS'), () => setTrails((v) => !v), trails),
           pill('full', tt('FULL'), full),
         ]} />
-      <div style={{ position: 'relative' }}>
+      {track && anat !== 'error' && (
+        // a choice of one = a chip group (the house rule): the chosen layer filled; white resting text on this dark panel
+        <ChipGrid value={layer} onChange={setLayer} cols={4} phoneCols={4} style={{ marginBottom: 8, maxWidth: 560 }} ariaLabel={tt('MUSCLE LAYERS')}
+          items={[['skeleton', 'SKELETON'], ['deep', 'DEEP'], ['middle', 'MIDDLE'], ['surface', 'SURFACE']].map(([k, en]) => { const key = `layer·${k.toUpperCase()}`, he = tt(key); return { k, label: he === key ? en : he, tone: '#FFF' }; })} />
+      )}
+      {MA && (
+        // the joint box's plane (#716): the same chip group as the layers
+        <ChipGrid value={plane} onChange={setPlane} cols={3} phoneCols={3} style={{ marginBottom: 8, maxWidth: 480 }} ariaLabel={tt('PLANE')}
+          items={[['sag', 'SAGITTAL'], ['front', 'FRONTAL'], ['trans', 'TRANSVERSE']].map(([k, en]) => { const key = `plane·${en}`, he = tt(key); return { k, label: he === key ? en : he, tone: '#FFF' }; })} />
+      )}
+      <div ref={rowRef} style={clipSrc ? { display: 'flex', flexDirection: clipSide ? 'row' : 'column', gap: 8, alignItems: 'flex-start' } : undefined}>
+      {clipSrc && (
+        <div style={{ flex: '0 0 auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', ...(clipSide ? { width: clipW, height: rowH + 2 } : { width: '100%' }) }}>
+        <div style={{ position: 'relative', boxSizing: 'border-box', border: `1px solid ${C.cardBd}`, background: '#000', ...(clipSide ? { flex: '1 1 0', minHeight: 0 } : { width: '100%', aspectRatio: `${clipAR}` }) }}>
+          <video ref={clipRef} src={clipSrc} muted playsInline preload="auto" aria-label={tt('ORIGINAL CLIP')}
+            onLoadedMetadata={(e) => { const v = e.currentTarget; if (v.videoWidth && v.videoHeight) setClipAR(v.videoWidth / v.videoHeight); if (poseFrames[idxRef.current]) { try { v.currentTime = poseFrames[idxRef.current].t / 1000; } catch { /* noop */ } } }}
+            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+          <canvas ref={clipCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+        </div>
+        <div data-clip-tools style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, borderTop: 'none' }}>
+          {[[clipSkel, setClipSkel, 'SKELETON'], [clipAng, setClipAng, 'JOINT ANGLES']].map(([on, set, label]) => (
+            <button key={label} type="button" aria-pressed={on} onClick={() => set((x) => !x)}
+              style={{ height: 30, border: 'none', background: '#0a0a0b', color: on ? C.ac : 'rgba(255,255,255,0.6)', boxShadow: on ? `inset 0 0 0 1px ${C.ac}` : 'none',
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', cursor: 'pointer' }}>{tt(label)}</button>
+          ))}
+        </div>
+        </div>
+      )}
+      <div style={{ position: 'relative', ...(clipSrc ? { flex: clipSide ? '1 1 0' : 'none', minWidth: 0, width: clipSide ? undefined : '100%' } : null) }}>
         <div ref={hostRef} style={{ width: '100%', border: `1px solid ${C.cardBd}` }} />
-        {/* the true 3D angles at this frame - left / right */}
-        <div style={{ position: 'absolute', insetInlineStart: 8, top: 8, display: 'grid', gridTemplateColumns: 'auto auto auto', columnGap: 10, rowGap: 2, padding: '6px 8px', background: 'rgba(10,10,11,0.72)', fontFamily: FN, fontSize: 10, color: '#FFF', fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>
-          <span /> <span style={{ color: '#39BDFF', fontWeight: 700 }}>{tt('L')}</span><span style={{ color: '#F5A524', fontWeight: 700 }}>{tt('R')}</span>
-          {angles.map(([k, l, r]) => (<React.Fragment key={k}><span style={{ color: C.tm, letterSpacing: '0.1em' }}>{k}</span>{[l, r].map((x, n) => <span key={n} dir="ltr" style={{ color: x && !x.seen ? '#6b7480' : '#FFF', unicodeBidi: 'isolate' }}>{x == null ? '—' : `${x.seen ? '' : '~'}${x.v}°`}</span>)}</React.Fragment>))}
-        </div>
-        <div style={{ position: 'absolute', insetInlineEnd: 8, bottom: 8, maxWidth: 'calc(100% - 16px)', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', columnGap: 10, rowGap: 4, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, pointerEvents: 'none' }} /* wraps inside the canvas on a narrow phone, never off its edge (12.10) */>
-          <span style={{ color: '#8a939e' }}>{tt('FADED = NOT SEEN')}</span>
-          {compare && <span style={{ color: '#FFFFFF' }}>━ {tt('REP {n}').replace('{n}', lo)}</span>}
-          {trails && <><span style={{ color: '#39BDFF' }}>━ {tt(channel === 'knee' ? 'SHOULDERS' : 'HANDS')}</span><span style={{ color: '#F5A524' }}>━ {tt('HIPS')}</span></>}
-        </div>
+        {track && anat !== 'ready' && (
+          <div style={{ position: 'absolute', insetInlineEnd: 8, top: 8, padding: '6px 8px', background: 'rgba(10,10,11,0.72)', fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: anat === 'error' ? '#F5A524' : '#FFF', pointerEvents: 'none' }}>
+            {anat === 'error' ? tt('Could not load the anatomy model.') : tt('LOADING ANATOMY…')}
+          </div>
+        )}
+        {track && anat === 'ready' && track.inView && poseFrames[idx] && !track.inView(poseFrames[idx].t) && (
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', padding: '6px 10px', background: 'rgba(10,10,11,0.72)', fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: '#8a939e', pointerEvents: 'none' }}>{tt('NOT IN VIEW')}</div>
+        )}
+        {/* the true 3D angles at this frame - left / right; over the canvas when there is room */}
+        {!boxBelow && jointBox}
+        {!legendBelow && legendEl}
       </div>
+      </div>
+      {legendBelow && legendEl}
+      {boxBelow && jointBox}
+      {anat === 'ready' && readShare >= 0.7 && track && track.bodyFrac != null && track.bodyFrac < 0.36 && (
+        <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: '#F5A524' }}>{tt('He is small in the picture - film closer, the whole body in the frame, for a true reading')}</div>
+      )}
+      {anat === 'ready' && readShare >= 0.7 && popRate > 10 && (
+        <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: '#F5A524' }}>{tt('This camera angle reads poorly in 3D - the body and its numbers are rough here. Film side-on at hip height, the whole body in the frame')}</div>
+      )}
+      {anat === 'ready' && readShare < 0.7 && (
+        <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: '#F5A524' }}>{tt('Only {n}% of this clip could be read - film the whole body, side-on, closer').replace('{n}', Math.round(readShare * 100))}</div>
+      )}
       <input type="range" min={0} max={Math.max(0, poseFrames.length - 1)} value={idx} aria-label={tt('FRAME')}
         onChange={(e) => seekTo(+e.target.value)}
         style={{ width: '100%', display: 'block', margin: '10px 0 0', accentColor: C.ac }} />

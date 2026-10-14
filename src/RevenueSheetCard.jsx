@@ -163,7 +163,7 @@ function PaymentRows({ payments, tt, td }) {
 
 // The same history, for ONE trainee — the billing section of the athlete page.
 // Renders nothing for anyone but the owner (the tables answer empty).
-export function SheetBillingHistory({ traineeId, onCount }) {
+export function SheetBillingHistory({ traineeId, onCount, gapTop = 14 }) {
   const tt = useT();
   const [rows, setRows] = useState(null);
   useEffect(() => {
@@ -187,7 +187,7 @@ export function SheetBillingHistory({ traineeId, onCount }) {
   const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '6px 10px', borderBottom: `1px solid ${C.cardBd}` };
   const td = { fontFamily: FB, fontSize: 13, color: C.tx, padding: '6px 10px', borderBottom: `1px solid ${C.divider || C.cardBd}` };
   return (
-    <div style={{ marginTop: 14, borderTop: `1px solid ${C.cardBd}`, paddingTop: 12 }}>
+    <div style={{ marginTop: gapTop, borderTop: `1px solid ${C.cardBd}`, paddingTop: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8 }}>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>{tt('Payment history')} · {payments.length} {tt('payments')}</span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em' }}>
@@ -208,7 +208,7 @@ export function SheetBillingHistory({ traineeId, onCount }) {
           <tbody><PaymentRows payments={payments} tt={tt} td={td} /></tbody>
         </table>
       </ScrollFade>
-      <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8, lineHeight: 1.5 }}>
+      <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8, marginBottom: -22.5 /* 14.10 #735: 13.5 / 36 - the card's padding under the last line */, lineHeight: 1.5 }}>
         {tt('Estimates: the rate beside the date × the sessions counter as it stood when the date changed. The sheet never wrote what was paid; the monthly totals on the billing page are the real amounts.')}
       </div>
     </div>
@@ -344,7 +344,11 @@ function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt 
 // column of the inactive table sits exactly under the same column above. Wider than a
 // phone on purpose - it scrolls sideways in its ScrollFade, one row per client.
 const CLIENT_COLS = ['20%', '11%', '9%', '12%', '9%', '9%', '9%', '12%', '9%'];
-function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
+function ClientsTable({ list, open, setOpen, statusOf, tt, th, td: tdIn }) {
+  // 13.10 #735: the client names are Hebrew, whose letters stand lower than the Latin caps the 7 / 7 cell was tuned on -
+  // they read 13 under the row's line and 9 over the next
+  const td = tdIn;
+  const tdName = { ...tdIn, padding: '5px 10px 9px' };   // only the name cell moves: the row's height is set by the tallest cell
   return (
     <ScrollFade>
       <table className="rs-table" style={{ width: '100%', minWidth: 880, tableLayout: 'fixed', borderCollapse: 'collapse' }}>
@@ -369,7 +373,7 @@ function ClientsTable({ list, open, setOpen, statusOf, tt, th, td }) {
             return (
               <React.Fragment key={c.key}>
                 <tr onClick={() => setOpen(isOpen ? null : c.key)} style={{ cursor: 'pointer', height: 'var(--btn-h)', background: isOpen ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
-                  <td style={{ ...td, fontWeight: 600 }}>
+                  <td style={{ ...tdName, ...(c.alsoKnownAs.length > 0 ? { padding: '6.75px 10px 7.25px' } : null) /* the two-line name (an older spelling under it) is the row's tallest cell itself */, fontWeight: 600 }}>
                     <Chev open={isOpen} />
                     <bdi>{c.name}</bdi>
                     {/* Named, not hidden: seeing the old spelling is how he

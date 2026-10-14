@@ -309,10 +309,12 @@ export default function WaitlistView({ trainees }) {
           <StatTile center label={tt('Uncontacted')} value={active} color={active ? C.or : undefined} />
           <StatTile center label={tt('Gate')} value={<span dir="ltr">{gateProgress}/{COACH_GATE}</span>} color={gateColor} />
         </div>
-        <div style={{ height: 6, marginTop: 14, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
+        {/* the bar as far under the values as the strip is over the labels; the sentence midway under it (14.10 #735:
+            14 / 20 and 12 / 17 - the values' and the sentence's leading) */}
+        <div style={{ height: 6, marginTop: 8, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
         </div>
-        <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 8, textAlign: 'center' }}>
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 10, marginBottom: -3, textAlign: 'center' }}>
           {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.'
             : (readLang() === 'he' ? `המעבר לכמה מאמנים נפתח כשיש ${COACH_GATE} הרשמות רציניות ומעלה` : `Multi-tenant opens at ${COACH_GATE}+ serious signups`)}
         </div>

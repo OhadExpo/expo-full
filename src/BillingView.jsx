@@ -212,7 +212,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
           <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>{tt('Couldn’t load billing data:')}{loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
           </div>
         ) : requests.length === 0 ? (
-          <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
+          <div className="bill-req-empty" style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             {tt('No payment requests yet')}
           </div>
         ) : requests.map(r => {

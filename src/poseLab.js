@@ -95,7 +95,7 @@ function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale 
 // or a max-effort jump's takeoff velocity tops out around 3-4 m/s. A single
 // frame-pair reading above this is not a real measurement; it's tracking
 // noise (most plausibly the subject-selection picking a different detected
-// person for a frame — see pickSubjectIdx in MovementLab.jsx — but this
+// person for a frame — see src/subjectLock.js — but this
 // clamp is a direct safety net regardless of the exact cause). Rejected
 // frame-pairs are treated as missing data (null) so the median filter
 // interpolates through them from real neighbours, instead of a single bad
@@ -107,7 +107,7 @@ function clampSpeed(v) { return (v != null && Math.abs(v) > MAX_SPEED_MPS) ? nul
 // this fast frame-to-frame (1600 deg/s is well above even elite explosive
 // movement) — a jump this large is far more likely the subject-tracker
 // having briefly locked onto a different, differently-posed person (see
-// pickSubjectIdx in MovementLab.jsx) than a genuine flexion/extension. Applied
+// src/subjectLock.js) than a genuine flexion/extension. Applied
 // as a CAUSAL filter (compared against the last ACCEPTED value, in frame
 // order) since angle itself isn't a derivative like speed — rejecting one bad
 // frame shouldn't cascade into rejecting every frame after it.
@@ -1248,6 +1248,39 @@ export function jumpPower(heightCm, massKg) {
   return { watts: Math.round(watts), perKg: Math.round((watts / massKg) * 10) / 10 };
 }
 
+// THE SAME PERSON, OR NO FRAME (13.10, c13: seated behind the machine's plate, and again walking up to the phone, the
+// lifter was not detected at all - the only pose left was a man in the background, a third smaller and on the other
+// side of the picture, and the read followed him: the 3D body became a stranger, his hand 'moved' 15 m/s). The pick
+// keeps the lifter while he is detected; this decides what to do when the pose it hands over is somewhere he cannot
+// have got to. A pose further from his last place than a body moves (15% of the picture, the shot analyzer's swap line,
+// or 20% of his height in it when he is close - c40 0.9 s: walking away from the phone his own body moved 0.18 of the
+// picture in 0.13 s; + 5% a second) is dropped - he is out of sight, not over there - unless it is clearly bigger than him (the lifter
+// walking in close), or he has been gone 2 s and it is his size (he moved while out of sight), or gone 4 s (whoever is
+// there now is the read - never a clip lost for good). Feed it every picked pose in time order.
+export function makeSubjectGuard({ jump = 0.15, jumpBody = 0.2, perSec = 0.05, relockMs = 2000, giveUpMs = 4000, minSpan = 0.7, bigSpan = 1.4 } = {}) {
+  let last = null, before = null; const spans = [];
+  return (lm, tMs) => {
+    if (!lm || !lm.length) return false;
+    let minY = Infinity, maxY = -Infinity, sx = 0, sy = 0, n = 0;
+    for (const pt of lm) { if (!pt || typeof pt.y !== 'number' || typeof pt.x !== 'number') continue; minY = Math.min(minY, pt.y); maxY = Math.max(maxY, pt.y); sx += pt.x; sy += pt.y; n++; }
+    if (!n) return false;
+    const cx = sx / n, cy = sy / n, span = maxY - minY;
+    const ref = spans.length ? median(spans) : 0;
+    let keep = true;
+    const lim = (r) => Math.max(jump, jumpBody * r.span) + (perSec * Math.max(0, tMs - r.t)) / 1000, dist = (r) => Math.hypot(cx - r.cx, cy - r.cy);
+    const far = (r) => dist(r) > lim(r);
+    // ...or near the place BEFORE the last (13.10, c21 60.85 s: one misread - the nose at the bottom of the picture -
+    // passed by a hair and became 'his place'; every real frame after it read as somewhere else, 1.8 s dropped, the
+    // replay empty while he was alone in view): one bad frame can no longer lock him out
+    // (only when the last itself passed by a hair - over 80% of the limit, c21's misread 97%; 0.7-0.8 measured stable, a clean last frame keeps the
+    // rule as it was - c16 Pendlay row, a frame read facing the other way, next to a clean one, came in through it)
+    const borderline = last && last.via > 0.8 && last.via <= 1;   // a frame kept while FAR (rescued, re-locked) is no "by a hair" - else a flicker rescues itself every frame
+    if (last && far(last) && !(borderline && before && !far(before))) { const gap = Math.max(0, tMs - last.t); keep = span >= bigSpan * ref || (gap >= relockMs && span >= minSpan * ref) || gap >= giveUpMs; }
+    if (keep) { const via = last ? dist(last) / lim(last) : 0; before = last; last = { cx, cy, t: tMs, span, via }; spans.push(span); if (spans.length > 60) spans.shift(); }
+    return keep;
+  };
+}
+
 // ---------------------------------------------------------------------------
 // 3D skeleton frame — world landmarks recentred for rendering. Returns the
 // pose at a frame as points the 3D viewer can plot directly (y already flipped
@@ -1731,6 +1764,8 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   if (upright) {
     const U = uprightRotation(rebuilt, minVis);
     if (U) for (let i = 0; i < rebuilt.length; i++) if (rebuilt[i].worldLandmarks) rebuilt[i] = { ...rebuilt[i], worldLandmarks: rotateWorld(rebuilt[i].worldLandmarks, U.R) };
+    // the turn actually applied, for whoever must see the clip from the video's camera (the anatomy gates, 13.10)
+    rebuilt.uprightR = U ? U.R : null;
   }
   if (!plantFeet) return rebuilt;
   // 3. the feet stay on the floor. World landmarks are HIP-centred: in a squat

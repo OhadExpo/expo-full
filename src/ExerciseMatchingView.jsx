@@ -253,7 +253,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
         const skipped = dec && dec.action === 'skip';
         return (
           <Card key={g.key} leftStripe={chosen ? '#2E9E6B' : skipped ? C.bd : C.or} style={{ opacity: skipped ? 0.6 : 1 }}>
-            <div className="em-card" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div className="em-card" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap', position: 'relative', top: -2 /* 13.10 #735: 24 under the card's edge, 20 over its bottom -> 22 / 22 */ }}>
               <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>

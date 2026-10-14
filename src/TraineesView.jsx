@@ -1116,9 +1116,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>{tr(readLang(), 'Shared')}</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
             <Input label={tt("Couple Name")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-            <Select label={tt("Format")} options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
+            <Select label={tt("Format")} options={TRAINING_FORMATS.map(v=>({value:v,label:tt(v)}))} value={form.format} onChange={v => setForm({...form, format: v})} />
             <Select label={tt("Status")} options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
-            <Select label={tt("Package")} options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />
+            <Select label={tt("Package")} options={PACKAGE_TYPES.map(v=>({value:v,label:tt(v)}))} value={form.package} onChange={v => setForm({...form, package: v})} />
             <Input label={tt("Sessions Remaining")} type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />
             <Input label={tt("Start Date")} type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
             <Input label={tt("Package Price (₪)")} type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
@@ -1180,11 +1180,11 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           <Input label={tt("Age")} type="number" value={form.age} onChange={e => setForm({...form, age: e.target.value})} />
           <Input label={tt("Weight (kg)")} type="number" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} />
           <Input label={tt("Height (cm)")} type="number" value={form.height} onChange={e => setForm({...form, height: e.target.value})} />
-          <Select label={tt("Format")} options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
+          <Select label={tt("Format")} options={TRAINING_FORMATS.map(v=>({value:v,label:tt(v)}))} value={form.format} onChange={v => setForm({...form, format: v})} />
           <Select label={tt("Status")} options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
           {/* Bnei Herzliya players are CLUB athletes — the club pays, so package /
               sessions-remaining / price never apply and must not be fillable. */}
-          {form.format !== 'Bnei Herzliya' && <Select label={tt("Package")} options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />}
+          {form.format !== 'Bnei Herzliya' && <Select label={tt("Package")} options={PACKAGE_TYPES.map(v=>({value:v,label:tt(v)}))} value={form.package} onChange={v => setForm({...form, package: v})} />}
           {form.format !== 'Bnei Herzliya' && <Input label={tt("Sessions Remaining")} type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />}
           <Input label={tt("Start Date")} type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
           {form.format !== 'Bnei Herzliya' ? (

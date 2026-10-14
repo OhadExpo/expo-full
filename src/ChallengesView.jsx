@@ -214,7 +214,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       {loading ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : challenges.length === 0 ? (
-        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
+        <div style={{ padding: '30px 30px 28px' /* the line's leading is the other 2 (#735) */, textAlign: 'center', color: C.td, fontSize: 13 }}>
           {tt('No challenges yet')}
         </div>
       ) : challenges.map(c => {

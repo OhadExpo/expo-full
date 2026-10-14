@@ -18,7 +18,7 @@ import { isHebrew } from './script';
 const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload'];
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase, JoinedButtons } from './ui';
 import { savePlan } from './usePlansStore';
 import { useLineageLauncher } from './LineageLauncher';
 import { supabase } from './supabase';
@@ -34,7 +34,7 @@ import TraineeIntake from './TraineeIntake';
 import { rowKind } from './bhbcSession';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
-import { useT, tr, readLang, daysCount, exercisesCount } from './i18n';
+import { useT, tr, readLang, daysCount, exercisesCount, daysAgoHe } from './i18n';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
 // markers counts, the way PlansView already had to accept all three.
@@ -63,14 +63,14 @@ function StatusMenu({ status, onChange }) {
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button onClick={() => setOpen(o => !o)} title={t('Change status')}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 100, height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
-        <span style={{ marginInlineEnd: '-0.12em' }}>{status}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+        <span style={{ marginInlineEnd: '-0.12em' }}>{t(status)}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {open && (
         <div className="motion-menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: 'var(--c-bg)', minWidth: 130 }}>
           {STATUS_CHOICES.map(s => (
             <button key={s} onClick={() => { onChange(s); setOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? 'var(--c-sf)' : 'transparent', border: `1px solid ${s === status ? (STATUS_COLOR[s] || C.ac) : 'transparent'}`, color: STATUS_COLOR[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
-              {s}
+              {t(s)}
             </button>
           ))}
         </div>
@@ -94,14 +94,14 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, flexWrap:'wrap' }}>
         <div style={{ flex:'1 1 140px', minWidth:0, cursor:'pointer' }} onClick={onOpen}>
           <div style={{ fontWeight:600, color:C.tx, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
-          <div style={{ fontSize:12, color:C.tm, marginTop:2 }}>{plur(p.dayCount||0,'day','days')} · {p.exerciseCount||0} ex</div>
+          <div style={{ fontSize:12, color:C.tm, marginTop:2 }}>{readLang()==='he' ? `${daysCount(p.dayCount||0)} · ${exercisesCount(p.exerciseCount||0)}` : `${plur(p.dayCount||0,'day','days')} · ${p.exerciseCount||0} ex`}</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
           <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label={t('Remove program from athlete')} title={t('Remove program from athlete')} style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
           <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title={t('Show only this program on the athlete portal — hide all others')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
           <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={tr(readLang(), isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show')} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
             <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.tm, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
-            <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{isVis?'ON':'OFF'}</span>
+            <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{t(isVis?'ON':'OFF')}</span>
           </button>
           <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title={t('Open this program in the editor')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>{t('Open →')}</button>
         </div>
@@ -132,7 +132,7 @@ function BwAddRow({ onAdd }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{t('Weight (kg)')}</label>
         <input type="number" inputMode="decimal" step="0.1" value={kg} onChange={e => setKg(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') submit(); }} placeholder="e.g. 83.5"
+          onKeyDown={e => { if (e.key === 'Enter') submit(); }} placeholder={readLang() === 'he' ? 'למשל 83.5' : 'e.g. 83.5'}
           style={{ ...baseInput, width: 110, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -402,8 +402,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             <div style={{fontSize:12,color:C.tm,marginTop:2}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,textAlign:'center'}}>
-            {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
-              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+            {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight} ${readLang()==='he'?'ק״ג':'kg'}`:'—'],['Height',m.height?`${m.height} ${readLang()==='he'?'ס״מ':'cm'}`:'—']].map(([l,v])=>
+              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{t(l)}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
           {m.injuries&&<div style={{marginTop:10,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>{t('Injuries')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
           {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>{t('Goals')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
@@ -456,7 +456,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
     const lastDate = lastDateRaw ? new Date(lastDateRaw) : null;
     const daysSince = (lastDate && !isNaN(lastDate)) ? Math.floor((Date.now() - lastDate.getTime())/86400000) : null;
     const tagColor = daysSince == null ? C.td : daysSince <= 3 ? C.gn : daysSince <= 7 ? C.tm : daysSince <= 14 ? C.or : C.rd;
-    const tagText = daysSince == null ? 'NEVER LOGGED' : daysSince <= 0 ? 'TRAINED TODAY' : `${daysSince}D AGO`;
+    // the programs list's words (PlansView): the athlete page printed 'NEVER LOGGED' / '5D AGO' in Hebrew (12.10)
+    const tagText = daysSince == null ? t('NEVER LOGGED') : daysSince <= 0 ? t('TRAINED TODAY') : (readLang() === 'he' ? daysAgoHe(daysSince) : `${daysSince}D AGO`);
 
     // Shared text-action builders so the current block and the earlier rows
     // stay pixel-consistent (only the font size differs, exactly as PlansView).
@@ -533,7 +534,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
                   style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,transition:'opacity 0.12s',borderTop:`1px solid rgba(57,189,255,0.102)`}}>
                   <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
                     <div style={{flex:1,minWidth:0,fontSize:13,color:C.ac,opacity:0.72,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700}}>{p.name||'Untitled'}</div>
-                    <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount||0}d · {p.exerciseCount||0}ex</div>
+                    <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{readLang()==='he' ? `${(p.dayCount||0)===1?'יום אחד':`${p.dayCount||0} ימים`} · ${(p.exerciseCount||0)===1?'תרגיל אחד':`${p.exerciseCount||0} תרגילים`}` : `${p.dayCount||0}d · ${p.exerciseCount||0}ex`}</div>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
                     <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.tm}} />{tr(readLang(), isVis ? 'On portal' : 'Hidden')}</button>
@@ -645,27 +646,38 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
                        EDIT         | PORTAL       | ANALYSIS
                        LOG SESSION ··············· (2) | ARCHIVE
           The rows read 1+2, 3, 2+1 - nothing left over, nothing ragged. */}
-      <div className={"td-actions" + (td.status === "Archived" ? " td-archived" : "")}>
-        <Btn variant="ghost" onClick={onBack} className="td-act td-back" style={{...TD_ACT, color:'var(--c-ac)'}}>{t('← BACK')}</Btn>
-        <Btn variant="ghost" onClick={openEdit} className="td-act" style={TD_ACT}>{t('EDIT')}</Btn>
-        {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} className="td-act" style={TD_ACT} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
-        <Btn variant="ghost" onClick={()=>lineage.open(trainee)} className="td-act" style={TD_ACT} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
-        {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} className="td-act td-log" style={TD_ACT} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
-        {td.status==="Archived" ? <>
-          <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} className="td-act" style={TD_ACT}>{t('RESTORE')}</Btn>
-          <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} className="td-act" style={TD_ACT_BASE}>{t("DELETE")}</Btn>
-        </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} className="td-act" style={{...TD_ACT, color:'var(--c-tm)'}}>{t('ARCHIVE')}</Btn>}
+      {/* THE TOP OF THE ATHLETE PAGE (14.10 #755, Ohad on his tablet + phone: "Top button layout is bad. Redesign it").
+          Seven boxes did three jobs in one wall of 3-column cells. Now each job has its own material:
+            row 1  ← BACK (navigation: cyan text, as on the program editor) ........ NOTIFICATION ◉ (a setting: text + switch)
+            row 2  the ACTIONS as one joined bar - EDIT · PORTAL · ANALYSIS · LOG SESSION · ARCHIVE - one row on a tablet
+                   and a desktop, two even rows on a phone (3 + 2, themes.css .td-actbar) */}
+      <div className="td-top">
+        <button type="button" onClick={onBack} className="td-back-link">{t('← BACK')}</button>
         <button
+          type="button"
+          className="td-notif"
           onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
           title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
-          aria-pressed={!td.notifOff}
-          style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }} className="td-notif">
-          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap' }}>{t('NOTIFICATION')}</span>
+          aria-pressed={!td.notifOff}>
+          <span className="td-notif-lbl" style={{ color: td.notifOff ? C.td : C.tx }}>{t('NOTIFICATION')}</span>
           <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
             <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.tm : C.ac, position: 'absolute', top: 2, insetInlineStart: td.notifOff ? 2 : 18, transition: 'all .15s' }} />
           </span>
         </button>
       </div>
+      {(() => {
+        const acts = [
+          { label: t('EDIT'), onClick: openEdit },
+          onPreviewPortal && { label: t('PORTAL'), onClick: onPreviewPortal, title: t("Open this athlete's portal in preview mode") },
+          { label: t('ANALYSIS'), onClick: () => lineage.open(trainee), title: t('Training Analysis — cross-block progression + what to program next') },
+          onOpenInPersonForTrainee && { label: t('LOG SESSION'), onClick: () => onOpenInPersonForTrainee(trainee), title: t('Open the in-person workout logger pre-filtered to this athlete'), tone: 'accent' },
+          ...(td.status === 'Archived'
+            ? [{ label: t('RESTORE'), onClick: () => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: 'Inactive', archivedAt: undefined } : t)); onBack(); } },
+               { label: t('DELETE'), onClick: () => setShowDeleteConfirm(true), tone: 'danger' }]
+            : [{ label: t('ARCHIVE'), onClick: () => setShowArchiveConfirm(true), title: t('Archive this athlete'), tone: 'muted' }]),
+        ].filter(Boolean);
+        return <JoinedButtons items={acts} maxWidth="none" className={`td-actbar td-actbar-${acts.length}`} style={{ marginBottom: 8 /* + the tabs' own 36px box = 22 to their words */ }} />;
+      })()}
 
       {lineage.node}
       {/* Section filter — SINGLE-SELECT (Ohad). VIEW ALL (leftmost) shows
@@ -711,13 +723,13 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         <Card style={{marginBottom:12,textAlign:'center'}}
           header={(() => {
             const heb = isHebrew(td.name);
-            return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {td.format}</span>;
+            return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {t(td.format)}</span>;
           })()}
           headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title={t('Bnei Herzliya team')} style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>{t('BNEI HERZLIYA')}</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
           {/* Duplicate status Badge removed — the strip header's StatusMenu is the
               single status control (Ohad: no mirrored status in the back). */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, 118px)',justifyContent:'center',gap:'12px 10px'}}>
-            {[['Workouts',tAllWorkouts.length]].map(([l,v])=>
+            {[[readLang()==='he'?'אימונים':'Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
         </Card>
@@ -762,7 +774,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         <CollapsibleSection title={t('Vitals · Injuries · Goals')} storageKey={`td-vitals-${trainee}`} style={{marginBottom:16, display: showSec('vitals') ? undefined : 'none'}}>
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
-          <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto",textAlign:"center"}}>
+          <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto -4px" /* the values' line leading is the last 4 (14.10 #735: 14 over, 18 under) */,textAlign:"center"}}>
             {[[t("Age"),td.age||"—"],[t("Weight"),td.weight?`${td.weight} ${readLang()==='he'?'ק״ג':'kg'}`:"—"],[t("Height"),td.height?`${td.height} ${readLang()==='he'?'ס״מ':'cm'}`:"—"],[t("Format"),td.format?t(td.format):"—"]].map(([l,v])=>{
               const empty = v==="—";
               return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
@@ -795,7 +807,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").
           Empty values dim so real terms stand out. */}
-      <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"12px 32px",margin:"0 auto 16px",textAlign:"center"}}>
+      <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"12px 32px",margin:tPay.length?"0 auto 16px":"0 auto 7px" /* straight onto the sheet history's rule: + the values' 7 of leading = 14, the card's top (14.10 #735: 14 over, 23 under) */,textAlign:"center"}}>
         {/* A club athlete has no package, balance or rate — the club pays. The
             EDITOR already hides these; the read-only strip has to hide them too,
             or a record created before that change still prints "8 Sessions Left"
@@ -836,7 +848,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               <button onClick={()=>handleDeletePay(p.id)} aria-label={t('Delete payment')} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
       {/* The roster sheet's history for this client (owner-only; empty for staff). */}
-      <SheetBillingHistory traineeId={trainee} onCount={setSheetPays} />
+      <SheetBillingHistory traineeId={trainee} onCount={setSheetPays} gapTop={tPay.length ? 14 : 7} />
       </CollapsibleSection>
       {showContract && (
         <CoachContractComposer
@@ -849,7 +861,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
           <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />
-          <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
+          <Select label="Status" options={PAYMENT_STATUSES.map(v=>({value:v,label:t(v)}))} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
           <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}}>{t("Cancel")}</Btn><Btn onClick={handleAddPayment}>{tr(readLang(), editPayId ? "Update" : "Save")}</Btn></div></Modal>
@@ -903,7 +915,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare domId="td-sec-workouts" title={tr(readLang(), 'Recent Workouts')} count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
-        {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>{t('No completed workouts.')}</div>:
+        {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13,marginBottom:-20 /* 14.10 #735: 12 under the strip / 32 over the card's edge - the section's padding under a one-line body */}}>{t('No completed workouts.')}</div>:
           tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div data-recent-head style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",columnGap:12,alignItems:"baseline"}}>{/* 29.9 #444: at 360 the day name was cut to "DAY 2 ..." and "WEEK 1" ran straight into "29TH OF SEPTEMBER 2026" ("WEEK 129TH"). The name is whole (it may wrap), the week is its own fact, the date its own column. */}<span style={{minWidth:0,display:"flex",flexWrap:"wrap",alignItems:"baseline",columnGap:8,rowGap:2}}><span style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:"nowrap"}}>{t('Week')} {w.week}</span>}</span><span data-recent-date style={{fontSize:12,color:C.tm,whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{fmtNumericDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
                 a severity-coloured value), so PAIN/SLEEP/ENERGY line up in a neat
@@ -926,7 +938,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
         <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?`↕ ${t('DATE')}`:`↕ ${t('A→Z')}`}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ {tr(readLang(), 'New Program')}</button>
           </>}>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
@@ -972,7 +984,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             is collapsed. Clean order: sort → portal-visibility → + New Program
             (primary, last); wraps under the title on narrow widths. */}
         <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?`↕ ${t('DATE')}`:`↕ ${t('A→Z')}`}</button>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ {tr(readLang(), 'New Program')}</button>
           </>}>
@@ -1319,13 +1331,13 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
           <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{t("Shared")}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <Input label={t("Couple Name")} value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
-            <Select label={t("Format")} options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
+            <Select label={t("Format")} options={TRAINING_FORMATS.map(v=>({value:v,label:t(v)}))} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
             {/* Status moved out of EDIT — changed via the status pill at the top
                 of the trainee page (Ohad). */}
             {/* Club athletes have no billing — same rule as the athletes-list
                 editor, so the two editors of one record can't disagree (audit 08-22). */}
             {editForm.format !== 'Bnei Herzliya' ? (<>
-              <Select label={t("Package")} options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
+              <Select label={t("Package")} options={PACKAGE_TYPES.map(v=>({value:v,label:t(v)}))} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
               <Input label={t("Sessions Remaining")} type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
               <Input label={t("Monthly (₪)")} type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
               <Input label={t("Per Session (₪)")} type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
@@ -1393,12 +1405,12 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
             <Input label={t("Age")} type="number" value={editForm.age || ""} onChange={e => setEditForm({ ...editForm, age: e.target.value })} />
             <Input label={t("Weight (kg)")} type="number" value={editForm.weight || ""} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} />
             <Input label={t("Height (cm)")} type="number" value={editForm.height || ""} onChange={e => setEditForm({ ...editForm, height: e.target.value })} />
-            <Select label={t("Format")} options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
+            <Select label={t("Format")} options={TRAINING_FORMATS.map(v=>({value:v,label:t(v)}))} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
             {/* Status moved out of EDIT — changed via the status pill at the top
                 of the trainee page (Ohad). */}
             {/* Club athletes: the club pays, so there is no package, no session
                 balance and no price on the record at all. */}
-            {!isClubAthlete && <Select label={t("Package")} options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />}
+            {!isClubAthlete && <Select label={t("Package")} options={PACKAGE_TYPES.map(v=>({value:v,label:t(v)}))} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />}
             {!isClubAthlete && <Input label={t("Sessions Remaining")} type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />}
             {!isClubAthlete && <Input label={t("Monthly (₪)")} type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />}
             {!isClubAthlete && <Input label={t("Per Session (₪)")} type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />}

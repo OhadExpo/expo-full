@@ -97,7 +97,7 @@ const STRINGS = {
   'how.02.d.tmpl': {
     // {bit} placeholder is replaced at render time.
     en: 'Tap BUY on the program — opens WhatsApp with everything pre-filled. Pay through Bit ({bit}) and send a screenshot of the confirmation. One-time payment, full receipt issued.',
-    he: 'לחץ "קנייה בוואטסאפ" — נפתח וואטסאפ עם הכל מוכן. שלם בביט ({bit}) ושלח צילום מסך של האישור. תשלום חד-פעמי, עם חשבונית.',
+    he: 'לחץ "קנייה" על התוכנית — נפתח וואטסאפ עם הכל מוכן. שלם בביט ({bit}) ושלח צילום מסך של האישור. תשלום חד-פעמי, עם חשבונית.',
   },
   'how.03.t':            { en: 'Get your account',    he: 'תקבל את החשבון' },
   'how.03.d': {
@@ -132,6 +132,8 @@ const STRINGS = {
   'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך: 87 מעלות' },
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
   'inside.pose.foot':    { en: '33 LANDMARKS · LITE MODEL', he: '33 נקודות · מודל LITE' },
+  'pose.tool.skel':      { en: 'SKELETON', he: 'שלד' },
+  'pose.tool.angles':    { en: 'JOINT ANGLES', he: 'זוויות מפרקים' },
 
   // Phone 4 — jump-shot analyzer. Numbers here must match the real engine:
   // buildCheckpoints() in src/shotAnalysis.js returns exactly 10.
@@ -232,7 +234,7 @@ const STRINGS = {
 
   // ─── Why templates (price anchor) ─────────────────────────────────
   'why.badge':           { en: 'WHY TEMPLATES',   he: 'למה תבניות' },
-  'why.h2':              { en: 'Programmed, without a weekly show-up.', he: 'אימון לפי תוכנית, בלי להגיע לאימון כל שבוע.' },
+  'why.h2':              { en: 'Programmed, without a weekly show-up.', he: 'אימון לפי תוכנית, בלי להגיע למאמן כל שבוע.' },
   'why.body': {
     en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private athlete gets, at a fraction of the price, with you as the operator.",
     he: 'רוב המתאמנים נמצאים באחת משלוש קטגוריות. תבניות הן האמצע — כמעט כל מה שמקבל ספורטאי בליווי אישי, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
@@ -407,10 +409,10 @@ const STRINGS = {
     en: 'Depends on the program — every card lists the equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag or use the quiz to see only what fits your setup.',
     he: 'תלוי בתוכנית. בכל כרטיס רשום הציוד (בית, חדר כושר מלא, מינימלי). תסנן בקטלוג לפי תגית או תמלא את השאלון ותראה רק מה שמתאים לסטאפ שלך.',
   },
-  'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל מאפס. זה יהיה גבוה מדי בשבילי?' },
+  'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל מאפס. זה לא יהיה גבוה עליי?' },
   'faq.a3': {
     en: 'Foundation Block is built exactly for that. Three days a week, dumbbells + barbell, no machines required. Tempo and ROM cues come before any heavy load — you learn the seven primary patterns first, weight comes after.',
-    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקולות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבע תבניות התנועה קודם, המשקל בא אחרי.',
+    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקולות יד, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבע תבניות התנועה קודם, המשקל בא אחרי.',
   },
   'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. בלוק השיקום מתאים לי?' },
   'faq.a4': {
@@ -431,7 +433,7 @@ const STRINGS = {
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {
     en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count your reps from the video, and there is no real coach answering your WhatsApp. EXPO templates are the same engine the athletes I coach run — programmed by me, not generated.",
-    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות מהסרטון, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב, לא AI.',
+    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות מהסרטון, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב אותן בעצמי, לא AI.',
   },
   'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לפנות אליך אחרי הקנייה?' },
   'faq.a8': {
@@ -458,7 +460,7 @@ const STRINGS = {
   // Q1 — couple
   'quiz.q1':          { en: 'Are you buying for one person or for two?', he: 'אתה קונה לעצמך או לשניים?' },
   'quiz.q1.solo':     { en: 'Just me',               he: 'רק אני' },
-  'quiz.q1.couple':   { en: 'Two of us, same gym',   he: 'שניים, אותו חדר כושר' },
+  'quiz.q1.couple':   { en: 'Two of us, same gym',   he: 'שנינו, באותו חדר כושר' },
 
   // Q2 — first-timer
   'quiz.q2':          { en: 'Have you trained in a gym before?', he: 'התאמנת פעם בחדר כושר?' },

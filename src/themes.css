@@ -1522,6 +1522,15 @@ body[data-lang="he"] > :not(#root):not([dir]) { direction: rtl; }
      ever grows a narrow control, so text buttons are untouched and these
      become square. */
   button, [role="button"] { min-width: 40px; }
+  /* A CLICKABLE ROW IS NOT A BUTTON (13.10 #740, Ohad: "there should be a rule for this that is applied everywhere"):
+     a list row made clickable with role=button - a medical line, an athlete line - took the 36px BUTTON floor, so 19.5px
+     of text sat in a 36px box and the athletes stood 41px apart ("why is there so much space between the athletes").
+     A control is a label (+ an icon or a count); a ROW has three or more parts. Rows keep their own height; a floor
+     removed never shrinks real content, so taller cards are untouched. Table rows keep their 40px below. */
+  [role="button"]:not(button):not(span):has(> :nth-child(3)) { min-height: 0; min-width: 0; }   /* a span is an inline control (the sort headers) */
+  /* COACH HISTORY on a phone (14.10 #735): its done rows wrap to two lines and lose the 36px floor, so they stand 11 over
+     11 - the "✓ HISTORY" label keeps the desktop's 19 under the tabs unless it comes up by the difference */
+  .ni-hist-bare { margin-top: -8px !important; }
   /* min-height does NOT apply to display:table-row, so the 32 clickable
      athlete rows on the dashboard stayed at 36px while everything else moved.
      In table layout `height` on a cell behaves as a minimum, which is the
@@ -2096,7 +2105,7 @@ select.avail-select:dir(rtl) {
    filter the whole row (its placeholder was cut to "FILTER BY EMAIL") and the
    two views a row of two equal cells under it */
 @media (max-width: 620px) {
-  .wl-bar { flex-wrap: wrap; }
+  .wl-bar { flex-wrap: wrap; row-gap: 12px !important; }   /* the views as far under the filter as the list is under them (14.10 #735: 9 / 13) */
   .wl-bar > input { flex-basis: 100% !important; }
   .wl-bar > .wl-views { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
@@ -2130,6 +2139,7 @@ select.avail-select:dir(rtl) {
   .cal-sync-row > .cal-sync-sp { order: 1; }
   .cal-sync-row > button { order: 2; }
   .cal-sync-row > .cal-sync-msg { order: 3; flex-basis: 100%; }
+  .cal-sync-row { padding-bottom: 5px !important; }   /* the wrapped status line's leading is the other 3 (14.10 #735: 8 over, 11 under) */
 }
 
 /* the form-video toolbar's narrow-width rules went with the toolbar: the #563
@@ -2154,19 +2164,21 @@ select.avail-select:dir(rtl) {
   table.ov-table .ov-name { max-width: none !important; }
 }
 
-/* THE ATHLETE PAGE ACTION BAR + SECTION TABS (29.9 #456, "ocd order") - the
-   real TraineeDetail and the demo athlete page share these rules */
-.td-actions { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.td-actions > .td-act { flex: 0 0 auto; }
-.td-actions > .td-notif { margin-inline-start: auto; }
+/* THE ATHLETE PAGE TOP + SECTION TABS (#456, redesigned 14.10 #755) - the real TraineeDetail and the demo athlete page
+   share these rules: row 1 = BACK (text) .. NOTIFICATION (text + switch); row 2 = the joined action bar */
+.td-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; margin-bottom: 12px; }   /* the switch as far over the bar as under the top bar (22 / 22) */
+.td-back-link { background: none; border: none; padding: 0; height: 36px; min-width: 0 !important; cursor: pointer; color: var(--c-ac); font-family: 'Nord', 'Heebo', 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.td-notif { background: none; border: none; padding: 0; height: 36px; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.td-notif-lbl { font-family: 'Nord', 'Heebo', 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
+.td-actbar > button { font-size: 11px !important; }
 .td-secs { display: flex; flex-wrap: wrap; column-gap: 18px; row-gap: 2px; width: 100%; align-items: center; }
 .td-sec .td-sec-short { display: none; }
-@media (max-width: 900px) {
-  .td-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .td-actions > .td-act { width: 100%; min-width: 0; padding: 0 6px !important; }
-  .td-actions > .td-back { grid-row: 1; grid-column: 1; }
-  .td-actions > .td-notif { grid-row: 1; grid-column: 2 / 4; margin: 0; width: 100%; min-width: 0; }
-  .td-actions:not(.td-archived) > .td-log { grid-column: span 2; }
+/* a phone: the bar is two even rows on a 6-column grid - 3 + 3 cells, or 3 + 2 wider ones */
+@media (max-width: 620px) {
+  .td-actbar { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+  .td-actbar > button { grid-column: span 2; padding: 0 6px !important; }
+  .td-actbar-5 > button:nth-child(n+4) { grid-column: span 3; }
+  .td-actbar-4 > button { grid-column: span 3; }
 }
 @media (max-width: 620px) {
   /* the section tabs: the same 3-column grid, text centred in equal
@@ -2217,6 +2229,8 @@ select.avail-select:dir(rtl) {
 @media (max-width: 700px) {
   table.dash-roster { display: table !important; width: 100% !important; white-space: normal !important; }
   table.dash-roster .dash-opt { display: none !important; }
+  /* 14.10 #735: the row's height is the status pill's cell; only the NAME cell's text sat 0.75px low at this width (16.5 / 15) */
+  table.dash-roster tbody td:first-child { padding-top: 10px !important; padding-bottom: 13px !important; }
 }
 
 /* SCHEDULE > WEEK (#509): an hour-axis week where there is room, the seven
@@ -2275,7 +2289,7 @@ select.avail-select:dir(rtl) {
   /* the phone pattern (10.10, 1010c review): the card's lines, then REVIEW / DELETE as one full-width
      joined row under them - absolute at the top-end, the 38px pair covered long day / block names */
   .wr-day-card{ flex-direction: column !important; align-items: stretch !important; }
-  .wr-day-card > .wr-day-acts{ position: static !important; width: auto !important; margin: 8px 0 0 !important; }
+  .wr-day-card > .wr-day-acts{ position: static !important; width: auto !important; margin: 11px 0 0 !important; }   /* 13.10 #735: the day's caps 12 under the card's edge, the meta line 9 over the buttons -> 12 / 12 */
   /* ONE RIGHT EDGE PER CARD. Measured at 390: the video icon sat
      0.8px short of the card's inner edge, the DELETE label 10.8px and
      the set count 19.8px - three staggered right edges down one card.
@@ -2299,6 +2313,16 @@ select.avail-select:dir(rtl) {
   .wr-day-card .wr-meta .wr-dot{ display: none !important; }
   .wr-strip-repeat{ display: none !important; }
 }
+
+/* 13.10 #735: on a phone the payment-requests body opens with the + NEW button (12 under the strip) and the empty line
+   sat 31 over the card's edge - its own 14 on top of the card's. Desktop keeps the button in the strip. */
+@media (max-width: 620px) { .bill-req-empty { padding-bottom: 0 !important; margin-bottom: -5px; } }
+
+/* 14.10 #735: on a phone a recent clip's two lines read 9 under the row's line and 12 over the next (desktop is even) */
+@media (max-width: 620px) { .rt-clip { padding-top: 7.5px !important; padding-bottom: 4.5px !important; } }
+
+/* 14.10 #735: a video-gap row wraps on a phone, so its last line sat 15 over the link input against 11 under its line */
+@media (max-width: 620px) { .vg-row:not(:first-child) { padding-top: 12px !important; } }
 
 /* DASHBOARD STORAGE on a phone: two rows of one height (29.9) */
 @media (max-width: 620px) {
@@ -2349,7 +2373,7 @@ select.avail-select:dir(rtl) {
 /* ACTIVITY ON A PHONE (4.10 #531): the person under the words, on the words' x;
    the team table drops to name | actions | last seen at 76 / 92. */
 @media (max-width: 620px) {
-  .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 9px 0 11px !important; } /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
+  .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 10px 0 10px !important; } /* 13.10 #735 band probe: 9 / 11 read 13 / 15 - the line's caps to the person's baseline, even at 10 / 10 */ /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
   .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
   /* the count is a number, the time is 'yesterday 21:32' (103px): 92 spilled it 11px (10.10 sweep) */
   .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 60px 112px !important; }   /* 60: the ACTIONS header */
@@ -2395,6 +2419,8 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
    rest wraps under it. */
 @media (max-width: 600px) {
   .em-sugg-btn { flex-wrap: wrap !important; row-gap: 6px !important; justify-content: flex-start !important; padding-inline-start: 10px !important; }
+  /* 13.10 #735: wrapped, the name's caps sat 10 under the frame and the VIEW tag 7 over it -> 8.5 / 8.5 */
+  .em-sugg-btn { padding-top: 5.5px !important; padding-bottom: 8.5px !important; }
   .em-sugg-btn > .em-sugg-title { flex: 1 1 calc(100% - 24px) !important; }
 }
 
@@ -2427,3 +2453,7 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
    more than a third of a 360 card left it - the gap gives them back */
 @media (max-width: 420px) { .wl-stats { gap: 6px !important; } }
 @media (max-width: 380px) { .bhbc-pp-row > svg:last-child { display: none !important; } }   /* 10.10 #651 - the row itself opens */
+
+/* SMART IMPORT drop zone (14.10 #735): on a wide screen its sentence is one line and that line's leading is 2 of the
+   48 under it (51 / 53); on a phone it wraps and is midway as it is */
+@media (min-width: 621px) { .si-drop { padding-bottom: 46px !important; } }

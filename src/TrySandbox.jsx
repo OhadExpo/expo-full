@@ -14,6 +14,10 @@ import { safeUrl } from './VideoEmbed';
 import { EXPOMark } from './expoMark';
 import { todayLocalISO } from './dates';
 import DemoTraineePortal from './DemoTraineePortal';
+import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
+import { createPoseOverlay } from './poseOverlay';
+// one person - the lifter (13.10 #719b): a lock per video source (a new clip starts afresh)
+const lockFor = (ref, v) => { const src = (v && (v.currentSrc || v.src)) || 'cam'; if (!ref.current || ref.current.src !== src) ref.current = { src, lock: makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }) }; return ref.current.lock; };
 import { tr, readLang } from './i18n';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
@@ -24,17 +28,7 @@ import {
 // provider above this route.
 const T = (x) => tr(readLang(), x);
 
-// MediaPipe Pose-Landmarker landmark pairs we draw skeleton edges between.
-// Same set the production WorkoutReview overlay uses. Anything outside this
-// is silent metadata — the rep counter still uses worldLandmarks for joint
-// angle math regardless of what's drawn.
-const POSE_CONNECTIONS = [
-  [11,12],[11,23],[12,24],[23,24],
-  [11,13],[13,15],
-  [12,14],[14,16],
-  [23,25],[25,27],
-  [24,26],[26,28],
-];
+// The skeleton and the joint angles are drawn by the shared engine (poseOverlay.js) - the real review player's.
 
 // Catalog of exercise titles the chip picker exposes. The `sample` string is
 // passed through detectChannels() so the sandbox uses the correct joint
@@ -1520,8 +1514,8 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare, hideEn
         {readLang() === 'he'
           ? T(pov === 'coach' ? 'engine.analyze.coach' : 'engine.analyze.trainee')
           : (pov === 'coach'
-            ? "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
-            : "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it.")}
+            ? "Toggle SKELETON for the body's lines on the video, JOINT ANGLES for the angle at every joint. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
+            : "Toggle SKELETON for the body's lines on the video, JOINT ANGLES for the angle at every joint. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it.")}
       </p>
       <SandboxPlayer url={videoUrl} exerciseTitle={exercise?.sample || ''} />
 
@@ -1783,13 +1777,15 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
   const videoRef = useRef(null);
   useEffect(() => { onVideoRef?.(videoRef.current); return () => onVideoRef?.(null); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
   const canvasRef = useRef(null);
-  const landmarkerRef = useRef(null);
+  const landmarkerRef = useRef(null), lockRef = useRef(null);
   const rafRef = useRef(null);
   const repStateRef = useRef({ signalBufs: {} });
   const repsCountRef = useRef(0);
   const lastTempoRef = useRef(null);
 
   const [poseOn, setPoseOn] = useState(true);
+  // JOINT ANGLES (14.10 #766): its own tool beside SKELETON, both on - the real review player's pair, same engine
+  const [anglesOn, setAnglesOn] = useState(true);
   const [repsOn, setRepsOn] = useState(true);
   const [poseLoading, setPoseLoading] = useState(false);
   // THE LANDMARKER IS A REF, SO NOTHING RE-RENDERS WHEN IT ARRIVES.
@@ -1830,7 +1826,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: modelUrl, delegate },
         runningMode: 'VIDEO',
-        numPoses: 1,
+        numPoses: LIVE_POSES,
       });
       try {
         landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
@@ -1873,7 +1869,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
   // Detection loop — copy of the production loop in WorkoutReview.jsx but
   // simplified (no comment auto-pause, no drawings layer, no role gating).
   useEffect(() => {
-    if (!poseOn && !repsOn) {
+    if (!poseOn && !repsOn && !anglesOn) {
       const c = canvasRef.current;
       if (c && c.width && c.height) c.getContext('2d').clearRect(0, 0, c.width, c.height);
       setAngles({});
@@ -1889,6 +1885,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
     let lastTs = -1;
     let pendingAngles = {};
     let frameTick = 0;
+    const ovl = createPoseOverlay();   // the shared overlay: hands + feet, smoothed in video time, no blinking
 
     const hudInterval = setInterval(() => {
       if (!active) return;
@@ -1899,21 +1896,21 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
 
     const detect = () => {
       if (!active) return;
-      const skip = (frameTick++ % 2) !== 0;
-      if (skip) {
-        if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(detect);
-        else rafRef.current = requestAnimationFrame(detect);
-        return;
-      }
+      // the counter alone reads every other frame; with a picture tool on, every frame (the lines sit on the body).
+      // A skipped frame re-arms through the ONE scheduler - re-arming here directly let a scrub start a second chain.
+      const skip = !(poseOn || anglesOn) && (frameTick++ % 2) !== 0;
+      if (skip) { schedule(); return; }
       const w = v.clientWidth, h = v.clientHeight;
       if (w > 0 && h > 0 && v.readyState >= 2) {
-        if (c.width !== w) c.width = w;
-        if (c.height !== h) c.height = h;
+        const dpr = Math.min(3, window.devicePixelRatio || 1);
+        if (c.width !== Math.round(w * dpr)) c.width = Math.round(w * dpr);
+        if (c.height !== Math.round(h * dpr)) c.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         const ts = Math.max(performance.now(), lastTs + 0.001);
         if (ts > lastTs) {
           lastTs = ts;
           try {
-            const result = lm.detectForVideo(v, ts);
+            const result = lockResult(lockFor(lockRef, v), lm.detectForVideo(v, ts), ts);
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
             const wlms = result.worldLandmarks?.[0] || lms;
@@ -1924,24 +1921,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
             const px = (p) => ox + p.x * dw;
             const py = (p) => oy + p.y * dh;
             if (lms) {
-              if (poseOn) {
-                ctx.strokeStyle = C.ac;
-                ctx.lineWidth = 2;
-                for (const [i, j] of POSE_CONNECTIONS) {
-                  const a = lms[i], b = lms[j];
-                  if (!a || !b) continue;
-                  ctx.beginPath();
-                  ctx.moveTo(px(a), py(a));
-                  ctx.lineTo(px(b), py(b));
-                  ctx.stroke();
-                }
-                ctx.fillStyle = '#fff';
-                for (const p of lms) {
-                  ctx.beginPath();
-                  ctx.arc(px(p), py(p), 3, 0, 2*Math.PI);
-                  ctx.fill();
-                }
-              }
+              if (poseOn || anglesOn) { ovl.update(lms, result.worldLandmarks?.[0], v.currentTime); ovl.draw(ctx, { w, h, px, py, skeleton: poseOn, angles: anglesOn }); }
               const next = {};
               for (const d of ANGLE_DEFS) {
                 const val = angleAt(wlms, d.a, d.b, d.c);
@@ -2029,11 +2009,15 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       v.removeEventListener('loadeddata', onNeedFrame);
       v.removeEventListener('play', onPlay);
     };
-  }, [poseOn, repsOn, modelReady]);
+  }, [poseOn, repsOn, anglesOn, modelReady]);
 
   const togglePose = async () => {
     if (poseOn) { setPoseOn(false); return; }
     if (await ensureModel()) setPoseOn(true);
+  };
+  const toggleAngles = async () => {
+    if (anglesOn) { setAnglesOn(false); return; }
+    if (await ensureModel()) setAnglesOn(true);
   };
   const toggleReps = async () => {
     if (repsOn) { setRepsOn(false); return; }
@@ -2063,8 +2047,9 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       <div style={{
         display:'flex', flexWrap:'wrap', gap: 8, marginBottom: 10, alignItems:'center',
       }}>
-        <Toggle on={poseOn} loading={poseLoading} onClick={togglePose} label="POSE" />
-        <Toggle on={repsOn} loading={poseLoading} onClick={toggleReps} label="REPS" />
+        <Toggle on={poseOn} loading={poseLoading} onClick={togglePose} label={T('SKELETON')} />
+        <Toggle on={anglesOn} loading={poseLoading} onClick={toggleAngles} label={T('JOINT ANGLES')} />
+        <Toggle on={repsOn} loading={poseLoading} onClick={toggleReps} label={T('REPS')} />
         <div style={{ flex:1 }} />
         <div style={{ display: compare ? 'none' : 'flex', gap:4, alignItems:'center' }}>
           <span style={{ fontFamily:FN, fontSize:10, color:C.td, letterSpacing:1.5, fontWeight:700 }}>{T('SPEED')}</span>
@@ -2114,7 +2099,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
           position:'absolute', top: 10, left: 10, display:'flex', flexDirection:'column', gap:4,
           pointerEvents:'none',
         }}>
-          {(poseOn || repsOn) && hudChannels.map(({ name, val }) => (
+          {repsOn && hudChannels.map(({ name, val }) => (
             <span key={name} style={{
               background: C.acD, color: C.ac,
               border: `1px solid ${C.cardBd}`, borderRadius: 0,

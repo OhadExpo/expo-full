@@ -105,7 +105,7 @@ function GapRow({ gap, library, plans, canWrite, onApprove, first }) {
   const he = useHe();
   const cands = useMemo(() => candidatesFor(gap, library, plans), [gap, library, plans]);
   return (
-    <div style={{ padding: '14px 0', borderTop: first ? 'none' : `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+    <div className="vg-row" style={{ padding: first ? '0 0 14px' : '8px 0 14px' /* 14.10 #735: the title 17 under the row's line, the last line 11 over the link input -> 11 / 11; the first row sat on the card's padding too */, borderTop: first ? 'none' : `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
       <div style={{ minWidth: 0 }}>
         {/* dir=auto keeps an English title's glyph order; the alignment follows the PAGE (he: right) so it lines up with the lines under it */}
         <div dir="auto" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, color: C.tx, overflowWrap: 'anywhere', textAlign: he ? 'right' : 'left' }}>{gap.title}</div>

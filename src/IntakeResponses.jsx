@@ -20,7 +20,7 @@ import { useT, readLang } from './i18n';
 // #612 C12: the Hebrew screen had 'SELF EVALUATION' and 'PHYSICAL ASSESSMENT' - the
 // English versions' own titles). Hebrew names are the forms' own titles; native-checked.
 // English is one word each: in Nord capitals 'PHYSICAL ASSESSMENT · ENGLISH' overran its cell at 1440.
-const FORM_NAME = {
+export const FORM_NAME = {
   initial: { en: 'Intake', he: 'הערכה ראשונית' },
   progress: { en: 'Progress', he: 'הערכת התקדמות' },
   assessment: { en: 'Assessment', he: 'הערכה פיזית' },
@@ -60,7 +60,7 @@ function QuestionSummary({ q, subs, rtl, tt }) {
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
       {/* his own form's question, word for word - it wraps, it is not reworded */}
       <div data-allow-wrap="" style={{ fontFamily: rtl ? FH : FB, fontSize: 14, fontWeight: 700, color: C.tx }}>{q.label}</div>
-      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>{answered.length} {tt('answers')}{none ? ` · ${none} ${tt('no answer')}` : ''}</span>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>{answered.length} {tt(answered.length === 1 ? 'answer' : 'answers')}{none ? ` · ${none} ${tt(none === 1 ? 'no answer' : 'no answers')}` : ''}{/* the count agrees with its verb: '1 ענו' / '1 answers' (12.10 rendered-Hebrew audit) */}</span>
     </div>
   );
   let body = null;

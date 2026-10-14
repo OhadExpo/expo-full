@@ -9,18 +9,18 @@
 //              back drift in cm.
 // Feedback BEFORE the rep finishes — the gym-floor wow factor. No recommendations.
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN } from './theme';
 import { useT } from './i18n';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
 import { createPoseSmoother, ONE_EURO_IMAGE } from './poseLab';
+import { makeSubjectLock } from './subjectLock';
+import { createPoseOverlay } from './poseOverlay';
+// the live anatomy body (#690) loads only when the coach turns 3D on; a stale chunk shows nothing, never a crash
+const LiveAnatomy = React.lazy(() => import('./LiveAnatomy').catch(() => ({ default: function LiveAnatomyUnavailable() { return null; } })));
 
-const SKEL = [
-  [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
-  [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28],
-];
 // Depth gate tolerance (normalized frame height) — counts depth a touch above
 // full parallel; the strict hip==knee gate read as "way too strict" (Ohad).
 const DEPTH_TOL = 0.06;
@@ -43,7 +43,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const lmRef = useRef(null);
+  const lmRef = useRef(null), lockRef = useRef(null);
   const rafRef = useRef(null);
   const anchorRef = useRef(null);      // {x, topY} normalized bar-path anchor
   const angleBufRef = useRef([]);      // smoothing buffer for the rep state machine
@@ -59,9 +59,18 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [showDepth, setShowDepth] = useState(true);
   useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
   const [showReps, setShowReps] = useState(true);   // toggle the REPS/PHASE read-out
-  // One toggle drives BOTH the skeleton and the joint-angle numbers (Ohad: "both
-  // together as one button").
+  // SKELETON and JOINT ANGLES are TWO tools (14.10 #763 / #766, Ohad: "skeleton/angle meter ... two different tools";
+  // this replaces the earlier "both together as one button"); both on when the camera starts. Drawn by the shared
+  // engine (poseOverlay.js): hands + feet, smoothed, joints that do not blink.
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const [showAngles, setShowAngles] = useState(true);
+  const showAnglesRef = useRef(true);
+  useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
+  const ovlRef = useRef(null);
+  // 3D (13.10 #690): the anatomy body beside the feed, ~0.7 s behind it - off by default (a phone runs the pose model too)
+  const [show3d, setShow3d] = useState(false);
+  const liveBufRef = useRef([]);
+  const [camDims, setCamDims] = useState(null);
   const showSkeletonRef = useRef(true);
   useEffect(() => { showSkeletonRef.current = showSkeleton; }, [showSkeleton]);
   const [reps, setReps] = useState(0);
@@ -87,8 +96,13 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     if (!v || !lm || v.readyState < 2) { rafRef.current = requestAnimationFrame(loop); return; }
     let res = null;
     try { res = lm.detectForVideo(v, performance.now()); } catch { res = null; }
-    const landmarks = res?.landmarks?.[0] || null;
-    const world = res?.worldLandmarks?.[0] || null;
+    // ONE PERSON (13.10 #719b): up to 3 detected, the subject lock keeps the lifter - the first detection was whoever
+    // the model read best (a man walking past the camera took the count and the 3D body)
+    const si = res && res.landmarks && res.landmarks.length ? (lockRef.current ? lockRef.current(res.landmarks, performance.now()) : 0) : -1;
+    const landmarks = si >= 0 ? res.landmarks[si] || null : null;
+    const world = si >= 0 ? res?.worldLandmarks?.[si] || null : null;
+    // the last 12.5 s of readings for the live 3D body (a frame without a body is no reading)
+    if (landmarks && world) { const nowT = performance.now(), lb = liveBufRef.current; lb.push({ t: nowT, landmarks, worldLandmarks: world }); while (lb.length && lb[0].t < nowT - 12500) lb.shift(); }
 
     // --- live rep state machine (world landmarks → joint angle) ---
     if (world && thr && channels.length) {
@@ -135,7 +149,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     if (!drawSmoothRef.current) drawSmoothRef.current = createPoseSmoother(ONE_EURO_IMAGE);
     const drawn = landmarks ? drawSmoothRef.current.smooth(landmarks, performance.now()) : null;
     if (!landmarks) drawSmoothRef.current.reset();
-    draw(canvasRef.current, v, drawn, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showSkeletonRef.current });
+    if (!ovlRef.current) ovlRef.current = createPoseOverlay();
+    ovlRef.current.update(landmarks || null, world, performance.now() / 1000);
+    draw(canvasRef.current, v, drawn, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showAnglesRef.current, ovl: ovlRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -149,9 +165,12 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       }
       // full on a desktop (better joints); lite on a touch device, where frame rate is the limit (#641)
       const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-      if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: coarse ? 'lite' : 'full' });
+      // numPoses 3 for the lock (a harness may set window.__livePoses to measure the cost - inert otherwise)
+      if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: coarse ? 'lite' : 'full', numPoses: (typeof window !== 'undefined' && window.__livePoses) || 3 });
+      { const v = videoRef.current; lockRef.current = makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }); }
       anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top'; drawSmoothRef.current = null;
       setReps(0); setMoving('top');
+      liveBufRef.current = []; { const v = videoRef.current; if (v && v.videoWidth) setCamDims({ w: v.videoWidth, h: v.videoHeight }); }
       setPhase('live');
       rafRef.current = requestAnimationFrame(loop);
     } catch (e) {
@@ -169,7 +188,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     const next = facingRef.current === 'environment' ? 'user' : 'environment';
     setFacing(next);
     try {
-      stopStream(streamRef.current); streamRef.current = null;
+      stopStream(streamRef.current); streamRef.current = null; liveBufRef.current = [];   // another viewpoint: the 3D body starts again
       const s = await getCamera(next); streamRef.current = s;
       const v = videoRef.current; if (v) { v.srcObject = s; await v.play(); }
       anchorRef.current = null;
@@ -202,7 +221,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
 
       <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
         <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+        {/* the canvas crops exactly like the video (cover): stretched to the box, the lines sat off the body on a phone */}
+        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
 
         {/* LIVE HUD — the read-outs, in legible mono. Sits top-centre, out of the
             way of a side-on full-body frame. */}
@@ -217,6 +237,11 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
           </div>
         )}
 
+        {phase === 'live' && show3d && camDims && (
+          <div style={{ position: 'absolute', insetInlineStart: 10, bottom: 10, width: 'min(46vw, 380px)', border: '1px solid rgba(255,255,255,0.14)', zIndex: 15 }}>
+            <Suspense fallback={null}><LiveAnatomy getFrames={() => liveBufRef.current} dims={camDims} height={300} /></Suspense>
+          </div>
+        )}
         {phase === 'idle' && !error && (
           <Centre>
             <div style={{ fontSize: 52 }}>🎯</div>
@@ -243,7 +268,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? tt('FRONT') : tt('REAR')}</button>
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>{showReps ? tt('REPS ON') : tt('REPS OFF')}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>{showDepth ? tt('DEPTH ON') : tt('DEPTH OFF')}</button>}
-              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>{showSkeleton ? tt('SKELETON ON') : tt('SKELETON OFF')}</button>
+              <button onClick={() => setShowSkeleton(s => !s)} aria-pressed={showSkeleton} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>{showSkeleton ? tt('SKELETON ON') : tt('SKELETON OFF')}</button>
+              <button onClick={() => setShowAngles(s => !s)} aria-pressed={showAngles} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 140 }}>{showAngles ? tt('JOINT ANGLES ON') : tt('JOINT ANGLES OFF')}</button>
+              <button onClick={() => { const v = videoRef.current; if (v && v.videoWidth) setCamDims({ w: v.videoWidth, h: v.videoHeight }); setShow3d(s => !s); }} style={{ ...ctrl, background: show3d ? C.ac : 'transparent', minWidth: 92 }}>{show3d ? tt('3D ON') : tt('3D OFF')}</button>
             </>}
       </div>
     </div>,
@@ -261,7 +288,7 @@ function HudCell({ label, value, big, tone, pop }) {
   );
 }
 
-function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, angles }) {
+function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, angles, ovl }) {
   if (!canvas || !video) return;
   const ctx = canvas.getContext('2d');
   const w = video.videoWidth, h = video.videoHeight;
@@ -271,48 +298,12 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, ang
   ctx.clearRect(0, 0, w, h);
   if (!landmarks) return;
 
-  // skeleton
-  // Stroke scaled to the canvas — a fixed 3px line on a 1280px-wide native canvas
-  // renders sub-pixel when the feed is shown small, so the skeleton "vanished"
-  // while the scaled angle labels stayed visible (Ohad: "I see angles, no skeleton").
-  const skW = Math.max(4, Math.round(w * 0.006));
-  if (skeleton) {
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    // dark underlay for contrast on bright/busy backgrounds
-    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = skW + 3;
-    SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
-    ctx.strokeStyle = 'rgba(57,189,255,0.95)'; ctx.lineWidth = skW;
-    SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
-    // joint dots so the joints read clearly
-    ctx.fillStyle = '#FFFFFF';
-    for (const j of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) { const p = landmarks[j]; if (!p) continue; ctx.beginPath(); ctx.arc(p.x * w, p.y * h, skW * 0.85, 0, Math.PI * 2); ctx.fill(); }
-  }
+  // the skeleton and the joint angles: the shared engine, on this native-resolution canvas
+  if (ovl) ovl.draw(ctx, { w, h, px: (p) => p.x * w, py: (p) => p.y * h, skeleton, angles });
 
   const wristMid = midpt(landmarks[15], landmarks[16]);
   const hipMid = midpt(landmarks[23], landmarks[24]);
   const kneeMid = midpt(landmarks[25], landmarks[26]);
-
-  // Live joint angles — computed from the 3D world landmarks (perspective-free)
-  // and drawn at each joint's screen position (Ohad: live angles under Live
-  // Coach). The tool is side-on, so L/R overlap → one label per joint group at
-  // the mid point, averaging the two sides.
-  if (world && angles) {
-    const fs = Math.max(16, Math.round(w * 0.022));
-    const groups = [
-      ['L SHO', 'R SHO', midpt(landmarks[11], landmarks[12])],
-      ['L ELB', 'R ELB', midpt(landmarks[13], landmarks[14])],
-      ['L HIP', 'R HIP', hipMid],
-      ['L KNE', 'R KNE', kneeMid],
-    ];
-    for (const [ln, rn, mid] of groups) {
-      if (!mid) continue;
-      const dl = ANGLE_DEFS.find(d => d.name === ln), dr = ANGLE_DEFS.find(d => d.name === rn);
-      const vals = [dl && angleAt(world, dl.a, dl.b, dl.c), dr && angleAt(world, dr.a, dr.b, dr.c)].filter(isReal);
-      if (!vals.length) continue;
-      const deg = Math.round(vals.reduce((s, x) => s + x, 0) / vals.length);
-      label(ctx, `${deg}°`, mid.x * w + fs * 0.6, mid.y * h, ACCENT, fs);
-    }
-  }
 
   // bar-path plumb line — lock the anchor to the bar's x at the highest point
   // seen so far (rack/standing), then show live drift from it.

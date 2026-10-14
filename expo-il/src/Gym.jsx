@@ -262,9 +262,11 @@ function StatsStrip({ heb }) {
             padding: '20px 14px', textAlign: 'center',
             borderInlineEnd: i < stats.length - 1 ? `1px solid ${C.ac}26` : 'none',
           }}>
-            <div style={{
+            {/* dir="ltr" + isolate, as the online hero's stats (App.jsx): the trailing '+' and '★' are bidi-neutral, so
+                in the Hebrew page '500+' printed '+500' and '5★' printed '★5' (12.10 B1, shot at 390 he) */}
+            <div dir="ltr" style={{
               fontFamily: FN, fontSize: 28, fontWeight: 800, color: C.ac,
-              letterSpacing: '-0.02em', marginBottom: 4,
+              letterSpacing: '-0.02em', marginBottom: 4, unicodeBidi: 'isolate',
             }}>{s.n}</div>
             <div style={{
               fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em',
@@ -524,19 +526,19 @@ function WhyNotJust({ heb }) {
       }}>
         {rows.map((r, i) => (
           <div key={i} style={{
-            background: C.sf, border: `1px solid ${C.ac}26`, padding: '22px 20px',
+            background: C.sf, border: `1px solid ${C.ac}26`, padding: '18.4px 20px 13.4px' /* 14.10 #735: label 27 / '−' line 19.8 over the rule -> 23.4 / 23.4; '+' 17 / 28.6 -> 20 / 20 */,
             display: 'flex', flexDirection: 'column', gap: 12,
           }}>
             <div style={{
               fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.16em', fontWeight: 800,
               textTransform: 'uppercase',
             }}>{heb ? 'במקום ' : 'INSTEAD OF '}{r.alt}</div>
-            <div style={{ display: 'flex', gap: 8, fontSize: 13, color: C.tm, lineHeight: 1.6 }}>
+            <div style={{ display: 'flex', gap: 8, fontSize: 13, color: C.tm, lineHeight: 1.6, marginBottom: 3.6 }}>
               <span style={{ color: C.tm, flexShrink: 0, fontWeight: 800 }}>−</span><span>{r.their}</span>
             </div>
             <div style={{
               display: 'flex', gap: 8, fontSize: 13.5, color: C.tx, lineHeight: 1.6,
-              borderTop: `1px solid ${C.ac}26`, paddingTop: 12,
+              borderTop: `1px solid ${C.ac}26`, paddingTop: 15,
             }}>
               <span style={{ color: C.ac, flexShrink: 0, fontWeight: 800 }}>+</span><span>{r.ours}</span>
             </div>
@@ -688,7 +690,7 @@ function WhatsIncluded({ heb }) {
         background: `${C.ac}26`, border: `1px solid ${C.ac}26`, marginTop: 32,
       }}>
         {items.map((it, i) => (
-          <div key={i} style={{
+          <div key={i} className="gym-tile" style={{
             background: C.bg, padding: '26px 20px', display: 'flex', flexDirection: 'column', gap: 10,
             minHeight: 180,
           }}>

@@ -14,11 +14,17 @@
 // Memory rules: no weight-progression hints, no auto-recommendations.
 // Just count + display.
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { useT, readLang } from './i18n';
 import { ANGLE_DEFS, angleAt, detectChannels, isReal } from './repCounter';
+import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
+import { createPoseOverlay } from './poseOverlay';
+// one person - the lifter (13.10 #719b): a lock per video source (a new clip starts afresh)
+const lockFor = (ref, v) => { const src = (v && (v.currentSrc || v.src)) || 'cam'; if (!ref.current || ref.current.src !== src) ref.current = { src, lock: makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }) }; return ref.current.lock; };
+// the live anatomy body (#690) loads only when 3D is turned on; a stale chunk shows nothing, never a crash
+const LiveAnatomy = React.lazy(() => import('./LiveAnatomy').catch(() => ({ default: function LiveAnatomyUnavailable() { return null; } })));
 
 const VOICE_START_PHRASES = ['start', 'go', 'count', 'begin', 'התחל', 'התחילי', 'סופר', 'תספור'];
 const VOICE_STOP_PHRASES = ['stop', 'finish', 'finished', 'done', 'די', 'תפסיק', 'מספיק'];
@@ -40,7 +46,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const landmarkerRef = useRef(null);
+  const landmarkerRef = useRef(null), lockRef = useRef(null);
   const rafRef = useRef(null);
   const recognitionRef = useRef(null);
   const startingRef = useRef(false);   // synchronous re-entrancy guard for beginCounting
@@ -55,6 +61,16 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const [lastAngle, setLastAngle] = useState(null);
   const [error, setError] = useState(null);
   const [voiceOn, setVoiceOn] = useState(false);
+  // 3D (13.10 #690): his anatomy body, ~0.7 s behind the camera - off by default (the phone runs the pose model too)
+  const [show3d, setShow3d] = useState(false);
+  // SKELETON and JOINT ANGLES (14.10 #766): two tools, both on; the shared engine draws them (hands + feet, smoothed)
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const [showAngles, setShowAngles] = useState(true);
+  const toolsRef = useRef({ skeleton: true, angles: true });
+  useEffect(() => { toolsRef.current = { skeleton: showSkeleton, angles: showAngles }; }, [showSkeleton, showAngles]);
+  const ovlRef = useRef(null);
+  const liveBufRef = useRef([]);
+  const [camDims, setCamDims] = useState(null);
 
   const { kind, channels } = detectChannels(exerciseTitle);
   const thr = KIND_THRESHOLDS[kind];
@@ -98,7 +114,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
         delegate,
       },
       runningMode: 'VIDEO',
-      numPoses: 1,
+      numPoses: LIVE_POSES,
     });
     try {
       landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
@@ -160,8 +176,10 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
     }
     const ts = performance.now();
     let result;
-    try { result = lm.detectForVideo(v, ts); } catch { result = null; }
+    try { result = lockResult(lockFor(lockRef, v), lm.detectForVideo(v, ts), ts); } catch { result = null; }
 
+    // the last 12.5 s of readings for the live 3D body
+    if (result?.worldLandmarks?.[0] && result?.landmarks?.[0]) { const lb = liveBufRef.current; lb.push({ t: ts, landmarks: result.landmarks[0], worldLandmarks: result.worldLandmarks[0] }); while (lb.length && lb[0].t < ts - 12500) lb.shift(); }
     if (result?.worldLandmarks?.[0] && channels.length > 0) {
       const lms = result.worldLandmarks[0];
       // Average the two configured channels (L+R) so left-right
@@ -190,9 +208,12 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
           }
         }
       }
-      drawSkeleton(canvasRef.current, v, result.landmarks?.[0]);
+      if (!ovlRef.current) ovlRef.current = createPoseOverlay();
+      ovlRef.current.update(result.landmarks?.[0] || null, result.worldLandmarks?.[0], ts / 1000);
+      drawSkeleton(canvasRef.current, v, ovlRef.current, toolsRef.current);
     } else {
-      drawSkeleton(canvasRef.current, v, null);
+      if (ovlRef.current) ovlRef.current.update(null);
+      drawSkeleton(canvasRef.current, v, null, toolsRef.current);
     }
     rafRef.current = requestAnimationFrame(frameLoop);
   }, [channels, thr]);
@@ -210,7 +231,8 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       if (!streamRef.current) await startCamera();
       await loadPose();
       setReps(0);
-      angleBufRef.current = [];
+      angleBufRef.current = []; liveBufRef.current = [];
+      { const vv = videoRef.current; if (vv && vv.videoWidth) setCamDims({ w: vv.videoWidth, h: vv.videoHeight }); }
       phaseRef.current = 'top';
       setPhase('top');
       setStatus('counting');
@@ -282,12 +304,18 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
           width: '100%', height: '100%', objectFit: 'cover',
           transform: 'scaleX(-1)',  // mirror for self-recording so motion reads natural
         }} />
+        {/* not CSS-mirrored: the points are mirrored where they are drawn, so the angle numbers read the right way round;
+            cropped exactly like the video (cover) so the lines sit on the body */}
         <canvas ref={canvasRef} style={{
-          position: 'absolute', inset: 0, width: '100%', height: '100%',
-          transform: 'scaleX(-1)',
+          position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
           pointerEvents: 'none',
         }} />
 
+        {status === 'counting' && show3d && camDims && (
+          <div style={{ position: 'absolute', top: 60, insetInlineEnd: 16, width: 'min(44vw, 280px)', border: '1px solid rgba(255,255,255,0.14)', zIndex: 12 }}>
+            <Suspense fallback={null}><LiveAnatomy getFrames={() => liveBufRef.current} dims={camDims} height={240} /></Suspense>
+          </div>
+        )}
         {/* Big rep count overlay */}
         {status === 'counting' && (
           <div style={{
@@ -301,7 +329,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             position: 'absolute', bottom: 90, left: 0, right: 0, textAlign: 'center',
             color: 'rgba(255,255,255,0.7)', fontFamily: FN, fontSize: 12, letterSpacing: '0.18em', fontWeight: 700,
           }}>
-            {tt('PHASE:')} {tt(phase.toUpperCase())} · {isReal(lastAngle) ? `${Math.round(lastAngle)}°` : '—'}
+            {tt('PHASE:')} {tt(phase.toUpperCase())} · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{isReal(lastAngle) ? `${Math.round(lastAngle)}°` : '—'}</span>
           </div>
         )}
         {status === 'loading' && (
@@ -335,6 +363,18 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
         )}
       </div>
 
+      {/* the two on-camera tools, their own row (a phone has no room for them in the bar below): one joined pair */}
+      <div style={{ background: 'rgba(0,0,0,0.85)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+        {[[showSkeleton, setShowSkeleton, 'SKELETON'], [showAngles, setShowAngles, 'JOINT ANGLES']].map(([on, set, label]) => (
+          <button key={label} onClick={() => set((x) => !x)} aria-pressed={on}
+            style={{
+              height: 40, background: 'transparent', color: on ? C.ac : 'rgba(255,255,255,0.7)',
+              border: '1px solid ' + (on ? C.ac : 'rgba(255,255,255,0.3)'),
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>{tt(label)}</button>
+        ))}
+      </div>
       {/* Bottom control bar */}
       <div style={{
         background: 'rgba(0,0,0,0.85)', borderTop: '1px solid rgba(255,255,255,0.1)',
@@ -350,6 +390,13 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             cursor: 'pointer',
             minWidth: 130, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{voiceOn ? `🎤 ${tt('LISTENING')}` : `🎤 ${tt('VOICE OFF')}`}</button>
+        <button onClick={() => { const vv = videoRef.current; if (vv && vv.videoWidth) setCamDims({ w: vv.videoWidth, h: vv.videoHeight }); setShow3d((x) => !x); }}
+          style={{
+            padding: '10px 12px', background: show3d ? C.ac : 'transparent', color: '#FFFFFF',
+            border: '1px solid ' + (show3d ? C.ac : 'rgba(255,255,255,0.3)'),
+            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer',
+            minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>3D</button>
         {status !== 'counting' ? (
           <button onClick={beginCounting}
             style={{
@@ -372,14 +419,9 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   ), document.body);
 }
 
-// Lightweight skeleton overlay — connections list from MediaPipe Pose
-// landmark spec. Kept minimal so the live overlay stays fast.
-const POSE_CONNECTIONS = [
-  [11, 13], [13, 15], [12, 14], [14, 16],
-  [11, 12], [11, 23], [12, 24], [23, 24],
-  [23, 25], [25, 27], [24, 26], [26, 28],
-];
-function drawSkeleton(canvas, video, landmarks) {
+// the skeleton + joint angles: the shared engine (poseOverlay.js), on the camera's native-resolution canvas, mirrored
+// like the self-view video
+function drawSkeleton(canvas, video, ovl, tools) {
   if (!canvas || !video) return;
   const ctx = canvas.getContext('2d');
   const w = video.videoWidth, h = video.videoHeight;
@@ -387,22 +429,5 @@ function drawSkeleton(canvas, video, landmarks) {
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
   ctx.clearRect(0, 0, w, h);
-  if (!landmarks) return;
-  ctx.strokeStyle = '#3BA0FF';
-  ctx.lineWidth = 3;
-  ctx.fillStyle = '#3BA0FF';
-  POSE_CONNECTIONS.forEach(([a, b]) => {
-    const la = landmarks[a], lb = landmarks[b];
-    if (!la || !lb) return;
-    ctx.beginPath();
-    ctx.moveTo(la.x * w, la.y * h);
-    ctx.lineTo(lb.x * w, lb.y * h);
-    ctx.stroke();
-  });
-  landmarks.forEach(lm => {
-    if (!lm) return;
-    ctx.beginPath();
-    ctx.arc(lm.x * w, lm.y * h, 4, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  if (ovl) ovl.draw(ctx, { w, h, px: (p) => (1 - p.x) * w, py: (p) => p.y * h, skeleton: tools.skeleton, angles: tools.angles });
 }

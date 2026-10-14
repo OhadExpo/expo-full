@@ -261,7 +261,9 @@ function Composer({ onSend, role, draftKey }) {
           outline: 'none', boxSizing: 'border-box', resize: 'vertical',
           direction: isHebrew(text) ? 'rtl' : 'ltr',
         }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+      {/* the buttons sit as far under the note box as the card edge sits under them (14.10 #735; 11 over 14 before).
+          Coach side only: the athlete portal is held at production */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: role === 'coach' ? 9 : 6, flexWrap: 'wrap' }}>
         {!rec.recording && !rec.blob && (
           <button onClick={rec.start} title={tt('Record a voice note')}
             style={recBtnStyle('var(--c-rd)')}>{tt('● REC')}</button>
@@ -312,7 +314,9 @@ function MessageBubble({ msg, viewerRole }) {
     <div style={{ display: 'flex', justifyContent: align, marginBottom: 8 }}>
       <div style={{
         maxWidth: '78%', background: bg, border: `1px solid ${border}`, borderRadius: 0,
-        padding: '8px 10px',
+        // the body's 1.4 leading is the other 2 under the text (14.10 #735: 11 over, 13.2 under). Coach side only: the
+        // athlete portal is held at production
+        padding: viewerRole === 'coach' ? '8px 10px 6px' : '8px 10px',
       }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 4 }}>
           {tt(msg.sender_role === 'coach' ? 'COACH' : 'ATHLETE')} · {fmt(msg.created_at)}

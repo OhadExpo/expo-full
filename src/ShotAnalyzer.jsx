@@ -3,7 +3,7 @@
 // detection (STANCE · DIP · SET · RELEASE · APEX · FOLLOW · LAND) → frame-by-
 // frame player with skeleton overlay + metric readout → checkpoint scorecard
 // → FIX GUIDE (what / why / how). Engine: shotAnalysis.js (pure, tested).
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback, Suspense } from 'react';
 import { C, FN, FB } from './theme';
 import { fmtNumericDate } from './dates';
 import { toast, SegWord } from './ui';
@@ -12,11 +12,15 @@ import { preflightClip } from './clipPreflight';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
+import { LangCtx } from './i18n';
 import { sessionRead, sessionConclusions, makeMissContrast, makesByThird, CONTRAST_MIN } from './shotSession.js';
 import { useSupaStore } from './useSupaStore';
 import { crossFade } from './viewTransition';
 import { judgeShots } from './rimJudge';
 import { flushSync } from 'react-dom';
+import { createPoseOverlay } from './poseOverlay';
+// the anatomy body (#690) loads only when the coach opens it; a stale chunk after a deploy shows nothing, never a crash
+const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable() { return null; } })));
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -720,6 +724,16 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const { series } = result;
   const n = series.n;
   const [cur, setCur] = useState(shot.cycle.release);
+  // the 3D body's frames: the shot's own, with the picture's shape (the landmarks are full-frame, normalised)
+  const [show3d, setShow3dRaw] = useState(() => { try { return localStorage.getItem('expo-shot-3d') === '1'; } catch { return false; } });
+  const setShow3d = (v) => { setShow3dRaw(v); try { localStorage.setItem('expo-shot-3d', v ? '1' : '0'); } catch { /* private mode */ } };
+  const frames3d = useMemo(() => {
+    if (!Array.isArray(frames)) return null;
+    const f = frames.filter((x) => x && x.landmarks && x.worldLandmarks);
+    if (f.length < 10) return null;
+    f.dims = { w: Math.round((result.aspect || 1.7778) * 1000), h: 1000 };
+    return f;
+  }, [frames, result.aspect]);
   // MAKES. The analyser scores mechanics; it has never seen the rim, so it
   // cannot know whether a shot went in - and it must not guess. The coach marks
   // each detected shot MADE or MISSED and the counter is exactly those marks,
@@ -837,6 +851,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     return () => ro.disconnect();
   }, []);
 
+  // SKELETON and JOINT ANGLES (14.10 #766): two tools, both on. The shooting-arm skeleton stays this tool's own; the
+  // angle at each joint comes from the shared engine (poseOverlay.js), the same meter as every other player.
+  const [showSkel, setShowSkel] = useState(true);
+  const [showAngles, setShowAngles] = useState(true);
+  const ovlRef = useRef(null);
   // Skeleton overlay — mapped onto the video's CONTENT box (object-fit contain),
   // in CSS pixels, with a devicePixelRatio-scaled backing store.
   useEffect(() => {
@@ -854,6 +873,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     const s = Math.min(W / vw, H / vh); const cw = vw * s, ch = vh * s; const ox = (W - cw) / 2, oy = (H - ch) / 2;
     const X = (p) => ox + p.x * cw, Y = (p) => oy + p.y * ch;
     const lm = f.landmarks;
+    if (showAngles) {
+      if (!ovlRef.current) ovlRef.current = createPoseOverlay();
+      ovlRef.current.update(lm, f.worldLandmarks, (series?.tMs?.[cur] ?? cur * 33) / 1000);
+    }
+    if (!showSkel) {
+      if (showAngles) ovlRef.current.draw(ctx, { w: W, h: H, px: X, py: Y, skeleton: false, angles: true });
+      return;
+    }
     ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(57,189,255,0.9)'; ctx.lineCap = 'round';
     for (const [a, b] of BONES) { const p = lm[a], q = lm[b]; if (!p || !q) continue; if ((p.visibility ?? 1) < 0.3 || (q.visibility ?? 1) < 0.3) continue; ctx.beginPath(); ctx.moveTo(X(p), Y(p)); ctx.lineTo(X(q), Y(q)); ctx.stroke(); }
     const arm = hand === 'L' ? [11, 13, 15] : [12, 14, 16];
@@ -862,7 +889,8 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     for (let i = 11; i <= 28; i++) { const p = lm[i]; if (!p || (p.visibility ?? 1) < 0.3) continue; ctx.fillStyle = arm.includes(i) ? '#FFFFFF' : CYAN; ctx.beginPath(); ctx.arc(X(p), Y(p), 3.5, 0, Math.PI * 2); ctx.fill(); }
     // eye line
     const eye = lm[hand === 'L' ? 2 : 5]; if (eye) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox, Y(eye)); ctx.lineTo(ox + cw, Y(eye)); ctx.stroke(); ctx.setLineDash([]); }
-  }, [cur, frames, hand, srcUrl, boxTick]);
+    if (showAngles) ovlRef.current.draw(ctx, { w: W, h: H, px: X, py: Y, skeleton: false, angles: true, dots: false });
+  }, [cur, frames, hand, srcUrl, boxTick, showSkel, showAngles, series]);
 
   const [reportTab, setReportTab] = useState('shot');
   const rd = frameReadout(series, cur);
@@ -1240,6 +1268,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {phaseAt && <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', border: `1px solid ${CYAN}`, color: CYAN, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', padding: '3px 8px' }}>{phaseAt.label}</div>}
             <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', padding: '3px 8px', color: 'rgba(255,255,255,0.8)' }}>{T.frameOf ? T.frameOf(cur + 1, n, fmt(tMs / 1000, 2)) : `F${cur + 1}/${n} · ${fmt(tMs / 1000, 2)}s`}</div>
           </div>
+          {/* the two on-video tools, under the picture */}
+          <div className="shot-noprint" data-shot-tools style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+            <button type="button" onClick={() => setShowSkel((x) => !x)} aria-pressed={showSkel} style={{ ...chip(showSkel), width: '100%', minWidth: 0 }}>{T.skeleton || 'SKELETON'}</button>
+            <button type="button" onClick={() => setShowAngles((x) => !x)} aria-pressed={showAngles} style={{ ...chip(showAngles), width: '100%', minWidth: 0 }}>{T.jointAngles || 'JOINT ANGLES'}</button>
+          </div>
           {/* transport */}
           {/* TRANSPORT: five EQUAL cells (they were each as wide as their own
               label) and the scrubber - beside them on a wide column, on a row
@@ -1329,6 +1362,24 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             <button onClick={onReset} style={{ ...ghost, padding: '0 10px', fontSize: 10, borderColor: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.75)' }}>{T.newClip}</button>
           </div>
           <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} hand={hand} />
+          {/* THE ANATOMY BODY (#690, 13.10): the same 3D skeleton / muscle body as the Movement Lab, on this clip's own
+              frames, synced both ways with the frame above */}
+          {frames3d && (
+            <div className="shot-noprint" style={{ marginTop: 10 }}>
+              <button type="button" data-body3d onClick={() => setShow3d(!show3d)} style={{ ...chip(show3d), width: '100%', minWidth: 0 }}>{show3d ? T.body3dOff : T.body3d}</button>
+              {show3d && (
+                <div style={{ marginTop: 8 }}>
+                  {/* the replay keeps time from its first frame (as the Movement Lab passes it) and speaks the tool's language */}
+                  <LangCtx.Provider value={T === SHOT_I18N.he ? 'he' : 'en'}>
+                    <Suspense fallback={<div style={{ ...lbl, padding: 12 }}>…</div>}>
+                      <Replay3D frames={frames3d} playheadT={series.tMs[cur] - frames3d[0].t} channel="elbow"
+                        onSeek={(tRel) => { const t = tRel + frames3d[0].t; let best = 0, bd = Infinity; series.tMs.forEach((x, i) => { const d = Math.abs(x - t); if (d < bd) { bd = d; best = i; } }); seekTo(best); }} />
+                    </Suspense>
+                  </LangCtx.Provider>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* RIGHT — the report, in THREE VIEWS (29.9 #429, Ohad: "very uncomfortable

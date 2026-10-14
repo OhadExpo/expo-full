@@ -366,7 +366,8 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
       // header (RefinedHeaderStrip bleeds over top/side padding, not bottom). (#260)
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, paddingBottom: open ? PAD : 0, marginBottom: 12,
     }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
+      {/* the tabs' 36px boxes already hold the air under the strip: 2, not 10 (14.10 #735; 23 over the words, 15 under) */}
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 2 : 0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
@@ -465,9 +466,12 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
           Recent Workouts, last contact → the activity feed below, payment →
           Billing, tenure → Billing "Since". Only the non-Active status pill stays. */}
       {trainee?.status && trainee.status !== 'Active' && (
-        <div style={{ marginBottom: 10 }}><span style={{
+        // one 36px bordered box, as far over the card below as the card above is over it (14.10 #735: an inline span's
+        // padding spilled out of its line - 12 over, 5 under)
+        <div style={{ marginBottom: 13 }}><span style={{
           fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
-          fontWeight: 700, padding: '6px 10px', border: `1px solid ${C.cardBd}`,
+          fontWeight: 700, padding: '0 10px', border: `1px solid ${C.cardBd}`,
+          display: 'inline-flex', alignItems: 'center', height: 36, boxSizing: 'border-box',
         }}>{tt('STATUS')} · {tt((trainee.status || '').toUpperCase())}</span></div>
       )}
       <CoachHistoryCard

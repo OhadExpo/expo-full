@@ -95,6 +95,8 @@ export const SHOT_I18N = {
     metrics: { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', armElev: 'Arm lift', forearm: 'Forearm', trunk: 'Trunk lean', wristEye: 'Wrist-eye', elbowOffset: 'Wrist-elbow' },
 
     save: 'SAVE SESSION', copy: 'COPY SUMMARY', print: 'PRINT REPORT', newClip: '↺ NEW CLIP',
+    body3d: '3D BODY', body3dOff: '× 3D BODY',
+    skeleton: 'SKELETON', jointAngles: 'JOINT ANGLES',
     savedTitle: 'SAVED SESSIONS', savedNone: 'Nothing saved yet.', savedDrop: 'Remove',
     savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps} reps`,
     savedToast: 'Shot analysis saved', saveFail: 'Could not save', copiedToast: 'Summary copied', copyFail: 'Copy failed',
@@ -302,6 +304,8 @@ export const SHOT_I18N = {
     metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית זרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'יד מול עין', elbowOffset: 'סטיית מרפק' },
 
     save: 'שמור את האימון', copy: 'העתקת סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
+    body3d: 'הגוף בתלת־ממד', body3dOff: '× הגוף בתלת־ממד',
+    skeleton: 'שלד', jointAngles: 'זוויות מפרקים',
     savedTitle: 'אימונים שנשמרו', savedNone: 'עדיין לא שמרת כלום.', savedDrop: 'מחק',
     savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps === 1 ? 'זריקה אחת' : `${reps} זריקות`}`,
     savedToast: 'ניתוח הזריקה נשמר', saveFail: 'השמירה נכשלה', copiedToast: 'הסיכום הועתק', copyFail: 'ההעתקה נכשלה',

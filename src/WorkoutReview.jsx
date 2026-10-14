@@ -15,7 +15,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 import { isHebrew } from './script';
-import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue, JoinedButtons } from './ui';
+import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue, JoinedButtons, CaretGlyph } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -25,6 +25,10 @@ import {
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 import { resolveStoredUrl } from './storageUrl';
+import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
+import { createPoseOverlay } from './poseOverlay';
+// one person - the lifter (13.10 #719b): a lock per video source (a new clip starts afresh)
+const lockFor = (ref, v) => { const src = (v && (v.currentSrc || v.src)) || 'cam'; if (!ref.current || ref.current.src !== src) ref.current = { src, lock: makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }) }; return ref.current.lock; };
 import { useT as useAppT, useTB, tr, readLang, LangCtx, countIn } from './i18n';
 import { trend as setReadTrend, isUsable as isUsableSetRead, signed as signedDelta } from './setAnalysis';
 
@@ -76,7 +80,6 @@ const POSE_CONNECTIONS = [
   [23,25],[25,27],                    // left leg
   [24,26],[26,28],                    // right leg
 ];
-
 // ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N
 // now live in src/repCounter.js — imported above. They're shared with the
 // client-side auto-count on upload (ClientPortal.jsx) so both paths run
@@ -177,7 +180,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
   }, [rawUrl]);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const landmarkerRef = useRef(null);
+  const landmarkerRef = useRef(null), lockRef = useRef(null);
   const rafRef = useRef(null);
   // Inline LIFT METRICS on THIS clip (VBT/ROM/tempo). metricsState: idle | busy | done | err
   const [metricsState, setMetricsState] = useState('idle');
@@ -641,6 +644,9 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(false);
   const [poseOn, setPoseOn] = useState(false);
+  // #763 (Ohad: "skeleton / angle meter ... two different tools. The joint angle should show the angles on top of the video
+  // and on top of each specific joint"): ANGLES draws each joint's angle AT that joint, with or without the skeleton
+  const [anglesOn, setAnglesOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
   const [poseError, setPoseError] = useState('');
   const [angles, setAngles] = useState({});
@@ -1034,7 +1040,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: modelUrl, delegate },
         runningMode: 'VIDEO',
-        numPoses: 1,
+        numPoses: LIVE_POSES,
       });
       try {
         landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
@@ -1058,18 +1064,22 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
   // Turning a tool OFF hands COMMENTS back automatically once no exclusive tool
   // is left on — otherwise the coach is stuck with the comment list + draw canvas
   // gone (the manual re-enable button is hidden for trainers), until a remount.
+  const toggleAngles = async () => {
+    if (anglesOn) { setAnglesOn(false); if (!repsOn && !poseOn) setCommentsEnabled(true); return; }
+    if (await ensureModel()) { setAnglesOn(true); setCommentsEnabled(false); }
+  };
   const togglePose = async () => {
-    if (poseOn) { setPoseOn(false); if (!repsOn) setCommentsEnabled(true); return; }
+    if (poseOn) { setPoseOn(false); if (!repsOn && !anglesOn) setCommentsEnabled(true); return; }
     if (await ensureModel()) { setPoseOn(true); setCommentsEnabled(false); }
   };
   const toggleReps = async () => {
-    if (repsOn) { setRepsOn(false); if (!poseOn) setCommentsEnabled(true); return; }
+    if (repsOn) { setRepsOn(false); if (!poseOn && !anglesOn) setCommentsEnabled(true); return; }
     if (await ensureModel()) { setRepsOn(true); setCommentsEnabled(false); }
   };
   const toggleComments = () => {
     setCommentsEnabled(v => {
       const next = !v;
-      if (next) { setPoseOn(false); setRepsOn(false); }
+      if (next) { setPoseOn(false); setRepsOn(false); setAnglesOn(false); }
       return next;
     });
   };
@@ -1119,8 +1129,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
   }, [metricsState]);
 
   useEffect(() => {
-    // Detection runs whenever EITHER overlay (POSE) or rep counter (REPS) is on.
-    if (!poseOn && !repsOn) {
+    // Detection runs whenever the skeleton, the angle meter or the rep counter is on.
+    if (!poseOn && !repsOn && !anglesOn) {
       const c = canvasRef.current;
       if (c && c.width && c.height) c.getContext('2d').clearRect(0, 0, c.width, c.height);
       setAngles({});
@@ -1135,6 +1145,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     const ctx = c.getContext('2d');
     let lastTs = -1;
     let pendingAngles = {};
+    // the overlay (#764): the shared engine - smoothing in video time, joints that do not blink, steady labels
+    const ovl = createPoseOverlay();
     // Process every other rVFC tick: 30fps source → 15fps overlay. Cuts
     // model invocations in half with no perceptible difference for form
     // review (human eye reads 15fps overlay as smooth on slow-mo playback,
@@ -1160,23 +1172,30 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
       setTempo(lastTempoRef.current);
     };
 
-    const detect = () => {
+    const rearm = () => {
       if (!active) return;
-      // 2x frame-skip: only process even ticks, just re-arm on odd ones so
-      // the rVFC loop keeps running.
-      const skip = (frameTick++ % 2) !== 0;
-      if (skip) {
-        if (typeof v.requestVideoFrameCallback === 'function') {
-          v.requestVideoFrameCallback(detect);
-        } else {
-          rafRef.current = requestAnimationFrame(detect);
-        }
-        return;
-      }
+      if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(detect);
+      else rafRef.current = requestAnimationFrame(detect);
+    };
+    // The rep counter alone reads every other frame (15 fps is plenty for a count). With the skeleton or the angle
+    // meter on, EVERY presented frame is measured and drawn (#764: "sits perfectly on the body on any frame") - a
+    // skipped frame left the picture one frame ahead of the lines.
+    const detect = (_now, meta) => {
+      if (!active) return;
+      const skip = !(poseOn || anglesOn) && (frameTick++ % 2) !== 0;
+      if (!skip) work(meta && meta.mediaTime != null ? meta.mediaTime : v.currentTime);
+      rearm();
+    };
+    const work = (mediaT) => {
+      if (!active) return;
       const w = v.clientWidth, h = v.clientHeight;
       if (w > 0 && h > 0 && v.readyState >= 2) {
-        if (c.width !== w) c.width = w;
-        if (c.height !== h) c.height = h;
+        // the canvas at the screen's real pixel density: sharp lines and numbers on a phone
+        const dpr = Math.min(3, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+        const cw = Math.round(w * dpr), chh = Math.round(h * dpr);
+        if (c.width !== cw) c.width = cw;
+        if (c.height !== chh) c.height = chh;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         // Use performance.now() consistently so timestamps stay monotonic.
         // (Mixing performance.now with metadata.mediaTime causes MediaPipe to
         // silently reject backward timestamps and break the loop.)
@@ -1184,7 +1203,9 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         if (ts > lastTs) {
           lastTs = ts;
           try {
-            const result = lm.detectForVideo(v, ts);
+            const t0 = performance.now();
+            const result = lockResult(lockFor(lockRef, v), lm.detectForVideo(v, ts), ts);
+            const detMs = performance.now() - t0;
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
             // worldLandmarks are 3D metric coords (meters, hip-centered) —
@@ -1203,52 +1224,14 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             const ox = (w - dw) / 2, oy = (h - dh) / 2;
             const px = (p) => ox + p.x * dw;
             const py = (p) => oy + p.y * dh;
+            // the overlay draws SMOOTHED points (video time) with the hands added; the counter below keeps the raw ones
+            const sl = lms && (poseOn || anglesOn) ? ovl.update(lms, result.worldLandmarks?.[0], mediaT) : null;
+            // the overlay gate (scripts/verify-review-overlay.mjs) reads raw vs drawn points per frame
+            if (sl && typeof window !== 'undefined' && window.__FV_TRACE) window.__FV_TRACE.push({ t: mediaT, ms: detMs, raw: lms.slice(0, 33).map((q) => (q ? [q.x, q.y, q.visibility ?? 1] : null)), sm: sl.map((q, i) => (q && ovl.isOn(i) ? [q.x, q.y] : null)) });
             if (lms) {
               // Skeleton + dots only when the overlay is enabled. Rep counting
               // still runs silently when only REPS is on.
-              if (poseOn) {
-                // Match ARFormOverlay's LIVE AR-coaching skeleton exactly (Ohad
-                // pointed to this earlier: "I want the skeleton embedded... like
-                // how it shows on live" — this file had drifted from it since:
-                // no dark halo, a flat unscaled 3px line, and a dot at ALL 33
-                // landmarks including face/fingers, which reads as sparse/noisy
-                // "lines" rather than a clean skeleton, especially against a
-                // bright/busy gym background (Ohad: "just show a skeleton, not
-                // these lines"). Dark underlay first for contrast, then the
-                // bright cyan stroke on top; width scales with canvas size (a
-                // fixed px count vanishes when the video renders small); joint
-                // dots only at the 12 tracked joints, not every landmark.
-                const skW = Math.max(4, Math.round(w * 0.006));
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = skW + 3;
-                for (const [i, j] of POSE_CONNECTIONS) {
-                  const a = lms[i], b = lms[j];
-                  if (!a || !b) continue;
-                  ctx.beginPath();
-                  ctx.moveTo(px(a), py(a));
-                  ctx.lineTo(px(b), py(b));
-                  ctx.stroke();
-                }
-                ctx.strokeStyle = '#39BDFF';
-                ctx.lineWidth = skW;
-                for (const [i, j] of POSE_CONNECTIONS) {
-                  const a = lms[i], b = lms[j];
-                  if (!a || !b) continue;
-                  ctx.beginPath();
-                  ctx.moveTo(px(a), py(a));
-                  ctx.lineTo(px(b), py(b));
-                  ctx.stroke();
-                }
-                ctx.fillStyle = '#FFFFFF';
-                for (const [i, j] of POSE_CONNECTIONS) {
-                  for (const idx of [i, j]) {
-                    const p = lms[idx]; if (!p) continue;
-                    ctx.beginPath();
-                    ctx.arc(px(p), py(p), skW * 0.85, 0, 2*Math.PI);
-                    ctx.fill();
-                  }
-                }
-              }
+              if (sl) ovl.draw(ctx, { w, h, px, py, skeleton: poseOn, angles: anglesOn });
               const next = {};
               for (const d of ANGLE_DEFS) {
                 const val = angleAt(wlms, d.a, d.b, d.c);
@@ -1351,27 +1334,15 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           } catch { /* swallow per-frame detect errors */ }
         }
       }
-      // Re-arm: rVFC fires once per actual decoded frame (idle when paused),
-      // so we don't waste detection cycles on duplicate frames.
-      if (typeof v.requestVideoFrameCallback === 'function') {
-        v.requestVideoFrameCallback(detect);
-      } else {
-        rafRef.current = requestAnimationFrame(detect);
-      }
     };
 
-    // Kick off the loop and run an immediate detection so the overlay shows
-    // even when the video is currently paused on a frame.
-    if (typeof v.requestVideoFrameCallback === 'function') {
-      v.requestVideoFrameCallback(detect);
-    } else {
-      rafRef.current = requestAnimationFrame(detect);
-    }
-    detect();
-
-    // Re-detect on scrub / load so a paused video updates its overlay.
-    v.addEventListener('seeked', detect);
-    v.addEventListener('loadeddata', detect);
+    // ONE loop (rVFC fires once per presented frame, idle when paused), and an immediate read so the overlay shows on a
+    // paused frame. A scrub / load redraws the frame it lands on WITHOUT starting another loop.
+    rearm();
+    work(v.currentTime);
+    const redraw = () => work(v.currentTime);
+    v.addEventListener('seeked', redraw);
+    v.addEventListener('loadeddata', redraw);
 
     // Pressing Play restarts the rep count from 0. Each play → pause cycle is
     // a fresh counting session. Clears only the rep-counter buffers, not the
@@ -1390,11 +1361,11 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      v.removeEventListener('seeked', detect);
-      v.removeEventListener('loadeddata', detect);
+      v.removeEventListener('seeked', redraw);
+      v.removeEventListener('loadeddata', redraw);
       v.removeEventListener('play', onPlay);
     };
-  }, [poseOn, repsOn]);
+  }, [poseOn, repsOn, anglesOn]);
 
   useEffect(() => () => {
     if (landmarkerRef.current) {
@@ -1501,7 +1472,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         )}
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
-            pointerEvents:'none',display:poseOn?'block':'none'}} />
+            pointerEvents:'none',display:(poseOn || anglesOn)?'block':'none'}} />
         {/* Drawing overlay: visible only while the video is PAUSED, comments
             are enabled, and we're in a drawing context (composing OR paused-
             at-a-comment). The videoPaused gate is the important bit — if the
@@ -1577,9 +1548,9 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           order is 0.125x .. 2x; frame-step reads left to right in both
           languages. */}
       {(() => {
-        const cell = (on = false, tone = C.ac, toneD = C.acD) => ({
+        const cell = (on = false, tone = C.ac) => ({
           height: 'var(--btn-h)', minHeight: 0, minWidth: 0, boxSizing: 'border-box', padding: '0 6px', borderRadius: 0, border: 'none',
-          background: on ? toneD : 'var(--c-sf)', color: on ? tone : C.tm,
+          background: 'var(--c-sf)', color: on ? tone : C.tm, boxShadow: on ? `inset 0 0 0 1px ${tone}` : 'none',   /* #761: an active cell is its colour + a frame, no fill */
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', lineHeight: 1, textTransform: 'uppercase',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', cursor: 'pointer',
           fontVariantNumeric: 'tabular-nums',
@@ -1588,20 +1559,25 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         const block = { display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}`, boxSizing: 'border-box' };
         const row = (n) => ({ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, gap: 1 });
         const analysis = [
-          <button key="sk" onClick={togglePose} disabled={poseLoading} data-fv="skeleton"
-            style={{ ...cell(false), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
-            {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
+          <button key="sk" onClick={togglePose} disabled={poseLoading} data-fv="skeleton" aria-pressed={poseOn}
+            style={{ ...cell(poseOn), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+            {poseLoading ? tt('LOADING…') : tt('SKELETON')}
+          </button>,
+          <button key="an" onClick={toggleAngles} disabled={poseLoading} data-fv="angles" aria-pressed={anglesOn}
+            title={tt('Joint angles on the video, at each joint')}
+            style={{ ...cell(anglesOn), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+            {tt('JOINT ANGLES')}
           </button>,
           <button key="rp" onClick={toggleReps} disabled={poseLoading} data-fv="reps"
             title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-            style={{ ...cell(repsOn, C.gn, C.gnD), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
+            style={{ ...cell(repsOn, C.gn), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
             {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
           </button>,
           // LIFT METRICS (coach only) - analyses THIS clip in place, VBT / ROM / tempo inline under the video
           role === 'trainer' && !compare ? (
             <button key="mx" onClick={runMetrics} disabled={metricsState === 'busy'} data-fv="metrics"
               title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
-              style={{ ...cell(metricsState === 'done', C.pu || C.ac, C.puD || C.acD), cursor: metricsState === 'busy' ? 'wait' : 'pointer', opacity: metricsState === 'busy' ? 0.6 : 1 }}>
+              style={{ ...cell(metricsState === 'done', C.pu || C.ac), cursor: metricsState === 'busy' ? 'wait' : 'pointer', opacity: metricsState === 'busy' ? 0.6 : 1 }}>
               {metricsState === 'busy' ? `${metricsPct}%` : metricsState === 'done' ? `${tt('METRICS')} ✓` : tt('METRICS')}
             </button>
           ) : null,
@@ -1613,14 +1589,17 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
             </button>
           ) : null,
-          // side by side, the transport row is hidden: FULL rides here instead
-          compare ? <button key="fs" onClick={fullscreen} data-fv="full" style={cell(false)}>⛶ {tt('FULL')}</button> : null,
         ].filter(Boolean);
+        // FULL closes the deck's last row: beside COMMENT (3 + 1 cells) for the coach, alone for the athlete
+        const fullBtn = <button key="fs" onClick={fullscreen} data-fv="full" style={cell(false)}>⛶ {tt('FULL')}</button>;
         // the bar is as wide as the VIDEO (29.9: at 1440 a 380px portrait clip had
         // its controls 370px out on the card's edges)
         return (<div className="fv-bar" style={{ display: 'flex', flexDirection: 'column', gap: 8, ...(vidAspect?.portrait ? { maxWidth: 380, marginInline: 'auto' } : null) }}>
           <div className="fv-deck" style={block}>
-            <div data-fv-row="analysis" style={row(analysis.length)}>{analysis}</div>
+            {/* the two ON-VIDEO tools get their own row, half the width each (#765, Ohad: "very easy to understand what's
+                the skeleton ... and what's the joint angle meter"): the names read whole on a phone, side by side */}
+            <div data-fv-row="overlay" style={row(2)}>{analysis.slice(0, 2)}</div>
+            <div data-fv-row="analysis" style={row(analysis.length - 2)}>{analysis.slice(2)}</div>
             {repsOn && (
               <div data-fv-row="joint" style={row(motionSuggestion ? 2 : 1)}>
                 <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
@@ -1649,27 +1628,32 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               </div>
             )}
             {!compare && (
-              <div data-fv-row="speed" className="fv-speeds" role="group" aria-label={tt('Playback speed')} style={row(speeds.length)}>
-                {speeds.map((sp) => (
-                  <button key={sp} onClick={() => setSpeed(sp)} data-fv="speed" aria-pressed={speed === sp}
-                    title={tt('Playback speed {n}x').replace('{n}', sp)} style={cell(speed === sp)}>{sp}x</button>
-                ))}
-              </div>
-            )}
-            {!compare && (
-              <div data-fv-row="transport" style={row(4)}>
+              // ONE TRANSPORT ROW (14.10 #761, Ohad: "Left buttons beneath the video are not layed out good"): the
+              // five speed cells were a row of their own whose lines met nothing above or below; speed is one
+              // selector now, and the row is 4 cells under the analysis row's 4
+              <div data-fv-row="transport" dir="ltr" style={row(4)}>
                 <button onClick={() => stepFrame(-1)} data-fv="prev" title={tt('Previous frame')} aria-label={tt('Previous frame')} dir="ltr" style={cell(false)}>◀</button>
                 <button onClick={() => stepFrame(1)} data-fv="next" title={tt('Next frame')} aria-label={tt('Next frame')} dir="ltr" style={cell(false)}>▶</button>
-                <button onClick={() => setLoop(v => !v)} data-fv="loop" aria-pressed={loop} title={tt('Loop the video')} style={cell(loop)}>↻ {tr(readLang(), 'LOOP')}</button>
-                <button onClick={fullscreen} data-fv="full" style={cell(false)}>⛶ {tt('FULL')}</button>
+                <span style={{ ...cell(speed !== 1), position: 'relative' }}>
+                  {speed}x <CaretGlyph />
+                  <select value={speed} onChange={(e) => setSpeed(+e.target.value)} data-fv="speed" aria-label={tt('Playback speed')}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none' }}>
+                    {speeds.map((sp) => <option key={sp} value={sp}>{sp}x</option>)}
+                  </select>
+                </span>
+                <button onClick={() => setLoop(v => !v)} data-fv="loop" dir={readLang() === 'he' ? 'rtl' : 'ltr'} aria-pressed={loop} title={tt('Loop the video')} style={cell(loop)}>↻ {tr(readLang(), 'LOOP')}</button>
               </div>
             )}
+            {/* COMMENT, the coach's one action on a clip, + FULL: the deck's last row, 3 + 1 cells on the same 4 columns */}
+            {onReviewNotesChange && role === 'trainer' ? (
+              <div data-fv-row="comment" style={row(4)}>
+                <button onClick={addComment} data-fv="comment" title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
+                  style={{ ...cell(false), color: C.ac, fontSize: 11, letterSpacing: '0.1em', gridColumn: 'span 3' }}>＋ {tt("COMMENT")}</button>
+                {fullBtn}
+              </div>
+            ) : <div data-fv-row="full" style={row(1)}>{fullBtn}</div>}
           </div>
           {poseError && <span style={{ fontSize: 10, fontFamily: FN, color: C.rd }}>{poseError}</span>}
-          {onReviewNotesChange && role === 'trainer' && (
-            <button onClick={addComment} data-fv="comment" title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
-              style={{ ...cell(true), width: '100%', border: `1px solid ${C.ac}`, fontSize: 11, letterSpacing: '0.1em' }}>＋ {tt("COMMENT")}</button>
-          )}
         </div>);
       })()}
       </div>
@@ -2673,7 +2657,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   return (
     <div>
       <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:4}}>{tt('WORKOUT REVIEW')}</div>
-      <div style={{color:C.tm,fontSize:11,marginBottom:16,fontFamily:FB}}>
+      <div style={{color:C.tm,fontSize:11,marginBottom:11 /* 13.10 #735: the title 15 under the bar, the line 15 over the focus box (was 20) */,fontFamily:FB}}>
         {tt('Review completed workouts, watch client form videos, and write focus notes for next week.')}
       </div>
 
@@ -2855,7 +2839,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               Sits directly under the last pending athlete (Ohad's ask), not at
               the top of the page. */}
           {reviewedCount > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 15px' /* 13.10 #735: 27 / 32 -> 27 / 27 (the top margin collapses into the card's above, so only the bottom one moves) */ }}>
               <button onClick={() => setShowReviewed(v => !v)}
                 style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '7px 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 {/* one inline run ("SHOW REVIEWED(30)" - the flex button collapsed the space) */}

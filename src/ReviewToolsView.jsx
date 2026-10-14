@@ -137,7 +137,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   const miniLabel = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
   return (
     <Card header={tt('Load a reviewed clip')} headerRight={tree.length ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', whiteSpace: 'nowrap' }}>{tt('{n} clips').replace('{n}', total)}</span> : null} style={{ marginBottom: 16 }}>
-      <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.45, marginBottom: tree.length ? 14 : 0 }}>
+      <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.45, marginBottom: tree.length ? 9.2 : 0 /* 14.10 #735: 16 under the strip / 20.8 over the list -> even */ }}>
         {tree.length ? tt('A recorded set, then a tool - no re-upload.') : tt("No recorded form videos yet — athletes' uploaded clips will appear here to analyse.")}
       </div>
       {recent.length > 0 && (
@@ -160,7 +160,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
         </div>
       )}
       {tree.length > 0 && (<>
-        <div style={{ ...miniLabel, marginBottom: 6 }}>{tt('Older clips')}</div>
+        <div style={{ ...miniLabel, marginTop: -4, marginBottom: 10 /* #735: 17 under the list / 9 over the picker -> 13 / 13 */ }}>{tt('Older clips')}</div>
         <div className="rt-picker" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel} aria-label={tt('Athlete…')}>
             <option value="">{tt('Athlete…')}</option>
@@ -203,7 +203,7 @@ const ShotAnalyzer  = lazy(() => import('./ShotAnalyzer'));
 // the exercise name above; `live` tools are disabled when there's no camera API.
 const REVIEW_TOOLS = [
   { key: 'lab',     label: 'MOVEMENT LAB', icon: 'cube',
-    measures: 'Rotatable 3D skeleton rebuilt from the lift',
+    measures: 'Rotatable 3D anatomy body rebuilt from the lift',
     useWhen: 'See a movement in 3D — orbit it, scrub the rep, read joint angles.',
     needsTitle: true,  live: false },
   { key: 'metrics', label: 'LIFT METRICS', icon: 'trendingUp',
@@ -215,7 +215,7 @@ const REVIEW_TOOLS = [
     useWhen: 'Test lower-body power. Enter bodyweight for watts.',
     needsTitle: false, live: false },
   { key: 'live',    label: 'LIVE COACH', icon: 'camera',
-    measures: 'Real-time reps + depth target + bar-path drift on the live feed',
+    measures: 'Real-time reps + depth target + bar-path drift + a 3D body on the live feed',
     useWhen: 'Coach a set as it happens — feedback before the rep ends.',
     needsTitle: true,  live: true },
   // Basketball — record/upload a jump shot; pose on every frame → phases
@@ -305,7 +305,7 @@ function ToolLoading({ label }) {
 // OPEN). Editorial/linear layout — no nested card, no "use when" clutter — so
 // the launcher reads calm. Hover paints a soft cyan wash; live tools without a
 // camera are dimmed and marked.
-function ToolRow({ t, blocked, isFirst, onOpen }) {
+function ToolRow({ t, blocked, isFirst, isLast, onOpen }) {
   const tt = useT();
   return (
     <div
@@ -315,7 +315,10 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
       onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       className="rt-tool"
       style={{
-        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64, padding: '10px 0',
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64,
+        // 14.10 #735: the text block rode 1.4px high (13 / 15.8 per row), and the first and last rows sat on the card's own
+        // padding as well as theirs (25 under the strip, 34.8 over the edge) - they sit into it
+        padding: '11.4px 0 8.6px', marginTop: isFirst ? -12 : undefined, marginBottom: isLast ? -19 : undefined,
         boxSizing: 'border-box', borderTop: isFirst ? 'none' : `1px solid ${C.cardBd}`, cursor: blocked ? 'not-allowed' : 'pointer',
         opacity: blocked ? 0.55 : 1, outline: 'none',
       }}>
@@ -392,7 +395,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
             </Card>
             <Card header={tt('TOOLS')}>
               {REVIEW_TOOLS.map((t, i) => (
-                <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
+                <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} isLast={i === REVIEW_TOOLS.length - 1} onOpen={() => open(t.key)} />
               ))}
             </Card>
           </div>
@@ -400,7 +403,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
       ) : (
         <Card header={tt('TOOLS')}>
           {REVIEW_TOOLS.map((t, i) => (
-            <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
+            <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} isLast={i === REVIEW_TOOLS.length - 1} onOpen={() => open(t.key)} />
           ))}
         </Card>
       )}

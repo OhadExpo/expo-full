@@ -25,7 +25,7 @@
 //   - Done pool collapsed at the bottom.
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { localiseAutoBody } from './autoTaskHe';
+import { localiseAutoBody, addLocalNames } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
@@ -189,7 +189,9 @@ function setPriorityInBody(body, newPriority) {
 // back to created_at and a mere status flip MOVES the event to a past date
 // (audit 08-22) — so every sync path must use this, not just the composer.
 function calendarOptsFor(row, extra) {
-  const opts = { displayBody: displayBodyOf(row && row.body), ...(extra || {}) };
+  // names:false - the calendar title stays the projection it always was; the Hebrew-spelling swap is for the screen only,
+  // or a pull would read every older event as a remote rename and overwrite the stored body (12.10 review C2)
+  const opts = { displayBody: displayBodyOf(row && row.body, { names: false }), ...(extra || {}) };
   const dueAt = dueAtFromBody(row && row.body);
   if (dueAt) opts.dueAt = dueAt;
   const dueTime = dueTimeFromBody(row && row.body);
@@ -197,10 +199,10 @@ function calendarOptsFor(row, extra) {
   return opts;
 }
 
-function displayBodyOf(body) {
+function displayBodyOf(body, opts) {
   const core = stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
   // An auto-task body is stored in English; in Hebrew it is re-said here.
-  return readLang() === 'he' ? localiseAutoBody(core) : core;
+  return readLang() === 'he' ? localiseAutoBody(core, opts) : core;
 }
 
 // ── Dual-checkmark for shared tasks ────────────────────────────────────
@@ -1639,7 +1641,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   const athleteName = (row.target_kind === 'trainee' && row.target_label) ? row.target_label : null;
   // Only show the athlete chip when the TITLE doesn't already name them —
   // auto-alerts embed the name in the body, so the chip is redundant there (Ohad).
-  const showAthlete = athleteName && !String(row._display || '').includes(athleteName);
+  // either spelling counts as 'already named': the title may say the Hebrew one while the label holds the stored one
+  const showAthlete = athleteName && !String(row._display || '').includes(athleteName) && !String(row.body || '').includes(athleteName);
 
   // Due shown as relative word + real date + time on ONE row (his spec:
   // "relative + date + time"), e.g. "TMRW · 7 Jun 09:00".
@@ -1863,6 +1866,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 // ────────────────────────────────────────────────────────────────────
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
+  addLocalNames(trainees); // the athlete's Hebrew spelling in Hebrew auto-task bodies (autoTaskHe)
   const tt = useT();
   const { rows, loading, connected, update, create, remove } = useCoachNotes({ limit: 200 });
   const settle = useSettleIn(!loading);
@@ -2092,7 +2096,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         // remotely-renamed on every poll and got rewritten WITHOUT them —
         // silently deleting the coach's due date and urgency (audit 08-22).
         const newSummary = stripStatusPrefix(event.summary || '');
-        const currentDisplay = displayBodyOf(localRow.body);
+        const currentDisplay = displayBodyOf(localRow.body, { names: false }); // the projection calendarOptsFor sent
         if (newSummary && newSummary !== currentDisplay) {
           const owner = ownerFromBody(localRow.body);
           const prefix = owner === 'shared' ? 'Ohad + Yuval: '
@@ -2227,7 +2231,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       // what the row, search, and Calendar sync should show / match against.
       _display: displayBodyOf(r.body),
     };
-  }), [rows]);
+  }), [rows, trainees]); // trainees: their Hebrew spellings arrive after the rows (12.10 review P4)
 
   // A shared task ("Ohad + Yuval: …") belongs to BOTH partners, so it shows on
   // each person's own tab AND the dedicated Shared tab. Personal-tab counts
@@ -2267,7 +2271,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const searched = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return ownerBase;
-    return ownerBase.filter(r => (r._display || r.body || '').toLowerCase().includes(q));
+    return ownerBase.filter(r => `${r._display || ''} ${r.body || ''}`.toLowerCase().includes(q)); // both spellings find it
   }, [ownerBase, search]);
 
   // Quick-filter counts (computed off ownerBase so chips show real numbers
@@ -2342,7 +2346,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       return true;
     };
     const src = decorated.filter(r => ownerMatches(r) && r.status !== 'cancelled'
-      && (!q || (r._display || r.body || '').toLowerCase().includes(q))
+      && (!q || `${r._display || ''} ${r.body || ''}`.toLowerCase().includes(q))
       && quickMatch(r));
     const order = ['open', 'working', 'waiting', 'stuck', 'done'];
     const byStatus = new Map(order.map(s => [s, []]));
@@ -2695,7 +2699,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           maxHeight: narrow ? undefined : 'calc(100vh - 84px)', overflowY: narrow ? 'visible' : 'auto',
         }}>
           {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
-          <div style={{ padding: '0 14px 12px' }}>
+          <div style={{ padding: (narrow && !railOpen) ? '0 14px' : '0 14px 12px' /* 13.10 #735: as SideRail - closed on a phone its 12 stacked on the rail's gap */ }}>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={tt('Search tasks…')} data-hotkey="search"
               style={{ width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
           </div>

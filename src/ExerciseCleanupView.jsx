@@ -123,7 +123,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
             { label: tb('Clear'), onClick: () => setAll(null, false), disabled: !sel.size },
             { label: <>{tb('Delete')}{' '}{sel.size}</> /* tb() is an element - in a template string it printed [object Object] */, onClick: () => setConfirm(true), disabled: !sel.size, tone: 'danger' },
           ]} />
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560 }}>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5, maxWidth: 560, marginBottom: -7 /* its leading + the card's padding read 25 under it, 18 over (14.10 #735) */ }}>
             {tt('Pre-checked: definite, in no plan, no video or cues. Deleting sends any plan row that used one to Matching.')}
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
           {phone ? (
             // A PHONE GETS ROWS, NOT A 700px TABLE (9.10, after #619): the box and the whole
             // title, then why it was flagged, its plan rows and its video/cues on one line
-            <div style={{ marginTop: -12 }} data-allow-copy>
+            <div style={{ marginTop: -24 }} data-allow-copy>
               {rows.map((r) => (
                 <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '24px minmax(0, 1fr)', columnGap: 10, rowGap: 4, alignItems: 'start', padding: '10px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
                   <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 18, height: 18, margin: '1px 0 0' }} />
@@ -161,7 +161,8 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
               ))}
             </div>
           ) : (
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          // the head row sits on the card's top edge: its own 36px box is the air (14.10 #735: 38.5 over the words, 14.5 under)
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginTop: -24 }}>
           <div style={{ minWidth: 700, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px', minHeight: 36, boxSizing: 'border-box', alignItems: 'center' /* a header row is a row: 36 (OCD #494: 19) */, borderBottom: `1px solid ${C.bd}`, ...th }}>
             <span /><span>{tt('Title')}</span><span>{tt('Why flagged')}</span><span style={{ textAlign: 'center' }}>{tt('Plan rows')}</span><span style={{ textAlign: 'center' }}>{tt('Has')}</span>
           </div>

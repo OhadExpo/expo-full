@@ -21,6 +21,7 @@ import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
+import { wrapNeed } from './wrapNeed';
 import { YouTubeLite } from './VideoEmbed';
 import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid, TagStack } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
@@ -298,7 +299,7 @@ function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac,
   return (
     <div className="alert-card kpi-card" style={{
       background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-      padding: '16px 20px', boxShadow: C.cardShadow,
+      padding: '16px 20px 18.5px' /* + the value's -2.5: one height, the words midway (#735, as the real tile) */, boxShadow: C.cardShadow,
     }}>
       <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '0 20px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         {/* TITLE ON THE BODY'S EDGE, DOT AT THE FAR END (Ohad, 26.9: title boxes whose
@@ -318,7 +319,7 @@ function StatCard({ label, short, value, sub, subShort, subColor, accent = C.ac,
           every card's label sat right and its big number sat left. The
           isolation belongs on the numeral, not on the box: the box now
           inherits the page direction and aligns with its own label. */}
-      <div className="kpi-value" style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
+      <div className="kpi-value" style={{ marginTop: -2.5, fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', textAlign: 'start' }}>
         <span style={{ direction: 'ltr', unicodeBidi: 'isolate', display: 'inline-block', whiteSpace: 'nowrap' }}>
           {value}
           {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
@@ -720,7 +721,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
               <StripCaret open={rosterOpen} />
             </div>
             {rosterOpen && <>
-              <div style={{ padding: '12px 14px' }}>
+              <div style={{ padding: '12px 14px 0' /* the head cells' own top is the air (#735, as the real table) */ }}>
                 <input type="text" placeholder={T('Filter athletes...')} value={rosterFilter} onChange={(e) => setRosterFilter(e.target.value)} style={{ ...appBaseInput, width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', paddingInlineStart: 12, textAlign: 'start' }} />
               </div>
               <div style={{ overflowX: 'auto' }}>
@@ -741,15 +742,15 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                           onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' /* the real row: a button (a finger's 40px on a phone), height from its 12px cells + the real badge - was 44 / 36 against 43 / 40 (AUDIT-470) */ }}>
-                          <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}><AppBadge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</AppBadge></td>
-                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
-                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
-                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
-                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
-                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
-                          <td className="dash-opt" style={{ padding: '12px', textAlign: 'center', fontFamily: FN, color: C.tm, fontSize: 12 }}>{planCount(t)}</td>
+                          <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
+                          <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><AppBadge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</AppBadge></td>
+                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
+                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
+                          <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
+                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
+                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
+                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
+                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, color: C.tm, fontSize: 12 }}>{planCount(t)}</td>
                         </tr>
                       );
                     })}
@@ -1424,9 +1425,8 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style, co
 function DemoNotifToggle() {
   const [off, setOff] = useState(false);
   return (
-    <button className="td-notif" onClick={() => setOff(o => !o)} title={T("Demo only — mute this athlete's notifications")} aria-pressed={!off}
-      style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: off ? C.td : C.tx, whiteSpace: 'nowrap' }}>{T('NOTIFICATION')}</span>
+    <button type="button" className="td-notif" onClick={() => setOff(o => !o)} title={T("Demo only — mute this athlete's notifications")} aria-pressed={!off}>
+      <span className="td-notif-lbl" style={{ color: off ? C.td : C.tx }}>{T('NOTIFICATION')}</span>
       <span style={{ width: 34, height: 18, borderRadius: 9, background: off ? 'rgba(127,127,138,0.25)' : 'rgba(57,189,255,0.35)', position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
         <span style={{ width: 14, height: 14, borderRadius: 7, background: off ? C.tm : C.ac, position: 'absolute', top: 2, insetInlineStart: off ? 2 : 18, transition: 'all .15s' }} />
       </span>
@@ -1487,6 +1487,9 @@ const DEMO_MESSAGES = [
   { role: 'coach',   time: msgTime(3, '08:40'), text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
 ];
 // CoachMessages' recBtnStyle: the composer's buttons are 30px, not the house 36
+// the program editor's name column: as wide as the day's longest-needing name needs to wrap two words a line (#751,
+// as the real editor); +14 = the cell's border and inset
+const demoNameMin = (d) => Math.max(180, Math.min(280, Math.ceil(wrapNeed((d.exercises || []).map((e) => e.name || ''), { font: `12px ${FB}`, ls: readLang() === 'he' ? 0.24 : 0, perChar: 7.6 })) + 14));
 const DEMO_REC_BTN = (color) => ({ height: 30, padding: '0 12px', borderRadius: 0, background: 'transparent', color, border: `1px solid ${color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' });
 function DemoMessages() {
   return (
@@ -1496,7 +1499,7 @@ function DemoMessages() {
           const self = m.role === 'coach';
           return (
             <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth: '78%', minWidth: 0, borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
+              <div style={{ maxWidth: '78%', minWidth: 0, borderRadius: 0, padding: '8px 10px 6px' /* the text's 1.4 leading is the other 2 (14.10 #735) */, background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{m.time}</span></div>
                 {/* overflowWrap so a pasted URL or a long word cannot push past the
                     bubble. Defensive only: I first added this believing the gate's
@@ -1514,7 +1517,7 @@ function DemoMessages() {
       <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
         <textarea title={T('Demo only')} placeholder={T('Type a note to your athlete…')} rows={2}
           style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical', display: 'block' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 17 /* as far under the note as the card edge is under the buttons (14.10 #735) */ }}>
           <button title={T('Demo only')} style={DEMO_REC_BTN(C.rd)}>● {T('REC')}</button>
           <span style={{ flex: 1 }} />
           <button title={T('Demo only')} style={{ ...DEMO_REC_BTN(C.ac), opacity: 0.5 }}>{T('SEND →')}</button>
@@ -1534,6 +1537,7 @@ function DemoMessages() {
 // Now: the amount is the athlete's own monthly, the block is the newest one in
 // their own plans array, the note names their own injury, and every timestamp
 // resolves from today.
+const TABS_LIFT = 11;
 function DemoCRM({ trainee }) {
   const [tab, setTab] = useState('activity');
   const t = trainee || {};
@@ -1548,27 +1552,29 @@ function DemoCRM({ trainee }) {
   const activity = [
     { kind: T('SESSION'), color: C.gn, when: when(2, '14:20'), auto: true,  text: T('Completed Upper A — 6 exercises logged') },
     { kind: T('WHATSAPP'), color: C.gn, when: when(3, '09:10'), auto: false, text: hurt ? `${T('Checked in about')} ${T(hurt)}` : T('Checked in — feeling good') },
-    { kind: T('PAYMENT'), color: C.gn, when: when(t.paidDaysAgo != null ? t.paidDaysAgo : 30, '08:00'), auto: true,  text: <><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{'₪' + (t.monthly || 0).toLocaleString()}</span> — {T('monthly package')}</> },
+    { kind: T('PAYMENT'), color: C.gn, when: when(t.paidDaysAgo != null ? t.paidDaysAgo : 30, '08:00'), auto: true,  text: <><span dir="ltr" style={{ unicodeBidi: 'isolate', lineHeight: 1 /* the ₪ comes from a fallback font with a taller line box (14.10 #735) */ }}>{'₪' + (t.monthly || 0).toLocaleString()}</span> — {T('monthly package')}</> },
     { kind: T('PLAN'), color: C.ac, when: when(12, '17:45'), auto: true,  text: `${T('Assigned')} ${block}` },
   ];
   return (
     <div>
       {/* Health strip (TRAINING/LAST CONTACT/PAYMENT/CLIENT) removed for parity
           with the real app — those facts live in their own sections. */}
-      <div style={{ display: 'flex', gap: 18, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 10 }}>
+      {/* the tabs sit as the real COACH HISTORY's do (14.10 #735 parity): a 36px tab right under the strip, the words as
+          far from the strip as from the tab rule, and the rows straight under the rule */}
+      <div style={{ display: 'flex', gap: 18, borderBottom: `1px solid ${C.cardBd}`, marginTop: -TABS_LIFT, marginBottom: 0 }}>
         {[['actions', T('ACTIONS')], ['activity', T('ACTIVITY')]].map(([id, l]) => (
-          <button key={id} onClick={() => setTab(id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: tab === id ? C.ac : C.tm, borderBottom: tab === id ? `2px solid ${C.ac}` : '2px solid transparent' }}>{l}</button>
+          <button key={id} onClick={() => setTab(id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, height: 36, minHeight: 0, boxSizing: 'border-box', marginBottom: -1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: tab === id ? C.ac : C.tm, borderBottom: tab === id ? `2px solid ${C.ac}` : '2px solid transparent' }}>{l}</button>
         ))}
       </div>
       {tab === 'actions' ? (
-        <div>{actions.map((a, i) => (
+        <div style={{ marginBottom: -18 /* the last row ends at the card edge, not 18 over it */ }}>{actions.map((a, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 0', borderBottom: i < actions.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
             <span style={{ width: 15, height: 15, border: `1px solid ${C.tm}`, flexShrink: 0 }} />
             <span style={{ fontSize: 13, color: C.tx }}>{a}</span>
           </div>
         ))}</div>
       ) : (
-        <div>{activity.map((a, i) => (
+        <div style={{ marginBottom: -18 /* the last row ends at the card edge, not 18 over it */ }}>{activity.map((a, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', alignItems: 'center', borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
             {/* Dot in a 15px slot matching the Actions checkbox so text starts at the
                 same x across both tabs. */}
@@ -1880,19 +1886,19 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           .demo-td-vitals { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
         }
       `}</style>
-      {/* The real athlete page's action bar, 1:1 (29.9 #456): the same order,
-          the same grid (themes.css .td-actions) - one row on a desktop, BACK |
-          NOTIFICATION / EDIT | PORTAL | ANALYSIS / LOG SESSION | ARCHIVE on a
-          phone. A couple's status menu lives in its identity card. */}
-      <div className="td-actions">
-        <button className="td-act td-back" onClick={onBack} style={{ ...DEMO_ACT, color: 'var(--c-ac)' }}>{backLabel}</button>
-        <button className="td-act" onClick={() => setActionNote('edit')} style={DEMO_ACT}>{T('EDIT')}</button>
-        <button className="td-act" onClick={() => setActionNote('portal')} style={DEMO_ACT}>{T('PORTAL')}</button>
-        <button className="td-act" onClick={() => setActionNote('analysis')} style={DEMO_ACT}>{T('ANALYSIS')}</button>
-        <button className="td-act td-log" onClick={() => setActionNote('log')} style={DEMO_ACT}>{T('LOG SESSION')}</button>
-        <button className="td-act" onClick={() => setActionNote('archive')} style={{ ...DEMO_ACT, color: 'var(--c-tm)' }}>{T('ARCHIVE')}</button>
+      {/* The real athlete page's top, 1:1 (14.10 #755): BACK + NOTIFICATION, then the joined action bar (themes.css
+          .td-top / .td-actbar). A couple's status menu lives in its identity card. */}
+      <div className="td-top">
+        <button type="button" onClick={onBack} className="td-back-link">{backLabel}</button>
         <DemoNotifToggle />
       </div>
+      <JoinedButtons maxWidth="none" className="td-actbar td-actbar-5" style={{ marginBottom: 8 }} items={[
+        { label: T('EDIT'), onClick: () => setActionNote('edit') },
+        { label: T('PORTAL'), onClick: () => setActionNote('portal') },
+        { label: T('ANALYSIS'), onClick: () => setActionNote('analysis') },
+        { label: T('LOG SESSION'), onClick: () => setActionNote('log'), tone: 'accent' },
+        { label: T('ARCHIVE'), onClick: () => setActionNote('archive'), tone: 'muted' },
+      ]} />
       {actionNote && (
         <div style={{ fontFamily: FB, fontSize: 11.5, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8, margin: '-4px 0 14px' }}>
           {T(ACTION_NOTE[actionNote])}
@@ -2067,7 +2073,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
           {/* VITALS · INJURIES · GOALS (context — shown in View All) */}
           {showSec('vitals') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Vitals · Injuries · Goals')}>
-            <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 132px)', justifyContent: 'center', gap: 12, maxWidth: 558, margin: '0 auto', textAlign: 'center' }}>
+            <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 132px)', justifyContent: 'center', gap: 12, maxWidth: 558, margin: '0 auto -2px' /* the values' leading (14.10 #735: 15 over, 17 under) */, textAlign: 'center' }}>
               {[['Age', trainee.age ? `${trainee.age}` : '—'], ['Weight', trainee.weight ? `${trainee.weight}kg` : '—'], ['Height', trainee.height ? `${trainee.height}cm` : '—'], ['Format', trainee.format || '—']].map(([l, v]) => {
                 const empty = v === '—';
                 return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{v}</div></div>;
@@ -2673,7 +2679,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         </span>
                         <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                           <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
-                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap', flexBasis: heL ? '100%' : undefined }}>{cur.dayCount}{heL ? ' ימים' : 'D'} · {cur.exerciseCount}{heL ? ' תרגילים' : ' EX'}</span>
+                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap', flexBasis: heL ? '100%' : undefined }}>{heL ? (cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`) : `${cur.dayCount}D`} · {heL ? (cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`) : `${cur.exerciseCount} EX`}</span>
                         </span>
                         <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 }}>
                           {row.earlier.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 16, minWidth: 44, margin: '-1px 0', padding: '0 7px', boxSizing: 'border-box', background: 'rgba(127,127,138,0.16)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">+{row.earlier.length}</bdi><span aria-hidden style={{ fontSize: 8, lineHeight: 1 }}>▾</span></span>}
@@ -2784,7 +2790,7 @@ function DemoPrograms({ resetToken = 0 }) {
                             <div key={p.id} onClick={() => setSelectedProgramId(p.id)}
                               style={{ cursor: 'pointer', padding: '7px 14px 7px 32px', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.78, borderTop: `1px solid rgba(57,189,255,0.102)` }}>
                               <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.ac, opacity: 0.72, fontWeight: 700, whiteSpace: 'normal', overflowWrap: 'anywhere', letterSpacing: '0.04em', fontFamily: FN }}>{p.name || 'Untitled'}</div>
-                              <div style={{ fontSize: 11, color: C.td, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{p.dayCount}d · {p.exerciseCount}ex</div>
+                              <div style={{ fontSize: 11, color: C.td, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{readLang() === 'he' ? `${p.dayCount === 1 ? 'יום אחד' : `${p.dayCount} ימים`} · ${p.exerciseCount === 1 ? 'תרגיל אחד' : `${p.exerciseCount} תרגילים`}` : `${p.dayCount}d · ${p.exerciseCount}ex`}</div>
                               {(() => {
                                 const txt = (color) => ({ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color });
                                 const on = isVis(p.id);
@@ -3141,7 +3147,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', minHeight: CTRL_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginInlineStart: 'auto' }}>DETAIL ▸</button>
                 </div>
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `36px minmax(${demoNameMin(d)}px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px`, gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
                     {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
                       hi === 0 ? (
                         <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -3284,7 +3290,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   </div>
                   <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: `36px minmax(${demoNameMin(d)}px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px`, gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
                       {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
                         hi === 0 ? (
                           <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -3528,7 +3534,7 @@ function DemoExercises() {
   return (
     <section>
       {/* The real Exercises hub's sub-tabs (App.jsx): LIBRARY + the four tools (5.10 parity: VIDEOS). */}
-      <div className="subtab-scroll" style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="subtab-scroll" style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, marginTop: -12 /* as App.jsx (#735) */, marginBottom: 16, flexWrap: 'wrap' }}>
         {[['library', 'Library'], ['matching', 'Matching'], ['classify', 'Classify'], ['cleanup', 'Cleanup'], ['videos', 'Videos']].map(([r, l]) => {
           const on = r === 'library';
           return <button key={r} role="tab" aria-selected={on} onClick={() => setExNote(on ? null : (r === 'videos' ? 'videos' : 'tools'))} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: on ? `2px solid ${C.ac}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{T(l)}</button>;
@@ -3965,21 +3971,24 @@ function DemoReview() {
                   </div>
                 </div>
               </div>
-              {/* THE REAL PLAYER'S CONTROL DECK (5.10 #563 parity): one block, equal
-                  cells joined by hairlines - analysis, speed, transport - and COMMENT
-                  as its own full-width action. Inert in the demo. */}
+              {/* THE REAL PLAYER'S CONTROL DECK (14.10 #761 / #763 / #765 parity): one block of 4 columns - SKELETON | JOINT
+                  ANGLES (2 + 2), REPS | METRICS (2 + 2), then ◀ | ▶ | speed | LOOP, then ＋ COMMENT (3 cells) | FULL. Active = coloured text + a
+                  thin frame, never a fill. Inert in the demo. */}
               <div style={{ padding: '0 14px 14px', maxWidth: 380, boxSizing: 'content-box' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}` }}>
-                  {[[T('SKELETON'), T('REPS'), T('METRICS')], ['0.125x', '0.25x', '0.5x', '1x', '2x'], ['◀', '▶', `↻ ${T('LOOP')}`, `⛶ ${T('FULL')}`]].map((row, ri) => (
-                    <div key={ri} style={{ display: 'grid', gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`, gap: 1 }}>
-                      {row.map((l) => {
-                        const on = l === '1x';
-                        return <span key={l} dir={l === '◀' || l === '▶' ? 'ltr' : undefined} style={{ height: 'var(--btn-h)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? C.acD : 'var(--c-sf)', color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>{l}</span>;
-                      })}
+                  {[
+                    [[T('SKELETON'), 2], [T('JOINT ANGLES'), 2]],
+                    [[T('REPS'), 2], [T('METRICS'), 2]],
+                    [['◀'], ['▶'], ['1x', 1, false, true], [`↻ ${T('LOOP')}`]],
+                    [[`＋ ${T('COMMENT')}`, 3, true], [`⛶ ${T('FULL')}`]],
+                  ].map((row, ri) => (
+                    <div key={ri} dir={ri === 2 ? 'ltr' : undefined} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1 }}>
+                      {row.map(([l, span = 1, accent = false, caret = false]) => (
+                        <span key={l} dir={l === '◀' || l === '▶' ? 'ltr' : undefined} style={{ gridColumn: `span ${span}`, height: 'var(--btn-h)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--c-sf)', color: accent ? C.ac : C.tm, fontFamily: FN, fontSize: accent ? 11 : 10, fontWeight: 700, letterSpacing: accent ? '0.1em' : '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', gap: 4 }}>{l}{caret ? <CaretGlyph /> : null}</span>
+                      ))}
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 8, height: 'var(--btn-h)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.ac}`, background: C.acD, color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>＋ {T('COMMENT')}</div>
                 {/* 5.10 parity (#563): the block's weeks as the real review draws them -
                     one joined strip of equal cells at the house height, colour in the
                     TEXT only (this week green, the next cyan, never a fill) - then the
@@ -4085,7 +4094,7 @@ function DemoReview() {
       <style>{`@media (max-width: 760px){ .cd-rv-strip .cd-rv-repeat{ display: none !important; } }`}</style>
       {/* the real page's intro (WorkoutReview) */}
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 4 }}>{T('WORKOUT REVIEW')}</div>
-      <div style={{ color: C.tm, fontSize: 11, marginBottom: 16, fontFamily: FB }}>{T('Review completed workouts, watch client form videos, and write focus notes for next week.')}</div>
+      <div style={{ color: C.tm, fontSize: 11, marginBottom: 11 /* as WorkoutReview (#735) */, fontFamily: FB }}>{T('Review completed workouts, watch client form videos, and write focus notes for next week.')}</div>
       {weeklyFocus}
 
       {(() => {
@@ -4592,9 +4601,9 @@ function DemoSingle() {
           const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
           return (
             <div key={t.id} style={{ borderTop: i === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
-              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', minHeight: CTRL_H, boxSizing: 'border-box', padding: '0 14px', textAlign: 'start' }}>
+              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', minHeight: CTRL_H, boxSizing: 'border-box', padding: '2px 14px 0' /* the caret hangs under the baseline: the words sit midway (#735, as the real picker) */, textAlign: 'start' }}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                  <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
+                  <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, lineHeight: '18px', fontWeight: 600, color: C.tx }}>{t.name}</span>
                   {/* every row said BLOCK #4; each athlete has their own */}
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }} dir="ltr">{((t.plans && t.plans[0]) || '').split(' — ')[0] || 'BLOCK #1'}</span>
                 </span>
@@ -4650,10 +4659,10 @@ function DemoSessions({ mode = 'group' }) {
 // camera/pose suite. In the demo we show the real launcher but DON'T load
 // MediaPipe/three.js — clicking a tool explains it runs live in the full app. ──
 const DEMO_REVIEW_TOOLS = [
-  { key: 'lab', label: 'MOVEMENT LAB', measures: 'Rotatable 3D skeleton rebuilt from the lift', live: false },
+  { key: 'lab', label: 'MOVEMENT LAB', measures: 'Rotatable 3D anatomy body rebuilt from the lift', live: false },
   { key: 'metrics', label: 'LIFT METRICS', measures: 'Bar speed (VBT) + per-goal stop-set cutoff · ROM/tempo/collapse · L/R symmetry', live: false },
   { key: 'jump', label: 'JUMP TEST', measures: 'Jump height from flight time · estimated peak power', live: false },
-  { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
+  { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift + a 3D body on the live feed', live: true },
   // Basketball. Parity with ReviewToolsView's registry — the demo listed four
   // tools while the real launcher shipped five (parity rule, 08-24).
   // SHOT ANALYZER removed from the demo, 24.9. Ohad: "take the shot analysis
@@ -4679,7 +4688,7 @@ function DemoReviewTools() {
       <DemoDetailCard header={demoCardTitle('TOOLS')} padding={24} collapsible={false}>
         {DEMO_REVIEW_TOOLS.map((t, i) => (
           <div key={t.key} role="button" tabIndex={0} className="rt-tool" onClick={() => setNote(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNote(true); } }}
-            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64, padding: '10px 0', boxSizing: 'border-box', borderTop: i ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', outline: 'none' }}>
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 112px', columnGap: 12, alignItems: 'center', minHeight: 64, padding: '11.4px 0 8.6px' /* as ReviewToolsView ToolRow (#735) */, boxSizing: 'border-box', borderTop: i ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', outline: 'none' }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: C.tx }}>{T(t.label)}</div>
               <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, lineHeight: 1.4 }}>{T(t.measures)}</div>

@@ -31,6 +31,9 @@ import { romReadingFor } from './romGoniometer';
 import { resolveStoredUrl } from './storageUrl';
 import { useT, HE } from './i18n';
 import { RefinedHeaderStrip, useIsMobile } from './ui';
+import AngleNum from './AngleNum';
+import { makeSubjectLock, pickLocked, LIVE_POSES } from './subjectLock';
+import { createPoseOverlay } from './poseOverlay';
 
 // Hebrew for the strings this rebuild introduced (27.9). Kept beside the tool,
 // the same late-addition pattern bhbcHe.js uses, so the whole Movement Lab reads
@@ -46,7 +49,7 @@ Object.assign(HE, {
   'Jump type': 'סוג קפיצה',
   UPLOAD: 'העלאה',
   RESULT: 'תוצאה',
-  '3D SKELETON': 'שלד 3D',
+  '3D BODY': 'הגוף בתלת־ממד',   // 13.10 #690: an anatomy body now (skeleton + muscle layers), not a skeleton
   'JOINT ANGLES': 'זוויות מפרקים',
   'Body tracked in {n}% of frames.': 'הגוף זוהה ב-{n}% מהפריימים.',
   // the camera read (10.10 #639) - native-checked
@@ -88,60 +91,9 @@ Object.assign(HE, {
   'Reading well down at this load. If filming was consistent, the athlete may not be fresh — confirm by feel/RPE before top sets.': 'הרבה מתחת לרגיל במשקל הזה. אם הצילום היה עקבי, יכול להיות שהמתאמן לא רענן — תוודא לפי תחושה או RPE לפני הסטים הכבדים.',
 });
 
-// Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
-// the central, tallest figure in frame (closest to the camera, framed in the
-// middle) — so a crowd of spectators/other gym-goers can't hijack the read.
-// Returns { idx, centroid } (idx -1 if none). Single-pose → { idx: 0, centroid }.
-//
-// prevCentroid (optional): the LAST selected subject's centroid. Without this,
-// every frame re-scores from scratch with ZERO memory of who was picked a
-// moment ago — in a busy gym (other people visible in frame, as most Review
-// clips are), a background person can transiently out-score the real subject
-// on span/centrality for a frame or two (e.g. during a jump, the actual
-// subject's own span swings a lot — crouched vs airborne — while someone else
-// briefly steps closer to centre). A frame-to-frame subject SWITCH means the
-// tracked wrist/hip position jumps to a completely different body between two
-// consecutive frames — a huge, physically-impossible "displacement" in an
-// arbitrary direction. That reads exactly like the reported symptom: sharp,
-// implausibly large velocity spikes (12+ m/s — no human bar/hip speed gets
-// anywhere near that) with an effectively random sign, not a genuine signed-
-// convention bug. When prevCentroid is given, continuity (closeness to where
-// the subject was a moment ago) dominates the score; span/centrality only
-// break ties or bootstrap the very first frame.
-function pickSubjectIdx(poses, prevCentroid = null) {
-  if (!poses || !poses.length) return { idx: -1, centroid: null };
-  const scored = [];
-  for (let i = 0; i < poses.length; i++) {
-    const p = poses[i];
-    if (!p || !p.length) continue;
-    let minY = 1, maxY = 0, sumX = 0, sumY = 0, n = 0;
-    for (const pt of p) {
-      if (!pt || typeof pt.y !== 'number') continue;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.y > maxY) maxY = pt.y;
-      sumX += pt.x; sumY += pt.y; n++;
-    }
-    if (!n) continue;
-    const span = maxY - minY;                                  // taller in frame = closer / main subject
-    const cx = sumX / n, cy = sumY / n;
-    const centrality = 1 - Math.min(1, Math.abs(0.5 - cx) * 2); // 1 at centre → 0 at the edges
-    scored.push({ i, span, centrality, cx, cy });
-  }
-  if (!scored.length) return { idx: -1, centroid: null };
-  if (poses.length === 1) { const s = scored[0]; return { idx: s.i, centroid: { x: s.cx, y: s.cy } }; }
-  let best = null, bestScore = -Infinity;
-  for (const s of scored) {
-    let score = s.span + s.centrality * 0.5;
-    if (prevCentroid) {
-      const dist = Math.hypot(s.cx - prevCentroid.x, s.cy - prevCentroid.y);
-      // Continuity dominates: a candidate close to where the subject just was
-      // scores far above span/centrality alone can push a different person to.
-      score += Math.max(0, 1 - dist * 4) * 5;
-    }
-    if (score > bestScore) { bestScore = score; best = s; }
-  }
-  return { idx: best.i, centroid: { x: best.cx, y: best.cy } };
-}
+// WHICH DETECTED PERSON IS THE LIFTER: src/subjectLock.js (13.10 #719). The picker it replaced took a lone detection
+// with no check and then followed whoever it was - c22: one frame of the lifter hidden in a hinge, a background man
+// read for 3.7 s while the lifter was detected in every frame again.
 
 // Measure a video's TRUE frame rate from real presentation timestamps via
 // requestVideoFrameCallback (rVFC gives each painted frame's exact mediaTime).
@@ -193,7 +145,9 @@ async function measureVideoFps(v) {
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
-export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null, quality = null } = {}) {
+// allPoses (a harness's array, 13.10 #719): every detected person per seek + which one was picked - to build and
+// measure the subject lock offline; the app never passes it
+export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600, shouldStop = null, quality = null, allPoses = null } = {}) {
   let lm, v;
   try {
     // An explicit `quality` ('lite' | 'full' | 'heavy') overrides the pick below
@@ -260,10 +214,10 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
     const total = Math.min(MAX, Math.max(2, Math.ceil(dur / STEP)));
     const frames = [];
     // Tracks WHICH detected pose is the subject across the whole seek pass —
-    // see pickSubjectIdx's comment. Without this, a background gym-goer can
+    // see src/subjectLock.js. Without this, a background gym-goer can
     // steal a frame or two and the tracked wrist/hip "teleports" between two
     // different people, producing a huge fake velocity spike.
-    let prevCentroid = null;
+    const lock = makeSubjectLock({ aspect: v.videoWidth > 0 && v.videoHeight > 0 ? v.videoWidth / v.videoHeight : 1 });
     let prevSig = null; // signature of the last KEPT frame — drops exact re-reads
     for (let i = 0; i < total; i++) {
       // A BACKGROUND pass stops the moment the coach touches the page (29.9
@@ -295,7 +249,8 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
       });
       let r = null;
       try { r = lm.detectForVideo(v, Math.round(time * 1000) + i); } catch {}
-      const { idx: si, centroid } = pickSubjectIdx(r?.landmarks, prevCentroid);
+      const si = lock(r?.landmarks || [], time * 1000);
+      if (allPoses) allPoses.push({ t: time * 1000, pick: si, l: r?.landmarks || [], w: r?.worldLandmarks || [] });
       if (si >= 0 && r.worldLandmarks?.[si]) {
         const wl = r.worldLandmarks[si];
         // Exact-duplicate guard: if this seek resolved to the SAME decoded frame
@@ -305,7 +260,6 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
         const sig = [0, 11, 12, 15, 16, 27, 28].map((j) => (wl[j] ? `${wl[j].x},${wl[j].y},${wl[j].z}` : 'x')).join('|');
         if (sig !== prevSig) {
           frames.push({ t: time * 1000, landmarks: r.landmarks?.[si] || null, worldLandmarks: wl });
-          prevCentroid = centroid;
           prevSig = sig;
         }
       }
@@ -350,7 +304,9 @@ function drawScene2D(ctx, scene, scale) {
 // element; the landmarks are mapped into that exact rect. (The old overlay
 // stretched a canvas over an object-fit: cover video — the skeleton landed off
 // the body whenever the aspect ratios differed.)
-function paintOverlay(canvas, videoEl, lms) {
+// SKELETON and JOINT ANGLES (14.10 #766) are two tools here too: the lab's own skeleton (head from the face) and the
+// shared engine's angle meter at each joint (poseOverlay.js: shoulders, elbows, wrists, hips, knees, ankles)
+function paintOverlay(canvas, videoEl, lms, { skeleton = true, angles = false, ovl = null, world = null, t = 0 } = {}) {
   if (!canvas || !videoEl) return;
   const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
   const bw = videoEl.clientWidth, bh = videoEl.clientHeight;
@@ -364,8 +320,12 @@ function paintOverlay(canvas, videoEl, lms) {
   if (!lms || !vw || !vh || !bw || !bh) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const s = Math.min(bw / vw, bh / vh);
-  const dw = vw * s, dh = vh * s;
-  drawScene2D(ctx, buildScene2D(lms, { ox: (bw - dw) / 2, oy: (bh - dh) / 2, dw, dh }), Math.min(dw, dh));
+  const dw = vw * s, dh = vh * s, ox = (bw - dw) / 2, oy = (bh - dh) / 2;
+  if (skeleton) drawScene2D(ctx, buildScene2D(lms, { ox, oy, dw, dh }), Math.min(dw, dh));
+  if (angles && ovl) {
+    ovl.update(lms, world, t);
+    ovl.draw(ctx, { w: bw, h: bh, px: (p) => ox + p.x * dw, py: (p) => oy + p.y * dh, skeleton: false, angles: true, dots: !skeleton });
+  }
 }
 
 // ----------------------------- shared look ----------------------------------
@@ -435,12 +395,18 @@ export default function MovementLab({
   const videoRef = useRef(null);          // live camera
   const liveCanvasRef = useRef(null);
   const streamRef = useRef(null);
-  const landmarkerRef = useRef(null);
+  const landmarkerRef = useRef(null), liveLockRef = useRef(null);
   const rafRef = useRef(null);
   const framesRef = useRef([]);
   const capturingRef = useRef(false);     // frames are stored only while true (the preview draws either way)
   const recStartRef = useRef(0);
   const smootherRef = useRef(createPoseSmoother(ONE_EURO_IMAGE));
+  // the two on-video tools, both on; refs so the running loops read the current choice
+  const [showSkel, setShowSkel] = useState(true);
+  const [showAngles, setShowAngles] = useState(true);
+  const toolsRef = useRef({ skeleton: true, angles: true });
+  useEffect(() => { toolsRef.current = { skeleton: showSkel, angles: showAngles }; }, [showSkel, showAngles]);
+  const liveOvlRef = useRef(createPoseOverlay()), clipOvlRef = useRef(createPoseOverlay());
   const analyzeVideoRef = useRef(null);   // results playback <video>
   const overlayCanvasRef = useRef(null);
   const displayFramesRef = useRef([]);
@@ -543,14 +509,16 @@ export default function MovementLab({
     const now = performance.now();
     let res = null;
     try { res = lm.detectForVideo(v, now); } catch { res = null; }
-    const raw = res?.landmarks?.[0] || null;
-    if (capturingRef.current && res?.worldLandmarks?.[0] && framesRef.current.length < 5400) {
+    // one person - the lifter (13.10 #719b): the lock over up to LIVE_POSES detections
+    const pick = pickLocked(liveLockRef.current, res, now);
+    const raw = pick ? pick.landmarks : null;
+    if (capturingRef.current && pick && pick.worldLandmarks && framesRef.current.length < 5400) {
       // Backstop against a forgotten recording growing unbounded (~90s at 60fps).
-      framesRef.current.push({ t: now - recStartRef.current, landmarks: raw, worldLandmarks: res.worldLandmarks[0] });
+      framesRef.current.push({ t: now - recStartRef.current, landmarks: raw, worldLandmarks: pick.worldLandmarks });
     }
     // Draw the SMOOTHED pose (One-Euro); the stored frames stay raw for analysis.
     if (!raw) smootherRef.current.reset();
-    paintOverlay(liveCanvasRef.current, v, raw ? smootherRef.current.smooth(raw, now) : null);
+    paintOverlay(liveCanvasRef.current, v, raw ? smootherRef.current.smooth(raw, now) : null, { ...toolsRef.current, ovl: liveOvlRef.current, world: pick ? pick.worldLandmarks : null, t: now / 1000 });
     if (capturingRef.current) setElapsed((performance.now() - recStartRef.current) / 1000);
     rafRef.current = requestAnimationFrame(recordLoop);
   }, []);
@@ -568,7 +536,8 @@ export default function MovementLab({
       if (!streamRef.current) streamRef.current = await getCamera(facingMode);
       const v = videoRef.current;
       if (v && v.srcObject !== streamRef.current) { v.srcObject = streamRef.current; await v.play(); }
-      if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite' });
+      if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite', numPoses: LIVE_POSES });
+      liveLockRef.current = makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 });
       // Preview (skeleton over the camera) starts now so the coach can frame the
       // athlete during the 3·2·1; frames are stored only once REC starts. The
       // first ~0.6s after REC is the standing baseline the jump math needs.
@@ -664,7 +633,7 @@ export default function MovementLab({
       if (v) {
         const tMs = (v.currentTime || 0) * 1000;
         const f = frameAt(displayFramesRef.current, tMs, gap);
-        paintOverlay(overlayCanvasRef.current, v, f ? f.landmarks : null);
+        paintOverlay(overlayCanvasRef.current, v, f ? f.landmarks : null, { ...toolsRef.current, ovl: clipOvlRef.current, world: f ? f.worldLandmarks : null, t: v.currentTime || 0 });
         if (Math.abs(tMs - lastT) >= 66) { lastT = tMs; setVideoTime(v.currentTime || 0); }
       }
       raf = requestAnimationFrame(tick);
@@ -738,6 +707,7 @@ export default function MovementLab({
     return null;
   })();
 
+  const clipInReplay = initialView === '3d' && !romSpec;
   const media = (
     <>
       {liveCam && (
@@ -758,7 +728,8 @@ export default function MovementLab({
             style={{ display: 'block', width: '100%', height: 'auto', maxHeight: isMobile ? '60vh' : '72vh', background: C.videoBg, opacity: 0.55 }} />
         </div>
       )}
-      {phase === 'results' && srcUrl && (
+      {/* the 3D BODY view plays the clip INSIDE the replay, beside the body (13.10 #713): one clip on screen, not two */}
+      {phase === 'results' && srcUrl && !clipInReplay && (
         <div style={{ position: 'relative', width: '100%', background: C.videoBg, lineHeight: 0 }}>
           <video ref={analyzeVideoRef} key={srcUrl} src={srcUrl} controls muted playsInline
             style={{ display: 'block', width: '100%', height: 'auto', maxHeight: isMobile ? '60vh' : '72vh', background: C.videoBg }} />
@@ -768,6 +739,18 @@ export default function MovementLab({
     </>
   );
 
+  const toolBtn = (on, set, label) => (
+    <button type="button" key={label} onClick={() => set((x) => !x)} aria-pressed={on}
+      style={{ ...ctrl(on ? C.ac : C.cardBd, false, false), flex: '1 1 0', minWidth: 0, color: on ? C.ac : C.tm, boxShadow: on ? `inset 0 0 0 1px ${C.ac}` : 'none' }}>
+      {tt(label)}
+    </button>
+  );
+  const overlayTools = (liveCam || (phase === 'results' && srcUrl && !clipInReplay)) && (
+    <div data-ml-tools style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', marginTop: 12 }}>
+      {toolBtn(showSkel, setShowSkel, 'SKELETON')}
+      {toolBtn(showAngles, setShowAngles, 'JOINT ANGLES')}
+    </div>
+  );
   const controls = (
     <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', width: '100%', marginTop: (liveCam || ((phase === 'results' || phase === 'analyzing') && srcUrl)) ? 12 : 0 }}>
       {showMovementPick && (
@@ -801,8 +784,8 @@ export default function MovementLab({
         {(initialView === '3d' || romSpec) ? (
           <>
             {!romSpec && (
-              <Section title={tt('3D SKELETON')}>
-                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result}
+              <Section title={tt('3D BODY')}>
+                <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result} clipSrc={srcUrl || null} exerciseTitle={exerciseTitle}
                   range={result && result.repCount > 1 ? (labRange || { from: 1, to: null }) : null} onRange={result && result.repCount > 1 ? (a, b) => setLabRange({ from: a, to: b }) : null} />
               </Section>
             )}
@@ -840,14 +823,17 @@ export default function MovementLab({
         <div style={{
           maxWidth: 1280, margin: '0 auto', boxSizing: 'border-box',
           padding: isMobile ? '12px 16px calc(24px + env(safe-area-inset-bottom, 0px))' : '20px 24px 32px',
-          display: isMobile ? 'block' : 'flex', gap: 24, alignItems: 'flex-start',
+          // the 3D BODY view (#713) has its clip inside the replay: one column, the controls above, the replay at full
+          // width - two columns left the controls alone in a column of empty space
+          display: isMobile || clipInReplay ? 'block' : 'flex', gap: 24, alignItems: 'flex-start',
         }}>
-          <div style={isMobile ? undefined : { flex: '0 0 min(520px, 46%)', minWidth: 0, position: 'sticky', top: 0 }}>
+          <div style={isMobile || clipInReplay ? undefined : { flex: '0 0 min(520px, 46%)', minWidth: 0, position: 'sticky', top: 0 }}>
             {media}
+            {overlayTools}
             {controls}
             {statusLine}
           </div>
-          <div style={isMobile ? { marginTop: 16 } : { flex: '1 1 0', minWidth: 0 }}>
+          <div style={isMobile || clipInReplay ? { marginTop: 16 } : { flex: '1 1 0', minWidth: 0 }}>
             {results}
           </div>
         </div>
@@ -1143,7 +1129,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         velLoss={movement !== undefined ? !(movement && movement.ballistic) : isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} movement={movement} recordedReps={recordedReps} targetReps={targetReps} />}
-      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} result={result}
+      {tab === 'threeD' && <ThreeDPanel frames={frames} playheadT={playheadT} onScrub={onScrub} result={result} exerciseTitle={exerciseTitle}
         range={repCount > 1 ? { from: effFrom, to: effTo } : null} onRange={repCount > 1 ? (a, b) => { setRepFrom(a); setRepTo(b); } : null} />}
     </div>
   );
@@ -1946,7 +1932,7 @@ function RomDiverging({ rows }) {
       {rows.map(r => (
         <div key={r.key} style={{ marginBottom: 13 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'end', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
+            <AngleNum v={r.lr} pre={false} style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, flexShrink: 0 }} />
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
               <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
                 <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(r.lr || 0) / maxRom * 100}%`, background: C.ac }} />
@@ -1956,7 +1942,7 @@ function RomDiverging({ rows }) {
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(r.rr || 0) / maxRom * 100}%`, background: ROM_R }} />
               </div>
             </div>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ROM_R, width: 34, flexShrink: 0 }}>{r.rr != null ? `${r.rr}°` : '—'}</span>
+            <AngleNum v={r.rr} pre={false} style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ROM_R, flexShrink: 0 }} />
           </div>
           <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.55)', marginTop: 4, textTransform: 'uppercase' }}>
             {tt(r.label)}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
@@ -1973,15 +1959,16 @@ function RomTableView({ rows }) {
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead><tr>
-        <th style={{ ...th, textAlign: 'start' }}>{tt('JOINT')}</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
+        {/* L / R / Δ centred over values of one width (13.10 #723) */}
+        <th style={{ ...th, textAlign: 'start' }}>{tt('JOINT')}</th><th style={{ ...th, textAlign: 'center' }}>{tt('L')}</th><th style={{ ...th, textAlign: 'center' }}>{tt('R')}</th><th style={{ ...th, textAlign: 'center' }}>Δ</th>
       </tr></thead>
       <tbody>
         {rows.map(r => (
           <tr key={r.key}>
             <td style={{ ...td, textAlign: 'start', color: C.tx }}>{tt(r.label)}</td>
-            <td style={{ ...td, color: C.ac }}>{r.lr != null ? `${r.lr}°` : '—'}</td>
-            <td style={{ ...td, color: ROM_R }}>{r.rr != null ? `${r.rr}°` : '—'}</td>
-            <td style={{ ...td, color: r.delta != null && r.delta > 10 ? ROM_FLAG : 'rgba(255,255,255,0.4)' }}>{r.delta != null ? `${r.delta}%` : '—'}</td>
+            <td style={{ ...td, textAlign: 'center', color: C.ac }}><AngleNum v={r.lr} pre={false} /></td>
+            <td style={{ ...td, textAlign: 'center', color: ROM_R }}><AngleNum v={r.rr} pre={false} /></td>
+            <td style={{ ...td, textAlign: 'center', color: r.delta != null && r.delta > 10 ? ROM_FLAG : 'rgba(255,255,255,0.4)' }}><AngleNum v={r.delta} pre={false} unit="%" /></td>
           </tr>
         ))}
       </tbody>
@@ -2346,13 +2333,14 @@ const repTimes = (result, frames) => {
   return result.reps.map((r, k) => (per[k] && per[k].rerack ? null : { t0: frames[r.startIdx]?.t, tb: frames[r.bottomIdx]?.t, t1: frames[r.endIdx]?.t }))
     .filter((r) => r && Number.isFinite(r.tb));
 };
-function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null, range = null, onRange = null }) {
+function ThreeDPanel({ frames, playheadT = null, onScrub = null, result = null, range = null, onRange = null, clipSrc = null, exerciseTitle = '' }) {
   const [fallback, setFallback] = useState(false);
   const reps = useMemo(() => repTimes(result, frames), [result, frames]);
-  if (fallback) return <Viewer3D frames={frames} playheadT={playheadT} />;
+  // no WebGL: the light canvas viewer - and the clip stays on screen (the 3D view hides the player above, #713)
+  if (fallback) return <>{clipSrc && <video src={clipSrc} controls muted playsInline style={{ display: 'block', width: '100%', maxHeight: '60vh', background: C.videoBg, marginBottom: 8 }} />}<Viewer3D frames={frames} playheadT={playheadT} /></>;
   return (
     <Suspense fallback={<Viewer3D frames={frames} playheadT={playheadT} />}>
-      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} reps={reps} channel={result ? result.kind : null} range={range} onRange={onRange} />
+      <Replay3D frames={frames} playheadT={playheadT} onSeek={onScrub} onUnsupported={() => setFallback(true)} reps={reps} channel={result ? result.kind : null} range={range} onRange={onRange} clipSrc={clipSrc} exerciseTitle={exerciseTitle} />
     </Suspense>
   );
 }

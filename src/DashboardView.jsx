@@ -601,7 +601,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         ].map((s, i) => {
           const refined = isRefined5b();
           return (
-            <div key={i} className="alert-card kpi-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
+            <div key={i} className="alert-card kpi-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px 18px' /* + the value's -2: one height, the words midway (#735) */, boxShadow: C.cardShadow }}>
               {/* Always render the strip in BOTH themes for layout parity
                   (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
@@ -632,7 +632,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   packed to flex-start, i.e. left, in BOTH languages.
                   So align the ROW, not the text. English is unchanged:
                   flex-start was already where it sat. */}
-              <div className="kpi-value" style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', justifyContent: he ? 'flex-end' : 'flex-start' }}>{s.value}
+              <div className="kpi-value" style={{ marginTop: -2 /* the number's own line leading: midway under the strip (14.10 #735: 22 / 18) */, fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', justifyContent: he ? 'flex-end' : 'flex-start' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {/* 18.9 (Ohad, phone): "'from the sheets' on mobile version is bad text
                   location and size". It was a 10px line sitting 6px under a 40px value
@@ -959,7 +959,8 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }} inert={allAthletesOpen ? undefined : ''} /* hidden = not reachable by keyboard (29.9 audit) */>
           {/* the filter belongs to the table it filters (29.9 #444: it floated
               alone, centred at 300px, between the alert cards and this card) */}
-          <div style={{ padding: '12px 14px 12px' }}>
+          {/* no padding under it: the head cells' own top is the air (14.10 #735: the head 23.7 under the box, 11.5 over its rule) */}
+          <div style={{ padding: '12px 14px 0' }}>
             <input type="text" placeholder={tt('Filter athletes...')} value={filter} onChange={e => setFilter(e.target.value)}
               style={{ ...baseInput, width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', paddingInlineStart: 12, textAlign: 'start' }} />
           </div>
@@ -984,32 +985,33 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
-                  <td className="dash-opt" style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
-                  <td className="dash-opt" style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                  {/* 13.10 #735: Nord's caps sit 1px low in a 13px line - 11.5 / 12.5 puts names and the taller digits midway between the row's lines (18 / 16 -> even) */}
+                  <td style={{ padding: '11.5px 12px 12.5px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
+                  <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
+                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
+                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  {isOwner && <td className="dash-opt" style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {isOwner && <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {/* Show what the header says + what the sort orders by: TOTAL PAID
                         (sum of this athlete's payments), not the monthly rate — else
                         clicking the TOTAL PAID sort reorders by an invisible metric
                         and reads as "nothing changed" (Ohad). */}
                     {t.totalPaid > 0 ? `₪${Math.round(t.totalPaid).toLocaleString()}` : '—'}
                   </td>}
-                  {isOwner && <td className="dash-opt" style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {isOwner && <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {(() => { const d = t.lastPay?.date || t.lastPayment; return d ? new Date(d).toLocaleDateString('en-GB') : '—'; })()}
                   </td>}
-                  <td className="dash-opt" style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
                   </td>
                   {/* Programs count recedes to muted grey (like the Format/Package
                       cells — "gym single" / "monthly"), not bright primary — it's a
                       reference number, not a headline metric (Ohad 2026-08-12). */}
-                  <td className="dash-opt" style={{ padding: '12px', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.planCount || '—'}
                   </td>
                 </tr>

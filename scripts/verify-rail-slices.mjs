@@ -1,5 +1,10 @@
 // NO MENU ITEM IS EVER SLICED BY A RAIL'S EDGE.
 //
+// SUPERSEDED IN PART 14.10 (#759 + #699, Ohad on his tablet: "I wanna see all the text that fits in"; "if the text is
+// not fully shown it just sometimes dissapears"): the rails no longer hide a half-visible tab - it is drawn to the edge
+// and the edge FADES (ui.jsx useRailTrailMask RAIL_FADE). A tab at a faded edge is not a slice; the ACTIVE tab must
+// still be whole.
+//
 // Ohad, 27.9, about the top menus: a word cut in half at the edge of a
 // horizontally scrolling rail, or half-hidden behind the logo/crest that sits
 // beside it, reads as broken - and the ACTIVE item must always be whole. The

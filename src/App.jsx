@@ -2098,7 +2098,7 @@ function AuthedApp() {
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
-              <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
+              <div ref={subtabRef} className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginTop:-12 /* 13.10 #735: the labels sat 26 under the bar and 14 over their line -> 14 / 14 */,marginBottom:16,flexWrap:'wrap'}}>
                 {/* VIDEOS (5.10 #559) is owner-only: it writes the library AND athletes' programs */}
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup'],...(isOwner?[['exerciseVideos','Videos']]:[])].map(([r,l])=>{
                   const on=viewTab===r;

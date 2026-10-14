@@ -92,7 +92,7 @@ export function SideRail({
       scrollbarGutter: narrow ? undefined : 'stable', overscrollBehavior: 'contain',
     }}>
       {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
-      <div style={{ padding: '0 14px 12px' }}>
+      <div style={{ padding: (narrow && !railOpen) ? '0 14px' : '0 14px 12px' /* 13.10 #735: closed on a phone its 12 stacked on the rail's 12 gap - FILTERS sat 27 under the box and 15 over the edge */ }}>
         <input value={search} onChange={e => onSearch?.(e.target.value)} placeholder={searchPlaceholder} title={searchTitle}
           style={{ width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
       </div>

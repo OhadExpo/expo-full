@@ -33,7 +33,9 @@ const RULES = [
     id: 'calque-verb',
     why: 'wrong word from word-for-word translation, not a style slip',
     // `נקרא` for "detected" — Ohad flagged this one by name.
-    test: NB('נקרא') , when: (s) => /נקרא\s+מ/.test(s),
+    // (13.10: widened - 'רק {n}% מהקליפ נקרא' and 'לא נקרא טוב' for 'could be read' passed the 'נקרא מ' form; every
+    // נקרא is flagged now except the inbox's own 'unread' labels)
+    test: NB('נקרא') , when: (s) => !/^(לא נקרא|סמן הכל כנקרא)$/.test(s.trim()),
     fix: 'זוהה / מזוהה — נקרא means "is called" or "we will read", never "was detected"',
   },
   {

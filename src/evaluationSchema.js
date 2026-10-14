@@ -127,6 +127,12 @@ export const EVAL_SCHEMA = {
   },
 };
 
+// THE PASSIVE ROM WORDS IN HEBREW (13.10 #724b): the schema keeps its English ids (they make the stored keys, romKey);
+// what a screen shows goes through tt under 'rom·<english>' keys - his words where he has them (glossary:
+// queue/HEBREW-ANATOMY-GLOSSARY.md). Exercise-test names stay English (the platform rule for exercise names).
+export const romLabel = (tt, s) => { if (!s) return s; const k = `rom·${s}`, v = tt(k); return v === k ? s : v; };
+export const romJointLabel = (tt, jointId) => { const j = EVAL_SCHEMA.rom.joints.find((x) => x.id === jointId); return romLabel(tt, j ? j.label : jointId); };
+
 // Stable key helpers — keep client + server consistent.
 export const romKey = (jointId, axisLabel) =>
   `${jointId}_${axisLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z_]/g, '')}`;

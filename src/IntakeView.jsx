@@ -14,7 +14,13 @@ import { supabase } from './supabase';
 import { sandboxLink } from './sandboxLink';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
-import IntakeResponses from './IntakeResponses';
+import IntakeResponses, { FORM_NAME } from './IntakeResponses';
+
+// The form's language as a word in Hebrew ('ראשוני HE' read as a code inside a Hebrew line - 12.10 rendered audit);
+// English keeps the compact code column.
+// The form type by the form's own name in Hebrew ('הערכה ראשונית' - the response tabs' word); the list said 'ראשוני'.
+const formWord = (t, tt) => (readLang() === 'he' && FORM_NAME[t] ? FORM_NAME[t].he : tt(t));
+const langWord = (l) => (readLang() === 'he' ? ({ he: 'עברית', en: 'אנגלית' }[l] || String(l || '').toUpperCase()) : String(l || '').toUpperCase());
 import { useT, useTB, tr, readLang, agoLabel } from './i18n';
 
 function fmt(iso) {
@@ -204,11 +210,11 @@ export default function IntakeView({ trainees }) {
             {/* No fontSize here: an inline style beats a media query, so the
                 narrow-width size in themes.css could never apply. */}
             <div className="intake-tally" style={{ fontFamily: FB, color: C.tm }}>
-              <span style={{ color: C.tx, fontWeight: 700, whiteSpace: 'nowrap' }}>{counts.open} {tt('open')}</span>
-              {[[counts.initial, tt('initial')], [counts.assessment, tt('assessment')], [counts.progress, tt('progress')],
+              <span style={{ color: C.tx, fontWeight: 700, whiteSpace: 'nowrap' }}>{readLang() === 'he' ? `פתוחים ${counts.open}` : `${counts.open} ${tt('open')}`}</span>
+              {[[counts.initial, formWord('initial', tt)], [counts.assessment, formWord('assessment', tt)], [counts.progress, formWord('progress', tt)],
                 [null, readLang() === 'he' ? `סה״כ ${counts.total}` : `${counts.total} ${tt('total')}`]].map(([n, label]) => (
                 <span key={label} style={{ whiteSpace: 'nowrap' }}>
-                  <span aria-hidden style={{ opacity: 0.55 }}>·</span> {n == null ? label : `${n} ${label}`}
+                  <span aria-hidden style={{ opacity: 0.55 }}>·</span> {n == null ? label : readLang() === 'he' ? `${label} ${n}` : `${n} ${label}`}{/* Hebrew: label first, as 'סה״כ 6' - a count before 'שאלון ראשוני' would need agreement per number (12.10 rendered audit) */}
                 </span>
               ))}
             </div>
@@ -240,8 +246,8 @@ export default function IntakeView({ trainees }) {
               const url = sandboxLink(`${origin}/intake/${t.locale}?t=${t.token}`);
               return (
                 <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{tt(t.form_type)}</Badge></span>
-                  <span style={{ display: 'inline-block', width: 28, flexShrink: 0, color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
+                  <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{formWord(t.form_type, tt)}</Badge></span>
+                  <span style={{ display: 'inline-block', width: readLang() === 'he' ? 44 : 28, flexShrink: 0, color: C.tm }}>{langWord(t.locale)}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {agoLabel(t.created_at, readLang())}</span>
                   <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 6 }}>
@@ -274,8 +280,8 @@ export default function IntakeView({ trainees }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div className="iv-sub-main" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{tt(s.form_type)}</Badge></span>
-                <span style={{ display: 'inline-block', width: 28, flexShrink: 0, fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{(s.locale || '').toUpperCase()}</span>
+                <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{formWord(s.form_type, tt)}</Badge></span>
+                <span style={{ display: 'inline-block', width: readLang() === 'he' ? 44 : 28, flexShrink: 0, fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.18em' }}>{langWord(s.locale)}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, direction: RTL.test(s.name || '') ? 'rtl' : 'ltr' }}>{s.name || '(no name)'}</span>
                 {s.traineeName && (
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.ac }}>→ {s.traineeName}</span>
@@ -298,7 +304,7 @@ export default function IntakeView({ trainees }) {
       ))}
 
       {/* Detail modal */}
-      <Modal open={!!openSubmission} onClose={() => setOpenSubmission(null)} title={openSubmission ? `${openSubmission.form_type} · ${(openSubmission.locale || '').toUpperCase()} — ${openSubmission.name || openSubmission.email || ''}` : ''} wide>
+      <Modal open={!!openSubmission} onClose={() => setOpenSubmission(null)} title={openSubmission ? `${formWord(openSubmission.form_type, tt)} · ${langWord(openSubmission.locale)} — ${openSubmission.name || openSubmission.email || ''}` : ''} wide>
         {openSubmission && <PayloadDetail form={detailForm} payload={openSubmission.payload} />}
       </Modal>
 

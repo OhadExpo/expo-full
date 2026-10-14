@@ -12,7 +12,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { useT } from './i18n';
 import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog, ChipGrid } from './ui';
-import { EVAL_SCHEMA, romKey } from './evaluationSchema';
+import { EVAL_SCHEMA, romKey, romLabel, romJointLabel } from './evaluationSchema';
 import { todayLocalISO } from './dates';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 
@@ -306,9 +306,9 @@ function RomBlock({ rom, setRom, onRomTest }) {
         fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
         color: 'var(--c-ac)', marginBottom: 6, paddingBottom: 6,
         borderBottom: `2px solid var(--c-ac)`,
-      }}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
+      }}>{romLabel(tt, EVAL_SCHEMA.rom.title).toUpperCase()}</div>
       <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 6, fontStyle: 'italic' }}>
-        {EVAL_SCHEMA.rom.hint}
+        {romLabel(tt, EVAL_SCHEMA.rom.hint)}
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 14 }}>
         {tt("◉ CAM reads active range from one clip, coach-confirmed — shoulder/hip/knee flexion, knee over-extension, neck flex/ext + lateral, and ankle dorsi/plantar (each with its own framing). Rotations, scapula and foot inversion stay manual — 2D pose can't see them honestly.")}
@@ -321,7 +321,7 @@ function RomBlock({ rom, setRom, onRomTest }) {
           borderBottom: ji < EVAL_SCHEMA.rom.joints.length - 1 ? `1px solid var(--c-cardBd)` : 'none',
         }}>
           <div style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', fontWeight: 700, letterSpacing: '0.04em' }}>
-            {j.label}
+            {romLabel(tt, j.label)}
           </div>
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))', gap: 8,
@@ -334,12 +334,12 @@ function RomBlock({ rom, setRom, onRomTest }) {
                 <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                   {/* Wrap, don't ellipsis — "Internal/External Rotation" must show
                       in full even in the narrow ROM column. */}
-                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.2 }}>{ax}</div>
+                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.2 }}>{romLabel(tt, ax)}</div>
                   {/* Camera goniometer only on axes 2D pose measures honestly
                       (sagittal flexion). Everything else stays manual — no fake
                       TEST button on a rotation axis the camera can't see. */}
                   {camSpec && onRomTest && (
-                    <button type="button" onClick={() => onRomTest(camSpec, k)} title={tt('Measure {axis} with the camera').replace('{axis}', ax)}
+                    <button type="button" onClick={() => onRomTest(camSpec, k)} title={tt('Measure {axis} with the camera').replace('{axis}', romLabel(tt, ax))}
                       style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '4px 5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tt('◉ CAM')}</button>
                   )}
                   <input value={rom[k] || ''} onChange={e => set(k, e.target.value)}
@@ -424,7 +424,7 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
   const [activeRom, setActiveRom] = useState(null); // { spec, key }
   const onRomTest = (spec, key) => {
     const cur = rom[key];
-    if (cur != null && cur !== '') setRetake({ label: `${spec.jointId} ${spec.axis}`, current: `${cur}°`, run: () => setActiveRom({ spec, key }) });
+    if (cur != null && cur !== '') setRetake({ label: `${romJointLabel(tt, spec.jointId)} · ${romLabel(tt, spec.axis)}`, current: `${cur}°`, run: () => setActiveRom({ spec, key }) });
     else setActiveRom({ spec, key });
   };
   // Tool-agnostic: `raw` is whatever the active tool hands back (jump metrics
@@ -579,8 +579,8 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
         <MovementLab
           initialMode="analyze"
           initialView="metrics"
-          exerciseTitle={`${activeRom.spec.jointId} ${activeRom.spec.axis}`}
-          toolLabel={`${tt('CAMERA ROM')} · ${activeRom.spec.jointId.toUpperCase()} ${activeRom.spec.axis.toUpperCase()}`}
+          exerciseTitle={`${romJointLabel(tt, activeRom.spec.jointId)} · ${romLabel(tt, activeRom.spec.axis)}`}
+          toolLabel={`${tt('CAMERA ROM')} · ${romJointLabel(tt, activeRom.spec.jointId).toUpperCase()} · ${romLabel(tt, activeRom.spec.axis).toUpperCase()}`}
           captureCue={activeRom.spec.cue || null}
           romSpec={activeRom.spec}
           onSaveRom={(deg) => { setRom(prev => applyRomResult(prev, activeRom.spec, deg)); toast(tt(Number(deg) === 1 ? 'Logged 1° to {target}' : 'Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${activeRom.spec.jointId} ${activeRom.spec.axis}`), 'success', { ttl: 3500 }); }}

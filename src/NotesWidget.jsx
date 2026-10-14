@@ -19,6 +19,7 @@ import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhat
 import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
+import { addLocalNames, localNameFor } from './autoTaskHe';
 import { CommentsThread, EventTimeline } from './TasksV8View';
 import { tr, readLang, useT, useTB, dirOfText } from './i18n';
 
@@ -151,7 +152,7 @@ function FitCentered({ children, style }) {
   const tone = stripe || TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
   const kindTone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-tm)';
   const kindLabel = isAuto ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : null;
-  const name = n.target_label || null;
+  const name = n.target_label ? (readLang() === 'he' ? localNameFor(n.target_label) : n.target_label) : null; // the same spelling as the task text under it
   const nameHeb = name ? isHebrew(name) : false;
   // ONE single row (Ohad #134): auto-alerts were a 2-line text blob ("long and
   // styless"). Now every alert reads as a single horizontal line — kind tag +
@@ -290,7 +291,9 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           // x-height + missing ascenders/descenders make 13px Hebrew look
           // visibly smaller than 13px Nord. Per feedback_new_ui_box_dimensions
           // rule: "Hebrew bumps +3px INSIDE the box, never resizes the box".
-          const heb = isHebrew(n.target_label);
+          // in Hebrew the athlete's Hebrew spelling - the history heading said the English name over the Hebrew 'call ...' line (12.10)
+          const shown = readLang() === 'he' ? localNameFor(n.target_label) : n.target_label;
+          const heb = isHebrew(shown);
           return (
             <span style={{
               fontFamily: heb ? FH : FN, fontSize: heb ? 16 : 13, color: 'var(--c-ac)',
@@ -298,8 +301,8 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
               textTransform: heb ? 'none' : 'uppercase',
               flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               lineHeight: 1.1,
-            }} title={n.target_label}>
-              {n.target_label}
+            }} title={shown}>
+              {shown}
             </span>
           );
         })() : (
@@ -328,7 +331,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: stripeColor, border: `1px solid ${stripeColor}`,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
-          }}>{kindIcon} {kindLabel}</span>
+          }}>{kindIcon} {tr(readLang(), kindLabel)}</span>
         {priority !== 'normal' && (
           <span title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), priority)}`} style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
@@ -434,6 +437,10 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
 // label) at fontSize 10 + 0.1em tracking, with a hair of side gutter.
 function ActionPill({ label, onClick, color, title, disabled }) {
   const c = color || 'var(--c-ac)';
+  // '→ WHATSAPP' in English; in Hebrew the word is said in Hebrew and the arrow sits at the logical END, pointing
+  // forward the RTL way ('וואטסאפ ←') - the Hebrew dashboard showed '→ WHATSAPP' (12.10 rendered-Hebrew audit)
+  const m = /^→ (.+)$/.exec(label || '');
+  const shown = m && readLang() === 'he' ? `${tr('he', m[1])} ←` : label;
   return (
     <button onClick={disabled ? undefined : onClick} title={title} disabled={disabled}
       style={{
@@ -443,7 +450,7 @@ function ActionPill({ label, onClick, color, title, disabled }) {
         opacity: disabled ? 0.5 : 1,
         whiteSpace: 'nowrap', height: 22, width: 124,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      }}>{label}</button>
+      }}>{shown}</button>
   );
 }
 
@@ -495,6 +502,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 }
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
+  addLocalNames(trainees); // the athlete's Hebrew spelling in Hebrew auto-task bodies (autoTaskHe)
   const segRef = React.useRef(null);
   useEdgeFade(segRef);
   const tt = useT();
@@ -841,7 +849,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               this note doubles as a knowledge-base entry (e.g. "#rehab
               #shoulder" or "post-surgery, glute-bridge progression"). */}
           <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
-            placeholder="#tags  (e.g. rehab, shoulder, post-surgery — saves with note)"
+            placeholder={readLang() === 'he' ? '#תגיות (למשל שיקום, כתף, אחרי ניתוח - נשמר עם ההערה)' : '#tags  (e.g. rehab, shoulder, post-surgery — saves with note)'}
             style={{
               width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
               borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,
@@ -1109,7 +1117,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             ✓ {tt('HISTORY')} ({readLang() === 'he' && visibleDone.length < doneRows.length ? `${visibleDone.length} מתוך ${doneRows.length}` : <>{doneRows.length}{visibleDone.length < doneRows.length ? ` · ${tt('showing')} ${visibleDone.length}` : ''}</>})
           </div>
           {visibleDone.map(n => {
-            const nameHeb = isHebrew(n.target_label || '');
+            const shownName = n.target_label && readLang() === 'he' ? localNameFor(n.target_label) : n.target_label; // the history row too
+            const nameHeb = isHebrew(shownName || '');
             return (
               <div key={n.id} style={{
                 // No wrapper opacity — line-through + muted color (--c-tm)
@@ -1135,7 +1144,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                       (MiniTaskRow: Hebrew 13 / Latin 10, weight 800) so every name
                       across alerts + history reads at one size (Ohad #174). */}
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', whiteSpace: 'nowrap', color: n.target_label ? 'var(--c-tx)' : 'var(--c-td)' }}>
-                    {n.target_label || TARGET_LABEL[n.target_kind] || 'NOTE'}
+                    {shownName || TARGET_LABEL[n.target_kind] || 'NOTE'}
                   </span>
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4,

@@ -15,7 +15,7 @@ import { fmtPrettyDate, ageFromDob } from './dates';
 import { supabase } from './supabase';
 import { C, FN, FB } from './theme';
 import { isRefined5b, toast, useEscClose, ConfirmDialog, CollapsibleSection, ChipGrid } from './ui';
-import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
+import { EVAL_SCHEMA, romKey, countFilled, romLabel, romJointLabel } from './evaluationSchema';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
@@ -110,7 +110,7 @@ function SingleRomRow({ joint, axis, evaluation }) {
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ ...cellBase }} />
-      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingInlineStart: 18 }}>{axis}</div>
+      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingInlineStart: 18 }}>{romLabel(tt, axis)}</div>
       <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em', textAlign: 'end' }}>{tt('degrees')}</div>
       <div style={{
         ...cellBase,
@@ -231,10 +231,10 @@ function EvalListRow({ evaluation, onOpenEditor }) {
           {/* ROM block — same grid template, joint sub-headers align with
               the TEST column so the eye reads them as a sub-group. */}
           <div style={{ marginBottom: 12 }}>
-            <SectionHeader title={EVAL_SCHEMA.rom.title} />
+            <SectionHeader title={romLabel(tt, EVAL_SCHEMA.rom.title)} />
             {EVAL_SCHEMA.rom.joints.map(j => (
               <div key={j.id}>
-                <JointHeader label={j.label} />
+                <JointHeader label={romLabel(tt, j.label)} />
                 {j.axes.map(ax => <SingleRomRow key={ax} joint={j} axis={ax} evaluation={evaluation} />)}
               </div>
             ))}
@@ -360,7 +360,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
   };
   const onPickRom = (spec) => {
     const cur = draftRef.current.rom?.[romKey(spec.jointId, spec.axis)];
-    if (cur != null && cur !== '') setRetake({ label: `${spec.jointId} ${spec.axis}`, current: `${cur}°`, run: () => launchRom(spec) });
+    if (cur != null && cur !== '') setRetake({ label: `${romJointLabel(tt, spec.jointId)} · ${romLabel(tt, spec.axis)}`, current: `${cur}°`, run: () => launchRom(spec) });
     else launchRom(spec);
   };
 
@@ -417,7 +417,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
     const ok = await persistDraft(d.scores, nextRom, null);
     setActiveTool(null);
     setDraftVersion(x => x + 1);
-    if (ok) toast(tt(Number(deg) === 1 ? 'Logged 1° to {target}' : 'Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${spec.jointId} ${spec.axis}`), 'success', { ttl: 3500 });
+    if (ok) toast(tt(Number(deg) === 1 ? 'Logged 1° to {target}' : 'Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${romJointLabel(tt, spec.jointId)} · ${romLabel(tt, spec.axis)}`), 'success', { ttl: 3500 });
     else toast(tt('Could not save — check your connection and try again.'), 'error', { ttl: 5000 });
   }, [activeTool, persistDraft]);
 
@@ -534,8 +534,8 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
           <MovementLab
             initialMode="analyze"
             initialView="metrics"
-            exerciseTitle={`${activeTool.spec.jointId} ${activeTool.spec.axis}`}
-            toolLabel={`${tt('CAMERA ROM')} · ${activeTool.spec.jointId.toUpperCase()} ${activeTool.spec.axis.toUpperCase()}`}
+            exerciseTitle={`${romJointLabel(tt, activeTool.spec.jointId)} · ${romLabel(tt, activeTool.spec.axis)}`}
+            toolLabel={`${tt('CAMERA ROM')} · ${romJointLabel(tt, activeTool.spec.jointId).toUpperCase()} · ${romLabel(tt, activeTool.spec.axis).toUpperCase()}`}
             captureCue={activeTool.spec.cue || null}
             romSpec={activeTool.spec}
             onSaveRom={writeRomResult}
@@ -660,7 +660,7 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
 
         {/* Passive ROM — camera goniometer per axis. Live = sagittal/frontal
             axes a single 2D camera reads honestly; the rest show "soon". */}
-        <div style={sectionTitle}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
+        <div style={sectionTitle}>{romLabel(tt, EVAL_SCHEMA.rom.title).toUpperCase()}</div>
         <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 8, lineHeight: 1.5 }}>
           {tt("◉ CAM reads active range from one clip (both sides), coach-confirmed. Rotations, neck, scapula, ankle and hyperextension stay manual — 2D pose can't see them honestly.")}
 
@@ -668,19 +668,19 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
         {EVAL_SCHEMA.rom.joints.map(j => (
           <div key={j.id} style={{ ...rowStyle, alignItems: 'flex-start' }}>
             <div style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', fontWeight: 700, letterSpacing: '0.04em', minWidth: 110, paddingTop: 4 }}>
-              {j.label}
+              {romLabel(tt, j.label)}
             </div>
             {/* the joint's axes as equal cells (5.10 #574): a live axis keeps its cyan, a captured
                 one is filled, an axis the camera cannot read sits dimmed and inert */}
             {/* two to a row at 720 ("EXTERNAL ROTATION ◉" cut at three); on a phone the grid drops
                 under the joint's name and runs one axis per row */}
-            <ChipGrid value={null} style={{ flex: '1 1 300px' }} cols={2} phoneCols={1} cellStyle={{ letterSpacing: '0.05em', padding: '0 6px' }} ariaLabel={j.label}
+            <ChipGrid value={null} style={{ flex: '1 1 300px' }} cols={2} phoneCols={1} cellStyle={{ letterSpacing: '0.05em', padding: '0 6px' }} ariaLabel={romLabel(tt, j.label)}
               items={j.axes.map(ax => {
                 const spec = romAxisSpec(j.id, ax);
-                if (!spec) return { k: ax, label: `${ax} · ${tt('soon')}`, disabled: true, dim: true, tone: 'var(--c-td)' };
+                if (!spec) return { k: ax, label: `${romLabel(tt, ax)} · ${tt('soon')}`, disabled: true, dim: true, tone: 'var(--c-td)' };
                 const captured = capturedRom?.[romKey(j.id, ax)];
                 const got = captured != null && captured !== '';
-                return { k: ax, label: got ? `${ax} ✓ ${captured}°` : `${ax} ◉`, active: got, tone: 'var(--c-ac)', title: spec.cue, onClick: () => onPickRom(spec) };
+                return { k: ax, label: got ? `${romLabel(tt, ax)} ✓ ${captured}°` : `${romLabel(tt, ax)} ◉`, active: got, tone: 'var(--c-ac)', title: spec.cue, onClick: () => onPickRom(spec) };
               })} />
           </div>
         ))}

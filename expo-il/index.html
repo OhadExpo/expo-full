@@ -139,6 +139,10 @@
       .chip-grid[data-allspan] > :first-child { grid-column: 1 / -1; }
     }
 
+    /* 14.10 #735: the gym's six tiles share a 180px minimum so their icons line up across a desktop row; one per row on
+       a phone it left 26px over each icon and 70px under its text - there the tile takes its own height */
+    @media (max-width: 620px) { .gym-tile { min-height: 0 !important; padding-bottom: 20px !important; } }
+
     /* Hide the EXPO wordmark on narrow phones — the X glyph alone is recognisable
        and frees up enough horizontal room for the three nav links to share a line. */
     @media (max-width: 479px) {

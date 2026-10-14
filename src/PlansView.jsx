@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
+import { wrapNeed } from './wrapNeed';
 import { createPortal } from 'react-dom';
 import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
@@ -61,7 +62,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB, exercisesCount } from './i18n';
+import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB, exercisesCount, daysCount } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -1097,7 +1098,10 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
   );
 }
 
-function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null, onCopyWarmup = null }) {
+// a legacy free-text prescription read into the structured fields (#754): '1x12 E' -> sets 1, reps '12 E'; null when
+// it does not read as sets x reps (then the old line stays, quietly)
+const parseLegacyRx = (rx) => { const m = String(rx || '').match(/^\s*(\d+)\s*[x\u00d7]\s*(.+?)\s*$/i); return m ? { sets: parseInt(m[1], 10), reps: m[2] } : null; };
+function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null, onCopyWarmup = null, nameMin = 180 }) {
   const tt = useAppT();
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
@@ -1160,6 +1164,9 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   // Same compact input the day-exercise grid uses, so warm-up rows read as
   // the same table family as the day cards below.
+  // Every tiny input is dir="auto" (each <input> below): a prescription ('12 E', '30 SEC E') is Latin + digits and an
+  // RTL box painted it 'E 12'; a tempo is often Hebrew ('5-6 שניות לחזרה') and must stay RTL - each cell takes the
+  // direction of its own first letter (12.10, review of 511e9852).
   const tinyInput = { ...baseInput, background: 'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding: '3px 6px', fontSize: 11, minWidth: 0, width: '100%', height: 24, boxSizing: 'border-box' };
   return (
     <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
@@ -1214,8 +1221,8 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
               video lives in the expanded panel like day rows). compact
               (compare mode): minmax(0,…) columns so it compresses to the
               half-width pane with no inner horizontal scrollbar. */}
-          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', position: 'relative', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 536 }}>
-            {['#', tt('EXERCISE'), tt('SETS'), tt('REPS'), tt('TEMPO'), ''].map((h, hi) =>
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', position: 'relative', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px' : `36px minmax(${nameMin}px,3.3fr) 64px minmax(${Math.max(56, (plan.weeks || 4) * 22)}px,0.9fr) minmax(${Math.max(64, (plan.weeks || 4) * 26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px` /* THE DAY CARD'S GRID, column for column (14.10 #754: its own 3-column grid set SETS / REPS / TEMPO apart from every day below it) */, gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 312 + nameMin + 64 + Math.max(56, (plan.weeks || 4) * 22) + Math.max(64, (plan.weeks || 4) * 26) }}>
+            {['#', tt('EXERCISE'), '', tt('SETS'), tt('REPS'), tt('TEMPO'), '', '', ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
@@ -1252,23 +1259,33 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
                   style={{ color: C.tx, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}><CaretGlyph /></span>
-                  <span style={{ overflowWrap: 'break-word', wordBreak: 'normal', color: w.t ? C.tx : C.td }}>{w.t ? slashWbr(w.t) : 'New warm-up — click to name'}</span>
+                  <span style={{ overflowWrap: 'break-word', wordBreak: 'normal', color: w.t ? C.tx : C.td }}>{w.t ? <bdi>{slashWbr(w.t)}</bdi> : 'New warm-up — click to name'}</span>
                 </div>
-                <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
-                <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
-                <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
+                {(() => {
+                  // the old free-text rx reads INTO the fields when it says sets x reps - the boxes show what the athlete
+                  // is prescribed instead of grey placeholders that looked like values; the first edit writes it for real
+                  const px = (w.sets === undefined || w.sets === '' || w.sets === null) && !w.reps && w.rx ? parseLegacyRx(w.rx) : null;
+                  const put = (patch) => update(i, px ? { sets: px.sets, reps: px.reps, rx: '', ...patch } : patch);
+                  return <>
+                    <span aria-hidden />
+                    <input dir="auto" type="number" value={px ? px.sets : (w.sets ?? '')} onChange={e => put({ sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="—" style={tinyInput} />
+                    <input dir="auto" value={px ? px.reps : (w.reps ?? '')} onChange={e => put({ reps: e.target.value })} placeholder="—" style={tinyInput} />
+                    <input dir="auto" value={w.tempo ?? ''} onChange={e => put({ tempo: e.target.value })} placeholder="—" style={tinyInput} />
+                    <span aria-hidden /><span aria-hidden />
+                  </>;
+                })()}
                 <button onClick={() => remove(i)} title={tt('Remove warm-up')} aria-label={tt('Remove warm-up')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
                 {/* Legacy free-text rx, only when the new fields are empty AND a
                     pre-split rx exists. Lets the coach see what the athlete is
                     currently being shown, then dismiss it once they've migrated. */}
-                {w.rx && (!w.sets || w.sets === '') && !w.reps && (
+                {w.rx && (!w.sets || w.sets === '') && !w.reps && !parseLegacyRx(w.rx) && (
                   <div style={{ gridColumn: '2 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.tm, fontFamily: FN, padding: '2px 0' }}>
                     <span style={{ fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>{tt('LEGACY RX:')}</span>
                     <span style={{ color: C.tx, fontFamily: FB }}>{w.rx}</span>
                     <button onClick={() => update(i, { rx: '' })}
                       title="Clear the legacy rx string — the athlete will now see the structured sets/reps above (once you fill them in)."
-                      style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× {tt('CLEAR')}</button>
+                      style={{ background: 'transparent', border: 'none', color: C.rd, padding: 0, minHeight: 0, minWidth: 0, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.8 }}>× {tt('CLEAR')}</button>
                   </div>
                 )}
                 {/* Inline expand — IDENTICAL structure to the day-exercise
@@ -1527,7 +1544,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                       <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={tr(readLang(), cmpCollapsed?'Expand day':'Collapse day')} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}><CaretGlyph rot={cmpCollapsed ? -90 : 0} /></span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
-                      <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
+                      <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({readLang()==='he' ? exercisesCount(dayExs.length) : `${dayExs.length} ex`})</span>
                       {/* Empty header space = click target to expand/collapse (mirrors editor). */}
                       <div onClick={()=>toggleCmpDay(cmpDayKey)} aria-hidden title={tr(readLang(), cmpCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                     </div>
@@ -1592,27 +1609,27 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpEx(exKey); } }}
                                 style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderInlineStart:`3px solid ${pe.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
                                 <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
-                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{slashWbr(title)}</span>
+                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}><bdi>{slashWbr(title)}</bdi></span>
                               </div>
-                              <input value={pe.superset || ''} readOnly tabIndex={-1}
+                              <input dir="auto" value={pe.superset || ''} readOnly tabIndex={-1}
                                 style={{...tinyInputRO, background: pe.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: pe.superset ? `1px solid ${sc}` : tinyInputRO.border, color: pe.superset ? C.tx : C.td, fontFamily:FN, fontWeight: pe.superset ? 800 : 600, textAlign:'center'}} />
                               {Array.isArray(pe.wkS) && pe.wkS.length > 0 ? (
                                 <div style={{display:'grid', gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
-                                  {pe.wkS.map((v, wi) => <input key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
+                                  {pe.wkS.map((v, wi) => <input dir="auto" key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
                                 </div>
                               ) : (
-                                <input value={pe.sets ?? ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                                <input dir="auto" value={pe.sets ?? ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               )}
                               {Array.isArray(pe.wk) && pe.wk.length > 0 ? (
                                 <div style={{display:'grid', gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
-                                  {pe.wk.map((v, wi) => <input key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
+                                  {pe.wk.map((v, wi) => <input dir="auto" key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
                                 </div>
                               ) : (
-                                <input value={pe.reps || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                                <input dir="auto" value={pe.reps || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               )}
-                              <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
-                              <input value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
-                              <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              <input dir="auto" value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              <input dir="auto" value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              <input dir="auto" value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               {exOpen && (
                                 <div style={{gridColumn:'1 / -1', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderInlineStart:`3px solid ${C.ac}`, padding:'12px 14px', margin:'2px 0 6px'}}>
                                   {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) && (
@@ -2342,6 +2359,27 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     onCancel();
   };
   const statusLabel = autosaveStatusLabel(autoStatus, C);
+  // THE NAME COLUMN, ONE WIDTH FOR THE PLAN (#751 / #754): as wide as its longest-needing exercise or warm-up name needs
+  // to wrap two words a line (180-280px; +45 = the number and the handle beside it) - the warm-up and every day card share
+  // it, so their SETS / REPS / TEMPO columns line up down the page
+  const planNameMin = Math.max(180, Math.min(280, Math.ceil(wrapNeed([
+    ...(plan.days || []).flatMap((d) => (d.exercises || []).map((ex) => exById(exercises).get(ex.exerciseId)?.title || ex.title || '')),
+    ...(plan.warmup || []).map((w) => w.t || ''),
+  ], { font: `12px ${FN}`, ls: readLang() === 'he' ? 0.24 : 0, perChar: 7.6 })) + 45));
+  // ...but never wider than the CARD has room for (14.10 #754, his tablet: the measured name pushed RPE and the delete
+  // icons off an 800px card): the days' width is measured; the name takes its need where it fits, the room left where
+  // the grid would fit with a narrower name (a tablet), and its need where the grid scrolls anyway (a phone)
+  const daysRef = useRef(null);
+  const [daysW, setDaysW] = useState(0);
+  useEffect(() => {
+    const el = daysRef.current; if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setDaysW(el.clientWidth)); ro.observe(el); setDaysW(el.clientWidth);
+    return () => ro.disconnect();
+  });
+  const wks = plan.weeks || 4;
+  const gridOthers = 36 + 64 + Math.max(56, wks * 22) + Math.max(64, wks * 26) + 80 + 60 + 48 + 24 + 8 * 8;   // every column but the name, + the gaps
+  const nameRoom = daysW ? daysW - 26 - gridOthers : 0;   // the card's 1px borders + its 12px padding each side
+  const nameEff = !daysW ? planNameMin : nameRoom >= planNameMin ? planNameMin : nameRoom >= 140 ? Math.floor(nameRoom) : planNameMin;
   return (
     // In compare mode the editor breaks out of the global <main> 1200px cap
     // so the two side-by-side panes are each wide enough for the full 9-column
@@ -2618,7 +2656,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       {/* The overview carries its own warm-up card, so the full editor version
           would be the same content twice and cost the screen space the overview
           exists to save. */}
-      {!overviewOpen && <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises}
+      {!overviewOpen && <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises} nameMin={nameEff}
         onCopyWarmup={onCopyWarmup ? () => setCopyDaysModal({ warmup: true }) : null} />}
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
@@ -2641,10 +2679,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }, 80);
       }} />}
-      <div onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display: overviewOpen ? 'none' : "flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative', paddingTop: dayDragging ? 16 : 0, paddingBottom: dayDragging ? 16 : 0, transition:'padding 120ms ease'}}>
+      <div ref={daysRef} onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display: overviewOpen ? 'none' : "flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative', paddingTop: dayDragging ? 16 : 0, paddingBottom: dayDragging ? 16 : 0, transition:'padding 120ms ease'}}>
         {plan.days.map((d, dayIdx) => {
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
+          const nameMin = nameEff;   // one name width for the plan (#751 / #754): every card's columns line up
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", height:24, boxSizing:"border-box"};
           // While a DAY drag is live every card renders collapsed (the 0fr/1fr
@@ -2742,7 +2781,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   style={{cursor:'pointer',color:'var(--c-tx)',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}><CaretGlyph /></span>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
-                <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
+                <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({readLang()==='he' ? exercisesCount(dayExs.length) : `${dayExs.length} ex`})</span>
                 <div onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                 {/* Per-day Daily-Routine toggle — ported from the old detail view
                     (the unified view had dropped it). ON = athlete logs this day
@@ -2796,7 +2835,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   )}
                 </div>
               ) :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(180px,3.3fr) 64px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : 492 + 8*8 + Math.max(56,weeks*22) + Math.max(64,weeks*26)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(${nameMin}px,3.3fr) 64px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : 312 + nameMin + 8*8 + Math.max(56,weeks*22) + Math.max(64,weeks*26)}}>
                   {["#",tt("EXERCISE"),tt("GRP"),tt("SETS"),tt("REPS"),tt("TEMPO"),tt("LOAD"),"RPE",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -2882,7 +2921,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleOvExpand(ex.id); } }}
                         style={{color:C.tx, minWidth:0, borderInlineStart:`3px solid ${ex.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
                         <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}><CaretGlyph /></span>
-                        <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{slashWbr(title)}</span>
+                        <span style={{overflowWrap:'break-word', wordBreak:'normal'}}><bdi>{slashWbr(title)}</bdi></span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
@@ -2898,7 +2937,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         return (
                         <div style={{display:"grid", gridTemplateColumns:`repeat(${wN},minmax(0,1fr))`, gap:2}}>
                           {Array.from({length:wN}).map((_,wi) => (
-                            <input key={wi} value={ex.wkS[wi]||""} onChange={e=>{const next=resize(ex.wkS,wN,""); next[wi]=e.target.value; update({wkS:next});}}
+                            <input dir="auto" key={wi} value={ex.wkS[wi]||""} onChange={e=>{const next=resize(ex.wkS,wN,""); next[wi]=e.target.value; update({wkS:next});}}
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
                         </div>); })() : (
@@ -2906,22 +2945,22 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         // program): a pure integer stores as a NUMBER (setCountFor +
                         // numeric consumers stay exact), a range stores as a STRING
                         // (everything defaults to 3 rows). type=number blanked "2-3".
-                        <input value={ex.sets ?? ""} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);update({sets:(v.trim()!=='' && String(n)===v.trim())?n:v});}} placeholder="3" style={tinyInput} />
+                        <input dir="auto" value={ex.sets ?? ""} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);update({sets:(v.trim()!=='' && String(n)===v.trim())?n:v});}} placeholder="3" style={tinyInput} />
                       )}
                       {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (() => {
                         const wN = Math.max(weeks, ex.wk.length);   // see #89 above
                         return (
                         <div style={{display:"grid", gridTemplateColumns:`repeat(${wN},minmax(0,1fr))`, gap:2}}>
                           {Array.from({length:wN}).map((_,wi) => (
-                            <input key={wi} value={ex.wk[wi]||""} onChange={e=>{const next=resize(ex.wk,wN,""); next[wi]=e.target.value; update({wk:next});}}
+                            <input dir="auto" key={wi} value={ex.wk[wi]||""} onChange={e=>{const next=resize(ex.wk,wN,""); next[wi]=e.target.value; update({wk:next});}}
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
                         </div>); })() : (
-                        <input value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={tinyInput} />
+                        <input dir="auto" value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={tinyInput} />
                       )}
-                      <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
-                      <input value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
-                      <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
+                      <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
+                      <input dir="auto" value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
+                      <input dir="auto" value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
                       <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title={tt('Remove exercise from this day')} aria-label={tt('Remove exercise')}
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
@@ -3168,7 +3207,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
                   <button key={d.id||i} onClick={()=>toggle(i)} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background: on ? `${C.ac}1f` : 'transparent', border:`1px solid ${on?C.ac:C.cardBd}`, borderRadius:0, cursor:'pointer', textAlign: 'start' }}>
                     <span aria-hidden="true" style={{ width:15, height:15, flexShrink:0, border:`1px solid ${on?C.ac:C.tm}`, background: on?C.ac:'transparent', color:'#000', fontSize:11, fontWeight:800, lineHeight:'14px', textAlign:'center' }}>{on?'✓':''}</span>
                     <span style={{ flex:1, minWidth:0, color:C.tx, fontFamily:FB, fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{d.name || `Day ${i+1}`}</span>
-                    <span style={{ color:C.td, fontFamily:FN, fontSize:10, flexShrink:0 }}>{n} ex</span>
+                    <span style={{ color:C.td, fontFamily:FN, fontSize:10, flexShrink:0 }}>{readLang()==='he' ? exercisesCount(n) : `${n} ex`}</span>
                   </button>
                 );
               })}
@@ -4862,7 +4901,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div key={row.tid} style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 10, minHeight: 52, padding: '8px 12px', borderTop: top, boxSizing: 'border-box' }}>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                     {/* the whole name, as on the rows with a program (11.10 #651: "Dusty Hannahs" lost 9px to an ellipsis at 360) */}
-                    <span style={{ display: 'block', minWidth: 0, lineHeight: '18px' }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi><span className="prog-badge-slot" style={{ verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span></span>
+                    <span style={{ display: 'block', minWidth: 0, lineHeight: '18px' }}><bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi><span className="prog-badge-slot" style={{ display: 'inline-flex', alignItems: 'center', height: 18, verticalAlign: 'top', marginInlineStart: 8, lineHeight: 0 /* the 20px badge inside the name's 18px line: it stood its rows 61.8 against 60 (14.10 #752 - one row height, badge or not) */ }}><BhbcBadge tid={row.tid} trainees={trainees} /></span></span>
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.or }}>{tt('No program yet')}</span>
                   </span>
                   <button type="button" onClick={() => handleNewPlan(row.coupleMembers ? row.coupleMembers[0].id : row.tid)} style={{ height: 32, padding: '0 12px', background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>{tb('+ ASSIGN PROGRAM')}</button>
@@ -4885,14 +4924,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span style={{ gridColumn: 1, gridRow: 1, display: 'block', minWidth: 0, minHeight: 18, lineHeight: '18px' }}>
                     <bdi style={{ fontWeight: 700, fontSize: 14, color: C.tx, overflowWrap: 'break-word' }}>{row.name}</bdi>
                     {/* inline after the LAST word: in a flex row it sat at the far end once a long name wrapped */}
-                    <span className="prog-badge-slot" style={{ verticalAlign: 'middle', marginInlineStart: 8, lineHeight: 0 }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
+                    <span className="prog-badge-slot" style={{ display: 'inline-flex', alignItems: 'center', height: 18, verticalAlign: 'top', marginInlineStart: 8, lineHeight: 0 /* the 20px badge inside the name's 18px line: it stood its rows 61.8 against 60 (14.10 #752 - one row height, badge or not) */ }}><BhbcBadge tid={row.tid} trainees={trainees} /></span>
                   </span>
                   <span title={row.daysSince == null ? (he ? 'עוד לא רשם אימון' : 'No session logged yet') : tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagFull).toLowerCase())} style={{ gridColumn: 2, gridRow: 1, justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, whiteSpace: 'nowrap' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: tagColor, flexShrink: 0 }} />{tagText}
                   </span>
                   <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap', flexBasis: he ? '100%' : undefined /* Hebrew: always its own line - beside the name it fitted on some rows and not others */ }}>{cur.dayCount}{he ? ' ימים' : 'D'} · {cur.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap', flexBasis: he ? '100%' : undefined /* Hebrew: always its own line - beside the name it fitted on some rows and not others */ }}>{he ? (cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`) : `${cur.dayCount}D`} · {he ? (cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`) : `${cur.exerciseCount} EX`}</span>
                   </span>
                   <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 /* on the program line */ }}>
                     {row.earlier.length > 0 && (
@@ -4926,7 +4965,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       <div key={p.id} role="button" tabIndex={0} onClick={() => handleOpenPlan(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(p.id); } }}
                         style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, padding: '10px 12px', boxSizing: 'border-box', cursor: 'pointer', opacity: openingId === p.id ? 0.45 : 0.85 }}>
                         <span style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em' }}>{p.name || 'Untitled'}</span>
-                        <span style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{p.dayCount}{he ? ' ימים' : 'D'} · {p.exerciseCount}{he ? ' תרגילים' : ' EX'}</span>
+                        <span style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{he ? (p.dayCount === 1 ? 'יום אחד' : `${p.dayCount} ימים`) : `${p.dayCount}D`} · {he ? (p.exerciseCount === 1 ? 'תרגיל אחד' : `${p.exerciseCount} תרגילים`) : `${p.exerciseCount} EX`}</span>
                       </div>
                     ))}
                   </div>
@@ -5067,7 +5106,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                               brand colour as the current block, dropped to ~72%
                               so the eye still lands on the current row first. */}
                           <div style={{flex:1,minWidth:0,fontSize:13,color:C.ac,opacity:0.72,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700}}>{p.name||"Untitled"}</div>
-                          <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
+                          <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{readLang()==='he' ? `${daysCount(p.dayCount||0)} · ${exercisesCount(p.exerciseCount||0)}` : `${p.dayCount}d · ${p.exerciseCount}ex`}</div>
                         </div>
                         {/* hovering the actions cancels the preview (Ohad) */}
                         <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{display:'flex',alignItems:'center',gap:14,flexShrink:0}}>

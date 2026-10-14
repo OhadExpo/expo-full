@@ -820,7 +820,7 @@ function ProgramCard({ p }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-          background: 'transparent', color: C.ac, padding: '4px 0', borderRadius: 0,
+          background: 'transparent', color: C.ac, padding: '2px 0' /* 14.10 #735 */, borderRadius: 0,
           border: 'none',
         }}>{(isHe && p.tagHe ? p.tagHe : p.tag).toUpperCase()}</span>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
@@ -844,10 +844,12 @@ function ProgramCard({ p }) {
         ))}
       </ul>
       <ProgramMeta p={p} />
-      <div style={{ flex: 1 }} />
+      {/* the spacer lines the price rows up across a grid row; empty (one column) it added a second 12px gap: the card read
+          22 under its edge and 30 over the price rule (14.10 #735) - it takes 10 of it back */}
+      <div style={{ flex: 1, marginTop: -10 }} />
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-        paddingTop: 12, borderTop: `1px solid ${C.bd}`, gap: 12,
+        paddingTop: 11 /* #735: 16 / 14 -> even */, borderTop: `1px solid ${C.bd}`, gap: 12,
       }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{t('card.price')}</div>
@@ -1007,6 +1009,73 @@ function PhoneFrame({ children, tag, height = 360, onClick, label }) {
   );
 }
 
+// PoseFigure (14.10 #766): the app's two on-video tools on a synthetic squat - SKELETON (the body's lines, on to the
+// hands and feet) and JOINT ANGLES (each joint's angle AT the joint, in a framed pill pushed outward), with the same
+// two-cell strip the real players carry. `interactive` lets the visitor switch either tool off and on.
+function PoseFigure({ phase, interactive = false, big = false }) {
+  const t = useT();
+  const [lang] = useLang();
+  const [skel, setSkel] = useState(true);
+  const [ang, setAng] = useState(true);
+  const hipDrop = phase * 18, kneeDrop = phase * 10, kneeFwd = phase * 2;
+  const J = {
+    head: [50, 22], shoulderL: [40, 38], shoulderR: [60, 38],
+    elbowL: [34, 58], elbowR: [66, 58], wristL: [30, 78], wristR: [70, 78], handL: [29, 84], handR: [71, 84],
+    hipL: [44, 78 + hipDrop], hipR: [56, 78 + hipDrop],
+    kneeL: [42 - kneeFwd, 102 + kneeDrop], kneeR: [58 + kneeFwd, 102 + kneeDrop],
+    ankleL: [40, 128], ankleR: [60, 128], heelL: [42, 131], heelR: [58, 131], toeL: [35, 133], toeR: [65, 133],
+  };
+  const lines = [
+    ['shoulderL', 'shoulderR'], ['shoulderL', 'elbowL'], ['elbowL', 'wristL'], ['wristL', 'handL'],
+    ['shoulderR', 'elbowR'], ['elbowR', 'wristR'], ['wristR', 'handR'],
+    ['shoulderL', 'hipL'], ['shoulderR', 'hipR'], ['hipL', 'hipR'],
+    ['hipL', 'kneeL'], ['kneeL', 'ankleL'], ['ankleL', 'heelL'], ['heelL', 'toeL'], ['ankleL', 'toeL'],
+    ['hipR', 'kneeR'], ['kneeR', 'ankleR'], ['ankleR', 'heelR'], ['heelR', 'toeR'], ['ankleR', 'toeR'],
+  ];
+  // the angles the overlay would read at each joint (standing -> the bottom of the squat)
+  const pills = [
+    ['shoulderL', Math.round(25 + phase * 8)], ['elbowR', Math.round(168 - phase * 6)],
+    ['hipL', Math.round(170 - phase * 90)], ['kneeR', Math.round(170 - phase * 80)],
+    ['ankleL', Math.round(112 - phase * 24)], ['wristR', 176],
+  ];
+  const cell = (on) => ({
+    height: big ? 32 : 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0b',
+    color: on ? C.ac : C.td, boxShadow: on ? `inset 0 0 0 1px ${C.ac}` : 'none', border: 'none', padding: 0,
+    fontFamily: FN, fontSize: big ? 10 : 7, fontWeight: 700, letterSpacing: big ? 1 : 0.6, whiteSpace: 'nowrap',
+    cursor: interactive ? 'pointer' : 'default',
+  });
+  return (
+    <>
+      {/* the strip follows the page's language (the phone-frame card is LTR inside): SKELETON first, as in the app */}
+      <div dir={lang === 'he' ? 'rtl' : 'ltr'} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.bd, border: `1px solid ${C.bd}`, marginBottom: big ? 8 : 4 }}>
+        {[[skel, setSkel, 'pose.tool.skel'], [ang, setAng, 'pose.tool.angles']].map(([on, set, k]) => (interactive
+          ? <button key={k} type="button" aria-pressed={on} onClick={() => set((x) => !x)} style={cell(on)}>{t(k)}</button>
+          : <span key={k} style={cell(on)}>{t(k)}</span>))}
+      </div>
+      <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', flex: 1, minHeight: 0 }}>
+        <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
+        {skel && lines.map(([a, b], i) => (
+          <line key={i} x1={J[a][0]} y1={J[a][1]} x2={J[b][0]} y2={J[b][1]} stroke={C.ac} strokeWidth="0.9" strokeLinecap="round" />
+        ))}
+        {skel && <circle cx={J.head[0]} cy={J.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />}
+        {(skel ? Object.entries(J).filter(([k]) => k !== 'head') : pills.map(([k]) => [k, J[k]])).map(([k, [x, y]]) => (
+          <circle key={k} cx={x} cy={y} r="1.3" fill="#FFFFFF" />
+        ))}
+        {ang && pills.map(([k, deg]) => {
+          const [x, y] = J[k], left = x < 50, w = 14, h = 6.4;
+          const bx = left ? x - 2.6 - w : x + 2.6;
+          return (
+            <g key={k}>
+              <rect x={bx} y={y - h / 2} width={w} height={h} fill="rgba(10,10,11,0.85)" stroke={C.ac} strokeWidth="0.35" />
+              <text x={bx + w / 2} y={y + 1.5} textAnchor="middle" fontFamily={FN} fontSize="4.2" fontWeight="700" fill="#FFFFFF" direction="ltr">{deg}°</text>
+            </g>
+          );
+        })}
+      </svg>
+    </>
+  );
+}
+
 // PoseScreen: stick-figure squat with key-joint markers + skeleton lines.
 // Animates a 2.2s squat cycle (down → bottom → up) via React state so the
 // joint coordinates re-render — same MediaPipe-style overlay the portal
@@ -1031,30 +1100,7 @@ function PoseScreen() {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
-  // Squat depth: hip drops up to 18 units, knee drops up to 10 units.
-  // Knee tracks slightly forward (toes) at the bottom — the small x offset
-  // makes the side-on read "this is a squat" instead of "this is a sit".
-  const hipDrop = phase * 18;
-  const kneeDrop = phase * 10;
-  const kneeFwd = phase * 2;
-  // Knee/hip angles change with depth — surfaced in the floating badges.
-  const kneeAngle = Math.round(170 - phase * 80); // 170° standing → 90° bottom
-  const hipAngle = Math.round(170 - phase * 90);  // 170° standing → 80° bottom
   const depthLabel = phase < 0.3 ? 'TOP' : phase > 0.7 ? 'BOTTOM' : 'MID';
-  const joints = {
-    head:   [50, 22], shoulderL:[40, 38], shoulderR:[60, 38],
-    elbowL: [34, 58], elbowR:   [66, 58], wristL:   [30, 78], wristR: [70, 78],
-    hipL:   [44, 78 + hipDrop], hipR: [56, 78 + hipDrop],
-    kneeL:  [42 - kneeFwd, 102 + kneeDrop], kneeR: [58 + kneeFwd, 102 + kneeDrop],
-    ankleL: [40, 128], ankleR:  [60, 128],
-  };
-  const lines = [
-    ['shoulderL','shoulderR'], ['shoulderL','elbowL'], ['elbowL','wristL'],
-    ['shoulderR','elbowR'], ['elbowR','wristR'],
-    ['shoulderL','hipL'], ['shoulderR','hipR'], ['hipL','hipR'],
-    ['hipL','kneeL'], ['kneeL','ankleL'],
-    ['hipR','kneeR'], ['kneeR','ankleR'],
-  ];
   return (
     <>
       <div style={{
@@ -1062,29 +1108,7 @@ function PoseScreen() {
         background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
         border: `1px solid ${C.bd}`, overflow: 'hidden',
       }}>
-        <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
-          style={{ display: 'block' }}>
-          <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
-          {lines.map(([a, b], i) => (
-            <line key={i} x1={joints[a][0]} y1={joints[a][1]}
-              x2={joints[b][0]} y2={joints[b][1]}
-              stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
-          ))}
-          <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
-          {Object.values(joints).map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
-          ))}
-          {/* Crosshair on knee + hip pulses with the squat — wider at depth */}
-          <circle cx={joints.kneeL[0]} cy={joints.kneeL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
-          <circle cx={joints.hipL[0]} cy={joints.hipL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
-        </svg>
-
-        <div style={{
-          position: 'absolute', top: 8, left: 8, padding: '3px 6px',
-          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
-          background: C.acD, color: C.ac, borderRadius: 0,
-          border: 'none',
-        }}>KNEE {kneeAngle}°</div>
+        <div style={{ position: 'absolute', inset: 6, display: 'flex', flexDirection: 'column' }}><PoseFigure phase={phase} /></div>
         <div style={{
           position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
@@ -1298,26 +1322,7 @@ function CompareScreen() {
 function PoseDemoInteractive() {
   const t = useT();
   const [phase, setPhase] = useState(0.5);
-  const hipDrop = phase * 18;
-  const kneeDrop = phase * 10;
-  const kneeFwd = phase * 2;
-  const kneeAngle = Math.round(170 - phase * 80);
-  const hipAngle = Math.round(170 - phase * 90);
   const depthLabel = phase < 0.3 ? 'TOP' : phase > 0.7 ? 'BOTTOM' : 'MID';
-  const joints = {
-    head:   [50, 22], shoulderL:[40, 38], shoulderR:[60, 38],
-    elbowL: [34, 58], elbowR:   [66, 58], wristL:   [30, 78], wristR: [70, 78],
-    hipL:   [44, 78 + hipDrop], hipR: [56, 78 + hipDrop],
-    kneeL:  [42 - kneeFwd, 102 + kneeDrop], kneeR: [58 + kneeFwd, 102 + kneeDrop],
-    ankleL: [40, 128], ankleR:  [60, 128],
-  };
-  const lines = [
-    ['shoulderL','shoulderR'], ['shoulderL','elbowL'], ['elbowL','wristL'],
-    ['shoulderR','elbowR'], ['elbowR','wristR'],
-    ['shoulderL','hipL'], ['shoulderR','hipR'], ['hipL','hipR'],
-    ['hipL','kneeL'], ['kneeL','ankleL'],
-    ['hipR','kneeR'], ['kneeR','ankleR'],
-  ];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{
@@ -1325,33 +1330,7 @@ function PoseDemoInteractive() {
         background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
         border: `1px solid ${C.bd}`, overflow: 'hidden',
       }}>
-        <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
-          style={{ display: 'block' }}>
-          <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
-          {lines.map(([a, b], i) => (
-            <line key={i} x1={joints[a][0]} y1={joints[a][1]}
-              x2={joints[b][0]} y2={joints[b][1]}
-              stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
-          ))}
-          <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
-          {Object.values(joints).map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
-          ))}
-          <circle cx={joints.kneeL[0]} cy={joints.kneeL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
-          <circle cx={joints.hipL[0]} cy={joints.hipL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
-        </svg>
-        <div style={{
-          position: 'absolute', top: 10, left: 12, padding: '4px 8px',
-          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 0,
-          border: 'none',
-        }}>KNEE {kneeAngle}°</div>
-        <div style={{
-          position: 'absolute', top: 10, right: 12, padding: '4px 8px',
-          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 0,
-          border: 'none',
-        }}>HIP {hipAngle}°</div>
+        <div style={{ position: 'absolute', inset: 8, display: 'flex', flexDirection: 'column' }}><PoseFigure phase={phase} interactive big /></div>
         <div style={{
           position: 'absolute', bottom: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
@@ -1685,9 +1664,12 @@ function AboutCoach() {
             decoding="async" width="800" height="1000"
             onLoad={() => setHasPortrait(true)}
             onError={() => setHasPortrait(false)}
+            // HIDDEN BY OPACITY, NEVER display:none (12.10 B1): a lazy image with no box is never fetched, so onLoad
+            // never fired and every visitor of the online page saw the placeholder mark instead of the photo
+            // (measured live: complete false, naturalWidth 0, scrolled into view; the gym page's photo loads).
             style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: 'cover', display: hasPortrait ? 'block' : 'none',
+              objectFit: 'cover', display: 'block', opacity: hasPortrait ? 1 : 0,
             }} />
           {!hasPortrait && (
             // No "photo coming" caption — reads as an intentional
@@ -1827,7 +1809,7 @@ function WhyTemplates() {
             // and was riding 4.5px low in that band (measured by the ink sweep,
             // which had never been pointed at the marketing site until 18.9).
             // Total vertical space is unchanged - 18+10 became 14+14.
-            borderRadius: 0, padding: '14px 16px 18px',
+            borderRadius: 0, padding: '14px 16px 11px' /* 14.10 #735: 17 under the edge / 23.8 over it -> even */,
             display: 'flex', flexDirection: 'column', gap: 12,
             boxShadow: col.accent ? `0 12px 32px -16px ${C.ac}55` : 'none',
           }}>
@@ -1912,7 +1894,7 @@ function HowItWorks() {
         {steps.map(s => (
           <div key={s.n} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 0, padding: 14,
+            borderRadius: 0, padding: '14px 14px 10.5px' /* 14.10 #735: the step text's 1.5 leading sat 3.5px under it - 16 / 19.5 -> even */,
           }}>
             <div style={{
               fontFamily: FN, color: C.ac, fontSize: 11, fontWeight: 700,
@@ -2530,7 +2512,7 @@ function TrustStrip() {
         {items.map((it, i) => (
           <div key={i} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 0, padding: 14,
+            borderRadius: 0, padding: '14px 14px 9px' /* 14.10 #735: the last line's leading sat 5px under its text - 14 / 19 -> even */,
             display: 'flex', flexDirection: 'column', gap: 8,
             alignItems: 'flex-start', textAlign: 'start',
           }}>
@@ -2649,7 +2631,7 @@ function Footer() {
     }}>
       {/* Footer lead capture — second touch point for the visitor who scrolled
           past the hero without subscribing. */}
-      <div style={{ marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${C.bd}` }}>
+      <div style={{ marginBottom: 32, paddingBottom: 16 /* 14.10 #735: the privacy line sat 31 under the input and 47 over this rule -> 31 / 31 */, borderBottom: `1px solid ${C.bd}` }}>
         <LeadCapture context="footer" />
       </div>
       <div style={{
@@ -2717,7 +2699,7 @@ function SampleWeek({ sampleWeek, accent }) {
         return (
           <div key={dayKey} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 0, padding: 14,
+            borderRadius: 0, padding: '8px 14px 0' /* 14.10 #735: the day's label sat 19 under the frame (its leading on top of 14) and the last row 27.5 over it (no rule of its own, on the full 14) -> 13 / 13, 13.5 / 13.5 */,
           }}>
             <div style={{
               fontFamily: FN, fontSize: 11, color: accent || C.ac, fontWeight: 700,

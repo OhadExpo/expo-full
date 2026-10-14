@@ -34,13 +34,13 @@ export default function BWChart({ entries }) {
   const polyline = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const areaPath = `M${points[0].x},${H - PAD_BOTTOM} L${polyline.replace(/ /g, ' L')} L${points[points.length - 1].x},${H - PAD_BOTTOM} Z`;
   const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
-  const fmt = v => `${v.toFixed(1)}kg`;
+  const fmt = v => `${v.toFixed(1)} ${readLang() === 'he' ? 'ק״ג' : 'kg'}`; // the unit in the page's language (12.10)
   return (
     <Card style={{padding:14}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:10,marginBottom:10}}>
         <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{tr(readLang(), 'Current')}</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>
-          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{tr(readLang(), 'Δ from first')}</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
+          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{tr(readLang(), 'Δ from first')}</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}><span dir="ltr" style={{unicodeBidi:'isolate'}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span> {readLang() === 'he' ? 'ק״ג' : 'kg'}</div></div>
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{tr(readLang(), 'Range')}</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(min)} – {fmt(max)}</div></div>
         </div>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} {tr(readLang(), entries.length === 1 ? 'ENTRY' : 'ENTRIES')}</div>

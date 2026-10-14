@@ -28,6 +28,16 @@ function fmtTs(s) {
 export default function BugsView() {
   const tt = useT();
   const tb = useTB();
+  // THE ICON INSIDE THE LABEL (14.10): the button is a flex box, so the space after a bare '↻' collapsed (↻REFRESH), and
+  // tb() reserves the other language's width around the WORD only - in Hebrew the icon stood apart from it. One box,
+  // the other language's label reserved, the icon and the word centred together.
+  const iconLabel = (icon, key) => {
+    const he = readLang() === 'he', shown = he ? tr('he', key) : key, other = he ? key : tr('he', key);
+    return <span style={{ display: 'inline-grid', justifyItems: 'center', verticalAlign: 'top' }}>
+      <span aria-hidden="true" style={{ gridArea: '1 / 1', visibility: 'hidden', whiteSpace: 'nowrap' }}>{icon} {other}</span>
+      <span style={{ gridArea: '1 / 1', whiteSpace: 'nowrap' }}><span aria-hidden="true">{icon}</span> {shown}</span>
+    </span>;
+  };
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('open');
@@ -98,7 +108,7 @@ export default function BugsView() {
             {tt('BUG REPORTS')} ({counts.open || 0} {tt('open')})
           </span>
           <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{refreshing ? <>↻ {tb('REFRESHING…')}</> : <>↻ {tb('REFRESH')}</>}</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{iconLabel('↻', refreshing ? 'REFRESHING…' : 'REFRESH')}</button>
         </div>
       </RefinedHeaderStrip>
 

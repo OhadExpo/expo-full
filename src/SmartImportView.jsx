@@ -71,9 +71,9 @@ function DropZone({ parsing, onFile }) {
     if (f) onFile(f);
   };
   return (
-    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+    <div className="si-drop" onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
       style={{
-        padding: '48px 24px', textAlign: 'center', marginBottom: 16,
+        padding: '48px 24px' /* desktop: 46 under (themes.css .si-drop) */, textAlign: 'center', marginBottom: 16,
         border: `2px dashed ${hot ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
         background: hot ? 'rgba(57,189,255,0.06)' : 'transparent',
         transition: 'border-color 120ms, background 120ms',
@@ -745,7 +745,7 @@ export default function SmartImportView() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 /* the page's 13 over it (14.10 #735: 13 / 18) */, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt('SMART IMPORT')}</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>

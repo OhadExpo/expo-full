@@ -7,7 +7,11 @@
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { tr, readLang, dirOfText } from './i18n';
-import { localiseAutoBody } from './autoTaskHe';
+import { localiseAutoBody, addLocalNames } from './autoTaskHe';
+
+// '→ WHATSAPP' in English; in Hebrew the word first and the arrow at the logical END ('וואטסאפ ←'), as the dashboard's
+// ActionPill (12.10 review of the rendered-Hebrew pass: the athlete page said '→ וואטסאפ')
+const pillText = (w) => (readLang() === 'he' ? `${tr('he', w)} ←` : `→ ${tr('en', w)}`);
 import { fmtPrettyDate } from './dates';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
@@ -83,6 +87,7 @@ export default function NotesInline({
   // header.
   bareMode = false,
 }) {
+  if (trainee) addLocalNames([trainee]); // the athlete's Hebrew spelling in Hebrew auto-task bodies (autoTaskHe)
   const { rows, create, update, togglePin, toggleDone, remove } =
     useCoachNotes({ targetKind, targetId });
   const [body, setBody] = useState('');
@@ -225,12 +230,12 @@ export default function NotesInline({
             return (
               <button onClick={() => startCreatePlan(n)}
                 title={tr(readLang(), 'Create a program from this task — auto-marks done on save')}
-                style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'NEW PROGRAM')}</button>
+                style={pillBtn('var(--c-ac)')}>{pillText('NEW PROGRAM')}</button>
             );
           }
           if (kindAction === 'NEW_PROGRAM' && showCreatePlanBtn) {
             return (
-              <button onClick={() => startCreatePlan(n)} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'NEW PROGRAM')}</button>
+              <button onClick={() => startCreatePlan(n)} style={pillBtn('var(--c-ac)')}>{pillText('NEW PROGRAM')}</button>
             );
           }
           if (kindAction === 'REVIEW' && n.auto_ref) {
@@ -239,24 +244,24 @@ export default function NotesInline({
               <button onClick={() => {
                 try { sessionStorage.setItem('expo-pendingReviewWorkout', woId); } catch {}
                 window.location.href = '/coach/review';
-              }} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'REVIEW')}</button>
+              }} style={pillBtn('var(--c-ac)')}>{pillText('REVIEW')}</button>
             );
           }
           if (kindAction === 'WHATSAPP') {
             const phone = normalizePhoneIL(trainee?.phone);
             if (!phone) {
-              return <button disabled style={pillBtn('var(--c-td)')} title={tr(readLang(), 'No phone on file')}>→ {tr(readLang(), 'WHATSAPP')}</button>;
+              return <button disabled style={pillBtn('var(--c-td)')} title={tr(readLang(), 'No phone on file')}>{pillText('WHATSAPP')}</button>;
             }
             const msg = whatsappMessageForTask(n, trainee);
             return (
               <button onClick={() => {
                 try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
               }} title={tr(readLang(), 'Open WhatsApp to {x}').replace('{x}', trainee?.name || '')}
-                style={pillBtn('#128C7E')}>→ {tr(readLang(), 'WHATSAPP')}</button>
+                style={pillBtn('#128C7E')}>{pillText('WHATSAPP')}</button>
             );
           }
           if (kindAction === 'OPEN_INTAKE' && onOpenIntakeTab) {
-            return <button onClick={onOpenIntakeTab} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'INTAKE')}</button>;
+            return <button onClick={onOpenIntakeTab} style={pillBtn('var(--c-ac)')}>{pillText('INTAKE')}</button>;
           }
           if (kindAction === 'OPEN_ATHLETE') {
             // We're already on the athlete card. Scroll to the eval
@@ -267,7 +272,7 @@ export default function NotesInline({
                   const el = document.querySelector('[data-eval-anchor]');
                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch {}
-              }} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'RUN EVALUATION')}</button>
+              }} style={pillBtn('var(--c-ac)')}>{pillText('RUN EVALUATION')}</button>
             );
           }
           if (kindAction === 'OPEN_WAITLIST' && typeof window !== 'undefined') {
@@ -277,7 +282,7 @@ export default function NotesInline({
             return (
               <button onClick={() => { try { window.location.hash = '#/coach/waitlist'; } catch {} }}
                 title={tr(readLang(), 'Open the /coach/waitlist surface to consume this lead')}
-                style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'WAITLIST')}</button>
+                style={pillBtn('var(--c-ac)')}>{pillText('WAITLIST')}</button>
             );
           }
           return null;
@@ -305,12 +310,12 @@ export default function NotesInline({
                 }}>{n.pinned ? '📌' : '○'}</button>
               {kindLabel && (
                 <>
-                  <span title={`${tr(readLang(), 'Auto-generated:')} ${kindLabel}`}
+                  <span title={`${tr(readLang(), 'Auto-generated:')} ${tr(readLang(), kindLabel)}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
                       color: stripeColor, border: `1px solid ${stripeColor}`, padding: '2px 8px',
-                    }}>⚙ {kindLabel}</span>
+                    }}>⚙ {tr(readLang(), kindLabel)}</span>
                   <ExplainInfoButton note={n} trainee={trainee} color={stripeColor} />
                 </>
               )}
@@ -324,7 +329,7 @@ export default function NotesInline({
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-                {new Date(n.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(n.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(n.created_at).toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' })} · {new Date(n.created_at).toLocaleTimeString(readLang() === 'he' ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}{/* the month in the page's language ('2 Sept' read inside Hebrew - 12.10 rendered audit) */}
               </span>
               <button onClick={async () => {
                   // Cancel ≠ delete — archive to history instead of wiping it.
@@ -393,7 +398,9 @@ export default function NotesInline({
       })}
 
       {done.length > 0 && (
-        <div style={{ marginTop: open.length > 0 ? 8 : 0, paddingTop: 8, borderTop: open.length > 0 ? `1px dashed var(--c-cardBd)` : 'none' }}>
+        // under COACH HISTORY's tabs with nothing open, the tab bar's own 12 is the air: no second 8 (14.10 #735: 25 over
+        // the label, 19 under the row)
+        <div className={bareMode && open.length === 0 ? 'ni-hist-bare' : undefined} style={{ marginTop: open.length > 0 ? 8 : 0, paddingTop: bareMode && open.length === 0 ? 2 : 8, borderTop: open.length > 0 ? `1px dashed var(--c-cardBd)` : 'none' }}>
           {/* Same "✓ HISTORY (N)" header + per-row "done DATE" metadata + row
               dividers + centered strikethrough + confirm-before-delete that
               NotesWidget (Dashboard Tasks) already has (Ohad 2026-07-04: bring
@@ -432,7 +439,7 @@ export default function NotesInline({
                     flex: '1 1 160px', minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
                     textAlign: 'center', overflowWrap: 'break-word', fontFamily: FB,
                   }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</span>
-                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
+                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap', lineHeight: '16.8px' }}>
                     {n.status === 'cancelled'
                       ? 'CANCELLED'
                       : n.completed_at && <span>{tr(readLang(), 'done')} {fmtPrettyDate(n.completed_at)}</span>}
@@ -469,7 +476,7 @@ export default function NotesInline({
             and the search/filter at /coach/tasks finds them all. */}
         <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }}
-          placeholder="#tags  (optional — e.g. rehab, shoulder, post-surgery)"
+          placeholder={readLang() === 'he' ? '#תגיות (לא חובה, למשל שיקום, כתף, אחרי ניתוח)' : '#tags  (optional — e.g. rehab, shoulder, post-surgery)'}
           style={{
             width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
             borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,

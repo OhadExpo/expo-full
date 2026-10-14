@@ -690,10 +690,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                          on a shared baseline, so centring the caret against their BLOCK put
                          it 2.6px off the type it belongs to (row-ink sweep, 18.9). */
                       style={{width:'100%',display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,
-                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign: 'start',transition:'background .12s'}}>
+                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding: ri===0 ? '12px 14px 10px' : '14px 14px 10px' /* the caret hangs under the baseline: the words sit midway; the first row sits on the strip itself (#735) */,textAlign: 'start',transition:'background .12s'}}>
                       <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
-                        <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
-                        <span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
+                        {/* one 18px line for a Latin or a Hebrew name (14.10 #735: Heebo's taller line box stood the Hebrew rows 49px
+                            against 42, 17 over 19.2 under) */}
+                        <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,lineHeight:'18px',fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
+                        <span style={{fontFamily:FN,fontSize:11,lineHeight:'18px',color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
                       </span>
                       <span style={{fontFamily:FN,fontSize:12,color:'var(--c-tx)',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}><CaretGlyph /></span>
                     </button>
