@@ -262,7 +262,9 @@ export function fixSupine(frames, exercise = '') {
         const I = info[k]; if (!I || Math.abs(I.fy) < 1e-4 || Math.sign(I.fy) === want) continue;
         const { hip, u } = I;
         const rot = (p0) => { if (!p0 || !fin(p0)) return p0; const v = { x: p0.x - hip.x, y: p0.y - hip.y, z: p0.z - hip.z }; const d = v.x * u.x + v.y * u.y + v.z * u.z; return { ...p0, x: hip.x + 2 * d * u.x - v.x, y: hip.y + 2 * d * u.y - v.y, z: hip.z + 2 * d * u.z - v.z }; };
-        out[k] = { ...frames[k], pts: frames[k].pts.map(rot), supineFixed: true }; fixed++;
+        // the trunk, head and arms only (indices 0-22): the legs keep their own reading - turned with the trunk, legs
+        // hanging below the bench line were lifted into the air (14.10 c06 video check)
+        out[k] = { ...frames[k], pts: frames[k].pts.map((p0, idx) => (idx <= 22 || SUPINE === 3 ? rot(p0) : p0)), supineFixed: true }; fixed++;
       }
     }
     a = b + 1;

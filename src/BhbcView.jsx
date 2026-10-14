@@ -1828,7 +1828,7 @@ function attendance28(rec, days) {
   // the owner's HEAD COACH preview gets the same page, sandboxed (nothing saves)
   const headCoachAthlete = previewSeat === 'head-coach' ? (trainees || []).find((t) => t && [].concat(t.email || []).some((e) => typeof e === 'string' && e.toLowerCase() === BHBC_HEAD_COACH_EMAIL)) || null : null;
   const hasMyProgram = typeof myProgram === 'function' || !!headCoachAthlete;
-  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['practices', tr('Practices')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]]), ...(hasMyProgram ? [['my-program', tr('My program')]] : [])];
+  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['practices', tr('Practices')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]]), ...(hasMyProgram ? [['my-program', tr('Program')]] : [])   /* #789: 'Program', not 'My program' */];
 
   // Never sit on a tab that is not in the list. 'Activity' disappears in the
   // coach view, but `view` was not reset when 'Preview as coach' was switched
@@ -2312,7 +2312,7 @@ function attendance28(rec, days) {
                   <button type="button" aria-label={tr('Close')} onClick={() => setPreviewMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 1999, background: 'transparent', border: 'none', padding: 0, cursor: 'default' }} />
                   <span role="menu" data-bhbc-preview-menu style={{ position: 'fixed', top: previewAt.top, left: previewAt.left, width: previewAt.width, zIndex: 2000, display: 'grid', minWidth: 180, background: C.sf, border: `1px solid ${HDR_BD}`, boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
                     {[['coach', 'Coach'], ['head-coach', 'Head coach'], ['pt', 'Physio (PT)']].map(([k, label]) => (
-                      <button key={k} role="menuitem" data-preview-seat={k} onClick={() => { setPreviewMenu(false); setPreviewSeat(k); if (k === 'head-coach' && (trainees || []).some((t) => t && [].concat(t.email || []).some((e) => typeof e === 'string' && e.toLowerCase() === BHBC_HEAD_COACH_EMAIL))) setTimeout(() => pickView('my-program'), 0); /* #781: the head coach's preview opens on HIS program */ }}
+                      <button key={k} role="menuitem" data-preview-seat={k} onClick={() => { setPreviewMenu(false); setPreviewSeat(k); /* #790: the preview opens where he does - on the dashboard; his Program is its own tab */ }}
                         style={{ height: 36, padding: '0 14px', textAlign: 'start', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', whiteSpace: 'nowrap' }}>{tr(label)}</button>
                     ))}
                   </span>

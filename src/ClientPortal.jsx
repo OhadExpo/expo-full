@@ -107,6 +107,10 @@ const splitPrescription = (str) => {
 // columns; the exercise step passes splitCombined=false so a blank-sets +
 // "2x10 e" reps cell stays verbatim (splitting it there would fabricate a sets
 // count and mislabel the trailing tempo token). Renders "—" when both empty.
+// A VALUE WITH HEBREW IN IT READS RIGHT-TO-LEFT as one unit (14.10 #789, Ohad: "40 קד' ... apostrophe should be on the
+// right side. make sure lines with both english and hebrew are perfect"): forced LTR, the geresh of "40 דק'" and the
+// letters around it were laid out backwards. Latin / numbers only stay LTR.
+const dirOfVal = (v) => (/[֐-׿]/.test(String(v || '')) ? 'rtl' : 'ltr');
 // a logged exercise is a RUN when its sets carry a time (#769)
 const isRunLog = (x) => !!x && Array.isArray(x.sets) && x.sets.some((st) => st && st.time);
 
@@ -4042,8 +4046,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
                   {/* fixed tempo column so the orange values form a true rail
                       instead of floating ragged between title and rx */}
-                  <span dir="ltr" style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right',unicodeBidi:'isolate'}}>{r.tempo || ''}</span>
-                  <span dir="ltr" style={{unicodeBidi:'isolate',fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
+                  <span dir={dirOfVal(r.tempo)} style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right',unicodeBidi:'isolate'}}>{r.tempo || ''}</span>
+                  <span dir={dirOfVal(r.rx)} style={{unicodeBidi:'isolate',fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
                 </div>
               );
               // number element per identity — square (BASE/RAIL), mono
@@ -4079,10 +4083,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                           const rx = String(r.rx || ''); const ci = rx.indexOf(',');
                           const base = {fontSize:11,fontWeight:700,fontFamily:FN,letterSpacing:'0.04em'};
                           const iso = {};
-                          if (ci === -1) return <span dir="ltr" style={{...base,...iso,color:C.ac}}>{rx}</span>;
-                          return <span dir="ltr" style={iso}><span style={{...base,color:C.ac}}>{rx.slice(0,ci).trimEnd()}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></span>;
+                          if (ci === -1) return <span dir={dirOfVal(rx)} style={{...base,...iso,unicodeBidi:'isolate',color:C.ac}}>{rx}</span>;
+                          return <span dir={dirOfVal(rx)} style={{...iso,unicodeBidi:'isolate'}}><span style={{...base,color:C.ac}}>{rx.slice(0,ci).trimEnd()}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></span>;
                         })()}
-                        {r.tempo && <span dir="ltr" style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',unicodeBidi:'isolate',display:'inline-block'}}>{r.tempo}</span>}
+                        {r.tempo && <span dir={dirOfVal(r.tempo)} style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',unicodeBidi:'isolate',display:'inline-block'}}>{r.tempo}</span>}
                       </div>
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
                     </div>
