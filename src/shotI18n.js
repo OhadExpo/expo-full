@@ -96,7 +96,7 @@ export const SHOT_I18N = {
 
     save: 'SAVE SESSION', copy: 'COPY SUMMARY', print: 'PRINT REPORT', newClip: '↺ NEW CLIP',
     body3d: '3D BODY', body3dOff: '× 3D BODY',
-    skeleton: 'SKELETON', jointAngles: 'JOINT ANGLES',
+    skeleton: 'SKELETON', jointAngles: 'JOINT ANGLES', anatomy: 'ANATOMY',
     savedTitle: 'SAVED SESSIONS', savedNone: 'Nothing saved yet.', savedDrop: 'Remove',
     savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps} reps`,
     savedToast: 'Shot analysis saved', saveFail: 'Could not save', copiedToast: 'Summary copied', copyFail: 'Copy failed',
@@ -305,7 +305,7 @@ export const SHOT_I18N = {
 
     save: 'שמור את האימון', copy: 'העתקת סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
     body3d: 'הגוף בתלת־ממד', body3dOff: '× הגוף בתלת־ממד',
-    skeleton: 'שלד', jointAngles: 'זוויות מפרקים',
+    skeleton: 'שלד', jointAngles: 'זוויות מפרקים', anatomy: 'אנטומיה',
     savedTitle: 'אימונים שנשמרו', savedNone: 'עדיין לא שמרת כלום.', savedDrop: 'מחק',
     savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps === 1 ? 'זריקה אחת' : `${reps} זריקות`}`,
     savedToast: 'ניתוח הזריקה נשמר', saveFail: 'השמירה נכשלה', copiedToast: 'הסיכום הועתק', copyFail: 'ההעתקה נכשלה',

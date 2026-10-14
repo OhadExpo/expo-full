@@ -284,7 +284,7 @@ export function validateReps(reps, angle, frames = null, fps = 30) {
     if (x.minROM < ampFloor && !graceShallow) reason = 'shallow';   // twitch / partial setup
     else if (frames && x.net > 0.35) reason = 'moved';              // walkout / walk-back
     else if (x.dur < 0.35) reason = 'too-fast';                     // sub-rep flicker
-    if (reason) { rejected.push({ bottomIdx: x.r.bottomIdx, minROM: Math.round(x.minROM), reason }); return; }
+    if (reason) { rejected.push({ bottomIdx: x.r.bottomIdx, startIdx: x.r.startIdx, endIdx: x.r.endIdx, minROM: Math.round(x.minROM), reason }); return; }
     if (graceShallow) x.r.partial = true;                          // kept, but it's a fatigued grind
     kept.push(x.r);
   });
@@ -1918,6 +1918,22 @@ export function captureQuality(frames, title, movement) {
 // channel, ballistic counting and the capture-quality region all come from the
 // pick, and null means no rep counting at all. When absent, the logged title is
 // used as before (Workout Review / auto-analysis callers).
+// The rep count a clip must come out at, from the athlete's LOG (14.10 #762): the logged reps per set when the sets
+// agree (or one value is the clear majority - a form clip is one set), doubled for each-side work ("4 E", "each",
+// "לכל צד"): "3x4 E" on a split squat is 8 dips on camera. null when the log cannot say which number this set was.
+export function repTargetFromLog(sets, prescribed = '') {
+  const vals = (sets || []).map((s) => parseFloat(s && s.reps)).filter((n) => Number.isFinite(n) && n > 0);
+  if (!vals.length) return null;
+  const tally = new Map(); vals.forEach((v) => tally.set(v, (tally.get(v) || 0) + 1));
+  const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) return null;
+  const text = `${prescribed || ''} ${(sets || []).map((s) => (s && s.reps) || '').join(' ')}`;
+  // a TIMED set ('3x10 SEC', '30s', '1 min', '20 שנ') logs seconds, not reps: no count to hold the camera to
+  if (/\d\s*(s|sec|secs|second|seconds|min|mins|minute|minutes|")(?![A-Za-z])|שנ|דק/i.test(text)) return null;
+  const each = /(^|[^A-Za-z])(E|EA|each)(?=[^A-Za-z]|$)|כל צד/i.test(text);   // 'RPE' never matches: its E follows a letter
+  return Math.round(ranked[0][0] * (each ? 2 : 1));
+}
+
 export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
   if (!rawFrames || rawFrames.length < 4) return { ok: false, reason: 'too-few-frames' };
   // ANALYSIS-GRADE FRAMES (10.10 #639): the left/right swap repair the 3D view already had - the
@@ -1930,7 +1946,33 @@ export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
   const mv = explicit ? movementByKey(opts.movement) : undefined;
   const fps = estimateFps(frames);
   const { angle, raw: rawAngle, kind, channels } = channelSignal(frames, exerciseTitle, mv);
-  const reps = channels.length ? segmentReps(angle, fps, frames) : [];
+  let reps = channels.length ? segmentReps(angle, fps, frames) : [];
+  // THE LOGGED COUNT IS THE COUNT (14.10 #762, Ohad: "it always needs to come out as the same number of reps as
+  // reported"). With the athlete's logged reps for this set, the shown count IS that number, and the reps measured are
+  // the most regular run of that many dips among everything the segmenter found (counted + not counted). Measured on
+  // the 23 hand-counted clips (audit-out/_targetn.tmp.mjs): the right reps picked on 8/23 clips vs 2/23, wrong reps in
+  // the metrics 165 -> 43. No log = exactly the old behaviour.
+  const target = Math.round(Number(opts.targetReps) || 0);
+  let cameraCount = null;
+  if (target > 0 && reps.length) {
+    cameraCount = reps.length;
+    const rejected = reps.rejected || [];
+    const all = [...reps.map((r) => ({ r, kept: true })), ...rejected.filter((r) => Number.isInteger(r.startIdx)).map((r) => ({ r, kept: false }))]
+      .sort((a, b) => a.r.bottomIdx - b.r.bottomIdx);
+    const cvOf = (xs) => { if (xs.length < 2) return 0; const m = xs.reduce((a, b) => a + b, 0) / xs.length; return m ? Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length) / m : 0; };
+    let pick = all, best = -Infinity;
+    if (all.length > target) {
+      for (let i = 0; i + target <= all.length; i++) {
+        const w = all.slice(i, i + target), gaps = w.slice(1).map((x, k) => (frames[x.r.bottomIdx].t - frames[w[k].r.bottomIdx].t) / 1000);
+        const sc = w.filter((x) => x.kept).length * 3 - cvOf(gaps) * 10;
+        if (sc > best) { best = sc; pick = w; }
+      }
+    }
+    const chosen = new Set(pick.map((x) => x.r));
+    const next = pick.map((x) => { const { minROM, reason, ...r } = x.r; void minROM; void reason; return r; });
+    next.rejected = all.filter((x) => !chosen.has(x.r)).map((x) => (x.kept ? { bottomIdx: x.r.bottomIdx, startIdx: x.r.startIdx, endIdx: x.r.endIdx, reason: 'outside the logged set' } : x.r));
+    reps = next;
+  }
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
   // per-rep angle jitter, for the athlete's set read (setAnalysis.readSet)
@@ -1945,10 +1987,10 @@ export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
   // real clips: lateral pogo 3→12, deep-squat pogo 4→17, matches where the
   // joint channel already worked. Per-rep velocity/ROM stay joint-based (the
   // meaningful jump metrics live in JUMP TEST).
-  let repCount = reps.length;
+  let repCount = target > 0 && cameraCount != null ? target : reps.length;
   let countMethod = 'joint';
   const ballistic = explicit ? !!(mv && mv.ballistic) : isBallistic(exerciseTitle);
-  if (ballistic) {
+  if (ballistic && !(target > 0)) {
     const fc = movementRepCount(frames);
     if (fc && fc.count > repCount && fc.range > 0.04) { repCount = fc.count; countMethod = 'flight'; }
   }
@@ -1956,7 +1998,7 @@ export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
   // must not inflate the reported rep count. Subtract it from the JOINT count
   // only — jointRepCount below keeps the raw pre-gate count, and the flight/
   // plyo count is a separate path that stays untouched.
-  if (countMethod === 'joint' && velocity?.rerackCount) {
+  if (countMethod === 'joint' && velocity?.rerackCount && !(target > 0)) {
     repCount = Math.max(0, repCount - velocity.rerackCount);
   }
   // extRom = the extended camera-ROM channels (signed knee / neck / static ankle)
@@ -1965,7 +2007,7 @@ export function analyzeClip(rawFrames, exerciseTitle, opts = {}) {
   // the two when reading a spec. Honest by construction — a channel is present
   // only when its hard gate passed.
   const extRom = extendedJointRom(frames);
-  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, ballistic, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
+  return { ok: true, fps, kind, movement: explicit ? (mv ? mv.key : null) : undefined, counted: channels.length > 0, ballistic, repCount, jointRepCount: reps.length, countMethod, countSource: target > 0 && cameraCount != null ? 'log' : 'camera', cameraCount, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle, mv) };
 }
 
 // --- small helpers ---

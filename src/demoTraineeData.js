@@ -133,6 +133,29 @@ export const DEMO_PLANS = [
       },
     ],
   },
+  // A RUNNING PROGRAM (14.10 #769): the coach builds runs in the same editor (Program type: Running) and the athlete
+  // logs each rep's distance, time and heart rate - the demo shows the run logger a prospect would otherwise never see.
+  {
+    id: 'plan_demo_run',
+    name: 'Conditioning Runs',
+    traineeId: 'tr_demo',
+    phase: '',
+    notes: '',
+    active: true,
+    sport: 'running',
+    createdAt: new Date(Date.now() - 20 * 86400000).toISOString(),
+    weeks: 4,
+    days: [
+      {
+        name: 'Intervals',
+        exercises: [
+          { title: 'Warm-up', s: 1, r: '1 km', tempo: 'easy' },
+          { title: 'Intervals', s: 5, r: '1 km', tempo: '5:00-5:05', rest: '2.5 min walk', load: '165' },
+          { title: 'Cool-down', s: 1, r: '1 km', tempo: 'easy' },
+        ],
+      },
+    ],
+  },
 ];
 
 // These rows are already in the CONSUMED (post-normalization) shape that

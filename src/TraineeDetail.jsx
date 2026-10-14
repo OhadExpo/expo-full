@@ -15,7 +15,7 @@ import { isHebrew } from './script';
 // 6-item parser vs a 10-item toggler), so deep-links / back-forward to vitals,
 // messages, crm or eval were dropped by the parser and silently reverted to
 // View All. Keep this the single list.
-const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload'];
+const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload', 'club'];   // 'club' (14.10 #770): the Club log tab wrote #club but a reload dropped back to View All
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase, JoinedButtons } from './ui';
@@ -40,6 +40,7 @@ import { useT, tr, readLang, daysCount, exercisesCount, daysAgoHe } from './i18n
 // markers counts, the way PlansView already had to accept all three.
 // Moved to src/clubAthlete.js - it was defined four times.
 import { isClubAthleteRow } from './clubAthlete';
+import { useUrlFlag, useUrlSync, urlFlagFromPath, segmentAfter } from './urlState';
 
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
 // no longer inside the EDIT modal (Ohad). Click the status pill → pick a new
@@ -233,6 +234,41 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
   };
   const [payForm,setPayForm]=useState({amount:"",date:todayLocalISO(),notes:"",status:"Paid"});
   const [editPayId,setEditPayId]=useState(null);
+  // EVERY POP-UP HAS ITS URL (14.10 #770), in the buttons' own words, under /coach/athletes/<id>: /edit, /contract,
+  // /add-payment, /edit-payment/<id>, /assign-program, /remove-program/<id>, /archive, /delete. A shared or reloaded
+  // link opens the same pop-up (a deletion still needs its typed confirmation); Back closes it.
+  const tdBase = (typeof window !== 'undefined' && trainee && window.location.pathname.startsWith(`/coach/athletes/${trainee}`)) ? `/coach/athletes/${trainee}` : null;
+  const atOpen = (w, withId) => urlFlagFromPath(typeof window !== 'undefined' ? window.location.pathname : '', tdBase, w, withId);
+  useEffect(() => {   // a link straight to a pop-up opens it once
+    if (!tdBase) return;
+    if (atOpen('edit')) setShowEdit(true);
+    if (atOpen('contract')) setShowContract(true);
+    if (atOpen('add-payment')) setShowPayForm(true);
+    if (atOpen('assign-program')) setShowAssign(true);
+    if (atOpen('archive')) setShowArchiveConfirm(true);
+    if (atOpen('delete')) setShowDeleteConfirm(true);
+    const rp = atOpen('remove-program', true); if (rp && rp !== true) setConfirmUnassign(rp);
+    const ep = atOpen('edit-payment', true);
+    if (ep && ep !== true) { const pay = (payments || []).find((x) => String(x.id) === String(ep)); if (pay) { setPayForm({ amount: pay.amount, date: pay.date, notes: pay.notes || '', status: pay.status }); setEditPayId(pay.id); setShowPayForm(true); } }
+  }, [tdBase]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useUrlFlag(showEdit, setShowEdit, tdBase, 'edit');
+  useUrlFlag(showContract, setShowContract, tdBase, 'contract');
+  useUrlFlag(showAssign, setShowAssign, tdBase, 'assign-program');
+  useUrlFlag(showArchiveConfirm, setShowArchiveConfirm, tdBase, 'archive');
+  useUrlFlag(showDeleteConfirm, setShowDeleteConfirm, tdBase, 'delete');
+  useUrlFlag(confirmUnassign, (v) => setConfirmUnassign(v && v !== true ? v : null), tdBase, 'remove-program', { withId: true });
+  // the payment form: one pop-up, two words (adding a payment / editing one)
+  const payState = showPayForm ? (editPayId != null ? `edit:${editPayId}` : 'add') : null;
+  useUrlSync(payState, (v) => { if (!v) { setShowPayForm(false); setEditPayId(null); } }, {
+    toPath: (v) => {
+      if (!tdBase) return null;
+      if (v === 'add') return `${tdBase}/add-payment`;
+      if (v && v.startsWith('edit:')) return `${tdBase}/edit-payment/${encodeURIComponent(v.slice(5))}`;
+      const seg = typeof window !== 'undefined' ? segmentAfter(window.location.pathname, tdBase) : null;
+      return seg === 'add-payment' || seg === 'edit-payment' ? { path: tdBase, replace: true } : null;
+    },
+    fromPath: (pth) => { const seg = segmentAfter(pth, tdBase); return seg === 'add-payment' ? 'add' : seg === 'edit-payment' ? 'edit' : null; },
+  });
   // `td` may be briefly undefined while the parent re-fetches trainees.
   // Couple values that the hooks below need are nullable in that window;
   // guard expressions, then early-return after all hooks have registered.
@@ -314,7 +350,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       // and drops kind otherwise, which silently rewrote an 8-week block to 4
       // (or turned a daily routine standard) on assign. Mirrors PlansView's
       // duplicatePlan. (functional/logic audit)
-      const dup={id:'pl_'+uid(),name:src.name,traineeId:tid,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[],weeks:src.data?.weeks,kind:src.data?.kind,isTemplatePurchase:src.data?.isTemplatePurchase};
+      const dup={id:'pl_'+uid(),name:src.name,traineeId:tid,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[],weeks:src.data?.weeks,kind:src.data?.kind,sport:src.data?.sport,isTemplatePurchase:src.data?.isTemplatePurchase};
       if(!(await savePlan(dup))){ toast('Assign failed — the duplicated program could not be saved.', 'error'); return; }
     }
     setShowAssign(false);

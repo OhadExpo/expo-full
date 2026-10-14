@@ -9,6 +9,11 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { Card, ChipGrid } from './ui';
 import { FormVideoPlayer } from './WorkoutReview';
+import { repTargetFromLog } from './poseLab';
+import { useUrlSync } from './urlState';
+const TOOLS_BASE = '/coach/review-tools';
+const TOOL_WORD = { lab: 'movement-lab', metrics: 'lift-metrics', jump: 'jump-test', live: 'live-coach', shot: 'shot-analyzer' };
+const toolFromPath = (p) => { const m = String(p || '').match(/^\/coach\/review-tools\/([a-z-]+)/); if (!m) return null; const k = Object.keys(TOOL_WORD).find((x) => TOOL_WORD[x] === m[1]); return k || null; };
 import ErrorBoundary from './ErrorBoundary';
 import { useAthletePlans } from './usePlansStore';
 
@@ -45,7 +50,8 @@ function buildClipTree(workouts, trainees) {
       const D = W.get(week);
       if (!D.has(day)) D.set(day, []);
       D.get(day).push({ title, url: fv.cloudUrl, date: w.date, cid, eid: ex && ex.eid, wid: w.id, slot: i,
-        recorded: (ex && Array.isArray(ex.sets) ? ex.sets.map(s => parseFloat(s.reps)).filter(n => isFinite(n)) : []) });
+        recorded: (ex && Array.isArray(ex.sets) ? ex.sets.map(s => parseFloat(s.reps)).filter(n => isFinite(n)) : []),
+        repTarget: ex ? repTargetFromLog(ex.sets, ex.prescribed) : null });
     }
   }
   return [...A.entries()].map(([cid, B]) => ({
@@ -100,7 +106,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   const sel = { width: '100%', minWidth: 0, height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: 'none', color: C.tx, fontFamily: FB, fontSize: 13, padding: '0 10px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
   const selDim = { ...sel, color: C.td, cursor: 'default' };
 
-  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex), ex.wid, ex.slot); };
+  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex), ex.wid, ex.slot, ex.repTarget); };
   // RECENT CLIPS, ONE TAP (4.10 #530, Ohad: "the tools in expo can be 10x better"):
   // reaching a clip took five dropdowns in a row (athlete, block, week, day,
   // exercise). The newest recorded sets across every athlete are listed first;
@@ -115,7 +121,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   }, [tree]);
   const pickRecent = (r) => {
     setA(String(r.ai)); setB(String(r.bi)); setW(String(r.wi)); setD(String(r.di)); setE(String(r.xi));
-    onPick(r.ex.url, r.ex.title, r.ex.cid, r.ex.date, r.ex.recorded, null, r.ex.wid, r.ex.slot);
+    onPick(r.ex.url, r.ex.title, r.ex.cid, r.ex.date, r.ex.recorded, null, r.ex.wid, r.ex.slot, r.ex.repTarget);
   };
   // the prescription arrives with the athlete's programs - say it once it is known
   const lastEmit = useRef('');
@@ -124,7 +130,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
     if (!ex || !plans) return;
     const t = targetFor(ex);
     const sig = `${ex.url}|${t}`;
-    if (t != null && lastEmit.current !== sig) { lastEmit.current = sig; onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, t, ex.wid, ex.slot); }
+    if (t != null && lastEmit.current !== sig) { lastEmit.current = sig; onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, t, ex.wid, ex.slot, ex.repTarget); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plans, day, e]);
   const shortDate = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}` : ''; };
@@ -340,8 +346,14 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
   // movement itself is picked inside the tool.
   const [title, setTitle] = useState('');
   const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
-  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [], target: null, wid: null, slot: null }); // athlete+date+logged+prescribed of the picked clip
-  const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
+  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [], target: null, wid: null, slot: null, repTarget: null }); // athlete+date+logged+prescribed of the picked clip
+  // EVERY TOOL HAS ITS URL (14.10 #770), in the tools' own names: /coach/review-tools/movement-lab | lift-metrics |
+  // jump-test | live-coach | shot-analyzer. A link opens the tool (a camera tool still waits for START); Back closes it.
+  const [tool, setTool]   = useState(() => toolFromPath(typeof window !== 'undefined' ? window.location.pathname : '')); // 'lab' | 'metrics' | 'jump' | 'live' | null
+  useUrlSync(tool, setTool, {
+    toPath: (k) => (k && TOOL_WORD[k] ? `${TOOLS_BASE}/${TOOL_WORD[k]}` : (typeof window !== 'undefined' && window.location.pathname.startsWith(TOOLS_BASE + '/') ? { path: TOOLS_BASE, replace: true } : null)),
+    fromPath: toolFromPath,
+  });
   const camOk = useRef(hasCameraApi());
 
   // Lock body scroll while a fullscreen tool is mounted so the page behind
@@ -377,7 +389,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
   return (
     <div className="motion-rise" style={{ width: '100%' }}>
       <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
-        onPick={(url, t, cid, date, recorded, target, wid, slot) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [], target: target || null, wid: wid || null, slot: Number.isInteger(slot) ? slot : null }); }} />
+        onPick={(url, t, cid, date, recorded, target, wid, slot, repTarget) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [], target: target || null, wid: wid || null, slot: Number.isInteger(slot) ? slot : null, repTarget: repTarget || null }); }} />
 
       {clipUrl ? (
         /* the clip on the left (sticky), the lift and the tools on the right, top-aligned with it */
@@ -419,8 +431,8 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [], up
               Keyed on the tool so switching tools clears a previous error. */}
           <ErrorBoundary key={tool || 'none'} inline>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
-            {tool === 'lab'     && <MovementLab exerciseTitle={title || ''} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || ''} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} onSendNote={clipUrl ? sendNote : null} onClose={close} />}
+            {tool === 'lab'     && <MovementLab exerciseTitle={title || ''} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} repTarget={clipUrl ? clipMeta.repTarget : null} onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || ''} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} repTarget={clipUrl ? clipMeta.repTarget : null} onSendNote={clipUrl ? sendNote : null} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle={title || 'Vertical Jump'} initialMode="jump" initialClipUrl={clipUrl} vaultClientId={clipUrl ? clipMeta.clientId : null} vaultDate={clipUrl ? clipMeta.date : null} onSendNote={clipUrl ? sendNote : null} onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || ''} onClose={close} />}
             {/* Camera / gallery ONLY — the reviewed-clip picker never feeds the

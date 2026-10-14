@@ -18,6 +18,7 @@ import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
 import { createPoseSmoother, ONE_EURO_IMAGE } from './poseLab';
 import { makeSubjectLock } from './subjectLock';
 import { createPoseOverlay } from './poseOverlay';
+import { createWorkerLandmarker } from './poseWorkerClient';
 // the live anatomy body (#690) loads only when the coach turns 3D on; a stale chunk shows nothing, never a crash
 const LiveAnatomy = React.lazy(() => import('./LiveAnatomy').catch(() => ({ default: function LiveAnatomyUnavailable() { return null; } })));
 
@@ -67,6 +68,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const showAnglesRef = useRef(true);
   useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
   const ovlRef = useRef(null);
+  const drawnRef = useRef(null), worldRef = useRef(null);   // the last reading, painted every frame
   // 3D (13.10 #690): the anatomy body beside the feed, ~0.7 s behind it - off by default (a phone runs the pose model too)
   const [show3d, setShow3d] = useState(false);
   const liveBufRef = useRef([]);
@@ -94,64 +96,75 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const loop = useCallback(() => {
     const v = videoRef.current, lm = lmRef.current;
     if (!v || !lm || v.readyState < 2) { rafRef.current = requestAnimationFrame(loop); return; }
-    let res = null;
-    try { res = lm.detectForVideo(v, performance.now()); } catch { res = null; }
-    // ONE PERSON (13.10 #719b): up to 3 detected, the subject lock keeps the lifter - the first detection was whoever
-    // the model read best (a man walking past the camera took the count and the 3D body)
-    const si = res && res.landmarks && res.landmarks.length ? (lockRef.current ? lockRef.current(res.landmarks, performance.now()) : 0) : -1;
-    const landmarks = si >= 0 ? res.landmarks[si] || null : null;
-    const world = si >= 0 ? res?.worldLandmarks?.[si] || null : null;
-    // the last 12.5 s of readings for the live 3D body (a frame without a body is no reading)
-    if (landmarks && world) { const nowT = performance.now(), lb = liveBufRef.current; lb.push({ t: nowT, landmarks, worldLandmarks: world }); while (lb.length && lb[0].t < nowT - 12500) lb.shift(); }
+    // THE READING is processed when it arrives (#775): at once from the page's own model, a frame or two later from
+    // the worker - the count, depth and the overlay's points all belong to the moment the frame was taken (nowT)
+    const process = (res, nowT) => {
+      // ONE PERSON (13.10 #719b): up to 3 detected, the subject lock keeps the lifter - the first detection was whoever
+      // the model read best (a man walking past the camera took the count and the 3D body)
+      const si = res && res.landmarks && res.landmarks.length ? (lockRef.current ? lockRef.current(res.landmarks, nowT) : 0) : -1;
+      const landmarks = si >= 0 ? res.landmarks[si] || null : null;
+      const world = si >= 0 ? res?.worldLandmarks?.[si] || null : null;
+      // the last 12.5 s of readings for the live 3D body (a frame without a body is no reading)
+      if (landmarks && world) { const lb = liveBufRef.current; lb.push({ t: nowT, landmarks, worldLandmarks: world }); while (lb.length && lb[0].t < nowT - 12500) lb.shift(); }
 
-    // --- live rep state machine (world landmarks → joint angle) ---
-    if (world && thr && channels.length) {
-      const angs = channels.map(name => {
-        const def = ANGLE_DEFS.find(a => a.name === name);
-        return def ? angleAt(world, def.a, def.b, def.c) : null;
-      }).filter(isReal);
-      if (angs.length) {
-        const avg = angs.reduce((a, b) => a + b, 0) / angs.length;
-        const buf = angleBufRef.current; buf.push(avg); if (buf.length > 8) buf.shift();
-        const sorted = [...buf].sort((a, b) => a - b);
-        const smooth = sorted[Math.floor(sorted.length / 2)];
-        // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
-        // extending (increasing) = UP, ~stable = ISO (a hold/pause).
-        // Direction over a short window (not frame-to-frame) so the chip doesn't
-        // flicker up/down/iso on noise — the change must clear ISO_DEG over ~6 frames.
-        const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 6) sh.shift();
-        if (sh.length >= 4) {
-          const vel = smooth - sh[0];
-          const nd = Math.abs(vel) < 5 ? 'iso' : (vel < 0 ? 'down' : 'up');
-          if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
-        }
-        if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
-        else if (phaseRef.current === 'bottom' && smooth > thr.high) {
-          phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
-          if (repHitDepthRef.current) setDepthReps(n => n + 1);   // this rep reached depth → count it
-          repHitDepthRef.current = false;
+      // --- live rep state machine (world landmarks → joint angle) ---
+      if (world && thr && channels.length) {
+        const angs = channels.map(name => {
+          const def = ANGLE_DEFS.find(a => a.name === name);
+          return def ? angleAt(world, def.a, def.b, def.c) : null;
+        }).filter(isReal);
+        if (angs.length) {
+          const avg = angs.reduce((a, b) => a + b, 0) / angs.length;
+          const buf = angleBufRef.current; buf.push(avg); if (buf.length > 8) buf.shift();
+          const sorted = [...buf].sort((a, b) => a - b);
+          const smooth = sorted[Math.floor(sorted.length / 2)];
+          // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
+          // extending (increasing) = UP, ~stable = ISO (a hold/pause).
+          // Direction over a short window (not frame-to-frame) so the chip doesn't
+          // flicker up/down/iso on noise — the change must clear ISO_DEG over ~6 frames.
+          const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 6) sh.shift();
+          if (sh.length >= 4) {
+            const vel = smooth - sh[0];
+            const nd = Math.abs(vel) < 5 ? 'iso' : (vel < 0 ? 'down' : 'up');
+            if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
+          }
+          if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
+          else if (phaseRef.current === 'bottom' && smooth > thr.high) {
+            phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
+            if (repHitDepthRef.current) setDepthReps(n => n + 1);   // this rep reached depth → count it
+            repHitDepthRef.current = false;
+          }
         }
       }
-    }
 
-    // --- depth: live at/below-parallel flag + per-rep depth-hit (for the count).
-    // DEPTH_TOL loosens the "full parallel" gate (was too strict — counts depth a
-    // touch above parallel). Detection runs whenever depth is relevant; the toggle
-    // only hides the display, not the count.
-    if (depthRelevant && landmarks) {
-      const hip = midpt(landmarks[23], landmarks[24]);
-      const knee = midpt(landmarks[25], landmarks[26]);
-      const d = !!(hip && knee && hip.y >= knee.y - DEPTH_TOL);
-      if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
-      if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
-    }
+      // --- depth: live at/below-parallel flag + per-rep depth-hit (for the count).
+      // DEPTH_TOL loosens the "full parallel" gate (was too strict — counts depth a
+      // touch above parallel). Detection runs whenever depth is relevant; the toggle
+      // only hides the display, not the count.
+      if (depthRelevant && landmarks) {
+        const hip = midpt(landmarks[23], landmarks[24]);
+        const knee = midpt(landmarks[25], landmarks[26]);
+        const d = !!(hip && knee && hip.y >= knee.y - DEPTH_TOL);
+        if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
+        if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
+      }
 
-    if (!drawSmoothRef.current) drawSmoothRef.current = createPoseSmoother(ONE_EURO_IMAGE);
-    const drawn = landmarks ? drawSmoothRef.current.smooth(landmarks, performance.now()) : null;
-    if (!landmarks) drawSmoothRef.current.reset();
-    if (!ovlRef.current) ovlRef.current = createPoseOverlay();
-    ovlRef.current.update(landmarks || null, world, performance.now() / 1000);
-    draw(canvasRef.current, v, drawn, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showAnglesRef.current, ovl: ovlRef.current });
+      if (!drawSmoothRef.current) drawSmoothRef.current = createPoseSmoother(ONE_EURO_IMAGE);
+      const drawn = landmarks ? drawSmoothRef.current.smooth(landmarks, nowT) : null;
+      if (!landmarks) drawSmoothRef.current.reset();
+      if (!ovlRef.current) ovlRef.current = createPoseOverlay();
+      ovlRef.current.update(landmarks || null, world, nowT / 1000);
+      drawnRef.current = drawn; worldRef.current = world;
+    };
+    if (lm.isWorker) {
+      if (!lm.busy) { const t0 = performance.now(); lm.detect(v, t0).then((r) => { if (r) process(r.result, t0); }); }
+    } else {
+      let res = null; const t0 = performance.now();
+      try { res = lm.detectForVideo(v, t0); } catch { res = null; }
+      process(res, t0);
+    }
+    // the picture at the SCREEN's rate, the joints at this instant (#775)
+    draw(canvasRef.current, v, drawnRef.current, worldRef.current, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showAnglesRef.current, ovl: ovlRef.current, t: performance.now() / 1000 });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -166,6 +179,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       // full on a desktop (better joints); lite on a touch device, where frame rate is the limit (#641)
       const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
       // numPoses 3 for the lock (a harness may set window.__livePoses to measure the cost - inert otherwise)
+      // the model in a WORKER first (#775): the camera and the overlay keep the screen's rate while a frame is read
+      if (!lmRef.current) { const q = coarse ? 'lite' : 'full'; lmRef.current = await createWorkerLandmarker({ model: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${q}/float16/latest/pose_landmarker_${q}.task`, numPoses: (typeof window !== 'undefined' && window.__livePoses) || 3 }); }
       if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: coarse ? 'lite' : 'full', numPoses: (typeof window !== 'undefined' && window.__livePoses) || 3 });
       { const v = videoRef.current; lockRef.current = makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }); }
       anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top'; drawSmoothRef.current = null;
@@ -268,9 +283,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? tt('FRONT') : tt('REAR')}</button>
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>{showReps ? tt('REPS ON') : tt('REPS OFF')}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>{showDepth ? tt('DEPTH ON') : tt('DEPTH OFF')}</button>}
-              <button onClick={() => setShowSkeleton(s => !s)} aria-pressed={showSkeleton} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>{showSkeleton ? tt('SKELETON ON') : tt('SKELETON OFF')}</button>
-              <button onClick={() => setShowAngles(s => !s)} aria-pressed={showAngles} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 140 }}>{showAngles ? tt('JOINT ANGLES ON') : tt('JOINT ANGLES OFF')}</button>
-              <button onClick={() => { const v = videoRef.current; if (v && v.videoWidth) setCamDims({ w: v.videoWidth, h: v.videoHeight }); setShow3d(s => !s); }} style={{ ...ctrl, background: show3d ? C.ac : 'transparent', minWidth: 92 }}>{show3d ? tt('3D ON') : tt('3D OFF')}</button>
+              {/* the two tools (#774): JOINT ANGLES = the body lines + the angle at each joint; ANATOMY = the 3D body */}
+              <button onClick={() => { const on = !(showSkeleton && showAngles); setShowSkeleton(on); setShowAngles(on); }} aria-pressed={showSkeleton && showAngles} style={{ ...ctrl, background: showSkeleton && showAngles ? C.ac : 'transparent', minWidth: 140 }}>{showSkeleton && showAngles ? tt('JOINT ANGLES ON') : tt('JOINT ANGLES OFF')}</button>
+              <button onClick={() => { const v = videoRef.current; if (v && v.videoWidth) setCamDims({ w: v.videoWidth, h: v.videoHeight }); setShow3d(s => !s); }} aria-pressed={show3d} style={{ ...ctrl, background: show3d ? C.ac : 'transparent', minWidth: 120 }}>{show3d ? tt('ANATOMY ON') : tt('ANATOMY OFF')}</button>
             </>}
       </div>
     </div>,
@@ -288,7 +303,7 @@ function HudCell({ label, value, big, tone, pop }) {
   );
 }
 
-function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, angles, ovl }) {
+function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, angles, ovl, t = null }) {
   if (!canvas || !video) return;
   const ctx = canvas.getContext('2d');
   const w = video.videoWidth, h = video.videoHeight;
@@ -299,7 +314,7 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, ang
   if (!landmarks) return;
 
   // the skeleton and the joint angles: the shared engine, on this native-resolution canvas
-  if (ovl) ovl.draw(ctx, { w, h, px: (p) => p.x * w, py: (p) => p.y * h, skeleton, angles });
+  if (ovl) ovl.draw(ctx, { w, h, px: (p) => p.x * w, py: (p) => p.y * h, skeleton, angles, t });
 
   const wristMid = midpt(landmarks[15], landmarks[16]);
   const hipMid = midpt(landmarks[23], landmarks[24]);

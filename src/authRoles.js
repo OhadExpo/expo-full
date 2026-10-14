@@ -25,6 +25,9 @@ export const BHBC_COACH_EMAILS = ['benshemer4@gmail.com', 'elishai115@gmail.com'
 // or they get medical rights without the zone they live in. verify-auth-roles
 // asserts that, so the two lists cannot drift apart.
 export const PT_EMAILS = ['yoel23919@gmail.com', 'tomerlich11@gmail.com'];
+// The head coach (14.10 #769/#773): also an EXPO athlete - his program opens as a page of the zone (MY PROGRAM),
+// and the owner's HEAD COACH preview shows that page sandboxed.
+export const BHBC_HEAD_COACH_EMAIL = 'yehuorland@gmail.com';
 
 // Everyone who gets coach-portal access at all. Existing
 // `TRAINER_EMAILS.includes(...)` checks stay correct because staff ARE trainers.

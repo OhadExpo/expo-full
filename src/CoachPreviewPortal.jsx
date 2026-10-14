@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isSafeTraineeId } from './traineeUtils';
-import ClientPortal from './ClientPortal';
+import ClientPortal from './ClientPortal';
+
 import { useT, readLang } from './i18n';
 
 // Coach-side preview. Two modes:
@@ -30,6 +31,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
     notes: p.notes, active: p.active, createdAt: p.created_at,
     days: p.data?.days || [], warmup: p.data?.warmup || [],
     weeks: p.data?.weeks || 4,
+    kind: p.data?.kind || undefined, sport: p.data?.sport || undefined,   // #769
   });
 
   useEffect(() => {

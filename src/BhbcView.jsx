@@ -11,7 +11,7 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
-import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy, useTransition } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy, useTransition, Suspense } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
 import { gwDrill, gwSection } from './gameWarmupText';
@@ -31,8 +31,10 @@ import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
 import { LangCtx, BodyLang } from './i18n';
+import { BHBC_HEAD_COACH_EMAIL } from './authRoles';
 import { isClubAthlete } from './clubAthlete';
 import { isOwnerEmail } from './authRoles';
+import { useUrlFlag, useUrlSync, urlFlagFromPath, segmentAfter } from './urlState';
 
 // EXPO's read-only program/portal preview — shown INSIDE the BHBC zone so coaches
 // can view an athlete's program here instead of jumping to the EXPO coach app.
@@ -905,7 +907,7 @@ function SortBar({ sort, cols, className, style }) {
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, gameWarmup = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
+export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, bhbcLoads = {}, setBhbcLoads: setBhbcLoadsReal, bhbcFixtures = [], setBhbcFixtures: setBhbcFixturesReal, league = {}, gameWarmup = {}, medical = {}, setMedical: setMedicalReal, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false, myProgram = null }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -943,7 +945,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // so every line he made was refused and the tab showed only the owner (#547,
   // measured: 51 of 51). His lines go through the append-only door instead
   // (bhbc_activity_append: who + when from his token, same duplicate rule + cap).
+  // A PREVIEW SAVES NOTHING (14.10 #773): every write the zone makes goes through these four setters and `track`; while a
+  // preview seat is on (Coach / Head coach / PT) they refuse, so the owner can press every button a seat has and the
+  // club's data cannot change. previewRef is read at CALL time (the seat state is declared further down).
+  const previewRef = React.useRef(null);
+  const blockedInPreview = () => { try { toast(tr('Preview - nothing was saved.')); } catch { /* noop */ } };
+  const setTrainees = useCallback((...a) => (previewRef.current ? blockedInPreview() : setTraineesReal && setTraineesReal(...a)), [setTraineesReal]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const setBhbcLoads = useCallback((...a) => (previewRef.current ? blockedInPreview() : setBhbcLoadsReal && setBhbcLoadsReal(...a)), [setBhbcLoadsReal]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const setBhbcFixtures = useCallback((...a) => (previewRef.current ? blockedInPreview() : setBhbcFixturesReal && setBhbcFixturesReal(...a)), [setBhbcFixturesReal]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const setMedical = useCallback((...a) => (previewRef.current ? blockedInPreview() : setMedicalReal && setMedicalReal(...a)), [setMedicalReal]);   // eslint-disable-line react-hooks/exhaustive-deps
   const track = useCallback((kind, what) => {
+    if (previewRef.current) return;   // a preview leaves no trail either
     if (coach) { supabase.rpc('bhbc_activity_append', { p_kind: kind, p_what: what }).then(() => {}, () => {}); return; }
     if (!setActivity) return;
     setActivity((prev) => appendActivity(prev, { by: currentUser || null, kind, what }));
@@ -989,8 +1001,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the main menu for each page - same rules as in expo"): /coach/bhbc/roster,
   // /bhbc/schedule for a club coach. Read on load, written on every tab change,
   // followed on back/forward.
-  const ZONE_PAGES = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'];
-  const pageFromUrl = () => { const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/(?:coach\/)?bhbc\/([a-z]+)/); return m && ZONE_PAGES.includes(m[1]) ? m[1] : null; };
+  const ZONE_PAGES = ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity', 'my-program'];
+  const pageFromUrl = () => { const m = (typeof window !== 'undefined' ? window.location.pathname : '').match(/^\/(?:coach\/)?bhbc\/([a-z-]+)/); return m && ZONE_PAGES.includes(m[1]) ? m[1] : null; };
   // a coach's seat has no ACTIVITY page: /bhbc/activity opened blank for him
   // (27.9 #375) - it lands on OVERVIEW instead (`coach` is the prop; the
   // preview toggle cannot be on at first render)
@@ -1008,11 +1020,45 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const m = window.location.pathname.match(/^\/(coach\/)?bhbc/);
     if (!m) return;
     const want = `/${m[1] || ''}bhbc/${view}`;
-    if (window.location.pathname === want) return;
+    if (window.location.pathname === want || window.location.pathname.startsWith(want + '/')) return;   // a pop-up's tail stays (#770)
     // the first write REPLACES (/coach/bhbc -> /coach/bhbc/overview) so Back leaves the zone
     if (pageFromUrl()) window.history.pushState(null, '', want + window.location.search);
     else window.history.replaceState(null, '', want + window.location.search);
   }, [view]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // EVERY POP-UP HAS ITS URL (14.10 #770), in the zone's own words, under the page it opened on:
+  //   .../bhbc/<page>/player/<id> · /program/<id> · /log-lift[/<id>] · /log-s-and-c · /game-details ·
+  //   /minutes-played/<date> · /injury/<athleteId>[/<injuryId>] · /manage-roster
+  // A shared or reloaded link opens the same pop-up; Back closes it.
+  const zoneBase = (() => { if (typeof window === 'undefined') return null; const m = window.location.pathname.match(/^\/(coach\/)?bhbc/); return m ? `/${m[1] || ''}bhbc/${view}` : null; })();
+  const atPop = (w, withId) => urlFlagFromPath(typeof window !== 'undefined' ? window.location.pathname : '', zoneBase, w, withId);
+  useEffect(() => {   // a link straight to a pop-up opens it once the zone is on that page
+    if (!zoneBase) return;
+    const pl = atPop('player', true); if (pl && pl !== true) setDetailFor(pl);
+    const pr = atPop('program', true); if (pr && pr !== true) setProgramFor(pr);
+    const ll = atPop('log-lift', true); if (ll) setLogFor(ll === true ? 'new' : ll);
+    if (atPop('log-s-and-c')) setPracticeOpen(true);
+    if (atPop('game-details')) setGameEdit(true);
+    if (atPop('manage-roster')) setManageOpen(true);
+    { const ps = atPop('preview', true); if (ps && ps !== true && ['coach', 'head-coach', 'pt'].includes(ps)) setPreviewSeat(ps); }
+    const mp = atPop('minutes-played', true); if (mp && mp !== true) { const g = (bhbcFixtures || []).find((f) => f && f.date === mp); if (g) setMinutesFor(g); }
+    const inj = atPop('injury', true);
+    if (inj && inj !== true) { const rest = window.location.pathname.split('/injury/')[1] || ''; const [aid, iid] = rest.split('/'); setInjuryFor({ athleteId: decodeURIComponent(aid), ...(iid ? { injuryId: decodeURIComponent(iid) } : {}) }); }
+  }, [zoneBase]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useUrlFlag(detailFor, (v) => setDetailFor(v && v !== true ? v : null), zoneBase, 'player', { withId: true });
+  useUrlFlag(programFor, (v) => setProgramFor(v && v !== true ? v : null), zoneBase, 'program', { withId: true });
+  useUrlFlag(logFor === 'new' ? true : logFor, (v) => setLogFor(v ? (v === true ? 'new' : v) : null), zoneBase, 'log-lift', { withId: true });
+  useUrlFlag(practiceOpen, setPracticeOpen, zoneBase, 'log-s-and-c');
+  useUrlFlag(gameEdit, setGameEdit, zoneBase, 'game-details');
+  useUrlFlag(manageOpen, setManageOpen, zoneBase, 'manage-roster');
+  useUrlFlag(minutesFor ? minutesFor.date : null, (v) => { if (!v) setMinutesFor(null); }, zoneBase, 'minutes-played', { withId: true });
+  useUrlSync(injuryFor ? `${injuryFor.athleteId || ''}${injuryFor.injuryId ? '/' + injuryFor.injuryId : ''}` : null, (v) => { if (!v) setInjuryFor(null); }, {
+    toPath: (v) => {
+      if (!zoneBase) return null;
+      if (v) return `${zoneBase}/injury/${v.split('/').map(encodeURIComponent).join('/')}`;
+      return typeof window !== 'undefined' && segmentAfter(window.location.pathname, zoneBase) === 'injury' ? { path: zoneBase, replace: true } : null;
+    },
+    fromPath: (pth) => (segmentAfter(pth, zoneBase) === 'injury' ? (pth.split('/injury/')[1] || null) : null),
+  });
   useEffect(() => {
     const onPop = () => { const pg = pageFromUrl(); if (pg) setView(pg); };
     window.addEventListener('popstate', onPop);
@@ -1040,7 +1086,27 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   // Owner-only "Preview as coach": renders the exact reduced surface a club coach
   // sees (no Manage roster / no ‹EXPO, medical view-only) without needing an account.
-  const [previewCoach, setPreviewCoach] = useState(false);
+  // THE PREVIEW SEATS (14.10 #773, Ohad: "two different previews ... (Head Coach) or Physical Therapist view
+  // (PT)"): COACH (any club coach), HEAD COACH (everything the head coach sees, his own program included) and PT (medical
+  // editable, loads loggable). Each has its URL (.../bhbc/<page>/preview/<seat>); nothing saves in any of them.
+  const PREVIEW_SEATS = ['coach', 'head-coach', 'pt'];
+  const [previewSeat, setPreviewSeat] = useState(null);
+  previewRef.current = previewSeat;
+  const previewCoach = !!previewSeat;
+  const setPreviewCoach = (v) => setPreviewSeat((prev) => { const nv = typeof v === 'function' ? v(!!prev) : v; return nv ? (typeof nv === 'string' && PREVIEW_SEATS.includes(nv) ? nv : 'coach') : null; });
+  useUrlFlag(previewSeat, (v) => setPreviewSeat(v && v !== true && PREVIEW_SEATS.includes(v) ? v : null), zoneBase, 'preview', { withId: true });
+  const [previewMenu, setPreviewMenu] = useState(false);
+  // THE ATHLETE PORTAL, INSIDE THE ZONE (14.10 #767, Ohad: "an athlete demo portal sandbox like i have in expo>athlete
+  // (but on bhbc) ... perfectly synced, doesnt get saved, looks exactly the same as their program / an athlete portal"):
+  // a full page at .../bhbc/<page>/portal/<player> - the player's REAL portal (plans read live) in sandbox mode (nothing
+  // the visitor does is saved), under the club's own header. Opened from the player sheet; Back returns to the page.
+  const [portalFor, setPortalFor] = useState(() => { if (typeof window === 'undefined') return null; const m = window.location.pathname.match(/^\/(?:coach\/)?bhbc\/[a-z]+\/portal\/([^/]+)/); return m ? decodeURIComponent(m[1]) : null; });
+  useUrlFlag(portalFor, (v) => setPortalFor(v && v !== true ? v : null), zoneBase, 'portal', { withId: true });
+  const openPortal = (id) => {
+    // the sheet's entry BECOMES the portal's (replace): Back from the portal lands where the sheet was opened from
+    if (typeof window !== 'undefined' && zoneBase) window.history.replaceState(null, '', `${zoneBase}/portal/${encodeURIComponent(id)}` + window.location.search);
+    setDetailFor(null); setPortalFor(id);
+  };
   const asCoach = coach || previewCoach;
   // Ohad 2026-08-28: "allow tomer to log practice details and log rpe and time
   // and everything related". `asCoach` is one boolean gating EVERY write, so
@@ -1048,8 +1114,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // runner too. `canLog` is the narrow right he actually asked for: record a
   // practice — its minutes, its RPE, who was available. Never granted in
   // preview mode, where nothing may be written at all.
-  const canLog = (!asCoach || canLogLoad) && !previewCoach;
-  const effCanMedical = canMedical && !previewCoach;
+  // in a preview: what THAT seat can do (the buttons show; the guarded setters refuse the write)
+  const canLog = previewSeat ? previewSeat === 'pt' : (!asCoach || canLogLoad);
+  const effCanMedical = previewSeat ? previewSeat === 'pt' : canMedical;
 
   // THE LAST PLACE WITH ITS OWN CLUB PREDICATE, and it was the narrow one.
   //
@@ -1732,7 +1799,11 @@ function attendance28(rec, days) {
   // Lifts is the personal weight-room record (kind:'lift' only). The old
   // owner-only "Sessions" tab (EXPO's set-by-set logger) is gone: a lift is
   // logged with "Log lift", an S&C session with "Log S&C Session" (24.9).
-  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['practices', tr('Practices')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]])];
+  // MY PROGRAM (14.10 #769): the head coach is also an EXPO athlete - his own seat gets his real portal as a page;
+  // the owner's HEAD COACH preview gets the same page, sandboxed (nothing saves)
+  const headCoachAthlete = previewSeat === 'head-coach' ? (trainees || []).find((t) => t && [].concat(t.email || []).some((e) => typeof e === 'string' && e.toLowerCase() === BHBC_HEAD_COACH_EMAIL)) || null : null;
+  const hasMyProgram = typeof myProgram === 'function' || !!headCoachAthlete;
+  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['practices', tr('Practices')], ['lifts', tr('Lifts')], ['medical', tr('Medical')], ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]]), ...(hasMyProgram ? [['my-program', tr('My program')]] : [])];
 
   // Never sit on a tab that is not in the list. 'Activity' disappears in the
   // coach view, but `view` was not reset when 'Preview as coach' was switched
@@ -1743,8 +1814,11 @@ function attendance28(rec, days) {
   // blank page back. A saved 'weightroom' / 'sessions' view resolves the same
   // way.
   useEffect(() => {
+    if (view === 'my-program' && myProgram === 'loading' && !previewSeat) return;   // his row is still being looked up
+    // a reload of the owner's HEAD COACH preview on MY PROGRAM: the seat comes from the URL a moment after mount
+    if (view === 'my-program' && !previewSeat && typeof window !== 'undefined' && /\/my-program\/preview\/head-coach(\/|$)/.test(window.location.pathname)) return;
     if (!NAV_TABS.some(([k]) => k === view)) setView(NAV_TABS[0][0]);
-  }, [asCoach]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [asCoach, hasMyProgram, myProgram === 'loading', previewSeat]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     // dir="rtl" on the zone root, not just Hebrew words in an LTR layout:
@@ -2206,7 +2280,19 @@ function attendance28(rec, days) {
               (Ohad: "make sure the sign out and the light/dark mode are the
               same color"). HDR_INK/HDR_BD are defined once at module scope. */}
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginInlineStart: 'auto' }}>
-            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title={tr('See exactly what your BHBC coaches see')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Back')}` : `◉ ${tr('Preview')}`}</button>}
+            {!coach && (
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <button onClick={() => (previewCoach ? setPreviewSeat(null) : setPreviewMenu((m) => !m))} aria-expanded={previewMenu} aria-haspopup="menu" data-bhbc-preview-btn className="bhbc-tab" title={tr('See exactly what a seat sees - nothing you do there is saved')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Back')}` : `◉ ${tr('Preview')}`}</button>
+                {previewMenu && !previewCoach && (
+                  <span role="menu" style={{ position: 'absolute', top: 'calc(100% + 4px)', insetInlineEnd: 0, zIndex: 40, display: 'grid', minWidth: 180, background: C.sf, border: `1px solid ${HDR_BD}`, boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
+                    {[['coach', 'Coach'], ['head-coach', 'Head coach'], ['pt', 'Physio (PT)']].map(([k, label]) => (
+                      <button key={k} role="menuitem" data-preview-seat={k} onClick={() => { setPreviewMenu(false); setPreviewSeat(k); }}
+                        style={{ height: 36, padding: '0 14px', textAlign: 'start', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', whiteSpace: 'nowrap' }}>{tr(label)}</button>
+                    ))}
+                  </span>
+                )}
+              </span>
+            )}
             {/* HE / EN. Fixed width so the control does not resize as the
                 label changes — a control that changes size on click reads as a
                 flash bug. Shows the language it will SWITCH TO, which is how a
@@ -2275,10 +2361,13 @@ function attendance28(rec, days) {
           </div>
         )}
         {previewCoach && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>◉ {tr('Coach view')}</span>
-            <span style={{ fontFamily: FN, fontSize: 12, color: C.tm }}>{tr('This is exactly what your BHBC coaches see — no roster management, medical is view-only.')}</span>
-            <button onClick={() => setPreviewCoach(false)} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer' }}>{tr('Exit preview')}</button>
+          // THE BANNER NEVER OVERFLOWS (14.10 #772, Ohad: "Text overflow. Basic mistake that should never happen."): one
+          // flex row squeezed EXIT PREVIEW out of its box at 390. Two rows now on every width: the label and the button
+          // on top (each one line, never shrinking), the sentence under them across the whole width.
+          <div data-bhbc-preview style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 12, rowGap: 6, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>◉ {tr(previewSeat === 'head-coach' ? 'Head coach view' : previewSeat === 'pt' ? 'Physio (PT) view' : 'Coach view')}</span>
+            <button onClick={() => setPreviewCoach(false)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>{tr('Exit preview')}</button>
+            <span style={{ gridColumn: '1 / -1', fontFamily: FN, fontSize: 12, color: C.tm, lineHeight: 1.5, overflowWrap: 'break-word' }}>{tr(previewSeat === 'head-coach' ? 'This is exactly what the head coach sees, his own program included. Nothing you do here is saved.' : previewSeat === 'pt' ? 'This is exactly what the physio sees - medical can be edited and loads logged. Nothing you do here is saved.' : 'This is exactly what your BHBC coaches see — no roster management, medical is view-only.')}</span>
           </div>
         )}
         {/* (The toolbar that repeated MANAGE ROSTER · LOG LIFT · LOG S&C on every
@@ -2301,7 +2390,39 @@ function attendance28(rec, days) {
           <ErrorBoundary key={view} inline>
           <div className="motion-rise" style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
 
-            {shownView === 'overview' && (
+            {portalFor && (() => {
+              const pt = (trainees || []).find((t) => t && t.id === portalFor);
+              return (
+                <section data-bhbc-portal data-player={pt ? pt.id : ''} style={{ display: 'grid', gap: 10 }}>
+                  {/* one strip: the portal preview's own (VIEWING AS <player> + BACK) - a second banner above it said the same */}
+                  <div style={{ border: `1px solid ${C.cardBd}`, borderRadius: 6, overflow: 'hidden' }}>
+                    <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: 16 }}>{tr('Loading…')}</div>}>
+                      <CoachPreviewPortal traineeId={portalFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setPortalFor(null)} />
+                    </Suspense>
+                  </div>
+                </section>
+              );
+            })()}
+            {!portalFor && shownView === 'my-program' && (
+              <section data-bhbc-my-program style={{ display: 'grid', gap: 10 }}>
+                {headCoachAthlete ? (
+                  <div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', border: `1px solid ${C.cardBd}`, borderRadius: 6, overflow: 'hidden' }}>
+                    <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: 16 }}>{tr('Loading…')}</div>}>
+                      <CoachPreviewPortal traineeId={headCoachAthlete.id} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setView('overview')} />
+                    </Suspense>
+                  </div>
+                ) : typeof myProgram === 'function' ? (
+                  <div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', border: `1px solid ${C.cardBd}`, borderRadius: 6, overflow: 'hidden' }}>
+                    <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: 16 }}>{tr('Loading…')}</div>}>
+                      {myProgram()}
+                    </Suspense>
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, padding: 16 }}>{tr('Loading…')}</div>
+                )}
+              </section>
+            )}
+            {!portalFor && shownView === 'overview' && (
               <>
                 <ReturnLoadAlert roster={roster} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} loads={bhbcLoads} today={today} onOpen={setDetailFor}
@@ -2324,12 +2445,12 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {shownView === 'lifts' && (
+            {!portalFor && shownView === 'lifts' && (
               <LiftsTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor}
                 action={canLog ? <StripBtn onClick={() => setLogFor('new')}>{tr('Log lift')}</StripBtn> : null} />
             )}
 
-            {shownView === 'schedule' && (
+            {!portalFor && shownView === 'schedule' && (
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 {/* THE CALENDAR RIGHT AFTER THE WEEK (Ohad 27.9: "scheduele should be
@@ -2344,7 +2465,7 @@ function attendance28(rec, days) {
                 fits"): the week's practices with their S&C, who was at each, and
                 what was done. The calendar, the next game and the microcycle stay
                 on SCHEDULE. */}
-            {shownView === 'practices' && (
+            {!portalFor && shownView === 'practices' && (
               <>
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
                 {/* fixtures={bhbcFixtures} was MISSING, and the prop defaults to []
@@ -2377,14 +2498,14 @@ function attendance28(rec, days) {
               </>
             )}
 
-            {shownView === 'roster' && (
+            {!portalFor && shownView === 'roster' && (
               <>
                 <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} fixtures={bhbcFixtures} onOpen={setDetailFor}
                   action={!asCoach ? <StripBtn onClick={() => setManageOpen(true)}>{tr('Manage roster')}</StripBtn> : null} />
               </>
             )}
 
-            {shownView === 'games' && (<>
+            {!portalFor && shownView === 'games' && (<>
               {/* GAMES | GAME WARM-UP (10.10 #647): the warm-up he reads at the game, from his sheet */}
               <KindChips value={gamesSub} onChange={setGamesSub} style={{ marginBottom: 16 }}
                 items={[{ k: 'games', label: tr('Games') }, { k: 'warmup', label: tr('Game warm-up') }]} />
@@ -2394,11 +2515,11 @@ function attendance28(rec, days) {
                     bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />}
             </>)}
 
-            {shownView === 'activity' && !asCoach && (
+            {!portalFor && shownView === 'activity' && !asCoach && (
               <ActivityView activity={activity} tr={tr} he={he} />
             )}
 
-            {shownView === 'medical' && (
+            {!portalFor && shownView === 'medical' && (
               <MedicalView roster={roster} rows={rows} loads={bhbcLoads} medical={medical} canMedical={effCanMedical} onLog={canLog ? ((aid) => setLogFor(aid)) : null} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
@@ -2600,6 +2721,7 @@ function attendance28(rec, days) {
           onLog={canLog ? () => { setLiftReturn(detailFor); setLogFor(detailFor); setDetailFor(null); } : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
+          onOpenPortal={() => openPortal(detailFor)}
           onCycleAvail={canLog ? (code) => cycleAvail(detailFor, code) : null}
           onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
@@ -2727,7 +2849,7 @@ function GameLineModal({ line, onClose }) {
   );
 }
 
-function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession, fixtures = [], medicalAll = null }) {
+function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onOpenPortal, onCycleAvail, onEditSession, onDeleteSession, fixtures = [], medicalAll = null }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const heM = useHe();
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
@@ -2817,6 +2939,13 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   const curSeason = seasonOfDate(todayISO());
   const pastSeasons = [...new Set(activity.map((a) => seasonOfDate(a.date)).filter((x) => x !== curSeason))];
   const allActivity = activity;
+  // the game line opened from the history has its URL too (#770): .../player/<id>/game/<date>
+  const playerBase = (() => { if (typeof window === 'undefined') return null; const m = window.location.pathname.match(/^(\/(?:coach\/)?bhbc\/[a-z]+\/player\/[^/]+)/); return m ? m[1] : null; })();
+  useEffect(() => {
+    const d = urlFlagFromPath(typeof window !== 'undefined' ? window.location.pathname : '', playerBase, 'game', true);
+    if (d && d !== true) { const a = allActivity.find((x) => x.gameLine && x.gameLine.date === d); if (a) setGameOpen(a.gameLine); }
+  }, [playerBase]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useUrlFlag(gameOpen ? gameOpen.date : null, (v) => { if (!v) setGameOpen(null); }, playerBase, 'game', { withId: true });
   activity = showPast ? allActivity : allActivity.filter((a) => seasonOfDate(a.date) === curSeason);
   // Counts per kind for the chips, then the visible rows grouped by month.
   const KIND_LABEL = { game: 'Games', practice: 'Practices', sc: 'S&C', warmup: 'Warm-ups', lift: 'Lifts', note: 'Notes', other: 'Other' };
@@ -3269,6 +3398,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               medical strip above, and the fourth button is what squeezed the row to
               155px and wrapped its own label onto two lines. Three buttons fit. */}
           {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>{tr('View program')}</Btn>}
+          {onOpenPortal && <Btn variant="ghost" onClick={onOpenPortal} title={tr('The athlete portal as this player sees it - nothing you do there is saved')}>{tr('Athlete portal')}</Btn>}
         </div>
       </div>
       {gameOpen && <GameLineModal line={gameOpen} onClose={() => setGameOpen(null)} />}

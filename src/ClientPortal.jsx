@@ -33,12 +33,20 @@ import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
+import { runPace } from './runPace';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx } from './planWeek';
 import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 import { resolveStoredUrl } from './storageUrl';
 import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
+import { useUrlSync } from './urlState';
+// the portal's pages in the URL, in the tabs' own words (#770)
+const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'prs', msg: 'messages' };
+const PORTAL_KEY = Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k]));
+const PORTAL_BASE = /^(\/athlete|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/([a-z-]+))?\/?$/;   // + the BHBC portal page (#767) + MY PROGRAM (#769)
+const portalPageFromPath = (p) => { const m = String(p || '').match(PORTAL_BASE); return m && m[2] ? (PORTAL_KEY[m[2]] || null) : null; };
+const portalPath = (p, v) => { const m = String(p || '').match(PORTAL_BASE); return m ? `${m[1]}/${PORTAL_PAGES[v] || 'program'}` : null; };
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
@@ -99,7 +107,10 @@ const splitPrescription = (str) => {
 // columns; the exercise step passes splitCombined=false so a blank-sets +
 // "2x10 e" reps cell stays verbatim (splitting it there would fabricate a sets
 // count and mislabel the trailing tempo token). Renders "—" when both empty.
-function SetsRepsHero({ sets, reps, splitCombined = false }) {
+// a logged exercise is a RUN when its sets carry a time (#769)
+const isRunLog = (x) => !!x && Array.isArray(x.sets) && x.sets.some((st) => st && st.time);
+
+function SetsRepsHero({ sets, reps, splitCombined = false, run = false }) {
   const tt = useAppT();
   let sStr = String(sets ?? '').trim();
   let rStr = String(reps ?? '').trim();
@@ -136,9 +147,9 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
   );
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
-      {col(sStr, tt('SETS'))}
+      {col(sStr, tt(run ? 'REPS' : 'SETS'))}
       <span style={{ fontSize: 14, color: C.tm, fontWeight: 400, fontFamily: FN, lineHeight: 1 }}>×</span>
-      {timed ? col(timed[1].replace(/\s+/g, '') + (timed[2] ? ' E' : ''), tt('SEC')) : col(rStr, tt('REPS'))}
+      {run ? col(rStr, tt('DISTANCE')) : timed ? col(timed[1].replace(/\s+/g, '') + (timed[2] ? ' E' : ''), tt('SEC')) : col(rStr, tt('REPS'))}
     </div>
   );
 }
@@ -193,6 +204,7 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
     // athlete can log unlimited times (no day rotation, no week
     // structure, no warm-up). Everything else is undefined / 'standard'.
     kind: plan.kind || undefined,
+    sport: plan.sport || undefined,   // 'running': the run logger + run day cards (#769)
     // filter(Boolean) at every seam: a null day / exercise / warm-up element
     // (corrupt Drive import, half-deleted editor row, offline partial) would
     // otherwise throw on `.exerciseId`/`.rx` and blank the ENTIRE athlete portal
@@ -302,6 +314,9 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
           const out = { eid, s: sets, r: reps };
           if (hasOverride) out.vid = overrideUrl || '';
           if (pe.tempo) out.tempo = pe.tempo;
+          // a run's HR cap (LOAD column) and rest between reps - read only by the run logger + day card (#769)
+          if (pe.load) out.load = pe.load;
+          if (pe.rest) out.rest = pe.rest;
           if (pe.superset) out.superset = pe.superset;
           if (notes) out.n = notes;
           // Coach explicitly cleared this program's note (× CLEAR → notes:''
@@ -551,6 +566,8 @@ function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
 }
 
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
+  // A RUNNING program (14.10 #769): each segment is logged as DISTANCE + TIME (the pace follows) + HEART RATE
+  const isRun = !!plan && plan.sport === 'running';
   const tt = useAppT();
   // the language the strings render in, from the same context as tt (1008b review:
   // readLang() reads localStorage, written a render AFTER the portal toggle flips)
@@ -706,6 +723,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const setCountFor = (ex) => {
     const perWeek = Array.isArray(ex.wkS) ? parseInt(ex.wkS[weekNum], 10) : NaN;
     if (Number.isFinite(perWeek) && perWeek > 0) return perWeek;
+    if (isRun) { const n = parseInt(ex.s, 10); return Number.isFinite(n) && n > 0 ? n : 1; }   // a run's reps as written ('5'), one when blank (#769)
     return typeof ex.s === 'number' ? ex.s : 3;
   };
   // Find the most recent prior top set (by load) for a given stableId so the
@@ -748,7 +766,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const count = Math.max(setCountFor(ex), src.length);
       return Array.from({ length: count }, (_, si) => {
         const st = src[si];
-        return st ? { reps: st.reps ?? '', load: st.load ?? '', rpe: st.rpe ?? '', done: !!st.done } : { reps: '', load: '', rpe: '', done: false };
+        return st ? { reps: st.reps ?? '', load: st.load ?? '', rpe: st.rpe ?? '', done: !!st.done, ...(st.time ? { time: st.time } : {}), ...(st.hr ? { hr: st.hr } : {}) } : { reps: '', load: '', rpe: '', done: false };
       });
     }
     const count = setCountFor(ex);
@@ -958,9 +976,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const snapshot = () => (allSetsRef.current || []).map((rows) => ({
       sets: (rows || []).map(s => (s.prefill && !s.done)
         ? { reps: '', load: '', rpe: '', done: false }
-        : { reps: s.reps, load: s.load, rpe: s.rpe, done: s.done }),
+        : { reps: s.reps, load: s.load, rpe: s.rpe, done: s.done, ...(s.time ? { time: s.time } : {}), ...(s.hr ? { hr: s.hr } : {}) }),
     }));
-    const hasData = (exs) => exs.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done));
+    const hasData = (exs) => exs.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done || s.time || s.hr));
     // Per-trainee topic so an athlete only ever joins their OWN room — another
     // athlete's live sets never reach this browser (the old shared 'gym-session'
     // room leaked every athlete's data to every portal). The coach's per-athlete
@@ -997,7 +1015,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName, p.week)) return;
       (p.exercises || []).forEach((ex, ei) => {
         (ex.sets || []).forEach((st, si) => {
-          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ei, si, f, st[f], true); });
+          ['reps', 'load', 'rpe', 'done', 'time', 'hr'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ei, si, f, st[f], true); });   // a run's time + HR too (#769)
         });
       });
     });
@@ -1711,7 +1729,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // numbers but no ✓ (offer to tick them), 'failed' when the workout could not
   // be made safe anywhere (server AND this device's queue both refused).
   const [finishState, setFinishState] = useState(null);
-  const isFilledUnticked = (st) => !!st && !st.done && !st.prefill && (String(st.reps ?? '').trim() !== '' || String(st.load ?? '').trim() !== '');
+  const isFilledUnticked = (st) => !!st && !st.done && !st.prefill && (String(st.reps ?? '').trim() !== '' || String(st.load ?? '').trim() !== '' || String(st.time ?? '').trim() !== '');
   const countFilledUnticked = (sets2d) => { let n = 0; for (const rows of (sets2d || [])) for (const st of (rows || [])) if (isFilledUnticked(st)) n++; return n; };
   const hasAttachedVideo = () => fv.some(f => f && (f.has || f.cloudUrl || f.pendingBlobId));
   const finish = async (opts = {}) => {
@@ -2401,7 +2419,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           rest of the exercise block. Reads as a single typographic line,
           no border / background / chip — same visual rhythm as the
           prescription / tempo lines below. */}
-      {allowSubstitution && (
+      {allowSubstitution && !isRun && (
         <div style={{
           textAlign:'center',marginBottom:6,minHeight:18,
           fontFamily:FN,fontSize:10,letterSpacing:1.2,fontWeight:600,
@@ -2448,8 +2466,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             onClose={() => setLiveCountForEid(null)} />
         </React.Suspense>
       )}
-      <SetsRepsHero sets={setsForDisplay} reps={repsForDisplay} />
-      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
+      <SetsRepsHero sets={setsForDisplay} reps={repsForDisplay} run={isRun} />
+      {isRun && (ex.tempo || ex.load || ex.rest) && (
+        // the run's prescription in the coach's words: pace range, the heart-rate cap, the rest between reps
+        <div data-run-rx style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 6, fontFamily: FN, fontSize: 12, color: C.tm }}>
+          {ex.tempo && <span>{tt('PACE')} <b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.tempo}</b>{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</span>}
+          {ex.load && <span>{tt('HR CAP')} <b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{String(ex.load).replace(/^HR\s*/i, '')}</b></span>}
+          {ex.rest && <span>{tt('REST')} <b style={{ color: C.tx }}>{ex.rest}</b></span>}
+        </div>
+      )}
+      {!isRun && ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
 
       {/* No outer frame — the wrapper's cardBd (cyan-30% in dark) read as a
           cyan line around the WK1–WK4 group. Dropping it + its padding lets the
@@ -2515,7 +2541,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
-          {['',timedHold?tt('SEC'):tt('REPS'),tt('KG'),'RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
+          {(isRun ? ['', tt('KM'), tt('SPLIT'), tt('HR'), '✓'] : ['',timedHold?tt('SEC'):tt('REPS'),tt('KG'),'RPE','✓']).map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
@@ -2536,7 +2562,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // prevWeekSets is now the FULL (un-compacted) array, so a blank entry
           // = a set the athlete skipped that week. Only show a ghost for a set
           // that was actually performed (real load or reps) at THIS index.
-          const showGhost = !!prior && (parseFloat(prior.load) > 0 || parseFloat(prior.reps) > 0);
+          const showGhost = !!prior && (parseFloat(prior.load) > 0 || parseFloat(prior.reps) > 0 || (isRun && !!prior.time));
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,
@@ -2545,21 +2571,30 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             }}>
               <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
-              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load) || '—'}</div>
-              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{isRun ? (prior.time || '—') : (parseFloat(prior.load) || '—')}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{isRun ? (prior.hr || '—') : (prior.rpe || '—')}</div>
               <div />
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
+              {isRun ? <>
+                {/* a run's set: DISTANCE (km, in the reps field), TIME (its own field - never 'kg', so PRs and tonnage
+                    never read a run), HEART RATE */}
+                <input aria-label={tt('Distance (km)')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={String(repsForDisplay || '').replace(/\s*km$/i, '') || 'km'} style={seti}/>
+                <input aria-label={tt('Time (mm:ss)')} value={set.time || ''} onChange={e => uSet(ei,si,'time',e.target.value.replace(/[.,]/g, ':'))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder={tt('mm:ss')} style={seti}/>
+                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={ex.load ? '≤' + String(ex.load).replace(/^HR\s*/i, '') : '—'} style={seti}/>
+              </> : <>
               <input aria-label={timedHold ? tt('Seconds') : tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
               <input aria-label="RPE" value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
+              </>}
               {/* Whole cell is the tap target (not just the 18px box) so a
                   sweaty mid-set tap lands. 24px box, centered. */}
               <label style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:44,cursor:'pointer'}}>
                 <input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:24,height:24,accentColor:C.gn,cursor:'pointer'}}/>
               </label>
             </div>
+            {isRun && runPace(set.reps, set.time) && <div data-run-pace style={{ fontFamily: FN, fontSize: 11, color: C.tm, textAlign: 'center', margin: '-2px 0 6px' }}>{tt('PACE')} <b dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{runPace(set.reps, set.time)} {tt('/km')}</b></div>}
           </React.Fragment>;
         })}</div>
 
@@ -2632,10 +2667,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </label>
           </div>
         )}
-        <button onClick={() => setLiveCountForEid(ex.eid)} title={tt('Live rep counter — camera + voice trigger')}
+        {!isRun && <button onClick={() => setLiveCountForEid(ex.eid)} title={tt('Live rep counter — camera + voice trigger')}
           style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
           {tt('LIVE REP COUNTER')}
-        </button>
+        </button>}
         <textarea dir="auto" value={f.note} onChange={e => { const v = e.target.value; setFv(prev => { const n=[...prev]; n[ei]={...n[ei],note:v}; return n; }); }} placeholder={tt('Notes for coach')} style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8,color:C.ac}}/>
       </div>
     </div>;
@@ -2700,7 +2735,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   };
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
-  const [vw, setVw] = useState('prog');
+  // EVERY PORTAL PAGE HAS ITS URL (14.10 #770): /athlete/program, /athlete/bodyweight, /athlete/meal-log,
+  // /athlete/history, /athlete/prs, /athlete/messages - the tabs' own words. The same paths hang off wherever the
+  // portal is open (/demo/athlete/..., the coach's /coach/athletes/<id>/preview/...); Back follows them.
+  const [vw, setVw] = useState(() => portalPageFromPath(typeof window !== 'undefined' ? window.location.pathname : '') || 'prog');
+  useUrlSync(vw, setVw, { toPath: (v) => portalPath(typeof window !== 'undefined' ? window.location.pathname : '', v), fromPath: (p) => portalPageFromPath(p) || 'prog' });
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
   const [bwHistOpen, setBwHistOpen] = useState(false); // BW weigh-in history list collapsed by default (Ohad)
   // Last-seen timestamp for client-side unread tracking of coach comments.
@@ -2834,6 +2873,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // Plan-level daily-routine flag (legacy 96e5f72 shape) — without it a
             // whole-plan daily routine renders as a normal week-paced block.
             kind: p.data?.kind || undefined,
+            sport: p.data?.sport || undefined,   // a running program (#769)
           }));
           if (shown && lgOpenRef.current) pendingPlansRef.current = mapped;
           else { pendingPlansRef.current = null; setClientPlans(mapped); setPlansFromSnapshot(false); }
@@ -3813,7 +3853,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   role={canExpand ? 'button' : undefined} tabIndex={canExpand ? 0 : undefined} aria-expanded={canExpand ? isOpen : undefined}
                   onKeyDown={canExpand ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedHistEx(isOpen ? null : expandKey); } }) : undefined}
                   style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
-                  <span style={{flex:1,minWidth:0,color:C.tx,display:'flex',gap:6}}><span style={{width:22,textAlign:'right',flexShrink:0,color:C.td}}>{i+1}.</span><span style={{minWidth:0}}>{x.title} <span style={{color:C.td}}>{x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span></span>
+                  <span style={{flex:1,minWidth:0,color:C.tx,display:'flex',gap:6}}><span style={{width:22,textAlign:'right',flexShrink:0,color:C.td}}>{i+1}.</span><span style={{minWidth:0}}>{x.title} <span style={{color:C.td}}>{(w.exercises || []).some(isRunLog) ? String(x.prescribed || '').replace(/^1x/i, '').replace(/x/i, ' × ') : x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span>{isRunLog(x) && (x.sets || []).filter((st) => st.done && (st.time || st.reps)).map((st, si) => (
+                    // a RUN's set as he ran it: distance, time, the pace it works out to, heart rate (#769)
+                    <span key={si} data-run-set dir="auto" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tm, fontSize: 10, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{[st.reps ? `${st.reps} ${tt('KM').toLowerCase()}` : '', st.time || '', runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} ${tt('/km')}` : '', st.hr ? `${tt('HR')} ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
+                  ))}</span></span>
                   {/* VIDEO + NOTES are uniform bare caps tags (matching weight/
                       size, each with a leading severity dot) so the row reads as
                       one clean cluster instead of a bare label next to a boxed
@@ -4214,6 +4257,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // shows "—", never a fabricated "x"/"3x8-12". (empty = empty)
             const compose = (r) => {
               const sS = String(sets ?? '').trim(), rS = String(r ?? '').trim();
+              if (vp.sport === 'running') return !rS ? (sS || '—') : (!sS || sS === '1') ? rS : `${sS} × ${rS}`;   // #769
               if (/[x×]/i.test(rS)) return rS;
               if (!sS && !rS) return '—';
               return sS && rS ? sS + 'x' + rS : (sS || rS);
@@ -4228,7 +4272,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             accent: C.ac,
             borderColor: doneBorderColor,
             title: day.name,
-            count: `${day.ex.length} ${tt('EX')}`,
+            count: vp.sport === 'running' ? (day.ex.length === 1 ? tt('1 SEGMENT') : `${day.ex.length} ${tt('SEGMENTS')}`) : `${day.ex.length} ${tt('EX')}`,
             extras: <>
               {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',minWidth:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
@@ -4239,7 +4283,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               return {
                 num: i + 1,
                 rx: rxOf(ex),
-                tempo: ex.tempo,
+                tempo: vp.sport === 'running' && ex.load ? [ex.tempo, `${tt('HR')} ≤${String(ex.load).replace(/^HR\s*/i, '')}`].filter(Boolean).join(' · ') : ex.tempo,
                 title: d.t,
                 // FOCUS IS THE COACH'S WEEKLY EMPHASIS. NOTHING ELSE.
                 //

@@ -878,7 +878,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
       ovlRef.current.update(lm, f.worldLandmarks, (series?.tMs?.[cur] ?? cur * 33) / 1000);
     }
     if (!showSkel) {
-      if (showAngles) ovlRef.current.draw(ctx, { w: W, h: H, px: X, py: Y, skeleton: false, angles: true });
+      if (showAngles) ovlRef.current.draw(ctx, { w: W, h: H, px: X, py: Y, skeleton: false, angles: true, wrists: true });   // the wrist angle: shooting only (#776)
       return;
     }
     ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(57,189,255,0.9)'; ctx.lineCap = 'round';
@@ -889,7 +889,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     for (let i = 11; i <= 28; i++) { const p = lm[i]; if (!p || (p.visibility ?? 1) < 0.3) continue; ctx.fillStyle = arm.includes(i) ? '#FFFFFF' : CYAN; ctx.beginPath(); ctx.arc(X(p), Y(p), 3.5, 0, Math.PI * 2); ctx.fill(); }
     // eye line
     const eye = lm[hand === 'L' ? 2 : 5]; if (eye) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox, Y(eye)); ctx.lineTo(ox + cw, Y(eye)); ctx.stroke(); ctx.setLineDash([]); }
-    if (showAngles) ovlRef.current.draw(ctx, { w: W, h: H, px: X, py: Y, skeleton: false, angles: true, dots: false });
+    if (showAngles) ovlRef.current.draw(ctx, { w: W, h: H, px: X, py: Y, skeleton: false, angles: true, dots: false, wrists: true });
   }, [cur, frames, hand, srcUrl, boxTick, showSkel, showAngles, series]);
 
   const [reportTab, setReportTab] = useState('shot');
@@ -1270,8 +1270,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           </div>
           {/* the two on-video tools, under the picture */}
           <div className="shot-noprint" data-shot-tools style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
-            <button type="button" onClick={() => setShowSkel((x) => !x)} aria-pressed={showSkel} style={{ ...chip(showSkel), width: '100%', minWidth: 0 }}>{T.skeleton || 'SKELETON'}</button>
-            <button type="button" onClick={() => setShowAngles((x) => !x)} aria-pressed={showAngles} style={{ ...chip(showAngles), width: '100%', minWidth: 0 }}>{T.jointAngles || 'JOINT ANGLES'}</button>
+            {/* #774: JOINT ANGLES = the shooting skeleton + the angle at each joint; ANATOMY = the 3D body */}
+            <button type="button" onClick={() => { const on = !(showSkel && showAngles); setShowSkel(on); setShowAngles(on); }} aria-pressed={showSkel && showAngles} style={{ ...chip(showSkel && showAngles), width: '100%', minWidth: 0 }}>{T.jointAngles || 'JOINT ANGLES'}</button>
+            <button type="button" data-body3d onClick={() => setShow3d(!show3d)} aria-pressed={!!show3d} disabled={!frames3d} style={{ ...chip(show3d), width: '100%', minWidth: 0, opacity: frames3d ? 1 : 0.5 }}>{T.anatomy || 'ANATOMY'}</button>
           </div>
           {/* transport */}
           {/* TRANSPORT: five EQUAL cells (they were each as wide as their own
@@ -1366,7 +1367,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               frames, synced both ways with the frame above */}
           {frames3d && (
             <div className="shot-noprint" style={{ marginTop: 10 }}>
-              <button type="button" data-body3d onClick={() => setShow3d(!show3d)} style={{ ...chip(show3d), width: '100%', minWidth: 0 }}>{show3d ? T.body3dOff : T.body3d}</button>
+              {/* the 3D body opens from the ANATOMY tool under the video (#774) */}
               {show3d && (
                 <div style={{ marginTop: 8 }}>
                   {/* the replay keeps time from its first frame (as the Movement Lab passes it) and speaks the tool's language */}

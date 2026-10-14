@@ -10,6 +10,7 @@ const pg = await b.newPage();
 let fail = 0;
 try {
   await pg.setViewport({ width: 1440, height: 950 }); await pg.bringToFront();
+  if (process.env.CPU) { const cdp = await pg.createCDPSession(); await cdp.send('Emulation.setCPUThrottlingRate', { rate: +process.env.CPU }); console.log(`CPU throttled x${process.env.CPU}`); }
   await pg.goto(BASE + '/coach/review?lang=en', { waitUntil: 'domcontentloaded', timeout: 120000 }); await wait(6000);
   await pg.evaluate(() => { const c = [...document.querySelectorAll('button, a, [role="button"]')].find((e) => e.offsetParent !== null && /(→|←)/.test(e.textContent) && /review/i.test(e.textContent) && e.getBoundingClientRect().top > 120); if (c) c.click(); });
   await wait(4000);
@@ -19,15 +20,31 @@ try {
     if (await pg.evaluate(() => !!document.querySelector('.fv-deck'))) break;
   }
   if (!(await pg.evaluate(() => !!document.querySelector('[data-fv="angles"]')))) { console.log('FAIL no review player with a JOINT ANGLES control on this page'); process.exit(1); }
-  if (!process.env.NOOVL) await pg.evaluate(() => { document.querySelector('[data-fv="skeleton"]').click(); document.querySelector('[data-fv="angles"]').click(); });
-  if (!process.env.NOOVL) await pg.waitForFunction(() => ['skeleton', 'angles'].every((k) => document.querySelector(`[data-fv="${k}"]`).getAttribute('aria-pressed') === 'true'), { timeout: 120000 });
-  await pg.evaluate(() => { const v = document.querySelector('video'); v.muted = true; v.currentTime = 1; window.__FV_FRAMES = 0; const tick = () => { window.__FV_FRAMES++; v.requestVideoFrameCallback(tick); }; v.requestVideoFrameCallback(tick); window.__FV_TRACE = []; return v.play(); });
+  // JOINT ANGLES = the lines + the angles (#774)
+  if (!process.env.NOOVL) await pg.evaluate(() => document.querySelector('[data-fv="angles"]').click());
+  if (!process.env.NOOVL) await pg.waitForFunction(() => ['angles'].every((k) => document.querySelector(`[data-fv="${k}"]`).getAttribute('aria-pressed') === 'true'), { timeout: 120000 });
+  await pg.evaluate(() => { const v = document.querySelector('video'); v.muted = true; v.currentTime = 1; window.__FV_FRAMES = 0; const tick = () => { window.__FV_FRAMES++; v.requestVideoFrameCallback(tick); }; v.requestVideoFrameCallback(tick); window.__FV_TRACE = []; window.__FV_PAINT = []; return v.play(); });
   await wait(SECS * 1000);
-  const r = await pg.evaluate(() => { const v = document.querySelector('video'); v.pause(); const t = window.__FV_TRACE; window.__FV_TRACE = null; return { trace: t, presented: window.__FV_FRAMES }; });
+  const r = await pg.evaluate(() => { const v = document.querySelector('video'); v.pause(); const t = window.__FV_TRACE, pt = window.__FV_PAINT; window.__FV_TRACE = null; window.__FV_PAINT = null; return { trace: t, paint: pt, presented: window.__FV_FRAMES }; });
   const T = r.trace;
+  // THE 60 FPS FEEL (#775): how often the DRAWN knee moves per second of display, and how smooth that path is
+  const Pn = (r.paint || []).filter((f) => f.k);
+  if (Pn.length > 10) {
+    const span = (Pn[Pn.length - 1].now - Pn[0].now) / 1000;
+    let moves = 0; for (let i = 1; i < Pn.length; i++) if (Pn[i].k[0] !== Pn[i - 1].k[0] || Pn[i].k[1] !== Pn[i - 1].k[1]) moves++;
+    const jerk = []; for (let i = 2; i < Pn.length; i++) jerk.push(1000 * Math.hypot(Pn[i].k[0] - 2 * Pn[i - 1].k[0] + Pn[i - 2].k[0], Pn[i].k[1] - 2 * Pn[i - 1].k[1] + Pn[i - 2].k[1]));
+    jerk.sort((a, b) => a - b);
+    const mps = moves / span, fps = (Pn.length - 1) / span;
+    console.log(`paint: ${fps.toFixed(1)} draws/s, the drawn knee moves ${mps.toFixed(1)} times/s, paint jerk median ${jerk[jerk.length >> 1].toFixed(2)} p90 ${jerk[Math.floor(jerk.length * 0.9)].toFixed(2)} (x1000 of the frame)`);
+    if (mps < 40) { console.log('FAIL the drawn joints move under 40 times a second (no 60 fps feel)'); fail++; }
+  } else console.log('paint: no paint samples');
   const ms = T.map((f) => f.ms).sort((x, y) => x - y);
   console.log(`frames presented ${r.presented}, read ${T.length}, detect ms median ${ms.length ? ms[ms.length >> 1].toFixed(1) : '-'} p90 ${ms.length ? ms[Math.floor(ms.length * 0.9)].toFixed(1) : '-'}`);
-  if (!T.length || T.length < r.presented * 0.9) { console.log('FAIL the overlay skipped frames'); fail++; }
+  // the reader runs in a worker (#775): it reads as fast as it can while the page paints at the screen's rate - so the
+  // check is a reading RATE (not every presented frame) plus the paint check above
+  const readRate = T.length / SECS;
+  console.log(`readings ${readRate.toFixed(1)}/s`);
+  if (!T.length || readRate < 12) { console.log('FAIL fewer than 12 readings a second'); fail++; }
   // jitter = median |second difference| of a joint, raw vs drawn; offset = |drawn - raw|; both x1000 of the frame
   const J = { 'L wrist': 15, 'R wrist': 16, 'L elbow': 13, 'L hip': 23, 'L knee': 25, 'R knee': 26, 'L ankle': 27, 'R ankle': 28, 'L toe': 31, 'R toe': 32 };
   const med = (a) => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[s.length >> 1] : NaN; };

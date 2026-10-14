@@ -34,6 +34,8 @@ import { RefinedHeaderStrip, useIsMobile } from './ui';
 import AngleNum from './AngleNum';
 import { makeSubjectLock, pickLocked, LIVE_POSES } from './subjectLock';
 import { createPoseOverlay } from './poseOverlay';
+// ANATOMY on the live camera (#774): the same live 3D body as Live Coach, loaded only when asked for
+const LiveAnatomyLab = React.lazy(() => import('./LiveAnatomy').catch(() => ({ default: function LiveAnatomyUnavailable() { return null; } })));
 
 // Hebrew for the strings this rebuild introduced (27.9). Kept beside the tool,
 // the same late-addition pattern bhbcHe.js uses, so the whole Movement Lab reads
@@ -387,6 +389,7 @@ export default function MovementLab({
   vaultDate = null,             // date of the picked clip → vault entry key
   recordedReps = [],            // the filmed exercise's LOGGED set reps → cross-check the camera count
   targetReps = null,            // the exercise's PRESCRIBED reps (e.g. "8-10") from the plan
+  repTarget = null,             // the LOGGED reps for this set (#762): the count the read must come out at
   onSendNote = null,            // async (text) => true once saved - SEND TO ATHLETE: a note on the picked clip (#530)
 }) {
   const tt = useT();
@@ -407,6 +410,9 @@ export default function MovementLab({
   const toolsRef = useRef({ skeleton: true, angles: true });
   useEffect(() => { toolsRef.current = { skeleton: showSkel, angles: showAngles }; }, [showSkel, showAngles]);
   const liveOvlRef = useRef(createPoseOverlay()), clipOvlRef = useRef(createPoseOverlay());
+  // ANATOMY (#774): the 3D body - the clip's replay under the results, or the live body beside the camera
+  const [showAnat, setShowAnat] = useState(false);
+  const liveBufRef = useRef([]);
   const analyzeVideoRef = useRef(null);   // results playback <video>
   const overlayCanvasRef = useRef(null);
   const displayFramesRef = useRef([]);
@@ -452,7 +458,9 @@ export default function MovementLab({
     initialView === '3d' ? 'rom' : initialView === 'metrics' ? 'velocity' : ((r && r.repCount) ? 'velocity' : 'threeD')
   ), [initialView]);
 
-  const runAnalyze = useCallback((frames, mk) => analyzeClip(frames, exerciseTitle, { movement: romSpec ? null : (mk || null) }), [exerciseTitle, romSpec]);
+  // the logged target applies to the PICKED clip only - never to a set recorded or uploaded here (#762)
+  const pickedRef = useRef(false);
+  const runAnalyze = useCallback((frames, mk) => analyzeClip(frames, exerciseTitle, { movement: romSpec ? null : (mk || null), targetReps: pickedRef.current ? (repTarget || 0) : 0 }), [exerciseTitle, romSpec, repTarget]);
 
   const computeJump = useCallback((frames, kind) => {
     if (kind === 'broad') {
@@ -512,6 +520,7 @@ export default function MovementLab({
     // one person - the lifter (13.10 #719b): the lock over up to LIVE_POSES detections
     const pick = pickLocked(liveLockRef.current, res, now);
     const raw = pick ? pick.landmarks : null;
+    if (pick && pick.worldLandmarks) { const lb = liveBufRef.current; lb.push({ t: now, landmarks: raw, worldLandmarks: pick.worldLandmarks }); while (lb.length && lb[0].t < now - 12500) lb.shift(); }   // the live 3D body's last 12.5 s
     if (capturingRef.current && pick && pick.worldLandmarks && framesRef.current.length < 5400) {
       // Backstop against a forgotten recording growing unbounded (~90s at 60fps).
       framesRef.current.push({ t: now - recStartRef.current, landmarks: raw, worldLandmarks: pick.worldLandmarks });
@@ -571,7 +580,7 @@ export default function MovementLab({
     // Frames are captured — release the camera (battery / privacy).
     stopStream(streamRef.current); streamRef.current = null;
     setSource(null);
-    setOnPickedClip(false);   // a recorded set is never the picked clip
+    setOnPickedClip(false); pickedRef.current = false;   // a recorded set is never the picked clip
     setPhase('analyzing');
     setTimeout(() => finishFrames(frames), 30);
   }, [finishFrames, setSource]);
@@ -579,7 +588,7 @@ export default function MovementLab({
   // Offline read of a clip (upload or a picked reviewed clip): the 'full' model,
   // seek-stepped at the clip's real frame rate — see captureClipFrames.
   const analyzeSource = useCallback(async (url, { crossOrigin = false, picked = false } = {}) => {
-    setOnPickedClip(!!picked);
+    setOnPickedClip(!!picked); pickedRef.current = !!picked;
     setError(null); setResult(null); setJump(null); setDisplayFrames([]); setProgress(0); setPhase('analyzing');
     // a stored clip plays and is read from its SIGNED url - the raw public one
     // fails once the bucket is private (#510-S4); a blob: or other url passes through
@@ -747,8 +756,16 @@ export default function MovementLab({
   );
   const overlayTools = (liveCam || (phase === 'results' && srcUrl && !clipInReplay)) && (
     <div data-ml-tools style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', marginTop: 12 }}>
-      {toolBtn(showSkel, setShowSkel, 'SKELETON')}
-      {toolBtn(showAngles, setShowAngles, 'JOINT ANGLES')}
+      {/* #774: JOINT ANGLES = the body lines + the angle at each joint; ANATOMY = the 3D body */}
+      {toolBtn(showSkel && showAngles, (f) => { const on = typeof f === 'function' ? f(showSkel && showAngles) : f; setShowSkel(on); setShowAngles(on); }, 'JOINT ANGLES')}
+      {toolBtn(showAnat, setShowAnat, 'ANATOMY')}
+    </div>
+  );
+  const anatomyPanel = showAnat && (liveCam || (phase === 'results' && srcUrl && !clipInReplay)) && (
+    <div data-ml-anatomy style={{ marginTop: 12, border: `1px solid ${C.cardBd}` }}>
+      {liveCam
+        ? <Suspense fallback={null}><LiveAnatomyLab getFrames={() => liveBufRef.current} dims={{ w: (videoRef.current && videoRef.current.videoWidth) || 720, h: (videoRef.current && videoRef.current.videoHeight) || 1280 }} height={isMobile ? 300 : 380} /></Suspense>
+        : <ThreeDPanel frames={framesRef.current} playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} result={result} exerciseTitle={exerciseTitle} />}
     </div>
   );
   const controls = (
@@ -799,7 +816,7 @@ export default function MovementLab({
           <Section title={tt(initialView === 'metrics' ? 'LIFT METRICS' : 'ANALYSIS')}>
             <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} movement={movement}
               tab={tab} setTab={setTab} view={initialView}
-              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps} onSendNote={onPickedClip ? onSendNote : null} pickedClip={onPickedClip}
+              vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps} repTarget={onPickedClip ? repTarget : null} onSendNote={onPickedClip ? onSendNote : null} pickedClip={onPickedClip}
               playheadT={playheadRel} onScrub={srcUrl ? onScrub : null} />
           </Section>
         )}
@@ -830,6 +847,7 @@ export default function MovementLab({
           <div style={isMobile || clipInReplay ? undefined : { flex: '0 0 min(520px, 46%)', minWidth: 0, position: 'sticky', top: 0 }}>
             {media}
             {overlayTools}
+            {anatomyPanel}
             {controls}
             {statusLine}
           </div>
@@ -874,7 +892,7 @@ function ReadSummary({ result, movement, range = null }) {
 // movement: the coach's explicit pick from MovementLab (a MOVEMENTS entry, or
 // null = neutral). Left undefined by callers that only know the LOGGED exercise
 // (Workout Review) — then the logged title decides the joint channel.
-export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, onSendNote = null, pickedClip = false, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
+export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, onSendNote = null, pickedClip = false, recordedReps = [], targetReps = null, repTarget = null, playheadT = null, onScrub = null }) {
   // First/last-rep trim (Ohad: "I want to be able to set where is the first
   // and last rep, to avoid random movement analyzed into the means") — 1-
   // indexed, inclusive, defaults to the full detected set. Only the MEAN
@@ -969,7 +987,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
         </div>
       )}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
-        {neutral ? tt('Neutral read') : (() => { const n = trimmed ? Math.max(0, effTo - effFrom + 1) : result.repCount; return <>{n === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', n)}{trimmed && <> {tt('OF {n}').replace('{n}', result.repCount)}</>}</>; })()} · {result.fps}fps · {result.frameCount} {tt('frames')}
+        {neutral ? tt('Neutral read') : (() => { const n = trimmed ? Math.max(0, effTo - effFrom + 1) : result.repCount; return <>{n === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', n)}{trimmed && <> {tt('OF {n}').replace('{n}', result.repCount)}</>}{result.countSource === 'log' && !trimmed && <span style={{ color: C.gn }} title={tt('The count is what the athlete logged for this set; the camera picked which dips those reps were.')}> · {tt('as logged')}{result.reps && result.reps.length < result.repCount ? ` · ${tt('{n} measured').replace('{n}', result.reps.length)}` : ''}</span>}</>; })()} · {result.fps}fps · {result.frameCount} {tt('frames')}
         {result.countMethod === 'flight' && (
           <span style={{ color: C.pu || '#8b7cf0' }} title={tt('Counted from the flight phase (jumps/hops) — the tracked joint barely moves on ballistic work, so the joint counter saw only {n}. Per-rep bar-speed/ROM below still track the joint.').replace('{n}', result.jointRepCount)}>
             {' · '}{tt('from flight')}
@@ -1009,11 +1027,12 @@ export function AnalyzeResult({ result, frames, exerciseTitle, movement, tab, se
           LOGGED for this exercise. Honest reliability signal: a big gap means
           trust his log, not the camera (fast plyos / lateral work under-count). */}
       {(() => {
-        const rec = (recordedReps || []).filter((n) => typeof n === 'number' && n > 0);
+        // the clip's own set from the log (#762): '3x4 E' is 8 on camera, so compare with that, not the per-side 4
+        const rec = repTarget > 0 ? [repTarget] : (recordedReps || []).filter((n) => typeof n === 'number' && n > 0);
         const tgt = (targetReps != null && /\d/.test(String(targetReps))) ? String(targetReps).trim() : null;
         if (!rec.length && !tgt) return null;
-        if (!(result.repCount > 0)) return null;
-        const N = result.repCount;
+        const N = result.cameraCount != null ? result.cameraCount : result.repCount;   // the camera's own count (#762)
+        if (!(N > 0)) return null;
         const sum = rec.reduce((a, b) => a + b, 0);
         // Match against an individual SET (a form clip is one set) — NOT the sum.
         // A camera count that merely equals the multi-set total is a coincidence,

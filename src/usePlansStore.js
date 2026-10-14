@@ -10,7 +10,7 @@ import { tr, readLang } from './i18n';
 // to save space. The trainer PlanEditor expects d.exercises = [{id, exerciseId, sets,
 // reps, tempo, superset, notes, ...}]. Normalize on load so the editor sees one shape;
 // saving writes back the trainer shape, which ClientPortal also accepts post-fix.
-function normalizeDays(days) {
+export function normalizeDays(days) {   // exported for the coach demo (#760): its mock plans go through the same load shape
   return (days || []).map(d => {
     // Prefer whichever shape actually HAS exercises. An empty d.exercises:[]
     // must not shadow a populated d.ex (a hybrid/partial-write state) — that
@@ -162,6 +162,7 @@ export function planFromRow(data) {
     // HaTzvi pattern). Anything else (undefined / 'standard') is
     // a normal multi-day block. Persisted in data JSONB.
     kind: data.data?.kind || undefined,
+    sport: data.data?.sport || undefined,   // 'running' (#769)
     // Template-purchase flag — same precedence as in usePlanIndex.
     isTemplatePurchase:
       data.is_template_purchase === true
@@ -373,6 +374,8 @@ export async function savePlan(plan) {
       // Round-trip plan.kind so daily-routine plans stay marked. Omit
       // when undefined to keep the JSONB blob clean for standard plans.
       ...(plan.kind ? { kind: plan.kind } : {}),
+      // a RUNNING program (14.10 #769): the builder's running columns + the portal's run logger
+      ...(plan.sport ? { sport: plan.sport } : {}),
     },
   };
   const rowWithCol = { ...baseRow, is_template_purchase: isTemplate };

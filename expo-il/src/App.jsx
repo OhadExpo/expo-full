@@ -1015,8 +1015,9 @@ function PhoneFrame({ children, tag, height = 360, onClick, label }) {
 function PoseFigure({ phase, interactive = false, big = false }) {
   const t = useT();
   const [lang] = useLang();
-  const [skel, setSkel] = useState(true);
-  const [ang, setAng] = useState(true);
+  const [anat, setAnat] = useState(false);   // ANATOMY: the 3D skeleton / muscle body (#774)
+  const [ang, setAng] = useState(true);      // JOINT ANGLES: the lines + the angle at each joint
+  const skel = ang;
   const hipDrop = phase * 18, kneeDrop = phase * 10, kneeFwd = phase * 2;
   const J = {
     head: [50, 22], shoulderL: [40, 38], shoulderR: [60, 38],
@@ -1048,12 +1049,16 @@ function PoseFigure({ phase, interactive = false, big = false }) {
     <>
       {/* the strip follows the page's language (the phone-frame card is LTR inside): SKELETON first, as in the app */}
       <div dir={lang === 'he' ? 'rtl' : 'ltr'} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.bd, border: `1px solid ${C.bd}`, marginBottom: big ? 8 : 4 }}>
-        {[[skel, setSkel, 'pose.tool.skel'], [ang, setAng, 'pose.tool.angles']].map(([on, set, k]) => (interactive
+        {[[anat, setAnat, 'pose.tool.anatomy'], [ang, setAng, 'pose.tool.angles']].map(([on, set, k]) => (interactive
           ? <button key={k} type="button" aria-pressed={on} onClick={() => set((x) => !x)} style={cell(on)}>{t(k)}</button>
           : <span key={k} style={cell(on)}>{t(k)}</span>))}
       </div>
       <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', flex: 1, minHeight: 0 }}>
         <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
+        {anat && lines.filter(([a, b]) => !/heel|toe|hand/.test(a + b)).map(([a, b], i) => (
+          <line key={'m' + i} x1={J[a][0]} y1={J[a][1]} x2={J[b][0]} y2={J[b][1]} stroke="#B8443F" strokeOpacity="0.72" strokeWidth={/shoulder.*hip|hip.*hip|shoulderL.*shoulderR/.test(a + b) ? 7 : 5.2} strokeLinecap="round" />
+        ))}
+        {anat && <circle cx={J.head[0]} cy={J.head[1]} r="6.4" fill="#E8E2D8" opacity="0.9" />}
         {skel && lines.map(([a, b], i) => (
           <line key={i} x1={J[a][0]} y1={J[a][1]} x2={J[b][0]} y2={J[b][1]} stroke={C.ac} strokeWidth="0.9" strokeLinecap="round" />
         ))}

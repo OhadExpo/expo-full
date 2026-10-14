@@ -2,13 +2,16 @@ import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { blockNum } from './traineeUtils';
+import { runPace } from './runPace';
 import VideoEmbed, { safeUrl, canEmbed } from './VideoEmbed';
 // LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
 // frames and run the same VBT/ROM/tempo battery MovementLab uses, rendered
 // INLINE on the player (no 3D box, no fullscreen). The on-video skeleton is the
 // existing POSE overlay (matched to the live style).
 import { AnalyzeResult, captureClipFrames } from './MovementLab';
-import { analyzeClip } from './poseLab';
+// ANATOMY (14.10 #774): the clip's own 3D skeleton / muscle body - loaded only when the coach asks for it
+const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable() { return null; } })));
+import { analyzeClip, repTargetFromLog } from './poseLab';
 import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 
 // Hebrew at the same fontSize as Nord visually shrinks (smaller x-height,
@@ -31,6 +34,8 @@ import { createPoseOverlay } from './poseOverlay';
 const lockFor = (ref, v) => { const src = (v && (v.currentSrc || v.src)) || 'cam'; if (!ref.current || ref.current.src !== src) ref.current = { src, lock: makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }) }; return ref.current.lock; };
 import { useT as useAppT, useTB, tr, readLang, LangCtx, countIn } from './i18n';
 import { trend as setReadTrend, isUsable as isUsableSetRead, signed as signedDelta } from './setAnalysis';
+import { useUrlSync } from './urlState';
+import { createWorkerLandmarker } from './poseWorkerClient';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -80,6 +85,9 @@ const POSE_CONNECTIONS = [
   [23,25],[25,27],                    // left leg
   [24,26],[26,28],                    // right leg
 ];
+// the rep counter's joint channels, as their dictionary labels
+const JOINT_KIND = { hip: 'HIP', knee: 'KNEE', elbow: 'ELBOW', sho: 'SHOULDER', none: 'SKIP' };
+
 // ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N
 // now live in src/repCounter.js — imported above. They're shared with the
 // client-side auto-count on upload (ClientPortal.jsx) so both paths run
@@ -163,7 +171,7 @@ export function FormVideoPlayer(props) {
   );
 }
 
-function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null, compare = false }) {
+function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null, repTarget = null, compare = false }) {
   const tt = useAppT();
   // Athlete form videos are the most private thing the platform stores. The URL
   // is resolved through storageUrl so it keeps playing when the buckets stop
@@ -1026,6 +1034,11 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     setPoseLoading(true);
     setPoseError('');
     try {
+      // the model in a WORKER first (#775): the page keeps playing and drawing at the screen's rate while a frame is read
+      const isMobileW = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk/i.test(navigator.userAgent || '');
+      const variantW = isMobileW ? 'lite' : 'full';
+      const wk = await createWorkerLandmarker({ model: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${variantW}/float16/latest/pose_landmarker_${variantW}.task`, numPoses: LIVE_POSES });
+      if (wk) { landmarkerRef.current = wk; setPoseLoading(false); return true; }
       const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
       const fileset = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
@@ -1076,6 +1089,37 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     if (repsOn) { setRepsOn(false); if (!poseOn && !anglesOn) setCommentsEnabled(true); return; }
     if (await ensureModel()) { setRepsOn(true); setCommentsEnabled(false); }
   };
+  // ANATOMY (14.10 #774, Ohad: "Skeleton = Skeleton/muscular anatomy model ... Name skeleton: Anatomy"): the clip read
+  // once (the METRICS read is reused when it is there), then the 3D anatomy body under the video, on the clip's time
+  const [anatomyOn, setAnatomyOn] = useState(false);
+  const [anat, setAnat] = useState({ state: 'idle', pct: 0, frames: null });
+  const [anatT, setAnatT] = useState(0);
+  const toggleAnatomy = async () => {
+    if (anatomyOn) { setAnatomyOn(false); return; }
+    setAnatomyOn(true);
+    if (anat.frames || anat.state === 'busy') return;
+    const reuse = metrics && metrics.frames;
+    if (reuse && reuse.length >= 10) { setAnat({ state: 'done', pct: 1, frames: reuse }); return; }
+    setAnat({ state: 'busy', pct: 0, frames: null });
+    try {
+      const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: (q) => setAnat((a) => ({ ...a, pct: q })) });
+      setAnat({ state: 'done', pct: 1, frames });
+    } catch { setAnat({ state: 'err', pct: 0, frames: null }); }
+  };
+  const anatFrames = useMemo(() => {
+    const f = (anat.frames || []).filter((x) => x && x.landmarks && x.worldLandmarks);
+    if (f.length < 10) return null;
+    const v = videoRef.current;
+    f.dims = { w: (v && v.videoWidth) || 1080, h: (v && v.videoHeight) || 1920 };
+    return f;
+  }, [anat.frames]);
+  useEffect(() => {   // the body follows the clip (~15 updates a second is plenty for the 3D view's own smoothing)
+    if (!anatomyOn || !anatFrames) return undefined;
+    let raf = 0, last = -1;
+    const tick = () => { const v = videoRef.current; if (v) { const t = v.currentTime; if (Math.abs(t - last) > 0.06) { last = t; setAnatT(t); } } raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [anatomyOn, anatFrames]);
   const toggleComments = () => {
     setCommentsEnabled(v => {
       const next = !v;
@@ -1092,7 +1136,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     setMetricsState('busy'); setMetricsPct(0); setMetrics(null); setMetricsErr('');
     try {
       const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: setMetricsPct });
-      const result = analyzeClip(frames, exerciseTitle);
+      // the athlete's LOGGED reps for this set are the count (#762); the camera picks which dips they were
+      const result = analyzeClip(frames, exerciseTitle, { targetReps: repTarget || 0 });
       setMetrics({ result, frames });
       setMetricsTab('velocity');
       setMetricsState('done');
@@ -1202,28 +1247,18 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         const ts = Math.max(performance.now(), lastTs + 0.001);
         if (ts > lastTs) {
           lastTs = ts;
+          // THE READING is handled here; it comes back at once (the page's own model) or a few frames later (the worker,
+          // #775) - every number below belongs to the frame at mediaT, not to whatever the clip shows by then
+          const handle = (raw, detMs) => {
           try {
-            const t0 = performance.now();
-            const result = lockResult(lockFor(lockRef, v), lm.detectForVideo(v, ts), ts);
-            const detMs = performance.now() - t0;
-            ctx.clearRect(0, 0, w, h);
+            if (!active || !raw) return;
+            const result = lockResult(lockFor(lockRef, v), raw, ts);
+            if (!(poseOn || anglesOn)) ctx.clearRect(0, 0, w, h);   // with an overlay on, the display loop below owns the canvas
             const lms = result.landmarks?.[0];
             // worldLandmarks are 3D metric coords (meters, hip-centered) —
             // use them for joint-angle math so camera perspective doesn't
             // distort the result. Fall back to 2D `lms` if absent.
             const wlms = result.worldLandmarks?.[0] || lms;
-            // Map normalized landmark coords (0..1 of the intrinsic frame)
-            // into the letterboxed pixel rect inside the <video> element.
-            // Default object-fit: contain — a portrait clip in a landscape
-            // element leaves black bars on the sides; drawing at a.x*w
-            // would stretch the skeleton across the whole element including
-            // those bars. Compute the actual displayed rect and offset into it.
-            const vw = v.videoWidth || w, vh = v.videoHeight || h;
-            const s = Math.min(w / vw, h / vh);
-            const dw = vw * s, dh = vh * s;
-            const ox = (w - dw) / 2, oy = (h - dh) / 2;
-            const px = (p) => ox + p.x * dw;
-            const py = (p) => oy + p.y * dh;
             // the overlay draws SMOOTHED points (video time) with the hands added; the counter below keeps the raw ones
             const sl = lms && (poseOn || anglesOn) ? ovl.update(lms, result.worldLandmarks?.[0], mediaT) : null;
             // the overlay gate (scripts/verify-review-overlay.mjs) reads raw vs drawn points per frame
@@ -1231,7 +1266,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             if (lms) {
               // Skeleton + dots only when the overlay is enabled. Rep counting
               // still runs silently when only REPS is on.
-              if (sl) ovl.draw(ctx, { w, h, px, py, skeleton: poseOn, angles: anglesOn });
+              // (drawn by the display loop below, at the screen's rate - #775)
               const next = {};
               for (const d of ANGLE_DEFS) {
                 const val = angleAt(wlms, d.a, d.b, d.c);
@@ -1251,7 +1286,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               const BUCKET_FPS = 30;
               if (repsOn) {
                 const st = repStateRef.current;
-                const vt = v.currentTime;
+                const vt = mediaT;
                 const bucket = Math.round(vt * BUCKET_FPS);
                 for (const d of ANGLE_DEFS) {
                   const key = d.name;
@@ -1272,7 +1307,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   // count reflects playback progress — scrubbing backward
                   // drops the count, matching user expectation.
                   const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
-                  const curBucket = Math.round(v.currentTime * BUCKET_FPS);
+                  const curBucket = Math.round(mediaT * BUCKET_FPS);
                   let bestCount = 0;
                   for (const key of activeCh) {
                     const sig = st.signalBufs[key];
@@ -1315,7 +1350,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   st.lastPoseDetectAt = nowMs;
                   try {
                     const truncated = {};
-                    const cutoff = Math.max(0, Math.round(v.currentTime * BUCKET_FPS) + 1);
+                    const cutoff = Math.max(0, Math.round(mediaT * BUCKET_FPS) + 1);
                     for (const d of ANGLE_DEFS) {
                       const sig = st.signalBufs[d.name];
                       if (sig && sig.length >= 10) truncated[d.name] = sig.slice(0, cutoff);
@@ -1332,9 +1367,42 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               }
             }
           } catch { /* swallow per-frame detect errors */ }
+          };
+          if (lm.isWorker) {
+            if (!lm.busy) lm.detect(v, ts).then((r) => { if (r && r.result) handle(r.result, r.ms); });
+          } else {
+            const t0 = performance.now();
+            const raw = lm.detectForVideo(v, ts);
+            handle(raw, performance.now() - t0);
+          }
         }
       }
     };
+
+    // THE DISPLAY LOOP (14.10 #775, Ohad: "both the numbers and the lines are very glitchy and laggy. I wanted a 60fps
+    // feel"): the detector reads 15-30 frames a second (a phone, the lite model); the overlay is drawn at the SCREEN's
+    // rate, each frame at the clip's exact current time - the joints moved on from the last reading by their velocity.
+    let paintRaf = 0;
+    const paint = () => {
+      if (!active) return;
+      if (poseOn || anglesOn) {
+        const w = v.clientWidth, h = v.clientHeight;
+        if (w > 0 && h > 0) {
+          const dpr = Math.min(3, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+          const cw = Math.round(w * dpr), chh = Math.round(h * dpr);
+          if (c.width !== cw) c.width = cw;
+          if (c.height !== chh) c.height = chh;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          const vw = v.videoWidth || w, vh = v.videoHeight || h;
+          const sc = Math.min(w / vw, h / vh), dw = vw * sc, dh = vh * sc, ox = (w - dw) / 2, oy = (h - dh) / 2;
+          const drawn = ovl.draw(ctx, { w, h, px: (q) => ox + q.x * dw, py: (q) => oy + q.y * dh, skeleton: poseOn || anglesOn, angles: anglesOn, t: v.currentTime });
+          if (drawn && window.__FV_PAINT) window.__FV_PAINT.push({ t: v.currentTime, now: performance.now(), k: drawn[25] ? [drawn[25].x, drawn[25].y] : null, a: drawn[27] ? [drawn[27].x, drawn[27].y] : null });
+        }
+      }
+      paintRaf = requestAnimationFrame(paint);
+    };
+    if (poseOn || anglesOn) paintRaf = requestAnimationFrame(paint);
 
     // ONE loop (rVFC fires once per presented frame, idle when paused), and an immediate read so the overlay shows on a
     // paused frame. A scrub / load redraws the frame it lands on WITHOUT starting another loop.
@@ -1361,6 +1429,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (paintRaf) cancelAnimationFrame(paintRaf);
       v.removeEventListener('seeked', redraw);
       v.removeEventListener('loadeddata', redraw);
       v.removeEventListener('play', onPlay);
@@ -1369,7 +1438,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
 
   useEffect(() => () => {
     if (landmarkerRef.current) {
-      try { landmarkerRef.current.close(); } catch {}
+      try { landmarkerRef.current.close(); } catch {}   // a worker landmarker terminates its worker
       landmarkerRef.current = null;
     }
   }, []);
@@ -1413,7 +1482,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           </div>
           <div style={{padding:'10px 10px 4px'}}>
             <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>{tr(readLang(), 'Loading…')}</div>}>
-              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || ''} tab={metricsTab} setTab={setMetricsTab} view="metrics"
+              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || ''} tab={metricsTab} setTab={setMetricsTab} view="metrics" repTarget={repTarget}
                 recordedReps={recordedReps} targetReps={targetReps}
                 // AnalyzeResult works in CLIP-RELATIVE ms (the first frame = 0), as the Movement Lab
                 // passes it; absolute times here put every trace - and the 3D slider - off by the
@@ -1511,6 +1580,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             <div style={{textAlign:'center'}}>
               <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>{tt("REPS")}</div>
               <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
+              {/* the live count reads against the LOG (#762): "of 8 logged" - the set's own count, each side doubled */}
+              {repTarget > 0 && <div style={{fontSize:9,color:C.tm,marginTop:2,whiteSpace:'nowrap'}}>{tt('of {n} logged').replace('{n}', repTarget)}</div>}
               {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
             </div>
           </div>
@@ -1559,14 +1630,15 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         const block = { display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}`, boxSizing: 'border-box' };
         const row = (n) => ({ display: 'grid', gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, gap: 1 });
         const analysis = [
-          <button key="sk" onClick={togglePose} disabled={poseLoading} data-fv="skeleton" aria-pressed={poseOn}
-            style={{ ...cell(poseOn), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
-            {poseLoading ? tt('LOADING…') : tt('SKELETON')}
+          <button key="anat" onClick={toggleAnatomy} data-fv="anatomy" aria-pressed={anatomyOn}
+            title={tt('The 3D skeleton and muscle body of this clip')}
+            style={{ ...cell(anatomyOn), cursor: anat.state === 'busy' ? 'wait' : 'pointer' }}>
+            {anatomyOn && anat.state === 'busy' ? `${tt('ANATOMY')} ${Math.round(anat.pct * 100)}%` : tt('ANATOMY')}
           </button>,
           <button key="an" onClick={toggleAngles} disabled={poseLoading} data-fv="angles" aria-pressed={anglesOn}
-            title={tt('Joint angles on the video, at each joint')}
+            title={tt('The body lines and the angle at each joint, on the video')}
             style={{ ...cell(anglesOn), cursor: poseLoading ? 'wait' : 'pointer', opacity: poseLoading ? 0.6 : 1 }}>
-            {tt('JOINT ANGLES')}
+            {poseLoading ? tt('LOADING…') : tt('JOINT ANGLES')}
           </button>,
           <button key="rp" onClick={toggleReps} disabled={poseLoading} data-fv="reps"
             title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
@@ -1602,15 +1674,22 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             <div data-fv-row="analysis" style={row(analysis.length - 2)}>{analysis.slice(2)}</div>
             {repsOn && (
               <div data-fv-row="joint" style={row(motionSuggestion ? 2 : 1)}>
-                <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
+                {/* the joint picker: the house cell (its label + one caret) with the native select invisible on top - the
+                    native control drew its own arrow beside the cell's (14.10: "⌄⌄" in the Hebrew row) */}
+                <span style={{ ...cell(false), position: 'relative' }}>
+                {trackOverride === 'auto'
+                  ? `${tt('AUTO (')}${autoPick.source === 'unknown' ? '?' : tt(JOINT_KIND[autoPick.kind || 'none'] || (autoPick.kind || 'none').toUpperCase())}${autoPick.source === 'motion' ? ` · ${tt('by motion')}` : autoPick.source === 'library' ? ` · ${tt('from the library')}` : ''})`
+                  : tt(JOINT_KIND[trackOverride] || trackOverride.toUpperCase())} <CaretGlyph />
+                <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)} data-fv="joint" aria-label={tt('Which joint pair to count peaks on')}
                   title={trackOverride === 'auto' ? `${autoPick.why || 'no signal'} (confidence ${(autoPick.confidence * 100).toFixed(0)}%)` : 'Which joint pair to count peaks on'}
-                  style={{ ...cell(false), textAlignLast: 'center', appearance: 'auto' }}>
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none' }}>
                   {/* Show WHERE the pick came from, so a wrong auto-detect is
                       diagnosable rather than mysterious. '?' = the title matched
                       nothing and no motion read yet — previously this silently
                       became KNEE (24% of the library). */}
-                  <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
-                    {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
+                  {/* the joint names through the dictionary (14.10: the Hebrew row read 'אוטומטי (KNEE)') */}
+                  <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : tt(JOINT_KIND[autoPick.kind || 'none'] || (autoPick.kind || 'none').toUpperCase())}
+                    {autoPick.source === 'motion' ? ` · ${tt('by motion')}` : autoPick.source === 'library' ? ` · ${tt('from the library')}` : ''})
                   </option>
                   <option value="hip">{tt('HIP')}</option>
                   <option value="knee">{tt("KNEE")}</option>
@@ -1618,12 +1697,13 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   <option value="sho">{tt('SHOULDER')}</option>
                   <option value="none">{tt('SKIP')}</option>
                 </select>
+                </span>
                 {/* Motion disagrees with the title. Never switched silently — a
                     mid-clip change would move the rep count under the coach's
                     eyes — so it is offered as one click. */}
                 {motionSuggestion && (
                   <button onClick={() => setTrackOverride(motionSuggestion.kind)} title={motionSuggestion.why}
-                    style={cell(true)}>{tt('MOTION SEES')} {motionSuggestion.kind.toUpperCase()} →</button>
+                    style={cell(true)}>{tt('MOTION SEES')} {tt(JOINT_KIND[motionSuggestion.kind] || motionSuggestion.kind.toUpperCase())} {readLang() === 'he' ? '←' : '→'}</button>
                 )}
               </div>
             )}
@@ -1653,6 +1733,19 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               </div>
             ) : <div data-fv-row="full" style={row(1)}>{fullBtn}</div>}
           </div>
+          {anatomyOn && (
+            <div data-fv-anatomy style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+              {anat.state === 'busy' && <div style={{ fontFamily: FN, fontSize: 11, letterSpacing: '0.08em', color: C.tm, padding: '12px 14px' }}>{tt('Reading the clip for the 3D body…')} {Math.round(anat.pct * 100)}%</div>}
+              {anat.state === 'err' && <div style={{ fontFamily: FN, fontSize: 11, color: C.rd, padding: '12px 14px' }}>{tt('Could not read this clip for the 3D body.')}</div>}
+              {anat.state === 'done' && !anatFrames && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: '12px 14px' }}>{tt('No body found in this clip.')}</div>}
+              {anat.state === 'done' && anatFrames && (
+                <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: '12px 14px' }}>{tt('LOADING…')}</div>}>
+                  <Replay3D frames={anatFrames} playheadT={anatT * 1000 - anatFrames[0].t} exerciseTitle={exerciseTitle}
+                    onSeek={(tRel) => { const v = videoRef.current; if (v) { v.currentTime = Math.max(0, (tRel + anatFrames[0].t) / 1000); } }} />
+                </Suspense>
+              )}
+            </div>
+          )}
           {poseError && <span style={{ fontSize: 10, fontFamily: FN, color: C.rd }}>{poseError}</span>}
         </div>);
       })()}
@@ -1930,7 +2023,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // 2026-05-28 — the in-person logging surface is now reachable directly
   // via `▶ LOG SESSION` on each TraineeDetail and at /coach/workouts.
   // Review is purely about reviewing what athletes uploaded.
-  const [selectedWo, setSelectedWo] = useState(null);
+  // THE OPEN WORKOUT HAS ITS URL (14.10 #770): /coach/review/<workout> - a link or reload opens that review; Back
+  // returns to the queue
+  const REVIEW_BASE = '/coach/review';
+  const woFromPath = (p) => { const m = String(p || '').match(/^\/coach\/review\/([^/]+)/); return m ? decodeURIComponent(m[1]) : null; };
+  const [selectedWo, setSelectedWo] = useState(() => woFromPath(typeof window !== 'undefined' ? window.location.pathname : ''));
+  useUrlSync(selectedWo, setSelectedWo, {
+    toPath: (id) => {
+      if (typeof window === 'undefined' || !/^\/coach\/review(\/|$)/.test(window.location.pathname)) return null;
+      if (id) return `${REVIEW_BASE}/${encodeURIComponent(id)}`;
+      return window.location.pathname.startsWith(REVIEW_BASE + '/') ? { path: REVIEW_BASE, replace: true } : null;
+    },
+    fromPath: woFromPath,
+  });
   const [expandedEx, setExpandedEx] = useState(null);
   // Library lookup Map — 1,467 exercises; a .find() per card per render
   // (and this view re-renders per focus-textarea keystroke) is the known
@@ -2099,7 +2204,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // useEffect avoids the state-mutation-during-render warning the previous
   // inline `setSelectedWo(null)` was producing under StrictMode.
   useEffect(() => {
-    if (selectedWo && !clientWorkouts.find(w => w.id === selectedWo)) {
+    // only once the workouts are in: a link to /coach/review/<id> mounts before they load (#770)
+    if (selectedWo && clientWorkouts.length && !clientWorkouts.find(w => w.id === selectedWo)) {
       setSelectedWo(null);
     }
   }, [selectedWo, clientWorkouts]);
@@ -2327,6 +2433,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{setsArr.length} sets
+                    {/* a RUN (#769): what he ran, at a glance - distance · time · pace · HR of each done rep */}
+                    {setsArr.some((st) => st && st.time) && setsArr.filter((st) => st.done && st.time).map((st, k) => (
+                      <span key={k} data-run-summary dir="ltr" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tx, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{[st.reps ? `${st.reps} km` : '', st.time, runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} /km` : '', st.hr ? `HR ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
+                    ))}
                     {(formVideo?.has || formVideo?.cloudUrl) && <span title={tt('Form video submitted')} style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
                       <span title={readLang() === 'he' ? (formVideo.reviewNotes.length === 1 ? 'הערה אחת על התרגיל' : `${formVideo.reviewNotes.length} הערות על התרגיל`) : `${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
@@ -2354,6 +2464,23 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 <div style={{padding:"0 14px 14px",borderTop:`1px solid ${C.cardBd}`}}>
                   {/* Set-by-set data — every column centered for visual symmetry */}
                   <div style={{marginTop:10,marginBottom:12}}>
+                    {setsArr.some((st) => st && st.time) ? (
+                      // a RUN (#769): distance, time, the pace it works out to, heart rate
+                      <div data-run-review style={{display:'grid',gap:4}}>
+                        <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr 1fr",gap:4,marginBottom:4}}>
+                          {['SET','KM','SPLIT','PACE','HR'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:'center'}}>{tr(readLang(), h)}</div>)}
+                        </div>
+                        {setsArr.map((set, si) => (
+                          <div key={si} style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr 1fr",gap:4,padding:"3px 0",opacity:set.done?1:0.4,borderBottom:si<setsArr.length-1?`1px solid rgba(127,127,131,0.133)`:'none',fontSize:12,color:C.tx,textAlign:'center',fontVariantNumeric:'tabular-nums'}}>
+                            <div style={{fontFamily:FN,color:set.done?C.gn:C.td}}>{set.done?'✓':si+1}</div>
+                            <div>{set.reps||'—'}</div>
+                            <div>{set.time||'—'}</div>
+                            <div>{runPace(set.reps, set.time)||'—'}</div>
+                            <div>{set.hr||'—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <>
                     <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,marginBottom:4}}>
                       {['SET','REPS','LOAD','RPE'].map(h =>
                         <div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:'center'}}>{h}</div>)}
@@ -2383,6 +2510,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         </React.Fragment>
                       );
                     })}
+                    </>}
                   </div>
 
                   {/* Client's form video */}
@@ -2434,6 +2562,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           role="trainer"
                           recordedReps={(ex.sets || []).map(s => parseFloat(s.reps)).filter(n => isFinite(n))}
                           targetReps={ex.prescribed || null}
+                          repTarget={repTargetFromLog(ex.sets, ex.prescribed)}
                           reviewNotes={formVideo.reviewNotes || []}
                           onReviewNotesChange={updateFormVideos ? (nextNotes) => {
                             const updated = (wo.formVideos || []).map((fv, fi) => fi === i ? { ...fv, reviewNotes: nextNotes } : fv);

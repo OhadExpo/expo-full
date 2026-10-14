@@ -77,6 +77,9 @@ function makeSmoother({ minCutoff = 1, beta = 12, dCutoff = 1 } = {}) {
 export function createPoseOverlay() {
   const smImg = makeSmoother({ minCutoff: 1, beta: 12 }), smWld = makeSmoother({ minCutoff: 1, beta: 4 });
   let shown = [], since = [], slotOf = {}, valOf = {}, sl = null, swl = null;
+  // the previous reading, for the 60 fps draw (#775): the display runs faster than the detector, so each display frame
+  // draws the joints where they ARE at that instant - the last reading moved on by its own velocity (capped)
+  let prevSl = null, prevSwl = null, tCur = null, tPrev = null;
   const isShown = (i, p, t) => {
     const vis = p ? (p.visibility ?? 1) : 0;
     const want = shown[i] ? vis >= 0.3 : vis >= 0.5;
@@ -88,7 +91,9 @@ export function createPoseOverlay() {
   const on = (i) => !!(sl && sl[i] && shown[i]);
   return {
     update(lms, world, t) {
-      if (!lms) { sl = null; swl = null; return null; }
+      if (!lms) { sl = null; swl = null; prevSl = null; prevSwl = null; tCur = null; return null; }
+      if (tCur != null && t > tCur && t - tCur <= 0.25) { prevSl = sl; prevSwl = swl; tPrev = tCur; } else { prevSl = null; prevSwl = null; tPrev = null; }
+      tCur = t;
       sl = smImg.smooth(withHands(lms), t);
       // world points carry no visibility in every build - borrow the 2D landmark's
       const w = world ? world.map((q, i) => (q && q.visibility == null && lms[i] ? { ...q, visibility: lms[i].visibility } : q)) : lms;
@@ -98,41 +103,52 @@ export function createPoseOverlay() {
     },
     get points() { return sl; },
     isOn: on,
-    reset() { smImg.reset(); smWld.reset(); shown = []; since = []; slotOf = {}; valOf = {}; sl = null; swl = null; },
+    reset() { smImg.reset(); smWld.reset(); shown = []; since = []; slotOf = {}; valOf = {}; sl = null; swl = null; prevSl = null; prevSwl = null; tCur = null; tPrev = null; },
     // px / py map a landmark to canvas units (each surface letterboxes / mirrors its own way); w / h = the canvas in those
     // units. Sizes scale with w, so a native-resolution canvas shown small reads the same as a CSS-sized one.
     // dots: a white dot at each measured joint when the skeleton is off (false where the surface draws its own skeleton)
-    draw(ctx, { w, h, px, py, skeleton = true, angles = false, lineW, dots = true }) {
+    // t: the instant being drawn (the clip's currentTime / the live clock). With it, the joints are moved on from the last
+    // reading by their velocity (up to 120 ms ahead), so a 60 Hz draw loop moves at 60 Hz between 15-30 Hz readings.
+    // wrists: the wrist angle (only the shot analyzer shows it - #776)
+    draw(ctx, { w, h, px, py, skeleton = true, angles = false, lineW, dots = true, t = null, wrists = false }) {
       if (!sl || (!skeleton && !angles)) return;
+      const ahead = t != null && tCur != null ? t - tCur : 0;
+      const predict = (cur, prev) => {
+        if (!cur || !prev || tPrev == null || !(ahead > 0.001) || ahead > 0.12 || !(tCur > tPrev)) return cur;
+        const k = ahead / (tCur - tPrev);
+        return cur.map((q, i) => { const r = prev[i]; if (!q || !r) return q; return { ...q, x: q.x + (q.x - r.x) * k, y: q.y + (q.y - r.y) * k, z: q.z == null || r.z == null ? q.z : q.z + (q.z - r.z) * k }; });
+      };
+      const S = predict(sl, prevSl), SW = predict(swl, prevSwl);
       const skW = lineW || Math.max(4, Math.round(w * 0.006));
       if (skeleton) {
         const segs = BODY.filter(([i, j]) => on(i) && on(j));
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (const [col, lw] of [['rgba(0,0,0,0.45)', skW + 3], ['#39BDFF', skW]]) {
           ctx.strokeStyle = col; ctx.lineWidth = lw;
-          for (const [i, j] of segs) { ctx.beginPath(); ctx.moveTo(px(sl[i]), py(sl[i])); ctx.lineTo(px(sl[j]), py(sl[j])); ctx.stroke(); }
+          for (const [i, j] of segs) { ctx.beginPath(); ctx.moveTo(px(S[i]), py(S[i])); ctx.lineTo(px(S[j]), py(S[j])); ctx.stroke(); }
         }
         ctx.fillStyle = '#FFFFFF';
         const dots = new Set(); for (const [i, j] of segs) { dots.add(i); dots.add(j); }
-        for (const i of dots) { ctx.beginPath(); ctx.arc(px(sl[i]), py(sl[i]), skW * 0.85, 0, 2 * Math.PI); ctx.fill(); }
+        for (const i of dots) { ctx.beginPath(); ctx.arc(px(S[i]), py(S[i]), skW * 0.85, 0, 2 * Math.PI); ctx.fill(); }
       }
       if (angles) {
         // the pill scales with the BODY on screen, not the frame: a small figure far from the camera got pills bigger than
         // its limbs, crowded off their joints (the shot analyzer, 14.10); never under 9px, never over 2.2% of the width
-        const ys = [11, 12, 27, 28].filter(on).map((i) => py(sl[i]));
+        const ys = [11, 12, 27, 28].filter(on).map((i) => py(S[i]));
         const bodyH = ys.length >= 2 ? Math.max(...ys) - Math.min(...ys) : h * 0.6;
         const fs = Math.max(9, Math.min(Math.round(w * 0.022), Math.round(bodyH * 0.07))), padX = Math.round(fs * 0.45), bh = Math.round(fs * 1.55);
-        const midX = [11, 12, 23, 24].every(on) ? (px(sl[11]) + px(sl[12]) + px(sl[23]) + px(sl[24])) / 4 : w / 2;
+        const midX = [11, 12, 23, 24].every(on) ? (px(S[11]) + px(S[12]) + px(S[23]) + px(S[24])) / 4 : w / 2;
         // a number reads left to right in every language: on a Hebrew (RTL) page the canvas inherits rtl and drew "°22"
         ctx.direction = 'ltr';
         ctx.font = `700 ${fs}px Nord, Heebo, sans-serif`; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
         const placed = [];
         for (const d of OVERLAY_ANGLES) {
+          if (!wrists && / WRI$/.test(d.name)) continue;   // #776: wrist angles only in the shot analyzer
           if (!on(d.a) || !on(d.b) || !on(d.c)) continue;
-          const raw = angleAt(swl, d.a, d.b, d.c);
+          const raw = angleAt(SW, d.a, d.b, d.c);
           if (raw == null) continue;
           if (valOf[d.name] == null || Math.abs(raw - valOf[d.name]) >= 2) valOf[d.name] = Math.round(raw);
-          const j = sl[d.b], jx = px(j), jy = py(j), txt = `${valOf[d.name]}°`;
+          const j = S[d.b], jx = px(j), jy = py(j), txt = `${valOf[d.name]}°`;
           const bw = Math.ceil(ctx.measureText(txt).width) + padX * 2;
           const side = jx < midX ? -1 : 1, gap = Math.round(fs * 0.9);
           // never on top of another pill: outward first, then above, below, inward, then outward stepping down
@@ -158,6 +174,7 @@ export function createPoseOverlay() {
           ctx.fillStyle = '#FFFFFF'; ctx.fillText(txt, bx + bw / 2, by + bh / 2 + 1);
         }
       }
+      return S;   // the points as drawn (the paint gate reads them)
     },
   };
 }

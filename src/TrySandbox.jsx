@@ -7,7 +7,7 @@
 // Self-contained: no auth, no Supabase, no useStore, nothing that the rest of
 // the app depends on. Reuses src/repCounter.js for the math so when the
 // production rep counter is tuned the sandbox tracks automatically.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, Suspense } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
@@ -16,6 +16,8 @@ import { todayLocalISO } from './dates';
 import DemoTraineePortal from './DemoTraineePortal';
 import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
 import { createPoseOverlay } from './poseOverlay';
+// ANATOMY (#774): the clip's 3D body - three.js loads only when the visitor asks for it
+const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable() { return null; } })));
 // one person - the lifter (13.10 #719b): a lock per video source (a new clip starts afresh)
 const lockFor = (ref, v) => { const src = (v && (v.currentSrc || v.src)) || 'cam'; if (!ref.current || ref.current.src !== src) ref.current = { src, lock: makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }) }; return ref.current.lock; };
 import { tr, readLang } from './i18n';
@@ -1514,8 +1516,8 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare, hideEn
         {readLang() === 'he'
           ? T(pov === 'coach' ? 'engine.analyze.coach' : 'engine.analyze.trainee')
           : (pov === 'coach'
-            ? "Toggle SKELETON for the body's lines on the video, JOINT ANGLES for the angle at every joint. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
-            : "Toggle SKELETON for the body's lines on the video, JOINT ANGLES for the angle at every joint. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it.")}
+            ? "Toggle JOINT ANGLES for the body's lines and the angle at every joint, ANATOMY for the clip's 3D skeleton and muscle body. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
+            : "Toggle JOINT ANGLES for the body's lines and the angle at every joint, ANATOMY for the clip's 3D skeleton and muscle body. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it.")}
       </p>
       <SandboxPlayer url={videoUrl} exerciseTitle={exercise?.sample || ''} />
 
@@ -2011,14 +2013,35 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
     };
   }, [poseOn, repsOn, anglesOn, modelReady]);
 
-  const togglePose = async () => {
-    if (poseOn) { setPoseOn(false); return; }
-    if (await ensureModel()) setPoseOn(true);
+  // ANATOMY: the clip read once in the browser (nothing leaves the device), then the 3D anatomy body under the player
+  const [anatomyOn, setAnatomyOn] = useState(false);
+  const [anat, setAnat] = useState({ state: 'idle', pct: 0, frames: null });
+  const [anatT, setAnatT] = useState(0);
+  const toggleAnatomy = async () => {
+    if (anatomyOn) { setAnatomyOn(false); return; }
+    setAnatomyOn(true);
+    if (anat.frames || anat.state === 'busy') return;
+    setAnat({ state: 'busy', pct: 0, frames: null });
+    try {
+      const { captureClipFrames } = await import('./MovementLab');
+      const frames = await captureClipFrames(url, { onProgress: (q) => setAnat((a) => ({ ...a, pct: q })) });
+      setAnat({ state: 'done', pct: 1, frames });
+    } catch { setAnat({ state: 'err', pct: 0, frames: null }); }
   };
-  const toggleAngles = async () => {
-    if (anglesOn) { setAnglesOn(false); return; }
-    if (await ensureModel()) setAnglesOn(true);
-  };
+  const anatFrames = useMemo(() => {
+    const f = (anat.frames || []).filter((x) => x && x.landmarks && x.worldLandmarks);
+    if (f.length < 10) return null;
+    const v = videoRef.current;
+    f.dims = { w: (v && v.videoWidth) || 1080, h: (v && v.videoHeight) || 1920 };
+    return f;
+  }, [anat.frames]);
+  useEffect(() => {
+    if (!anatomyOn || !anatFrames) return undefined;
+    let raf = 0, last = -1;
+    const tick = () => { const v = videoRef.current; if (v && Math.abs(v.currentTime - last) > 0.06) { last = v.currentTime; setAnatT(last); } raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [anatomyOn, anatFrames]);
   const toggleReps = async () => {
     if (repsOn) { setRepsOn(false); return; }
     if (await ensureModel()) setRepsOn(true);
@@ -2047,8 +2070,9 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       <div style={{
         display:'flex', flexWrap:'wrap', gap: 8, marginBottom: 10, alignItems:'center',
       }}>
-        <Toggle on={poseOn} loading={poseLoading} onClick={togglePose} label={T('SKELETON')} />
-        <Toggle on={anglesOn} loading={poseLoading} onClick={toggleAngles} label={T('JOINT ANGLES')} />
+        {/* #774: JOINT ANGLES = the body lines + the angle at each joint; ANATOMY = the clip's 3D body */}
+        <Toggle on={poseOn && anglesOn} loading={poseLoading} onClick={async () => { if (poseOn && anglesOn) { setPoseOn(false); setAnglesOn(false); return; } if (await ensureModel()) { setPoseOn(true); setAnglesOn(true); } }} label={T('JOINT ANGLES')} />
+        <Toggle on={anatomyOn} loading={anat.state === 'busy'} onClick={toggleAnatomy} label={anat.state === 'busy' ? `${T('ANATOMY')} ${Math.round(anat.pct * 100)}%` : T('ANATOMY')} />
         <Toggle on={repsOn} loading={poseLoading} onClick={toggleReps} label={T('REPS')} />
         <div style={{ flex:1 }} />
         <div style={{ display: compare ? 'none' : 'flex', gap:4, alignItems:'center' }}>
@@ -2142,6 +2166,19 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
         </span>
         <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('MEDIAPIPE LITE · 33 LANDMARKS')}</span>
       </div>
+      {anatomyOn && (
+        <div data-try-anatomy style={{ marginTop: 10, border: `1px solid ${C.bd}` }}>
+          {anat.state === 'busy' && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: '12px 14px' }}>{T('Reading the clip for the 3D body…')} {Math.round(anat.pct * 100)}%</div>}
+          {anat.state === 'err' && <div style={{ fontFamily: FN, fontSize: 11, color: C.rd, padding: '12px 14px' }}>{T('Could not read this clip for the 3D body.')}</div>}
+          {anat.state === 'done' && !anatFrames && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: '12px 14px' }}>{T('No body found in this clip.')}</div>}
+          {anat.state === 'done' && anatFrames && (
+            <Suspense fallback={null}>
+              <Replay3D frames={anatFrames} playheadT={anatT * 1000 - anatFrames[0].t} exerciseTitle={exerciseTitle}
+                onSeek={(tRel) => { const v = videoRef.current; if (v) v.currentTime = Math.max(0, (tRel + anatFrames[0].t) / 1000); }} />
+            </Suspense>
+          )}
+        </div>
+      )}
     </div>
   );
 }

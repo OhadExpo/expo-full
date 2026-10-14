@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { wrapNeed } from './wrapNeed';
 import { createPortal } from 'react-dom';
 import { fmtNumericDate } from './dates';
@@ -62,6 +62,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
+import { taxoHe } from './taxonomyHe';
 import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB, exercisesCount, daysCount } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
@@ -123,8 +124,19 @@ function useScrollbarInset(active) {
   return [ref, inset];
 }
 
+// RUN SEGMENTS (14.10 #769) - the running tracker's pieces, each with its usual prescription (editable after adding)
+const RUN_SEGMENTS = [
+  { key: 'warmup', label: 'Warm-up', he: 'חימום', sets: 1, dist: '1 km', pace: 'easy', rest: '' },
+  { key: 'easy', label: 'Easy run', he: 'ריצה קלה', sets: 1, dist: '5 km', pace: '6:00-6:30', rest: '' },
+  { key: 'long', label: 'Long run', he: 'ריצה ארוכה', sets: 1, dist: '7 km', pace: '5:45-5:55', rest: '' },
+  { key: 'tempo', label: 'Tempo', he: 'טמפו', sets: 3, dist: '1.5 km', pace: '5:30-5:35', rest: '1 min walk' },
+  { key: 'intervals', label: 'Intervals', he: 'חזרות', sets: 5, dist: '1 km', pace: '5:00-5:05', rest: '2.5 min walk' },
+  { key: 'strides', label: 'Strides', he: 'האצות', sets: 4, dist: '100 m', pace: 'fast, relaxed', rest: 'walk back' },
+  { key: 'cooldown', label: 'Cool-down', he: 'שחרור', sets: 1, dist: '1 km', pace: 'easy', rest: '' },
+];
 function PatternCoverage({ plan, exercises, cols = 5 }) {
   const tt = useAppT();
+  const isHe = useHe();   // the pattern names in the app's taxonomy Hebrew (#777: they showed in English on the Hebrew app)
   const pats = useMemo(() => {
     const s = new Set();
     const exMap = exById(exercises);
@@ -155,7 +167,7 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
     {/* Mobile: 5 fixed columns crush the labels into each other (they can't
         wrap in that width) — drop to 2 columns on phones and let labels wrap. */}
     <style>{`@media (max-width:760px){ .pattern-cov-grid{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }`}</style>
-    <div className="pattern-cov-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: 5 }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={{ width:'100%', height:'100%', minHeight:0, boxSizing:'border-box', justifyContent:'center', alignItems:'center', textAlign:'center', display:'inline-flex', whiteSpace:'normal', lineHeight:1.15, padding:'5px 4px', ...(pats.has(p) ? {} : {fontWeight:500,opacity:0.65}) }}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
+    <div className="pattern-cov-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: 5 }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={{ width:'100%', height:'100%', minHeight:0, boxSizing:'border-box', justifyContent:'center', alignItems:'center', textAlign:'center', display:'inline-flex', whiteSpace:'normal', lineHeight:1.15, padding:'5px 4px', ...(pats.has(p) ? {} : {fontWeight:500,opacity:0.65}) }}>{pats.has(p) ? "✓" : "✗"} {taxoHe(p, isHe ? 'he' : 'en')}</Badge>)}</div>
   </div>);
 }
 
@@ -1974,7 +1986,9 @@ function EditorMoreMenu({ items }) {
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
+// demo (14.10 #760): the coach demo mounts THIS editor on mock programs - autosave stays in the page (onDemoChange),
+// no live channel; nothing reaches the database
+export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef, demo = false, onDemoChange = null }) {
   const tt = useAppT();
   const tb = useTB();
   const [plan, setPlan] = useState(init);
@@ -2198,7 +2212,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   });
   // Autosave: shared hook serializes saves, flushes on tab switch / screen
   // lock / browser back / refresh / close / unmount.
-  const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, savePlan);
+  const demoSave = useCallback(async (p) => { if (onDemoChange) onDemoChange(p); return true; }, [onDemoChange]);
+  const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, demo ? demoSave : savePlan);
   // Expose autosave controls to the parent. doDelete needs them: it must
   // flush (let any pending/in-flight save land) and then markClean BEFORE
   // deleting, or the editor's unmount autosave fires after the DELETE and
@@ -2221,6 +2236,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // edits); the coach chooses Reload (loads the remote version) or Dismiss.
   const [remoteEdit, setRemoteEdit] = useState(false);
   useEffect(() => {
+    if (demo) return undefined;   // the demo has no other editor to hear from
     let disposed = false;
     import('./supabase').then(({ supabase }) => {
       if (disposed) return;
@@ -2279,6 +2295,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // Draft quick-add: append an exercise by NAME only — no library link, no
   // cues/notes, no video. exerciseId stays "" so the row renders via ex.title.
   // Lets the coach sketch a whole program fast, then attach details later.
+  // a run segment (#769): a name-only row with the segment's usual prescription, titled in the coach's language
+  const addRunSegment = (dayIdx, sg) => {
+    const ex = defaultPlanEx();
+    const day = plan.days[dayIdx];
+    ex.order = day?.exercises.length || 0;
+    ex.title = readLang() === 'he' ? sg.he : sg.label;
+    ex.sets = sg.sets; ex.reps = sg.dist; ex.tempo = sg.pace; ex.rest = sg.rest || '';
+    updateDay(dayIdx, { exercises: [...(day?.exercises || []), ex] });
+  };
   const addExByName = (name) => {
     const t = (name || '').trim();
     if (!t) return;
@@ -2418,7 +2443,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       <style>{`
         /* Editor field row: 3 across on wide, 1 on narrow, so Phase/Block
            always has room (no label wrap / misalignment). */
-        .plan-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .plan-fields-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }   /* name, phase, type, weeks on one row where they fit (#769) */
         @media (max-width: 620px) { .plan-fields-grid { grid-template-columns: 1fr; } }
         /* Toolbar secondary tier: space-between on desktop so the group edges
            line up under BACK/SAVE. On a phone the 8 buttons wrap, and
@@ -2632,11 +2657,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <Input label={tt('Program Name')} value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder={tt('Hypertrophy Block A')} />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
         <Input label={tt('Phase / Block')} value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder={tt('Accumulation...')} />
+        {/* PROGRAM TYPE (14.10 #769): a RUNNING program uses the same days and rows - REPS, DISTANCE, PACE, HR CAP - and
+            the athlete logs each segment's distance, time and heart rate */}
+        <Select label={tt('Program type')} options={[{ value: 'strength', label: tt('Strength') }, { value: 'running', label: tt('Running') }]} value={plan.sport === 'running' ? 'running' : 'strength'} onChange={v => setPlan({ ...plan, sport: v === 'running' ? 'running' : undefined })} />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
             whatever timeframe is convenient. */}
         {plan.kind !== 'daily' && (
-          <Select label={tt('Weeks')} options={[3,4,5,6,8,12].map(n=>({value:String(n),label:n+' '+tt('weeks')}))} value={String(plan.weeks||4)} onChange={v => {
+          <Select label={tt('Weeks')} options={[1,2,3,4,5,6,8,12].map(n=>({value:String(n),label:n===1?tt('1 week'):n+' '+tt('weeks')}))} value={String(plan.weeks||4)} onChange={v => {
             const n = parseInt(v) || 4;
             const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
             // propagate week count to every per-week array across the program
@@ -2652,7 +2680,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       {/* paddingInlineEnd in compare keeps the day cards / + ADD DAY box from
           touching the pane's cyan scrollbar. */}
       <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingInlineEnd:compareActive?6:0}}>
-      <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
+      {plan.sport !== 'running' && <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />}   {/* strength patterns do not describe a running block (#769) */}
       {/* The overview carries its own warm-up card, so the full editor version
           would be the same content twice and cost the screen space the overview
           exists to save. */}
@@ -2836,7 +2864,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 </div>
               ) :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(${nameMin}px,3.3fr) 64px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : 312 + nameMin + 8*8 + Math.max(56,weeks*22) + Math.max(64,weeks*26)}}>
-                  {["#",tt("EXERCISE"),tt("GRP"),tt("SETS"),tt("REPS"),tt("TEMPO"),tt("LOAD"),"RPE",""].map((h,hi) =>
+                  {(plan.sport === 'running' ? ["#",tt("SEGMENT"),tt("GRP"),tt("REPS"),tt("DISTANCE"),tt("PACE"),tt("HR CAP"),"RPE",""] : ["#",tt("EXERCISE"),tt("GRP"),tt("SETS"),tt("REPS"),tt("TEMPO"),tt("LOAD"),"RPE",""]).map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                         <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -2956,11 +2984,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
                         </div>); })() : (
-                        <input dir="auto" value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={tinyInput} />
+                        <input dir="auto" value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder={plan.sport === 'running' ? '1 km' : '8-12'} style={tinyInput} />
                       )}
-                      <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
-                      <input dir="auto" value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
-                      <input dir="auto" value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
+                      <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder={plan.sport === 'running' ? '5:00-5:10' : '3010'} style={tinyInput} />
+                      <input dir="auto" value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder={plan.sport === 'running' ? '—' : 'kg/%'} style={tinyInput} />
+                      <input dir="auto" value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder={plan.sport === 'running' ? '—' : '7-8'} style={tinyInput} />
                       <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title={tt('Remove exercise from this day')} aria-label={tt('Remove exercise')}
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
@@ -3000,7 +3028,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               {/* Add-exercise — ported to the unified view (the only add buttons
                   used to live in the dead detail view, so the unified editor
                   couldn't add exercises at all). Targets THIS day. */}
-              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ {tt('ADD EXERCISE')}</Btn>
+              {plan.sport === 'running' && (
+                // RUN SEGMENTS, one tap each (#769): the tracker's own pieces - warm-up, the main work, cool-down
+                <div data-run-presets style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 6, marginTop: 6 }}>
+                  {RUN_SEGMENTS.map((sg) => (
+                    <button key={sg.key} type="button" onClick={() => addRunSegment(dayIdx, sg)} style={{ height: 32, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {tt(sg.label)}</button>
+                  ))}
+                </div>
+              )}
+              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ {tt(plan.sport === 'running' ? 'ADD SEGMENT' : 'ADD EXERCISE')}</Btn>
               </div></div>
             </div>
           );
@@ -4290,7 +4326,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     const { supabase: sb } = await import('./supabase');
     const { data } = await sb.from('plans').select('*').eq('id', planId).single();
     if (!data) { toast('Duplicate failed — could not load the program.', 'error'); return; }
-    const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
+    const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[], weeks: data.data?.weeks, kind: data.data?.kind, sport: data.data?.sport, isTemplatePurchase: data.data?.isTemplatePurchase });
     await reloadIndex();
     if (copy) toast(readLang() === 'he' ? `שוכפל — "${copy.name}"` : `Duplicated — "${copy.name}"`, 'success', { ttl: 3000 });
     else toast('Duplicate failed — the save was refused. See console.', 'error');
@@ -4332,7 +4368,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       // denial / network drop / blank-overwrite guard. Firing the success toast
       // unconditionally told the coach the athlete had the program when the copy
       // never happened.
-      const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
+      const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, sport: data.data?.sport, isTemplatePurchase: data.data?.isTemplatePurchase });
       await reloadIndex();
       if (copy) { try { toast(readLang() === 'he' ? `התוכנית הועתקה אל ${athlete.name}` : `Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ } }
       else { toast(readLang() === 'he' ? `העתקת התוכנית אל ${athlete.name} לא עברה — נסה שוב.` : `Could not copy the program to ${athlete.name} — try again.`, 'error'); }
@@ -4382,7 +4418,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
         active: data.active, createdAt: data.created_at, updatedAt: data.updated_at,   // the version just read (#510-B7)
         days: [...existingDays, ...cloned],
-        warmup: data.data?.warmup || [], weeks: data.data?.weeks || 4, kind: data.data?.kind,
+        warmup: data.data?.warmup || [], weeks: data.data?.weeks || 4, kind: data.data?.kind, sport: data.data?.sport,
         isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,
       };
       const saved = await savePlan(merged);
@@ -4419,7 +4455,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
         active: data.active, createdAt: data.created_at, updatedAt: data.updated_at,   // the version just read (#510-B7)
         days: data.data?.days || [],
-        warmup: [...existingWarmup, ...steps], weeks: data.data?.weeks || 4, kind: data.data?.kind,
+        warmup: [...existingWarmup, ...steps], weeks: data.data?.weeks || 4, kind: data.data?.kind, sport: data.data?.sport,
         isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,
       };
       const saved = await savePlan(merged);

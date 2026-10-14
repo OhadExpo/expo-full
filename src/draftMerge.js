@@ -17,7 +17,7 @@ export function alignByEid(prevOrder, prevList, curEids) {
 }
 
 // a row the athlete actually touched (a prefilled, untouched top set is not)
-export const setRowUsed = (r) => !!r && !r.prefill && (!!r.done || String(r.reps ?? '') !== '' || String(r.load ?? '') !== '' || String(r.rpe ?? '') !== '');
+export const setRowUsed = (r) => !!r && !r.prefill && (!!r.done || String(r.reps ?? '') !== '' || String(r.load ?? '') !== '' || String(r.rpe ?? '') !== '' || String(r.time ?? '') !== '' || String(r.hr ?? '') !== '');   // a run's time / HR count as used (#769)
 
 // One exercise's draft rows at the day's new set count: padded with blank rows,
 // never cut below a row he already used. null when the draft had no rows.

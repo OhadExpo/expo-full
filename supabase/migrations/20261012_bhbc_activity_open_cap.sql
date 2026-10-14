@@ -1,8 +1,8 @@
 -- VISITS NEVER PUSH CHANGES OUT (12.10 B7). The club trail keeps 400 lines; 384 of them were 'opened the club zone',
 -- so the changes the trail exists for fell off after 16. Same rule as src/bhbcActivity.js capActivity(): at the cap the
 -- OLDEST visit lines ('open') go first, a change line only when no visit is left; the trail never shrinks on one append
--- (the owner's client write path refuses a halving - 12.10 review C1). NOT APPLIED - waits for Ohad's yes together with
--- the deploy that carries the client half.
+-- (the owner's client write path refuses a halving - 12.10 review C1). APPLIED 14.10 with deploy-1014a (Ohad: "deploy");
+-- rollback = ~/expo-private-backups/db-rollback/bhbc_activity_append-before-20261014.sql
 create or replace function public.bhbc_activity_append(p_kind text, p_what text)
  returns void
  language plpgsql

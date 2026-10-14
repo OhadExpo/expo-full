@@ -93,6 +93,14 @@ Ohad's standing mandate: **whenever anything about the coach or athlete app chan
 - The full how-to (surfaces, the real-platform baseline, the audit → fix-on-branch → verify → ask-to-deploy flow) is in the **`expo-site-parity` skill** — invoke it for any parity pass.
 - Not every change touches these (e.g. an internal RLS fix), but you must consciously decide that each time, not skip the check. When a change is user-visible (a new feature, a redesigned screen, renamed concepts, new copy), assume the marketing/demo need updating until you've confirmed otherwise.
 
+### Every surface has its own URL (hard rule, 2026-10-14)
+
+Ohad: "make sure we have distinct url lines for every single different pop up, page, or expo/bhbc/marketing/demo platforms", "unique and always using the terminology of the website (like expo/athletes which is perfect)", and "should always be a rule for everything we ever change next on any of our platforms (everything you build/built or changed gets a unique url)".
+
+- Anything built or changed - page, tab, sub-tab, pop-up, sheet, drawer, step - gets its OWN path, in the UI's own words (`/coach/athletes/<id>/contract`, `/athlete/history`), never an internal key.
+- A reload of that URL opens the same surface; Back closes / leaves it; a close made in the UI does not leave a duplicate history entry.
+- Use `src/urlState.js` (`useUrlSync`, `useUrlFlag`) - one mechanism everywhere. Update `docs/SURFACES.md` in the same commit.
+
 ### Verify before declaring done
 
 The primary failure mode Ohad penalizes: Claude deploys, claims success, Ohad finds it still broken.

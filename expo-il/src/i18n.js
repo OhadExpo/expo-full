@@ -133,6 +133,7 @@ const STRINGS = {
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
   'inside.pose.foot':    { en: '33 LANDMARKS · LITE MODEL', he: '33 נקודות · מודל LITE' },
   'pose.tool.skel':      { en: 'SKELETON', he: 'שלד' },
+  'pose.tool.anatomy':   { en: 'ANATOMY', he: 'אנטומיה' },
   'pose.tool.angles':    { en: 'JOINT ANGLES', he: 'זוויות מפרקים' },
 
   // Phone 4 — jump-shot analyzer. Numbers here must match the real engine:

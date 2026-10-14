@@ -694,7 +694,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                       <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
                         {/* one 18px line for a Latin or a Hebrew name (14.10 #735: Heebo's taller line box stood the Hebrew rows 49px
                             against 42, 17 over 19.2 under) */}
-                        <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,lineHeight:'18px',fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
+                        <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,lineHeight:'18px',fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',...(heb?{paddingBlock:4,marginBlock:-4}:{})}}>{/* the ellipsis box clipped a Hebrew name's ק / ן 3px (tablet sweep #756): 4px of room inside the clip, the row keeps its 18px */}{name}</span>
                         <span style={{fontFamily:FN,fontSize:11,lineHeight:'18px',color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
                       </span>
                       <span style={{fontFamily:FN,fontSize:12,color:'var(--c-tx)',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}><CaretGlyph /></span>

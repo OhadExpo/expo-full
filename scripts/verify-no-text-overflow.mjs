@@ -66,6 +66,10 @@ const APP_SURFACES = [
   ['bhbc-schedule-week', '/coach/bhbc/schedule', '^(WEEK|שבוע)$'],
   ['bhbc-schedule-list', '/coach/bhbc/schedule', '^(LIST|רשימה)$'],
   ['bhbc-games-warmup', '/coach/bhbc/games', '^(GAME WARM-UP|חימום למשחק)$'],
+  // the coach-view preview banner (#772: its EXIT PREVIEW overflowed at 390 and no sweep ever opened it) - its own URL now
+  ['bhbc-preview-coach', '/coach/bhbc/overview/preview/coach', null],
+  ['bhbc-preview-head-coach', '/coach/bhbc/overview/preview/head-coach', null],
+  ['bhbc-preview-pt', '/coach/bhbc/overview/preview/pt', null],
   // the athlete card (a modal): 'row:' taps the player's own ROW, not a button - the Lifts rows open it at every width
   ['bhbc-athlete-card', '/coach/bhbc/lifts', 'row:Bryant|ברייאנט'],
   // the zone's forms (opening one writes nothing): Log lift, Log S&C session, Report injury

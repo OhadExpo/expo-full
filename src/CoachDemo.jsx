@@ -11,7 +11,9 @@
 // Companion to /demo (TrySandbox pov="trainee") which stays as the simple
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { DEMO_PLANS, DEMO_EXERCISES } from './demoTraineeData';
+import { normalizeDays } from './usePlansStore';
 import { displayPhoneIL } from './whatsappButton';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
@@ -2331,6 +2333,29 @@ function DemoLineage({ athleteName }) {
   return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
 }
 
+// THE DEMO EDITS IN THE REAL EDITOR (14.10 #760, from #754 "Fix it everywhere": the demo's program editor was an older
+// copy - day tabs, per-exercise cards). This is PlansView's own PlanEditor in demo mode: every change stays in this
+// page (its autosave is local, no live channel, share / duplicate / delete do nothing), so the demo can never drift
+// from the product again.
+const RealPlanEditor = React.lazy(() => import('./PlansView').then((m) => ({ default: m.PlanEditor })));
+function DemoRealEditor({ program, onBack, onSwitch }) {
+  const base = DEMO_PLANS.find((p) => p.name === program.name) || DEMO_PLANS[0];
+  // the mock plan through the SAME load shape the real editor gets from the database (usePlansStore.normalizeDays)
+  const [plan, setPlan] = useState(() => { const c = JSON.parse(JSON.stringify(base)); return { ...c, days: normalizeDays(c.days), id: program.id, name: program.name, traineeId: program.traineeId }; });
+  const [lib, setLib] = useState(DEMO_EXERCISES);
+  const trainees = MOCK_TRAINEES.map((t) => ({ id: t.id, name: t.name, status: t.status || 'Active', email: t.email }));
+  const planIndex = MOCK_PROGRAM_INDEX.map((q) => ({ id: q.id, name: q.name, traineeId: q.traineeId, active: true }));
+  const noop = () => {};
+  return (
+    <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: 20 }}>{T('LOADING…')}</div>}>
+      <RealPlanEditor key={program.id} demo plan={plan} onDemoChange={setPlan} onSave={async () => true} onCancel={onBack}
+        onSwitchProgram={(id) => onSwitch(id)} trainees={trainees} exercises={lib} setExercises={setLib} planIndex={planIndex}
+        onPreviewPlan={noop} onDelete={noop} onNewProgramFor={noop} onShare={noop} onDuplicate={noop} onCopyDays={noop} onCopyWarmup={noop}
+        clientWorkouts={[]} portalVis={{}} setPortalVis={noop} />
+    </Suspense>
+  );
+}
+
 function DemoPrograms({ resetToken = 0 }) {
   const settle = useSettleIn();   // the real phone list's first-paint fade (4.10 #539 parity)
   const rail = useNarrowRail();
@@ -2866,6 +2891,7 @@ function DemoPrograms({ resetToken = 0 }) {
   // wave-week label on a one-off template, which feels off.
   const isCurrentBlock = !!selectedProgram?.name?.match(/Block\s*#\d+/);
   const headingWhen = isCurrentBlock ? block.when : 'TEMPLATE';
+  if (selectedProgram) return <DemoRealEditor program={selectedProgram} onBack={() => setSelectedProgramId(null)} onSwitch={(id) => setSelectedProgramId(id)} />;
   return (
     <section>
       {/* Editor top row — mirrors PlansView's PlanEditor: BACK / program-switch
@@ -3977,7 +4003,7 @@ function DemoReview() {
               <div style={{ padding: '0 14px 14px', maxWidth: 380, boxSizing: 'content-box' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}` }}>
                   {[
-                    [[T('SKELETON'), 2], [T('JOINT ANGLES'), 2]],
+                    [[T('ANATOMY'), 2], [T('JOINT ANGLES'), 2]],
                     [[T('REPS'), 2], [T('METRICS'), 2]],
                     [['◀'], ['▶'], ['1x', 1, false, true], [`↻ ${T('LOOP')}`]],
                     [[`＋ ${T('COMMENT')}`, 3, true], [`⛶ ${T('FULL')}`]],
@@ -5166,11 +5192,16 @@ function DemoBilling({ onJumpToTrainee }) {
 // Deep links still resolve for the grouped sub-tabs even though they are no
 // longer top-level buttons.
 const TAB_KEYS = [...TABS.map(t => t.key), ...ATHLETE_GROUP];
+// the dropdown pages get the REAL app's own URL words (#770): Review > Tools = /demo/coach/review-tools,
+// Sessions > Single = /demo/coach/sessions-single - each sub-page its own URL, as on /coach/*
+const SUB_PAGE = { 'review-tools': ['review', 'tools'], 'sessions-single': ['sessions', 'single'] };
 function tabFromPath(p) {
   const m = (p || '').match(/^\/demo\/coach\/([^/?#]+)/);
   if (!m) return 'dashboard';
+  if (SUB_PAGE[m[1]]) return SUB_PAGE[m[1]][0];
   return TAB_KEYS.includes(m[1]) ? m[1] : 'dashboard';
 }
+const subFromPath = (p, tab) => { const m = (p || '').match(/^\/demo\/coach\/([^/?#]+)/); const sp = m && SUB_PAGE[m[1]]; return sp && sp[0] === tab ? sp[1] : null; };
 // Deep-link the selected item so every navigational click has its own URL:
 //   /demo/coach/trainees/<id>   → trainee detail
 //   /demo/coach/programs/<id>   → program open
@@ -5199,9 +5230,9 @@ export default function CoachDemo() {
   const [returnTab, setReturnTab] = useState('trainees');
   // Review sub-view: WORKOUTS (the engine sandbox, always mounted to warm up) vs
   // TOOLS (the camera/pose launcher) — mirrors the real Review ▾ dropdown.
-  const [reviewSub, setReviewSub] = useState('workouts');
+  const [reviewSub, setReviewSub] = useState(() => (typeof window !== 'undefined' && subFromPath(window.location.pathname, 'review')) || 'workouts');
   // Sessions ▾ Group / Single, as the real nav (was a pill pair inside the page)
-  const [sessionsMode, setSessionsMode] = useState('group');
+  const [sessionsMode, setSessionsMode] = useState(() => (typeof window !== 'undefined' && subFromPath(window.location.pathname, 'sessions')) || 'group');
 
   // Tab → URL: each tab gets its own path under /demo/coach/<key> so users
   // can deep-link, refresh, and use browser back/forward. Dashboard sits at
@@ -5210,22 +5241,22 @@ export default function CoachDemo() {
   // the dropdown items' routes -> the demo's pages (the same route names the
   // real nav uses: sessionsSolo = Single, reviewTools = Review Tools)
   const demoNavTo = (route) => {
-    if (route === 'reviewTools') { navigateToTab('review'); setReviewSub('tools'); return; }
+    if (route === 'reviewTools') { navigateToTab('review', 'review-tools'); setReviewSub('tools'); return; }
     if (route === 'review') { navigateToTab('review'); setReviewSub('workouts'); return; }
-    if (route === 'sessionsSolo') { navigateToTab('sessions'); setSessionsMode('single'); return; }
+    if (route === 'sessionsSolo') { navigateToTab('sessions', 'sessions-single'); setSessionsMode('single'); return; }
     if (route === 'sessions') { navigateToTab('sessions'); setSessionsMode('group'); return; }
     navigateToTab(route);
   };
   const navTab = tab === 'review' ? (reviewSub === 'tools' ? 'reviewTools' : 'review')
     : tab === 'sessions' ? (sessionsMode === 'single' ? 'sessionsSolo' : 'sessions') : tab;
-  const navigateToTab = (key) => {
+  const navigateToTab = (key, word = null) => {
     setTab(key);
     setSelectedTrainee(null);
     // Clearing selectedTrainee is not enough: DemoPrograms holds its own
     // selection and stays mounted when the tab does not actually change.
     setProgramsReset((n) => n + 1);
     if (typeof window === 'undefined') return;
-    const target = key === 'dashboard' ? '/demo/coach' : `/demo/coach/${key}`;
+    const target = key === 'dashboard' ? '/demo/coach' : `/demo/coach/${word || key}`;
     if (window.location.pathname !== target) {
       window.history.pushState({ tab: key }, '', target + window.location.hash);
     }
@@ -5253,8 +5284,11 @@ export default function CoachDemo() {
   // Keep BOTH tab and selected trainee in sync with the URL on back/forward.
   useEffect(() => {
     const onPop = () => {
-      setTab(tabFromPath(window.location.pathname));
+      const t = tabFromPath(window.location.pathname);
+      setTab(t);
       setSelectedTrainee(traineeIdFromPath(window.location.pathname));
+      if (t === 'review') setReviewSub(subFromPath(window.location.pathname, 'review') || 'workouts');
+      if (t === 'sessions') setSessionsMode(subFromPath(window.location.pathname, 'sessions') || 'group');
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);

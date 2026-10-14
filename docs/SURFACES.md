@@ -87,6 +87,23 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 | `/athlete` PRs | `TraineePRsView` | ✅ pass2 |
 | `/athlete` MESSAGES | `CoachMessages` (page mode) | ✅ pass2 |
 
+
+### Every surface has its own URL (14.10, #770 - hard rule in CLAUDE.md)
+
+One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Back closes, a UI close steps back, a reload or a shared link reopens the same surface. URL words = the UI's own labels.
+
+| Surface | URL |
+|---------|-----|
+| Athlete portal pages | `/athlete/program` · `/bodyweight` · `/meal-log` · `/history` · `/prs` · `/messages` (same tails under `/demo/athlete/…`, `/coach/athletes/<id>/preview/…`, `/coach/programs/<id>/preview/…`) |
+| Athlete page pop-ups | `/coach/athletes/<id>/edit` · `/contract` · `/add-payment` · `/edit-payment/<payment>` · `/assign-program` · `/remove-program/<program>` · `/archive` · `/delete` (sections stay `#vitals` … `#club`) |
+| BHBC pop-ups (any zone page) | `…/bhbc/<page>/player/<id>` (+ `/game/<date>`) · `/program/<id>` · `/log-lift[/<id>]` · `/log-s-and-c` · `/game-details` · `/minutes-played/<date>` · `/injury/<athlete>[/<injury>]` · `/manage-roster` (`/coach/bhbc/…` owner, `/bhbc/…` club coach) |
+| Review | `/coach/review/<workout>` (the open review) |
+| Review tools | `/coach/review-tools/movement-lab` · `/lift-metrics` · `/jump-test` · `/live-coach` · `/shot-analyzer` |
+| Coach demo sub-pages | `/demo/coach/review-tools`, `/demo/coach/sessions-single` (were the same URL as Workouts / Group) |
+| Canonical | `/demo/sandbox` → `/try`; an unknown `/coach/<x>` → `/coach/dashboard` |
+
+Still to do (phase 2, see the 14.10 inventory): program editor pop-ups, exercises / matching / tasks / billing / intake / challenges dialogs, sessions + workouts steps, schedule views, the demo's inner dialogs, `/try` steps, the expo-il modals (quiz, demos, exit, drawer).
+
 ---
 
 ## EXPO-IL (expo-il.co.il) — hash routing — `expo-il/src/App.jsx` `parseHash`

@@ -212,7 +212,8 @@ const ViewFallback = () => (
 // EVERY CLUB PAGE, ONE LIST (4.10 #547): two copies of this pattern had no
 // 'practices', so a reload or a link to /bhbc/practices landed on OVERVIEW.
 // BhbcView's ZONE_PAGES is the same list.
-const BHBC_ZONE_PATH = /^\/bhbc(\/(login|overview|roster|schedule|practices|lifts|medical|games|activity))?\/?$/;
+// a zone page, and (#770) the pop-up under it: /bhbc/roster/player/<id>
+const BHBC_ZONE_PATH = /^\/bhbc(\/(login|overview|roster|schedule|practices|lifts|medical|games|activity|my-program)(\/[^?#]*)?)?\/?$/;   // + MY PROGRAM (#769)
 const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", cw:"expo-cw", bw:"expo-bw" };
 
 // Root. Wraps in Supabase auth context; AuthGate shows LoginScreen until
@@ -607,6 +608,11 @@ function AuthGate() {
       window.history.replaceState(null, '', '/demo/athlete');
       return;
     }
+    // one surface, one URL (#770): the sandbox's legacy alias shows the sandbox's own address
+    if (path === '/demo/sandbox') {
+      window.history.replaceState(null, '', '/try' + window.location.search);
+      return;
+    }
   }, [inPwa, path]);
 
   // Signed-out /coach or /athlete entry bounces to /login. Both surfaces
@@ -678,7 +684,7 @@ function AuthGate() {
     // was swallowed. That is what made SEND, RECORD and the rest look like
     // dead buttons — they DID fire and the confirmation had nowhere to go.
     // Found auditing for his first client demo, 22.9.
-    if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
+    if (path === '/demo/athlete' || path.startsWith('/demo/athlete/') || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
       return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense><ToastHost /></LangCtx.Provider>;
     }
     if (path === '/demo/sandbox') {
@@ -1051,12 +1057,14 @@ function AuthedApp() {
   // (SECURITY DEFINER — returns ONLY the caller's own record, no PII leak).
   // selfTrainee: null = none, undefined = checking (avoids an "unauthorized"
   // flash before the RPC resolves).
-  const [selfTrainee, setSelfTrainee] = useState(null);
+  // a BHBC coach starts as 'checking' (undefined): his zone must not drop a /bhbc/my-program link before the answer
+  const [selfTrainee, setSelfTrainee] = useState(() => (isBhbcCoach ? undefined : null));
   // Distinguish an RPC FAILURE (network / RLS regression) from a genuine
   // "no trainee row" — the former must not read as "you're not registered".
   const [selfTraineeError, setSelfTraineeError] = useState(false);
   useEffect(() => {
-    if (!email || storeClientTrainee || isTrainerEmail) { setSelfTrainee(null); setSelfTraineeError(false); return; }
+    // a BHBC coach may ALSO be an athlete (14.10 #769) - his row is looked up too; his program opens inside the zone
+    if (!email || storeClientTrainee || (isTrainerEmail && !isBhbcCoach)) { setSelfTrainee(null); setSelfTraineeError(false); return; }
     let cancelled = false;
     setSelfTrainee(undefined);
     setSelfTraineeError(false);
@@ -1086,10 +1094,12 @@ function AuthedApp() {
       })
       .catch(() => { clearTimeout(timer); fromCache(); });
     return () => { cancelled = true; clearTimeout(timer); unsubNet(); };
-  }, [email, storeClientTrainee, isTrainerEmail]);
+  }, [email, storeClientTrainee, isTrainerEmail, isBhbcCoach]);
   const clientTrainee = storeClientTrainee || selfTrainee || null;
   const hasClientRow = !!clientTrainee;
-  const isBoth = isTrainerEmail && hasClientRow;
+  // A BHBC coach who is also an athlete gets NO picker and NO separate portal: he stays in the zone, and his program
+  // is the zone's MY PROGRAM page (14.10 #769, Ohad: "same bhbc experience, but with a portal full dedicated page")
+  const isBoth = isTrainerEmail && hasClientRow && !isBhbcCoach;
 
   // Portal choice for dual-role users. sessionStorage = persists across
   // refreshes within the same browser session, dies on new window — exactly
@@ -1168,7 +1178,7 @@ function AuthedApp() {
   // For dual-role users they reflect the picked portal — letting the rest of
   // AuthedApp ignore the dual-role wrinkle entirely.
   const isTrainer = isBoth ? portalChoice === 'trainer' : isTrainerEmail;
-  const isClient = isBoth ? portalChoice === 'client' : hasClientRow;
+  const isClient = isBoth ? portalChoice === 'client' : (hasClientRow && !isBhbcCoach);
   const clientId = clientTrainee?.id || null;
 
   // Routing: / = portal, /coach = trainer, /coach/tab = specific tab.
@@ -1195,7 +1205,7 @@ function AuthedApp() {
         const preview = parts[2] === 'preview';
         return { mode:'coach', tab:'trainees', traineeId, preview };
       }
-      if (sub.startsWith('programs/') && sub.endsWith('/preview')) {
+      if (/^programs\/[^/]+\/preview(\/|$)/.test(sub)) {   // + the portal page after it (#770)
         const parts = sub.split('/');
         return { mode:'coach', tab:'plans', planPreviewId: parts[1] };
       }
@@ -1208,11 +1218,16 @@ function AuthedApp() {
       // /coach/bhbc/<tab>: the club zone owns the segment after bhbc (27.9).
       if (sub.startsWith('bhbc/')) return { mode:'coach', tab:'bhbc', traineeId:null };
       const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup','exercise-videos':'exerciseVideos',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
-      return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
+      // a page's own sub-path (#770: /coach/review-tools/live-coach, /coach/review/<workout>) routes to its page
+      return { mode:'coach', tab: tabMap[sub] || tabMap[sub.split('/')[0]] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
   };
   const initRoute = getRoute();
+  // an unknown /coach/<x> shows the dashboard - and now SAYS so in the address bar (#770: one URL per surface)
+  if (typeof window !== 'undefined' && initRoute.mode === 'coach' && initRoute.tab === 'dashboard' && /^\/coach\/(?!dashboard(\/|$))[^/]+/.test(window.location.pathname) && !hasAuthPayload() && !CAME_BACK_FROM_OAUTH) {
+    try { window.history.replaceState(window.history.state, '', keepHash('/coach/dashboard')); } catch { /* noop */ }
+  }
   const isCoach = isTrainer;
   // WHICH SEAT THIS IS, for the store's write fence (src/seatWrite.js): a
   // staff seat writes everything, a club coach the club's keys, an athlete only
@@ -1806,7 +1821,11 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <>{sandboxBanner}<Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} gameWarmup={bhbcGameWarmup} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} gameWarmup={bhbcGameWarmup} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))}
+          // MY PROGRAM (14.10 #769): his REAL portal - logs save as any athlete's do. 'loading' while his row is looked up.
+          myProgram={!isBhbcCoach ? null : selfTrainee === undefined && !storeClientTrainee ? 'loading' : !clientTrainee ? null : () => (
+            <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={() => {}} signOut={signOut} updateFormVideos={updateFormVideos} />
+          )} />
       </ErrorBoundary>
     </Suspense></>
   );

@@ -21,6 +21,7 @@ import { useT, readLang } from './i18n';
 import { ANGLE_DEFS, angleAt, detectChannels, isReal } from './repCounter';
 import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
 import { createPoseOverlay } from './poseOverlay';
+import { createWorkerLandmarker } from './poseWorkerClient';
 // one person - the lifter (13.10 #719b): a lock per video source (a new clip starts afresh)
 const lockFor = (ref, v) => { const src = (v && (v.currentSrc || v.src)) || 'cam'; if (!ref.current || ref.current.src !== src) ref.current = { src, lock: makeSubjectLock({ aspect: v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 0.75 }) }; return ref.current.lock; };
 // the live anatomy body (#690) loads only when 3D is turned on; a stale chunk shows nothing, never a crash
@@ -104,6 +105,9 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
 
   const loadPose = useCallback(async () => {
     if (landmarkerRef.current) return;
+    // the model in a WORKER first (#775): the camera and the overlay keep the screen's rate while a frame is read
+    const wk = await createWorkerLandmarker({ model: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task', numPoses: LIVE_POSES });
+    if (wk) { landmarkerRef.current = wk; return; }
     const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
     const fileset = await FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
@@ -174,47 +178,52 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       rafRef.current = requestAnimationFrame(frameLoop);
       return;
     }
-    const ts = performance.now();
-    let result;
-    try { result = lockResult(lockFor(lockRef, v), lm.detectForVideo(v, ts), ts); } catch { result = null; }
+    // the reading is processed at its own frame time ts (#775): at once (the page's model) or a frame later (the worker)
+    const process = (raw, ts) => {
+      let result;
+      try { result = raw ? lockResult(lockFor(lockRef, v), raw, ts) : null; } catch { result = null; }
 
-    // the last 12.5 s of readings for the live 3D body
-    if (result?.worldLandmarks?.[0] && result?.landmarks?.[0]) { const lb = liveBufRef.current; lb.push({ t: ts, landmarks: result.landmarks[0], worldLandmarks: result.worldLandmarks[0] }); while (lb.length && lb[0].t < ts - 12500) lb.shift(); }
-    if (result?.worldLandmarks?.[0] && channels.length > 0) {
-      const lms = result.worldLandmarks[0];
-      // Average the two configured channels (L+R) so left-right
-      // asymmetry doesn't drop a rep.
-      const angles = channels.map(name => {
-        const def = ANGLE_DEFS.find(a => a.name === name);
-        return def ? angleAt(lms, def.a, def.b, def.c) : null;
-      }).filter(isReal);
-      if (angles.length > 0) {
-        const avg = angles.reduce((a, b) => a + b, 0) / angles.length;
-        const buf = angleBufRef.current;
-        buf.push(avg);
-        if (buf.length > 8) buf.shift();
-        // Smoothed = median of last 5 samples (matches offline pipeline)
-        const sorted = [...buf].sort((a, b) => a - b);
-        const smooth = sorted[Math.floor(sorted.length / 2)];
-        if (ts - lastAngleTsRef.current > 200) { lastAngleTsRef.current = ts; setLastAngle(smooth); }
-        if (thr) {
-          if (phaseRef.current === 'top' && smooth < thr.low) {
-            phaseRef.current = 'bottom';
-            setPhase('bottom');
-          } else if (phaseRef.current === 'bottom' && smooth > thr.high) {
-            phaseRef.current = 'top';
-            setPhase('top');
-            setReps(r => r + 1);
+      // the last 12.5 s of readings for the live 3D body
+      if (result?.worldLandmarks?.[0] && result?.landmarks?.[0]) { const lb = liveBufRef.current; lb.push({ t: ts, landmarks: result.landmarks[0], worldLandmarks: result.worldLandmarks[0] }); while (lb.length && lb[0].t < ts - 12500) lb.shift(); }
+      if (result?.worldLandmarks?.[0] && channels.length > 0) {
+        const lms = result.worldLandmarks[0];
+        // Average the two configured channels (L+R) so left-right
+        // asymmetry doesn't drop a rep.
+        const angles = channels.map(name => {
+          const def = ANGLE_DEFS.find(a => a.name === name);
+          return def ? angleAt(lms, def.a, def.b, def.c) : null;
+        }).filter(isReal);
+        if (angles.length > 0) {
+          const avg = angles.reduce((a, b) => a + b, 0) / angles.length;
+          const buf = angleBufRef.current;
+          buf.push(avg);
+          if (buf.length > 8) buf.shift();
+          // Smoothed = median of last 5 samples (matches offline pipeline)
+          const sorted = [...buf].sort((a, b) => a - b);
+          const smooth = sorted[Math.floor(sorted.length / 2)];
+          if (ts - lastAngleTsRef.current > 200) { lastAngleTsRef.current = ts; setLastAngle(smooth); }
+          if (thr) {
+            if (phaseRef.current === 'top' && smooth < thr.low) {
+              phaseRef.current = 'bottom';
+              setPhase('bottom');
+            } else if (phaseRef.current === 'bottom' && smooth > thr.high) {
+              phaseRef.current = 'top';
+              setPhase('top');
+              setReps(r => r + 1);
+            }
           }
         }
+        if (!ovlRef.current) ovlRef.current = createPoseOverlay();
+        ovlRef.current.update(result.landmarks?.[0] || null, result.worldLandmarks?.[0], ts / 1000);
+      } else {
+        if (ovlRef.current) ovlRef.current.update(null);
       }
-      if (!ovlRef.current) ovlRef.current = createPoseOverlay();
-      ovlRef.current.update(result.landmarks?.[0] || null, result.worldLandmarks?.[0], ts / 1000);
-      drawSkeleton(canvasRef.current, v, ovlRef.current, toolsRef.current);
-    } else {
-      if (ovlRef.current) ovlRef.current.update(null);
-      drawSkeleton(canvasRef.current, v, null, toolsRef.current);
-    }
+    };
+    const t0 = performance.now();
+    if (lm.isWorker) { if (!lm.busy) lm.detect(v, t0).then((r) => { if (r) process(r.result, t0); }); }
+    else { let raw = null; try { raw = lm.detectForVideo(v, t0); } catch { raw = null; } process(raw, t0); }
+    // the overlay at the SCREEN's rate, the joints at this instant (#775)
+    drawSkeleton(canvasRef.current, v, ovlRef.current, toolsRef.current, performance.now() / 1000);
     rafRef.current = requestAnimationFrame(frameLoop);
   }, [channels, thr]);
 
@@ -365,7 +374,8 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
 
       {/* the two on-camera tools, their own row (a phone has no room for them in the bar below): one joined pair */}
       <div style={{ background: 'rgba(0,0,0,0.85)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: '10px 14px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-        {[[showSkeleton, setShowSkeleton, 'SKELETON'], [showAngles, setShowAngles, 'JOINT ANGLES']].map(([on, set, label]) => (
+        {[[showSkeleton && showAngles, (f) => { const on = typeof f === 'function' ? f(showSkeleton && showAngles) : f; setShowSkeleton(on); setShowAngles(on); }, 'JOINT ANGLES'],
+          [show3d, (f) => { const vv = videoRef.current; if (vv && vv.videoWidth) setCamDims({ w: vv.videoWidth, h: vv.videoHeight }); setShow3d(f); }, 'ANATOMY']].map(([on, set, label]) => (
           <button key={label} onClick={() => set((x) => !x)} aria-pressed={on}
             style={{
               height: 40, background: 'transparent', color: on ? C.ac : 'rgba(255,255,255,0.7)',
@@ -390,13 +400,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             cursor: 'pointer',
             minWidth: 130, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{voiceOn ? `🎤 ${tt('LISTENING')}` : `🎤 ${tt('VOICE OFF')}`}</button>
-        <button onClick={() => { const vv = videoRef.current; if (vv && vv.videoWidth) setCamDims({ w: vv.videoWidth, h: vv.videoHeight }); setShow3d((x) => !x); }}
-          style={{
-            padding: '10px 12px', background: show3d ? C.ac : 'transparent', color: '#FFFFFF',
-            border: '1px solid ' + (show3d ? C.ac : 'rgba(255,255,255,0.3)'),
-            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer',
-            minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>3D</button>
+        {/* (the 3D body is the ANATOMY tool in the row above - #774) */}
         {status !== 'counting' ? (
           <button onClick={beginCounting}
             style={{
@@ -421,7 +425,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
 
 // the skeleton + joint angles: the shared engine (poseOverlay.js), on the camera's native-resolution canvas, mirrored
 // like the self-view video
-function drawSkeleton(canvas, video, ovl, tools) {
+function drawSkeleton(canvas, video, ovl, tools, t = null) {
   if (!canvas || !video) return;
   const ctx = canvas.getContext('2d');
   const w = video.videoWidth, h = video.videoHeight;
@@ -429,5 +433,5 @@ function drawSkeleton(canvas, video, ovl, tools) {
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
   ctx.clearRect(0, 0, w, h);
-  if (ovl) ovl.draw(ctx, { w, h, px: (p) => (1 - p.x) * w, py: (p) => p.y * h, skeleton: tools.skeleton, angles: tools.angles });
+  if (ovl) ovl.draw(ctx, { w, h, px: (p) => (1 - p.x) * w, py: (p) => p.y * h, skeleton: tools.skeleton, angles: tools.angles, t });
 }

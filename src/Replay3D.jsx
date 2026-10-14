@@ -917,8 +917,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
           <canvas ref={clipCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
         </div>
-        <div data-clip-tools style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, borderTop: 'none' }}>
-          {[[clipSkel, setClipSkel, 'SKELETON'], [clipAng, setClipAng, 'JOINT ANGLES']].map(([on, set, label]) => (
+        <div data-clip-tools style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, borderTop: 'none' }}>
+          {[[clipSkel && clipAng, (f) => { const on = typeof f === 'function' ? f(clipSkel && clipAng) : f; setClipSkel(on); setClipAng(on); }, 'JOINT ANGLES']].map(([on, set, label]) => (
             <button key={label} type="button" aria-pressed={on} onClick={() => set((x) => !x)}
               style={{ height: 30, border: 'none', background: '#0a0a0b', color: on ? C.ac : 'rgba(255,255,255,0.6)', boxShadow: on ? `inset 0 0 0 1px ${C.ac}` : 'none',
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', cursor: 'pointer' }}>{tt(label)}</button>
