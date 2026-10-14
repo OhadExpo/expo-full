@@ -135,7 +135,9 @@ function TestRow({ index, test, value, onChange, onTest }) {
                   {test.composite.map(part => (
                     <div key={part.id} style={{ minWidth: 0 }}>
                       <div style={{ ...labelStyle, fontSize: 8, marginBottom: 2 }}>
-                        {part.label}{part.unit ? `·${part.unit}` : ''}
+                        {/* a narrow column (tablet, Hebrew): 'SSC/LSC·ms' was one unbreakable word and painted 6px outside
+                            its box - it may break after the slash and before the unit (#756) */}
+                        {String(part.label).split('/').map((w, i) => <React.Fragment key={i}>{i ? <>/<wbr /></> : null}{w}</React.Fragment>)}{part.unit ? <><wbr />{`·${part.unit}`}</> : ''}
                       </div>
                       <input value={(typeof value?.[s] === 'object' && value[s]?.[part.id]) || ''}
                         onChange={e => setSideComposite(s, part.id, e.target.value)}

@@ -216,6 +216,60 @@ export function fixFrontBack(frames) {
   return { frames: out, fixed };
 }
 
+// LYING DOWN, FACE UP OR FACE DOWN, BY THE EXERCISE (14.10 #690, c27 / c06 bench presses: the chest read face-down on
+// 559 of 3,286 frames of c27 in 30 flips, and for 36.8 s of c06 - impossible on a bench). The front/back fixer cannot
+// see it: it reads the heading off the hip and shoulder lines, and a body lying along the camera's depth has none. The
+// picture cannot either (measured: nose-above-the-ears says face-up on 149 of 311 c27 frames and 53 of 278 on c06,
+// both benches - a turned head and a rolled phone). The LOGGED EXERCISE can, as it does for one-legged stances (#753):
+// a bench / floor press, a fly, a pull-over, a bridge, a crunch is done face-up; a push-up, a plank, a prone raise face
+// down. Every frame whose trunk lies within 30 degrees of level and reads the other way is turned 180 degrees about the
+// trunk's long axis (through the hips). No such exercise name: nothing is changed. SUPINE=0 turns it off.
+const SUPINE = ENV.SUPINE != null ? +ENV.SUPINE : (typeof window !== 'undefined' && window.__SUPINE != null ? +window.__SUPINE : 0);   // OFF until reviewed against the video (14.10: the c06 render lifted the legs)
+export const FACE_UP_EX = /bench|chest[\s-]?press|floor[\s-]?press|\bfly\b|flye|pull[\s-]?over|skull[\s-]?crush|supine|lying|glute[\s-]?bridge|hip[\s-]?thrust|bridge|dead[\s-]?bug|crunch|sit[\s-]?up|leg[\s-]?raise|hollow/i;
+export const FACE_DOWN_EX = /lying[\s-]?(leg|hamstring)[\s-]?curl|push[\s-]?up|press[\s-]?up|plank|prone|superman|mountain[\s-]?climb|bear[\s-]?crawl/i;
+export const lyingFacing = (title) => (!title ? 0 : FACE_DOWN_EX.test(String(title)) ? -1 : FACE_UP_EX.test(String(title)) ? 1 : 0);
+export function fixSupine(frames, exercise = '') {
+  const facing = lyingFacing(exercise);
+  // FACE-UP ONLY (measured): push-ups were already read face-down (0-2 short flips on c05 / c17 / c36) and turning their
+  // odd frames cost c17 pops 20 -> 50; a face-down name only keeps a face-up rule from firing on it
+  if (!SUPINE || facing <= 0) return { frames, fixed: 0 };
+  // the chest's forward from the points: (shoulderR - shoulderL) x spine, its y NEGATIVE face-up (calibrated against the
+  // rig's own chest axis: 190 : 57 on c27, 177 : 8 on c06)
+  const want = facing > 0 ? -1 : 1;
+  // per frame: the trunk's tilt from level and the chest's sign
+  const info = frames.map((f) => {
+    const q = f.pts; if (!q || !fin(q[11]) || !fin(q[12]) || !fin(q[23]) || !fin(q[24])) return null;
+    const hip = { x: (q[23].x + q[24].x) / 2, y: (q[23].y + q[24].y) / 2, z: (q[23].z + q[24].z) / 2 };
+    const u0 = { x: (q[11].x + q[12].x) / 2 - hip.x, y: (q[11].y + q[12].y) / 2 - hip.y, z: (q[11].z + q[12].z) / 2 - hip.z }, ul = Math.hypot(u0.x, u0.y, u0.z);
+    if (ul < 1e-6) return null;
+    const u = { x: u0.x / ul, y: u0.y / ul, z: u0.z / ul };
+    return { hip, u, tilt: Math.abs(u.y), fy: (q[12].z - q[11].z) * u.x - (q[12].x - q[11].x) * u.z };
+  });
+  // A LYING STRETCH, not a lying frame (c06: sitting up between sets read 'lying' for 2-4 frames, and frames just past
+  // 30 degrees inside a set were left unturned between turned ones - pops 36 -> 305): a run of frames within 45 degrees
+  // of level (two unreadable frames bridged) holding 1 s+ within 30. Only such stretches are turned, every wrong frame.
+  const out = frames.slice(); let fixed = 0;
+  for (let a = 0; a < frames.length;) {
+    if (!info[a] || info[a].tilt >= 0.7) { a++; continue; }
+    let b = a, miss = 0;
+    // (bridging a moment past 45 degrees inside the set was measured and rejected: a tipped frame's chest sign is not
+    // trustworthy - c06 pops 107 -> 148)
+    for (let k = a + 1; k < frames.length; k++) { if (info[k] && info[k].tilt < 0.7) { b = k; miss = 0; } else if (!info[k] && ++miss <= 2) continue; else break; }
+    let core = 0; for (let k = a; k <= b; k++) if (info[k] && info[k].tilt < 0.5) core++;
+    const coreMs = core * ((frames[b].t - frames[a].t) / Math.max(1, b - a));
+    if (coreMs >= 1000) {
+      for (let k = a; k <= b; k++) {
+        const I = info[k]; if (!I || Math.abs(I.fy) < 1e-4 || Math.sign(I.fy) === want) continue;
+        const { hip, u } = I;
+        const rot = (p0) => { if (!p0 || !fin(p0)) return p0; const v = { x: p0.x - hip.x, y: p0.y - hip.y, z: p0.z - hip.z }; const d = v.x * u.x + v.y * u.y + v.z * u.z; return { ...p0, x: hip.x + 2 * d * u.x - v.x, y: hip.y + 2 * d * u.y - v.y, z: hip.z + 2 * d * u.z - v.z }; };
+        out[k] = { ...frames[k], pts: frames[k].pts.map(rot), supineFixed: true }; fixed++;
+      }
+    }
+    a = b + 1;
+  }
+  return { frames: out, fixed };
+}
+
 // ---- one captured frame -> 19 world rotations + where the hips are ---------------------------------------------------
 // p: frameToPoints3D points (y up, metres). prev: the previous frame's result (holds a part that is not there).
 export function poseFrame(p, prev = null, width = null) {
@@ -909,7 +963,9 @@ export const asymStance = (title) => !!title && ASYM_STANCE.test(String(title));
 export function buildTrack(frames, { smoothMs = 45, hz = TRACK_HZ, interp = 'c2', dims = null, exercise = '' } = {}) {
   const asym = asymStance(exercise);
   if (!frames.length) return null;
-  const fb = fixFrontBack(frames); frames = fb.frames;
+  let fb;
+  if (ENV.SUPINE_ORDER === 'before') { frames = fixSupine(frames, exercise).frames; fb = fixFrontBack(frames); frames = fb.frames; }
+  else { fb = fixFrontBack(frames); frames = fixSupine(fb.frames, exercise).frames; }   // after the front/back fixer: measured better (c27 face-down 157 vs 992)
   let levelQ = null;
   frames = levelFloor(frames, dims); levelQ = frames.levelQ || null;
   const B = clipBody(frames.map((f) => f.pts));

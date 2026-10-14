@@ -10,7 +10,8 @@
 // Tapping a row opens every detail; BILLING opens the billing page, where the
 // same card renders expanded. OWNER-ONLY: revenue_owed is RLS-locked to the
 // owner and the dashboard renders this only for isOwner.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useUrlSync, segmentAfter } from './urlState';
 import { C, FN, FB } from './theme';
 import { CollapsibleSection, Modal } from './ui';
 import { supabase } from './supabase';
@@ -166,6 +167,24 @@ export default function OwedCard({ trainees = [], overdue = [], onOpenBilling, o
   const { rows, requests, loaded, error, good } = useOwedData();
   const list = useMemo(() => mergeOwed(rows, requests, overdue, trainees), [rows, requests, overdue, trainees]);
   const [open, setOpen] = useState(null);
+  // THE DETAIL HAS ITS URL (14.10 #770 phase 2): <page>/owed/<athlete> on the dashboard and on billing. A client the
+  // sheet alone knows is keyed by a short hash, never his name in the address bar.
+  const urlKey = (e) => { if (!e) return null; if (e.traineeId) return e.traineeId; let h = 0; for (const ch of String(e.key)) h = (h * 31 + ch.charCodeAt(0)) | 0; return 'c' + (h >>> 0).toString(36); };
+  const owedBase = () => { if (typeof window === 'undefined') return null; const m = window.location.pathname.match(/^\/coach\/(dashboard|billing)/); return m ? `/coach/${m[1]}` : null; };
+  const keyFromPath = (pth) => { const b = owedBase(); if (!b || segmentAfter(pth, b) !== 'owed') return null; const rest = String(pth).slice(b.length + '/owed/'.length).split('/')[0]; return rest ? decodeURIComponent(rest) : null; };
+  useUrlSync(open ? urlKey(open) : null, (k) => setOpen(k ? (list.find((e) => urlKey(e) === k) || null) : null), {
+    toPath: (k) => { const b = owedBase(); if (!b) return null; if (k) return `${b}/owed/${encodeURIComponent(k)}`; return keyFromPath(window.location.pathname) ? { path: b, replace: true } : null; },
+    fromPath: keyFromPath,
+  });
+  const owedUrlRef = useRef(false);
+  useEffect(() => {   // a link straight to an entry: open it once the list is here
+    if (owedUrlRef.current || typeof window === 'undefined') return;
+    const k = keyFromPath(window.location.pathname);
+    if (!k) { owedUrlRef.current = true; return; }
+    if (!loaded) return;
+    owedUrlRef.current = true;
+    const hit = list.find((e) => urlKey(e) === k); if (hit) setOpen(hit);
+  }, [loaded, list]);   // eslint-disable-line react-hooks/exhaustive-deps
   const total = list.reduce((a, e) => a + e.amount, 0);
   const oldest = list.map((e) => e.sheet && e.sheet.last_payment).filter(Boolean).sort()[0] || null;
   const synced = rows.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '');

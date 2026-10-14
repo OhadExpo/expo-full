@@ -14,6 +14,7 @@
 // "Recompute leaderboard."
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useUrlSync, segmentAfter } from './urlState';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
@@ -84,6 +85,32 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editChallenge, setEditChallenge] = useState(null);
+  // THE FORM HAS ITS URL (14.10 #770 phase 2): /coach/challenges/new · /coach/challenges/<id>/edit; a shared or
+  // reloaded link opens it (an edit once the list is here); Back closes it.
+  const CH_BASE = '/coach/challenges';
+  const chFromPath = (pth) => { const m = String(pth || '').match(/^\/coach\/challenges\/([^/]+)(?:\/(edit))?\/?$/); if (!m) return null; return m[1] === 'new' && !m[2] ? 'new' : m[2] ? `${decodeURIComponent(m[1])}/edit` : null; };
+  const chOpen = (v) => {
+    if (!v) { setShowCreate(false); setEditChallenge(null); return; }
+    if (v === 'new') { setEditChallenge(null); setShowCreate(true); return; }
+    const c = (challenges || []).find((x) => x && x.id === v.replace(/\/edit$/, ''));
+    if (c) { setEditChallenge(c); setShowCreate(true); }
+  };
+  useUrlSync(showCreate ? (editChallenge ? `${editChallenge.id}/edit` : 'new') : null, chOpen, {
+    toPath: (v) => {
+      if (typeof window === 'undefined' || !window.location.pathname.startsWith(CH_BASE)) return null;
+      if (v) return v === 'new' ? `${CH_BASE}/new` : `${CH_BASE}/${encodeURIComponent(v.replace(/\/edit$/, ''))}/edit`;
+      return segmentAfter(window.location.pathname, CH_BASE) ? { path: CH_BASE, replace: true } : null;
+    },
+    fromPath: chFromPath,
+  });
+  const chUrlRef = React.useRef(false);
+  React.useEffect(() => {
+    if (chUrlRef.current || typeof window === 'undefined') return;
+    const v = chFromPath(window.location.pathname);
+    if (!v) { chUrlRef.current = true; return; }
+    if (v !== 'new' && !(challenges || []).length) return;
+    chUrlRef.current = true; chOpen(v);
+  }, [challenges]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [meals, setMeals] = useState([]); // pulled lazily only when a meal_log_streak exists
   const refined = isRefined5b();
   const PAD = 14;

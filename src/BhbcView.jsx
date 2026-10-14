@@ -11,6 +11,7 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
+import { createPortal } from 'react-dom';
 import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffect, lazy, useTransition, Suspense } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
@@ -1019,7 +1020,8 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   useEffect(() => {
     const m = window.location.pathname.match(/^\/(coach\/)?bhbc/);
     if (!m) return;
-    const want = `/${m[1] || ''}bhbc/${view}`;
+    // a preview seat stays on as the page changes: its tail moves with it (#781 - picking Head coach opens his program)
+    const want = `/${m[1] || ''}bhbc/${view}${previewRef.current ? `/preview/${previewRef.current}` : ''}`;
     if (window.location.pathname === want || window.location.pathname.startsWith(want + '/')) return;   // a pop-up's tail stays (#770)
     // the first write REPLACES (/coach/bhbc -> /coach/bhbc/overview) so Back leaves the zone
     if (pageFromUrl()) window.history.pushState(null, '', want + window.location.search);
@@ -1083,7 +1085,19 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
     if (v && el.style.getPropertyValue('--crest-w') !== v) el.style.setProperty('--crest-w', v);   // every render ran this: write only a change (#654)
   });
 
-  const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
+  // THE SCHEDULE'S VIEWS HAVE THEIR URLS (14.10 #770 phase 2), in the toggle's words: .../bhbc/schedule (Month) ·
+  // /schedule/week · /schedule/list. A link or a reload opens that view; Back walks them.
+  const schedFromPath = (pth) => { const w = view === 'schedule' && zoneBase ? segmentAfter(pth, zoneBase) : null; return w === 'week' || w === 'list' ? w : 'calendar'; };
+  const [schedMode, setSchedMode] = useState(() => (typeof window !== 'undefined' ? schedFromPath(window.location.pathname) : 'calendar')); // calendar | week | list
+  useUrlSync(view === 'schedule' ? schedMode : null, (m) => { if (m) setSchedMode(m); }, {
+    toPath: (m) => {
+      if (!m || !zoneBase || view !== 'schedule' || typeof window === 'undefined') return null;
+      const cur = segmentAfter(window.location.pathname, zoneBase);
+      if (m === 'calendar') return cur === 'week' || cur === 'list' ? { path: zoneBase } : null;
+      return `${zoneBase}/${m}`;
+    },
+    fromPath: (pth) => (view === 'schedule' ? schedFromPath(pth) : null),
+  });
   // Owner-only "Preview as coach": renders the exact reduced surface a club coach
   // sees (no Manage roster / no ‹EXPO, medical view-only) without needing an account.
   // THE PREVIEW SEATS (14.10 #773, Ohad: "two different previews ... (Head Coach) or Physical Therapist view
@@ -1096,6 +1110,17 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   const setPreviewCoach = (v) => setPreviewSeat((prev) => { const nv = typeof v === 'function' ? v(!!prev) : v; return nv ? (typeof nv === 'string' && PREVIEW_SEATS.includes(nv) ? nv : 'coach') : null; });
   useUrlFlag(previewSeat, (v) => setPreviewSeat(v && v !== true && PREVIEW_SEATS.includes(v) ? v : null), zoneBase, 'preview', { withId: true });
   const [previewMenu, setPreviewMenu] = useState(false);
+  // THE MENU LIVES OUTSIDE THE TAB BAR (14.10 #779, Ohad on his phone: "I cannot see the submenu"): the bar scrolls
+  // sideways, and a scroller clips anything hanging out of it. The menu is drawn in the zone's own root (its colours and
+  // its direction), fixed under the PREVIEW button, kept on the screen.
+  const zoneRootRef = useRef(null), previewBtnRef = useRef(null);
+  const [previewAt, setPreviewAt] = useState(null);
+  useLayoutEffect(() => {
+    if (!previewMenu) { setPreviewAt(null); return undefined; }
+    const place = () => { const b = previewBtnRef.current; if (!b) return; const r = b.getBoundingClientRect(), W = 190, vw = window.innerWidth; setPreviewAt({ top: Math.round(r.bottom + 4), left: Math.round(Math.max(8, Math.min(vw - W - 8, r.right - W))), width: W }); };
+    place(); window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+  }, [previewMenu]);
   // THE ATHLETE PORTAL, INSIDE THE ZONE (14.10 #767, Ohad: "an athlete demo portal sandbox like i have in expo>athlete
   // (but on bhbc) ... perfectly synced, doesnt get saved, looks exactly the same as their program / an athlete portal"):
   // a full page at .../bhbc/<page>/portal/<player> - the player's REAL portal (plans read live) in sandbox mode (nothing
@@ -1833,7 +1858,7 @@ function attendance28(rec, days) {
     <LangCtx.Provider value={bhbcLang}>
     <BodyLang lang={bhbcLang} />
     <BhbcTheme.Provider value={bhbcTheme}>
-    <div className="bhbc-zone" data-theme={bhbcTheme} dir={he ? 'rtl' : 'ltr'} data-read={READ_PROTO ? '' : undefined} style={{ ...tokensFor(bhbcTheme), minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
+    <div ref={zoneRootRef} className="bhbc-zone" data-theme={bhbcTheme} dir={he ? 'rtl' : 'ltr'} data-read={READ_PROTO ? '' : undefined} style={{ ...tokensFor(bhbcTheme), minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       <style>{`
         /* #734 PROTOTYPE (?read=1): the table text floor + status words that pass 4.5:1 */
         .bhbc-zone[data-read] [data-quiet]{white-space:normal!important}
@@ -2282,15 +2307,16 @@ function attendance28(rec, days) {
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginInlineStart: 'auto' }}>
             {!coach && (
               <span style={{ position: 'relative', display: 'inline-flex' }}>
-                <button onClick={() => (previewCoach ? setPreviewSeat(null) : setPreviewMenu((m) => !m))} aria-expanded={previewMenu} aria-haspopup="menu" data-bhbc-preview-btn className="bhbc-tab" title={tr('See exactly what a seat sees - nothing you do there is saved')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Back')}` : `◉ ${tr('Preview')}`}</button>
-                {previewMenu && !previewCoach && (
-                  <span role="menu" style={{ position: 'absolute', top: 'calc(100% + 4px)', insetInlineEnd: 0, zIndex: 40, display: 'grid', minWidth: 180, background: C.sf, border: `1px solid ${HDR_BD}`, boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
+                <button ref={previewBtnRef} onClick={() => (previewCoach ? setPreviewSeat(null) : setPreviewMenu((m) => !m))} aria-expanded={previewMenu} aria-haspopup="menu" data-bhbc-preview-btn className="bhbc-tab" title={tr('See exactly what a seat sees - nothing you do there is saved')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Back')}` : `◉ ${tr('Preview')}`}</button>
+                {previewMenu && !previewCoach && previewAt && zoneRootRef.current && createPortal(<>
+                  <button type="button" aria-label={tr('Close')} onClick={() => setPreviewMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 1999, background: 'transparent', border: 'none', padding: 0, cursor: 'default' }} />
+                  <span role="menu" data-bhbc-preview-menu style={{ position: 'fixed', top: previewAt.top, left: previewAt.left, width: previewAt.width, zIndex: 2000, display: 'grid', minWidth: 180, background: C.sf, border: `1px solid ${HDR_BD}`, boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
                     {[['coach', 'Coach'], ['head-coach', 'Head coach'], ['pt', 'Physio (PT)']].map(([k, label]) => (
-                      <button key={k} role="menuitem" data-preview-seat={k} onClick={() => { setPreviewMenu(false); setPreviewSeat(k); }}
+                      <button key={k} role="menuitem" data-preview-seat={k} onClick={() => { setPreviewMenu(false); setPreviewSeat(k); if (k === 'head-coach' && (trainees || []).some((t) => t && [].concat(t.email || []).some((e) => typeof e === 'string' && e.toLowerCase() === BHBC_HEAD_COACH_EMAIL))) setTimeout(() => pickView('my-program'), 0); /* #781: the head coach's preview opens on HIS program */ }}
                         style={{ height: 36, padding: '0 14px', textAlign: 'start', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', whiteSpace: 'nowrap' }}>{tr(label)}</button>
                     ))}
                   </span>
-                )}
+                </>, zoneRootRef.current)}
               </span>
             )}
             {/* HE / EN. Fixed width so the control does not resize as the

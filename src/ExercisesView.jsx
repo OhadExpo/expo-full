@@ -6,6 +6,7 @@ import { noDangle } from './script';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { wrapNeed } from './wrapNeed';
+import { useUrlSync, segmentAfter } from './urlState';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -236,6 +237,32 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     setForm(defaultExercise()); setEditId(null); setShowForm(false);
   };
   const openNew = () => { setForm(defaultExercise()); setEditId(null); setShowForm(true); };
+  // THE FORM HAS ITS URL (14.10 #770 phase 2): /coach/exercises/new · /coach/exercises/<id>/edit. A shared or reloaded
+  // link opens it (once the library is here); Back closes it.
+  const EX_BASE = '/coach/exercises';
+  const exFormFromPath = (pth) => { const m = String(pth || '').match(/^\/coach\/exercises\/([^/]+)(?:\/(edit))?\/?$/); if (!m) return null; return m[1] === 'new' && !m[2] ? 'new' : m[2] ? `${decodeURIComponent(m[1])}/edit` : null; };
+  const openFromUrl = (v) => {
+    if (!v) { setShowForm(false); return; }
+    if (v === 'new') { openNew(); return; }
+    const id = v.replace(/\/edit$/, ''), ex = (exercises || []).find((x) => x && x.id === id);
+    if (ex) { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }
+  };
+  useUrlSync(showForm ? (editId ? `${editId}/edit` : 'new') : null, openFromUrl, {
+    toPath: (v) => {
+      if (typeof window === 'undefined' || !window.location.pathname.startsWith(EX_BASE)) return null;
+      if (v) return v === 'new' ? `${EX_BASE}/new` : `${EX_BASE}/${encodeURIComponent(v.replace(/\/edit$/, ''))}/edit`;
+      return segmentAfter(window.location.pathname, EX_BASE) ? { path: EX_BASE, replace: true } : null;
+    },
+    fromPath: exFormFromPath,
+  });
+  const urlOpenedRef = useRef(false);
+  useEffect(() => {   // a link straight to the form: open it once the library has loaded
+    if (urlOpenedRef.current || typeof window === 'undefined') return;
+    const v = exFormFromPath(window.location.pathname);
+    if (!v) { urlOpenedRef.current = true; return; }
+    if (v !== 'new' && !(exercises || []).length) return;
+    urlOpenedRef.current = true; openFromUrl(v);
+  }, [exercises]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dropdown option lists ([value, count]) sorted by (faceted) count. Always
   // include currently-selected values even if their residual count is 0, so a

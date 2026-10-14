@@ -52,6 +52,14 @@
 //     "automatically ... instead of asking"); the busy + writing guards cover a workout,
 //     a film, an upload, an unsaved session and a typed note. Public forms stay excluded.
 
+// 14.10 (#780), Ohad: "On all platforms: instead of the update pop up - refresh it automatically autonomously
+// when there's a newer version, unless I typed, deleted, in the middle of uploading something or changed anything,
+// leave the pop up then". So a found update now applies AT ONCE, silently, on any page - unless this page holds
+// something of his: a field being typed in or holding text, ANY change made on this page (an input / change event
+// - typing, deleting, a select, a tick), an edit not saved yet (autosave pending), or the busy cases of rule 4
+// (an upload, a film, a workout, an unsaved session, a recording, media playing, a sign-in returning). Then the
+// pill stays, and the update applies the moment that is over (a navigation to a new page counts: its page is clean).
+
 import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { C, FN, FB } from './theme';
@@ -70,6 +78,12 @@ const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll', 'wheel'
 let LAST_INPUT = 0;
 try { ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, () => { LAST_INPUT = Date.now(); }, { passive: true })); } catch { /* no window */ }
 const K_FIRST = 'expo-update-first-seen';   // "<bundle>|<ms>"
+// #780: the page a change was made on (an input or change event anywhere - typing, deleting, ticking, choosing)
+let CHANGED_PATH = null;
+try { ['input', 'change'].forEach((e) => window.addEventListener(e, (ev) => { if (ev && ev.isTrusted !== false) CHANGED_PATH = window.location.pathname; }, true)); } catch { /* no window */ }
+// ...and on the public form pages ANY touch counts: a drawn signature, a tapped slot or a ticked answer fires no input
+// event (1008o review: 'a drawn signature or ticked answers are not typed text')
+try { window.addEventListener('pointerdown', () => { if (/^\/(demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname)) CHANGED_PATH = window.location.pathname; }, true); } catch { /* no window */ }
 
 // The bundle this page runs: the same pending update stays pending until it is
 // applied, so "once per version" is "once per bundle the athlete is on".
@@ -175,7 +189,9 @@ export default function SwUpdateBanner() {
       // last input, so a forgotten embed cannot hold an update forever (1008p review)
       return Date.now() - idleFrom < 20 * 60 * 1000 && [...document.querySelectorAll('iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]')].some((f) => f.getClientRects().length > 0);
     } catch { return false; } };
-    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn() || recordingActive() || mediaPlaying();
+    // #780: an edit the app has not saved yet (useAutosave's pending / saving / failed saves register here)
+    const autosavePending = () => { try { return !!(window.__expoUnsaved && window.__expoUnsaved.size); } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive() || workoutActive() || workoutUnsaved() || signingIn() || recordingActive() || mediaPlaying() || autosavePending();
     // #464: the two places a reload is never taken on its own - something is
     // being written (a focused field, or typed text sitting in any visible
     // field), or the athlete portal (the pill waits for the athlete's tap).
@@ -191,9 +207,13 @@ export default function SwUpdateBanner() {
     // the public forms and the demo athlete (its state lives in the page) still never reload.
     const onPublicForm = () => { try { return /^\/(demo\/athlete|intake|sign|book)(\/|$)/.test(window.location.pathname); } catch { return true; } };
     const autoOk = () => !busy() && !writing() && !onPublicForm();
+    // #780: nothing of his on this page - no typing, no change made here, nothing in flight
+    // ...and 5 s quiet after the last touch: a tap can start a store write or a drag that fires no input event (review)
+    const clean = () => !busy() && !writing() && CHANGED_PATH !== window.location.pathname && Date.now() - (lastActivity || 0) > 5000;
 
     // Rule 3: apply when the tab is hidden, or after IDLE_MS without input.
-    const onVis = () => { if (document.visibilityState === 'hidden' && autoOk()) tryUpdate(); };
+    // the public forms and the demo athlete keep the old rule: never reloaded on their own after the first look (review)
+    const onVis = () => { if (document.visibilityState === 'hidden' && clean() && !onPublicForm()) silentApply(); };
     document.addEventListener('visibilitychange', onVis);
     // Rule A: a fresh load with an update already waiting takes it at once.
     const loadedAtMs = (typeof performance !== 'undefined' && performance.timeOrigin) || Date.now();
@@ -210,7 +230,8 @@ export default function SwUpdateBanner() {
     const resumeAt = window.__expoResumeAt || 0;
     const justResumed = () => resumeAt > 0 && Date.now() - resumeAt < 15000 && (window.__expoLastInput || 0) < resumeAt;
     // a resume never reloads a public form (1008o review MUST: a drawn signature or ticked answers are not 'typed text')
-    if (!forced && (freshNoInput() || justNavigated() || (justResumed() && !onPublicForm())) && !busy() && !writing()) {
+    void freshNoInput; void justNavigated; void justResumed;   // (rules A / B / R are inside #780's rule now: clean = apply)
+    if (!forced && clean()) {
       silentApply();
       return () => { ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, bumpActivity)); window.removeEventListener('keydown', onKey); };
     }
@@ -220,8 +241,9 @@ export default function SwUpdateBanner() {
       setTick((n) => n + 1);
       // a navigation lands on the new build - but never over typed text (AUDIT-470:
       // an upload ending after the coach moved page and started a note reloaded it)
-      if (!forced && window.location.pathname !== pathAtFind && !busy() && !writing()) { silentApply(); return; }
-      if (Date.now() - idleFrom >= IDLE_MS && autoOk()) tryUpdate();
+      void pathAtFind; void autoOk; void tryUpdate;
+      // #780: the moment the page is clean again (a save landed, the upload ended, he moved to a new page) - silently
+      if (!forced && clean() && !onPublicForm()) { silentApply(); return; }
     }, 1000);
 
     return () => {

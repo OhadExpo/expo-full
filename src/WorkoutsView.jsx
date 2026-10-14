@@ -11,6 +11,7 @@ import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRef
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
 import { useT, tr, readLang, dirOfText } from './i18n';
+import { useUrlSync, segmentAfter } from './urlState';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -311,6 +312,17 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   // athlete is genuinely live in the app. On Complete it's written to
   // client_workouts (the athlete's portal history).
   const [active, setActive] = useState(null);
+  // THE LOGGER HAS ITS URL (14.10 #770 phase 2): /coach/sessions-single/logging/<athlete> while a session is logged;
+  // Back closes it, as its own BACK does. A live session is not in the URL, so a reload lands on the picker.
+  const SW_BASE = '/coach/sessions-single';
+  const onSingle = () => typeof window !== 'undefined' && window.location.pathname.startsWith(SW_BASE);
+  useUrlSync(active ? `logging/${active.traineeId || ''}` : null, (v) => { if (!v) setActive(null); else window.history.replaceState(window.history.state, '', SW_BASE + window.location.search); /* Forward into a closed logger: it cannot resume - the picker's URL */ }, {
+    toPath: (v) => (!onSingle() ? null : v ? `${SW_BASE}/${v.split('/').map(encodeURIComponent).join('/')}` : (segmentAfter(window.location.pathname, SW_BASE) === 'logging' ? { path: SW_BASE, replace: true } : null)),
+    fromPath: (pth) => (segmentAfter(pth, SW_BASE) === 'logging' ? pth.slice(SW_BASE.length + 1) : null),
+  });
+  useEffect(() => {   // a reload of a logging URL: nothing to resume - say so in the URL too
+    if (onSingle() && segmentAfter(window.location.pathname, SW_BASE) === 'logging') window.history.replaceState(window.history.state, '', SW_BASE + window.location.search);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [expandedTrainees, setExpandedTrainees] = useState({});

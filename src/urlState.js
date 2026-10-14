@@ -28,6 +28,9 @@ export function useUrlSync(value, setValue, { toPath, fromPath, replace = false 
     // an OPEN keeps a deeper tail that lives under it (/player/<id>/game/<date> stays when the player sheet opens)
     if (!isObj && window.location.pathname.startsWith(want + '/')) return;
     const url = want + window.location.search + window.location.hash;
+    // { path, swap: true }: the same place, said differently (a pop-up opened ON another one) - no new entry, no step back
+    // (an entry this hook opened stays OURS under its new path, so the stack's close still steps back over it)
+    if (isObj && got.swap) { const st0 = window.history.state; window.history.replaceState(st0 && st0.urlOpened ? { ...st0, urlOpened: want } : st0, '', url); return; }
     // a CLOSE ({ path, replace: true }): if this hook opened the entry, step back to where it was opened from (no
     // duplicate entry, Back does not reopen it); otherwise (opened from a typed / shared URL) replace it
     if (isObj && got.replace && !isFirst) {   // (a plain string has a .replace METHOD - test the object, not the key)
@@ -38,9 +41,12 @@ export function useUrlSync(value, setValue, { toPath, fromPath, replace = false 
     if (replace || isFirst) window.history.replaceState(window.history.state, '', url);
     else window.history.pushState({ urlOpened: want }, '', url);
   }, [value]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // the LATEST setValue / fromPath, not the first render's (pre-deploy review 14.10: a zone entered on Overview kept the
+  // Overview fromPath, so Back between Schedule views did nothing; lists empty at mount never reopened an item on Forward)
+  const fns = useRef({ setValue, fromPath }); fns.current = { setValue, fromPath };
   useEffect(() => {
     if (typeof window === 'undefined' || !fromPath) return undefined;
-    const onPop = () => setValue(fromPath(window.location.pathname));
+    const onPop = () => { const f = fns.current; if (f.fromPath) f.setValue(f.fromPath(window.location.pathname)); };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps

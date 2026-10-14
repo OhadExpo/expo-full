@@ -83,8 +83,43 @@ function SlashBreak({ text }) {
 const LRI = String.fromCharCode(0x2066);
 const PDI = String.fromCharCode(0x2069);
 
-function parseHash(hash) {
+// A POP-UP HAS ITS URL TOO (14.10 #770 phase 2): a suffix on whatever page is open - #/online/quiz,
+// #/online/demo/pose | rep | cmp (and the same on the chooser, the gym page, a program). The page underneath is routed
+// from the hash WITHOUT the suffix, so opening a pop-up never moves the visitor.
+const HASH_MODAL = /^(.*?)\/?(quiz|demo\/(?:pose|rep|cmp))$/;
+function splitHash(hash) {
   const h = (hash || '').replace(/^#\/?/, '');
+  const m = h.match(HASH_MODAL);
+  return m ? { base: m[1], modal: m[2] } : { base: h, modal: null };
+}
+// [value, set] for one pop-up: 'quiz' -> true | null; 'demo' -> 'pose' | 'rep' | 'cmp' | null. Opening PUSHES (Back
+// closes it); closing steps back when this page opened it, else replaces.
+function useHashModal(name) {
+  const read = () => { if (typeof window === 'undefined') return null; const { modal } = splitHash(window.location.hash); if (!modal) return null; if (name === 'quiz') return modal === 'quiz' ? true : null; return modal.startsWith(name + '/') ? modal.slice(name.length + 1) : null; };
+  const [v, setV] = useState(read);
+  useEffect(() => {
+    const on = () => setV(read());
+    window.addEventListener('hashchange', on); window.addEventListener('popstate', on);
+    return () => { window.removeEventListener('hashchange', on); window.removeEventListener('popstate', on); };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const set = (nv) => {
+    if (typeof window === 'undefined') { setV(nv || null); return; }
+    const { base } = splitHash(window.location.hash);
+    const cur = read();
+    if (nv) {
+      const target = '#/' + (base ? base + '/' : '') + (name === 'quiz' ? 'quiz' : `${name}/${nv}`);
+      if (window.location.hash !== target) window.history.pushState({ hashModal: name }, '', window.location.pathname + window.location.search + target);
+    } else if (cur) {
+      if (window.history.state && window.history.state.hashModal === name) window.history.back();
+      else window.history.replaceState(null, '', window.location.pathname + window.location.search + (base ? '#/' + base : '#/'));
+    }
+    setV(nv || null);
+  };
+  return [v, set];
+}
+
+function parseHash(hash) {
+  const h = splitHash(hash).base;
   // 2026-05-14 dual-arm split. Empty hash now shows the EntryChooser
   // so visitors pick ONLINE vs PHYSICAL GYM first. The existing
   // programs catalog lives at #/online; the booking calendar at #/gym.
@@ -1547,7 +1582,7 @@ function DemoModal({ which, onClose }) {
 
 function WhatsInside() {
   const t = useT();
-  const [demo, setDemo] = useState(null); // 'pose' | 'rep' | 'cmp' | null
+  const [demo, setDemo] = useHashModal('demo'); // 'pose' | 'rep' | 'cmp' | null - with its URL (#770)
   const cards = [
     { key: 'pose', tag: t('inside.pose.tag'), h: t('inside.pose.h'), d: t('inside.pose.d'), Inner: PoseScreen        },
     { key: 'rep',  tag: t('inside.rep.tag'),  h: t('inside.rep.h'),  d: t('inside.rep.d'),  Inner: RepCounterScreen  },
@@ -2269,7 +2304,7 @@ function QuizModal({ open, onClose }) {
             {matches.map((m, i) => {
               const isBest = i === 0;
               return (
-                <a key={m.p.id} href={`#/programs/${m.p.id}`} onClick={onClose}
+                <a key={m.p.id} href={`#/programs/${m.p.id}`} onClick={(e) => { e.preventDefault(); try { window.history.replaceState(null, '', window.location.pathname + window.location.search + `#/programs/${m.p.id}`); window.dispatchEvent(new HashChangeEvent('hashchange')); } catch { window.location.hash = `#/programs/${m.p.id}`; } /* the program REPLACES the quiz's entry: closing it with Back first sent him back to the quiz (pre-deploy review) */ }}
                   style={{
                     display: 'block', textDecoration: 'none',
                     background: isBest ? C.sf2 : C.sf,
@@ -3199,7 +3234,8 @@ export default function App() {
   const [appLang] = useLang();
   // Quiz modal state lives at the App root so the hero, the dedicated
   // QuizSection, and the nav can all open it from anywhere on the page.
-  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizOpenV, setQuizOpenV] = useHashModal('quiz');   // with its URL: .../quiz (#770)
+  const quizOpen = !!quizOpenV, setQuizOpen = (o) => setQuizOpenV(o ? true : null);
   const openQuiz = () => { setQuizOpen(true); trackAndOpen('quiz_open', {}); };
   let body;
   let isHome = false;

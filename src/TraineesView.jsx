@@ -59,6 +59,7 @@ function CardStatusMenu({ status, onChange }) {
 }
 import { supabase } from './supabase';
 import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
+import { useUrlSync } from './urlState';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -602,20 +603,38 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+  // THE NEW ATHLETE FORM HAS ITS URL (14.10 #770 phase 2): /coach/athletes/new/<format> in the menu's words
+  // (online-athlete · gym-single · gym-couple · bnei-herzliya); a shared or reloaded link opens it; Back closes it.
+  const NEW_WORDS = { 'Online Client': 'online-athlete', 'Gym, Single': 'gym-single', 'Gym, Couple': 'gym-couple', 'Bnei Herzliya': 'bnei-herzliya' };
+  const NEW_FORMATS = Object.fromEntries(Object.entries(NEW_WORDS).map(([f, w]) => [w, f]));
+  // the URL names the format the form was OPENED with: the form's own Format select must not move it (a 'Gym, Group'
+  // pick closed the form, any other pick stacked history - pre-deploy review)
+  const [newWord, setNewWord] = useState(null);
+  const openNewAthlete = (format) => {
+    setNewWord(NEW_WORDS[format] || null);
+    const f = {...defaultTrainee(), format};
+    // A Bnei Herzliya athlete IS a BHBC squad member: stamp the team marker the /bhbc zone and the club-coach roster
+    // sync key on, or the player never reaches either (audit #46).
+    if (format === 'Bnei Herzliya') f.team = 'BHBC';
+    if (format === 'Gym, Couple') f._members = [{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
+    setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
+  };
+  const newFromPath = (pth) => { const m = String(pth || '').match(/^\/coach\/athletes\/new\/([a-z-]+)\/?$/); return m && NEW_FORMATS[m[1]] ? m[1] : null; };
+  useUrlSync(showForm && !editId ? newWord : null, (w) => { if (w && NEW_FORMATS[w]) openNewAthlete(NEW_FORMATS[w]); else if (!w && !editId) setShowForm(false); }, {
+    toPath: (w) => (typeof window === 'undefined' || !window.location.pathname.startsWith('/coach/athletes') ? null : w ? `/coach/athletes/new/${w}` : (newFromPath(window.location.pathname) ? { path: '/coach/athletes', replace: true } : null)),
+    fromPath: newFromPath,
+  });
+  useEffect(() => {   // a link straight to the form
+    if (typeof window === 'undefined') return;
+    const w = newFromPath(window.location.pathname);
+    if (w) openNewAthlete(NEW_FORMATS[w]);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const addAthleteControl = (
 <div ref={addMenuRef} data-add-athlete style={{position:'relative', marginTop: addOnTop ? 0 : 'auto', marginBottom: addOnTop ? 12 : 0}}>
               <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')}<span style={{ marginInlineStart: 6, display: 'inline-flex' }}><CaretGlyph /></span></Btn>
               {addMenuOpen && <div className="motion-menu" style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
                 {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
-                  <button key={format} onClick={()=>{
-                    const f = {...defaultTrainee(), format};
-                    // A Bnei Herzliya athlete IS a BHBC squad member: stamp the
-                    // team marker the /bhbc zone and the club-coach roster sync
-                    // key on, or the player never reaches either (audit #46).
-                    if (format === 'Bnei Herzliya') f.team = 'BHBC';
-                    if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
-                    setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
-                  }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign: 'start'}}
+                  <button key={format} onClick={() => openNewAthlete(format)} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign: 'start'}}
                     onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                     {tt(label)}
                   </button>

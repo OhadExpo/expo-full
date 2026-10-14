@@ -126,6 +126,22 @@ function runWarmup() {
     if (!/nothing to write/.test(out)) say(`warm-up: exit ${code} ${out.trim().replace(/\s+/g, ' ').slice(0, 500)}`);
   });
 }
+// A SCRIMMAGE WITH NO BOX SCORE, pushed to him once (14.10 #738): cup games ride runGames (basket.co.il boards), BCL
+// runBclGames; a scrimmage's only source is the sheet photo in WhatsApp, which cannot be read unattended. Quiet when
+// nothing is waiting.
+let scrimRunning = false;
+function runScrimmageWatch() {
+  if (scrimRunning) return;
+  scrimRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/bhbc-scrimmage-watch.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', (code) => {
+    scrimRunning = false;
+    if (!/nothing waiting/.test(out)) say(`scrimmage watch: exit ${code} ${out.trim().replace(/\s+/g, ' ').slice(0, 400)}`);
+  });
+}
 // THE GAME WARM-UP, from his sheet, every 20 minutes (10.10 #647: "make sure it stays constantly
 // synced"). Writes only when the sheet changed; a cycle with nothing new stays quiet.
 let gwRunning = false;
@@ -158,7 +174,7 @@ function runOwed() {
     owedLast = line;
   });
 }
-say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + owed + practice warm-up + game warm-up sheet every 20 min`);
+say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + scrimmage watch + owed + practice warm-up + game warm-up sheet every 20 min`);
 tick();
 setInterval(tick, 60 * 1000);
 runGames();
@@ -169,6 +185,7 @@ runOwed();
 setInterval(runOwed, 20 * 60 * 1000);
 runWarmup();
 setInterval(runWarmup, 20 * 60 * 1000);
+setInterval(runScrimmageWatch, 20 * 60 * 1000);
 // 7 minutes after the owed cycle: both download through the same Chrome (1010c review)
 setTimeout(() => { runGameWarmup(); setInterval(runGameWarmup, 20 * 60 * 1000); }, 7 * 60 * 1000);
 // THE DATABASE NEVER STAYS DOWN UNNOTICED (4.10 #543): probe every minute, alert Ohad

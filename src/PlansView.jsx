@@ -63,6 +63,7 @@ import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
 import { taxoHe } from './taxonomyHe';
+import { useUrlFlag, urlFlagFromPath, useUrlSync } from './urlState';
 import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB, exercisesCount, daysCount } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
@@ -2098,6 +2099,19 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
   // Persisted, because it is a way of working rather than a peek: a coach who
   // reads blocks this way wants it still on when the next program opens.
   const [overviewOpen, setOverviewOpen] = usePersistentState('expo-plan-overview', false);
+  // EVERY POP-UP HAS ITS URL (14.10 #770 phase 2), under the program's own: /coach/programs/<id>/add-exercise ·
+  // /compare · /history (the MORE menu's words). A shared or reloaded link opens it; Back closes it.
+  const editorBase = (() => { if (typeof window === 'undefined' || demo || !plan?.id) return null; const m = window.location.pathname.match(/^(\/coach\/programs\/[^/]+)/); return m && m[1] === `/coach/programs/${plan.id}` ? m[1] : null; })();
+  useEffect(() => {
+    if (!editorBase) return;
+    const p = window.location.pathname;
+    if (urlFlagFromPath(p, editorBase, 'add-exercise')) setAddExerciseOpen(true);
+    if (urlFlagFromPath(p, editorBase, 'compare')) setCompareOpen(true);
+    if (urlFlagFromPath(p, editorBase, 'history')) setHistoryOpen(true);
+  }, [editorBase]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useUrlFlag(addExerciseOpen, setAddExerciseOpen, editorBase, 'add-exercise');
+  useUrlFlag(compareOpen, setCompareOpen, editorBase, 'compare');
+  useUrlFlag(historyOpen, setHistoryOpen, editorBase, 'history');
   const compareActive = compareOpen;
   // Three scrollers in compare: wheel OVER a pane scrolls only that pane (each
   // half is its own bounded overflow:auto with its own scrollbar); wheel over
@@ -4086,7 +4100,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   useEffect(() => { if (progView !== 'table' && progView !== 'grid') setProgView('table'); }, [progView, setProgView]);
   // Training Analysis — opened per-athlete from a button on their card (not a
   // top-level view mode). Loads that athlete's full plans on demand into a modal.
-  const [lineageTraineeId, setLineageTraineeId] = useState(null);
+  // TRAINING ANALYSIS HAS ITS URL (14.10 #770 phase 2): /coach/programs/analysis/<athlete>; a link or a reload opens it,
+  // Back (and Esc / its own Back) closes it.
+  const anFromPath = (pth) => { const m = String(pth || '').match(/^\/coach\/programs\/analysis\/([^/]+)\/?$/); return m ? decodeURIComponent(m[1]) : null; };
+  const [lineageTraineeId, setLineageTraineeId] = useState(() => (typeof window !== 'undefined' ? anFromPath(window.location.pathname) : null));
+  useUrlSync(lineageTraineeId, setLineageTraineeId, {
+    toPath: (id) => (typeof window === 'undefined' || !window.location.pathname.startsWith('/coach/programs') ? null : id ? `/coach/programs/analysis/${encodeURIComponent(id)}` : (anFromPath(window.location.pathname) ? { path: '/coach/programs', replace: true } : null)),
+    fromPath: anFromPath,
+  });
   const { plans: lineagePlans, loading: lineageLoading, load: loadLineage, clear: clearLineage } = useAthletePlans();
   useEffect(() => {
     if (lineageTraineeId) loadLineage(lineageTraineeId);
@@ -4133,6 +4154,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       // setEditMode(true) with no plan and hang forever on "Loading…". On a
       // null load we clear openPlanId and fall back to the list.
       loadFullPlan(openPlanId).then((p) => { if (p) setEditMode(true); if (onPlanOpened) onPlanOpened(); });
+    } else if (openPlanId && editMode && onPlanOpened) {
+      // the program is ALREADY open (a pop-up's Back landed on /coach/programs/<id> and App re-asked for it): nothing to
+      // load - clear the request, or closing the editor later sat on "Loading program..." forever (pre-deploy review 14.10)
+      onPlanOpened();
     }
   }, [openPlanId]);
 

@@ -44,7 +44,7 @@ import { useUrlSync } from './urlState';
 // the portal's pages in the URL, in the tabs' own words (#770)
 const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'prs', msg: 'messages' };
 const PORTAL_KEY = Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k]));
-const PORTAL_BASE = /^(\/athlete|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/([a-z-]+))?\/?$/;   // + the BHBC portal page (#767) + MY PROGRAM (#769)
+const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|prs|messages))?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
 const portalPageFromPath = (p) => { const m = String(p || '').match(PORTAL_BASE); return m && m[2] ? (PORTAL_KEY[m[2]] || null) : null; };
 const portalPath = (p, v) => { const m = String(p || '').match(PORTAL_BASE); return m ? `${m[1]}/${PORTAL_PAGES[v] || 'program'}` : null; };
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
@@ -2470,9 +2470,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {isRun && (ex.tempo || ex.load || ex.rest) && (
         // the run's prescription in the coach's words: pace range, the heart-rate cap, the rest between reps
         <div data-run-rx style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 6, fontFamily: FN, fontSize: 12, color: C.tm }}>
-          {ex.tempo && <span>{tt('PACE')} <b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.tempo}</b>{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</span>}
-          {ex.load && <span>{tt('HR CAP')} <b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{String(ex.load).replace(/^HR\s*/i, '')}</b></span>}
-          {ex.rest && <span>{tt('REST')} <b style={{ color: C.tx }}>{ex.rest}</b></span>}
+          {ex.tempo && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.tempo}{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</b></span>}
+          {ex.load && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('HR CAP')}</span><b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{String(ex.load).replace(/^HR\s*/i, '')}</b></span>}
+          {ex.rest && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('REST')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.rest}</b></span>}
         </div>
       )}
       {!isRun && ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
@@ -2594,7 +2594,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 <input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:24,height:24,accentColor:C.gn,cursor:'pointer'}}/>
               </label>
             </div>
-            {isRun && runPace(set.reps, set.time) && <div data-run-pace style={{ fontFamily: FN, fontSize: 11, color: C.tm, textAlign: 'center', margin: '-2px 0 6px' }}>{tt('PACE')} <b dir="ltr" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{runPace(set.reps, set.time)} {tt('/km')}</b></div>}
+            {isRun && runPace(set.reps, set.time) && <div data-run-pace style={{ fontFamily: FN, fontSize: 11, color: C.tm, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 5, margin: '-2px 0 6px' }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{runPace(set.reps, set.time)} {tt('/km')}</b></div>}
           </React.Fragment>;
         })}</div>
 

@@ -27,6 +27,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { localiseAutoBody, addLocalNames } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
+import { useUrlSync, segmentAfter } from './urlState';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn, ChipGrid } from './ui';
@@ -1894,7 +1895,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (viewerOwner === 'yuval' && owner === 'ohad')  setOwner('yuval');
     if (viewerOwner === 'ohad'  && owner === 'yuval') setOwner('ohad');
   }, [viewerOwner]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [view, setView] = useState('list'); // 'list' | 'board'
+  // THE BOARD HAS ITS URL (14.10 #770 phase 2): /coach/tasks (the list) · /coach/tasks/board; a link or a reload
+  // opens that view, Back walks the switch.
+  const TK_BASE = '/coach/tasks';
+  const onTasks = () => typeof window !== 'undefined' && window.location.pathname.startsWith(TK_BASE);
+  const viewFromPath = (pth) => (segmentAfter(pth, TK_BASE) === 'board' ? 'board' : 'list');
+  const [view, setView] = useState(() => (onTasks() ? viewFromPath(window.location.pathname) : 'list')); // 'list' | 'board'
+  useUrlSync(view, (v) => setView(v || 'list'), {
+    toPath: (v) => (!onTasks() ? null : v === 'board' ? `${TK_BASE}/board` : (segmentAfter(window.location.pathname, TK_BASE) === 'board' ? { path: TK_BASE } : null)),
+    fromPath: (pth) => (onTasks() ? viewFromPath(pth) : null),
+  });
   // Board grouping (Monday-style): 'status' = a To Do→In Progress→Done kanban,
   // 'list' = the by-category columns. Drag a card between columns to change that
   // dimension. Persisted so the chosen board sticks.

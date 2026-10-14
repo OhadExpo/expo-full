@@ -15,6 +15,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { DEMO_PLANS, DEMO_EXERCISES } from './demoTraineeData';
 import { normalizeDays } from './usePlansStore';
 import { displayPhoneIL } from './whatsappButton';
+import { useUrlSync } from './urlState';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
@@ -2374,6 +2375,7 @@ function DemoPrograms({ resetToken = 0 }) {
     if (typeof window === 'undefined') return;
     const base = '/demo/coach/programs';
     if (!window.location.pathname.startsWith(base)) return;
+    if (!selectedProgramId && window.location.pathname.startsWith(base + '/analysis/')) return;   // Training Analysis owns that tail (#770)
     const target = selectedProgramId ? `${base}/${encodeURIComponent(selectedProgramId)}` : base;
     if (window.location.pathname !== target) window.history.pushState({ program: selectedProgramId || null }, '', target + window.location.hash);
   }, [selectedProgramId]);
@@ -2400,7 +2402,13 @@ function DemoPrograms({ resetToken = 0 }) {
   const phoneList = useIsMobile(620);   // the real Programs on a phone: TABLE is a dense list (4.10 #532)
   // Training Analysis opens per athlete from the card's ANALYSIS button, as a full
   // page with a Back bar - the real PlansView (it was a third toggle here, #448)
-  const [lineageFor, setLineageFor] = useState(null);
+  // its URL (14.10 #770 phase 2), as the real /coach/programs/analysis/<athlete>
+  const lnFromPath = (pth) => { const m = String(pth || '').match(/^\/demo\/coach\/programs\/analysis\/([^/]+)\/?$/); return m ? decodeURIComponent(m[1]) : null; };
+  const [lineageFor, setLineageFor] = useState(() => (typeof window !== 'undefined' ? lnFromPath(window.location.pathname) : null));
+  useUrlSync(lineageFor, setLineageFor, {
+    toPath: (id) => (typeof window === 'undefined' || !window.location.pathname.startsWith('/demo/coach/programs') ? null : id ? `/demo/coach/programs/analysis/${encodeURIComponent(id)}` : (lnFromPath(window.location.pathname) ? { path: '/demo/coach/programs', replace: true } : null)),
+    fromPath: lnFromPath,
+  });
   // the overlay's BACK says "(Esc)": Escape closes it, and it opens with BACK focused (29.9 audit)
   const lineageBackRef = React.useRef(null);
   useEffect(() => {
@@ -3868,7 +3876,14 @@ function DemoReview() {
   //   2. Workout detail — exercise rows with the same 📹💬🎯 icons + bottom
   //      action row (DELETE / UNMARK / BACK TO REVIEW / NEXT PENDING) the
   //      real coach sees.
-  const [selectedId, setSelectedId] = useState(null);
+  // THE OPEN WORKOUT HAS ITS URL (14.10 #770 phase 2), as on the real /coach/review/<workout>:
+  // /demo/coach/review/<workout>; a link or a reload opens it, Back returns to the queue.
+  const rvFromPath = (pth) => { const m = String(pth || '').match(/^\/demo\/coach\/review\/([^/]+)\/?$/); return m && MOCK_REVIEW_QUEUE.some((w) => w.id === decodeURIComponent(m[1])) ? decodeURIComponent(m[1]) : null; };
+  const [selectedId, setSelectedId] = useState(() => (typeof window !== 'undefined' ? rvFromPath(window.location.pathname) : null));
+  useUrlSync(selectedId, setSelectedId, {
+    toPath: (id) => (typeof window === 'undefined' || !window.location.pathname.startsWith('/demo/coach/review') || window.location.pathname.startsWith('/demo/coach/review-tools') ? null : id ? `/demo/coach/review/${encodeURIComponent(id)}` : (rvFromPath(window.location.pathname) ? { path: '/demo/coach/review', replace: true } : null)),
+    fromPath: rvFromPath,
+  });
   const [vsDemo, setVsDemo] = useState(false); // Body-Match: form clip vs library reference demo
   const selected = MOCK_REVIEW_QUEUE.find(w => w.id === selectedId);
   // The real queue (WorkoutReview): pending athletes first; the reviewed
@@ -5211,7 +5226,7 @@ function traineeIdFromPath(p) {
 }
 function programIdFromPath(p) {
   const m = (p || '').match(/^\/demo\/coach\/programs\/([^/?#]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
+  return m && m[1] !== 'analysis' ? decodeURIComponent(m[1]) : null;   // /programs/analysis/<athlete> = Training Analysis (#770)
 }
 
 export default function CoachDemo() {

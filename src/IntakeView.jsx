@@ -22,6 +22,7 @@ import IntakeResponses, { FORM_NAME } from './IntakeResponses';
 const formWord = (t, tt) => (readLang() === 'he' && FORM_NAME[t] ? FORM_NAME[t].he : tt(t));
 const langWord = (l) => (readLang() === 'he' ? ({ he: 'עברית', en: 'אנגלית' }[l] || String(l || '').toUpperCase()) : String(l || '').toUpperCase());
 import { useT, useTB, tr, readLang, agoLabel } from './i18n';
+import { useUrlSync, useUrlFlag, segmentAfter } from './urlState';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -177,6 +178,27 @@ export default function IntakeView({ trainees }) {
     setShowGen(false); setGenResult(null); setGenError('');
     setGenForm({ formType: 'initial', locale: 'he', traineeId: '', label: '' });
   };
+  // THE POP-UPS HAVE THEIR URLS (14.10 #770 phase 2): /coach/intake/<submission> · /coach/intake/generate-link.
+  // A shared or reloaded link opens it (a submission once the list is here); Back closes it.
+  const IN_BASE = '/coach/intake';
+  const onIntake = () => typeof window !== 'undefined' && window.location.pathname.startsWith(IN_BASE);
+  const subFromPath = (pth) => { const w = segmentAfter(pth, IN_BASE); return w && w !== 'generate-link' ? decodeURIComponent(w) : null; };
+  useUrlSync(openSubmission ? openSubmission.id : null, (id) => setOpenSubmission(id ? ((submissions || []).find((x) => x && x.id === id) || null) : null), {
+    toPath: (id) => (!onIntake() ? null : id ? `${IN_BASE}/${encodeURIComponent(id)}` : (subFromPath(window.location.pathname) ? { path: IN_BASE, replace: true } : null)),
+    fromPath: subFromPath,
+  });
+  useUrlFlag(showGen, (v) => (v ? setShowGen(true) : closeGen()), onIntake() ? IN_BASE : null, 'generate-link');
+  const urlOpenedRef = useRef(false);
+  useEffect(() => {   // a link straight to a pop-up: open it (a submission once the list has loaded)
+    if (urlOpenedRef.current || !onIntake()) return;
+    const p = window.location.pathname;
+    if (segmentAfter(p, IN_BASE) === 'generate-link') { urlOpenedRef.current = true; setShowGen(true); return; }
+    const id = subFromPath(p);
+    if (!id) { urlOpenedRef.current = true; return; }
+    if (submissions == null) return;
+    urlOpenedRef.current = true;
+    const hit = submissions.find((x) => x && x.id === id); if (hit) setOpenSubmission(hit);
+  }, [submissions]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   if (submissions == null) {
     return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>{tt('Loading intake…')}</div>;

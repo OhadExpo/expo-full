@@ -16,6 +16,8 @@ import { todayLocalISO } from './dates';
 import DemoTraineePortal from './DemoTraineePortal';
 import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
 import { createPoseOverlay } from './poseOverlay';
+import { createWorkerLandmarker } from './poseWorkerClient';
+import { useUrlSync } from './urlState';
 // ANATOMY (#774): the clip's 3D body - three.js loads only when the visitor asks for it
 const Replay3D = React.lazy(() => import('./Replay3D').catch(() => ({ default: function Replay3DUnavailable() { return null; } })));
 // one person - the lifter (13.10 #719b): a lock per video source (a new clip starts afresh)
@@ -72,7 +74,17 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
   // step: 'exercise' → 'upload' → 'analyze' → 'compare'
   // We don't gate forward steps — you can land on 'analyze' with no video and
   // it'll show the empty state. The header stepper is the canonical UI path.
-  const [step, setStep] = useState('exercise');
+  // EVERY STEP HAS ITS URL (14.10 #770 phase 2): /try (the exercise) · /try/upload · /try/analyze · /try/compare, in the
+  // stepper's own words; Back walks the steps. A clip is the visitor's own file, so a reload of /try/analyze shows the
+  // step's empty state (it never could carry the video).
+  const TRY_STEPS = ['upload', 'analyze', 'compare'];
+  const stepFromPath = (pth) => { const m = String(pth || '').match(/^\/try\/([a-z]+)\/?$/); return m && TRY_STEPS.includes(m[1]) ? m[1] : 'exercise'; };
+  const [step, setStep] = useState(() => (typeof window !== 'undefined' ? stepFromPath(window.location.pathname) : 'exercise'));
+  useUrlSync(step, setStep, {
+    // (embedded in the landing page, isEmbedded: its steps never enter the page's history)
+    toPath: (v) => (typeof window === 'undefined' || isEmbedded || !/^\/try(\/|$)/.test(window.location.pathname) ? null : v === 'exercise' ? (stepFromPath(window.location.pathname) === 'exercise' ? null : { path: '/try' }) : `/try/${v}`),   // /try/program (the demo portal's tab) already IS the exercise step: leave it, or Back would push over Forward
+    fromPath: stepFromPath,
+  });
   const [exercise, setExercise] = useState(null);
   const [videoBlob, setVideoBlob] = useState(null); // user-uploaded video (blob URL)
   const [videoUrl, setVideoUrl] = useState(null);
@@ -1820,11 +1832,15 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
     if (landmarkerRef.current) return true;
     setPoseLoading(true); setPoseError('');
     try {
+      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
+      // the model in a WORKER first (14.10 #775, as the review player): the page plays and draws at the screen's rate
+      // while a frame is read; the page's own model only when the browser has no worker path
+      const wk = await createWorkerLandmarker({ model: modelUrl, numPoses: LIVE_POSES });
+      if (wk) { landmarkerRef.current = wk; setModelReady(true); setPoseLoading(false); return true; }
       const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
       const fileset = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
       );
-      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: modelUrl, delegate },
         runningMode: 'VIDEO',
@@ -1911,19 +1927,16 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
         const ts = Math.max(performance.now(), lastTs + 0.001);
         if (ts > lastTs) {
           lastTs = ts;
+          const vt = v.currentTime;   // the frame this reading belongs to (a worker answers a few frames later)
+          const handle = (raw) => {
           try {
-            const result = lockResult(lockFor(lockRef, v), lm.detectForVideo(v, ts), ts);
-            ctx.clearRect(0, 0, w, h);
+            if (!active || !raw) return;
+            const result = lockResult(lockFor(lockRef, v), raw, ts);
+            if (!(poseOn || anglesOn)) ctx.clearRect(0, 0, w, h);   // with a picture tool on, the display loop owns the canvas
             const lms = result.landmarks?.[0];
             const wlms = result.worldLandmarks?.[0] || lms;
-            const vw = v.videoWidth || w, vh = v.videoHeight || h;
-            const s = Math.min(w / vw, h / vh);
-            const dw = vw * s, dh = vh * s;
-            const ox = (w - dw) / 2, oy = (h - dh) / 2;
-            const px = (p) => ox + p.x * dw;
-            const py = (p) => oy + p.y * dh;
             if (lms) {
-              if (poseOn || anglesOn) { ovl.update(lms, result.worldLandmarks?.[0], v.currentTime); ovl.draw(ctx, { w, h, px, py, skeleton: poseOn, angles: anglesOn }); }
+              if (poseOn || anglesOn) ovl.update(lms, result.worldLandmarks?.[0], vt);
               const next = {};
               for (const d of ANGLE_DEFS) {
                 const val = angleAt(wlms, d.a, d.b, d.c);
@@ -1934,7 +1947,6 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
               const BUCKET_FPS = 30;
               if (repsOn) {
                 const st = repStateRef.current;
-                const vt = v.currentTime;
                 const bucket = Math.round(vt * BUCKET_FPS);
                 for (const d of ANGLE_DEFS) {
                   const key = d.name;
@@ -1947,7 +1959,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
                   repsCountRef.current = 0;
                 } else {
                   const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
-                  const curBucket = Math.round(v.currentTime * BUCKET_FPS);
+                  const curBucket = Math.round(vt * BUCKET_FPS);
                   let bestCount = 0;
                   for (const key of activeCh) {
                     const sig = st.signalBufs[key];
@@ -1965,10 +1977,32 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
               }
             }
           } catch { /* per-frame errors are noisy and recoverable */ }
+          };
+          if (lm.isWorker) { if (!lm.busy) lm.detect(v, ts).then((r) => { if (r && r.result) handle(r.result); }); }
+          else { try { handle(lm.detectForVideo(v, ts)); } catch { /* recoverable */ } }
         }
       }
       schedule();
     };
+
+    // THE DISPLAY LOOP (#775): the lines + angles drawn at the SCREEN's rate, each frame at the clip's current time
+    let paintRaf = 0;
+    const paint = () => {
+      if (!active) return;
+      const w = v.clientWidth, h = v.clientHeight;
+      if (w > 0 && h > 0) {
+        const dpr = Math.min(3, window.devicePixelRatio || 1);
+        if (c.width !== Math.round(w * dpr)) c.width = Math.round(w * dpr);
+        if (c.height !== Math.round(h * dpr)) c.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        const vw = v.videoWidth || w, vh = v.videoHeight || h;
+        const sc = Math.min(w / vw, h / vh), dw = vw * sc, dh = vh * sc, ox = (w - dw) / 2, oy = (h - dh) / 2;
+        ovl.draw(ctx, { w, h, px: (q) => ox + q.x * dw, py: (q) => oy + q.y * dh, skeleton: poseOn, angles: anglesOn, t: v.currentTime });
+      }
+      paintRaf = requestAnimationFrame(paint);
+    };
+    if (poseOn || anglesOn) paintRaf = requestAnimationFrame(paint);
 
     // ONE scheduler, one live chain. detect() re-schedules itself at the end of
     // every call, so every extra entry point — each 'seeked', each
@@ -2006,6 +2040,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (paintRaf) cancelAnimationFrame(paintRaf);
       if (hudInterval) clearInterval(hudInterval);
       v.removeEventListener('seeked', onNeedFrame);
       v.removeEventListener('loadeddata', onNeedFrame);
@@ -2024,7 +2059,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
     setAnat({ state: 'busy', pct: 0, frames: null });
     try {
       const { captureClipFrames } = await import('./MovementLab');
-      const frames = await captureClipFrames(url, { onProgress: (q) => setAnat((a) => ({ ...a, pct: q })) });
+      const frames = await captureClipFrames(url, { onProgress: (q) => setAnat((a) => ({ ...a, pct: Math.min(1, (Number(q) || 0) / 100) }))   /* the reader reports 0-100: shown x100 it read 1200% (#778) */ });
       setAnat({ state: 'done', pct: 1, frames });
     } catch { setAnat({ state: 'err', pct: 0, frames: null }); }
   };

@@ -238,6 +238,8 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
   const [pushOn, setPushOn] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushSupported, setPushSupported] = useState(true);
+  // #787: re-send this device's subscription on open (the server's copy had lapsed since May)
+  useEffect(() => { const t = setTimeout(() => { import('./push').then((m) => m.refreshPush && m.refreshPush('coach')).catch(() => {}); }, 8000); return () => clearTimeout(t); }, []);
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -353,9 +355,11 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
           // stacking context so it floats above all page content. The
           // coords mirror the button's bottom-right corner.
           position: 'fixed', top: coords.top, right: coords.right,
+          // a phone: 12px from both screen edges, never against one (14.10 #788)
+          ...(typeof window !== 'undefined' && window.innerWidth < 600 ? { left: 12, right: 12 } : {}),
           background: 'var(--c-bg)',
           border: `1px solid ${C.cardBd}`,
-          minWidth: 220, zIndex: 100000,
+          minWidth: 220, width: typeof window !== 'undefined' && window.innerWidth < 600 ? 'auto' : 'max-content', maxWidth: 'calc(100vw - 24px)', zIndex: 100000,
           boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
         }}>
           {items.slice(0, -1).map(it => {
@@ -371,8 +375,11 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
-                <span>{tt(it.label)}</span>
+                {/* the content row is a SPAN: phone button rules centred a button's own content (14.10 #788) */}
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 10, width: '100%', minHeight: 24 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
+                  <span style={{ textAlign: 'start' }}>{tt(it.label)}</span>
+                </span>
               </button>
             );
           })}
@@ -380,39 +387,36 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
               is clickable; the label area is inert. Ohad spec 2026-05-23. */}
           {pushSupported && (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 14px', borderBottom: `1px solid ${C.cardBd}`,
+              display: 'flex', alignItems: 'center', gap: 10, height: 45, boxSizing: 'border-box',   /* the rows' one height (#788) */
+              padding: '0 14px', borderBottom: `1px solid ${C.cardBd}`,
               color: C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
             }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', color: C.tm, flexShrink: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, color: C.tm, flexShrink: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </span>
               <span style={{ flex: 1 }}>{tt('Push Notifications')}</span>
-              {/* Toggle switch — the ONLY clickable region. */}
+              {/* Toggle switch — the ONLY clickable region. The SWITCH is a fixed 36x20 span inside a plain tap target:
+                  phone button rules blew the old 36x20 button up to a 48x43 slab (14.10 #788) */}
               <button onClick={e => { e.stopPropagation(); togglePush(); }}
                 disabled={pushBusy}
                 aria-label={tt(pushOn ? 'Turn off push notifications' : 'Turn on push notifications')}
+                aria-pressed={pushOn}
                 title={tt(pushOn ? 'Click to disable push notifications' : 'Click to enable push notifications')}
-                style={{
-                  flexShrink: 0, width: 36, height: 20, borderRadius: 10,
-                  background: pushOn ? '#39BDFF' : 'var(--c-sf3)',
-                  border: `1px solid ${pushOn ? '#39BDFF' : C.cardBd}`,
-                  position: 'relative', padding: 0,
-                  cursor: pushBusy ? 'wait' : 'pointer',
-                  opacity: pushBusy ? 0.6 : 1,
+                style={{ flexShrink: 0, background: 'transparent', border: 'none', padding: 0, margin: 0, minWidth: 44, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', cursor: pushBusy ? 'wait' : 'pointer', opacity: pushBusy ? 0.6 : 1 }}>
+                <span aria-hidden="true" style={{
+                  display: 'block', flex: '0 0 36px', width: 36, height: 20, boxSizing: 'border-box', borderRadius: 10, position: 'relative',
+                  background: pushOn ? '#39BDFF' : 'var(--c-sf3)', border: `1px solid ${pushOn ? '#39BDFF' : C.cardBd}`,
                   transition: 'background 0.15s, border-color 0.15s',
                 }}>
-                <span style={{
-                  position: 'absolute',
-                  top: 1, left: 1, transform: pushOn ? 'translateX(16px)' : 'none',
-                  width: 16, height: 16, borderRadius: '50%',
-                  background: '#FFFFFF',
-                  transition: 'transform 0.15s cubic-bezier(.22,.61,.36,1)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                }} />
+                  <span style={{
+                    position: 'absolute', top: 1, left: 1, transform: pushOn ? 'translateX(16px)' : 'none',
+                    width: 16, height: 16, borderRadius: '50%', background: '#FFFFFF',
+                    transition: 'transform 0.15s cubic-bezier(.22,.61,.36,1)', boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                  }} />
+                </span>
               </button>
             </div>
           )}
@@ -430,8 +434,11 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
-                <span>{tt(it.label)}</span>
+                {/* the content row is a SPAN: phone button rules centred a button's own content (14.10 #788) */}
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 10, width: '100%', minHeight: 24 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
+                  <span style={{ textAlign: 'start' }}>{tt(it.label)}</span>
+                </span>
               </button>
             );
           })}
@@ -1201,7 +1208,8 @@ function AuthedApp() {
       // legacy bookmark / chat-share. Both route to the same internal tab.
       if (sub.startsWith('athletes/') || sub.startsWith('trainees/')) {
         const parts = sub.split('/');
-        const traineeId = parts[1];
+        // /coach/athletes/new/<format> is the New Athlete form (#770 phase 2), not an athlete called 'new'
+        const traineeId = parts[1] === 'new' ? null : parts[1];
         const preview = parts[2] === 'preview';
         return { mode:'coach', tab:'trainees', traineeId, preview };
       }
@@ -1213,6 +1221,7 @@ function AuthedApp() {
       // so a refresh / tab-duplicate lands back in the same editor).
       if (sub.startsWith('programs/')) {
         const parts = sub.split('/');
+        if (parts[1] === 'analysis') return { mode:'coach', tab:'plans', traineeId:null };   // the Training Analysis panel (#770), not a plan id
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
       // /coach/bhbc/<tab>: the club zone owns the segment after bhbc (27.9).
@@ -2135,7 +2144,7 @@ function AuthedApp() {
           {viewTab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}
           {viewTab==="reviewTools"&&isOwner&&<ReviewToolsView clientWorkouts={clientWorkouts} trainees={trainees} updateFormVideos={updateFormVideos}/>}
           {viewTab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
-          {viewTab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVisSynced} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
+          {viewTab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; const p=window.location.pathname; if(p!==path&&!p.startsWith(path+'/')) window.history.pushState(null,'',path); /* a pop-up's tail (/compare, /history, /add-exercise) stays (#770) */ }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVisSynced} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {viewTab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts}/>}
           {viewTab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}} onOpenBilling={()=>navTo("billing")}/>}
           {viewTab==="bugs"&&<BugsView/>}

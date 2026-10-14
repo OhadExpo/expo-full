@@ -102,7 +102,25 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 | Coach demo sub-pages | `/demo/coach/review-tools`, `/demo/coach/sessions-single` (were the same URL as Workouts / Group) |
 | Canonical | `/demo/sandbox` → `/try`; an unknown `/coach/<x>` → `/coach/dashboard` |
 
-Still to do (phase 2, see the 14.10 inventory): program editor pop-ups, exercises / matching / tasks / billing / intake / challenges dialogs, sessions + workouts steps, schedule views, the demo's inner dialogs, `/try` steps, the expo-il modals (quiz, demos, exit, drawer).
+| `/try` steps | `/try` (exercise; the demo portal's tabs as `/try/program` … `/try/messages`) · `/try/upload` · `/try/analyze` · `/try/compare` (14.10 phase 2; a reload of a clip step shows its empty state - the clip is the visitor's file) |
+| BHBC MY PROGRAM | `/bhbc/my-program` (+ the portal tabs `/bhbc/my-program/history` …); the owner's preview `/coach/bhbc/my-program/preview/head-coach` (14.10 #769) |
+
+| Training Analysis | `/coach/programs/analysis/<athlete>` (14.10 phase 2) |
+| Program editor pop-ups | `/coach/programs/<id>/add-exercise` · `/compare` · `/history` (the MORE menu's words; 14.10 phase 2) |
+| Exercise form | `/coach/exercises/new` · `/coach/exercises/<id>/edit` (14.10 phase 2) |
+| New Athlete form | `/coach/athletes/new/online-athlete` · `/gym-single` · `/gym-couple` · `/bnei-herzliya` (the + menu's words; 14.10 phase 2) |
+| Group session picker | `/coach/sessions/start-session` · `/coach/sessions/add-athletes` (14.10 phase 2) |
+| Single-session logger | `/coach/sessions-single/logging/<athlete>` while logging (a live session is not in the URL: a reload / Forward lands on the picker) (14.10 phase 2) |
+| Owed detail | `/coach/billing/owed/<athlete>` · `/coach/dashboard/owed/<athlete>` (a sheet-only client = a short hash, never a name) (14.10 phase 2) |
+| BHBC schedule views | `…/bhbc/schedule` (Month) · `/schedule/week` · `/schedule/list` (14.10 phase 2) |
+| Exercise matching pop-ups | `/coach/exercise-matching/change/<title>` · `/preview/<exercise>` (alone or on top of the picker) · `/apply` (14.10 phase 2) |
+| Tasks board | `/coach/tasks` (list) · `/coach/tasks/board` (14.10 phase 2) |
+| Challenge form | `/coach/challenges/new` · `/coach/challenges/<id>/edit` (14.10 phase 2) |
+| Intake pop-ups | `/coach/intake/<submission>` · `/coach/intake/generate-link` (14.10 phase 2) |
+
+| Coach demo inner pages | `/demo/coach/review/<workout>` · `/demo/coach/programs/analysis/<athlete>` (as the real app's; 14.10 phase 2) |
+
+Phase 2 done 14.10. Deliberately NOT in history: menus (MORE, the mobile drawer, filter pills), confirm dialogs, the marketing exit-intent pop-up (opens by itself), the demo's per-exercise note peek.
 
 ---
 
@@ -125,6 +143,7 @@ table honest to `parseHash` or the same class of bug hides again.
 | `#/programs/<unknown-id>` | detail | `NotFound` (in-component guard) | ✅ 2026-07-19 |
 | `#/privacy` | privacy | `Legal.Privacy` — what is collected, where it goes, browser storage | 🆕 2026-09-21 |
 | `#/terms` | terms | `Legal.Terms` — not medical advice, cancellations, content ownership | 🆕 2026-09-21 |
+| `…/quiz` · `…/demo/pose` · `…/demo/rep` · `…/demo/cmp` (a suffix on any page; the page under it is routed without it) | the quiz / a WHAT'S INSIDE demo over the current page | `useHashModal` | 🆕 2026-10-14 (#770 phase 2; the exit-intent pop-up opens by itself and the mobile menu is a menu, so neither pushes history) |
 | `#/accessibility` | accessibility | `Legal.Accessibility` — IS 5568 / WCAG statement, what is and is not done | 🆕 2026-09-21 |
 
 ---

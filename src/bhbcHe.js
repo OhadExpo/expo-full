@@ -142,6 +142,7 @@ export const HE = {
   'Month': 'חודש',
   'Week': 'שבוע',
   'List': 'רשימה',
+  'Close': 'סגירה',
   'My program': 'התוכנית שלי',
   'Athlete portal': 'פורטל המתאמן',
   'The athlete portal as this player sees it - nothing you do there is saved': 'פורטל המתאמן כמו שהשחקן רואה אותו - שום דבר לא נשמר',
@@ -196,7 +197,7 @@ export const HE = {
   'Showing the last data saved on this device. It may be out of date, and anything you log will be sent when the connection returns.':
     'מוצג המידע האחרון שנשמר במכשיר. יכול להיות שהוא לא מעודכן, וכל מה שתרשום יישלח כשהחיבור יחזור.',
   'Preview as coach': 'תצוגת מאמן',
-  'Preview': 'כמאמן',
+  'Preview': 'תצוגה מקדימה',   // three seats now (#773) - 'as coach' named only one
   'Back': 'חזרה',
   'Outbound': 'הלוך',
   'Coach view': 'תצוגת מאמן',

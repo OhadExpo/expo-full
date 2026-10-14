@@ -105,6 +105,26 @@ export async function enablePush(role) {
   return sub;
 }
 
+// KEEP THE SERVER'S COPY CURRENT (14.10 #787, Ohad: "I need to get notifications on the expo app on mobile and rn I
+// don't get any"): the server held his phone's subscription from May - long expired - while the phone's switch read ON
+// (the BROWSER still had one). Each open of the app, where notifications are already allowed, re-sends the device's
+// subscription (a lapsed one is re-made), at most twice a day. Never asks for permission; silent on any failure.
+export async function refreshPush(role) {
+  try {
+    if (isSandboxSeat() || !isPushSupported() || !('Notification' in window) || Notification.permission !== 'granted') return false;
+    const K = 'expo-push-refreshed-' + role, last = +(localStorage.getItem(K) || 0);
+    if (Date.now() - last < 12 * 3600 * 1000) return false;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8(VAPID_PUBLIC) });
+    const { data: session } = await supabase.auth.getSession();
+    const token = session?.session?.access_token; if (!token) return false;
+    const r = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ subscription: sub.toJSON(), role }) });
+    if (r.ok) { try { localStorage.setItem(K, String(Date.now())); } catch { /* private mode */ } }
+    return r.ok;
+  } catch { return false; }
+}
+
 export async function disablePush() {
   if (!isPushSupported()) return;
   try {

@@ -1102,7 +1102,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     if (reuse && reuse.length >= 10) { setAnat({ state: 'done', pct: 1, frames: reuse }); return; }
     setAnat({ state: 'busy', pct: 0, frames: null });
     try {
-      const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: (q) => setAnat((a) => ({ ...a, pct: q })) });
+      const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: (q) => setAnat((a) => ({ ...a, pct: Math.min(1, (Number(q) || 0) / 100) }))   /* the reader reports 0-100: shown x100 it read 1200% (#778) */ });
       setAnat({ state: 'done', pct: 1, frames });
     } catch { setAnat({ state: 'err', pct: 0, frames: null }); }
   };

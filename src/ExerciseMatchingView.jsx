@@ -6,7 +6,8 @@
 // SAFETY: the scan + suggestions are read-only. The one mutation (Apply) rewrites
 // trainee-visible plans.data, so it's gated behind an explicit confirm with a
 // count, and only touches rows whose normalized title matches the accepted group.
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useUrlSync } from './urlState';
 import { StoredVideo } from './StoredMedia';
 import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, EmptyState, toast, JoinedButtons } from './ui';
@@ -162,6 +163,41 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
     const rows = scanUnmatched(plans, exercises);
     return groupUnmatched(rows).map((g) => ({ ...g, suggestions: suggestMatches(g.title, exercises, 4) }));
   }, [plans, exercises]);
+  // THE POP-UPS HAVE THEIR URLS (14.10 #770 phase 2): .../exercise-matching/change/<title> (the library picker for a
+  // group) · /preview/<exercise> (on top of it or alone) · /apply (the confirm) - one tail for the whole stack, so a
+  // reload or a shared link reopens exactly what was open; Back steps out.
+  const MBASE = '/coach/exercise-matching';
+  const enc = (x) => encodeURIComponent(String(x));
+  const mSuffix = (pickerFor ? `/change/${enc(pickerFor.key)}` : '') + (peek && peek.ex && peek.ex.id ? `/preview/${enc(peek.ex.id)}` : '') + (confirm ? '/apply' : '');
+  const mApply = (v) => {
+    const m = String(v || '');
+    const ck = (m.match(/\/change\/([^/]+)/) || [])[1], pid = (m.match(/\/preview\/([^/]+)/) || [])[1];
+    const key = ck ? decodeURIComponent(ck) : null;
+    const g = key ? (groups || []).find((x) => x.key === key) : null;
+    setPickerFor(key ? { key, title: g ? g.title : key } : null);
+    const ex = pid ? (exercises || []).find((x) => x && x.id === decodeURIComponent(pid)) : null;
+    setPeek(ex ? { ex, key } : null);
+    setConfirm(/\/apply(\/|$)/.test(m));
+  };
+  useUrlSync(mSuffix || null, mApply, {
+    // the picker opens with its own entry (Back closes it); the preview / confirm on top of it change that entry in place,
+    // so one Back always closes the whole stack and an accept never reopens the picker (pre-deploy review)
+    toPath: (v) => {
+      if (typeof window === 'undefined' || !window.location.pathname.startsWith(MBASE)) return null;
+      const cur = window.location.pathname.slice(MBASE.length);
+      if (!v) return cur ? { path: MBASE, replace: true } : null;
+      return cur ? { path: MBASE + v, swap: true } : { path: MBASE + v };
+    },
+    fromPath: (pth) => (String(pth).startsWith(MBASE + '/') ? String(pth).slice(MBASE.length) : null),
+  });
+  const mUrlRef = useRef(false);
+  useEffect(() => {   // a link straight to a pop-up: reopen it once the groups + library are here
+    if (mUrlRef.current || typeof window === 'undefined') return;
+    const p = window.location.pathname;
+    if (!p.startsWith(MBASE + '/')) { mUrlRef.current = true; return; }
+    if (!plans || !(exercises || []).length) return;   // groups is [] until the plans load
+    mUrlRef.current = true; mApply(p.slice(MBASE.length));
+  }, [plans, groups, exercises]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalEntries = groups.reduce((a, g) => a + g.count, 0);
   const accepted = Object.entries(decisions).filter(([, d]) => d.action === 'accept' && d.ex);

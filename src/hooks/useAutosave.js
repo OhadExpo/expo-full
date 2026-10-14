@@ -34,8 +34,25 @@ export default function useAutosave(value, save, options = {}) {
   // Result of the most recent save, so flush() can report success/failure to
   // its caller (SHARE/DUPLICATE/PREVIEW must NOT proceed on a stale DB copy).
   const lastOkRef = useRef(true);
+  // WHAT THE SERVER HAS (14.10): the loaded value, then each value a save landed. A new object with the SAME content
+  // (the editor re-normalising a plan after it loads) is not an edit - it re-saved an unchanged program on every open,
+  // bumped updated_at and could make another device's save read as "changed on another device".
+  const sig = (v) => { try { return JSON.stringify(v); } catch { return null; } };
+  const savedSigRef = useRef(sig(value));
+  const inflightRef = useRef(false);   // a save on the wire: an undo back to the OLD content must still be saved after it
 
   useEffect(() => { saveRef.current = save; }, [save]);
+  // #780: an edit not saved yet holds the app's automatic update (SwUpdateBanner reads window.__expoUnsaved)
+  const unsavedKey = useRef(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!unsavedKey.current) unsavedKey.current = Symbol('autosave');
+    const set = (window.__expoUnsaved = window.__expoUnsaved || new Set());
+    if (status === 'pending' || status === 'saving' || status === 'error') set.add(unsavedKey.current); else set.delete(unsavedKey.current);
+    return undefined;
+  }, [status]);
+  // on unmount the key goes only once the FINAL save (started by the leave-flush below) has landed
+  useEffect(() => () => { const k = unsavedKey.current; setTimeout(() => { Promise.resolve(chainRef.current).finally(() => { try { if (window.__expoUnsaved && k) window.__expoUnsaved.delete(k); } catch { /* noop */ } }); }, 0); }, []);
 
   const enqueue = useCallback(() => {
     if (!dirtyRef.current) return chainRef.current;
@@ -46,10 +63,15 @@ export default function useAutosave(value, save, options = {}) {
       // the save it re-flips dirty and is picked up by the next enqueue.
       const snap = valueRef.current;
       dirtyRef.current = false;
+      const snapSig = sig(snap);
+      if (snapSig != null && snapSig === savedSigRef.current) { lastOkRef.current = true; if (!dirtyRef.current) setStatus('idle'); return; }   // nothing new
       let ok = true;
+      inflightRef.current = true;
       try { ok = (await saveRef.current(snap)) !== false; }
       catch (e) { ok = false; console.error('useAutosave error:', e); }
+      inflightRef.current = false;
       lastOkRef.current = ok;
+      if (ok) savedSigRef.current = snapSig;
       if (!ok) {
         dirtyRef.current = true;
         setStatus('error');
@@ -78,12 +100,14 @@ export default function useAutosave(value, save, options = {}) {
 
   const markClean = useCallback(() => {
     dirtyRef.current = false;
+    savedSigRef.current = sig(valueRef.current);
     setStatus('idle');
   }, []);
 
   useEffect(() => {
     valueRef.current = value;
     if (isMountRef.current) { isMountRef.current = false; return; }
+    if (!dirtyRef.current && !inflightRef.current && sig(value) === savedSigRef.current) return;   // same content as the server's: no 'Editing…'
     dirtyRef.current = true;
     setStatus('pending');
     if (debounceRef.current) clearTimeout(debounceRef.current);

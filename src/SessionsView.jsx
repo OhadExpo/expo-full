@@ -22,6 +22,7 @@ import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase, useStripFit, Car
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
 import { tr, readLang, useT as useAppT, useTB } from './i18n';
+import { useUrlSync, segmentAfter } from './urlState';
 
 
 
@@ -97,6 +98,20 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
   const [picking, setPicking] = useState(false);
+  // THE ATHLETE PICKER HAS ITS URL (14.10 #770 phase 2), in its buttons' words: /coach/sessions/start-session (no
+  // session yet) · /coach/sessions/add-athletes (one running). A reload opens it; Back closes it.
+  const SS_BASE = '/coach/sessions';
+  const onSessions = () => typeof window !== 'undefined' && (window.location.pathname === SS_BASE || window.location.pathname.startsWith(SS_BASE + '/'));
+  const pickFromPath = (pth) => { const w = segmentAfter(pth, SS_BASE); return w === 'start-session' || w === 'add-athletes' ? w : null; };
+  // the word is fixed when the picker OPENS: a session arriving from another device mid-pick must not move the URL
+  // (it stacked an entry and the picker reopened after Confirm - pre-deploy review)
+  const [pickWord, setPickWord] = useState(null);
+  useEffect(() => { if (picking && !pickWord) setPickWord(session ? 'add-athletes' : 'start-session'); if (!picking && pickWord) setPickWord(null); }, [picking]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useUrlSync(picking ? (pickWord || (session ? 'add-athletes' : 'start-session')) : null, (w) => setPicking(!!w), {
+    toPath: (w) => (!onSessions() ? null : w ? `${SS_BASE}/${w}` : (pickFromPath(window.location.pathname) ? { path: SS_BASE, replace: true } : null)),
+    fromPath: pickFromPath,
+  });
+  useEffect(() => { if (onSessions() && pickFromPath(window.location.pathname)) setPicking(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const [planDays, setPlanDays] = useState({}); // planId → days[] (for live tempo/video/cue lookup)
   const saveTimer = useRef(null);
   // THE SESSION'S DURABLE WRITE (4.10 #524 audit): a set ticked < 0.5 s before a tab
