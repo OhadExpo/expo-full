@@ -1624,6 +1624,7 @@ export const HE = {
   '/km': 'לק"מ',
   'SEGMENTS': 'מקטעים',
   '1 SEGMENT': 'מקטע אחד',
+  'HR up to {n}': 'דופק עד {n}',
   'mm:ss': 'דק:שנ',
   'KM': 'ק"מ',
   'HR': 'דופק',

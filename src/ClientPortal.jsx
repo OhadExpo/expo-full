@@ -2582,7 +2582,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                     never read a run), HEART RATE */}
                 <input aria-label={tt('Distance (km)')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={String(repsForDisplay || '').replace(/\s*km$/i, '') || 'km'} style={seti}/>
                 <input aria-label={tt('Time (mm:ss)')} value={set.time || ''} onChange={e => uSet(ei,si,'time',e.target.value.replace(/[.,]/g, ':'))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder={tt('mm:ss')} style={seti}/>
-                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={ex.load ? '≤' + String(ex.load).replace(/^HR\s*/i, '') : '—'} style={seti}/>
+                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={ex.load ? String(ex.load).replace(/^HR\s*/i, '') : '—'} style={seti}/>
               </> : <>
               <input aria-label={timedHold ? tt('Seconds') : tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
@@ -4283,7 +4283,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               return {
                 num: i + 1,
                 rx: rxOf(ex),
-                tempo: vp.sport === 'running' && ex.load ? [ex.tempo, `${tt('HR')} ≤${String(ex.load).replace(/^HR\s*/i, '')}`].filter(Boolean).join(' · ') : ex.tempo,
+                tempo: vp.sport === 'running' && ex.load ? [ex.tempo, tt('HR up to {n}').replace('{n}', String(ex.load).replace(/^HR\s*/i, ''))]   /* in words: a trailing ≤ flips in a Hebrew line */.filter(Boolean).join(' · ') : ex.tempo,
                 title: d.t,
                 // FOCUS IS THE COACH'S WEEKLY EMPHASIS. NOTHING ELSE.
                 //
