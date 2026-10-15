@@ -702,18 +702,32 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           </span>
         </button>
       </div>
+      {/* THE ATHLETE'S NAME is the page title (15.10 #810, Ohad: "I need to obviously see the athletes name at the top").
+          No band, no cyan line under it (the August removal was of the LINE) - the name alone, the page's biggest words. */}
+      {(() => { const heb = isHebrew(td.name); return (
+        <h1 data-athlete-name style={{ margin: '0 0 14px', fontFamily: heb ? FH : FN, fontSize: heb ? 26 : 22, fontWeight: 700, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase', color: C.tx, lineHeight: 1.2, overflowWrap: 'anywhere', textAlign: 'start' }}><bdi>{td.name}</bdi>{td.status === 'Archived' && <span style={{ marginInlineStart: 12, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: C.td, verticalAlign: 'middle', textTransform: 'uppercase' }}>{t('ARCHIVED')}</span>}</h1>
+      ); })()}
       {(() => {
         const acts = [
-          { label: t('EDIT'), onClick: openEdit },
-          onPreviewPortal && { label: t('PORTAL'), onClick: onPreviewPortal, title: t("Open this athlete's portal in preview mode") },
-          { label: t('ANALYSIS'), onClick: () => lineage.open(trainee), title: t('Training Analysis — cross-block progression + what to program next') },
-          onOpenInPersonForTrainee && { label: t('LOG SESSION'), onClick: () => onOpenInPersonForTrainee(trainee), title: t('Open the in-person workout logger pre-filtered to this athlete'), tone: 'accent' },
-          ...(td.status === 'Archived'
-            ? [{ label: t('RESTORE'), onClick: () => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: 'Inactive', archivedAt: undefined } : t)); onBack(); } },
-               { label: t('DELETE'), onClick: () => setShowDeleteConfirm(true), tone: 'danger' }]
-            : [{ label: t('ARCHIVE'), onClick: () => setShowArchiveConfirm(true), title: t('Archive this athlete'), tone: 'muted' }]),
+          { label: t('EDIT'), sub: t('Profile and info'), onClick: openEdit },
+          onPreviewPortal && { label: t('PORTAL'), sub: t('Athlete view'), onClick: onPreviewPortal, title: t("Open this athlete's portal in preview mode") },
+          { label: t('ANALYSIS'), sub: t('Block progress'), onClick: () => lineage.open(trainee), title: t('Training Analysis — cross-block progression + what to program next') },
+          onOpenInPersonForTrainee && { label: t('LOG SESSION'), sub: t('In-person session'), onClick: () => onOpenInPersonForTrainee(trainee), title: t('Open the in-person workout logger pre-filtered to this athlete'), tone: 'accent' },
+          // ARCHIVE / RESTORE / DELETE live at the foot of the page now (#811): rare, and one of them destroys
         ].filter(Boolean);
-        return <JoinedButtons items={acts} maxWidth="none" className={`td-actbar td-actbar-${acts.length}`} style={{ marginBottom: 8 /* + the tabs' own 36px box = 22 to their words */ }} />;
+        // ACTION TILES (#811): the label and what it opens, one primary (LOG SESSION: the cyan word on a cyan wash);
+        // the joined grid's 1px seams, so the four read as one panel - 2 x 2 on a phone, one row wider (.td-actbar)
+        return (
+          <div className={`joined-buttons td-actbar td-actbar-${acts.length}`} style={{ display: 'grid', gridTemplateColumns: `repeat(${acts.length}, minmax(0, 1fr))`, gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 8 }}>
+            {acts.map((it, i) => (
+              <button key={i} type="button" onClick={it.onClick} title={it.title} className="td-act"
+                style={{ height: 56, minWidth: 0, padding: '0 10px', border: 'none', borderRadius: 0, background: it.tone === 'accent' ? 'color-mix(in srgb, var(--c-ac) 9%, var(--c-sf))' : 'var(--c-sf)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: it.tone === 'accent' ? C.ac : C.tx, whiteSpace: 'nowrap', lineHeight: 1 }}>{it.label}</span>
+                <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', lineHeight: 1.3, maxWidth: '100%' }}>{it.sub}</span>
+              </button>
+            ))}
+          </div>
+        );
       })()}
 
       {lineage.node}
@@ -760,7 +774,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         <Card style={{marginBottom:12,textAlign:'center'}}
           header={(() => {
             const heb = isHebrew(td.name);
-            return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {t(td.format)}</span>;
+            return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{t(td.format)}</span>;   /* the name is the page's h1 now (#810) */
           })()}
           headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title={t('Bnei Herzliya team')} style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>{t('BNEI HERZLIYA')}</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
           {/* Duplicate status Badge removed — the strip header's StatusMenu is the
@@ -1105,6 +1119,15 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       <CollapsibleSection bare domId="td-sec-overload" title={t('Progressive Overload')} storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0', display: showSec('overload') ? undefined : 'none'}}>
         <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
       </CollapsibleSection>
+
+      {/* THE FOOT (#811): the rare, destructive actions - out of the everyday bar at the top, after everything else */}
+      {activeSecs.size === 0 && (() => {
+        const acts = td.status === 'Archived'
+          ? [{ label: t('RESTORE'), onClick: () => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: 'Inactive', archivedAt: undefined } : t)); onBack(); } },
+             { label: t('DELETE'), onClick: () => setShowDeleteConfirm(true), tone: 'danger' }]
+          : [{ label: t('ARCHIVE'), onClick: () => setShowArchiveConfirm(true), title: t('Archive this athlete'), tone: 'muted' }];
+        return <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${C.cardBd}` }}><JoinedButtons items={acts} maxWidth="none" /></div>;
+      })()}
 
 
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null);setPendingBlankCouple(false)}} title={`+ New Program for ${td.name}`}>

@@ -2185,6 +2185,7 @@ select.avail-select:dir(rtl) {
   .td-actbar > button { grid-column: span 2; padding: 0 6px !important; }
   .td-actbar-5 > button:nth-child(n+4) { grid-column: span 3; }
   .td-actbar-4 > button { grid-column: span 3; }
+  .td-actbar-2 > button { grid-column: span 3; }
 }
 @media (max-width: 620px) {
   /* the section tabs: the same 3-column grid, text centred in equal

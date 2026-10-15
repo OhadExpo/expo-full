@@ -1896,14 +1896,19 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         <button type="button" onClick={onBack} className="td-back-link">{backLabel}</button>
         <DemoNotifToggle />
       </div>
-      <JoinedButtons maxWidth="none" className="td-actbar td-actbar-5" style={{ marginBottom: 8 }} items={[
-        { label: T('EDIT'), onClick: () => setActionNote('edit') },
-        { label: T('PORTAL'), onClick: () => setActionNote('portal') },
-        { label: T('ANALYSIS'), onClick: () => setActionNote('analysis') },
-        { label: T('LOG SESSION'), onClick: () => setActionNote('log'), tone: 'accent' },
-        { label: T('ARCHIVE'), onClick: () => setActionNote('archive'), tone: 'muted' },
-      ]} />
-      {actionNote && (
+      {/* the athlete's name as the page title, as the real page (#810) */}
+      <h1 data-athlete-name style={{ margin: '0 0 14px', fontFamily: isHeb(trainee.name) ? FH : FN, fontSize: isHeb(trainee.name) ? 26 : 22, fontWeight: 700, letterSpacing: isHeb(trainee.name) ? 0 : '0.04em', textTransform: isHeb(trainee.name) ? 'none' : 'uppercase', color: C.tx, lineHeight: 1.2, overflowWrap: 'anywhere', textAlign: 'start' }}><bdi>{trainee.name}</bdi></h1>
+      {/* the real page's ACTION TILES (#811): label + what it opens, LOG SESSION primary; ARCHIVE is at the foot */}
+      <div className="joined-buttons td-actbar td-actbar-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: '1px solid ' + C.cardBd, marginBottom: 8 }}>
+        {[['EDIT', 'Profile and info', 'edit'], ['PORTAL', 'Athlete view', 'portal'], ['ANALYSIS', 'Block progress', 'analysis'], ['LOG SESSION', 'In-person session', 'log', true]].map(([label, sub, k, primary]) => (
+          <button key={k} type="button" onClick={() => setActionNote(k)} className="td-act"
+            style={{ height: 56, minWidth: 0, padding: '0 10px', border: 'none', borderRadius: 0, background: primary ? 'color-mix(in srgb, var(--c-ac) 9%, var(--c-sf))' : 'var(--c-sf)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+            <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: primary ? C.ac : C.tx, whiteSpace: 'nowrap', lineHeight: 1 }}>{T(label)}</span>
+            <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', lineHeight: 1.3, maxWidth: '100%' }}>{T(sub)}</span>
+          </button>
+        ))}
+      </div>
+      {actionNote && actionNote !== 'archive' && (
         <div style={{ fontFamily: FB, fontSize: 11.5, color: C.ac, borderTop: `1px solid ${C.cardBd}`, paddingTop: 8, margin: '-4px 0 14px' }}>
           {T(ACTION_NOTE[actionNote])}
         </div>
@@ -2182,6 +2187,13 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         </div>
         );
       })()}
+      {/* THE FOOT (#811), as the real page: the rare, destructive action after everything else */}
+      {activeSecs.size === 0 && (
+        <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid ' + C.cardBd }}>
+          <JoinedButtons maxWidth="none" items={[{ label: T('ARCHIVE'), onClick: () => setActionNote('archive'), tone: 'muted' }]} />
+          {actionNote === 'archive' && <div style={{ fontFamily: FB, fontSize: 11.5, color: C.ac, paddingTop: 8 }}>{T(ACTION_NOTE.archive)}</div>}
+        </div>
+      )}
     </section>
   );
 }
