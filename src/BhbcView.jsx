@@ -2433,7 +2433,7 @@ function attendance28(rec, days) {
                   {/* one strip: the portal preview's own (VIEWING AS <player> + BACK) - a second banner above it said the same */}
                   <div style={{ border: `1px solid ${C.cardBd}`, borderRadius: 6, overflow: 'hidden' }}>
                     <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: 16 }}>{tr('Loading…')}</div>}>
-                      <CoachPreviewPortal traineeId={portalFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setPortalFor(null)} />
+                      <CoachPreviewPortal traineeId={portalFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setPortalFor(null)} inZone previewReal={!asCoach} />   {/* one sign-out (#806); a club coach cannot read a player's messages / meals - no false 'none yet' (#805 review) */}
                     </Suspense>
                   </div>
                 </section>
@@ -2444,7 +2444,7 @@ function attendance28(rec, days) {
                 {headCoachAthlete ? (
                   <div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', border: `1px solid ${C.cardBd}`, borderRadius: 6, overflow: 'hidden' }}>
                     <Suspense fallback={<div style={{ fontFamily: FN, fontSize: 11, color: C.tm, padding: 16 }}>{tr('Loading…')}</div>}>
-                      <CoachPreviewPortal traineeId={headCoachAthlete.id} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setView('overview')} />
+                      <CoachPreviewPortal traineeId={headCoachAthlete.id} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setView('overview')} inZone />
                     </Suspense>
                   </div>
                 ) : typeof myProgram === 'function' ? (

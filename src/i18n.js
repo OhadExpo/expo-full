@@ -1205,6 +1205,7 @@ export const HE = {
   // The rest of the meal log (2026-09-07): its error strings, day labels and
   // totals were still English on the branch after the 09-06 pass.
   'Preview only — meal logging is disabled here.': 'רק תצוגה מקדימה — אי אפשר לרשום כאן ארוחות.',
+  'Preview only — messages are not sent from here.': 'רק תצוגה מקדימה — אי אפשר לשלוח כאן הודעות.',
   'Photo is too large (max 8 MB).': 'התמונה גדולה מדי (עד 8MB).',
   'Could not get public URL for the photo.': 'לא הצלחנו לקבל כתובת לתמונה.',
   'Upload failed.': 'ההעלאה נכשלה.',

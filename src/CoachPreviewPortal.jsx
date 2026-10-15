@@ -15,7 +15,7 @@ import { useT, readLang } from './i18n';
 //
 // Mounted by App.jsx for /coach/athletes/<id>/preview or /coach/programs/<id>/preview.
 // /coach/trainees/<id>/preview still resolves to the same render for legacy links.
-export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack, showAllBlocks = false }) {
+export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack, showAllBlocks = false, inZone = false, previewReal = true }) {
   const tt = useT();
   const [plans, setPlans] = useState(null);
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);
@@ -132,6 +132,8 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
         updateFormVideos={() => {}}
         demoMode={true}
         demoPlans={plans}
+        inZone={inZone}
+        previewReal={previewReal}
       />
     </div>
   );

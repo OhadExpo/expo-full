@@ -2722,7 +2722,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null, inZone = false, previewReal = true }) {
   const tt = useAppT();
   // EVERY HEBREW LINE IN ITS OWN DIRECTION (29.9 #391 pass 7). The portal keeps
   // its left-to-right LAYOUT (as production), and so every Hebrew sentence in
@@ -3323,7 +3323,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'0 10px',marginInlineEnd:-10,minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',lineHeight:1}}>{tt('LOG OUT')} {(lang || readLang()) === 'he' ? '←' : '→'}</button>
+            {/* inside the club zone the zone's own sign-out is the one (#806: two sign-outs on one page) */}
+            {!inZone && <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'0 10px',marginInlineEnd:-10,minWidth:0,height:36,boxSizing:'border-box',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',lineHeight:1}}>{tt('LOG OUT')} {(lang || readLang()) === 'he' ? '←' : '→'}</button>}
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,
@@ -3913,7 +3914,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // tabs above it keep working (29.9 #436)
         <ErrorBoundary inline>
         <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>{tt('LOADING…')}</div>}>
-          <MealLogger clientId={ci} page demoMode={demoMode} />
+          <MealLogger clientId={ci} page demoMode={demoMode} readReal={coachPreview && previewReal && !!ci && ci !== 'preview'} />
         </React.Suspense>
         </ErrorBoundary>
       ) : null}
@@ -3932,6 +3933,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             traineeId={ci}
             role="athlete"
             demoMode={demoMode}
+            readReal={coachPreview && previewReal && !!ci && ci !== 'preview'}
             recipientEmail="ohadyproductions@gmail.com"
             senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
         </ErrorBoundary>

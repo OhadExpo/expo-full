@@ -334,7 +334,7 @@ function MessageBubble({ msg, viewerRole }) {
   );
 }
 
-export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel, demoMode = false }) {
+export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel, demoMode = false, readReal = false }) {
   const tt = useAppT();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -351,7 +351,8 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
     if (!traineeId) return;
     // demoMode bypasses Supabase — seed a coach<->athlete thread so the
     // Messages feature is demonstrated instead of an empty tab.
-    if (demoMode) { setRows(DEMO_MESSAGES); setLoading(false); return; }
+    // a coach's preview of a REAL athlete reads his real thread (#805); sending stays local (demoMode below)
+    if (demoMode && !readReal) { setRows(DEMO_MESSAGES); setLoading(false); return; }
     const seq = ++reqSeq.current;
     if (showLoading) setLoading(true);
     // NEWEST 200, then re-sorted ascending for display. Ascending+limit would
@@ -377,7 +378,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       setRows(data || []);
     }
     setLoading(false);
-  }, [traineeId, demoMode]);
+  }, [traineeId, demoMode, readReal]);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -403,6 +404,8 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
     // happened demonstrates the opposite. The row is appended to the local
     // thread only — nothing reaches Supabase, no push is sent — so the demo
     // is honest about the data while the FEATURE actually works on screen.
+    // a preview of a REAL thread is read-only: a reply here would show as sent and be gone on reload (#805 review)
+    if (demoMode && readReal) { toast(tt('Preview only — messages are not sent from here.'), 'info'); return; }
     if (demoMode) {
       setRows(prev => [...prev, {
         id: `demo-${Date.now()}`,

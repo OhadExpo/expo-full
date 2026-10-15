@@ -43,7 +43,7 @@ function dayLabel(iso, tt, he) {
   return d.toLocaleDateString(he ? 'he-IL' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export default function MealLogger({ clientId, page = false, demoMode = false }) {
+export default function MealLogger({ clientId, page = false, demoMode = false, readReal = false }) {
   // The meal log is an ATHLETE page and had no translator at all.
   const tt = useAppT();
   const he = useHe();
@@ -64,7 +64,8 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   const loadDay = useCallback(async (iso) => {
     // demoMode bypasses Supabase — seed today's meals so the nutrition feature
     // (macros + day totals) is actually demonstrated instead of an empty tab.
-    if (demoMode) { setMeals(iso === todayISO() ? DEMO_MEALS : []); setError(null); return; }
+    // a coach's preview of a REAL athlete reads his real meals (#805) - writes stay off (demoMode)
+    if (demoMode && !readReal) { setMeals(iso === todayISO() ? DEMO_MEALS : []); setError(null); return; }
     try {
       // athlete_meals columns: trainee_id, created_at, photo_url, kcal,
       // protein_g, carbs_g, fat_g, notes. There's no meal_date column, so
@@ -95,7 +96,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       setMeals([]);
       setError('Could not load this day — check your connection.');
     }
-  }, [clientId, demoMode]);
+  }, [clientId, demoMode, readReal]);
 
   useEffect(() => { if (clientId) loadDay(day); }, [clientId, day, loadDay]);
 
