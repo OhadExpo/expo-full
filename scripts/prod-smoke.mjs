@@ -45,7 +45,7 @@ for (const route of ROUTES) {
       console.log(`      ${route} came back on ${await bundleNow()} (live: ${liveBundle}) - the edge is still swapping; once more in 20 s`);
       await wait(20000); errs.length = 0; resp = await load();
     }
-    const info = await page.evaluate(() => ({
+    let info = await page.evaluate(() => ({
       len: document.body.innerText.trim().length,
       title: document.title,
       blank: document.body.innerText.trim().length < 30,
@@ -54,9 +54,23 @@ for (const route of ROUTES) {
     const status = resp ? resp.status() : 0;
     const stale = !!liveBundle && info.bundle.split('/').pop() !== liveBundle;   // a pass on yesterday's build is not a pass
     if (stale) errs.push(`still on an older bundle than the live ${liveBundle}`);
-    const ok = status < 400 && !info.blank && errs.length === 0;
+    let ok = status < 400 && !info.blank && errs.length === 0;
+    // one more load 20 s later before a FAIL counts (16.10: right after a deploy the first run still flagged 2-3 routes on
+    // the SAME bundle - a chunk the edge had not yet served). A route that passes on the retry says so; a real fault fails twice.
+    if (!ok) {
+      console.log(`      ${route} failed once (${JSON.stringify(errs.slice(0, 2))}) - once more in 20 s`);
+      await wait(20000); errs.length = 0;
+      const r2 = await load();
+      const b2 = await bundleNow();
+      const blank2 = await page.evaluate(() => document.body.innerText.trim().length < 30);
+      if (liveBundle && b2 !== liveBundle) errs.push(`still on an older bundle than the live ${liveBundle}`);
+      ok = (r2 ? r2.status() : 0) < 400 && !blank2 && errs.length === 0;
+      if (ok) console.log(`      ${route} passed on the retry`);
+      resp = r2;
+      info = await page.evaluate(() => ({ len: document.body.innerText.trim().length, bundle: [...document.querySelectorAll('script[src]')].map((s) => s.src).find((s) => /assets\/index-/.test(s)) || '' }));
+    }
     if (!ok) bad++;
-    console.log(`${(ok ? 'ok' : 'FAIL').padEnd(5)} ${route.padEnd(22)} http=${status} textLen=${info.len} ${info.bundle.split('/').pop()}`);
+    console.log(`${(ok ? 'ok' : 'FAIL').padEnd(5)} ${route.padEnd(22)} http=${resp ? resp.status() : 0} textLen=${info.len} ${info.bundle.split('/').pop()}`);
     if (errs.length) console.log('       errors:', JSON.stringify(errs.slice(0, 3)));
   } catch (e) {
     bad++;

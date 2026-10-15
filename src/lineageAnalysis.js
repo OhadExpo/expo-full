@@ -442,7 +442,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
   if (flags.includes('fatigue') && !tooThinToDeload) {
     const hardStaleLift = staples.find((s) => !s.ballistic && s.isMain && s.stale?.stale && s.stale.mode === 'hard');
     headline = he
-      ? (hardStaleLift ? `שבוע דילאוד — ואז תחליף את ה־${hardStaleLift.title}. אל תוסיף רק משקל.` : 'שבוע דילאוד — הוא צובר יותר עייפות ממה שהוא מתאושש ממנה.')
+      ? (hardStaleLift ? `שבוע דילואד — ואז תחליף את ה־${hardStaleLift.title}. אל תוסיף רק משקל.` : 'שבוע דילואד — הוא צובר יותר עייפות ממה שהוא מתאושש ממנה.')
       : (hardStaleLift ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.` : `Deload him — he's accumulating more fatigue than he's recovering from.`);
     const bits = fatigueBits();
     sub = bits.length
@@ -454,7 +454,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
     tone = 'info';
     const n = adh?.loggedSessions || 0;
     headline = he
-      ? `קודם שירשום, ואז שבוע דילאוד — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, ועדיין אי אפשר לסמוך על סימני העייפות.`
+      ? `קודם שירשום, ואז שבוע דילואד — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, ועדיין אי אפשר לסמוך על סימני העייפות.`
       : `Get him logging before you deload — only ${n} session${n === 1 ? '' : 's'} in, the fatigue read isn't trustworthy yet.`;
     const bits = fatigueBits();
     sub = he
@@ -587,6 +587,84 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
 
   const plannedDays = (latest.days || []).map((d) => d.name || 'Day');
   return { sessions, plannedSessionCount, plannedDays, weeks, blockName: latest.name, blockNumber: latestNum, blockId: latest.id, hasPlans: true, totalBlocks: withDays.length, blocks };
+}
+
+// ---- vs THE LAST BLOCK (16.10 #814) ---------------------------------------------------------------------------
+// Two blocks side by side, each from its OWN logged sessions (buildBlockSessions of that block): logging, sets done,
+// effort logged, the average effort, the work per session, and every lift that ran in both with its best top set in
+// each. Pure - the view words it. A lift's best = its highest estimated max (Epley, up to 12 reps); a lift only ever
+// logged past 12 reps compares by load.
+// opts.weeks: compare only the first N weeks (the latest block, still running, against the same weeks of the last one)
+export function blockSnapshot(b, opts = {}) {
+  let sessions = (b && b.sessions) || [];
+  const N = opts.weeks || null;
+  const allNumbered = sessions.length > 0 && sessions.every((s) => Number(s.week) > 0);
+  const cut = !!(N && allNumbered);
+  if (cut) sessions = sessions.filter((s) => Number(s.week) <= N);
+  let done = 0, withRpe = 0, rpeSum = 0, work = 0;
+  // work a WEEK, not a session (a block that splits the same work over more days would read as half the work); one key
+  // per block - week numbers when every session has one, else calendar weeks
+  const weeks = new Set(sessions.map((s) => (allNumbered ? `w${Number(s.week)}` : (isFinite(ms(s.date)) ? `d${Math.floor(ms(s.date) / (7 * 86400000))}` : null))).filter(Boolean));
+  for (const s of sessions) for (const ex of s.exercises || []) for (const st of ex.sets || []) {
+    if (!st.done) continue;
+    done++;
+    if (st.rpe != null && st.rpe > 0 && st.rpe <= 10) { withRpe++; rpeSum += st.rpe; }
+    if (st.load != null && st.reps != null && st.load > 0 && st.reps > 0) work += st.load * st.reps;
+  }
+  const days = (b && b.plannedDays && b.plannedDays.length) || 0;
+  const planned = N && allNumbered && days ? days * N : (b ? b.plannedSessionCount : 0);
+  const adh = adherence(sessions, planned);
+  const best = new Map();
+  for (const [title, ser] of perLiftSeries(sessions)) {
+    const scored = ser.filter((x) => x.e1 != null);
+    const pool = scored.length ? scored : ser.filter((x) => x.load != null && x.load > 0);
+    if (!pool.length) continue;
+    const top = pool.reduce((m, x) => ((scored.length ? x.e1 > m.e1 : x.load > m.load) ? x : m));
+    const rec = { title, load: top.load, reps: top.reps, e1: scored.length ? top.e1 : null, logs: ser.length };
+    const key = String(title).trim().toLowerCase().replace(/\s+/g, ' ');
+    const had = best.get(key);   // two spellings of one lift in a block: keep the better
+    if (!had || (rec.e1 != null ? (had.e1 == null || rec.e1 > had.e1) : (had.e1 == null && rec.load > had.load))) best.set(key, rec);
+  }
+  return {
+    name: b ? b.blockName : null, id: b ? b.blockId : null,
+    logged: adh.loggedSessions, planned: adh.plannedSessionCount, sessionPct: adh.sessionPct, setsPct: adh.setsPct,
+    rpeCoverage: done ? Math.round((withRpe / done) * 100) : null,
+    avgRpe: withRpe ? Math.round((rpeSum / withRpe) * 10) / 10 : null,
+    workPerWeek: weeks.size && work ? Math.round(work / weeks.size) : null,
+    best, cut,
+  };
+}
+
+// opts.ballistic: the explosive lifts' keys (no % - a jump's estimated max means nothing); a weighted bodyweight lift
+// compares its ADDED load in kg (5 to 7.5 kg on a pull-up is not +50% strength); a lift whose best sets sit in two rep
+// zones (12 or fewer on one side, more on the other) gets no number at all
+const ADDED_LOAD = /weighted|\bdip|pull[-\s]?up|chin[-\s]?up|push[-\s]?up/i;
+export function compareBlocks(cur, prev, opts = {}) {
+  let c = blockSnapshot(cur, opts), p = blockSnapshot(prev, opts), weeks = opts.weeks || null;
+  // the week window holds only when BOTH blocks could be cut to it (a block with week-less logs cannot): else full blocks
+  if (weeks && !(c.cut && p.cut)) { c = blockSnapshot(cur); p = blockSnapshot(prev); weeks = null; }
+  const ball = opts.ballistic || new Set();
+  const lifts = [];
+  for (const [k, x] of c.best) {
+    const y = p.best.get(k);
+    if (!y) continue;
+    let kind = 'pct', pct = null, dKg = null;
+    if (ball.has(k)) kind = 'power';
+    else if (/assist/i.test(x.title)) { kind = 'assist'; dKg = x.load != null && y.load != null ? Math.round((x.load - y.load) * 10) / 10 : null; }   // more assistance = weaker
+    else if (ADDED_LOAD.test(x.title)) { kind = 'kg'; dKg = x.load != null && y.load != null ? Math.round((x.load - y.load) * 10) / 10 : null; }
+    else if ((x.e1 != null) !== (y.e1 != null)) kind = 'zone';
+    else {
+      const a = x.e1 != null ? y.e1 : y.load, z = x.e1 != null ? x.e1 : x.load;
+      pct = a > 0 && z != null ? Math.round(((z - a) / a) * 100) : null;
+    }
+    lifts.push({ title: x.title, prev: y, cur: x, kind, pct, dKg });
+  }
+  const sgn = (l) => (l.dKg == null ? null : (l.kind === 'assist' ? -1 : 1) * Math.sign(l.dKg));
+  const dir = (l) => (l.pct != null ? (l.pct >= 2 ? 1 : l.pct <= -2 ? -1 : 0) : sgn(l));
+  const score = (l) => (l.pct != null ? l.pct : l.dKg != null ? sgn(l) * 1.5 : 0);
+  lifts.sort((l, m) => score(l) - score(m) || l.title.localeCompare(m.title));   // worst first, like the key lifts
+  const counted = lifts.filter((l) => dir(l) != null);
+  return { cur: c, prev: p, lifts, counted: counted.length, up: counted.filter((l) => dir(l) > 0).length, down: counted.filter((l) => dir(l) < 0).length, weeks };
 }
 
 // Which planned day is the athlete skipping? Returns the day with the biggest
@@ -905,7 +983,7 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   const verdict = synthesizeVerdict({ adh, region, staples, acwr, velocity: { state: 'thin' }, he: !!deps.he });
   // readiness density (rpe on sets, autoreg on sessions) for the honest thin card
   let setsWithRpe = 0, totalSets = 0;
-  for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }
-  const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : 0;
+  for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { if (!st.done) continue; totalSets++; if (st.rpe != null && st.rpe > 0 && st.rpe <= 10) setsWithRpe++; }   // done sets only (16.10 #814: the same definition as the block comparison)
+  const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : null;   // no done sets = nothing to say
   return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, transfer, verdict, rpeCoverage, skip, journey, blockHistory: blockHistory(plans, deps) };
 }

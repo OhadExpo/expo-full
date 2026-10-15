@@ -2316,6 +2316,20 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
     'Trap-Bar Deadlift': [set(145, 4, 8.5), set(140, 4, 9), set(132.5, 3, 9.5)],    // dropping
   };
   const rows = [];
+  // the block before (#6): three of its four weeks logged, in #7's rep ranges (not #6's prescribed 2-3 - so the lift trends
+  // stay readable) - the upper body up since, the squat flat, the deadlift down (the 'vs the last block' read; the latest
+  // block's own words are unchanged: squat stuck, deadlift dropping, the upper lifts climbing)
+  const prevTop = {
+    'BB Bench Press': [set(65, 5, 7), set(67.5, 5, 7.5), set(67.5, 5, 8)],
+    'Weighted Pull-Up': [set(5, 6, 7), set(5, 5, 7.5), set(5, 6, 7.5)],
+    'Standing OHP': [set(42.5, 5, 7.5), set(42.5, 5, 8), set(45, 4, 8)],
+    'BB Back Squat': [set(100, 5, 8), set(102.5, 5, 8), set(105, 5, 8.5)],
+    'Trap-Bar Deadlift': [set(147.5, 4, 8), set(147.5, 4, 8), set(145, 4, 8.5)],
+  };
+  for (let w = 0; w < 3; w++) {
+    rows.push({ id: `d-p${w}`, clientId: 'demo', planName: 'Block #6 · Peak', dayName: 'Day 1', week: w + 1, date: new Date(base - (5 - w) * 7 * day).toISOString(),
+      exercises: Object.keys(prevTop).map((t, i) => ({ eid: `p${i}`, title: t, sets: [prevTop[t][w]] })) });
+  }
   for (let w = 0; w < 4; w++) {
     rows.push({ id: `d-u${w}`, clientId: 'demo', planName: 'Block #7 · Realize', dayName: 'Day 1 · Upper', week: w + 1, date: new Date(base + w * 7 * day).toISOString(),
       exercises: Object.keys(upper).map((t, i) => ({ eid: `u${i}`, title: t, sets: [upper[t][w]] })) });
@@ -2364,8 +2378,9 @@ function DemoLineage({ athleteName }) {
     : DEMO_LINEAGE_PLANS.slice(-own.length).map((p, i) => ({ ...p, name: own[i] }));
   // the logged history follows the renamed latest block (16.10 #814: the workouts kept 'Block #7 · Realize', so every athlete's
   // analysis read 'no logged workouts' - a prospect never saw the analysis at all)
-  const latestMock = DEMO_LINEAGE_PLANS[DEMO_LINEAGE_PLANS.length - 1].name, latestName = plans[plans.length - 1].name;
-  const workouts = latestMock === latestName ? DEMO_LINEAGE_WORKOUTS : DEMO_LINEAGE_WORKOUTS.map((w) => (w.planName === latestMock ? { ...w, planName: latestName } : w));
+  const mockOf = DEMO_LINEAGE_PLANS.slice(-plans.length);
+  const rename = new Map(mockOf.map((p, i) => [p.name, plans[i].name]));
+  const workouts = DEMO_LINEAGE_WORKOUTS.filter((w) => rename.has(w.planName)).map((w) => ({ ...w, planName: rename.get(w.planName) }));
   return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={workouts} loading={false} onOpenPlan={() => {}} />;
 }
 
@@ -2657,7 +2672,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T('← BACK')}</button>
             </div>
             <div style={{ flex: 1, padding: '18px 16px 60px' }}>
-              <div style={{ width: 'min(1180px, 96vw)', margin: '0 auto' }}>
+              <div style={{ width: '100%', maxWidth: 1180, margin: '0 auto' }}>
                 <DemoLineage athleteName={traineeName(lineageFor)} />
               </div>
             </div>

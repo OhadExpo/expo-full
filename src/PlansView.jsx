@@ -5338,7 +5338,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>← {tr(readLang(), 'Back')}</button>
           </div>
           <div style={{ flex: 1, padding: '18px 16px 60px' }}>
-            <div style={{ width: 'min(1180px, 96vw)', margin: '0 auto' }}>
+            <div style={{ width: '100%', maxWidth: 1180, margin: '0 auto' }}>
               <TrainingLineageV2
                 traineeId={lineageTraineeId}
                 traineeName={traineeMap[lineageTraineeId] || 'Athlete'}

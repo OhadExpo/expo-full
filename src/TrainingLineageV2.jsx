@@ -8,10 +8,9 @@
 // changes his program — it analyses and advises, the coach builds.
 //
 // Analysis engine: src/lineageAnalysis.js (pure). This file is presentation.
-import { CaretGlyph } from './ui';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { C, FN } from './theme';
-import { analyzeAthlete } from './lineageAnalysis';
+import { analyzeAthlete, buildBlockSessions, compareBlocks } from './lineageAnalysis';
 import { getAthleteVault, getAthleteAsymmetryTrend, getAthleteRomLifts } from './poseMetricsStore';
 import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
@@ -22,7 +21,7 @@ import { exerciseContinuity } from './exerciseContinuity';
 import { useHe } from './i18n';
 import { analyzeRunner } from './runAnalysis';
 import RunReview from './RunReview';
-import StrengthReview from './StrengthReview';
+import StrengthReview, { FitStrip } from './StrengthReview';
 
 // Hebrew is COMPOSED here, not looked up: nearly every line carries a number,
 // a lift name or a plural, so a key→value map would split sentences. L() picks
@@ -49,7 +48,6 @@ const BUCKET_HE = { 'upper-bilateral': 'עליון · דו־צדדי', 'upper-un
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
 const card = { border: `1px solid ${C.bd}`, background: C.sf, marginTop: 12 };
 const hd = { background: C.sf2, borderBottom: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 };
-const hdQ = { color: C.tm, fontWeight: 400, letterSpacing: 0, textTransform: 'none', fontSize: 11 };
 const bd = { padding: '13px 14px' };
 
 // A collapsible report card: the strip header is the toggle; collapsed it shows a
@@ -60,70 +58,14 @@ function Section({ title, tag, summary, children, cardStyle = card, defaultOpen 
   const he = useHe();
   return (
     <div style={cardStyle}>
-      <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} role="button" tabIndex={0} aria-expanded={open}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
-        title={open ? L(he, 'Collapse', 'סגירה') : L(he, 'Expand for the full report', 'פתיחת הדוח המלא')}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : (he ? 'rotate(90deg)' : 'rotate(-90deg)') }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{title}{tag}</span>
-        <span style={hdQ}>{open ? '' : summary}</span>
-      </div>
+      <FitStrip he={he} onClick={() => setOpen((o) => !o)} expanded={open} lead={<Chev open={open} he={he} />} title={<>{title}{tag}</>} meta={open ? null : summary} metaAlone />
       {open && <div style={bd}>{children}</div>}
     </div>
   );
 }
 
-const toneColor = { warn: C.or, bad: C.rd, ok: C.gn, info: C.ac };
-
-function Read({ tone = 'info', children, why }) {
-  return (
-    <div style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontSize: 13, lineHeight: 1.5 }}>
-      <span style={{ flex: '0 0 16px', color: toneColor[tone], fontWeight: 700, textAlign: 'center' }}>
-        {tone === 'ok' ? '✓' : tone === 'bad' ? '✕' : tone === 'warn' ? '!' : '·'}
-      </span>
-      <div>{children}{why && <span style={{ color: C.tm, fontSize: 12 }}> {why}</span>}</div>
-    </div>
-  );
-}
-
-function Kpi({ v, l, s, color }) {
-  return (
-    <div style={{ flex: '1 1 0', minWidth: 110, border: `1px solid ${C.bd}`, background: C.sf2, padding: '9px 11px' }}>
-      <div style={{ fontSize: 21, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: color || C.tx }}>{v}</div>
-      <div style={{ fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, marginTop: 5 }}>{l}</div>
-      {s && <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{s}</div>}
-    </div>
-  );
-}
-
-// tiny e1RM sparkline — a clean mini LINE (same grammar as the full trend
-// charts: accent polyline + faint area + endpoint dot), not a bar strip, so
-// the inline lift-row trend reads like the review/analysis line charts.
-function Spark({ pts, dir }) {
-  const col = dir === 'up' ? C.gn : dir === 'down' ? C.rd : C.or;
-  const W = 88, H = 24, pad = 3;
-  if (!pts || pts.length < 2) {
-    return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: W, height: H, verticalAlign: 'middle', flexShrink: 0 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: col }} /></span>;
-  }
-  const max = Math.max(...pts), min = Math.min(...pts), rng = (max - min) || 1;
-  const gx = (i) => pad + i * ((W - 2 * pad) / (pts.length - 1));
-  const gy = (v) => pad + (1 - (v - min) / rng) * (H - 2 * pad);
-  const line = pts.map((v, i) => `${gx(i).toFixed(1)},${gy(v).toFixed(1)}`).join(' ');
-  const area = `M${gx(0).toFixed(1)},${H - pad} L${line.replace(/ /g, ' L')} L${gx(pts.length - 1).toFixed(1)},${H - pad} Z`;
-  const lastX = gx(pts.length - 1), lastY = gy(pts[pts.length - 1]);
-  return (
-    <span style={{ display: 'inline-flex', width: W, height: H, verticalAlign: 'middle', flexShrink: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: W, height: H, display: 'block', overflow: 'visible' }} aria-hidden="true">
-        <path d={area} fill={col} opacity="0.14" />
-        <polyline points={line} fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={gx(0)} cy={gy(pts[0])} r="1.8" fill={col} opacity="0.45" />
-        <circle cx={lastX} cy={lastY} r="2.4" fill={col} />
-      </svg>
-    </span>
-  );
-}
-
-function Tag({ text, color }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', padding: '3px 7px', border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>{text}</span>;
-}
+// the fold caret of a collapsible strip
+const Chev = ({ open, he }) => <span style={{ color: C.ac, fontSize: 10, display: 'inline-flex' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: open ? 'none' : (he ? 'rotate(90deg)' : 'rotate(-90deg)') }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>;
 
 // staple → { tag, tagColor, why, next } — every competitor stops at "here's the
 // status"; the coach's actual job is "so what do I write next block". `next` is
@@ -144,44 +86,48 @@ function readStaple(s, he) {
       next: L(he, 'film a set for velocity — don\'t chase kg here', 'צלם סט כדי למדוד מהירות — פה לא רודפים אחרי קילו') };
   }
   if (s.stale?.state === 'ok' && s.stale.stale) {
-    if (s.stale.mode === 'hard') return { tag: L(he, 'STALLED · HARD', 'תקוע · קשה'), tagColor: C.or, why: L(he, 'flat weight + effort rising = hidden fatigue, not a real ceiling', 'אותו משקל ומרגיש יותר קשה = עייפות, עוד לא תקרה'), next: L(he, 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg', 'שבוע קל (חצי מהנפח) ואז תבדוק שוב, או תחליף וריאציה — לא עוד קילו') };
-    if (s.stale.mode === 'easy') return { tag: L(he, 'STALLED · EASY', 'תקוע · קל'), tagColor: C.ac, why: L(he, 'flat but moving easy — he\'s under-stimulated', 'קבוע אבל זז בקלות — הגירוי לא מספיק לו'), next: L(he, '+2.5–5kg or add a set', 'עוד 2.5–5 קילו או עוד סט') };
-    return { tag: L(he, 'STALLED', 'תקוע'), tagColor: C.or, why: L(he, 'weight hasn\'t moved in 3 sessions', 'המשקל לא זז כבר 3 אימונים'), next: noPr ? L(he, `no PR in ${wks} weeks — rotate the variation`, `אין שיא כבר ${wks === 2 ? 'שבועיים' : `${wks} שבועות`} — תחליף וריאציה`) : L(he, 'push the load or change the stimulus', 'תעלה משקל או תשנה גירוי') };
+    if (s.stale.mode === 'hard') return { tag: L(he, 'STUCK · HARD', 'תקוע · קשה'), tagColor: C.or, why: L(he, 'flat weight + effort rising = hidden fatigue, not a real ceiling', 'אותו משקל ומרגיש יותר קשה = עייפות, עוד לא תקרה'), next: L(he, 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg', 'שבוע קל (חצי מהנפח) ואז תבדוק שוב, או תחליף וריאציה — לא עוד קילו') };
+    if (s.stale.mode === 'easy') return { tag: L(he, 'STUCK · EASY', 'תקוע · קל'), tagColor: C.ac, why: L(he, 'flat but moving easy — he\'s under-stimulated', 'קבוע אבל זז בקלות — הגירוי לא מספיק לו'), next: L(he, '+2.5–5kg or add a set', 'עוד 2.5–5 קילו או עוד סט') };
+    return { tag: L(he, 'STUCK', 'תקוע'), tagColor: C.or, why: L(he, 'weight hasn\'t moved in 3 sessions', 'המשקל לא זז כבר 3 אימונים'), next: noPr ? L(he, `no PR in ${wks} weeks — rotate the variation`, `אין שיא כבר ${wks === 2 ? 'שבועיים' : `${wks} שבועות`} — תחליף וריאציה`) : L(he, 'push the load or change the stimulus', 'תעלה משקל או תשנה גירוי') };
   }
   if (s.trend?.state === 'ok') {
     if (s.trend.repNoisy) return { tag: L(he, 'REPS VARIED', 'חזרות השתנו'), tagColor: C.tm, why: L(he, 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', 'טווח החזרות השתנה לאורך הבלוק — ה־e1RM לא מבדיל בין שינוי בכוח לשינוי בחזרות'), next: L(he, 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend', 'תשווה משקלים באותו מספר חזרות — או תשאיר את אותו יעד חזרות ל־3 אימונים, כדי לקבל מגמה נקייה') };
-    if (s.trend.dir === 'up') return { tag: L(he, 'PROGRESS', 'מתקדם'), tagColor: C.gn, why: L(he, 'progressing', 'מתקדם'), next: L(he, '+2–3% load or +1 rep at the same effort', 'עוד 2–3% משקל או עוד חזרה באותו מאמץ') };
-    if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות') };
+    if (s.trend.dir === 'up') return { tag: L(he, 'CLIMBING', 'עולה'), tagColor: C.gn, why: L(he, 'progressing', 'מתקדם'), next: L(he, '+2–3% load or +1 rep at the same effort', 'עוד 2–3% משקל או עוד חזרה באותו מאמץ') };
+    if (s.trend.dir === 'down') return { tag: L(he, 'DROPPING', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות') };
   }
   return { tag: L(he, 'HOLDING', 'יציב'), tagColor: C.tm, why: L(he, 'holding steady', 'נשאר יציב'), next: noPr ? L(he, `no PR in ${wks} weeks — time to change it up`, `אין שיא כבר ${wks === 2 ? 'שבועיים' : `${wks} שבועות`} — הגיע הזמן לשנות`) : L(he, 'maintain, or nudge the load', 'תשאיר ככה, או תעלה קצת משקל') };
 }
 
+// one lift: its name and status word, why (only when it says more than the word), the move for the next block, and one
+// meta line - best, estimated max, the last loads, how often, when (16.10 #814)
+const TRIVIAL_WHY = /^(progressing|holding steady|going backwards|מתקדם|נשאר יציב|הולך אחורה)$/i;
 function LiftRow({ s }) {
   const he = useHe();
   const r = readStaple(s, he);
   const loads = s.loads.filter((x) => x != null).slice(-4).map((x) => (Number.isInteger(x) ? x : x.toFixed(1)));
   const fmt = (d) => { try { const dt = new Date(d); return `${dt.getDate()}/${dt.getMonth() + 1}`; } catch { return ''; } };
-  const best = s.pr != null ? `${Number.isInteger(s.pr) ? s.pr : s.pr.toFixed(1)}kg` : (s.prE1 != null ? `e${s.prE1}` : '—');
+  const bestKg = s.pr != null ? (Number.isInteger(s.pr) ? s.pr : s.pr.toFixed(1)) : null;
+  const meta = [
+    bestKg != null ? (he ? `שיא ${bestKg} ק״ג` : `best ${bestKg} kg`) : null,
+    s.trend?.state === 'ok' && !s.ballistic ? `e1RM ${s.trend.latest}` : null,
+    loads.length ? `${L(he, 'last loads', 'משקלים אחרונים')} ${loads.join(' · ')}` : null,
+    he ? `${s.count} רישומים` : `${s.count} logs`,
+    s.lastDate ? `${L(he, 'last', 'אחרון')} ${fmt(s.lastDate)}` : null,
+  ].filter(Boolean);
+  const prOld = !s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2;
   return (
-    <tr>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'top' }}>
-        <div style={{ color: C.tx }}>{s.title}</div>
-        <div style={{ fontSize: 11, color: C.tm, marginTop: 2, lineHeight: 1.4 }}>{r.why}</div>
-        <div style={{ fontSize: 11.5, color: C.ac, marginTop: 3, fontWeight: 600, lineHeight: 1.4 }}>{he ? "← " : "→ "}{r.next}</div>
-        <div style={{ fontSize: 10, color: C.td, marginTop: 3 }}>{`${s.count}× · ${L(he, 'last', 'אחרון')} ${fmt(s.lastDate)}`}</div>
-      </td>
-      <td data-h={L(he, 'Trend', 'מגמה')} style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginInlineStart: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
-      </td>
-      <td data-h={L(he, 'Best', 'שיא')} style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-        {best}
-        {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
-          <span style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginInlineStart: 6 }}>{he ? `· שיא לפני ${s.weeksSincePr} שב׳` : `· PR ${s.weeksSincePr}w ago`}</span>
-        )}
-      </td>
-      <td data-h={L(he, 'Last loads', 'משקלים אחרונים')} style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top', whiteSpace: 'nowrap' }}><Ltr>{loads.join(' · ')}</Ltr></td>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'end', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
-    </tr>
+    <div data-lift-key style={{ padding: '10px 0', borderTop: `1px solid ${C.cardBd}` }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'anywhere', lineHeight: 1.3 }}><bdi>{s.title}</bdi></span>
+        <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: he ? 0 : '0.08em', textTransform: 'uppercase', color: r.tagColor === C.pu ? C.ac : r.tagColor, flexShrink: 0 }}>{r.tag}</span>
+      </div>
+      {!TRIVIAL_WHY.test(String(r.why || '')) && <div style={{ fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.45 }}>{r.why}</div>}
+      <div style={{ fontSize: 12.5, color: C.ac, marginTop: 3, fontWeight: 600, lineHeight: 1.45 }}>{r.next}</div>
+      <div style={{ fontSize: 11.5, color: C.td, marginTop: 4, lineHeight: 1.45, fontVariantNumeric: 'tabular-nums' }}>
+        {meta.map((m, i) => <React.Fragment key={i}>{i ? ' · ' : ''}<bdi>{m}</bdi></React.Fragment>)}
+        {prOld && <span style={{ color: s.weeksSincePr >= 6 ? C.or : C.td }}>{' · '}<bdi>{he ? (s.weeksSincePr === 2 ? 'שיא לפני שבועיים' : `שיא לפני ${s.weeksSincePr} שבועות`) : `best ${s.weeksSincePr} weeks ago`}</bdi></span>}
+      </div>
+    </div>
   );
 }
 
@@ -195,7 +141,7 @@ function ReportToggle({ open, onToggle }) {
   return (
     <button type="button" onClick={onToggle}
       style={{ marginTop: 8, background: 'transparent', border: 'none', padding: 0, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-      {open ? L(he, '▾ Hide full report', '▾ הסתרת הדוח המלא') : L(he, '▸ Full report', '◂ הדוח המלא')}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Chev open={open} he={he} />{open ? L(he, 'Hide full report', 'הסתרת הדוח המלא') : L(he, 'Full report', 'הדוח המלא')}</span>
     </button>
   );
 }
@@ -337,6 +283,24 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     if (!plans) return null;
     return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockId: selBlock, he });
   }, [clientWorkouts, traineeId, plans, exMap, selBlock, he]);
+  // VS THE LAST BLOCK (#814): the viewed block against the one before it, each from its own sessions
+  const cmp = useMemo(() => {
+    if (!a || a.empty || !a.blocks || !plans) return null;
+    const i = a.blocks.findIndex((b) => b.id === a.blockId);
+    // the last STRENGTH block before this one (a running block in between is not 'the last block' for lifts)
+    const isRun = (id) => { const p = plans.find((q) => q.id === id); return !!p && p.sport === 'running'; };
+    const prevMeta = i >= 0 ? a.blocks.slice(i + 1).find((b) => !isRun(b.id)) : null;
+    if (!prevMeta) return null;
+    const prev = buildBlockSessions(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap }, { targetBlockId: prevMeta.id });
+    // the latest block, still running: both blocks over the weeks he has reached (week 2 of 4 is not 'half the sessions')
+    const sess = a.sessions || [];
+    const reached = sess.length && sess.every((s) => Number(s.week) > 0) ? Math.max(...sess.map((s) => Number(s.week))) : null;
+    const weeks = i === 0 && reached && reached < (Number(a.weeks) || 0) ? reached : null;
+    const ballistic = new Set((a.staples || []).filter((s) => s.ballistic).map((s) => String(s.title).trim().toLowerCase().replace(/\s+/g, ' ')));
+    const out = compareBlocks(a, prev, { weeks, ballistic });
+    const ph = (name) => { const b = (a.blockHistory || []).find((x) => x.name === name); return b ? (he ? (CHAR_HE[b.character] || b.character) : b.character) : null; };
+    return { ...out, curPhase: ph(a.blockName), prevPhase: ph(prevMeta.name) };
+  }, [a, plans, clientWorkouts, traineeId, exMap, he]);
   // a RUNNING block reads as runs (#814): the strength report told a runner 'loads and effort are holding'
   const run = useMemo(() => {
     if (!plans || !a || !a.blockId) return null;
@@ -371,7 +335,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const vault = useMemo(() => getAthleteVault(traineeId), [traineeId, poseBump]);
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId, poseBump]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
-  const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
+  const [liftsOpen, setLiftsOpen] = useState(false);
+  const [liftsAll, setLiftsAll] = useState(false);   // the key lifts list shows its first 12 until asked // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
   const [barSpeedAll, setBarSpeedAll] = useState(false); // Bar-speed shows the top 3 lifts, expands to the FULL report of every tracked lift (Ohad #203)
   const [romAll, setRomAll] = useState(false); // Range-of-motion card: same top-3 → full-report expansion as bar speed (Ohad #203)
   // Lifts that carry a real camera ROM read (peak joint range per filmed set).
@@ -446,15 +411,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* THE TOP, REBUILT (16.10 #814): the block in one line + the next-block moves, the scorecard, the block at a
         glance, the main lifts - StrengthReview.jsx (the old verdict / gate / response cards said the same things three times) */}
-    <StrengthReview a={a} he={he} />
+    <StrengthReview a={a} he={he} cmp={cmp} />
 
     {/* 2.4 BLOCK HISTORY — the programming arc across every block */}
     {a.blockHistory && a.blockHistory.length >= 2 && (
-      <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Block history · the programming arc', 'היסטוריית בלוקים · רצף התכנות')}<span style={hdQ}>{L(he, 'what each block emphasized — oldest → newest', 'על מה כל בלוק שם דגש — מהישן לחדש')}</span></div>
+      <div style={card} data-arc><FitStrip he={he} title={L(he, 'The programming arc', 'רצף הבלוקים')} meta={L(he, 'each block\'s phase, oldest first', 'השלב של כל בלוק, מהישן לחדש')} />
         <div style={bd}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 6 }}>
             {a.blockHistory.slice(-14).map((b, idx) => {
-              const col = b.character === 'strength' ? C.ac : b.character === 'power' ? (C.or || '#f0b429') : b.character === 'hypertrophy' ? C.pu : C.gn;
               // Show the FULL block name — no .slice() (Ohad #205: "comeback block" was cut to "comeba"). The chip is flex:'0 0 auto' so it grows to fit and stays one row (nowrap below).
               const label = b.num != null ? `#${b.num}` : ((b.name || '').replace(/block/i, '').trim() || `B${idx + 1}`);
               // Low-confidence (mixed) reads — no intensity programmed, so the phase
@@ -467,10 +431,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 <div key={b.name || idx} title={he
                   ? `${b.name} · ${charName}${lowConf ? ' (ודאות נמוכה — לא נרשמה עצימות, הוסק מהחזרות)' : ` (ודאות ${CONF_HE[b.confidence] || b.confidence || 'לא ידועה'})`} — ${b.avgReps != null ? (b.avgReps === 1 ? 'ממוצע חזרה אחת' : `ממוצע ${b.avgReps} חזרות`) : 'מתפרץ, בלי בסיס חזרות'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% מתפרץ` : ''} · לפי ${b.fromMains ? 'התרגילים המרכזיים' : 'כל התרגילים'} (${b.exercises} נרשמו)`
                   : `${b.name} · ${b.character}${lowConf ? ' (low-confidence — no intensity logged, inferred from reps)' : ` (${b.confidence || 'read'})`} — ${b.avgReps != null ? `avg ${b.avgReps} reps` : 'explosive, no rep basis'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% explosive` : ''} · from ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
-                  style={{ flex: '0 0 auto', border: `1px ${lowConf ? 'dashed' : 'solid'} ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} ${lowConf ? 4 : 8}%, transparent)`, opacity: lowConf ? 0.72 : 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN, whiteSpace: 'nowrap' }}>{label}</div>
-                  <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{lowConf ? '~' : ''}{charName}</div>
-                  <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? (he ? `${b.avgReps} חז׳` : `${b.avgReps}r`) : '—'}</div>
+                  style={{ minWidth: 0, border: `1px solid ${b.name === a.blockName ? C.ac : C.cardBd}`, padding: '6px 4px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: b.name === a.blockName ? C.ac : C.tx, fontFamily: FN, overflowWrap: 'anywhere' }}><bdi>{label}</bdi></div>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: he ? 0 : '0.04em', textTransform: 'uppercase', color: lowConf ? C.td : C.tx, marginTop: 3, overflowWrap: 'anywhere' }}>{charName}</div>
+                  <div style={{ fontSize: 11, color: C.td, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? (he ? (b.avgReps === 1 ? 'חזרה אחת' : `${b.avgReps} חזרות`) : `${b.avgReps} rep${b.avgReps === 1 ? '' : 's'}`) : '—'}</div>
                 </div>
               );
             })}
@@ -506,9 +470,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               </div>
             );
           })()}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{he
-            ? <>אופי הבלוק נקבע לפי <b>עצימות (%1RM / RPE)</b>, טווח חזרות וכוונת התנועה יחד — לא רק לפי חזרות: מתפרץ (אולימפי, קפיצות, זריקות) = עוצמה; מעט חזרות כבדות או %/RPE גבוה = כוח; 8–12 חזרות תת־מקסימליות = היפרטרופיה; 12 חזרות ומעלה בעצימות נמוכה = סיבולת. בלוק <b style={{ color: C.tm }}>~מקווקו</b> = ודאות נמוכה (לא נרשמה עצימות, הוסק מהחזרות). רצף ארוך בצבע אחד הוא הסימן לשנות שלב.</>
-            : <>{'Character weighs '}<b>{'intensity (%1RM / RPE)'}</b>{', rep zone, and movement intent together — not reps alone: explosive (Olympic / jumps / throws) = power; heavy low reps or high %/RPE = strength; 8–12 sub-maximal = hypertrophy; 12+ low intensity = endurance. A '}<b style={{ color: C.tm }}>{'~dashed'}</b>{' block = low confidence (no intensity logged, inferred from reps). A long run of one colour is the cue to change phase.'}</>}</div>
+          <div style={{ fontSize: 11, color: C.td, marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>{L(he,
+            'The phase is read from the main lifts: intensity (%1RM / RPE), reps and intent together. A grey phase is a guess - no intensity was programmed, so it is read from the reps alone. The framed block is the one this report shows.',
+            <>השלב נקבע לפי התרגילים המרכזיים: עצימות (<bdi dir="ltr" style={{ whiteSpace: 'nowrap' }}>%1RM / RPE</bdi>), חזרות וכוונת התנועה יחד. שלב באפור הוא הערכה - לא תוכננה עצימות, אז הוא נקבע רק לפי החזרות. הבלוק במסגרת הוא הבלוק שמוצג בדוח.</>)}</div>
         </div>
       </div>
     )}
@@ -517,25 +481,24 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
       <div style={card}>
-        <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLiftsOpen((v) => !v); } }}
-          title={liftsOpen ? L(he, 'Collapse', 'סגירה') : L(he, 'Expand the per-lift breakdown', 'פתיחת הפירוט לפי תרגיל')}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (liftsOpen) ? 'none' : (he ? 'rotate(90deg)' : 'rotate(-90deg)') }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{L(he, 'Key lifts · what to do next', 'תרגילים מרכזיים · מה עושים הלאה')}</span>
-          <span style={hdQ}>{liftsOpen ? L(he, 'worst first · each row tells you the move for next block', 'הבעייתיים קודם · כל שורה אומרת מה לעשות בבלוק הבא') : (() => { const n = a.staples.filter((s) => s.count >= 3).length; return he ? `${cnt(n, 'תרגיל אחד', 'תרגילים')} · לחיצה לפתיחה` : `${n} lifts · click to expand`; })()}</span>
-        </div>
+        <FitStrip he={he} onClick={() => setLiftsOpen((v) => !v)} expanded={liftsOpen} lead={<Chev open={liftsOpen} he={he} />} title={L(he, 'Key lifts', 'תרגילים מרכזיים')} metaAlone={!liftsOpen}
+          meta={liftsOpen ? L(he, 'worst first · the move for next block', 'מהחלש לחזק · מה לעשות בבלוק הבא') : (() => { const n = a.staples.filter((s) => s.count >= 3).length; return he ? cnt(n, 'תרגיל אחד', 'תרגילים') : `${n} lift${n === 1 ? '' : 's'}`; })()} />
         {liftsOpen && <div style={bd}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr>
-                {(he ? ['תרגיל', 'מגמה', 'שיא', 'משקלים אחרונים', ''] : ['Lift', 'Trend', 'Best', 'Last loads', '']).map((h, i) => (
-                  <th key={i} style={{ textAlign: i === 4 ? 'end' : 'start', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {a.staples.filter((s) => s.count >= 3).map((s) => <LiftRow key={s.title} s={s} />)}
-              </tbody>
-            </table>
-          </div>
+          {(() => {
+            const rows = a.staples.filter((s) => s.count >= 3);
+            const shown = liftsAll ? rows : rows.slice(0, 12);
+            return (
+              <>
+                {shown.map((s) => <LiftRow key={s.title} s={s} />)}
+                {rows.length > 12 && (
+                  <button type="button" onClick={() => setLiftsAll((v) => !v)}
+                    style={{ marginTop: 8, width: '100%', height: 36, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: he ? 0 : '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                    {liftsAll ? L(he, 'Show the first 12', 'רק 12 הראשונים') : (he ? `כל ${rows.length} התרגילים` : `All ${rows.length} lifts`)}
+                  </button>
+                )}
+              </>
+            );
+          })()}
           {a.staples.filter((s) => s.count >= 3).length === 0 && (
             <div style={{ fontSize: 12.5, color: C.tm, padding: '10px 8px', lineHeight: 1.5 }}>{L(he, 'Nothing logged 3+ times yet — no lift has enough history to read a trend. The lifts trained so far are below.', 'עוד אין תרגיל שנרשם 3 פעמים ומעלה — אין מספיק היסטוריה כדי לזהות מגמה. התרגילים שבוצעו עד עכשיו מופיעים למטה.')}</div>
           )}
@@ -545,16 +508,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             return (
               <div style={{ marginTop: 8 }}>
                 <button type="button" onClick={() => setShowThin((v) => !v)}
-                  style={{ fontFamily: FN, fontSize: 11, letterSpacing: '0.04em', color: C.tm, background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: C.ac }}><CaretGlyph rot={showThin ? 0 : (he ? 90 : -90)} /></span>{he
-                    ? `${thin.length === 1 ? 'עוד תרגיל אחד שנרשם' : `עוד ${thin.length} תרגילים שנרשמו`} 1–2 פעמים · מעט מדי למגמה${showThin ? '' : ' (הצגה)'}`
-                    : `${thin.length} more lift${thin.length === 1 ? '' : 's'} logged 1–2× · too few to trend ${showThin ? '' : '(show)'}`}
+                  style={{ fontFamily: FN, fontSize: 11, letterSpacing: he ? 0 : '0.04em', color: C.tm, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, minHeight: 36, display: 'flex', alignItems: 'center', gap: 6, textAlign: 'start' }}>
+                  <Chev open={showThin} he={he} />{he
+                    ? `${thin.length === 1 ? 'עוד תרגיל אחד שנרשם' : `עוד ${thin.length} תרגילים שנרשמו`} 1–2 פעמים · מעט מדי למגמה`
+                    : `${thin.length} more lift${thin.length === 1 ? '' : 's'} logged once or twice · too few to trend`}
                 </button>
                 {showThin && (
-                  <div style={{ overflowX: 'auto', marginTop: 4 }}>
-                    <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}><tbody>
-                      {thin.map((s) => <LiftRow key={s.title} s={s} />)}
-                    </tbody></table>
+                  <div style={{ marginTop: 4 }}>
+                    {thin.map((s) => <LiftRow key={s.title} s={s} />)}
                   </div>
                 )}
               </div>
@@ -562,8 +523,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           })()}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
             {he
-              ? `תרגילים שנרשמו 3 פעמים ומעלה (מספיק כדי לזהות מגמה)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts === 1 ? 'עוד תרגיל אחד של משקל גוף או עזר' : `עוד ${a.bodyweightLifts} תרגילי משקל גוף ועזר`} (אין משקל למגמה)` : ''} · שיא = המשקל הכי כבד שנרשם · e = 1RM משוער (Epley), מוסתר מעל 12 חזרות.`
-              : `Lifts logged 3+ times (enough to read)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.`}
+              ? `תרגילים שנרשמו 3 פעמים ומעלה (מספיק כדי לזהות מגמה)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts === 1 ? 'עוד תרגיל אחד של משקל גוף או עזר' : `עוד ${a.bodyweightLifts} תרגילי משקל גוף ועזר`} (אין משקל למגמה)` : ''} · שיא = המשקל הכי כבד שנרשם · e1RM = מקסימום משוער (Epley), לא מחושב מעל 12 חזרות.`
+              : `Lifts logged 3+ times (enough to read)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = the heaviest logged · e1RM = the estimated max (Epley), not computed past 12 reps.`}
           </div>
         </div>}
       </div>
@@ -578,42 +539,39 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const grouped = groupByBucket(a.staples);
       const trained = BUCKETS.filter((b) => grouped[b.key].length > 0).length;
       if (trained === 0) return null;
-      // Show the FULL lift name — wrap onto the next row rather than truncating
-      // with … (Ohad #233, reversing the #225 ellipsis decision). Bullet pinned to
-      // the first line so multi-line names stay tidy.
-      const cell = (lift) => (
-        <div key={lift.title} dir="auto" title={lift.title} style={{ fontSize: 11.5, color: C.tm, lineHeight: 1.7, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-          <span aria-hidden style={{ flex: '0 0 auto', width: 3, height: 3, borderRadius: '50%', background: C.td, marginTop: 8 }} />
-          <span style={{ flex: '1 1 auto', minWidth: 0, overflowWrap: 'break-word' }}>{lift.title}</span>
-        </div>
-      );
+      // ONE small grid (16.10 #814): rows = two-sided / one-sided / plyo, columns = upper / lower, each cell the lifts
+      // logged there - an orange 'none' is the gap to check before the next block. The names follow, one line per bucket.
+      const MOD = [['bilateral', L(he, 'Two-sided', 'דו־צדדי')], ['unilateral', L(he, 'One-sided', 'חד־צדדי')], ['plyo', L(he, 'Plyometric', 'פליאומטרי')]];
+      const head = { fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, textAlign: 'center', letterSpacing: he ? 0 : '0.08em', textTransform: 'uppercase', padding: '4px 0' };
+      const cellB = { display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}`, padding: '8px 4px', fontFamily: FN, fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' };
       return (
         <Section title={L(he, 'Movement map', 'מפת תנועה')} summary={he ? `אומנו ${trained} מתוך 6 דפוסים` : `${trained} of 6 patterns trained`}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, alignItems: 'start' }}>
-            {BUCKETS.map((b) => {
-              const lifts = grouped[b.key];
-              const empty = lifts.length === 0;
-              return (
-                <div key={b.key} style={{ border: `1px solid ${empty ? C.bd : C.ac}`, background: empty ? 'transparent' : C.sf2, padding: '9px 11px', opacity: empty ? 0.45 : 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: empty ? C.td : C.ac, fontWeight: 700, marginBottom: empty ? 0 : 7, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-                    <span>{he ? (BUCKET_HE[b.key] || b.label) : b.label}</span><span style={{ color: C.tm }}>{lifts.length || ''}</span>
-                  </div>
-                  {empty ? <div style={{ fontSize: 10, color: C.td, fontStyle: 'italic' }}>{L(he, 'not trained', 'אין')}</div> : lifts.map(cell)}
-                </div>
-              );
-            })}
+          <div data-move-grid style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 200px) 80px 80px', alignItems: 'stretch' }}>
+            <span />
+            <span style={head}>{L(he, 'Upper', 'עליון')}</span>
+            <span style={head}>{L(he, 'Lower', 'תחתון')}</span>
+            {MOD.map(([m, label]) => (
+              <React.Fragment key={m}>
+                <span style={{ display: 'flex', alignItems: 'center', borderTop: `1px solid ${C.cardBd}`, padding: '8px 0', fontSize: 12.5, color: C.tm }}>{label}</span>
+                {['upper', 'lower'].map((r) => { const n = grouped[`${r}-${m}`].length; return <span key={r} style={{ ...cellB, color: n ? C.tx : C.or, fontSize: n ? 13 : 10.5 }}>{n || L(he, 'none', 'אין')}</span>; })}
+              </React.Fragment>
+            ))}
           </div>
-          {grouped.other.length > 0 && (
-            <div style={{ fontSize: 10.5, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
-              <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>{`${L(he, 'Other', 'אחר')} (${grouped.other.length}) `}<span style={{ opacity: 0.7, fontWeight: 400 }}>{L(he, '— core / carry / full-body (outside the six patterns)', '— בטן / נשיאה / כל הגוף (מחוץ לששת הדפוסים)')}</span></div>
-              {grouped.other.map((l) => (
-                <div key={l.title} dir="auto" title={l.title} style={{ overflowWrap: 'break-word', lineHeight: 1.6 }}>– {l.title}</div>
-              ))}
-            </div>
-          )}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{he
-            ? <>התרגילים שנרשמו, מחולקים לשש הקבוצות של הספרייה. קבוצה אפורה עם <b style={{ color: C.tm }}>אין</b> = דפוס תנועה שהבלוק הזה מדלג עליו — הבדיקה הכי מהירה לחורים לפני שאתה בונה את הבא.</>
-            : <>{'Logged lifts catalogued into the library\'s six buckets. A dim '}<b style={{ color: C.tm }}>{'not trained'}</b>{' bucket = a movement pattern this block is skipping — the fastest gap-check before you build the next one.'}</>}</div>
+          <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+            {BUCKETS.filter((bk) => grouped[bk.key].length).map((bk) => (
+              <div key={bk.key} style={{ fontSize: 12, lineHeight: 1.5 }}>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, letterSpacing: he ? 0 : '0.08em', textTransform: 'uppercase' }}>{he ? (BUCKET_HE[bk.key] || bk.label) : bk.label}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', color: C.tm, marginTop: 2 }}>{grouped[bk.key].map((l) => <bdi key={l.title} style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{l.title}</bdi>)}</div>
+              </div>
+            ))}
+            {grouped.other.length > 0 && (
+              <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: he ? 0 : '0.08em', textTransform: 'uppercase' }}>{L(he, 'Other · core, carry, full body', 'אחר · בטן, נשיאה, כל הגוף')}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', color: C.td, marginTop: 2 }}>{grouped.other.map((l) => <bdi key={l.title} style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{l.title}</bdi>)}</div>
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: C.td, marginTop: 10, lineHeight: 1.5 }}>{L(he, 'Every lift he logged, in the library\'s six patterns. An orange none is a pattern this training skips - the fastest gap check before the next block.', 'כל התרגילים שהוא רשם, בששת הדפוסים של הספרייה. אין בכתום = דפוס שהאימונים מדלגים עליו - הבדיקה הכי מהירה לחורים לפני הבלוק הבא.')}</div>
         </Section>
       );
     })()}
@@ -627,7 +585,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const rows = cont.lifts.filter((l) => l.count >= 2).slice(0, 12);
       if (!rows.length) return null;
       return (
-        <Section title={L(he, 'Exercise continuity', 'רצף תרגילים')} summary={he ? `${cnt(cont.totalBlocks, 'בלוק אחד', 'בלוקים')} · ${cnt(cont.staticNow.length, 'תרגיל אחד נשאר', 'תרגילים נשארו')} 4 בלוקים ומעלה` : `${cont.totalBlocks} blocks · ${cont.staticNow.length} kept ≥4`}>
+        <Section title={L(he, 'Exercise continuity', 'רצף תרגילים')} summary={he ? cnt(rows.length, 'תרגיל אחד חוזר', 'תרגילים חוזרים') : `${rows.length} lift${rows.length === 1 ? '' : 's'} repeat`}>
           <div style={{ overflowX: 'auto' }}>
             <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
@@ -639,7 +597,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 {rows.map((l) => (
                   <tr key={l.title} style={{ borderTop: `1px solid ${C.bd}` }}>
                     <td dir="auto" style={{ padding: '7px 8px', color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>{l.title}</td>
-                    <td data-h={L(he, 'In a row', 'ברצף')} style={{ textAlign: 'center', padding: '7px 8px', color: l.static ? C.or : C.tm, fontWeight: l.static ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{l.currentRun || '—'}{l.static ? ' ⚑' : ''}</td>
+                    <td data-h={L(he, 'In a row', 'ברצף')} style={{ textAlign: 'center', padding: '7px 8px', color: l.static ? C.or : C.tm, fontWeight: l.static ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{l.currentRun || '—'}</td>
                     <td data-h={L(he, 'Longest', 'הרצף הכי ארוך')} style={{ textAlign: 'center', padding: '7px 8px', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{l.longestRun}</td>
                     <td data-h={L(he, 'Blocks', 'בלוקים')} title={`${L(he, 'Blocks', 'בלוקים')} ${l.blocks.join(', ')}`} style={{ textAlign: 'center', padding: '7px 8px', color: C.td, fontVariantNumeric: 'tabular-nums', cursor: 'help' }}>{l.count}/{cont.totalBlocks}</td>
                   </tr>
@@ -647,7 +605,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Blocks IN A ROW each main lift has run, up to the latest block. A ⚑ marks ≥4 straight — long enough to ask whether it\'s still being progressed (specificity) or has gone stale. Your call, not a verdict.', 'כמה בלוקים ברצף כל תרגיל מרכזי נמצא בתוכנית, עד הבלוק האחרון. ⚑ מסמן 4 בלוקים ברצף ומעלה — מספיק זמן כדי לשאול אם עוד מתקדמים בו (ספציפיות) או שהוא כבר נשחק. ההחלטה שלך, לא פסק דין.')}</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Blocks in a row each main lift has run, up to the latest block. An orange number = 4 or more in a row - long enough to ask whether it is still being progressed or has gone stale. Your call, not a verdict.', 'כמה בלוקים ברצף כל תרגיל מרכזי נמצא בתוכנית, עד הבלוק האחרון. מספר בכתום = 4 בלוקים ברצף ומעלה - מספיק זמן כדי לשאול אם עוד מתקדמים בו או שהוא כבר נשחק. ההחלטה שלך, לא פסק דין.')}</div>
         </Section>
       );
     })()}
@@ -657,7 +615,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const t = a.transfer;
       const tone = t.side === 'balanced' ? C.gn : t.side === 'stalled' ? C.or : C.pu;
       return (
-        <Section title={L(he, 'Strength → power', 'כוח ← עוצמה')} summary={he
+        <Section title={L(he, 'Strength to power', 'מכוח לעוצמה')} summary={he
           ? <>{'כוח '}<Ltr>{`${t.sT > 0 ? '+' : ''}${t.sT}%`}</Ltr>{' · עוצמה '}<Ltr>{`${t.pT > 0 ? '+' : ''}${t.pT}%`}</Ltr></>
           : `${t.sT > 0 ? '+' : ''}${t.sT}% str · ${t.pT > 0 ? '+' : ''}${t.pT}% pow`}>
             {(() => {
@@ -753,9 +711,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   </div>
                   {/* Legend: bright, with each side's NOW value in its colour. */}
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 10, color: C.tm, paddingInlineStart: 46, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {sCurve && <span style={{ fontWeight: 600 }}><span style={{ color: BRAND }}>●</span>{` ${L(he, 'Strength', 'כוח')} (${sCurve.length}) · ${L(he, 'now', 'עכשיו')} `}<b style={{ color: BRAND }}>{Math.round(sCurve[sCurve.length - 1])}%</b></span>}
-                    {pCurve && <span style={{ fontWeight: 600 }}><span style={{ color: orange }}>●</span>{` ${L(he, 'Power', 'עוצמה')} (${pCurve.length}) · ${L(he, 'now', 'עכשיו')} `}<b style={{ color: orange }}>{Math.round(pCurve[pCurve.length - 1])}%</b></span>}
-                    <span style={{ marginInlineStart: 'auto', color: C.td }}>{L(he, '○ = high · dashed = 100% start', '○ = שיא · מקווקו = התחלה (100%)')}</span>
+                    {sCurve && <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 14, height: 2, background: BRAND }} />{`${L(he, 'Strength', 'כוח')} (${sCurve.length}) · ${L(he, 'now', 'עכשיו')} `}<b style={{ color: BRAND }}>{Math.round(sCurve[sCurve.length - 1])}%</b></span>}
+                    {pCurve && <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 14, height: 2, background: orange }} />{`${L(he, 'Power', 'עוצמה')} (${pCurve.length}) · ${L(he, 'now', 'עכשיו')} `}<b style={{ color: orange }}>{Math.round(pCurve[pCurve.length - 1])}%</b></span>}
+                    <span style={{ marginInlineStart: 'auto', color: C.td }}>{L(he, 'ring = high · dashed line = the start (100%)', 'עיגול = שיא · קו מקווקו = ההתחלה (100%)')}</span>
                   </div>
                 </div>
               );
@@ -773,7 +731,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               </div>
             </div>
             <div style={{ fontSize: 14, color: C.tx, lineHeight: 1.5 }}><b style={{ color: tone }}>{(he && TRANSFER_HE[t.side]?.read) || t.read}.</b></div>
-            <div style={{ fontSize: 13, color: C.ac, fontWeight: 600, marginTop: 5, lineHeight: 1.5 }}>{he ? '← ' : '→ '}{(he && TRANSFER_HE[t.side]?.move) || t.move}</div>
+            <div style={{ fontSize: 13, color: C.ac, fontWeight: 600, marginTop: 5, lineHeight: 1.5 }}>{(he && TRANSFER_HE[t.side]?.move) || t.move}</div>
             <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{L(he, 'Trend = avg e1RM slope per side. A relationship to watch, not a law — strength↔power carry-over is individual. Film jumps to swap the load-proxy for real height + bar-speed.', 'מגמה = השיפוע הממוצע של e1RM בכל צד. קשר שכדאי לעקוב אחריו, לא חוק — המעבר בין כוח לעוצמה משתנה מספורטאי לספורטאי. צלם קפיצות כדי לקבל גובה ומהירות מוט אמיתיים במקום הערכה לפי משקל.')}</div>
         </Section>
       );
@@ -826,14 +784,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                     </div>
                   </div>
                 </div>
-                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>{L(he, 'Σ load×reps per logged session · avg ', 'משקל × חזרות בכל אימון · ממוצע ')}<b style={{ color: C.tx }}>{avg.toLocaleString()}</b>{L(he, ' kg·reps — the raw work trend. ', ' קילו × חזרות — כמה עבודה נעשתה בפועל. ')}<span style={{ color: BRAND }}>▮</span>{L(he, ' peak · outlined = latest.', ' שיא · עם מסגרת = אחרון.')}</div>
+                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>{L(he, 'Σ load×reps per logged session · avg ', 'משקל × חזרות בכל אימון · ממוצע ')}<b style={{ color: C.tx }}>{avg.toLocaleString()}</b>{L(he, ' kg·reps — the raw work trend. ', ' קילו × חזרות — כמה עבודה נעשתה בפועל. ')}{L(he, 'The brightest bar = the peak · outlined = the latest.', 'העמודה הכי בהירה = השיא · עם מסגרת = האחרונה.')}</div>
               </div>
             );
           })()}
           {/* the acute:chronic ratio and its bands are gone (16.10 #814: contested - Lolli 2019, Impellizzeri 2020); the bars are the read */}
       </Section>
 
-      <Section title={L(he, 'Bar speed', 'מהירות מוט')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מהמצלמה')}</span>} summary={vault && vault.length > 0 ? (he ? `${cnt(vault.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored velocity', 'אין מדידות מהירות')}>
+      <Section title={L(he, 'Bar speed', 'מהירות מוט')} cardStyle={{ ...card, marginTop: 0 }} summary={vault && vault.length > 0 ? (he ? `מהווידאו · ${cnt(vault.length, 'תרגיל אחד', 'תרגילים')}` : `video · ${vault.length} lift${vault.length === 1 ? '' : 's'}`) : L(he, 'video · nothing yet', 'מהווידאו · עוד אין')}>
           {vault && vault.length > 0 ? (
             <>
               {vault.slice(0, barSpeedAll ? vault.length : 3).map((lift) => (
@@ -861,7 +819,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       {/* Range of motion — per-lift peak joint ROM from filmed sets, same
           top-3 → full-report expansion as bar speed (Ohad #203). ROM is real
           camera data (romTempo.maxRom), refused on poor-capture clips. */}
-      <Section title={L(he, 'Range of motion', 'טווח תנועה')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מהמצלמה')}</span>} summary={romLifts.length > 0 ? (he ? `${cnt(romLifts.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored ROM', 'אין מדידות טווח')}>
+      <Section title={L(he, 'Range of motion', 'טווח תנועה')} cardStyle={{ ...card, marginTop: 0 }} summary={romLifts.length > 0 ? (he ? `מהווידאו · ${cnt(romLifts.length, 'תרגיל אחד', 'תרגילים')}` : `video · ${romLifts.length} lift${romLifts.length === 1 ? '' : 's'}`) : L(he, 'video · nothing yet', 'מהווידאו · עוד אין')}>
           {romLifts.length > 0 ? (
             <>
               {romLifts.slice(0, romAll ? romLifts.length : 3).map((lift) => (
@@ -882,7 +840,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title={L(he, 'Symmetry · left vs right', 'סימטריה · ימין מול שמאל')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מהמצלמה')}</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? (he ? `מעקב: ${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint}` : `watch ${asymTrend.worst.joint.toLowerCase()}`) : (he ? `יציב · ${cnt(asymTrend.films, 'צילום אחד', 'צילומים')}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`)) : L(he, 'no history', 'אין היסטוריה')}>
+      <Section title={L(he, 'Symmetry · left vs right', 'סימטריה · ימין מול שמאל')} cardStyle={{ ...card, marginTop: 0 }} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? (he ? `מעקב: ${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint}` : `watch ${asymTrend.worst.joint.toLowerCase()}`) : (he ? `יציב · ${cnt(asymTrend.films, 'צילום אחד', 'צילומים')}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`)) : L(he, 'video · nothing yet', 'מהווידאו · עוד אין')}>
           {asymTrend.joints.length > 0 ? (
             <>
               <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>
@@ -949,8 +907,6 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
      inline-blocks written with no whitespace between the tags, they had
      none, and the last cell ran off the screen. */
   .lin-lifts td[data-h]{flex:0 1 auto;margin-inline-end:16px}
-  .lin-hd{display:block!important}
-  .lin-hd > *:last-child{display:block;margin-top:3px}
   .lin-lifts td[data-h]::before{content:attr(data-h);display:block;font-size:8px;letter-spacing:0.11em;text-transform:uppercase;color:var(--c-tm);margin-bottom:2px}
 }`}</style>
   </>);
