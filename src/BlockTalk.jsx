@@ -27,8 +27,9 @@ function Label({ children, color }) {
 export default function BlockTalk({ ctx, he, coach = true }) {
   if (!ctx) return null;
   const c = ctx.counts;
-  const parts = coach ? [
+  const parts = (coach ? [
     c.notes ? (he ? (c.notes === 1 ? 'הערה אחת שלו' : `${I(c.notes)} הערות שלו`) : `${c.notes} note${c.notes === 1 ? '' : 's'} from him`) : null,
+    c.exNotes ? (he ? (c.exNotes === 1 ? 'הערה אחת שלו על תרגיל' : `${I(c.exNotes)} הערות שלו על תרגילים`) : `${c.exNotes} note${c.exNotes === 1 ? '' : 's'} from him on an exercise`) : null,
     c.pain ? (he ? (c.pain === 1 ? 'דיווח על כאב פעם אחת' : `דיווח על כאב ${I(c.pain)} פעמים`) : `pain reported ${c.pain === 1 ? 'once' : `${c.pain} times`}`) : null,
     c.focus ? (he ? (c.focus === 1 ? 'הערת פוקוס אחת שלך' : `${I(c.focus)} הערות פוקוס שלך`) : `${c.focus} weekly focus note${c.focus === 1 ? '' : 's'} from you`) : null,
     c.comments ? (he ? (c.comments === 1 ? 'הערה אחת שלך על וידאו' : `${I(c.comments)} הערות שלך על וידאו`) : `${c.comments} video comment${c.comments === 1 ? '' : 's'} from you`) : null,
@@ -37,7 +38,8 @@ export default function BlockTalk({ ctx, he, coach = true }) {
     c.focus ? (he ? (c.focus === 1 ? 'הערת פוקוס אחת מהמאמן' : `${I(c.focus)} הערות פוקוס מהמאמן`) : `${c.focus} weekly focus note${c.focus === 1 ? '' : 's'} from your coach`) : null,
     c.comments ? (he ? (c.comments === 1 ? 'הערה אחת של המאמן על וידאו' : `${I(c.comments)} הערות של המאמן על וידאו`) : `${c.comments} video comment${c.comments === 1 ? '' : 's'} from your coach`) : null,
     c.notes ? (he ? (c.notes === 1 ? 'הערה אחת שלך' : `${I(c.notes)} הערות שלך`) : `${c.notes} note${c.notes === 1 ? '' : 's'} of yours`) : null,
-  ].filter(Boolean);
+    c.exNotes ? (he ? (c.exNotes === 1 ? 'הערה אחת שלך על תרגיל' : `${I(c.exNotes)} הערות שלך על תרגילים`) : `${c.exNotes} note${c.exNotes === 1 ? '' : 's'} of yours on an exercise`) : null,
+  ]).filter(Boolean);   // both voices drop the empty counts (the coach's '· · ·' line, 16.10)
   const title = coach ? L(he, 'What was said', 'מה נאמר בבלוק') : L(he, 'Notes and focus', 'הערות ופוקוס');
   if (!ctx.any) {
     return (
