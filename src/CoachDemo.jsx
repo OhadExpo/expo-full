@@ -2362,7 +2362,11 @@ function DemoLineage({ athleteName }) {
   const plans = (!own || !own.length)
     ? DEMO_LINEAGE_PLANS
     : DEMO_LINEAGE_PLANS.slice(-own.length).map((p, i) => ({ ...p, name: own[i] }));
-  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
+  // the logged history follows the renamed latest block (16.10 #814: the workouts kept 'Block #7 · Realize', so every athlete's
+  // analysis read 'no logged workouts' - a prospect never saw the analysis at all)
+  const latestMock = DEMO_LINEAGE_PLANS[DEMO_LINEAGE_PLANS.length - 1].name, latestName = plans[plans.length - 1].name;
+  const workouts = latestMock === latestName ? DEMO_LINEAGE_WORKOUTS : DEMO_LINEAGE_WORKOUTS.map((w) => (w.planName === latestMock ? { ...w, planName: latestName } : w));
+  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={workouts} loading={false} onOpenPlan={() => {}} />;
 }
 
 // THE DEMO EDITS IN THE REAL EDITOR (14.10 #760, from #754 "Fix it everywhere": the demo's program editor was an older

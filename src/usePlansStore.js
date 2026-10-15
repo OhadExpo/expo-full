@@ -240,6 +240,7 @@ export function useAthletePlans() {
           createdAt: p.created_at,
           updatedAt: p.updated_at,
           weeks: p.data?.weeks || 4,
+          sport: p.data?.sport || undefined,   // a running block reads as runs in the analysis (#814)
           days: normalizeDays(p.data?.days),
         }));
       }

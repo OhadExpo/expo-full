@@ -17,9 +17,12 @@ import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { VelocityReport, RomReport } from './LineageLiftReport';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
-import { groupByBucket, BUCKETS, movementRegion } from './movementBucket';
+import { groupByBucket, BUCKETS } from './movementBucket';
 import { exerciseContinuity } from './exerciseContinuity';
 import { useHe } from './i18n';
+import { analyzeRunner } from './runAnalysis';
+import RunReview from './RunReview';
+import StrengthReview from './StrengthReview';
 
 // Hebrew is COMPOSED here, not looked up: nearly every line carries a number,
 // a lift name or a plural, so a key→value map would split sentences. L() picks
@@ -151,62 +154,6 @@ function readStaple(s, he) {
     if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות') };
   }
   return { tag: L(he, 'HOLDING', 'יציב'), tagColor: C.tm, why: L(he, 'holding steady', 'נשאר יציב'), next: noPr ? L(he, `no PR in ${wks} weeks — time to change it up`, `אין שיא כבר ${wks === 2 ? 'שבועיים' : `${wks} שבועות`} — הגיע הזמן לשנות`) : L(he, 'maintain, or nudge the load', 'תשאיר ככה, או תעלה קצת משקל') };
-}
-
-function nextBlockText(a, he) {
-  const v = a.verdict;
-  const nextNum = a.blockNumber != null ? ` (#${a.blockNumber + 1})` : '';
-  if (v.tone === 'warn') {
-    const region = a.region?.lower?.pct >= a.region?.upper?.pct ? 'lower' : 'upper';
-    const hardStale = a.staples.find((s) => s.stale?.stale && s.stale.mode === 'hard');
-    // "Keep pushing" must exclude stale/ballistic lifts — a stale lift isn't
-    // "still has room", and you don't chase kg on a jump.
-    const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
-    if (he) {
-      return (
-        <>
-          <b>שבוע דילאוד{nextNum}: חתוך כ־50% מהנפח ב{region === 'lower' ? 'פלג הגוף התחתון' : 'פלג הגוף העליון'}, שמור על העצימות.</b> העייפות מצטברת מהר יותר ממה שהיא מתפוגגת.
-          {hardStale && <> אחרי שבוע ההורדה: <b>{hardStale.title} תקוע במאמץ גבוה</b> — תשנה גירוי (טמפו, עצירה, וריאציה), לא רק את המספר.</>}
-          {climbing.length > 0 && <> תמשיך לדחוף ב־<b>{climbing.slice(0, 2).join(' ו־')}</b> — יש עוד מקום.</>}
-          {a.skip && <> ותטפל בדילוג על <b>{a.skip.day}</b> ({a.skip.logged}/{a.skip.expected} נרשמו) — לתכנן אותו שוב כמו שהוא לא יעזור.</>}
-        </>
-      );
-    }
-    return (
-      <>
-        <b>{`Deload${nextNum}: cut ${region}-body volume ~50%, hold intensity.`}</b>{' Fatigue is accumulating faster than it\'s clearing.'}
-        {hardStale && <>{' When you rebuild: '}<b>{`${hardStale.title} is stale at a hard effort`}</b>{' — change the stimulus (tempo / pause / variation), not just the number.'}</>}
-        {climbing.length > 0 && <>{' Keep pushing '}<b>{climbing.slice(0, 2).join(' + ')}</b>{' — still has room.'}</>}
-        {a.skip && <>{' And fix the '}<b>{`${a.skip.day} skip`}</b>{` (${a.skip.logged}/${a.skip.expected} logged) — reprogramming it as-is won't help.`}</>}
-      </>
-    );
-  }
-  if (v.tone === 'info') {
-    if (he) return <><b>קודם שיתחיל לרשום.</b> רק {a.adh.sessionPct}% מהאימונים נרשמו — כל סימן עומס כאן לא אמין עד שהוא מתאמן ורושם. זו שיחת בירור, לא שינוי בתוכנית.</>;
-    return <><b>{'Get the athlete logging first.'}</b>{` Only ${a.adh.sessionPct}% of sessions are logged — every load signal here is unreliable until the athlete is training and recording it. This is a check-in, not a programming change.`}</>;
-  }
-  // Mutually exclusive: a stale lift is "stuck", never also "climbing" — else
-  // the coach is told to both add load AND hold on the same lift. Ballistics
-  // never land in "add load" (kg isn't the read on a jump). Matches the
-  // responding-split split above.
-  const stuck = a.staples.filter((s) => s.stale?.stale || s.trend?.dir === 'down').map((s) => s.title);
-  const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
-  if (he) {
-    return (
-      <>
-        <b>{a.blockNumber != null ? `ממשיכים להתקדם בבלוק #${a.blockNumber + 1}.` : 'ממשיכים להתקדם בבלוק הבא.'}</b> יציב או מתקדם.
-        {climbing.length > 0 && <> תעלה משקל ב־<b>{climbing.slice(0, 3).join(', ')}</b>.</>}
-        {stuck.length > 0 && <> ב־<b>{stuck.slice(0, 2).join(', ')}</b>: תשמור או תגוון לפני שאתה מעמיס עוד משקל.</>}
-      </>
-    );
-  }
-  return (
-    <>
-      <b>{`Progress the block${nextNum}.`}</b>{' Holding or progressing.'}
-      {climbing.length > 0 && <>{' Add load on '}<b>{climbing.slice(0, 3).join(', ')}</b>.</>}
-      {stuck.length > 0 && <>{' Hold or vary '}<b>{stuck.slice(0, 2).join(', ')}</b>{' before forcing more weight.'}</>}
-    </>
-  );
 }
 
 function LiftRow({ s }) {
@@ -390,6 +337,12 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     if (!plans) return null;
     return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockId: selBlock, he });
   }, [clientWorkouts, traineeId, plans, exMap, selBlock, he]);
+  // a RUNNING block reads as runs (#814): the strength report told a runner 'loads and effort are holding'
+  const run = useMemo(() => {
+    if (!plans || !a || !a.blockId) return null;
+    const viewed = plans.find((p) => p.id === a.blockId);
+    return viewed && viewed.sport === 'running' ? analyzeRunner(clientWorkouts || [], traineeId, plans, { viewedId: a.blockId, sameBlock: (w, p) => w.planName === p.name || (blockNum(p.name) != null && blockNum(w.planName) === blockNum(p.name)) /* the strength side's rule: the strip and the review count the same runs */ }) : null;
+  }, [plans, a, clientWorkouts, traineeId]);
   // Auto-analyse EVERY uploaded clip for bar-speed + symmetry — no manual "save
   // to trend" (Ohad). Runs once per clip in the background when the report opens
   // (owner-only surface); analysed clips are remembered so re-opens are instant.
@@ -419,7 +372,6 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId, poseBump]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
   const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
-  const [arcOpen, setArcOpen] = useState(true); // THE ARC collapsible like its siblings (Ohad 2026-08-21); starts open — it's the headline read
   const [barSpeedAll, setBarSpeedAll] = useState(false); // Bar-speed shows the top 3 lifts, expands to the FULL report of every tracked lift (Ohad #203)
   const [romAll, setRomAll] = useState(false); // Range-of-motion card: same top-3 → full-report expansion as bar speed (Ohad #203)
   // Lifts that carry a real camera ROM read (peak joint range per filmed set).
@@ -459,7 +411,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             {a.blocks.map((b, i) => <option key={b.id} value={b.id}>{b.name.toUpperCase()}{i === 0 ? L(he, ' · LATEST', ' · אחרון') : ''}</option>)}
           </select></>
         ) : (a.blockName ? <>· {a.blockName.toUpperCase()}</> : null)}
-        {a.empty ? '' : `· ${a.adh.loggedSessions}/${a.plannedSessionCount || '?'} ${L(he, 'LOGGED', 'נרשמו')}`}
+        {a.empty ? '' : run ? `· ${run.runs.length}/${run.plannedDue} ${L(he, 'RUNS', 'ריצות')}` : `· ${a.adh.loggedSessions}/${a.plannedSessionCount || '?'} ${L(he, 'LOGGED', 'נרשמו')}`}
       </span>
     </div>
   );
@@ -486,91 +438,15 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </>);
   }
 
-  const v = a.verdict;
-  const vColor = toneColor[v.tone] || C.ac;
-  const upperOk = a.region?.upper?.pct != null && a.region.upper.pct < 15;
+  if (run) return shell(<>{Strip}<RunReview a={run} he={he} /></>);
+
 
   return shell(<>
     {Strip}
 
-    {/* VERDICT FIRST */}
-    <div style={{ border: `1px solid ${vColor}`, background: `color-mix(in srgb, ${vColor} 8%, ${C.sf})`, padding: '16px 18px', marginTop: 12 }}>
-      <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: vColor, marginBottom: 7 }}>
-        {L(he, 'If you read one thing', 'בשורה התחתונה')}
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '2px 6px', marginInlineStart: 8 }}>
-          {he ? `ודאות ${CONF_HE[v.confidence] || v.confidence}${v.logs ? ' · הוא רושם' : ''}` : `${v.confidence} confidence${v.logs ? ' · he logs' : ''}`}
-        </span>
-      </div>
-      <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, color: C.tx }}>{v.headline}</div>
-      <div style={{ fontSize: 13, color: C.tm, marginTop: 8, lineHeight: 1.5 }}>{v.sub}</div>
-    </div>
-
-    {/* 1. THE GATE */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Did he actually train?', 'האימונים באמת קרו?')}<span style={hdQ}>{L(he, 'the gate — everything below assumes real data', 'קודם כל — מה שלמטה שווה משהו רק אם האימונים באמת נרשמו')}</span></div>
-      <div style={bd}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Kpi v={a.adh.sessionPct != null ? `${a.adh.sessionPct}%` : '—'} l={L(he, 'Sessions', 'אימונים')} s={he ? `${a.adh.loggedSessions} מתוך ${a.plannedSessionCount || '?'} נרשמו` : `${a.adh.loggedSessions} of ${a.plannedSessionCount || '?'} logged`} color={a.adh.sessionPct >= 80 ? C.gn : C.or} />
-          <Kpi v={a.adh.setsPct != null ? `${a.adh.setsPct}%` : '—'} l={L(he, 'Sets done', 'סטים שבוצעו')} s={he ? `${a.adh.setsDone} מתוך ${a.adh.setsPrescribed}` : `${a.adh.setsDone} of ${a.adh.setsPrescribed}`} color={a.adh.setsPct >= 80 ? C.gn : C.or} />
-          {a.skip
-            ? <Kpi v={a.skip.day} l={L(he, 'The skips', 'דילוגים')} s={`${a.skip.logged}/${a.skip.expected} — ${L(he, 'a pattern', 'זה דפוס')}`} color={C.rd} />
-            : <Kpi v={L(he, 'SPREAD', 'מפוזרים')} l={L(he, 'The skips', 'דילוגים')} s={L(he, 'no day is missed repeatedly', 'אין יום שמדלגים עליו שוב ושוב')} color={C.gn} />}
-        </div>
-        {a.skip && a.skip.gap >= 2 && (
-          <Read tone="bad" why={L(he, 'Either that day is too demanding, or it doesn\'t fit the athlete\'s week. Confirm before re-prescribing it.', 'או שהיום הזה קשה מדי, או שהוא לא מסתדר לו בשבוע. תברר לפני שאתה נותן אותו שוב.')}>
-            <b>{he ? `הדילוגים לא אקראיים — הם מתרכזים ב־${a.skip.day}.` : `The skips aren't random — they cluster on ${a.skip.day}.`}</b>
-          </Read>
-        )}
-      </div>
-    </div>
-
-    {/* 2. AUTOREGULATION — split into what's working vs what to back off (Ohad) */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Training response', 'תגובה לאימון')}<span style={hdQ}>{L(he, 'autoregulation — what\'s working vs what to back off', 'מה עובד ומה לא')}</span></div>
-      <div style={bd}>
-        {(() => {
-          const nm = (arr) => arr.map((s) => s.title).slice(0, 3).join(', ');
-          const thin = (a.adh?.loggedSessions || 0) < 3;
-          // Only MAIN compounds drive the systemic reads; a lone accessory dip or a
-          // ballistic lift (whose e1RM is meaningless) never triggers "back off".
-          // Buckets are mutually exclusive: a lift flat the last 3 sessions is "stuck",
-          // never also "climbing"/"regressing" — the recent plateau is the actionable
-          // signal, and a lift can't honestly be in both a positive and a negative column.
-          const stuck = a.staples.filter((s) => !s.ballistic && s.isMain && s.stale?.stale);
-          const climbing = a.staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'up');
-          const ballisticUp = a.staples.filter((s) => s.ballistic && !s.stale?.stale && s.trend?.dir === 'up');
-          const regressing = a.staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'down');
-          const lowerGrind = a.region?.lower?.pct != null && a.region.lower.pct >= 25;
-          // Dedup: the generic region line ("Upper body progressing" / "Lower body
-          // regressing") is pure restatement when a NAMED lift in the same column is
-          // already in that region — show it only when it adds new coverage (Ohad).
-          const climbingCoversUpper = climbing.some((s) => movementRegion(s.title) === 'upper');
-          const negNamesLower = [...regressing, ...stuck].some((s) => movementRegion(s.title) === 'lower');
-          const pos = [];
-          if (climbing.length) pos.push({ t: `${L(he, 'Progressing', 'מתקדם')} — ${nm(climbing)}`, d: L(he, 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.', 'ה־e1RM עולה. תמשיך להתקדם: עוד 2–3% משקל או עוד חזרה באותו מאמץ.') });
-          if (upperOk && !climbingCoversUpper) pos.push({ t: L(he, 'Upper body progressing', 'פלג גוף עליון מתקדם'), d: he ? `מפספס רק ${a.region.upper.pct}% מהחזרות — יש מקום להעלות משקל.` : `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
-          if (ballisticUp.length) pos.push({ t: `${L(he, 'Power progressing', 'העוצמה מתקדמת')} — ${nm(ballisticUp)}`, d: L(he, 'load is up; film a set to confirm it’s bar speed, not just heavier kg.', 'המשקל עלה. צלם סט כדי לוודא שזו מהירות מוט ולא רק יותר קילו.') });
-          const neg = [];
-          if (regressing.length) neg.push({ t: `${L(he, 'Regressing', 'יורד')} — ${nm(regressing)}`, d: thin
-            ? (he ? `ה־e1RM יורד, אבל ${(a.adh?.loggedSessions || 0) === 1 ? 'נרשם רק אימון אחד' : `נרשמו רק ${a.adh?.loggedSessions || 0} אימונים`} — סימן לעקוב אחריו, עוד לא סיבה לשבוע דילואד.` : `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.`)
-            : L(he, 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.', 'ה־e1RM ירד לאורך הבלוק. תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות.') });
-          if (stuck.length) neg.push({ t: `${L(he, 'Not progressing', 'לא מתקדם')} — ${nm(stuck)}`, d: L(he, 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.', 'תקוע כבר 3 אימונים. שנה גירוי (וריאציה או טמפו) או תן שבוע קל — לא עוד קילו.') });
-          if (lowerGrind && !negNamesLower) neg.push({ t: L(he, 'Lower body regressing', 'פלג גוף תחתון יורד'), d: he ? `${a.region.lower.pct}% מהסטים לא מגיעים ליעד — המשקל כבד מדי כרגע, וזה מצטבר.` : `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
-          const Col = ({ title, color, items, empty }) => (
-            <div style={{ border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 6%, transparent)`, padding: '11px 13px' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color, marginBottom: 9 }}>{title}</div>
-              {items.length ? items.map((it, i) => (
-                <div key={i} style={{ marginBottom: i < items.length - 1 ? 10 : 0, fontSize: 12.5, lineHeight: 1.5, color: C.tx }}><b>{it.t}.</b> <span style={{ color: C.tm }}>{it.d}</span></div>
-              )) : <div style={{ fontSize: 12, color: C.td, lineHeight: 1.5 }}>{empty}</div>}
-            </div>
-          );
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="lineage-grid2">
-              <Col title={L(he, '✓ Positive', '✓ עובד')} color={C.gn} items={pos} empty={L(he, 'Nothing clearly trending up yet — needs more logged sessions to call a win.', 'עוד אין משהו שעולה בבירור — צריך עוד אימונים רשומים כדי לקבוע שיש שיפור.')} />
-              <Col title={L(he, '⚠ Negative', '⚠ לא עובד')} color={C.rd} items={neg} empty={L(he, 'Nothing flashing — loads and completion are holding across the block.', 'אין נורות אדומות — המשקלים והביצוע יציבים לאורך הבלוק.')} />
-            </div>
-          );
-        })()}
-      </div>
-    </div>
+    {/* THE TOP, REBUILT (16.10 #814): the block in one line + the next-block moves, the scorecard, the block at a
+        glance, the main lifts - StrengthReview.jsx (the old verdict / gate / response cards said the same things three times) */}
+    <StrengthReview a={a} he={he} />
 
     {/* 2.4 BLOCK HISTORY — the programming arc across every block */}
     {a.blockHistory && a.blockHistory.length >= 2 && (
@@ -637,41 +513,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </div>
     )}
 
-    {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
-    {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
-      <div style={card}>
-        <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setArcOpen((v) => !v)} role="button" tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setArcOpen((v) => !v); } }}
-          title={arcOpen ? L(he, 'Collapse', 'סגירה') : L(he, 'Expand the main-lift arc', 'פתיחת ההתקדמות בתרגילים המרכזיים')}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (arcOpen) ? 'none' : (he ? 'rotate(90deg)' : 'rotate(-90deg)') }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{L(he, 'The arc · progression on the main lifts', 'התקדמות לאורך זמן · התרגילים המרכזיים')}</span>
-          <span style={hdQ}>{arcOpen ? L(he, 'e# = estimated 1-rep max (Epley) across every block — starting point vs now', 'e# = 1RM משוער (Epley) לאורך כל הבלוקים — נקודת ההתחלה מול היום') : (() => { const n = a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length; return he ? `${cnt(n, 'תרגיל אחד', 'תרגילים')} · לחיצה לפתיחה` : `${n} lifts · click to expand`; })()}</span>
-        </div>
-        {arcOpen && <div style={bd}>
-          {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null)
-            .sort((x, y) => y.count - x.count).slice(0, 4).map((s) => {
-              // e1RM conflates load and reps, so a rep-scheme shift alone moves the
-              // arc %. When the per-lift trend flagged reps as noisy, mute the number
-              // and flatten the spark — never contradict the trend row on the same lift.
-              const noisy = s.trend && s.trend.repNoisy;
-              const gc = noisy ? C.td : s.arcGainPct >= 3 ? C.gn : s.arcGainPct <= -3 ? C.rd : C.tm;
-              const lastE = Math.round(s.arc[s.arc.length - 1]);
-              return (
-                // Everything on ONE vertically-centred row (Ohad): name · spark ·
-                // e1RM change · gain%. The log/week context moves to the name tooltip.
-                <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
-                  <span title={he ? `${s.count} רישומים · ${s.spanWeeks > 0 ? (s.spanWeeks === 1 ? 'לאורך שבוע אחד' : s.spanWeeks === 2 ? 'לאורך שבועיים' : `לאורך ${s.spanWeeks} שבועות`) : 'בבלוק הזה'}` : `${s.count} logs · ${s.spanWeeks > 0 ? `over ${s.spanWeeks} week${s.spanWeeks === 1 ? '' : 's'}` : 'this block'}`}
-                    style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>{s.title}</span>
-                  <Spark pts={s.arc} dir={noisy ? 'flat' : s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
-                  <span style={{ flexShrink: 0, fontSize: 12.5, color: C.tx, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} title={L(he, 'estimated 1-rep max (Epley), first → now', '1RM משוער (Epley), מההתחלה עד היום')}><Ltr>{`e${s.firstE1} → e${lastE}`}</Ltr>{s.prE1 > lastE ? <span style={{ color: C.td, fontSize: 10 }}>{` · ${L(he, 'pk', 'שיא')} e${s.prE1}`}</span> : null}</span>
-                  <span style={{ flexShrink: 0, minWidth: 46, textAlign: 'end', fontSize: 12, fontWeight: 700, color: gc, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}><Ltr>{`${s.arcGainPct >= 0 ? '+' : ''}${s.arcGainPct}%`}</Ltr>{noisy ? <span style={{ fontSize: 9, fontWeight: 400, color: C.td }}>{L(he, ' · reps varied', ' · חזרות השתנו')}</span> : null}</span>
-                </div>
-              );
-            })}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Long-term arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.', 'מגמה לטווח ארוך, לא רק הבלוק הזה — e1RM = 1RM משוער (Epley). שינוי בטווח החזרות מזיז גם את ה־e1RM, אז תסתכל על זה יחד עם המגמה של כל תרגיל למטה.')}</div>
-        </div>}
-      </div>
-    )}
-
+    {/* (THE ARC moved into MAIN LIFTS at the top - 16.10 #814) */}
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
       <div style={card}>
@@ -945,7 +787,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         clean full-width bar (like the programs list he referenced) and an
         expanded card uses the full width, giving its graph more room. No void. */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 12, alignItems: 'start' }} className="lineage-grid2">
-      <Section title={L(he, 'Load & volume', 'עומס ונפח')} cardStyle={{ ...card, marginTop: 0 }} summary={a.acwr.state === 'ok' ? `ACWR ${a.acwr.acwr}` : L(he, 'building the baseline', 'בונה בסיס')}>
+      <Section title={L(he, 'Load & volume', 'עומס ונפח')} cardStyle={{ ...card, marginTop: 0 }} summary={L(he, 'tonnage per session', 'טונאז׳ לאימון')}>
           {Array.isArray(a.acwr.series) && a.acwr.series.length >= 2 && (() => {
             const mx = Math.max(...a.acwr.series, 1);
             const last = a.acwr.series[a.acwr.series.length - 1];
@@ -988,22 +830,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               </div>
             );
           })()}
-          {a.acwr.state === 'ok' ? (
-            <>
-              <Kpi v={a.acwr.acwr} l={L(he, 'Load ratio (ACWR)', 'יחס עומס (ACWR)')} s={L(he, 'completed tonnage · watch >1.3', 'טונאז׳ שבוצע · זהירות מעל 1.3')} color={a.acwr.band === 'high' ? C.rd : a.acwr.band === 'low' ? C.or : C.gn} />
-              <div style={{ marginTop: 8 }}>
-                {a.acwr.band === 'high' && <Read tone="warn" why={L(he, 'A common heuristic, not a law (Zatsiorsky is skeptical of fixed cutoffs) — but don\'t add more on top of a spike.', 'כלל אצבע נפוץ, לא חוק (זציורסקי סקפטי לגבי ספים קבועים) — אבל אחרי קפיצה בעומס, אל תוסיף עוד.')}><b>{he ? `העומס קפץ השבוע (ACWR ${a.acwr.acwr}).` : `Load spiked this week (ACWR ${a.acwr.acwr}).`}</b></Read>}
-                {a.acwr.band === 'low' && <Read tone="warn" why={L(he, 'Troughs often precede a risky rebound spike — a quiet week to watch.', 'ירידה חדה מגיעה הרבה פעמים לפני קפיצה מסוכנת כשהעומס חוזר — שבוע שקט שכדאי לעקוב אחריו.')}><b>{he ? `העומס ירד בחדות (ACWR ${a.acwr.acwr}).` : `Load dropped sharply (ACWR ${a.acwr.acwr}).`}</b></Read>}
-                {a.acwr.band === 'ok' && <Read tone="ok"><b>{he ? `העומס בטווח היציב (${a.acwr.acwr}).` : `Load's in the steady band (${a.acwr.acwr}).`}</b>{L(he, ' No spike or crash.', ' בלי קפיצות ובלי נפילות.')}</Read>}
-              </div>
-            </>
-          ) : (
-            <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-              <b style={{ color: C.tx }}>{L(he, 'Building the load baseline.', 'בונה את בסיס העומס.')}</b>{he
-                ? ` צריך כ־4 שבועות של רישום כדי לקבל יחס אקוטי:כרוני אמיתי — ${(a.acwr.haveDays || 0) === 1 ? 'יש יום אחד' : (a.acwr.haveDays || 0) === 2 ? 'יש יומיים' : `יש ${a.acwr.haveDays || 0} ימים`}.`
-                : ` Need ~4 weeks of logging for a real acute:chronic ratio — have ${a.acwr.haveDays || 0} days.`}
-            </div>
-          )}
+          {/* the acute:chronic ratio and its bands are gone (16.10 #814: contested - Lolli 2019, Impellizzeri 2020); the bars are the read */}
       </Section>
 
       <Section title={L(he, 'Bar speed', 'מהירות מוט')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מהמצלמה')}</span>} summary={vault && vault.length > 0 ? (he ? `${cnt(vault.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored velocity', 'אין מדידות מהירות')}>
@@ -1107,26 +934,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </Section>
     </div>
 
-    {/* 6. READINESS honest thin */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Readiness / effort log', 'רישום מאמץ (RPE)')}</div>
-      <div style={bd}>
-        <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-          {a.rpeCoverage >= 40
-            ? <><b style={{ color: C.tx }}>{he ? `RPE נרשם ב־${a.rpeCoverage}% מהסטים.` : `RPE logged on ${a.rpeCoverage}% of sets.`}</b>{L(he, ' Enough to trust the effort reads above — the autoregulation signal is reliable.', ' מספיק כדי לסמוך על מה שכתוב למעלה.')}</>
-            : <><b style={{ color: C.tx }}>{L(he, 'Not enough effort data to model fatigue.', 'אין מספיק נתוני מאמץ כדי להעריך עייפות.')}</b>{he ? ` RPE ב־${a.rpeCoverage}% מהסטים — צריך בערך 10 מדידות בשביל מגמה. כרגע זה שיקול דעת ביחד עם סימני העומס למעלה. ` : ` RPE on ${a.rpeCoverage}% of sets — need ~10 points for a trend. Right now this is judgment + the load signals above. `}<span style={{ color: C.td }}>{L(he, 'Nudge him to log effort and this unlocks a real fitness-fatigue readout.', 'תגיד לו לרשום מאמץ, וככה תקבל מעקב כושר־עייפות אמיתי.')}</span></>}
-        </div>
-      </div>
-    </div>
-
-    {/* 7. NEXT BLOCK */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'The next block · your call', 'הבלוק הבא · ההחלטה שלך')}</div>
-      <div style={bd}>
-        <div style={{ border: `1px solid ${C.ac}`, background: `color-mix(in srgb, ${C.ac} 7%, ${C.sf})`, padding: 14, fontSize: 14, lineHeight: 1.6, color: C.tx }}>
-          {nextBlockText(a, he)}
-        </div>
-      </div>
-    </div>
-
+    {/* (READINESS and NEXT BLOCK are the scorecard tile and the moves at the top - 16.10 #814) */}
     <div style={{ fontSize: 11, color: C.td, margin: '18px 2px 4px', lineHeight: 1.6 }}>
       {L(he, 'Verdict up top, gated on "did he train" · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.', 'הכול בתנאי שהאימונים באמת נרשמו · מה שחסר מסומן, לא ממציאים · שום דבר פה לא משנה את התוכנית — פה רק ממליצים, אתה בונה.')}
     </div>
