@@ -2179,6 +2179,10 @@ select.avail-select:dir(rtl) {
 .td-actbar > button { font-size: 11px !important; }
 .td-secs { display: flex; flex-wrap: wrap; column-gap: 18px; row-gap: 2px; width: 100%; align-items: center; }
 .td-sec .td-sec-short { display: none; }
+.td-secs-select { display: none; }
+.td-secs-select select { outline: none; }
+.td-secs-select select:focus-visible { outline: 2px solid var(--c-ac); outline-offset: 2px; }
+html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { letter-spacing: 0 !important; }
 /* a phone: the bar is two even rows on a 6-column grid - 3 + 3 cells, or 3 + 2 wider ones */
 @media (max-width: 620px) {
   .td-actbar { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
@@ -2197,6 +2201,9 @@ select.avail-select:dir(rtl) {
   .td-secs.td-secs-r1 > .td-sec:first-child { grid-column: 1 / -1; }
   .td-sec .td-sec-full { display: none; }
   .td-sec .td-sec-short { display: inline; }
+  /* #813: on a phone the tabs are one picker (SectionPicker) */
+  .td-secs { display: none !important; }
+  .td-secs-select { display: flex; }
 }
 
 /* THE EXERCISES HUB SUB-TABS (moved from App.jsx 29.9: the demo's hub renders

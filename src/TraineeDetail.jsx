@@ -18,7 +18,7 @@ import { isHebrew } from './script';
 const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload', 'club'];   // 'club' (14.10 #770): the Club log tab wrote #club but a reload dropped back to View All
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase, JoinedButtons, usePhone } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase, JoinedButtons, usePhone, SectionPicker } from './ui';
 import { savePlan } from './usePlansStore';
 import { useLineageLauncher } from './LineageLauncher';
 import { supabase } from './supabase';
@@ -592,7 +592,11 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
   // section into view. Scroll-jump, not filter — every section stays on the page.
   const FILTERABLE_SECS = TD_SECTIONS; // single source of truth (see top of file)
   // Empty set = View All (show everything). Otherwise show only the active ids.
-  const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
+  // a section this athlete does not have (a stale #billing on a club athlete, #club on anyone else) shows everything -
+  // it hid every card and left an empty page (#813 review)
+  const secOk = (id) => !((id === 'billing' && isClubAthleteRow(td)) || (id === 'club' && !isClubAthleteRow(td)));
+  const effSecs = [...activeSecs].every(secOk) ? activeSecs : new Set();
+  const showSec = (id) => effSecs.size === 0 || effSecs.has(id);
   // SINGLE-SELECT (Ohad 2026-08: "if i click on billing, i only want it to show
   // billing — for each button"). Each section tab isolates to ONLY that section;
   // clicking the already-active tab (or View All) returns to showing everything.
@@ -740,6 +744,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             (the three-material rule). Labels still size to themselves and wrap, so
             nothing is ever clipped or scrolled. The inactive underline is the same
             2px in transparent, so switching never moves the row by a pixel. */}
+        <SectionPicker label={t(readLang() === 'he' ? 'View' : 'Show') /* 'הצג: הצג הכל' said it twice */} tabs={SEC_TABS.map((s) => ({ id: s.id, label: s.label }))} value={effSecs.size === 1 ? [...effSecs][0] : effSecs.size === 0 ? 'all' : ''} onChange={(v) => { if (v === 'all') toggleSec('all'); else if (!(activeSecs.size === 1 && activeSecs.has(v))) toggleSec(v); }} />
         <div className={'td-secs' + (SEC_TABS.length % 3 === 2 ? ' td-secs-r2' : SEC_TABS.length % 3 === 1 ? ' td-secs-r1' : '')} role="group" aria-label={t('Filter sections')}>
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);

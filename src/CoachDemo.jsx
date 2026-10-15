@@ -26,7 +26,7 @@ import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { wrapNeed } from './wrapNeed';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, ChatGlyph, TargetGlyph, PencilGlyph, TrashIcon, Badge as AppBadge, useSettleIn, ChipGrid, TagStack, usePhone } from './ui';
+import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, ChatGlyph, TargetGlyph, PencilGlyph, TrashIcon, Badge as AppBadge, useSettleIn, ChipGrid, TagStack, usePhone, SectionPicker } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -2070,12 +2070,15 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               // the real athlete page's tabs, in its order (TraineeDetail SEC_TABS)
               const tabs = [['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['messages', 'Messages'], ['crm', 'Coach History', 'History'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['eval', 'Evaluation'], ['overload', 'Overload']];
               return (
+                <>
+                <SectionPicker label={T(readLang() === 'he' ? 'View' : 'Show')} tabs={tabs.map(([id, l]) => ({ id, label: T(l) }))} value={activeSecs.size === 1 ? [...activeSecs][0] : 'all'} onChange={(v) => { if (v === 'all') setActiveSecs(new Set()); else setActiveSecs(new Set([v])); }} />
                 <div className={'td-secs' + (tabs.length % 3 === 2 ? ' td-secs-r2' : tabs.length % 3 === 1 ? ' td-secs-r1' : '')} role="group" aria-label={T('Filter sections')}>
                   {tabs.map(([id, l, short]) => {
                     const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
                     return <button key={id} className="td-sec" aria-pressed={active} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 28, boxSizing: 'border-box', padding: '0 1px', borderRadius: 0, flex: '0 0 auto', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? 'var(--c-ac)' : 'transparent'}`, color: active ? 'var(--c-ac)' : C.tm, fontFamily: FN, fontSize: 10.5, fontWeight: active ? 800 : 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{short ? <><span className="td-sec-full">{T(l)}</span><span className="td-sec-short">{T(short)}</span></> : T(l)}</button>;
                   })}
                 </div>
+                </>
               );
             })()}
           </div>

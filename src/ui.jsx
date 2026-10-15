@@ -1756,6 +1756,30 @@ export function usePhone(max = 600) {
 // widths stacked). items: [{ label, onClick, disabled, tone: 'accent' | 'danger' | 'muted' }].
 // vertical: one column (a side stack on desktop); className lets a page re-flow it on a phone.
 const JB_TONE = { accent: C.ac, danger: C.rd, muted: C.tm };
+// THE SECTION PICKER ON A PHONE (16.10 #813, Ohad: "View all > overload is messy redesign it. Take less space"): the
+// athlete page's eleven section tabs took four rows of loose words (~150px) above the first card. On a phone (<= 620px,
+// themes.css) they are this ONE 36px picker - the phone's own list opens on tap - and the tabs stay on wider screens,
+// where they fit one row. tabs: [{ id, label }], value: the id shown ('all' = everything).
+export function SectionPicker({ tabs, value, onChange, label }) {
+  const id = React.useId();
+  const shown = tabs.some((t) => t.id === value) ? value : '';
+  // one frame, label then the select (the label used to sit ON the select - the demo-pages gate read it as covered text)
+  return (
+    <div className="td-secs-select" style={{ border: '1px solid ' + C.ac, height: 'var(--btn-h)', boxSizing: 'border-box', alignItems: 'stretch' }}>
+      <label htmlFor={id} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', paddingInline: '12px 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</label>
+      <span style={{ position: 'relative', flex: '1 1 auto', minWidth: 0, display: 'flex' }}>
+        <select id={id} value={shown} onChange={(e) => onChange(e.target.value)}
+          style={{ width: '100%', minWidth: 0, height: '100%', boxSizing: 'border-box', appearance: 'none', WebkitAppearance: 'none', borderRadius: 0, border: 'none', background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', paddingInline: '6px 34px', cursor: 'pointer' }}>
+          {/* a state none of the options names (a stale hash): an empty face, so picking VIEW ALL still changes it */}
+          <option value="" disabled hidden>—</option>
+          {tabs.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+        <span aria-hidden="true" style={{ position: 'absolute', insetInlineEnd: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: C.ac, pointerEvents: 'none' }}><CaretGlyph /></span>
+      </span>
+    </div>
+  );
+}
+
 export function JoinedButtons({ items, vertical = false, maxWidth = 560, className = '', style = null }) {
   const list = (items || []).filter(Boolean);
   return (
