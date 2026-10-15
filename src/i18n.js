@@ -1640,8 +1640,8 @@ export const HE = {
   '/km': 'לק״מ',
   // #799 a runner's records (PRs tab), from his logged runs
   'RUNNING RECORDS': 'שיאי ריצה',
-  'LONGEST RUN': 'הריצה הארוכה',
-  'FASTEST PACE': 'הקצב המהיר',
+  'LONGEST RUN': 'הריצה הכי ארוכה',   // 'הריצה הארוכה' reads as the weekly long run (native read, #804)
+  'FASTEST PACE': 'הקצב הכי מהיר',
   '5 KM+ PACE': 'קצב מעל 5 ק״מ',
   'RUN HISTORY ·': 'היסטוריית ריצות ·',
   RUN: 'ריצה',

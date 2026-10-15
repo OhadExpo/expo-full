@@ -12,6 +12,7 @@ import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
 import { useT, tr, readLang, dirOfText } from './i18n';
 import { useUrlSync, segmentAfter } from './urlState';
+import { runPace } from './runPace';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -57,6 +58,7 @@ function InlineVideo({ url }) {
 
 function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack, onBroadcastSet }) {
   const tt = useT();
+  const run = workout.sport === 'running';   // #808: a run's rep = km / time / HR, as the athlete portal's run logger
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); if (onBroadcastSet) { Object.entries(u).forEach(([k,v]) => onBroadcastSet(ei, si, k, v)); } };
   const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
   // Group consecutive exercises that share a superset letter into one block —
@@ -184,7 +186,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             {exData?.title||ex.title||"Unknown"}
           </span>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {doneCount}/{ex.sets.length}{tt('SETS · EXPAND')}</span>
+            {doneCount}/{ex.sets.length}{run ? ` · ${tt('EXPAND')}` : tt('SETS · EXPAND')}</span>
         </div>
       );
     }
@@ -202,18 +204,19 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
               <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign: 'end',marginInlineEnd:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
             </div>
             <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
-              {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
+              {(run ? [[tt('DISTANCE'),(ex.sets||[]).length>1?`${(ex.sets||[]).length} × ${ex.reps||''}`:ex.reps],[tt('PACE'),ex.tempo],[tt('HR CAP'),ex.load?String(ex.load).replace(/^HR\s*/i,''):'']]
+                : [['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']])
                 .filter(([,v])=>v!=null && v!=='' )
                 .map(([k,v])=>(
                   <span key={k} style={{display:'inline-flex',flexDirection:'column',lineHeight:1.15}}>
                     <span style={{fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.16em',color:C.td}}>{k}</span>
-                    <span style={{fontFamily:FB,fontSize:15,fontWeight:600,color:C.tx}}>{v}</span>
+                    <span dir="auto" style={{fontFamily:FB,fontSize:15,fontWeight:600,color:C.tx,unicodeBidi:'isolate'}}>{v}</span>
                   </span>
                 ))}
             </div>
           </div>
           {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title={tt('Collapse this exercise')}
-            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>COLLAPSE ▴</button>}
+            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>{tt('COLLAPSE')} ▴</button>}
         </div>
         {/* Coach cue — was tiny faded italic (unreadable). Now a readable
             accent-barred block: full-size, not italic, RTL-aware for Hebrew. */}
@@ -225,28 +228,36 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         )}
         {videoUrl && <InlineVideo url={videoUrl} />}
         <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
-          {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
+          {(run ? ['#',tt('KM'),tt('SPLIT'),tt('HR'),'✓'] : ["SET","REPS","LOAD","RPE","DONE"]).map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
         {ex.sets.map((set,sIdx)=>{
           // Ghost row above each set: what the athlete logged for this same set
           // index in the previous week (progressive-overload reference).
           const prior = prevSets?.[sIdx];
           return <React.Fragment key={sIdx}>
-            {prior && (parseFloat(prior.load)>0 || prior.reps) && (
+            {prior && (parseFloat(prior.load)>0 || prior.reps || (run && prior.time)) && (
               <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginTop:sIdx===0?0:6,opacity:0.5}}>
                 <span style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:C.ac,textAlign:"center"}}>W{prevWeekNum}</span>
                 <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{prior.reps||'—'}</div>
-                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load)||'—'}</div>
-                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{prior.rpe||'—'}</div>
+                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{run ? (prior.time||'—') : (parseFloat(prior.load)||'—')}</div>
+                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{run ? (prior.hr||'—') : (prior.rpe||'—')}</div>
                 <div/>
               </div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
               <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
+              {run ? <>
+                {/* a run's rep: DISTANCE in reps (km), TIME in its own field (never kg - PRs and tonnage never read a run), HR (#808) */}
+                <input aria-label={tt('Distance (km)')} value={set.reps} inputMode="decimal" onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value.replace(',', '.')})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder={String(ex.reps||'').replace(/\s*(km|ק״מ|ק"מ)$/i,'') || '—'} />
+                <input aria-label={tt('Time (mm:ss)')} value={set.time||''} inputMode="numeric" onChange={e=>updateSet(exIdx,sIdx,{time:e.target.value.replace(/[.,]/g, ':')})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder={tt('mm:ss')} />
+                <input aria-label={tt('Heart rate')} value={set.hr||''} inputMode="numeric" onChange={e=>updateSet(exIdx,sIdx,{hr:e.target.value.replace(/\D/g, '')})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder={ex.load ? String(ex.load).replace(/^HR\s*/i,'') : '—'} />
+              </> : <>
               <input type="number" value={set.reps} onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
               <input type="number" value={set.load} onChange={e=>updateSet(exIdx,sIdx,{load:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
               <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+              </>}
               <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
             </div>
+            {run && runPace(set.reps, set.time) && <div data-run-pace style={{fontFamily:FN,fontSize:11,color:C.tm,display:'flex',justifyContent:'center',alignItems:'baseline',gap:5,margin:'-2px 0 6px'}}><span>{tt('PACE')}</span><b dir="auto" style={{color:C.ac,unicodeBidi:'isolate'}}>{runPace(set.reps, set.time)} {tt('/km')}</b></div>}
           </React.Fragment>;})}
         {/* Coach's session note — separate from the prescribed cue above, so
             this field starts blank instead of echoing the plan's note. */}
@@ -388,6 +399,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       sets: e.sets ?? e.s ?? 3,
       reps: e.reps ?? e.r ?? '',
       tempo: e.tempo ?? '',
+      load: e.load ?? '',   // a RUN's HR cap lives here (#808)
+      rest: e.rest ?? '',
       superset: e.superset ?? '',
       notes: e.notes ?? e.n ?? '',
       // Per-week prescriptions must survive the compact-shape normalise, or the
@@ -412,8 +425,10 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       week = loggedWeeks.length ? Math.max(...loggedWeeks) + 1 : 1;
     }
     week = Math.min(planWeeks, Math.max(1, week));
+    // a RUNNING block (#808): the logger takes km / time / HR per rep, saved in the portal's own run shape
+    const isRun = fullPlan.data?.sport === 'running';
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
-      date:new Date().toISOString(),status:"in-progress", week, planWeeks,
+      date:new Date().toISOString(),status:"in-progress", week, planWeeks, ...(isRun ? { sport: 'running' } : {}),
       // Plans that vary reps/sets per week store ex.wk / ex.wkS — read the
       // CHOSEN week, exactly as SessionsView and the athlete portal already do.
       // Using the base values here showed the placeholder reps ("3x>"),
@@ -423,8 +438,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       exercises:dayExercises.map(ex=>{
         const wi = week - 1;
         const reps = (Array.isArray(ex.wk) && ex.wk[wi] != null && ex.wk[wi] !== '') ? ex.wk[wi] : (ex.reps ?? '');
-        const setCount = Math.max(1, Number((Array.isArray(ex.wkS) && ex.wkS[wi] != null) ? ex.wkS[wi] : ex.sets) || 3);
-        return {...ex,id:uid(),reps,sets:Array.from({length:setCount},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))};
+        const rawS = (Array.isArray(ex.wkS) && ex.wkS[wi] != null) ? ex.wkS[wi] : ex.sets;
+        // a run's 'sets' is its rep count as written ('5' of 5 × 1 km): the week's when it reads, else the base, else one -
+        // exactly the portal's rule, so the two loggers hold the same rows for the live sync (#808)
+        const runN = (v) => { const n = parseInt(v, 10); return n > 0 ? n : 0; };
+        const setCount = isRun ? (runN(Array.isArray(ex.wkS) ? ex.wkS[wi] : null) || runN(ex.sets) || 1) : Math.max(1, Number(rawS) || 3);
+        return {...ex,id:uid(),reps,sets:Array.from({length:setCount},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",...(isRun ? { time:"", hr:"" } : {}),completed:false}))};
       }),
       notes:""};
     setActive(w);
@@ -475,8 +494,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     ch.on('broadcast', { event: 'sync-request' }, ({ payload: p }) => {
       const a = activeRef.current;
       if (!p || !p.traineeId || !matches(a, p)) return;
-      const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.completed })) }));
-      if (!exercises.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done))) return;
+      const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.completed, ...(s.time ? { time: s.time } : {}), ...(s.hr ? { hr: s.hr } : {}) })) }));   // a run's time + HR too (#808)
+      if (!exercises.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done || s.time || s.hr))) return;
       try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
     });
     // CATCH-UP: fill empty local slots from a peer's replied state (by index).
@@ -492,7 +511,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
             const rs = rex.sets?.[si];
             if (!rs) return s;
             const ns = { ...s };
-            ['reps', 'load', 'rpe'].forEach(f => { if ((ns[f] === '' || ns[f] == null) && rs[f] != null && rs[f] !== '') { ns[f] = rs[f]; hit = true; } });
+            ['reps', 'load', 'rpe', 'time', 'hr'].forEach(f => { if ((ns[f] === '' || ns[f] == null) && rs[f] != null && rs[f] !== '') { ns[f] = rs[f]; hit = true; } });   // a run's time + HR (#808)
             if (!ns.completed && rs.done) { ns.completed = true; hit = true; }
             return ns;
           });
@@ -525,8 +544,9 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           // clobber anything the athlete has entered himself.
           const a = activeRef.current;
           if (a && a.traineeId) {
-            const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
-            if (exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) {
+            // done from the coach's `completed` (the key here was `done` - his ticks were never pushed on join); a run's time + HR (#808)
+            const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: !!s2.completed, ...(s2.time ? { time: s2.time } : {}), ...(s2.hr ? { hr: s2.hr } : {}) })) }));
+            if (exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done || s2.time || s2.hr))) {
               try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, week: a.week, exercises } }); } catch { /* not ready */ }
             }
           }
@@ -576,8 +596,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         exercises: (w.exercises || []).map(ex => ({
           eid: ex.exerciseId || '',
           title: libById.get(ex.exerciseId)?.title || ex.title || '',
-          prescribed: `${(ex.sets || []).length}×${ex.reps || ''}`,
-          sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: !!s.completed })),
+          prescribed: w.sport === 'running' ? `${(ex.sets || []).length}x${ex.reps || ''}` : `${(ex.sets || []).length}×${ex.reps || ''}`,   // a run as the portal writes it (#808)
+          sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: !!s.completed, ...(s.time ? { time: s.time } : {}), ...(s.hr ? { hr: s.hr } : {}) })),
           substitution: null,
         })),
       };

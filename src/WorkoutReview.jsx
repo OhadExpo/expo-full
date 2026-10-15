@@ -2109,10 +2109,21 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // workout — they're not lost, just not surfaced here.
   const hasReviewableVideo = (w) =>
     Array.isArray(w.formVideos) && w.formVideos.some(f => f && f.cloudUrl);
+  // A RUN has no clip and is still the coach's to read: km / time / pace / HR against the plan (#808 - a running
+  // athlete's runs never reached this queue). Every queue count below uses this one rule.
+  const isRunWorkout = (w) => (w.exercises || []).some(x => (x.sets || []).some(s => s && s.time));
+  const isReviewable = (w) => hasReviewableVideo(w) || isRunWorkout(w);
+  // how far a run went: the ticked reps, or every rep with a time when none is ticked (a run logged without the ✓)
+  const runKmOf = (w) => {
+    const sets = (w.exercises || []).filter(ex => (ex.sets || []).some(st => st && st.time)).flatMap(ex => ex.sets || []);   // run segments only - a drill row's reps are not km
+    const km = (arr) => arr.reduce((a, s) => a + (parseFloat(String(s.reps || '').replace(',', '.')) || 0), 0);
+    const ticked = km(sets.filter(s => s && s.done));
+    return Math.round((ticked > 0 ? ticked : km(sets.filter(s => s && s.time))) * 10) / 10;
+  };
 
   const byClient = {};
   (clientWorkouts || []).forEach(w => {
-    if (!hasReviewableVideo(w)) return;
+    if (!isReviewable(w)) return;
     const key = w.clientId || 'unknown';
     if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
     byClient[key].workouts.push(w);
@@ -2225,7 +2236,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       // days too, not just unreviewed ones. Without this, Save-&-Next jumped
       // to days the queue intentionally hides.
       const queue = (clientWorkouts || [])
-        .filter(w => w.id !== wo.id && !w.reviewedAt && hasReviewableVideo(w))
+        .filter(w => w.id !== wo.id && !w.reviewedAt && isReviewable(w))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
       return queue[0]?.id || null;
     };
@@ -2250,14 +2261,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     // Count only reviewable (video-having) unreviewed days so "(N LEFT)"
     // matches the visible queue badge instead of counting every unreviewed
     // day (which read 26 while the queue showed 2).
-    const remainingAfter = (clientWorkouts || []).filter(w => w.id !== wo.id && !w.reviewedAt && hasReviewableVideo(w)).length;
+    const remainingAfter = (clientWorkouts || []).filter(w => w.id !== wo.id && !w.reviewedAt && isReviewable(w)).length;
     // Pre-fetch the next two pending workouts' form videos so the next
     // ⌘+Enter / M lands on a clip that's already in the browser cache. We
     // pull cloudUrls from each workout's exercises array (skip pending /
     // failed uploads). Hidden <video preload> tags below trigger the warm.
     const prefetchUrls = (() => {
       const sorted = (clientWorkouts || [])
-        .filter(w => w.id !== wo.id && !w.reviewedAt && hasReviewableVideo(w))
+        .filter(w => w.id !== wo.id && !w.reviewedAt && isReviewable(w))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
       const urls = [];
       for (const w of sorted) {
@@ -2342,8 +2353,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               </div>
             </div>
             <div style={{textAlign: "end"}}>
-              <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.gn}}>{completedSets}/{totalSets}</div>
-              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{tt('SETS DONE')}</div>
+              {/* a run's head says how far (#808); a strength day its sets */}
+              <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.gn,unicodeBidi:'isolate',whiteSpace:'nowrap'}}>{isRunWorkout(wo) ? `${runKmOf(wo)} ${tt('KM')}` : `${completedSets}/${totalSets}`}</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{tt(isRunWorkout(wo) ? 'DISTANCE' : 'SETS DONE')}</div>
             </div>
           </div>
 
@@ -2432,10 +2444,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 <div style={{flex:1}}>
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
-                    {ex.prescribed} · {doneSets}/{setsArr.length} sets
+                    {setsArr.some((st) => st && st.time) ? <>{String(ex.prescribed || '').replace(/^1x/i, '').replace(/x/i, ' × ')} · {doneSets}/{setsArr.length}</> : <>{ex.prescribed} · {doneSets}/{setsArr.length} {tt('sets')}</>}
                     {/* a RUN (#769): what he ran, at a glance - distance · time · pace · HR of each done rep */}
                     {setsArr.some((st) => st && st.time) && setsArr.filter((st) => st.done && st.time).map((st, k) => (
-                      <span key={k} data-run-summary dir="ltr" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tx, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{[st.reps ? `${st.reps} km` : '', st.time, runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} /km` : '', st.hr ? `HR ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
+                      <span key={k} data-run-summary dir="auto" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tx, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{[st.reps ? `${st.reps} ${tt('KM').toLowerCase()}` : '', st.time, runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} ${tt('/km')}` : '', st.hr ? `${tt('HR')} ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
                     ))}
                     {(formVideo?.has || formVideo?.cloudUrl) && <span title={tt('Form video submitted')} style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
@@ -2592,7 +2604,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       })()}
                       {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>{tt('Client note:')}{formVideo.note}</div>}
                     </div>
-                  ) : (
+                  ) : setsArr.some((st) => st && st.time) ? null /* a run has no clip to miss (#808) */ : (
                     <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
                       <div style={{fontSize:11,color:C.tm}}>{tt("No form video submitted")}</div>
                     </div>
@@ -2870,6 +2882,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const doneSets = (wo.exercises || []).reduce((a,ex) => a + (ex.sets || []).filter(s=>s.done).length, 0);
             const totalSets = (wo.exercises || []).reduce((a,ex) => a + (ex.sets || []).length, 0);
             const hasFormVids = hasReviewableVideo(wo);
+            const runKm = isRunWorkout(wo) ? runKmOf(wo) : null;
             const reviewed = !!wo.reviewedAt;
             return (
               <React.Fragment key={wo.id}>
@@ -2913,7 +2926,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           words-date broke onto two rows at 360) */}
                       <span>{fmtNumericDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
-                      <span>{doneSets}/{totalSets} {tt('sets')}</span>
+                      <span style={{unicodeBidi:'isolate'}}>{runKm != null ? `${runKm} ${tt('KM')}` : `${doneSets}/${totalSets} ${tt('sets')}`}</span>
                       {/* The video slot is ALWAYS 13px wide, filled or not. On
                           mobile the meta is a grid and the sets column is placed
                           from the right; a card with no form video would collapse
