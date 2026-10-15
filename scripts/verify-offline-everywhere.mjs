@@ -170,7 +170,7 @@ try {
     if (SEAT === 'athlete' && route === '/athlete' && verdict !== 'BLANK' && verdict !== 'CRASH') {
       const tabs = await pg.evaluate(() => [...document.querySelectorAll('button')]
         .map((x) => (x.textContent || '').trim())
-        .filter((t) => /^(.\s*)?(program|bw|meal log|history|prs|messages)/i.test(t))
+        .filter((t) => /^(.\s*)?(program|bw|meal log|history|progress|prs|messages)/i.test(t))
         .slice(0, 8));
       for (const t of tabs) {
         if (/program/i.test(t)) continue;                    // already measured as the route

@@ -84,7 +84,7 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 | `/athlete` BW | bodyweight log | ✅ pass1 |
 | `/athlete` MEAL LOG | `MealLogger` (page mode) | ✅ pass2 |
 | `/athlete` HISTORY | past workouts | ✅ pass2 (null-guards fixed, commit 127783f) |
-| `/athlete` PRs | `TraineePRsView` | ✅ pass2 |
+| `/athlete/progress` PROGRESS (was PRs; 16.10 #826) | `AthleteProgress` (+ `TraineePRsView` embedded) | new 16.10 |
 | `/athlete` MESSAGES | `CoachMessages` (page mode) | ✅ pass2 |
 
 
@@ -94,7 +94,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 
 | Surface | URL |
 |---------|-----|
-| Athlete portal pages | `/athlete/program` · `/bodyweight` · `/meal-log` · `/history` · `/prs` · `/messages` (same tails under `/demo/athlete/…`, `/coach/athletes/<id>/preview/…`, `/coach/programs/<id>/preview/…`) |
+| Athlete portal pages | `/athlete/program` · `/bodyweight` · `/meal-log` · `/history` · `/progress` (an old `/prs` link opens it) · `/messages` (same tails under `/demo/athlete/…`, `/coach/athletes/<id>/preview/…`, `/coach/programs/<id>/preview/…`) |
 | Athlete page pop-ups | `/coach/athletes/<id>/edit` · `/contract` · `/add-payment` · `/edit-payment/<payment>` · `/assign-program` · `/remove-program/<program>` · `/archive` · `/delete` (sections stay `#vitals` … `#club`) |
 | BHBC pop-ups (any zone page) | `…/bhbc/<page>/player/<id>` (+ `/game/<date>`) · `/program/<id>` · `/log-lift[/<id>]` · `/log-s-and-c` · `/game-details` · `/minutes-played/<date>` · `/injury/<athlete>[/<injury>]` · `/manage-roster` (`/coach/bhbc/…` owner, `/bhbc/…` club coach) |
 | Review | `/coach/review/<workout>` (the open review) |

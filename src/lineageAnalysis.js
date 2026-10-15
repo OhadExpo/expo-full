@@ -667,6 +667,26 @@ export function compareBlocks(cur, prev, opts = {}) {
   return { cur: c, prev: p, lifts, counted: counted.length, up: counted.filter((l) => dir(l) > 0).length, down: counted.filter((l) => dir(l) < 0).length, weeks };
 }
 
+// the viewed block against the last STRENGTH block before it (a running block in between is not 'the last block' for
+// lifts); the latest block, still running, over the weeks reached. One helper for the coach's analysis and the
+// athlete's progress page. phaseOf(name) -> a word, or null.
+export function vsLastBlock(a, plans, clientWorkouts, traineeId, deps, phaseOf = null) {
+  if (!a || a.empty || !a.blocks || !plans) return null;
+  const i = a.blocks.findIndex((b) => b.id === a.blockId);
+  // not a running block, not a daily routine (a 'Morning Routine' plan is not the last block)
+  const skip = (id) => { const p = plans.find((q) => q.id === id); return !!p && (p.sport === 'running' || !!p.kind || /routine|שגרה/i.test(p.name || '')); };
+  const prevMeta = i >= 0 ? a.blocks.slice(i + 1).find((b) => !skip(b.id)) : null;
+  if (!prevMeta) return null;
+  const prev = buildBlockSessions(clientWorkouts || [], traineeId, plans, deps, { targetBlockId: prevMeta.id });
+  const sess = a.sessions || [];
+  const reached = sess.length && sess.every((s) => Number(s.week) > 0) ? Math.max(...sess.map((s) => Number(s.week))) : null;
+  const weeks = i === 0 && reached && reached < (Number(a.weeks) || 0) ? reached : null;
+  const key = (t) => String(t).trim().toLowerCase().replace(/\s+/g, ' ');
+  const ballistic = new Set((a.staples || []).filter((s) => s.ballistic).map((s) => key(s.title)));
+  const out = compareBlocks(a, prev, { weeks, ballistic });
+  return { ...out, curPhase: phaseOf ? phaseOf(a.blockName) : null, prevPhase: phaseOf ? phaseOf(prevMeta.name) : null };
+}
+
 // Which planned day is the athlete skipping? Returns the day with the biggest
 // (expected − logged) gap, so "always Day 4" reads as a pattern, not noise.
 export function skipPattern(sessions, plannedDays, weeks) {

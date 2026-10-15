@@ -102,7 +102,7 @@ const ATHLETE_SURFACES = [
   ['portal-bw', '/', '^(BW|משקל)$'],
   ['portal-meal', '/', '^(MEAL LOG|יומן אוכל)$'],
   ['portal-history', '/', '^(HISTORY|היסטוריה)( \\(\\d+\\))?$'],
-  ['portal-prs', '/', '^(PRs|שיאים)$'],
+  ['portal-progress', '/', '^(PROGRESS|התקדמות)$'],   // 16.10 #826: the PRs tab grew into PROGRESS
   ['portal-messages', '/', '^(MESSAGES|הודעות)$'],
 ];
 const DEMO_SURFACES = [

@@ -2286,13 +2286,13 @@ DEMO_LINEAGE_PLANS.push({
   id: 'demo-blk-7', name: 'Block #7 · Realize', createdAt: null, weeks: 4,
   days: [
     { name: 'Day 1 · Upper', exercises: [
-      { title: 'BB Bench Press', sets: 4, reps: '5' },
-      { title: 'Weighted Pull-Up', sets: 4, reps: '6' },
-      { title: 'Standing OHP', sets: 3, reps: '5' },
+      { exerciseId: 'u0', title: 'BB Bench Press', sets: 4, reps: '5' },
+      { exerciseId: 'u1', title: 'Weighted Pull-Up', sets: 4, reps: '6' },
+      { exerciseId: 'u2', title: 'Standing OHP', sets: 3, reps: '5' },
     ] },
     { name: 'Day 2 · Lower', exercises: [
-      { title: 'BB Back Squat', sets: 4, reps: '5' },
-      { title: 'Trap-Bar Deadlift', sets: 3, reps: '4' },
+      { exerciseId: 'l0', title: 'BB Back Squat', sets: 4, reps: '5' },
+      { exerciseId: 'l1', title: 'Trap-Bar Deadlift', sets: 3, reps: '4' },
     ] },
   ],
 });
@@ -2370,6 +2370,7 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
 // the shape — the logged sets, the per-lift cells, the trend — and the athlete
 // supplies how many blocks there are and what they are called. An athlete with
 // three plans gets a three-block lineage that matches their row.
+const latestOf = (plans) => plans[plans.length - 1].name;
 function DemoLineage({ athleteName }) {
   const subject = MOCK_TRAINEES.find((t) => t.name === athleteName);
   const own = (subject && subject.plans) ? subject.plans.slice().reverse() : null;   // chronological
@@ -2381,7 +2382,21 @@ function DemoLineage({ athleteName }) {
   const mockOf = DEMO_LINEAGE_PLANS.slice(-plans.length);
   const rename = new Map(mockOf.map((p, i) => [p.name, plans[i].name]));
   const workouts = DEMO_LINEAGE_WORKOUTS.filter((w) => rename.has(w.planName)).map((w) => ({ ...w, planName: rename.get(w.planName) }));
-  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={workouts} loading={false} onOpenPlan={() => {}} />;
+  // what was said in the latest block (#826): his notes, a pain check-in on the lower day where the squat came in under,
+  // a coach video comment, and the weekly focus - in the demo's language
+  const he = readLang() === 'he';
+  const said = {
+    'd-u0': { notes: he ? 'הבנץ׳ הרגיש מהיר היום' : 'Bench felt fast today' },
+    'd-l1': { notes: he ? 'הגב התחתון נתפס בסט האחרון של הסקוואט' : 'Lower back got tight on the last squat set', autoregulation: { pain: 'moderate', sleep: 'poor', energy: 'ok' },
+      formVideos: [{ has: true, note: he ? 'הרגשתי שהירכיים עולות ראשונות ביציאה מהתחתית' : 'Felt my hips shoot up out of the hole', reviewNotes: [{ id: 'dr1', ts: 12, author: 'trainer', text: he ? 'הירכיים עולות לפני החזה - תחזיק את החזה למעלה ביציאה מהתחתית' : 'Hips rise before the chest - keep the chest up out of the hole', createdAt: '2026-06-11T10:00:00Z' }] }] },
+    'd-l2': { autoregulation: { pain: 'mild', sleep: 'ok', energy: 'ok' } },
+  };
+  const talked = workouts.map((w) => (said[w.id] ? { ...w, ...said[w.id] } : w));
+  const focus = {
+    [`demo|${latestOf(plans)}|Day 2 · Lower|l0|W2`]: he ? 'שבוע קל לגב: 2 סטים פחות בסקוואט, ובכל חזרה עצירה של שנייה בתחתית' : 'An easy week for the back: two sets fewer on the squat, and a one-second pause at the bottom of every rep',
+    [`demo|${latestOf(plans)}|Day 1 · Upper|u0|W1`]: he ? 'תעלה 2.5 ק״ג אם כל החזרות נקיות' : 'Add 2.5 kg if every rep is clean',
+  };
+  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={talked} loading={false} onOpenPlan={() => {}} focus={focus} />;
 }
 
 // THE DEMO EDITS IN THE REAL EDITOR (14.10 #760, from #754 "Fix it everywhere": the demo's program editor was an older

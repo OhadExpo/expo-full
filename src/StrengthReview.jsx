@@ -47,10 +47,10 @@ export const stripStyle = (he) => ({ borderBottom: `1px solid ${C.cardBd}`, padd
 export const subStyle = (he) => ({ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: track(he, '0.04em'), textTransform: 'none', fontWeight: 600 });
 
 // a lift's state, in the words the coach acts on - stuck BEFORE dropping, as the engine reads it
-function liftState(s) {
+function liftState(s, athlete = false) {
   if (s.count < 3) return { k: 'few', en: 'Too few', he: 'מעט נתונים', c: C.td };
   if (s.ballistic) return { k: 'power', en: 'Explosive', he: 'מתפרץ', c: C.ac };
-  if (s.stale?.stale) return { k: 'stuck', en: 'Stuck', he: 'תקוע', c: C.or };
+  if (s.stale?.stale) return athlete ? { k: 'stuck', en: 'Holding', he: 'יציב', c: C.tm } : { k: 'stuck', en: 'Stuck', he: 'תקוע', c: C.or };
   if (s.trend?.dir === 'down') return { k: 'down', en: 'Dropping', he: 'יורד', c: C.rd };
   if (s.trend?.dir === 'up') return { k: 'up', en: 'Climbing', he: 'עולה', c: C.gn };
   return { k: 'hold', en: 'Holding', he: 'יציב', c: C.tm };
@@ -82,7 +82,7 @@ function moves(a, he, deloadHeadline) {
   return out.slice(0, 4);
 }
 
-function Tile({ v, l, s, color, he }) {
+export function Tile({ v, l, s, color, he }) {
   return (
     <div style={{ flex: '1 1 140px', minWidth: 0, border: `1px solid ${C.cardBd}`, padding: '10px 12px', textAlign: 'center' }}>
       <div style={{ fontFamily: FN, fontSize: 20, fontWeight: 700, color: color || C.tx, lineHeight: 1.15 }}><Ltr>{v}</Ltr></div>
@@ -168,7 +168,7 @@ function Glance({ a, he }) {
 
 // VS THE LAST BLOCK: the two blocks' own numbers side by side, then every lift that ran in both (worst first)
 const kShort = (n) => (n == null ? '—' : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
-function VsLast({ cmp, he }) {
+export function VsLast({ cmp, he, athlete = false }) {
   if (!cmp) return null;
   const { cur, prev, lifts } = cmp;
   const head = (
@@ -202,7 +202,7 @@ function VsLast({ cmp, he }) {
       : !parts.length ? (he ? (n === 1 ? 'תרגיל אחד היה בשני הבלוקים.' : `${I(n)} תרגילים היו בשני הבלוקים.`) : `${n} lift${n === 1 ? '' : 's'} ran in both blocks.`)
       : he ? `${n === 1 ? 'תרגיל אחד היה' : `${I(n)} תרגילים היו`} בשני הבלוקים: ${parts.map(([k, , o, m]) => (k === 1 ? `אחד ${o}` : `${I(k)} ${m}`)).join(', ')}.`
         : `${n} lift${n === 1 ? '' : 's'} ran in both blocks: ${parts.map(([k, e]) => `${k} ${e}`).join(', ')}.`;
-  const winLine = cmp.weeks ? (he ? (cmp.weeks === 1 ? 'שני הבלוקים בשבוע הראשון שלהם - הוא עדיין בשבוע 1.' : `שני הבלוקים ב־${I(cmp.weeks)} השבועות הראשונים שלהם - הוא עדיין בשבוע ${I(cmp.weeks)}.`) : `Both blocks over their first ${cmp.weeks === 1 ? 'week' : `${cmp.weeks} weeks`} - he is still in week ${cmp.weeks}.`) : null;
+  const winLine = cmp.weeks ? (he ? (cmp.weeks === 1 ? (athlete ? 'משווה את השבוע הראשון בשני הבלוקים - אתה עדיין בשבוע 1.' : 'משווה את השבוע הראשון בשני הבלוקים - הוא עדיין בשבוע 1.') : `משווה את ${I(cmp.weeks)} השבועות הראשונים בשני הבלוקים - ${athlete ? 'אתה' : 'הוא'} עדיין בשבוע ${I(cmp.weeks)}.`) : `Both blocks over their first ${cmp.weeks === 1 ? 'week' : `${cmp.weeks} weeks`} - ${athlete ? 'you are' : 'he is'} still in week ${cmp.weeks}.`) : null;
   const cellNum = { display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 12.5, fontWeight: 700, textAlign: 'center', padding: '8px 4px', borderTop: `1px solid ${C.cardBd}`, fontVariantNumeric: 'tabular-nums' };
   return (
     <div style={card} data-vs-last>
@@ -222,7 +222,7 @@ function VsLast({ cmp, he }) {
             </React.Fragment>
           ))}
         </div>
-        {(prev.workPerWeek || cur.workPerWeek) && <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{L(he, 'Work = kg × reps summed over every set done, averaged a week (only the weeks he logged).', 'עבודה = סך ק״ג × חזרות בכל הסטים שבוצעו, בממוצע לשבוע (רק שבועות שהוא רשם).')}</div>}
+        {(prev.workPerWeek || cur.workPerWeek) && <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{athlete ? L(he, 'Work = kg × reps summed over every set done, averaged a week (only the weeks you logged).', 'עבודה = סך ק״ג × חזרות בכל הסטים שבוצעו, בממוצע לשבוע (רק שבועות שרשמת).') : L(he, 'Work = kg × reps summed over every set done, averaged a week (only the weeks he logged).', 'עבודה = סך ק״ג × חזרות בכל הסטים שבוצעו, בממוצע לשבוע (רק שבועות שהוא רשם).')}</div>}
       </div>
       {n > 0 && (
         <>
@@ -244,21 +244,21 @@ function VsLast({ cmp, he }) {
               </div>
             </div>
           ))}
-          {n > 8 && <div style={{ padding: '0 14px 10px', fontFamily: FB, fontSize: 11.5, color: C.td }}>{he ? (n - 8 === 1 ? 'ועוד אחד - ברשימת התרגילים המרכזיים למטה.' : `ועוד ${I(n - 8)} - כולם ברשימת התרגילים המרכזיים למטה.`) : `${n - 8} more - all of them in the key lifts list below.`}</div>}
+          {n > 8 && !athlete && <div style={{ padding: '0 14px 10px', fontFamily: FB, fontSize: 11.5, color: C.td }}>{he ? (n - 8 === 1 ? 'ועוד אחד - ברשימת התרגילים המרכזיים למטה.' : `ועוד ${I(n - 8)} - כולם ברשימת התרגילים המרכזיים למטה.`) : `${n - 8} more - all of them in the key lifts list below.`}</div>}
         </>
       )}
     </div>
   );
 }
 
-function Lifts({ a, he }) {
+export function Lifts({ a, he, athlete = false }) {
   const rows = (a.staples || []).filter((s) => s.isMain && s.count >= 2).slice(0, 10);
   if (!rows.length) return null;
   return (
     <div style={card}>
       <FitStrip he={he} title={L(he, 'Main lifts', 'התרגילים המרכזיים')} meta={L(he, 'up to the last 12 top sets · change since the first', 'עד 12 טופ סטים אחרונים · שינוי מהראשון')} />
       {rows.map((s, i) => {
-        const st = liftState(s);
+        const st = liftState(s, athlete);
         const chg = s.ballistic ? null : s.arcGainPct;   // a jump's estimated max means nothing
         return (
           <div key={s.title} data-lift-row style={{ padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>

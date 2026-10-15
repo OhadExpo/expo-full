@@ -1948,6 +1948,7 @@ export const HE = {
   'Current password is incorrect.': 'הסיסמה הנוכחית שגויה.',
   HISTORY: 'היסטוריה',
   PRs: 'שיאים',
+  PROGRESS: 'התקדמות',   // #826: the athlete's progress page (the PRs live inside it)
   MESSAGES: 'הודעות',
 
   // ---- the workout screen ----------------------------------------------

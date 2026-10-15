@@ -18,6 +18,25 @@ const noCommentText = {
   },
 };
 
+// core no-undef does not see a JSX component name: a bare <Suspense> with no import passed lint (16.10 #826) and would
+// have thrown the moment the athlete opened his progress page. A capitalised JSX name must resolve in scope.
+const jsxNoUndef = {
+  meta: { type: 'problem' },
+  create(context) {
+    const sc = context.sourceCode || context.getSourceCode();
+    return {
+      JSXOpeningElement(node) {
+        const n = node.name;
+        if (!n || n.type !== 'JSXIdentifier' || !/^[A-Z]/.test(n.name)) return;
+        let scope = sc.getScope ? sc.getScope(node) : context.getScope();
+        while (scope) { if (scope.set && scope.set.has(n.name)) return; scope = scope.upper; }
+        if (n.name === 'React') return;
+        context.report({ node: n, message: `JSX component '${n.name}' is not defined or imported` });
+      },
+    };
+  },
+};
+
 export default [
   {
     files: ['src/**/*.{js,jsx}', 'expo-il/src/**/*.{js,jsx}'],
@@ -25,7 +44,7 @@ export default [
     // Legacy `// eslint-disable react-hooks/exhaustive-deps` comments are
     // harmless no-ops now that the rule is off — don't report them.
     linterOptions: { reportUnusedDisableDirectives: 'off' },
-    plugins: { 'react-hooks': reactHooks, expo: { rules: { 'no-comment-text': noCommentText } } },
+    plugins: { 'react-hooks': reactHooks, expo: { rules: { 'no-comment-text': noCommentText, 'jsx-no-undef': jsxNoUndef } } },
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -52,6 +71,7 @@ export default [
       'no-unreachable': 'error',
       'no-self-assign': 'error',
       'expo/no-comment-text': 'error',
+      'expo/jsx-no-undef': 'error',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'off', // many intentional omissions; not gating on it
     },

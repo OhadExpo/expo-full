@@ -34,7 +34,7 @@ LANG_APP=he MANIFEST=pairs-he.json \
   node scripts/shoot-prod-vs-branch.mjs
 
 LANG_APP=he W=430 MANIFEST=pairs-athlete-more.json \
-  JOBS="athlete:/athlete:history-phone:history|היסטוריה,athlete:/athlete:prs-phone:^(prs|שיאים)$,athlete:/athlete:messages-phone:messages|הודעות,athlete:/athlete:bw-phone:^(bw|משקל)$" \
+  JOBS="athlete:/athlete:history-phone:history|היסטוריה,athlete:/athlete:progress-phone:^(progress|התקדמות)$,athlete:/athlete:messages-phone:messages|הודעות,athlete:/athlete:bw-phone:^(bw|משקל)$" \
   node scripts/shoot-prod-vs-branch.mjs
 
 LANG_APP=he W=430 MANIFEST=pairs-demo.json \

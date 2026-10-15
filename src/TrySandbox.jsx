@@ -461,11 +461,11 @@ function ClientPortalMock({ onPick }) {
           whole portal 77px past a 390px phone. Wrap to two rows of three and
           let each shrink. */}
       <div style={{ padding: '14px 20px 0', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {/* The REAL portal's nav is PROGRAM · BW · MEAL LOG · HISTORY · PRs ·
+        {/* The REAL portal's nav is PROGRAM · BW · MEAL LOG · HISTORY · PROGRESS ·
             MESSAGES (ClientPortal.jsx NAV). This mirror still showed the old
             four, so a /try visitor saw a portal shape that stopped existing when
             the meal log and messages shipped (parity pass 08-25). */}
-        {[['prog', 'Program'], ['bwt', 'BW'], ['meal', 'Meal Log'], ['hist', `History (${HISTORY.length})`], ['pr', 'PRs'], ['msg', 'Messages']].map(([k, l]) => (
+        {[['prog', 'Program'], ['bwt', 'BW'], ['meal', 'Meal Log'], ['hist', `History (${HISTORY.length})`], ['pr', 'Progress'], ['msg', 'Messages']].map(([k, l]) => (   /* #826: PRs grew into PROGRESS */
           <button key={k} onClick={() => setVw(k)} style={{
             flex: '1 1 28%', minWidth: 0, padding: 8, borderRadius: 0, boxSizing: 'border-box',
             border: `${vw === k ? '2px' : '0.25px'} solid ${C.ac}${vw === k ? '' : '4D'}`,

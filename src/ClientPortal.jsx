@@ -42,9 +42,9 @@ import { resolveStoredUrl } from './storageUrl';
 import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
 import { useUrlSync } from './urlState';
 // the portal's pages in the URL, in the tabs' own words (#770)
-const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'prs', msg: 'messages' };
-const PORTAL_KEY = Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k]));
-const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|prs|messages))?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
+const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'progress', msg: 'messages' };   // 16.10 #826: PRs grew into PROGRESS
+const PORTAL_KEY = { ...Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k])), prs: 'pr' };   // an old /prs link still opens it
+const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|progress|prs|messages))?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
 const portalPageFromPath = (p) => { const m = String(p || '').match(PORTAL_BASE); return m && m[2] ? (PORTAL_KEY[m[2]] || null) : null; };
 const portalPath = (p, v) => { const m = String(p || '').match(PORTAL_BASE); return m ? `${m[1]}/${PORTAL_PAGES[v] || 'program'}` : null; };
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
@@ -52,6 +52,7 @@ const portalPath = (p, v) => { const m = String(p || '').match(PORTAL_BASE); ret
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
   .then((m) => ({ default: m.FormVideoPlayer })));
 const MealLogger = React.lazy(() => import('./MealLogger'));
+const AthleteProgress = React.lazy(() => import('./AthleteProgress'));   // #826: the analysis engine stays out of the portal's first load
 
 // THE LAST PROGRAMME WE SAW, KEPT ON THE PHONE.
 //
@@ -211,6 +212,7 @@ Object.entries(EX).forEach(([k,v]) => { if(v.t) EX_BY_TITLE[v.t.toLowerCase()] =
 // comparisons on every portal re-render (incl. the 30s presence beat).
 function trainerPlanToPortal(plan, exById, exByTitle) {
   return {
+    id: plan.id,   // #826: the progress page targets the block he is on by id (couples have two plans of one name)
     name: plan.name,
     phase: plan.phase || '',
     weeks: plan.weeks || 4,
@@ -2753,7 +2755,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
   // EVERY PORTAL PAGE HAS ITS URL (14.10 #770): /athlete/program, /athlete/bodyweight, /athlete/meal-log,
-  // /athlete/history, /athlete/prs, /athlete/messages - the tabs' own words. The same paths hang off wherever the
+  // /athlete/history, /athlete/progress, /athlete/messages - the tabs' own words. The same paths hang off wherever the
   // portal is open (/demo/athlete/..., the coach's /coach/athletes/<id>/preview/...); Back follows them.
   const [vw, setVw] = useState(() => portalPageFromPath(typeof window !== 'undefined' ? window.location.pathname : '') || 'prog');
   useUrlSync(vw, setVw, { toPath: (v) => portalPath(typeof window !== 'undefined' ? window.location.pathname : '', v), fromPath: (p) => portalPageFromPath(p) || 'prog' });
@@ -3538,7 +3540,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // miss as the portal rendering outside the language provider.
         const NAV = [
           ['prog', tt('PROGRAM')], ['bwt', tt('BW')], ['meal', tt('MEAL LOG')],
-          ['hist', cw.length ? `${tt('HISTORY')} (${cw.length})` : tt('HISTORY') /* never "(0)" (#459 g) */], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
+          ['hist', cw.length ? `${tt('HISTORY')} (${cw.length})` : tt('HISTORY') /* never "(0)" (#459 g) */], ['pr', tt('PROGRESS')], ['msg', tt('MESSAGES')],
         ];
         const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
 
@@ -3803,9 +3805,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     </div>;
   }
 
-  // PRs (per-exercise weight progression)
+  // PROGRESS (16.10 #826): the PRs page grown into the athlete's own analysis - the block in his words, his lifts, this
+  // block against the last, the coach's focus and comments, then the records. It reads the block he is on in the portal
+  // (a hidden newer block the coach is still writing is never the one shown); older blocks are his own logs.
   if (vw === 'pr' && trainee) {
-    return <TraineePRsView clientWorkouts={cw} traineeId={ci} header={renderTopHeader()} />;
+    const isHe = (lang || readLang()) === 'he';
+    // the tab bar stays OUTSIDE the boundary: a throw in the page must leave him a way to another tab
+    return <div data-theme="dark" style={{ background: C.bg, color: C.tx, minHeight: '100vh', maxWidth: 500, margin: '0 auto' }}>{renderTopHeader()}<ErrorBoundary inline><React.Suspense fallback={<div style={{ color: C.tm, fontFamily: FN, fontSize: 11, padding: 20 }}>{tt('LOADING…')}</div>}>
+      <AthleteProgress header={null} week={wk + 1} clientWorkouts={cw} clientId={ci} plans={clientPlans} blockId={(activePlan || visPlans[0] || {}).id || null} blockName={(activePlan || visPlans[0] || {}).name || null} exercises={trainerExercises} weeklyFocus={weeklyFocus} he={isHe} />
+    </React.Suspense></ErrorBoundary></div>;
   }
 
   // Check-in trends graph — renders the SHARED CheckinTrends component (also

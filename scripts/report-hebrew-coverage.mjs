@@ -149,7 +149,7 @@ try {
   // NO \b AFTER A HEBREW WORD. JS word boundaries are ASCII-only, so /^משקל\b/
   // never matches the משקל tab — the first run reported "no tab strip found"
   // on a portal with six visible Hebrew tabs.
-  const TAB_RE = /^[▸▾•\s]*(bw|bodyweight|meal|history|prs?|messages|plan|workouts?|משקל|יומן|תפריט|היסטוריה|שיאים|הודעות|תוכנית|אימונים)/i;
+  const TAB_RE = /^[▸▾•\s]*(bw|bodyweight|meal|history|prs?|progress|messages|plan|workouts?|משקל|יומן|תפריט|היסטוריה|שיאים|התקדמות|הודעות|תוכנית|אימונים)/i;
 
   const scrollAll = () => pg.evaluate(async () => {
     for (let i = 0; i < 14; i++) { window.scrollBy(0, window.innerHeight); await new Promise((r) => setTimeout(r, 110)); }

@@ -10,7 +10,7 @@
 // Analysis engine: src/lineageAnalysis.js (pure). This file is presentation.
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { C, FN } from './theme';
-import { analyzeAthlete, buildBlockSessions, compareBlocks } from './lineageAnalysis';
+import { analyzeAthlete, vsLastBlock } from './lineageAnalysis';
 import { getAthleteVault, getAthleteAsymmetryTrend, getAthleteRomLifts } from './poseMetricsStore';
 import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
@@ -22,6 +22,9 @@ import { useHe } from './i18n';
 import { analyzeRunner } from './runAnalysis';
 import RunReview from './RunReview';
 import StrengthReview, { FitStrip } from './StrengthReview';
+import BlockTalk from './BlockTalk';
+import { blockContext } from './athleteContext';
+import { supabase } from './supabase';
 
 // Hebrew is COMPOSED here, not looked up: nearly every line carries a number,
 // a lift name or a plural, so a key→value map would split sentences. L() picks
@@ -275,7 +278,7 @@ function RomLiftCard({ lift }) {
   );
 }
 
-export default function TrainingLineageV2({ traineeId, traineeName, exercises, plans, clientWorkouts, loading, onOpenPlan }) {
+export default function TrainingLineageV2({ traineeId, traineeName, exercises, plans, clientWorkouts, loading, onOpenPlan, focus: focusFixture = null }) {
   const he = useHe();
   const exMap = useMemo(() => exById(exercises), [exercises]);
   const [selBlock, setSelBlock] = useState(null); // null = latest; else a plan/block ID to view a PREVIOUS block (id keys every block, numbered or not — #231)
@@ -285,22 +288,26 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   }, [clientWorkouts, traineeId, plans, exMap, selBlock, he]);
   // VS THE LAST BLOCK (#814): the viewed block against the one before it, each from its own sessions
   const cmp = useMemo(() => {
-    if (!a || a.empty || !a.blocks || !plans) return null;
-    const i = a.blocks.findIndex((b) => b.id === a.blockId);
-    // the last STRENGTH block before this one (a running block in between is not 'the last block' for lifts)
-    const isRun = (id) => { const p = plans.find((q) => q.id === id); return !!p && p.sport === 'running'; };
-    const prevMeta = i >= 0 ? a.blocks.slice(i + 1).find((b) => !isRun(b.id)) : null;
-    if (!prevMeta) return null;
-    const prev = buildBlockSessions(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap }, { targetBlockId: prevMeta.id });
-    // the latest block, still running: both blocks over the weeks he has reached (week 2 of 4 is not 'half the sessions')
-    const sess = a.sessions || [];
-    const reached = sess.length && sess.every((s) => Number(s.week) > 0) ? Math.max(...sess.map((s) => Number(s.week))) : null;
-    const weeks = i === 0 && reached && reached < (Number(a.weeks) || 0) ? reached : null;
-    const ballistic = new Set((a.staples || []).filter((s) => s.ballistic).map((s) => String(s.title).trim().toLowerCase().replace(/\s+/g, ' ')));
-    const out = compareBlocks(a, prev, { weeks, ballistic });
-    const ph = (name) => { const b = (a.blockHistory || []).find((x) => x.name === name); return b ? (he ? (CHAR_HE[b.character] || b.character) : b.character) : null; };
-    return { ...out, curPhase: ph(a.blockName), prevPhase: ph(prevMeta.name) };
+    const ph = (name) => { const b = (a && a.blockHistory || []).find((x) => x.name === name); return b ? (he ? (CHAR_HE[b.character] || b.character) : b.character) : null; };
+    return vsLastBlock(a, plans, clientWorkouts, traineeId, { blockNum, classifyPattern, repsTop, exMap }, ph);
   }, [a, plans, clientWorkouts, traineeId, exMap, he]);
+  // WHAT WAS SAID (#826): this athlete's weekly-focus rows (the coach reads every athlete's; a demo passes a fixture)
+  const [focusRows, setFocusRows] = useState(null);
+  useEffect(() => {
+    if (focusFixture || !traineeId || traineeId === 'demo') return undefined;
+    let alive = true;
+    const cid = String(traineeId).replace(/__\d+$/, '');
+    supabase.from('weekly_focus').select('focus_key,value').eq('client_id', cid)
+      .then(({ data }) => { if (alive) setFocusRows(Object.fromEntries((data || []).map((r) => [r.focus_key, r.value]))); }, () => {});
+    return () => { alive = false; };
+  }, [traineeId, focusFixture]);
+  const talk = useMemo(() => {
+    if (!a || a.empty || !plans) return null;
+    const plan = plans.find((p) => p.id === a.blockId);
+    if (!plan) return null;
+    const same = (w, p) => w.planName === p.name || (blockNum(p.name) != null && blockNum(w.planName) === blockNum(p.name));
+    return blockContext({ workouts: clientWorkouts || [], clientId: traineeId, plan, sameBlock: same, focus: focusFixture || focusRows || {}, exMap });
+  }, [a, plans, clientWorkouts, traineeId, focusFixture, focusRows, exMap]);
   // a RUNNING block reads as runs (#814): the strength report told a runner 'loads and effort are holding'
   const run = useMemo(() => {
     if (!plans || !a || !a.blockId) return null;
@@ -403,7 +410,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </>);
   }
 
-  if (run) return shell(<>{Strip}<RunReview a={run} he={he} /></>);
+  if (run) return shell(<>{Strip}<RunReview a={run} he={he} /><BlockTalk ctx={talk} he={he} /></>);
 
 
   return shell(<>
@@ -412,6 +419,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {/* THE TOP, REBUILT (16.10 #814): the block in one line + the next-block moves, the scorecard, the block at a
         glance, the main lifts - StrengthReview.jsx (the old verdict / gate / response cards said the same things three times) */}
     <StrengthReview a={a} he={he} cmp={cmp} />
+    <BlockTalk ctx={talk} he={he} />
 
     {/* 2.4 BLOCK HISTORY — the programming arc across every block */}
     {a.blockHistory && a.blockHistory.length >= 2 && (
