@@ -114,6 +114,15 @@ const dirOfVal = (v) => (/[֐-׿]/.test(String(v || '')) ? 'rtl' : 'ltr');
 // a logged exercise is a RUN when its sets carry a time (#769)
 const isRunLog = (x) => !!x && Array.isArray(x.sets) && x.sets.some((st) => st && st.time);
 
+// A DATED DAY NAME (#792): "ריצה 5 · ד' 14.10 · ארוכה" = lead · weekday date · kind. Read apart so the date can sit in
+// its own fixed place (the day card's tile, the logger bar) instead of wrapping inside one free-text line.
+// The weekday is a CLOSED list (a Hebrew day letter + geresh, or Sun-Sat): an open "1-3 letters + n.n" also read
+// "Day A · RPE 8.5" / "Pull · DB 2.5" as dates, and the logger would have dropped that day's week number (review, 14.10).
+const datedDay = (name) => {
+  const m = /^(.+?)\s*·\s*([\u05D0\u05D1\u05D2\u05D3\u05D4\u05D5\u05E9]['\u05F3\u2019]|Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(\d{1,2}\.\d{1,2}(?:\.\d{2,4})?)\s*(?:·\s*(.+))?$/i.exec(String(name || '').trim());
+  return m ? { lead: m[1], wd: m[2], date: m[3], kind: m[4] || '', name: [m[1], m[4]].filter(Boolean).join(' · ') } : null;
+};
+
 function SetsRepsHero({ sets, reps, splitCombined = false, run = false }) {
   const tt = useAppT();
   let sStr = String(sets ?? '').trim();
@@ -122,6 +131,7 @@ function SetsRepsHero({ sets, reps, splitCombined = false, run = false }) {
     const sp = rStr.match(/^(\d+)\s*[×xX]\s*(.+)$/);
     if (sp) { sStr = sp[1]; rStr = sp[2].trim(); }
   }
+  if (run && sStr === '1' && rStr) sStr = '';   // #792: a single-rep segment is its distance alone, as on the day card
   const labeled = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 12;
   if (!labeled) {
     // If reps is ITSELF a full 'N×M' prescription (a per-week "2x10 e" cell) do
@@ -1964,6 +1974,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const t = setTimeout(() => setShowResumedPill(false), 6000);
     return () => clearTimeout(t);
   }, [showResumedPill]);
+  const barDated = datedDay(day && day.name);   // #792
   const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     {/* THREE COLUMNS, NOT AN ABSOLUTE LABEL (9.10 #585). The day label used to
         be absolutely centred on the bar, outside the flow, so nothing could push
@@ -1982,7 +1993,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           "· W2 יום א" (1008b review), and the leading space collapsed ("Day A·").
           overflow:hidden: on a 320 bar with a crest and many pending uploads the
           unshrinkable week clips rather than paint over the logo or the cluster. */}
-      <span dir="auto" style={{display:'flex',justifyContent:'center',alignItems:'baseline',columnGap:'0.4em',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><WeekWord n={weekNum+1} style={{flexShrink:0}} /></span>
+      <span dir="auto" style={{display:'flex',justifyContent:'center',alignItems:'baseline',columnGap:'0.4em',minWidth:0,overflow:'hidden',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{barDated ? <><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{barDated.lead}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><span dir="ltr" style={{flexShrink:0,fontVariantNumeric:'tabular-nums'}}>{barDated.date}</span></> : <><span style={{overflow:'hidden',textOverflow:'ellipsis',minWidth:0}}>{day.name}</span><span aria-hidden="true" style={{flexShrink:0}}>·</span><WeekWord n={weekNum+1} style={{flexShrink:0}} /></>}</span>
       {/* Right cluster — anchored to the right edge of its column, so ← Exit
           sits on the RIGHT EDGE always (Ohad). */}
       <div style={{justifySelf:'end',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
@@ -2042,7 +2053,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
        // (9.10, measured on /demo/athlete?lang=he) - the warm-up line was the
        // only one translated.
        groups[step]?.superset ? (heCtx ? `${tt('SUPERSET')} ${groups[step].superset} · ${step+1}/${groupCount}` : `Superset ${groups[step].superset} · ${step+1}/${groupCount}` /* no 'Group': the counter is the same step count 'Exercise 2/8' uses (audit #612 B10) */) :
-       `${tt('Exercise')} ${step+1}/${groupCount}`}
+       `${barDated && barDated.kind ? barDated.kind + ' · ' : ''}${tt(isRun ? 'Segment' : 'Exercise')} ${step+1}/${groupCount}`}
     </div></div>;
 
   // ===== WARM-UP STEP =====
@@ -2226,7 +2237,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             }}>
               <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600 }}>{p.title}</span>
               <span style={{ fontFamily: FN, fontSize: 12, color: C.gn, fontWeight: 700, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                {p.debut ? `${p.now}kg` : `${p.prev}kg → ${p.now}kg (+${p.delta})`}
+                {/* each weight in its own direction ('100 ק״ג' number-first in Hebrew), the arrow line left to right: old -> new */}
+                <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{p.debut ? <bdi>{p.now} {tt('KG')}</bdi> : <><bdi>{p.prev} {tt('KG')}</bdi> → <bdi>{p.now} {tt('KG')}</bdi> (+{p.delta})</>}</span>
               </span>
             </div>
           ))}
@@ -3453,7 +3465,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   nav needed at this width. Nothing wraps at desktop. */}
               {/* a phone: the name on line one, THIS WEEK and LEFT sharing line two
                   (three stacked lines took ~140px for one line of facts; #459 c) */}
-              <span className="pv5-hdr-name" style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
+              <span className="pv5-hdr-name" style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}><bdi>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></bdi></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
@@ -3464,7 +3476,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </span>
                 <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>{tt("THIS WEEK")}</span>
               </span>}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> {tt('LEFT')}</span>
+              <span dir="auto" style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> {tt('LEFT')}</span>
             </div>
           );
 
@@ -3648,7 +3660,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt(bwData.length === 1 ? "ENTRY" : "ENTRIES") /* '1 ENTRIES' (audit #612 B10) */}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi><bdi>{clientName}</bdi> · {bwData.length} {tt(bwData.length === 1 ? "ENTRY" : "ENTRIES") /* '1 ENTRIES' (audit #612 B10) */}</bdi></div>
         </div>
 
         {/* One condition for whether SAVE can act, read by both the handler
@@ -3740,12 +3752,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{display:'flex',gap:8,marginTop:10}}>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("LATEST")}</div>
-                <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData[bwData.length-1].bw}kg</div>
+                <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}><bdi>{bwData[bwData.length-1].bw} {tt('KG')}</bdi></div>
               </div>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("CHANGE")}</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
-                  {(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}kg</div>
+                  <bdi>{(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)} {tt('KG')}</bdi></div>
               </div>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("ENTRIES")}</div>
@@ -3766,7 +3778,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
           return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4}}>
             <div>
-              <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}>{d.bw} kg</span>
+              <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}><bdi>{d.bw} {tt('KG')}</bdi></span>
               <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · <WeekWord n={d.week||'?'} /></span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -3805,7 +3817,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>{tt('← HISTORY')}</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {(lang || readLang()) === 'he' ? (checkinCount === 1 ? 'דיווח אחד' : `${checkinCount} דיווחים`) : `${checkinCount} CHECK-IN${checkinCount === 1 ? '' : 'S'}`}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi><bdi>{clientName}</bdi> · {(lang || readLang()) === 'he' ? (checkinCount === 1 ? 'דיווח אחד' : `${checkinCount} דיווחים`) : `${checkinCount} CHECK-IN${checkinCount === 1 ? '' : 'S'}`}</bdi></div>
         </div>
         <CheckinTrends workouts={cw} />
       </div>
@@ -3839,11 +3851,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
             {/* order: DAY · W# · BLOCK — the week sits between the day and the
                 block (Ohad); the date moves to the right on its own. */}
-            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· <WeekWord n={w.week} /> ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            {/* #789: on the Hebrew page the line reads DAY · W# · BLOCK from the right (an English day name read last) */}
+            <div dir={(lang || readLang()) === 'he' ? 'rtl' : undefined} style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· <WeekWord n={w.week} /> ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
             <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)}</div>
           </div>
           {/* Pre-workout readiness check-in the athlete logged for this session. */}
-          {hasReadiness(w.autoregulation) && <div style={{marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${C.cardBd}`}}><ReadinessRow data={w.autoregulation} showTitle /></div>}
+          {/* centred in its band and the list under it centred in the next (#735 band probe 15.10: 10 / 8 measured 13 / 10
+              and the list 17 / 13) */}
+          {hasReadiness(w.autoregulation) && <div style={{marginBottom:6,paddingBottom:11,borderBottom:`1px solid ${C.cardBd}`}}><ReadinessRow data={w.autoregulation} showTitle /></div>}
           {(w.exercises || []).map((x,i) => {
             const fv = (w.formVideos || [])[i];
             const hasVideo = !!(fv && fv.cloudUrl);
@@ -3886,7 +3901,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
           })}
-          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>{tt('NOTE')}</span><bdi>{w.notes}</bdi></div>}
+          {w.notes && <div dir="auto" style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>{tt('NOTE')}</span><bdi>{w.notes}</bdi></div>}
         </div>; })}</div></div>;
 
   // MEAL LOG page — full-screen, lazy-loaded.
@@ -3982,7 +3997,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
                 </div>);
             })()}</div>}
-          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}> · <span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb} {tt("KG")}</span></span>:''}</div>
+          <div style={{width:120}}><div dir="auto" style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}> · <span dir="auto" style={{unicodeBidi:'isolate'}}>{lb} {tt("KG")}</span></span>:''}</div>
             <div style={{display:'flex',gap:4}}>
             {/* KG matches the week cells: the ONE control height (--btn-h, 36)
                 in every identity - it was a fixed 32 after the buttons beside it
@@ -4056,7 +4071,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.tx,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
-                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '8px 0 7px' /* the title's 1.35 line adds its leading UNDER the last line: 8 / 7 centres the two lines between the rules (was 7 / 8 = 7 above, 9.2 below; 29.9 #465) */,borderTop:divider}}>
+                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '9px 0 6px' /* the title's 1.35 line adds its leading UNDER the last line: 9 / 6 centres the ink between the rules (8 / 7 measured 10 above, 12.2 below with the band probe, 15.10; was 7 / 8 = 7 / 9.2 on 29.9 #465) */,borderTop:divider}}>
                   <div style={{display:'flex',gap:10,alignItems:'center'}}>
                     {numEl}
                     <div style={{flex:1,minWidth:0}}>
@@ -4099,7 +4114,27 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             const actionEl = action && ((ident === 'EDITORIAL' || ident === 'AIR')
               ? <button data-day-action={String(title || "")} onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
               : <button data-day-action={String(title || "")} onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
-            const titleGroup = (size, tracking) => (
+            // A DATED DAY (14.10 #792, Ohad on Yehu's run cards: "Bad job on the date/days/run number it looks messy fix it
+            // ocd"). "ריצה 5 · ד' 14.10 · ארוכה" was one free-text line: it wrapped anywhere (a '·' opened the next line, the
+            // count landed wherever the wrap left it) and, with no direction of its own, an English page laid the Hebrew,
+            // the numbers and the dots out of order. A name holding a weekday + a date is read apart: the date is a fixed
+            // tile (one size on every card, the 36 px of the buttons beside it), the name + kind one line in its own
+            // direction, the count under it on the same start edge.
+            const dated = datedDay(title);
+            const titleColor = ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx);
+            const titleGroup = (size, tracking) => dated ? (
+              <div data-dated-day style={{display:'flex',alignItems:'center',gap:10,minWidth:0,flex:1}}>
+                <span data-day-date style={{display:'inline-flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,width:46,height:'var(--btn-h)',boxSizing:'border-box',border:`1px solid ${hair}`,flexShrink:0,fontFamily:FN,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>
+                  <span dir="auto" style={{fontSize:9,fontWeight:700,color:C.tm,letterSpacing:'0.04em'}}>{dated.wd}</span>
+                  <span dir="ltr" style={{fontSize:12,fontWeight:700,color:titleColor}}>{dated.date}</span>
+                </span>
+                <span style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:5,minWidth:0,flex:1}}>
+                  <span title={title} dir="auto" style={{maxWidth:'100%',fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1.2,color:titleColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',unicodeBidi:'isolate'}}>{dated.name}</span>
+                  <span dir="auto" style={{whiteSpace:'nowrap',fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,unicodeBidi:'isolate',...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                </span>
+                {extras}
+              </div>
+            ) : (
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
                 {/* Count is BASELINE-aligned to the title, then lifted so its INK
                     center matches the title-caps ink center (Ohad: optically
@@ -4112,9 +4147,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     last word: as a flex sibling it was thrown to the card's far edge
                     whenever the title wrapped (#459 d, 29.9). Inline-block on the
                     shared baseline, so the lift above still lands it on the caps. */}
-                <span style={{display:'inline',whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
-                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1.2,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflowWrap:'anywhere'}}>{title}</span>
-                  <span style={{display:'inline-block',marginInlineStart:7,whiteSpace:'nowrap',fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                <span dir={dirOfVal(title)} style={{display:'inline',whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
+                  <span title={title} dir="auto" style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1.2,color:titleColor,overflowWrap:'anywhere',unicodeBidi:'isolate'}}>{title}</span>
+                  <span dir="auto" style={{display:'inline-block',...(dirOfVal(title) === 'rtl' ? { marginRight: 7 } : { marginLeft: 7 }),whiteSpace:'nowrap',fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
               </div>
@@ -4189,7 +4224,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               keys, so React mis-reconciled one member's cards onto the other's
               after any state update (audit #31). */}
           return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.id || vp.name}>
-          {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
+          {/* the plan divider sits CENTRED between the cards around it (#732/#735 band rule, 15.10: 20 above / 12 below put
+              the label 7 px off centre - band probe on /demo/athlete/program) */}
+          {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 16px':'16px 0 16px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
             <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{(vp.name || '').toUpperCase()}</span>
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}

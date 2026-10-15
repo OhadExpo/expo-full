@@ -120,7 +120,7 @@ const DEMO_SURFACES = [
   ['athlete-overdue', '/demo/coach/trainees/t2'],
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],
-  ['booking', '/book'],
+  ['booking', '/book/preview-9f3a2c7b'],   // /book alone is the sign-in page: 6 text nodes, never judged (14.10)
   // the public intake form; with no ?t= it renders the whole form as a preview and submits nothing (12.10: never swept)
   ['intake-form-he', '/intake/he'],
   ['intake-form-en', '/intake/en'],

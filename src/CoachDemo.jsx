@@ -1803,7 +1803,7 @@ function DemoOverload({ trainee }) {
                       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
                         <div>
                           <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{T('ALL-TIME PR')}</div>
-                          <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, marginTop: 2 }}>{st.pr}kg × {ex.reps[st.prIdx]}</div>
+                          <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, marginTop: 2 }}><bdi>{st.pr} {T('KG')}</bdi> × {ex.reps[st.prIdx]}</div>
                           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[st.prIdx])}</span></div>
                         </div>
                         <div style={{ display: 'flex', gap: 18 }}>
@@ -1819,7 +1819,7 @@ function DemoOverload({ trainee }) {
                         return (
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr auto', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', fontSize: 12 }}>
                             <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[i])}</span></span>
-                            <span><span style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]}kg</span> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
+                            <span><bdi style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]} {T('KG')}</bdi> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
                             {isPr ? <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', letterSpacing: '0.1em' }}>{T('PR')}</span> : <span />}
                           </div>
                         );
@@ -1972,8 +1972,8 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{readLang() === 'he' ? sessionsLeftHe(trainee.sessionsLeft) : `${trainee.sessionsLeft} ${T('LEFT')}`}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('MONTHLY')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PER SESSION')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 12)}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="ltr">{trainee.payment === 'NEVER PAID' ? '—' : fmtPrettyDate(dAgo(paidAgo))}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="ltr">{fmtPrettyDate(trainee.startDate)}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="auto" /* a Hebrew date reads right to left (#789: forced LTR read "באוקטובר 2026 1") */>{trainee.payment === 'NEVER PAID' ? '—' : fmtPrettyDate(dAgo(paidAgo))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }} dir="auto" /* a Hebrew date reads right to left (#789: forced LTR read "באוקטובר 2026 1") */>{fmtPrettyDate(trainee.startDate)}</span></Row>
           </Panel>
 
           <Panel title={T('SHARED · PROGRAMS')} tint={C.ac}>

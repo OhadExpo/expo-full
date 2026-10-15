@@ -254,7 +254,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
 
         {phase === 'live' && show3d && camDims && (
           <div style={{ position: 'absolute', insetInlineStart: 10, bottom: 10, width: 'min(46vw, 380px)', border: '1px solid rgba(255,255,255,0.14)', zIndex: 15 }}>
-            <Suspense fallback={null}><LiveAnatomy getFrames={() => liveBufRef.current} dims={camDims} height={300} /></Suspense>
+            <Suspense fallback={null}><LiveAnatomy getFrames={() => liveBufRef.current} dims={camDims} height={300} exercise={exerciseTitle} /></Suspense>
           </div>
         )}
         {phase === 'idle' && !error && (

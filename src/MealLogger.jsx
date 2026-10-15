@@ -283,7 +283,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
         {/* Hero totals — calories headline, macros underneath */}
         <div style={{
-          border: `1px solid ${C.cardBd}`, padding: '16px 14px',
+          // the totals card's two bands centred (#735 band probe 15.10: the big number's leading made 19 / 25 above the
+          // macros' rule and the macros sat 14 / 21) - the macros' top margin 14 -> 8, the card's bottom 16 -> 9
+          border: `1px solid ${C.cardBd}`, padding: '16px 14px 9px',
           marginBottom: 16, background: 'var(--c-sf)',
         }}>
           <div style={{ textAlign: 'center' }}>
@@ -295,11 +297,11 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
               fontFamily: FN, fontSize: 36, color: meals.length ? C.ac : C.td,
               fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4,
               fontVariantNumeric: 'tabular-nums',
-            }}>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginInlineStart: 6, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></div>
+            }}><bdi>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginInlineStart: 6, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></bdi></div>
           </div>
-          <div style={{
+          <div dir={he ? 'rtl' : undefined} style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
-            marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`,
+            marginTop: 8, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`,
           }}>
             {[
               { l: tt('PROTEIN'), v: totals.p, c: C.gn },
@@ -309,7 +311,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
               <div key={t.l} style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{t.l}</div>
                 <div style={{ fontFamily: FN, fontSize: 18, color: t.c, fontWeight: 700, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                  {t.v}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 2, fontWeight: 600 }}>{tt('g')}</span>
+                  <bdi>{t.v}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 2, fontWeight: 600 }}>{tt('g')}</span></bdi>
                 </div>
               </div>
             ))}
@@ -318,7 +320,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
         {/* Composer — only on today */}
         {isToday && (
-          <div style={{ marginBottom: 18 }}>
+          <div style={{ marginBottom: 14 /* the meals label centred between this and the first meal (#735: 18 / 10) */ }}>
             {!photoUrl && !uploading && (
               <label style={{ display: 'block' }}>
                 {/* No `capture` attr → the native picker offers BOTH gallery and
@@ -382,7 +384,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         <div>
           <div style={{
             fontFamily: FN, fontSize: 9, color: C.tm,
-            letterSpacing: '0.24em', fontWeight: 700, marginBottom: 10,
+            letterSpacing: '0.24em', fontWeight: 700, marginBottom: 14,
           }}>{isToday ? tt('TODAY') : tt('MEALS')} · {meals.length}</div>
           {meals.length === 0 ? (
             <div style={{
@@ -574,6 +576,8 @@ function MealThumb({ url, size }) {
 
 function MealRow({ meal, page = false }) {
   const tt = useAppT();
+  // the meal's time in the page's language: [] took the BROWSER's locale, so a Hebrew page read '08:15 AM' (#789)
+  const timeLoc = useHe() ? 'he-IL' : 'en-GB';
   if (page) {
     return (
       <div style={{
@@ -588,11 +592,11 @@ function MealRow({ meal, page = false }) {
             }}>
               <span style={{
                 fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700,
-              }}>{new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              }}>{new Date(meal.created_at).toLocaleTimeString(timeLoc, { hour: '2-digit', minute: '2-digit' })}</span>
               <span style={{
                 fontFamily: FN, fontSize: 14, color: C.ac, fontWeight: 700, letterSpacing: '0.02em',
                 fontVariantNumeric: 'tabular-nums',
-              }}>{meal.kcal} <span style={{ fontSize: 9, color: C.tm, fontWeight: 600, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></span>
+              }}><bdi>{meal.kcal} <span style={{ fontSize: 9, color: C.tm, fontWeight: 600, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></bdi></span>
             </div>
             {Array.isArray(meal.items) && meal.items.length > 0 && (
               <div style={{
@@ -603,14 +607,14 @@ function MealRow({ meal, page = false }) {
               </div>
             )}
           </div>
-          <div style={{
+          <div dir={timeLoc === 'he-IL' ? 'rtl' : undefined} style={{
             display: 'flex', gap: 10, marginTop: 6,
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
             fontVariantNumeric: 'tabular-nums',
           }}>
-            <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('P')}</span></span>
-            <span style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('C')}</span></span>
-            <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('F')}</span></span>
+            <bdi style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('P')}</span></bdi>
+            <bdi style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('C')}</span></bdi>
+            <bdi style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('F')}</span></bdi>
           </div>
         </div>
       </div>
@@ -623,7 +627,7 @@ function MealRow({ meal, page = false }) {
       <MealThumb url={meal.photo_url} size={56} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', fontWeight: 700 }}>
-          {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <span style={{ color: C.ac }}>{meal.kcal} {tt('KCAL').toLowerCase()}</span>
+          {new Date(meal.created_at).toLocaleTimeString(timeLoc, { hour: '2-digit', minute: '2-digit' })} · <bdi style={{ color: C.ac }}>{meal.kcal} {tt('KCAL').toLowerCase()}</bdi>
         </div>
         <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, marginTop: 2 }}>
           {meal.protein_g}P / {meal.carbs_g}C / {meal.fat_g}F

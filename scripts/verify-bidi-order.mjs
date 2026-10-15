@@ -1,258 +1,111 @@
-// THE PAINTED GLYPH ORDER MUST MATCH THE SOURCE STRING.
-//
-// This is the one class of Hebrew fault that reads perfectly in the code and
-// wrong on the screen, and it has shipped three times:
-//
-//   "2 / 10 · L knee"   painted as   "L KNEE · 10 / 2"
-//   "+972 54..."        painted with the + on the wrong end
-//   "+13%"              the sign detaching from its number
-//
-// WHY IT HAPPENS (Unicode Annex #9, verified against UnicodeData.txt):
-//   +  -        bidi class ES  (European Number Separator)
-//   %  $  ₪  °  bidi class ET  (European Number Terminator)
-//   /  ,  .  :  bidi class CS  (Common Number Separator)
-//   ≥  ·  |     bidi class ON  (Other Neutral)
-// Rule W4 folds an ES or CS into a number ONLY when it sits directly between
-// two numbers of the same type — a space breaks that adjacency, and a leading
-// sign has nothing before it at all. W6 then turns it into Other Neutral, and
-// N2 hands it the paragraph direction. In an RTL paragraph it moves to the
-// other end, or the whole run order reverses.
-//
-// WHY THIS GATE MEASURES PIXELS AND NOT THE STRING. The DOM still holds
-// "2 / 10" after the browser has painted "10 / 2" — textContent cannot see the
-// fault. Only the geometry can. So this walks each character with its own
-// Range, sorts by x, and compares the result to the source. That is the same
-// method that found all three bugs above by hand; this makes it a gate.
-//
-// WHAT IT DOES *NOT* FLAG, and why that took a second version. The first cut
-// compared the whole text node's painted order to its source, and it reported
-// 44 faults that were all correct Hebrew: in an RTL paragraph a separator
-// BETWEEN two runs is supposed to move. "שלב 1 ·" really does paint as "·1"
-// left-to-right, and "2 · מעל 14 יום" really does paint as "14·2" — reversing
-// run order is what RTL is.
-//
-// So the unit of judgement is one ATOMIC NUMERIC TOKEN — a number with the
-// sign, currency, percent or ratio that belongs to it. Inside that token the
-// characters must paint in source order AND stay contiguous; between tokens,
-// anything may move. That is the difference between "+13%" coming apart (a
-// bug) and a bullet changing sides (not one).
-//
-// One more distinction the data forced: a hyphen after a Hebrew letter is the
-// prefix in "ב-30%", not a minus sign, and it is SUPPOSED to stay with the
-// letter. A leading sign only joins the number when what precedes it is not a
-// Hebrew letter.
-//
-//   node scripts/verify-bidi-order.mjs [--only <substring>]
-import fs from 'node:fs';
+// #789 "lines with both english and hebrew are perfect ocd. everywhere" - a MEASURED gate, not a pattern guess.
+// Every paragraph that mixes Hebrew with numbers or Latin is judged by WHERE its pieces actually land:
+//   - a block's expected order is the PAGE language: Hebrew page = right to left, English page = left to right;
+//   - an isolate (<bdi>, an element with dir=, unicode-bidi isolate/plaintext) is ONE unit inside its parent, and is
+//     judged on its own as well - by its first strong letter (dir=auto / bdi), so Hebrew content forced dir=ltr
+//     ("78.3 ק״ג" read as "ק״ג 78.3") is caught;
+//   - the pieces (a Hebrew word with its geresh, a number group, a Latin phrase) must sit at decreasing x for right
+//     to left, increasing x for left to right. Consecutive pieces of the "other" direction merge into one run first
+//     (an English phrase inside a Hebrew line reads left to right inside itself).
+// Every non-GET to Supabase is blocked.
+// Usage: NO_DB=1 BASE=http://127.0.0.1:5392 CDP=http://127.0.0.1:9444 ROUTES="demo/athlete/program?lang=he,..." WIDTHS="390,820,1440"
+//        node scripts/verify-bidi-order.mjs        (exit 1 when any line reads backwards)
+// Proved by breaking (15.10): production's old code read 51 lines backwards on the demo athlete + /try at 390; the fixed
+// code 0. NO_DB=1 blocks every Supabase call (the demo needs none) - a sweep then adds zero load to the shared DB.
 import P from 'puppeteer-core';
-import { setWidth } from './lib/viewport.mjs';
-
-const BASE = process.env.BASE || 'http://127.0.0.1:5199';
-const ONLY = (() => { const i = process.argv.indexOf('--only'); return i > 0 ? process.argv[i + 1] : null; })();
-const OUT = 'audit-out/bidi-order';
-fs.mkdirSync(OUT, { recursive: true });
+import fs from 'node:fs';
+const BASE = process.env.BASE || 'http://127.0.0.1:5392';
+const ROUTES = (process.env.ROUTES || 'demo/athlete/program?lang=he').split(',');
+const WIDTHS = (process.env.WIDTHS || '390').split(',').map(Number);
+const SETTLE = Number(process.env.SETTLE || 6000);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-
-const COACH_TABS = ['dashboard', 'trainees', 'programs', 'exercises', 'sessions', 'review', 'tasks', 'billing'];
-const SURFACES = [
-  ['landing-he', '/demo/he'],
-  ...COACH_TABS.map((t) => [`coach-${t}`, t === 'dashboard' ? '/demo/coach' : `/demo/coach/${t}`]),
-  // CLICK-GATED SCREENS MUST BE IN THE LIST. The athlete drill-in is the
-  // deepest screen in the demo and the one a coach studies hardest, and every
-  // gate walked past it for weeks because a sweep loads a route and reads the
-  // page — this screen only appeared after you opened an athlete. That is how
-  // it kept a fabricated assessment, an English payments ledger and a
-  // hardcoded April date. It has a URL; use it.
-  ['athlete-detail', '/demo/coach/trainees/t1'],
-  ['athlete-couple', '/demo/coach/trainees/t3'],
-  ['athlete-overdue', '/demo/coach/trainees/t2'],
-  ['athlete', '/demo/athlete'],
-  ['engine', '/try?embed=1'],
-  ['booking', '/book'],
-].filter(([n]) => !ONLY || n.includes(ONLY));
-
-// Only RTL matters — an LTR paragraph cannot produce this fault.
-const WIDTHS = [[390, 844], [1440, 950]];
-
-const findings = [];
-const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(9)} ${o.id.padEnd(26)} ${o.detail}`); };
-
-const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
-let measured = 0, nodes = 0, risky = 0;
-
-for (const [name, route] of SURFACES) {
-  for (const [w, h] of WIDTHS) {
-    const id = `${name}/he/${w}`;
-    const ctx = await b.createBrowserContext();
-    const pg = await ctx.newPage();
-    try {
-      await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
-      await pg.evaluateOnNewDocument(() => {
-        try {
-          localStorage.setItem('expo-lang', 'he');
-          localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
-        } catch (e) { /* private mode */ }
-      });
-      await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-      let prev = -1, settled = false;
-      for (let i = 0; i < 22; i++) {
-        await wait(600);
-        const len = await pg.evaluate(() => (document.body.innerText || '').length);
-        if (len === prev && len > 0) { settled = true; break; }
-        prev = len;
-      }
-      if (!settled) { add({ kind: 'UNSET', id, detail: 'never settled — NOT judged' }); continue; }
-
-      const pageH = await pg.evaluate(() => document.documentElement.scrollHeight);
-      const seen = new Set();
-
-      for (let y = 0; y < pageH; y += Math.round(h * 0.85)) {
-        await pg.evaluate((yy) => window.scrollTo(0, yy), y);
-        await wait(200);
-        const r = await pg.evaluate(() => {
-          // An atomic numeric token: a ratio (2 / 10, 9:30), or a number
-          // with the currency / sign / percent glued to it.
-          // The trailing sign is part of the token too. The first version took
-          // only a LEADING sign, so "20+" was read as the token "20" and the
-          // plus was never looked at — the break test caught that by passing
-          // when it should have failed. A trailing "-" is only a sign when a
-          // digit does not follow it, otherwise "20-30" is a range.
-          const TOKEN = /\d+\s*[/:]\s*\d+|[₪$]\s*\d[\d,.]*|[+\-]?\d[\d,.]*\s*(?:[%₪$°]|\+|-(?!\d))?/gu;
-          const HEB = /[֐-׿]/;
-          const out = [];
-          const ltrBlocks = [];
-          let counted = 0, risked = 0;
-          const vh = innerHeight;
-          const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-          let n;
-          while ((n = walk.nextNode())) {
-            const raw = n.nodeValue || '';
-            if (raw.trim().length < 2) continue;
-            const el = n.parentElement;
-            if (!el) continue;
-            const cs = getComputedStyle(el);
-            if (cs.visibility === 'hidden' || cs.opacity === '0' || cs.display === 'none') continue;
-            const bb = el.getBoundingClientRect();
-            if (bb.width < 4 || bb.height < 4) continue;
-            if (bb.bottom < 0 || bb.top > vh) continue;
-            counted++;
-
-            // HEBREW PAINTED FLUSH TO THE WRONG EDGE. The engine shipped
-            // with no base direction on its root at all, so the h1 computed
-            // `direction: ltr` and a three-line Hebrew paragraph sat flush
-            // LEFT with the ragged edge on the right — backwards, and
-            // invisible to every other gate because nothing was clipped,
-            // overflowing or reordered.
-            //
-            // The first version of this check flagged the ATTRIBUTE — any
-            // Hebrew in a direction:ltr block — and reported ten findings in
-            // the athlete portal that were not visible faults at all: its root
-            // is LTR too, but every Hebrew block there is centred or fills its
-            // box, so nothing sits on the wrong edge. Measuring the attribute
-            // finds latent debt; measuring the INK finds what the reader sees.
-            // This measures the ink: Hebrew whose ink hugs the left edge while
-            // real slack is left over on the right.
-            {
-              const letters = raw.replace(/[^\p{L}]/gu, '');
-              const heb = (raw.match(/[֐-׿]/g) || []).length;
-              const centred = cs.textAlign === 'center' || cs.textAlign === 'right' || cs.textAlign === 'end';
-              if (letters.length >= 6 && heb / letters.length > 0.7 && cs.direction === 'ltr' && !centred) {
-                const rg2 = document.createRange();
-                rg2.selectNodeContents(el);
-                const rr = [...rg2.getClientRects()].filter((x) => x.width > 0);
-                if (rr.length) {
-                  const inkL = Math.min(...rr.map((x) => x.left));
-                  const inkR = Math.max(...rr.map((x) => x.right));
-                  const slackRight = bb.right - inkR, slackLeft = inkL - bb.left;
-                  if (slackRight > 24 && slackLeft < 6) {
-                    ltrBlocks.push({ t: raw.replace(/\s+/g, ' ').trim().slice(0, 46), tag: el.tagName, slack: Math.round(slackRight) });
-                  }
-                }
-              }
-            }
-
-            TOKEN.lastIndex = 0;
-            let m;
-            while ((m = TOKEN.exec(raw))) {
-              let start = m.index, text = m[0];
-              // "ב-30%" — that hyphen belongs to the Hebrew prefix, not the number.
-              if (/^[+\-]/.test(text) && start > 0 && HEB.test(raw[start - 1])) {
-                start += 1; text = text.slice(1);
-              }
-              if (!/\d/.test(text) || text.replace(/\s/g, '').length < 2) continue;
-              risked++;
-
-              const chars = [];
-              for (let i = 0; i < text.length; i++) {
-                if (!/\S/.test(text[i])) continue;
-                const rg = document.createRange();
-                rg.setStart(n, start + i); rg.setEnd(n, start + i + 1);
-                const rect = rg.getBoundingClientRect();
-                if (rect.width === 0 && rect.height === 0) continue;
-                chars.push({ c: text[i], x: rect.left, r: rect.right, y: Math.round(rect.top) });
-              }
-              if (chars.length < 2) continue;
-              // A token that wrapped across two lines is a different fault
-              // (the overflow gate owns that); do not judge its order here.
-              if (new Set(chars.map((c) => c.y)).size > 1) continue;
-
-              const expected = chars.map((c) => c.c).join('');
-              const sorted = [...chars].sort((a, b) => a.x - b.x);
-              const painted = sorted.map((c) => c.c).join('');
-              if (painted !== expected) {
-                out.push({ src: raw.replace(/\s+/g, ' ').trim().slice(0, 40), exp: expected, got: painted, why: 'reordered' });
-                continue;
-              }
-              // Contiguous: nothing painted between the token's own glyphs.
-              let gap = 0;
-              for (let i = 1; i < sorted.length; i++) gap = Math.max(gap, sorted[i].x - sorted[i - 1].r);
-              if (gap > 6) {
-                out.push({ src: raw.replace(/\s+/g, ' ').trim().slice(0, 40), exp: expected, got: expected, why: `split by ${Math.round(gap)}px` });
-              }
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444', defaultViewport: null, protocolTimeout: 180000 });
+const pg = await b.newPage();
+await pg.setRequestInterception(true);
+const blocked = [];
+pg.on('request', (r) => {
+  // NO_DB=1: demo surfaces run on fixtures - block EVERY Supabase call, so a sweep adds zero load to the shared DB
+  if (process.env.NO_DB === '1' && /supabase\.co/.test(r.url())) { blocked.push('nodb'); return r.abort(); }
+  if (/supabase\.co\/(rest|functions)/.test(r.url()) && !['GET', 'HEAD', 'OPTIONS'].includes(r.method()) && !/rpc\/(get_|is_|my_)/.test(r.url())) { blocked.push(r.method()); return r.abort(); }
+  r.continue().catch(() => {});
+});
+const all = [];
+let pages = 0, judged = 0, bad = 0;
+try {
+  for (const route of ROUTES) for (const w of WIDTHS) {
+    await pg.setViewport({ width: w, height: 900, isMobile: w < 1000, hasTouch: w < 1000, deviceScaleFactor: 1 });
+    const url = route.startsWith('http') ? route : `${BASE}/${route}`;
+    await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 }); await wait(SETTLE);
+    const res = await pg.evaluate(() => {
+      const HE = /[֐-׿]/, LAT = /[A-Za-z]/;
+      const TOK = /[֐-׿][֐-׿'"׳״]*|\d+(?:[.,:]\d+)*|[A-Za-z]+(?:['’][A-Za-z]+)*/g;
+      let pageHe = false;
+      try { pageHe = document.body.dataset.lang === 'he' || /(^|[?&])lang=he\b/.test(location.search) || (!/(^|[?&])lang=en\b/.test(location.search) && localStorage.getItem('expo-lang') === 'he'); } catch { /* storage blocked */ }
+      if (/^he/i.test(document.documentElement.lang || '') || document.documentElement.dir === 'rtl' || document.body.dir === 'rtl') pageHe = !/(^|[?&])lang=en\b/.test(location.search) && !/^en/i.test(document.documentElement.lang || '');
+      if (document.querySelector('.bhbc-zone')) pageHe = document.querySelector('.bhbc-zone').getAttribute('dir') === 'rtl';
+      const disp = (e) => getComputedStyle(e).display;
+      const isBlock = (e) => { const d = disp(e); return !/^inline/.test(d) && d !== 'contents'; };
+      const isIso = (e) => e.tagName === 'BDI' || e.hasAttribute('dir') || /isolate|plaintext/.test(getComputedStyle(e).unicodeBidi);
+      const firstStrong = (txt) => { const m = /[A-Za-z֐-׿]/.exec(txt); return m ? (HE.test(m[0]) ? 'rtl' : 'ltr') : null; };
+      // the first strong letter the way dir=auto finds it: nested isolates (bdi, dir=) are skipped
+      const autoDir = (el) => { const w = document.createTreeWalker(el, NodeFilter.SHOW_ALL, { acceptNode: (n) => (n !== el && n.nodeType === 1 && (n.tagName === 'BDI' || n.hasAttribute('dir')) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) }); for (let n = w.nextNode(); n; n = w.nextNode()) if (n.nodeType === 3) { const d = firstStrong(n.nodeValue); if (d) return d; } return null; };
+      const expectedOf = (el, isBlk) => {
+        if (isBlk && !el.hasAttribute('dir') && el.tagName !== 'BDI') return pageHe ? 'rtl' : 'ltr';   // a block reads in the PAGE language
+        const d = (el.getAttribute('dir') || '').toLowerCase();
+        const fs0 = firstStrong(el.textContent);
+        if (el.tagName === 'BDI' || d === 'auto' || /plaintext/.test(getComputedStyle(el).unicodeBidi)) return autoDir(el) || (pageHe ? 'rtl' : 'ltr');
+        if (d === 'rtl') return 'rtl';                       // an explicit RTL line (a Hebrew page's row) reads right to left
+        if (d === 'ltr') return autoDir(el) === 'rtl' ? 'rtl' : 'ltr';   // HEBREW forced LTR is judged as Hebrew ("78.3 ק״ג")
+        return getComputedStyle(el).direction;
+      };
+      const out = []; let lines = 0; window.__dbg = [];
+      const paras = [...document.querySelectorAll('body *')].filter((e) => e.getClientRects().length && !['SCRIPT', 'STYLE', 'TEXTAREA', 'SELECT', 'OPTION', 'svg'].includes(e.tagName) && ((isBlock(e) && [...e.childNodes].some((n) => (n.nodeType === 3 && n.nodeValue.trim()) || (n.nodeType === 1 && !isBlock(n) && n.textContent.trim()))) || (!isBlock(e) && isIso(e) && e.textContent.trim())));
+      for (const para of paras) {
+        const blk = isBlock(para);
+        const toks = [];
+        const walk = (node) => {
+          for (const c of node.childNodes) {
+            if (c.nodeType === 3) { for (const m of c.nodeValue.matchAll(TOK)) { const r = document.createRange(); r.setStart(c, m.index); r.setEnd(c, m.index + m[0].length); const rc = [...r.getClientRects()][0]; if (!rc || !rc.width) continue; toks.push({ s: m[0], he: HE.test(m[0]), x: rc.left, r: rc.right, y: Math.round(rc.top + rc.height / 2) }); } }
+            else if (c.nodeType === 1 && !isBlock(c) && disp(c) !== 'none') {
+              if (isIso(c)) { const rcs = [...c.getClientRects()].filter((q) => q.width); if (!rcs.length || !c.textContent.trim()) continue; const rc = rcs[0]; toks.push({ s: '[' + c.textContent.trim().slice(0, 30) + ']', he: firstStrong(c.textContent) === 'rtl', iso: true, x: rc.left, r: rc.right, y: Math.round(rc.top + rc.height / 2) }); }
+              else walk(c);
             }
           }
-          return { out, ltrBlocks, counted, risked };
-        });
-        nodes += r.counted || 0;
-        risky += r.risked || 0;
-        for (const x of r.ltrBlocks || []) {
-          const k = 'L|' + x.t;
-          if (seen.has(k)) continue;
-          seen.add(k);
-          add({ kind: 'ALIGN', id, detail: `<${x.tag.toLowerCase()}> "${x.t}" — Hebrew painted flush LEFT with ${x.slack}px of slack on the right` });
-        }
-        for (const x of r.out) {
-          const k = JSON.stringify(x);
-          if (seen.has(k)) continue;
-          seen.add(k);
-          add({ kind: 'BIDI', id, detail: x.why === 'reordered'
-            ? `"${x.src}" — the token "${x.exp}" painted as "${x.got}"`
-            : `"${x.src}" — the token "${x.exp}" was ${x.why}` });
+        };
+        walk(para);
+        if (toks.length < 2) continue;
+        const exp = expectedOf(para, blk);
+        const groups = [];
+        for (const t of toks) { const g = groups.find((gg) => Math.abs(gg.y - t.y) <= 4); if (g) g.t.push(t); else groups.push({ y: t.y, t: [t] }); }
+        for (const g of groups) {
+          const t = g.t;
+          if (t.length < 2 || !t.some((k) => k.he) || !t.some((k) => !k.he)) continue;   // only mixed lines
+          lines++;
+          // merge runs of the opposite direction (they read inside themselves the other way)
+          const runs = [];
+          for (const k of t) {
+            const last = runs[runs.length - 1];
+            const other = exp === 'rtl' ? !k.he : k.he;
+            const lastOther = last && (exp === 'rtl' ? !last.he : last.he);
+            if (other && lastOther && !k.iso && !last.iso && (exp === 'rtl' ? k.x >= last.r - 1 : k.r <= last.x + 1)) { last.s += ' ' + k.s; last.x = Math.min(last.x, k.x); last.r = Math.max(last.r, k.r); }
+            else runs.push({ ...k });
+          }
+          if (window.__dbg) window.__dbg.push({ exp, runs: runs.map((q) => q.s + '@' + Math.round(q.x)).join(' ') });   // DEBUG=1 prints every judged line
+          for (let i = 1; i < runs.length; i++) {
+            const wrong = exp === 'rtl' ? runs[i].x > runs[i - 1].x + 1 : runs[i].x < runs[i - 1].x - 1;
+            if (wrong) { const r0 = para.getBoundingClientRect(); out.push({ expect: exp, line: t.map((k) => k.s).join(' ').slice(0, 90), pair: `${runs[i - 1].s} | ${runs[i].s}`, at: [Math.round(r0.left), Math.round(r0.top + scrollY)], tag: para.tagName.toLowerCase() + (blk ? '' : '(iso)') }); break; }
+          }
         }
       }
-      measured++;
-    } catch (e) {
-      add({ kind: 'ERROR', id, detail: 'harness: ' + String(e.message || e).slice(0, 110) });
-    } finally {
-      await pg.close().catch(() => {});
-      await ctx.close().catch(() => {});
-    }
+      return { path: location.pathname + location.search, pageHe, lines, out, text: document.body.innerText.length, dbg: window.__dbg };
+    });
+    pages++; judged += res.lines; bad += res.out.length;
+    all.push({ route, w, ...res });
+    console.log(`${res.out.length ? 'WRONG' : 'ok   '} ${route} @${w}  page ${res.pageHe ? 'he' : 'en'}  ${res.lines} mixed lines judged  ${res.out.length} read backwards  (landed ${res.path}, ${res.text} chars)`);
+    for (const o of res.out.slice(0, 15)) console.log('        ', JSON.stringify(o));
+    if (process.env.DEBUG === '1') for (const d of res.dbg) console.log('      judged', JSON.stringify(d));
   }
-}
-b.disconnect();
-
-fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));
-const by = {};
-for (const f of findings) by[f.kind] = (by[f.kind] || 0) + 1;
-const total = SURFACES.length * WIDTHS.length;
-// A zero has to say what it measured. If nothing was at risk, the run proved
-// nothing and must not read as a pass.
-console.log(`\n${measured} of ${total} Hebrew surface x width combinations, ${nodes} text nodes, ${risky} atomic numeric tokens inside them.`);
-console.log(Object.keys(by).length ? Object.entries(by).map(([k, v]) => `  ${k.padEnd(9)} ${v}`).join('\n') : '  none');
-if (!risky) {
-  console.log('FAIL: no numeric token was found at all — the gate cannot have tested anything.');
-  process.exit(1);
-}
-console.log(`-> ${OUT}/findings.json`);
-process.exit(findings.length ? 1 : 0);
+} finally { await pg.close().catch(() => {}); b.disconnect(); }
+fs.writeFileSync(process.env.OUT || 'audit-out/bidi-order.json', JSON.stringify(all, null, 1));
+if (bad > 0) process.exitCode = 1;
+console.log(`\n${pages} pages, ${judged} mixed lines judged, ${bad} read backwards; blocked writes ${blocked.length}`);

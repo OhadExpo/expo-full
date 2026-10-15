@@ -263,7 +263,7 @@ function Composer({ onSend, role, draftKey }) {
         }} />
       {/* the buttons sit as far under the note box as the card edge sits under them (14.10 #735; 11 over 14 before).
           Coach side only: the athlete portal is held at production */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: role === 'coach' ? 9 : 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9 /* both sides (15.10 #735: the athlete side measured 11 / 14 with 6) */, flexWrap: 'wrap' }}>
         {!rec.recording && !rec.blob && (
           <button onClick={rec.start} title={tt('Record a voice note')}
             style={recBtnStyle('var(--c-rd)')}>{tt('● REC')}</button>
@@ -314,9 +314,9 @@ function MessageBubble({ msg, viewerRole }) {
     <div style={{ display: 'flex', justifyContent: align, marginBottom: 8 }}>
       <div style={{
         maxWidth: '78%', background: bg, border: `1px solid ${border}`, borderRadius: 0,
-        // the body's 1.4 leading is the other 2 under the text (14.10 #735: 11 over, 13.2 under). Coach side only: the
-        // athlete portal is held at production
-        padding: viewerRole === 'coach' ? '8px 10px 6px' : '8px 10px',
+        // the body's 1.4 leading is the other 2 under the text (14.10 #735: 11 over, 13.2 under) - both sides now (15.10:
+        // the athlete portal ships with every cut, the band probe read the same 11 / 13.2 there)
+        padding: '8px 10px 6px',
       }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 4 }}>
           {tt(msg.sender_role === 'coach' ? 'COACH' : 'ATHLETE')} · {fmt(msg.created_at)}

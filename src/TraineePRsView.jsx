@@ -347,14 +347,16 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
                   <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('ALL-TIME PR')}</div>
-                  <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
-                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>kg</span>
+                  <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
+                    <bdi>{picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>{tt('KG')}</span></bdi>
                     {picked.allTimePRReps > 0 && (
                       <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>× {picked.allTimePRReps}</span>
                     )}
                   </div>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, marginTop: 10 }}>
-                    {fmtDate(picked.allTimePRDate, he)}
+                    {/* own direction (#789): a Hebrew date that starts with its day number, in the LTR portal shell,
+                        put the number on the wrong side ("באוק׳ 13" to a Hebrew reader) */}
+                    <span dir="auto" style={{ unicodeBidi: 'isolate' }}>{fmtDate(picked.allTimePRDate, he)}</span>
                   </div>
                   {picked.swappedAny && (
                     <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>{tt('Includes sessions from mid-session swaps.')}</div>
@@ -474,15 +476,18 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                         borderBottom: i < arr.length - 1 ? `1px solid ${C.cardBd}` : 'none',
                         background: isPR ? `rgba(57,189,255,0.039)` : 'transparent',
                       }}>
-                        <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
-                          {fmtDate(s.date, he)}
-                          {s.week ? <span style={{ color: C.td, marginInlineStart: 4 }}>W{s.week}</span> : null}
+                        <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
+                          <span dir="auto" style={{ unicodeBidi: 'isolate' }}>{fmtDate(s.date, he)}</span>
+                          {/* the week in the page's language: 'W2' was English on the Hebrew page (the portal says שבוע 2) */}
+                          {s.week ? <span dir="auto" style={{ color: C.td, marginInlineStart: 4, unicodeBidi: 'isolate' }}>{he ? `שבוע ${s.week}` : `W${s.week}`}</span> : null}
                         </div>
-                        <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>
-                          {s.load}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>kg</span>
+                        <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>
+                          <bdi>{s.load}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>{tt('KG')}</span></bdi>
                           {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}>× {s.reps}</span>}
                           {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginInlineStart: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
-                          {isPR && <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
+                          {/* the chip rides its own text's baseline and hung 1.5 px low (#735 band probe 15.10: 13 above / 10 below
+                              in the row) - lifted visually, the line box unchanged */}
+                          {isPR && <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px', transform: 'translateY(-1.5px)' }}>PR</span>}
                         </div>
                       </div>
                     );

@@ -13,6 +13,10 @@ import Chat from './Chat';
 import EntryChooser, { GCAL_ONLINE } from './EntryChooser';
 import founderOhad from './assets/founder-ohad.jpg';
 
+// a caption inside a direction:'ltr' phone mock reads RTL when it holds Hebrew (#789: dir='auto' would pick LTR for
+// 'ROM עלה ב-6 מעלות', which starts with a Latin word)
+const capDir = (s) => (/[\u0590-\u05FF]/.test(String(s || '')) ? 'rtl' : 'ltr');
+
 // Stale-chunk recovery: a visitor whose tab predates a deploy will 404 on a
 // lazy chunk (Vercel then serves index.html → "MIME text/html" error) and see
 // a blank page. Reload once to pull the fresh index + chunk; clear the guard
@@ -1156,7 +1160,7 @@ function PoseScreen() {
           border: 'none',
         }}>{depthLabel}</div>
       </div>
-      <div style={{
+      <div dir={capDir(t('inside.pose.foot'))} style={{
         fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
         textAlign: 'center', paddingTop: 6,
       }}>{t('inside.pose.foot')}</div>
@@ -1249,7 +1253,7 @@ function RepCounterScreen() {
         </svg>
       </div>
 
-      <div style={{
+      <div dir={capDir(t('inside.rep.foot'))} style={{
         fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
         textAlign: 'center', paddingTop: 4,
       }}>{t('inside.rep.foot')}</div>
@@ -1302,7 +1306,7 @@ function CompareScreen() {
         <div style={{
           fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 0.8,
           marginTop: 2,
-        }}>{sub}</div>
+        }} dir={capDir(sub)}>{sub}</div>
       </div>
     </div>
   );
@@ -1347,7 +1351,7 @@ function CompareScreen() {
         <Tile title={t('inside.cmp.now.t')} sub={t('inside.cmp.now.s')}
           dimmed={activeTop} repsOk={nowRepsArr} />
       </div>
-      <div style={{
+      <div dir={capDir(t('inside.cmp.foot'))} style={{
         fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
         textAlign: 'center', paddingTop: 4,
       }}>{t('inside.cmp.foot')}</div>
@@ -1457,7 +1461,7 @@ function RepDemoInteractive() {
         </svg>
       </button>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{
+        <div dir={capDir(t('inside.rep.foot'))} style={{
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
         }}>
           {t('inside.rep.foot')}
@@ -1515,7 +1519,7 @@ function CompareDemoInteractive() {
             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
             color: active ? C.ac : C.tm,
           }}>{title}</div>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2 }}>{sub}</div>
+          <div dir={capDir(sub)} style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2 }}>{sub}</div>
         </div>
       </button>
     );
@@ -1526,7 +1530,7 @@ function CompareDemoInteractive() {
         repsOk={[1, 1, 1, 0]} />
       <Tile id="now" title={t('inside.cmp.now.t')} sub={t('inside.cmp.now.s')}
         repsOk={[1, 1, 1, 1, 1]} />
-      <div style={{
+      <div dir={capDir(t('inside.cmp.foot'))} style={{
         fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.2,
         textAlign: 'center', fontWeight: 700, marginTop: 4,
       }}>

@@ -1105,6 +1105,9 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   // editable, loads loggable). Each has its URL (.../bhbc/<page>/preview/<seat>); nothing saves in any of them.
   const PREVIEW_SEATS = ['coach', 'head-coach', 'pt'];
   const [previewSeat, setPreviewSeat] = useState(null);
+  // #793 review: the head-coach preview waits for the athlete rows at most 8 s, then falls back as before
+  const [hcWaitOver, setHcWaitOver] = useState(false);
+  useEffect(() => { if (previewSeat !== 'head-coach') { setHcWaitOver(false); return undefined; } const id = setTimeout(() => setHcWaitOver(true), 8000); return () => clearTimeout(id); }, [previewSeat]);
   previewRef.current = previewSeat;
   const previewCoach = !!previewSeat;
   const setPreviewCoach = (v) => setPreviewSeat((prev) => { const nv = typeof v === 'function' ? v(!!prev) : v; return nv ? (typeof nv === 'string' && PREVIEW_SEATS.includes(nv) ? nv : 'coach') : null; });
@@ -1842,8 +1845,12 @@ function attendance28(rec, days) {
     if (view === 'my-program' && myProgram === 'loading' && !previewSeat) return;   // his row is still being looked up
     // a reload of the owner's HEAD COACH preview on MY PROGRAM: the seat comes from the URL a moment after mount
     if (view === 'my-program' && !previewSeat && typeof window !== 'undefined' && /\/my-program\/preview\/head-coach(\/|$)/.test(window.location.pathname)) return;
+    // ...and once the seat is set, his row may not have loaded yet - the Program tab is not in the list for a moment and
+    // the preview fell back to the overview (#793: seen twice in about a dozen probe loads, both slowed by request interception). Rows loaded and still
+    // no head coach row = fall back as before.
+    if (view === 'my-program' && previewSeat === 'head-coach' && !headCoachAthlete && !(trainees && trainees.length) && !hcWaitOver) return;
     if (!NAV_TABS.some(([k]) => k === view)) setView(NAV_TABS[0][0]);
-  }, [asCoach, hasMyProgram, myProgram === 'loading', previewSeat]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [asCoach, hasMyProgram, myProgram === 'loading', previewSeat, !!(trainees && trainees.length), hcWaitOver]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     // dir="rtl" on the zone root, not just Hebrew words in an LTR layout:

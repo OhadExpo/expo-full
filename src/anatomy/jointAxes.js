@@ -74,6 +74,8 @@ const READ = {
   spine: (q, a) => { const d = a.clone().applyQuaternion(q); return { flex: at(d.z, d.y) - at(a.z, a.y), side: at(d.x, d.y) - at(a.x, a.y), rot: twistAbout(q, a) }; },
 };
 const AX0 = { y: new Vector3(0, -1, 0), z: new Vector3(0, 0, 1) };
+// TOE=old (node only) = the shin-frame toe-out, for an A/B on the corpus
+const TOE_OLD = typeof process !== 'undefined' && !!process.env && process.env.TOE === 'old';
 
 export const JOINTS = [
   ...['L', 'R'].flatMap((sd) => [
@@ -110,7 +112,23 @@ export function jointAxesFromQ(Q, seen = null) {
       // a real collapse past 30 shows — too, and the replay's picture beside it is the reading then.
       v.valgus = Math.hypot(t.x, t.y) >= 0.5 && Math.hypot(sh.x, sh.y) >= 0.5 && Math.abs(dv) <= VALGUS_MAX ? sg * dv : null;
     }
-    out[key] = { ...v, seen: !seen || (!!seen[S[p]] && !!seen[S[c]]) };
+    // TOE-OUT = THE FOOT PROGRESSION ANGLE (15.10 #730): the foot's heel-to-toe line on the FLOOR against the pelvis's
+    // forward line on the floor, + = the toes turned out. It was the foot's swing read in the SHIN's frame, so every knee
+    // bend tilted the shin and swung the number with it (corpus p10/p90 -51/+44 at every bend, 15-22% past range) while
+    // the foot stood still on the floor. World +y is up in the track (measured: the pelvis's up axis . +y median 0.86).
+    // Read only when both lines have a floor shadow (a foot pointing at the floor / a pelvis facing up has no heading).
+    if (kind === 'ankle' && !TOE_OLD) {
+      const fw = AX['foot' + sd].clone().applyQuaternion(Q[S['foot' + sd]]), pf = new Vector3(0, 0, 1).applyQuaternion(Q[S.pelvis]);
+      const fl = Math.hypot(fw.x, fw.z), pl = Math.hypot(pf.x, pf.z);
+      let dv = at(fw.x, fw.z) - at(pf.x, pf.z); while (dv > 180) dv -= 360; while (dv < -180) dv += 360;
+      v.toeOut = fl >= 0.5 && pl >= 0.5 && Math.abs(dv) <= 60 ? (sd === 'R' ? -1 : 1) * dv : null;
+    }
+    // A SHOULDER READING NEEDS THE WHOLE ARM SEEN (15.10 #795): since a limb fades from where it was lost (f53e0159) an
+    // upper arm counts as seen under an unseen forearm - right for drawing, but its shoulder angles then read past the
+    // human range in ~21% of those frames (corpus: shoulder.abd past range 3.2% -> 8.1% of seen frames). They show as
+    // estimates (~, grey) unless the forearm is seen too.
+    const seenHere = !seen || (!!seen[S[p]] && !!seen[S[c]] && (kind !== 'shoulder' || !!seen[S['farm' + sd]]));
+    out[key] = { ...v, seen: seenHere };
   }
   return out;
 }

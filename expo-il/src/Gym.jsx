@@ -970,8 +970,10 @@ function Footer({ heb }) {
               style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>WhatsApp</a>
             <a href="https://instagram.com/expo_il" target="_blank" rel="noopener"
               style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>Instagram @expo_il</a>
+            {/* the address may break after its @ and nowhere else (15.10: 2 px too wide for the footer column at 820) */}
+            {/* (the direction on an INNER span: on the full-width link it put the address at the left edge of the Hebrew column) */}
             <a href={`mailto:${CONTACT.email}`}
-              style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>{CONTACT.email}</a>
+              style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{CONTACT.email.split('@')[0]}@<wbr />{CONTACT.email.split('@')[1]}</span></a>
           </div>
         </div>
         <div>

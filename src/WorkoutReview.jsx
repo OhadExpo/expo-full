@@ -1581,7 +1581,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>{tt("REPS")}</div>
               <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
               {/* the live count reads against the LOG (#762): "of 8 logged" - the set's own count, each side doubled */}
-              {repTarget > 0 && <div style={{fontSize:9,color:C.tm,marginTop:2,whiteSpace:'nowrap'}}>{tt('of {n} logged').replace('{n}', repTarget)}</div>}
+              {repTarget > 0 && <div style={{fontSize:9,color:C.tm,marginTop:2,whiteSpace:'nowrap'}}>{repTarget === 1 ? tt('of 1 logged') : tt('of {n} logged').replace('{n}', repTarget)}</div>}
               {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
             </div>
           </div>

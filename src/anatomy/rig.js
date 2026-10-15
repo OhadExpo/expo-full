@@ -227,7 +227,52 @@ export function fixFrontBack(frames) {
 const SUPINE = ENV.SUPINE != null ? +ENV.SUPINE : (typeof window !== 'undefined' && window.__SUPINE != null ? +window.__SUPINE : 0);   // OFF until reviewed against the video (14.10: the c06 render lifted the legs)
 export const FACE_UP_EX = /bench|chest[\s-]?press|floor[\s-]?press|\bfly\b|flye|pull[\s-]?over|skull[\s-]?crush|supine|lying|glute[\s-]?bridge|hip[\s-]?thrust|bridge|dead[\s-]?bug|crunch|sit[\s-]?up|leg[\s-]?raise|hollow/i;
 export const FACE_DOWN_EX = /lying[\s-]?(leg|hamstring)[\s-]?curl|push[\s-]?up|press[\s-]?up|plank|prone|superman|mountain[\s-]?climb|bear[\s-]?crawl/i;
+export const NOT_LYING_EX = /standing|seated|cable|machine|bent[\s-]?over|pec[\s-]?deck|kneeling/i;
+// ...unless the name says the body lies (a Smith Machine Bench Press, a Machine Lying Leg Curl)
+export const SURELY_LYING_EX = /lying|bench|prone|supine|floor/i;
+// LYING=0 (node) turns the lying-trunk allowance off, for an A/B
+const LYING_RULE = !(ENV.LYING != null && +ENV.LYING === 0);
 export const lyingFacing = (title) => (!title ? 0 : FACE_DOWN_EX.test(String(title)) ? -1 : FACE_UP_EX.test(String(title)) ? 1 : 0);
+// THE BAR ON HIS BACK HOLDS HIS HANDS (15.10 #717, c38 back squat: the arms popped 340 times in the rig gate - uarmR alone
+// 114 - and the RAW elbows / wrists jumped over 15 cm in 100 ms 515 times, wrists up to 54 cm, while his hands sat on the
+// bar beside his neck). With the bar on the back the arm hardly moves against the TRUNK, so each arm point is read in the
+// trunk's own frame (shoulder line x spine) and replaced by its median over +-0.6 s: the trunk's own motion - the
+// descent, the hinge, the walk-out - passes through untouched, only the arm's wobble against it is filtered. Only for a
+// bar-on-back lift by the logged name (a front squat, a trap bar, dumbbells: the hands move with the load).
+export const BAR_ON_BACK_EX = /back[\s-]?squat|good[\s-]?morning|(?:high|low)[\s-]?bar[\s-]?(?:back[\s-]?)?squat|(?:\bbb\b|barbell|back)[\s-]?(?:box|pause|pin)[\s-]?squat|(?:\bbb\b|barbell)[\s-]?(?:split[\s-]?squat|lunge|reverse[\s-]?lunge|walking[\s-]?lunge|rfess|rear[\s-]?foot|bulgarian|step[\s-]?up)/i;
+const BAR_ARMS = !(ENV.BARARMS != null && +ENV.BARARMS === 0);
+const ARM_IDX = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+export function steadyBarArms(frames, exercise = '') {
+  if (!BAR_ARMS || !BAR_ON_BACK_EX.test(String(exercise || '')) || /front[\s-]?squat|trap[\s-]?bar|\bdb\b|dumbbell|kettlebell|\bkb\b|goblet|safety[\s-]?bar|zercher/i.test(String(exercise || ''))) return frames;
+  const W = 600;
+  // the trunk frame of a frame: origin = the shoulder of that arm, x = left->right shoulder, y = spine, z = x * y
+  const frameOf = (q) => {
+    if (!q || !fin(q[11]) || !fin(q[12]) || !fin(q[23]) || !fin(q[24])) return null;
+    const sx = q[12].x - q[11].x, sy = q[12].y - q[11].y, sz = q[12].z - q[11].z, sl = Math.hypot(sx, sy, sz); if (sl < 1e-6) return null;
+    const x = [sx / sl, sy / sl, sz / sl];
+    let u = [(q[11].x + q[12].x - q[23].x - q[24].x) / 2, (q[11].y + q[12].y - q[23].y - q[24].y) / 2, (q[11].z + q[12].z - q[23].z - q[24].z) / 2];
+    const d = u[0] * x[0] + u[1] * x[1] + u[2] * x[2]; u = [u[0] - d * x[0], u[1] - d * x[1], u[2] - d * x[2]]; const ul = Math.hypot(...u); if (ul < 1e-6) return null;
+    const y = u.map((v) => v / ul), z = [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]];
+    return { x, y, z };
+  };
+  const F = frames.map((f) => frameOf(f.pts));
+  const local = frames.map((f, k) => { const B = F[k]; if (!B) return null; const q = f.pts; return ARM_IDX.map((i) => { const o = q[i <= 22 && i % 2 ? 11 : 12]; const p0 = q[i]; if (!fin(p0) || !fin(o)) return null; const v = [p0.x - o.x, p0.y - o.y, p0.z - o.z]; return [v[0] * B.x[0] + v[1] * B.x[1] + v[2] * B.x[2], v[0] * B.y[0] + v[1] * B.y[1] + v[2] * B.y[2], v[0] * B.z[0] + v[1] * B.z[1] + v[2] * B.z[2]]; }); });
+  const med = (a) => { const s2 = a.slice().sort((m, n) => m - n); return s2[s2.length >> 1]; };
+  return frames.map((f, k) => {
+    const B = F[k]; if (!B || !local[k]) return f;
+    const t = f.t, win = []; for (let j = k; j >= 0 && t - frames[j].t <= W; j--) if (local[j]) win.push(j); for (let j = k + 1; j < frames.length && frames[j].t - t <= W; j++) if (local[j]) win.push(j);
+    if (win.length < 3) return f;
+    const pts = f.pts.slice();
+    ARM_IDX.forEach((i, a) => {
+      const vals = win.map((j) => local[j][a]).filter(Boolean); if (vals.length < 3 || !fin(pts[i])) return;
+      const m = [med(vals.map((v) => v[0])), med(vals.map((v) => v[1])), med(vals.map((v) => v[2]))];
+      const o = pts[i % 2 ? 11 : 12];
+      pts[i] = { ...pts[i], x: o.x + m[0] * B.x[0] + m[1] * B.y[0] + m[2] * B.z[0], y: o.y + m[0] * B.x[1] + m[1] * B.y[1] + m[2] * B.z[1], z: o.z + m[0] * B.x[2] + m[1] * B.y[2] + m[2] * B.z[2] };
+    });
+    return { ...f, pts, barArms: true };
+  });
+}
+
 export function fixSupine(frames, exercise = '') {
   const facing = lyingFacing(exercise);
   // FACE-UP ONLY (measured): push-ups were already read face-down (0-2 short flips on c05 / c17 / c36) and turning their
@@ -274,7 +319,7 @@ export function fixSupine(frames, exercise = '') {
 
 // ---- one captured frame -> 19 world rotations + where the hips are ---------------------------------------------------
 // p: frameToPoints3D points (y up, metres). prev: the previous frame's result (holds a part that is not there).
-export function poseFrame(p, prev = null, width = null) {
+export function poseFrame(p, prev = null, width = null, lying = false) {
   const Q = new Array(NSEG).fill(null), seen = new Uint8Array(NSEG);
   const has = (...k) => k.every((i) => fin(p[i]));
   const sees = (...k) => k.every((i) => vis(p[i]));
@@ -288,7 +333,13 @@ export function poseFrame(p, prev = null, width = null) {
   // read his body inverted - the replay opened on an upside-down skeleton): shoulders more than 20 cm BELOW the hips
   // is no frame - the track bridges it, faded; nor a spine pointing more than 30 degrees below level (c22 40.5 s:
   // standing upright, read 19 cm 'below' - the model stood on its head). The bottom of an RDL is ~10 degrees below.
-  { const sp = midV(p[11], p[12]).sub(midV(p[23], p[24])), l = sp.length(); if (sp.y < -0.2 || (l > 1e-6 && sp.y / l < -0.5)) return null; }
+  // ...except on a LYING lift (15.10 #717d, c06 bench 30-32.4 s: MediaPipe read the lying spine 25-32 degrees below level,
+  // the shoulders 20-25 cm under the hips - a flat bench along the camera's depth, the head a little low - and every such
+  // frame was dropped: the body vanished for 2.5 s mid-set). With a face-up / face-down exercise logged the limits are
+  // 30 cm / 37 degrees (20 cm / 30 for a standing body). Measured, heavy captures: c06 in view 54.3 -> 56.5 s of 56.5,
+  // pops 36 -> 3, fit 17.0 -> 13.3 cm; c27 (the depth-flipping bench) fit 17.5 -> 17.0 but pops 1429 -> 1706 - its extra
+  // frames sit in the same band as c06's good ones (no limit separates them). LYING=0 / LYING_DY / LYING_MIN (node).
+  { const sp = midV(p[11], p[12]).sub(midV(p[23], p[24])), l = sp.length(); if (lying ? (sp.y < (ENV.LYING_DY != null ? +ENV.LYING_DY : -0.3) || (l > 1e-6 && sp.y / l < (ENV.LYING_MIN != null ? +ENV.LYING_MIN : -0.6))) : (sp.y < -0.2 || (l > 1e-6 && sp.y / l < -0.5))) return null; }
   const hipC = midV(p[23], p[24]), shoC = midV(p[11], p[12]), up = shoC.clone().sub(hipC);
   const restUp = RJ.shoMid.clone().sub(RJ.hipMid);
   const trunkSeen = sees(11, 12, 23, 24) ? 1 : 0;
@@ -968,6 +1019,7 @@ export function buildTrack(frames, { smoothMs = 45, hz = TRACK_HZ, interp = 'c2'
   let fb;
   if (ENV.SUPINE_ORDER === 'before') { frames = fixSupine(frames, exercise).frames; fb = fixFrontBack(frames); frames = fb.frames; }
   else { fb = fixFrontBack(frames); frames = fixSupine(fb.frames, exercise).frames; }   // after the front/back fixer: measured better (c27 face-down 157 vs 992)
+  frames = steadyBarArms(frames, exercise);   // #717: a bar on the back holds the hands
   let levelQ = null;
   frames = levelFloor(frames, dims); levelQ = frames.levelQ || null;
   const B = clipBody(frames.map((f) => f.pts));
@@ -989,7 +1041,10 @@ export function buildTrack(frames, { smoothMs = 45, hz = TRACK_HZ, interp = 'c2'
   const spineOk = (f) => { const l = spineLen(f.pts); return !Number.isFinite(spMed) || !Number.isFinite(l) || (l >= 0.55 * spMed && l <= 1.6 * spMed); };
   const lineW = (a, b) => { const v = frames.map((f) => (f.pts && fin(f.pts[a]) && fin(f.pts[b]) ? V(f.pts[a]).distanceTo(V(f.pts[b])) : NaN)).filter(Number.isFinite).sort((x, y) => x - y); return v.length ? v[v.length >> 1] : 0; };
   const width = { hip: lineW(23, 24), sho: lineW(11, 12) };
-  for (const f of frames) { const r = inPicture(f) && spineOk(f) ? poseFrame(f.pts, prev, width) : null; per.push(r); if (r) prev = r; }
+  // (only a lifter LYING: the face-up / face-down list also names standing and seated lifts - a cable fly, a seated chest
+  // press, a standing pullover, a bent-over reverse fly - and a standing body keeps the strict rule; 15.10 review)
+  const lying = LYING_RULE && lyingFacing(exercise) !== 0 && (SURELY_LYING_EX.test(String(exercise || '')) || !NOT_LYING_EX.test(String(exercise || '')));   // #717d
+  for (const f of frames) { const r = inPicture(f) && spineOk(f) ? poseFrame(f.pts, prev, width, lying) : null; per.push(r); if (r) prev = r; }
   // a LONE reading (no other within 0.4 s, 13.10: the app's c31 read opened on one frame then 1.8 s of misreads) is noise
   const kept0 = per.map((r, i) => (r ? i : -1)).filter((i) => i >= 0);
   const keep = kept0.filter((i, j) => (j > 0 && frames[i].t - frames[kept0[j - 1]].t <= 400) || (j + 1 < kept0.length && frames[kept0[j + 1]].t - frames[i].t <= 400) || kept0.length < 3);

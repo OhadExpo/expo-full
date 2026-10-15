@@ -322,7 +322,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
 
         {status === 'counting' && show3d && camDims && (
           <div style={{ position: 'absolute', top: 60, insetInlineEnd: 16, width: 'min(44vw, 280px)', border: '1px solid rgba(255,255,255,0.14)', zIndex: 12 }}>
-            <Suspense fallback={null}><LiveAnatomy getFrames={() => liveBufRef.current} dims={camDims} height={240} /></Suspense>
+            <Suspense fallback={null}><LiveAnatomy getFrames={() => liveBufRef.current} dims={camDims} height={240} exercise={exerciseTitle} /></Suspense>
           </div>
         )}
         {/* Big rep count overlay */}

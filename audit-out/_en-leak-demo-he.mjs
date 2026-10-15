@@ -3,9 +3,9 @@
 import P from 'puppeteer-core';
 import fs from 'node:fs';
 const BASE = process.env.BASE || 'http://127.0.0.1:4173';
-const OUT = 'C:/Users/ADMINI~1/AppData/Local/Temp/claude/en_leak_demo.txt';
+const OUT = process.env.OUT || 'audit-out/en_leak_demo.txt';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage(); await pg.setViewport({ width: 1400, height: 900 });
 await pg.goto(`${BASE}/demo/coach?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(6000);
 

@@ -20,7 +20,9 @@ const WINDOW_MS = 12000, REBUILD_MS = 500, DELAY_MS = 700, FADE_MS = 300;
 
 // getFrames(): the live buffer, oldest first - [{ t (ms, performance.now() clock), landmarks, worldLandmarks }];
 // dims: the camera picture's { w, h }
-export default function LiveAnatomy({ getFrames, dims, height = 360 }) {
+export default function LiveAnatomy({ getFrames, dims, height = 360, exercise = '' }) {
+  // the logged exercise, read live by the loop below (a ref: the loop is not restarted when it changes)
+  const exRef = useRef(exercise); exRef.current = exercise;
   const tt = useT();
   const hostRef = useRef(null);
   const [state, setState] = useState('loading');   // loading | waiting | live | error
@@ -66,7 +68,7 @@ export default function LiveAnatomy({ getFrames, dims, height = 360 }) {
       if (fr.length < 12) return;
       try {
         const st = anatomyFrames(fr, d);
-        const tr = st.length >= 10 ? buildTrack(st.map((x) => ({ t: x.t, pts: frameToPoints3D(x.worldLandmarks), img: x.landmarks })), { dims: d }) : null;
+        const tr = st.length >= 10 ? buildTrack(st.map((x) => ({ t: x.t, pts: frameToPoints3D(x.worldLandmarks), img: x.landmarks })), { dims: d, exercise: exRef.current }) : null;
         if (!tr) return;
         prev = cur; cur = tr; switchedAt = now; body.setTrack(tr);
         if (!framed) { framed = true; setState('live'); }
