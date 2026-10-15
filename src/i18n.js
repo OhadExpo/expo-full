@@ -1640,6 +1640,11 @@ export const HE = {
   '/km': 'לק״מ',
   // #799 a runner's records (PRs tab), from his logged runs
   'RUNNING RECORDS': 'שיאי ריצה',
+  // #812 (Yehu's seat)
+  'That weight looks wrong - enter it in kg (20-250).': 'המשקל נראה לא נכון - תרשום בק״ג (20-250).',
+  'CONF HIGH': 'גבוהה',
+  'CONF MEDIUM': 'בינונית',
+  'CONF LOW': 'נמוכה',
   // the athlete page's action tiles (#811)
   'Profile and info': 'פרופיל ופרטים',
   'Athlete view': 'מה שהמתאמן רואה',

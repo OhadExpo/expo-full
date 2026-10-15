@@ -109,6 +109,8 @@ export default async function handler(req, res) {
   const body = req.body || {};
   const photoUrl = String(body.photoUrl || '').trim();
   const hint = String(body.hint || '').trim().slice(0, 200);
+  // the athlete's language (#812): a Hebrew page got 'Potato (boiled) (medium)' and an English note
+  const lang = body.lang === 'he' ? 'he' : 'en';
   if (!photoUrl || !/^https?:\/\//i.test(photoUrl)) {
     res.status(400).json({ error: 'photoUrl is required and must be http(s).' });
     return;
@@ -129,7 +131,7 @@ export default async function handler(req, res) {
   try {
     const messageContent = [
       { type: 'image', source: { type: 'url', url: photoUrl } },
-      { type: 'text', text: hint ? `Hint from athlete: ${hint}` : 'Estimate the macros for this meal.' },
+      { type: 'text', text: (hint ? `Hint from athlete: ${hint}` : 'Estimate the macros for this meal.') + (lang === 'he' ? ' Write every item name, portion and the notes in natural Israeli Hebrew (food as Israelis call it; keep the JSON keys, the numbers and confidence high/medium/low as they are). In abbreviations use the Hebrew gershayim ״ and geresh ׳, never an ASCII quote.' : '') },
     ];
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -140,7 +142,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
+        max_tokens: lang === 'he' ? 1200 : 600   /* Hebrew runs ~2x the tokens; a cut answer is non-JSON (#812 review) */,
         system: SYSTEM,
         messages: [{ role: 'user', content: messageContent }],
       }),

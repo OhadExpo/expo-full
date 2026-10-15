@@ -154,7 +154,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         // the AI fetches the photo itself, so it gets a SIGNED URL - the raw
         // public one 400s once the bucket is private (#510-S2). The row keeps
         // the raw URL; a signed one expires.
-        body: JSON.stringify({ photoUrl: await resolveStoredUrl(photoUrl), hint }),
+        body: JSON.stringify({ photoUrl: await resolveStoredUrl(photoUrl), hint, lang: he ? 'he' : 'en' }),   // the answer in his language (#812)
       });
       // The endpoint *should* always return JSON, but a Vercel runtime
       // crash (timeout, OOM, cold-start failure) returns plaintext like
@@ -426,10 +426,10 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       {meals.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 12 }}>
           {[
-            { l: 'KCAL', v: totals.kcal },
-            { l: 'P', v: `${totals.p}g` },
-            { l: 'C', v: `${totals.c}g` },
-            { l: 'F', v: `${totals.f}g` },
+            { l: tt('KCAL'), v: totals.kcal },
+            { l: tt('PROTEIN'), v: `${totals.p}${he ? ' ' : ''}${tt('g')}` },
+            { l: tt('CARB'), v: `${totals.c}${he ? ' ' : ''}${tt('g')}` },
+            { l: tt('FAT'), v: `${totals.f}${he ? ' ' : ''}${tt('g')}` },
           ].map(t => (
             <div key={t.l} style={{ border: `1px solid ${C.cardBd}`, padding: '6px 8px', textAlign: 'center' }}>
               <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{t.l}</div>
@@ -503,11 +503,12 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
 function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving }) {
   const tt = useAppT();
+  const he = useHe();
   const setField = (k, v) => setMacros({ ...macros, [k]: v });
   return (
     <div>
       <StoredImg src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
-      <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('AI ESTIMATE · CONFIDENCE:')}<span style={{ color: macros.confidence === 'high' ? C.gn : macros.confidence === 'medium' ? C.or : C.rd }}>{macros.confidence?.toUpperCase()}</span>
+      <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('AI ESTIMATE · CONFIDENCE:')}{' '}<span style={{ color: macros.confidence === 'high' ? C.gn : macros.confidence === 'medium' ? C.or : C.rd }}>{(() => { const c = String(macros.confidence || '').toUpperCase(); if (!c) return ''; const k = c === 'HIGH' ? 'CONF HIGH' : c === 'MEDIUM' ? 'CONF MEDIUM' : 'CONF LOW'; return he ? tt(k) : c; })()}</span>
       </div>
       {macros.items?.length > 0 && (
         <div style={{ marginBottom: 10, fontSize: 11, color: C.tm }}>
@@ -524,10 +525,10 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving })
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 10 }}>
-        <MacroInput label="KCAL" value={macros.kcal} onChange={v => setField('kcal', v)} />
-        <MacroInput label="P g" value={macros.protein_g} onChange={v => setField('protein_g', v)} />
-        <MacroInput label="C g" value={macros.carb_g} onChange={v => setField('carb_g', v)} />
-        <MacroInput label="F g" value={macros.fat_g} onChange={v => setField('fat_g', v)} />
+        <MacroInput label={tt('KCAL')} value={macros.kcal} onChange={v => setField('kcal', v)} />
+        <MacroInput label={tt('PROTEIN')} value={macros.protein_g} onChange={v => setField('protein_g', v)} />
+        <MacroInput label={tt('CARB')} value={macros.carb_g} onChange={v => setField('carb_g', v)} />
+        <MacroInput label={tt('FAT')} value={macros.fat_g} onChange={v => setField('fat_g', v)} />
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={onCancel} style={btnGhost}>{tt('CANCEL')}</button>

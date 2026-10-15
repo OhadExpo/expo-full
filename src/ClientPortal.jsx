@@ -2660,7 +2660,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null,analysis:null}; return n; });
                 }}
                 style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
-                Remove
+                {tt('Remove')}
               </button>
             </div>
             {/* ANALYSE MY SET (5.10 #552). The title is the plan row's (the swap's
@@ -3677,7 +3677,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>}
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>{tt('Log week')} {wk+1} · {activePlan?.name || tt('NO ACTIVE BLOCK')}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder={tt('Weight in kg')} type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,height:'var(--btn-h)',padding:'0 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value.replace(',', '.'))} onFocus={e => { const el = e.target; if (!bw && existingBw) setBw(String(existingBw.bw)); requestAnimationFrame(() => { try { el.setSelectionRange(0, 99); } catch { /* gone */ } }); }} placeholder={tt('Weight in kg')} type="text" inputMode="decimal" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,height:'var(--btn-h)',padding:'0 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             {/* SAVE LOOKED LIVE AND WAS INERT.
                 It was disabled on demoMode alone, but styled from (bw &&
                 activePlan) — so in the demo it went cyan with a pointer
@@ -3686,7 +3686,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 write, the standalone demo (localWrites) may keep what the
                 visitor does. The style now reads the same condition, so a
                 button that cannot act never looks like it can. */}
-            <button disabled={!activePlan||(demoMode&&!localWrites)} onClick={()=>{if(demoMode&&!localWrites)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
+            <button disabled={!activePlan||(demoMode&&!localWrites)} onClick={()=>{if(demoMode&&!localWrites)return;const val=bw||bwDisplay;if(val&&!(parseFloat(val)>=20&&parseFloat(val)<=250)){toast(tt('That weight looks wrong - enter it in kg (20-250).'),'warn',{ttl:6000});return;}/* #812: a tap on the saved value typed after it - 87 became 8877 and saved */if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
               style={{height:'var(--btn-h)',boxSizing:'border-box',padding:'0 20px',borderRadius:0,border:`1px solid ${bwCanSave?C.ac:C.cardBd}`,background:'transparent',color:bwCanSave?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:bwCanSave?'pointer':'default'}}>{tt("SAVE")}</button>
           </div>
           {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>{tt('Assign an active program to log bodyweight.')}</div>}

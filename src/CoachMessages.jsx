@@ -15,7 +15,7 @@ import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY, isSandboxSeat } from './supab
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState, StripCaret } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
-import { useT as useAppT, tr, readLang, dirOfText } from './i18n';
+import { useT as useAppT, dirOfText } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 
 import { isHebrew } from './script';
@@ -34,6 +34,7 @@ const fmt = (iso) => {
 // falls back to the stored URL so a note never silently stops playing.
 // One themed player for every bit of audio in this surface.
 function AudioPlayer({ src, spaced }) {
+  const tt = useAppT();   // the page's language (the zone's inside the club zone, #812)
   // The browser's own <audio controls> is a white rounded pill. In a portal
   // that is black with 1px square borders it was the loudest thing on the
   // screen, and it was the only control in the app the athlete sees that we
@@ -80,7 +81,7 @@ function AudioPlayer({ src, spaced }) {
       <button
         type="button"
         onClick={toggle}
-        aria-label={tr(readLang(), playing ? 'Pause voice note' : 'Play voice note')}
+        aria-label={tt(playing ? 'Pause voice note' : 'Play voice note')}
         style={{
           width: 30, height: 30, flexShrink: 0, display: 'inline-flex',
           alignItems: 'center', justifyContent: 'center', lineHeight: 1,
@@ -270,14 +271,14 @@ function Composer({ onSend, role, draftKey }) {
         )}
         {rec.recording && (
           <button onClick={rec.stop} style={recBtnStyle('var(--c-rd)', true)}>
-            ■ {tr(readLang(), 'STOP')} · {String(Math.floor(rec.elapsed / 60)).padStart(2,'0')}:{String(rec.elapsed % 60).padStart(2,'0')}
+            ■ {tt('STOP')} · {String(Math.floor(rec.elapsed / 60)).padStart(2,'0')}:{String(rec.elapsed % 60).padStart(2,'0')}
           </button>
         )}
         {rec.blob && !rec.recording && (
           <>
             <div style={{ maxWidth: 220 }}><AudioPlayer src={rec.blobUrl} /></div>
             <button onClick={rec.reset}
-              style={recBtnStyle('var(--c-tm)')}>↺ {tr(readLang(), 'RE-RECORD')}</button>
+              style={recBtnStyle('var(--c-tm)')}>↺ {tt('RE-RECORD')}</button>
           </>
         )}
         {rec.error && <span style={{ fontSize: 11, color: 'var(--c-rd)' }}>{rec.error}</span>}
@@ -472,7 +473,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
-        <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
+        <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>{tt('Loading…')}</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 14, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
           {tt('No messages yet.')} {role === 'coach' ? tt('Drop a voice note or a quick check-in below.') : tt('Your coach will message you here.')}
