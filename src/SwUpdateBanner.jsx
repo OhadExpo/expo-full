@@ -92,6 +92,14 @@ const bundleId = () => {
 };
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
+// #802, Ohad 15.10 (the pill over a BHBC sheet): "On bhbc the popup needs to be bhbc themed". In the club zone
+// (or its login) the pill and the blocking card wear the zone's modal bar - navy, the crest, the orange rule -
+// and the action is the zone's orange button (LiftModal's LOG LIFT). BhbcView's NAVY / ORANGE, copied: the
+// banner lives outside the lazy BHBC chunk.
+const BHBC_NAVY = '#1E3D74', BHBC_ORANGE = '#F26A2B';
+// The zone has its own language toggle (BhbcView's dir): the pill speaks the zone's language, not the app's
+const bhbcZoneDir = () => { try { const z = document.querySelector('.bhbc-zone'); return z ? (z.getAttribute('dir') || 'ltr') : null; } catch { return null; } };
+const inBhbc = () => { try { return !!document.querySelector('.bhbc-zone') || /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname); } catch { return false; } };
 
 export default function SwUpdateBanner() {
   const regRef = React.useRef(null);
@@ -133,7 +141,7 @@ export default function SwUpdateBanner() {
     };
   }, []);
   const [tick, setTick] = useState(0);           // re-evaluates the rules once a second
-  const lang = readLang();
+  let lang = readLang();   // (the BHBC zone's own language replaces it at render - #802)
   const t = (s) => tr(lang, s);
 
   useEffect(() => {
@@ -269,21 +277,29 @@ export default function SwUpdateBanner() {
     if (busyNow) return null;                                        // rule 4
   }
 
+  const club = inBhbc();
+  const zoneDir = club ? bhbcZoneDir() : null;
+  if (zoneDir) lang = zoneDir === 'rtl' ? 'he' : 'en';
+  const dirAttr = zoneDir || undefined;
+  const crest = club ? <img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0 }} /> : null;
   const onUpdate = () => { setUpdating(true); setTimeout(() => { try { updateServiceWorker(true); } catch { /* noop */ } setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500); }, 200); };
 
   if (nag || updating) {
     // The old blocking modal, kept for the case that earns it.
     return (
-      <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 100000, background: C.scrim || 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-        <div style={{ background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '30px 34px', width: 'min(420px, 92vw)', textAlign: 'center', boxShadow: `0 24px 70px ${C.shadow}` }}>
-          <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 12 }}>
+      <div role="dialog" aria-modal="true" dir={dirAttr} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: C.scrim || 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div style={club
+          ? { background: BHBC_NAVY, borderStyle: 'solid', borderWidth: '1px 1px 3px', borderColor: `${BHBC_NAVY} ${BHBC_NAVY} ${BHBC_ORANGE}`, borderRadius: 0, padding: '30px 34px', width: 'min(420px, 92vw)', textAlign: 'center', boxShadow: `0 24px 70px ${C.shadow}`, display: 'flex', flexDirection: 'column', alignItems: 'center' }
+          : { background: C.sf, borderStyle: 'solid', borderWidth: 1, borderColor: C.ac, borderRadius: 0, padding: '30px 34px', width: 'min(420px, 92vw)', textAlign: 'center', boxShadow: `0 24px 70px ${C.shadow}` }}>
+          {club && <img src="/logos/bhbc-logo.png" alt="" style={{ height: 36, width: 'auto', display: 'block', marginBottom: 14 }} />}
+          <div style={{ fontFamily: FN, fontSize: 11, color: club ? '#fff' : C.ac, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 12 }}>
             {updating ? t('UPDATING…') : t('NEW VERSION AVAILABLE')}
           </div>
-          <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, marginBottom: 22 }}>
-            {updating ? t('Loading the latest version…') : t('A new version of EXPO is ready. Update now to continue.')}
+          <div style={{ fontFamily: FB, fontSize: 14, color: club ? 'rgba(255,255,255,0.85)' : C.tx, lineHeight: 1.5, marginBottom: 22 }}>
+            {updating ? t('Loading the latest version…') : club ? t('A new version is ready. Update now to continue.') : t('A new version of EXPO is ready. Update now to continue.')}
           </div>
           {!updating && (
-            <button onClick={onUpdate} style={{ background: C.ac, color: 'var(--c-bg)', border: 'none', borderRadius: 0, padding: '13px 44px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer' }}>{t('UPDATE NOW')}</button>
+            <button onClick={onUpdate} style={{ background: club ? BHBC_ORANGE : C.ac, color: club ? '#fff' : 'var(--c-bg)', border: 'none', borderRadius: 0, padding: '13px 44px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer' }}>{t('UPDATE NOW')}</button>
           )}
         </div>
       </div>
@@ -315,17 +331,18 @@ export default function SwUpdateBanner() {
   // cyan borders around the popup").
   const btn = { flexShrink: 0, height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 14px', borderRadius: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer', whiteSpace: 'nowrap' };
   return (
-    <div role="status" style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', padding: '0 12px', pointerEvents: 'none' }}>
-      <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, width: 'min(560px, 100%)', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0, paddingBlock: 8, paddingInlineStart: 14, paddingInlineEnd: 8, boxShadow: `0 10px 30px ${C.shadow}` }}>
+    <div role="status" dir={dirAttr} style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', padding: '0 12px', pointerEvents: 'none' }}>
+      <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10, width: 'min(560px, 100%)', boxSizing: 'border-box', background: club ? BHBC_NAVY : C.sf, borderStyle: 'solid', borderWidth: club ? '1px 1px 3px' : 1, borderColor: club ? `${BHBC_NAVY} ${BHBC_NAVY} ${BHBC_ORANGE}` : C.ac, borderRadius: 0, paddingBlock: 8, paddingInlineStart: 14, paddingInlineEnd: 8, boxShadow: `0 10px 30px ${C.shadow}` }}>
+        {crest}
         {/* ONE LINE (Ohad 26.9: "never put two rows in a title box ... always
             one row"). At 390 the English label wrapped to two; a phone gets the
             short form, which still reads beside UPDATE, and never an ellipsis. */}
         <style>{`.sw-lbl-short{display:none}@media (max-width:520px){.sw-lbl-full{display:none}.sw-lbl-short{display:inline}}`}</style>
-        <span style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.14em', fontWeight: 700, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+        <span style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 10, color: club ? '#fff' : C.ac, letterSpacing: '0.14em', fontWeight: 700, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
           <span className="sw-lbl-full">{t('NEW VERSION AVAILABLE')}</span><span className="sw-lbl-short">{t('NEW VERSION')}</span>
         </span>
         {/* ONE action (#464: "no later option just update") */}
-        <button onClick={onUpdate} style={{ ...btn, background: C.ac, color: 'var(--c-bg)', border: `1px solid ${C.ac}` }}>{t('UPDATE')}</button>
+        <button onClick={onUpdate} style={{ ...btn, background: club ? BHBC_ORANGE : C.ac, color: club ? '#fff' : 'var(--c-bg)', border: `1px solid ${club ? BHBC_ORANGE : C.ac}` }}>{t('UPDATE')}</button>
       </div>
     </div>
   );

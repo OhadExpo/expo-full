@@ -1246,6 +1246,7 @@ export const HE = {
   "UPDATING…": 'מעדכן…',
   "Loading the latest version…": 'טוען את הגרסה האחרונה…',
   "A new version of EXPO is ready. Update now to continue.": 'גרסה חדשה של EXPO מוכנה. עדכן עכשיו כדי להמשיך.',
+  "A new version is ready. Update now to continue.": 'גרסה חדשה מוכנה. עדכן עכשיו כדי להמשיך.',
   "UPDATE NOW": 'עדכן עכשיו',
   LATER: 'אחר כך',
   "FROM YOUR COACH": 'מהמאמן שלך',

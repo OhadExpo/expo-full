@@ -534,7 +534,7 @@ function usePhoneGrid() {
   }, []);
   return on;
 }
-const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_DEEP : d.future || d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm);
+const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_DEEP : d.future || d.dow === 6 || d.dow === 5 ? C.td : C.tm);   // C.td, not the hairline colour (#803: 'hard to read')
 // today in view on a narrow screen: the scroller moves so today's column sits
 // at the inner edge of the days (works in both directions - it moves by the
 // measured overshoot, never by an absolute scrollLeft, which RTL inverts)
@@ -649,7 +649,7 @@ const WARMUP_COLOR = '#8C6BC8';
 function CellMarks({ bands = [], outline = null, label }) {
   if (!bands.length && !outline) return null;
   return (
-    <span aria-label={label} style={{ width: 16, height: 16, boxSizing: 'border-box', display: 'inline-flex', flexDirection: 'column', gap: 1, border: outline ? `1.5px solid ${outline}` : 'none', background: bands.length > 1 ? 'var(--c-sf)' : 'transparent' }}>
+    <span aria-label={label} data-cellmark="" style={{ width: 16, height: 16, boxSizing: 'border-box', display: 'inline-flex', flexDirection: 'column', gap: 1, border: outline ? `1.5px solid ${outline}` : 'none', background: bands.length > 1 ? 'var(--c-sf)' : 'transparent' }}>
       {bands.map((c, i) => <span key={i} style={{ flex: 1, background: c }} />)}
     </span>
   );
@@ -874,6 +874,9 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
   const glyph = on && sort.dir === 'asc' ? '↑' : '↓';
   const go = () => sort.toggle(k);
   const hang = float || center;
+  // #803: in a flex cell the label is a flex item, so the phone's 36px [role=button] floor made it a 36px block with
+  // its word at the top (ATHLETE / LAST stood over the day numbers) - it centres its own content
+  const flexCell = !!(style && style.display === 'flex');
   const slot = { display: 'inline-block', width: '0.8em', textAlign: 'center', letterSpacing: 0, visibility: on ? 'visible' : 'hidden' };
   return (
     // aria-sort belongs to a real column header: only the <th> form carries
@@ -883,7 +886,7 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
       style={{ ...style, ...(on ? { color: ORANGE_DEEP } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
       <span role="button" tabIndex={0} aria-label={Tag === 'th' ? (aLabel || undefined) : `${aLabel || label}${on ? ` · ${tr(sort.dir === 'asc' ? 'Sort ascending' : 'Sort descending')}` : ''}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
-        style={hang ? { position: 'relative' } : undefined}>
+        style={hang || flexCell ? { ...(hang ? { position: 'relative' } : null), ...(flexCell ? { display: 'inline-flex', alignItems: 'center', justifyContent: (style.justifyContent || 'flex-start'), minHeight: 0, minWidth: 0 /* the phone's 36 / 40px [role=button] floor is the CELL's (it takes the tap): on the label it stood the hung arrow 11px over LAST (review) */ } : null) } : undefined}>
         {label}
         {/* 0.7em hung: inside the cell's own 9-10px padding, so it never
             reaches the next column's word or past the table's edge */}
@@ -5091,13 +5094,13 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
           <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* #735: the two-line day heads 8.2 / 10.7 -> even */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
-            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
+            <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }} />
             {days.list.map((d) => (
               d.future
                 ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
                 : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
             ))}
-            <SortHeader data-end-head="" k="pct" sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('made')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+            <SortHeader data-end-head="" k="pct" float sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('made')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10, borderInlineStart: `1px solid ${C.cardBd}` }} />
           </div>
           <NameScopeProvider>
           <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
@@ -5329,14 +5332,14 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
         <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
           {/* the column widths are CSS variables: a phone narrows them (themes.css, 1.10 #499) */}
           <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
-              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }} />
+            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* the two-line day heads, as Attendance's (#735) */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
+              <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }} />
               {days.list.map((d) => (
                 d.future
-                  ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
-                  : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={d.dom} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
+                  ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
+                  : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
               ))}
-              <SortHeader data-end-head="" k="last" sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }} />
+              <SortHeader data-end-head="" k="last" float sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10, borderInlineStart: `1px solid ${C.cardBd}` }} />
             </div>
             <NameScopeProvider>
             <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>

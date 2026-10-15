@@ -2044,8 +2044,8 @@ select.avail-select:dir(rtl) {
 .lifts-age-short { display: none; }
 @media (max-width: 620px) {
   /* a phone draws a week (#515): 140 + 7 x 17 + 46 fits 360 (310 inside the card) with nothing to scroll;
-     140, not 132: 'D. BROUGHTON' touched the first day at 132 */
-  .bhbc-lifts-scroll { --lifts-name-w: 140px; --lifts-last-w: 46px; }
+     140, not 132: the longest initial + surname touched the first day at 132 */
+  .bhbc-lifts-scroll { --lifts-name-w: 140px; --lifts-last-w: 54px; }   /* 54: TODAY (48.5 at the row's 13px) ends on 1D's edge (#803) */
   .bhbc-lifts-scroll [data-end-cell] { padding-inline-start: 4px !important; }
   .bhbc-lifts-scroll [data-end-cell] > span { min-width: 0 !important; }
   .bhbc-lifts-scroll .lifts-name { font-size: 11px !important; }
@@ -2053,6 +2053,12 @@ select.avail-select:dir(rtl) {
   .bhbc-lifts-scroll .lifts-last-date { display: none; }
   .bhbc-lifts-scroll .lifts-age-long { display: none; }
   .bhbc-lifts-scroll .lifts-age-short { display: inline; }
+}
+@media (max-width: 380px) {
+  /* 360: 140 + 7 x 17 + 54 is 313 in a 310 card - the name gives the 4px; measured, the longest surname still has 3px to spare (#803) */
+  .bhbc-lifts-scroll { --lifts-name-w: 136px; }
+  /* the day columns are 17px here: a 16px mark touched the next day's (#803) - 13 leaves 4px between them */
+  .bhbc-lifts-scroll [data-cellmark] { width: 13px !important; height: 13px !important; }
 }
 
 /* A cancelled session (BHBC, 29.9 #398): still on the calendar, struck through
