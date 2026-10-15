@@ -165,6 +165,7 @@ function PaymentRows({ payments, tt, td }) {
 // Renders nothing for anyone but the owner (the tables answer empty).
 export function SheetBillingHistory({ traineeId, onCount, gapTop = 14 }) {
   const tt = useT();
+  const phone = usePhone();   // a phone reads the history as cards (#786: the 6 columns scrolled 405 px sideways at 390)
   const [rows, setRows] = useState(null);
   useEffect(() => {
     onCount?.(0);   // a new athlete starts at 0, not at the previous athlete's count (review NIT)
@@ -199,7 +200,7 @@ export function SheetBillingHistory({ traineeId, onCount, gapTop = 14 }) {
           {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)}\u00A0${n}`).join(' · ')}
         </div>
       )}
-      <ScrollFade>
+      {phone ? <div style={{ borderTop: `1px solid ${C.cardBd}` }}><PhonePayments payments={payments} tt={tt} /></div> : <ScrollFade>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
             <th style={th}>{tt('Paid on')}</th><th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
@@ -207,7 +208,7 @@ export function SheetBillingHistory({ traineeId, onCount, gapTop = 14 }) {
           </tr></thead>
           <tbody><PaymentRows payments={payments} tt={tt} td={td} /></tbody>
         </table>
-      </ScrollFade>
+      </ScrollFade>}
       <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8, marginBottom: -22.5 /* 14.10 #735: 13.5 / 36 - the card's padding under the last line */, lineHeight: 1.5 }}>
         {tt('Estimates: the rate beside the date × the sessions counter as it stood when the date changed. The sheet never wrote what was paid; the monthly totals on the billing page are the real amounts.')}
       </div>
@@ -247,11 +248,12 @@ function PhonePayments({ payments, tt }) {
       <div style={P_META}>
         {p.rate_text ? <span>{fmtRate(p.rate_text)}</span> : null}
         {p.counter_before ? <bdi style={{ textTransform: 'none' }}>{p.counter_before}</bdi> : null}
-        <span>{tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}</span>
+        {/* the estimate's confidence, as the table's dot (review of 706322c3: the phone cards had dropped it) */}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, flexShrink: 0 }} title={tt(p.confidence || 'low')} />{tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}</span>
         {p.event_kind === 'card_start' ? <span>{tt('card start')}</span> : null}
         {p.unpaid ? <span style={{ color: C.rd }}>{tt('marked unpaid')}</span> : null}
       </div>
-      {p.notes ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 2 }}><bdi>{p.notes}</bdi></div> : null}
+      {p.notes ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 2, overflowWrap: 'anywhere' }}><bdi>{p.notes}</bdi></div> : null}
     </div>
   ));
 }
