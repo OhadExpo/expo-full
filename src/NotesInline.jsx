@@ -13,7 +13,7 @@ import { localiseAutoBody, addLocalNames } from './autoTaskHe';
 // ActionPill (12.10 review of the rendered-Hebrew pass: the athlete page said '→ וואטסאפ')
 const pillText = (w) => (readLang() === 'he' ? `${tr('he', w)} ←` : `→ ${tr('en', w)}`);
 import { fmtPrettyDate } from './dates';
-import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, PinGlyph } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask } from './autoTasks';
@@ -198,7 +198,7 @@ export default function NotesInline({
             </span>
             {rows.some(r => r.pinned) && (
               <span style={{ fontFamily: FN, fontSize: 10, color: refined ? 'var(--c-stripTx)' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
-                📌 {rows.filter(r => r.pinned).length} {tr(readLang(), 'pinned')}
+                {rows.filter(r => r.pinned).length} {tr(readLang(), 'pinned')}
               </span>
             )}
           </div>
@@ -307,7 +307,7 @@ export default function NotesInline({
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
                   width: 26, minWidth: 26, textAlign: 'center',
-                }}>{n.pinned ? '📌' : '○'}</button>
+                }}><PinGlyph on={!!n.pinned} /></button>
               {kindLabel && (
                 <>
                   <span title={`${tr(readLang(), 'Auto-generated:')} ${tr(readLang(), kindLabel)}`}

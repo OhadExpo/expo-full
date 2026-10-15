@@ -1574,7 +1574,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
           {onDelete && (
             <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
               title={tt('Delete this task permanently')}
-              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 {tr(readLang(), 'Delete')}</button>
+              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{tr(readLang(), 'Delete')}</button>
           )}
         </div>
       )}

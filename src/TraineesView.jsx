@@ -940,7 +940,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
 
       {/* Count moved into the rail (under Search) so the first card top-aligns
           with the search box (Ohad OCD). */}
-      {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? tt("No archived athletes.") : (dataIncomplete && trainees.length === 0 ? tt("Could not reach the server. The roster appears when the connection returns.") : tt("No athletes yet. Add your first one."))} /> : (
+      {filtered.length === 0 ? <EmptyState icon="" message={showArchived ? tt("No archived athletes.") : (dataIncomplete && trainees.length === 0 ? tt("Could not reach the server. The roster appears when the connection returns.") : tt("No athletes yet. Add your first one."))} /> : (
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
         // cards are the same height (the action row's marginTop:auto absorbs the
         // slack consistently, keeping internal dividers aligned across the row).
@@ -1217,7 +1217,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         </div>
         </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginInlineEnd: "auto" }}>{tt('📦 Archive Athlete')}</Btn>}
+          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginInlineEnd: "auto" }}>{tt('Archive Athlete')}</Btn>}
           <Btn variant="ghost" onClick={() => setShowForm(false)}>{tt('Cancel')}</Btn>
           <Btn onClick={handleSave}>{editId ? tt("Update") : tt("Create")}</Btn>
         </div>

@@ -24,6 +24,13 @@ await client.send('Network.setCacheDisabled', { cacheDisabled: true });
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let bad = 0;
+// THE BUILD THAT IS LIVE NOW (15.10: three deploys in a row, the first run right after Vercel's 'success' met the EDGE
+// still serving the previous index.html on some paths for about a minute - an old bundle whose chunks are gone, a MIME
+// error, a FAIL that was the swap and not the build). A route that lands on another bundle waits 20 s and loads again.
+const liveBundle = await fetch(`${BASE}/?cb=${Date.now()}`, { cache: 'no-store' })
+  .then((r) => r.text()).then((h) => (h.match(/assets\/(index-[A-Za-z0-9_-]+\.js)/) || [])[1] || '').catch(() => '');
+console.log(`live bundle: ${liveBundle || '(not read)'}`);
+const bundleNow = () => page.evaluate(() => ([...document.querySelectorAll('script[src]')].map((s) => s.src).find((s) => /assets\/index-/.test(s)) || '').split('/').pop());
 
 for (const route of ROUTES) {
   const errs = [];
@@ -32,8 +39,12 @@ for (const route of ROUTES) {
   page.on('pageerror', onErr);
   page.on('console', onConsole);
   try {
-    const resp = await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await wait(4000);
+    const load = async () => { const r = await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 }); await wait(4000); return r; };
+    let resp = await load();
+    if (liveBundle && (await bundleNow()) !== liveBundle) {
+      console.log(`      ${route} came back on ${await bundleNow()} (live: ${liveBundle}) - the edge is still swapping; once more in 20 s`);
+      await wait(20000); errs.length = 0; resp = await load();
+    }
     const info = await page.evaluate(() => ({
       len: document.body.innerText.trim().length,
       title: document.title,
@@ -41,6 +52,8 @@ for (const route of ROUTES) {
       bundle: [...document.querySelectorAll('script[src]')].map((s) => s.src).find((s) => /assets\/index-/.test(s)) || '',
     }));
     const status = resp ? resp.status() : 0;
+    const stale = !!liveBundle && info.bundle.split('/').pop() !== liveBundle;   // a pass on yesterday's build is not a pass
+    if (stale) errs.push(`still on an older bundle than the live ${liveBundle}`);
     const ok = status < 400 && !info.blank && errs.length === 0;
     if (!ok) bad++;
     console.log(`${(ok ? 'ok' : 'FAIL').padEnd(5)} ${route.padEnd(22)} http=${status} textLen=${info.len} ${info.bundle.split('/').pop()}`);

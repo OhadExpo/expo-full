@@ -98,7 +98,6 @@ function ErrorState({ message }) {
       border: `1px solid var(--c-cardBd)`,
       background: 'var(--c-sf)',
     }}>
-      <div style={{ fontSize: 28, marginBottom: 12 }}>🔗</div>
       <div style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tm)', letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>
         SHARE LINK PROBLEM
       </div>

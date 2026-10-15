@@ -79,7 +79,6 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
 
         {createdUrl ? (
           <div style={{ padding: 22, textAlign: 'center' }}>
-            <div style={{ fontSize: 30, marginBottom: 10 }}>📨</div>
             <div style={{ fontFamily: FN, fontSize: 12, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12 }}>
               {tt('CONTRACT READY')}
             </div>

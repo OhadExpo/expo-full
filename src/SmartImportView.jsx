@@ -826,7 +826,7 @@ export default function SmartImportView() {
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% {tt('confident')}</Badge></div>
             <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{tr(readLang(), transforming ? 'Transforming…' : 'Preview Transform')}</Btn>
           </div>
-          {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
+          {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>{mapping.notes}</div>}
           {Array.isArray(mapping.warnings) && mapping.warnings.length > 0 && (
             <ul style={{ margin: '4px 0 10px 16px', padding: 0, color: C.or, fontSize: 12 }}>
               {mapping.warnings.map((w, i) => <li key={i} style={{ marginBottom: 2 }}>{w}</li>)}

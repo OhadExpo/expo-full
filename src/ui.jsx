@@ -134,6 +134,32 @@ export function NotesGlyph() {
 export function PencilGlyph() {
   return <svg aria-hidden viewBox="0 0 10 10" width="0.9em" height="0.9em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 8.5l.6-2.3L6.9 1.4l1.7 1.7-4.8 4.8zM6 2.3l1.7 1.7" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>;
 }
+// #800 (his #765b 'No need for glyphs or emojis'): the last colour emojis on controls (💬 comments, 🎯 weekly focus, 👁
+// preview, 📌 pin) become drawn marks in the same grammar - one stroke colour (currentColor), sized to the text.
+export function ChatGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 9" width="0.9em" height="0.8em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1 1.2h8v4.6H4.2L2 7.8V5.8H1z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>;
+}
+export function TargetGlyph() {
+  return <svg aria-hidden viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2" /><circle cx="5" cy="5" r="1.4" fill="currentColor" /></svg>;
+}
+export function EyeGlyph() {
+  return <svg aria-hidden viewBox="0 0 12 8" width="1em" height="0.7em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M0.8 4C2.2 1.8 4 0.8 6 0.8S9.8 1.8 11.2 4C9.8 6.2 8 7.2 6 7.2S2.2 6.2 0.8 4z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /><circle cx="6" cy="4" r="1.4" fill="currentColor" /></svg>;
+}
+export function PinGlyph({ on = false }) {
+  return <svg aria-hidden viewBox="0 0 10 10" width="0.75em" height="0.75em" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><circle cx="5" cy="5" r="3.6" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.3" /></svg>;
+}
+// the program editor's trash can (was local to PlansView; the coach demo draws the same one) - an SVG, not the 🗑
+// emoji, which ignores `color`: it renders red in both themes via C.rd
+export function TrashIcon({ size = 14, color = C.rd }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', opacity: 0.68 }} aria-hidden="true">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
+}
 export function CrossGlyph() {
   return <svg aria-hidden viewBox="0 0 10 10" width="0.85em" height="0.85em" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>;
 }
@@ -864,7 +890,7 @@ export function RefinedActionButton({ kind, label, onClick, onContext = 'strip' 
     edit:    { stroke: '✎', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
     delete:  { stroke: '✕', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.rd },
     archive: { stroke: '⎘', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.tm },
-    preview: { stroke: '👁', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
+    preview: { stroke: <EyeGlyph />, color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
     plus:    { stroke: '+', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
     check:   { stroke: '✓', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.gn },
   };
@@ -1340,7 +1366,7 @@ export const useEscClose = (active, onClose) => {
 };
 export const EmptyState = ({ icon, message }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.td }}>
-    <div style={{ opacity: 0.3, marginBottom: 12, fontSize: 36 }}>{icon}</div>
+    {icon ? <div style={{ opacity: 0.3, marginBottom: 12, fontSize: 36 }}>{icon}</div> : null}
     {/* margin 0: a bare <p> carries the browser default 1em bottom margin, which
         lands under the message as dead space inside the card. */}
     <p style={{ fontFamily: FB, fontSize: 14, fontWeight: 400, margin: 0 }}>{message}</p>

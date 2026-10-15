@@ -18,7 +18,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 import { isHebrew } from './script';
-import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue, JoinedButtons, CaretGlyph } from './ui';
+import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue, JoinedButtons, CaretGlyph, ChatGlyph, TargetGlyph, PencilGlyph } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -1778,7 +1778,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           <button onClick={() => setRulerMode(v => !v)} title={tr(readLang(), rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            📏 {tr(readLang(), rulerMode ? 'LINE' : 'FREE')}
+            {tr(readLang(), rulerMode ? 'LINE' : 'FREE')}
           </button>
           <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title={tt('Undo last stroke')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
@@ -1830,7 +1830,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), n.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
                   <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtNumericDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
-                    <button onClick={() => startEdit(n, false, null)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
+                    <button onClick={() => startEdit(n, false, null)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}><PencilGlyph /></button>
                   )}
                   {(n.author === role) && (
                     <button onClick={() => deleteNote(n.id)} title={tr(readLang(), 'Delete')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginInlineStart:4}}>✕</button>
@@ -1845,7 +1845,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                           <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), r.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtNumericDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
-                            <button onClick={() => startEdit(r, true, n.id)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>
+                            <button onClick={() => startEdit(r, true, n.id)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}><PencilGlyph /></button>
                           )}
                           {(r.author === role) && (
                             <button onClick={() => deleteNote(r.id)} title={tr(readLang(), 'Delete')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
@@ -2440,12 +2440,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {(formVideo?.has || formVideo?.cloudUrl) && <span title={tt('Form video submitted')} style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
                       <span title={readLang() === 'he' ? (formVideo.reviewNotes.length === 1 ? 'הערה אחת על התרגיל' : `${formVideo.reviewNotes.length} הערות על התרגיל`) : `${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
-                        💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
+                        <ChatGlyph />{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
                       </span>
                     )}
                     {(currentFocus || nextFocus) && (
                       <span title={nextFocus ? `Focus written for next week: ${nextFocus}` : `Focus from previous week: ${currentFocus}`} style={{color:C.or,marginInlineStart:6}}>
-                        🎯
+                        <TargetGlyph />
                       </span>
                     )}
                     {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={tr(readLang(), 'Swapped from “{x}”').replace('{x}', ex.substitution.from)}>⇄ {tr(readLang(), 'SWAP')}</span>}

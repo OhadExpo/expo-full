@@ -106,7 +106,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
             pieces sit on a single level baseline (Ohad: "not leveled" — was
             10/13/10px in two fonts, the Hebrew name floated off the Latin). */}
         <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,fontFamily:FN,fontSize:11,lineHeight:1,letterSpacing:'0.1em',textTransform:'uppercase'}}>
-          <div style={{color:C.ac,fontWeight:700,whiteSpace:'nowrap'}}>👁 {tt('PREVIEW')}</div>
+          <div style={{color:C.ac,fontWeight:700,whiteSpace:'nowrap'}}>{tt('PREVIEW')}</div>
           <div className="cpp-label" style={{color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
         </div>
         <button onClick={onBack} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0,whiteSpace:'nowrap',flexShrink:0,display:'inline-flex',alignItems:'center',gap:5}}>{tt('← BACK')}</button>

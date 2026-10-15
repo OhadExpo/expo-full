@@ -408,7 +408,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       padding: 14, marginBottom: 14,
     }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 10 }}>
-        📸 {tt('MEAL LOG')}
+        {tt('MEAL LOG')}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

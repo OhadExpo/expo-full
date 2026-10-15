@@ -352,7 +352,6 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16,
             color: '#FFFFFF', fontFamily: FN, padding: 20, textAlign: 'center',
           }}>
-            <div style={{ fontSize: 64 }}>🎯</div>
             <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
               {tt('READY TO COUNT')}
             </div>
@@ -399,7 +398,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
             cursor: 'pointer',
             minWidth: 130, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>{voiceOn ? `🎤 ${tt('LISTENING')}` : `🎤 ${tt('VOICE OFF')}`}</button>
+          }}>{voiceOn ? tt('LISTENING') : tt('VOICE OFF')}</button>
         {/* (the 3D body is the ANATOMY tool in the row above - #774) */}
         {status !== 'counting' ? (
           <button onClick={beginCounting}

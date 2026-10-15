@@ -594,7 +594,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   style={{ flex: '0 0 auto', border: `1px ${lowConf ? 'dashed' : 'solid'} ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} ${lowConf ? 4 : 8}%, transparent)`, opacity: lowConf ? 0.72 : 1 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN, whiteSpace: 'nowrap' }}>{label}</div>
                   <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{lowConf ? '~' : ''}{charName}</div>
-                  <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? (he ? `${b.avgReps} חז׳` : `${b.avgReps}r`) : '⚡'}</div>
+                  <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? (he ? `${b.avgReps} חז׳` : `${b.avgReps}r`) : '—'}</div>
                 </div>
               );
             })}

@@ -13,7 +13,7 @@ import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 function trackFunnel(event, payload) { try { track(event, payload || {}); } catch {} }
 
 import { SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
-import { ChipGrid } from './ui';
+import { ChipGrid, ChatGlyph } from './ui';
 
 const SUGGESTIONS = [
   "What does EXPO do?",
@@ -241,7 +241,7 @@ export default function CoachChat() {
           }}
           onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >💬</button>
+        ><ChatGlyph /></button>
       )}
 
       {open && (

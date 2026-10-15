@@ -29,6 +29,8 @@ pg.on('request', (r) => {
   if (/supabase\.co\/(rest|functions)/.test(r.url()) && !['GET', 'HEAD', 'OPTIONS'].includes(r.method()) && !/rpc\/(get_|is_|my_)/.test(r.url())) { blocked.push(r.method()); return r.abort(); }
   r.continue().catch(() => {});
 });
+// ZONE_LANG=he|en: the BHBC zone has its OWN language toggle ('expo-collapse:bhbc-lang'), set before every load
+if (process.env.ZONE_LANG) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch { /* storage blocked */ } }, process.env.ZONE_LANG);
 const all = [];
 let pages = 0, judged = 0, bad = 0;
 try {

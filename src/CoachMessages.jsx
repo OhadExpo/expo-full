@@ -431,7 +431,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       if (!muted) {
         const preview = body_text
           ? body_text.slice(0, 100)
-          : (audio_url ? '🎤 Voice note' : 'New message');
+          : (audio_url ? 'Voice note' : 'New message');
         sendPush({
           toEmail: recipientEmail,
           title: role === 'coach'

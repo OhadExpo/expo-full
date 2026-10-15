@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord, StripCaret, ChipGrid } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade, SegWord, StripCaret, ChipGrid, PinGlyph } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -285,7 +285,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 11,
             padding: 0, flexShrink: 0, lineHeight: 1,
             width: 26, minWidth: 26, textAlign: 'center',
-          }}>{n.pinned ? '📌' : '○'}</button>
+          }}><PinGlyph on={!!n.pinned} /></button>
         {n.target_label ? (() => {
           // Hebrew renders ~3px smaller than Nord at the same fontSize — Heebo's
           // x-height + missing ascenders/descenders make 13px Hebrew look

@@ -318,7 +318,7 @@ export const PROGRAMS = [
         { title: 'Push-Up',                     prescribed: '3 × AMRAP',                notes: 'A2 — stop 2 reps shy' },
         { title: 'Chest-Supported Row',         prescribed: '3 × 12' },
         { title: 'DB Romanian Deadlift',        prescribed: '3 × 10' },
-        { title: 'Farmer Carry',                prescribed: '3 × 30m',                  notes: 'race or relay 😉' },
+        { title: 'Farmer Carry',                prescribed: '3 × 30m',                  notes: 'race or relay' },
       ],
     },
   },

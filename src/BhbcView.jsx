@@ -5651,7 +5651,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             return row(t, { borderInlineStart: `2px solid ${acwr.band.color}` }, <>
               <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
               <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
-              <span style={{ ...meta, color: ppg != null ? ORANGE_DEEP : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
+              <span style={{ ...meta, color: ppg != null ? ORANGE_DEEP : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="auto" style={{ unicodeBidi: 'isolate' }} /* the number + unit in the unit's language: forced ltr read 'נק׳ למשחק 13.3' backwards (#789b) */>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
               <span style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
                 <span style={{ fontFamily: FB, fontSize: 11, color: C.td, flexShrink: 0 }}>{tr(t.position) || '—'}</span>
                 {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status), whiteSpace: 'nowrap' }}>{injShort}</span>}

@@ -442,7 +442,7 @@ function ClientPortalMock({ onPick }) {
             <a href="/demo" style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, textDecoration: 'none' }}>{T('Log Out →')}</a>
           </div>
         </div>
-        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>{T('Hey')}{' '}{TRAINEE.firstName} 💪</h1>
+        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>{T('Hey')}{' '}{TRAINEE.firstName}</h1>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -657,7 +657,7 @@ function ClientPortalMock({ onPick }) {
                               background: C.acD, color: C.ac,
                               fontFamily: FN, fontSize: 9, fontWeight: 700,
                               padding: '1px 6px', borderRadius: 0,
-                            }}>💬 {x.notes}</span>
+                            }}>{x.notes} {T(x.notes === 1 ? 'NOTE' : 'NOTES')}</span>
                           )}
                           {canExpand && <span style={{ color: C.td, fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>}
                         </div>
@@ -674,7 +674,7 @@ function ClientPortalMock({ onPick }) {
                             }}>{T('FORM VIDEO')}</div>
                             {x.notes > 0 && (
                               <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
-                                💬 {x.notes}{' '}{readLang() === 'he' ? (x.notes === 1 ? 'הערת מאמן' : 'הערות מאמן') : (x.notes === 1 ? 'COACH NOTE' : 'COACH NOTES')}
+                                {x.notes}{' '}{readLang() === 'he' ? (x.notes === 1 ? 'הערת מאמן' : 'הערות מאמן') : (x.notes === 1 ? 'COACH NOTE' : 'COACH NOTES')}
                               </div>
                             )}
                           </div>
@@ -746,7 +746,6 @@ function ClientPortalMock({ onPick }) {
             padding: '10px 14px', marginBottom: 14, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <span style={{ fontSize: 20 }}>📬</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, color: C.ac, fontWeight: 700 }}>{T('Ohad left')}{unreadCoachNotes} new note{unreadCoachNotes === 1 ? '' : 's'} on your workouts</div>
               <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{T('Tap to view in History →')}</div>
@@ -772,7 +771,7 @@ function ClientPortalMock({ onPick }) {
                   color: done ? C.gn : C.ac,
                   fontFamily: FB, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}>{done ? 'Again' : '📝 Log'}</button>
+                }}>{done ? 'Again' : 'Log'}</button>
               </div>
               {day.ex.map((ex, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '4px 0', borderTop: i ? `1px solid rgba(127,127,131,0.133)` : 'none' }}>

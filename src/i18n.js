@@ -1282,7 +1282,7 @@ export const HE = {
   Goals: 'מטרות',
   Update: 'עדכן',
   Create: 'צור',
-  "📦 Archive Athlete": '📦 העבר לארכיון',
+  "Archive Athlete": 'העבר לארכיון',
   "Booking Settings": 'הגדרות קביעת אימונים',
   "Slug (public URL)": 'כתובת (URL ציבורי)',
   "Save settings": 'שמור הגדרות',

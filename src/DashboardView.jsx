@@ -906,7 +906,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
                   <span title={readLang() === 'he' ? (gateOpen ? 'עברנו את הסף — זה הזמן להריץ את המעבר לכמה מאמנים' : `המעבר לכמה מאמנים יקרה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: 'var(--c-stripTx)', border: 'none', background: 'transparent', borderRadius: 0, padding: '2px 0', letterSpacing: '0.04em' }}>
-                    🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
+                    {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
                   </span>
                 </div>
               </RefinedHeaderStrip>

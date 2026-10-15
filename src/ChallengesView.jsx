@@ -18,7 +18,7 @@ import { useUrlSync, segmentAfter } from './urlState';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase, PencilGlyph } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
@@ -266,8 +266,8 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>
                 {fmtDate(c.start_at)} → {fmtDate(c.end_at)}
               </span>
-              <button onClick={() => { setEditChallenge(c); setShowCreate(true); }}
-                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>✏️</button>
+              <button onClick={() => { setEditChallenge(c); setShowCreate(true); }} title={tr(readLang(), 'Edit')} aria-label={tr(readLang(), 'Edit')}
+                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}><PencilGlyph /></button>
               <button onClick={() => remove(c.id)}
                 style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>×</button>
             </div>
@@ -411,7 +411,6 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
               onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBd; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 20 }}>{tpl.icon}</span>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, letterSpacing: '0.04em' }}>
                   {tpl.label}
                 </span>

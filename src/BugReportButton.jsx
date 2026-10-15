@@ -167,7 +167,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>
-                🐞 {tt('REPORT A BUG')}
+                {tt('REPORT A BUG')}
               </h3>
               <button onClick={() => !submitting && setOpen(false)}
                 style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 18 }}>✕</button>

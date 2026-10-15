@@ -657,7 +657,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             {(() => { const g = classify(form.title); return (!form.resistanceType || !form.bodyPosition || !form.movementType) && g.filled > 0 ? (
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setForm(f => ({ ...f, resistanceType: f.resistanceType || g.resistanceType, bodyPosition: f.bodyPosition || g.bodyPosition, movementType: f.movementType || g.movementType }))}
-                  style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, background: `color-mix(in srgb, ${C.ac} 12%, transparent)`, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '6px 12px', cursor: 'pointer' }}>✨ {tr(readLang(), 'Suggest from title')}</button>
+                  style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, background: `color-mix(in srgb, ${C.ac} 12%, transparent)`, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '6px 12px', cursor: 'pointer' }}>{tr(readLang(), 'Suggest from title')}</button>
                 <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — {tt('fills blank fields only')}</span>
               </div>
             ) : null; })()}

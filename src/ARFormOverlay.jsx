@@ -259,8 +259,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         )}
         {phase === 'idle' && !error && (
           <Centre>
-            <div style={{ fontSize: 52 }}>🎯</div>
-            <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>{tt('LIVE COACH')}</div>
+            <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('LIVE COACH')}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 380, lineHeight: 1.6, marginTop: 10 }}>
               {tt(countable ? (depthRelevant ? 'Prop the phone side-on, full body in frame. You get a live rep count, a depth target at the knees, and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.' : 'Prop the phone side-on, full body in frame. You get a live rep count and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.') : (depthRelevant ? 'Prop the phone side-on, full body in frame. You get a live skeleton, a depth target at the knees, and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.' : 'Prop the phone side-on, full body in frame. You get a live skeleton and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.'))}
             </div>

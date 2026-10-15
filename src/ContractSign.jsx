@@ -393,7 +393,6 @@ function ErrorPanel({ message }) {
       padding: 40, textAlign: 'center',
       border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
     }}>
-      <div style={{ fontSize: 28, marginBottom: 12 }}>📄</div>
       <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>
         CONTRACT PROBLEM
       </div>

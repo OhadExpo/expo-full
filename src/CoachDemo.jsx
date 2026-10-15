@@ -26,7 +26,7 @@ import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { wrapNeed } from './wrapNeed';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid, TagStack, usePhone } from './ui';
+import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, ChatGlyph, TargetGlyph, PencilGlyph, TrashIcon, Badge as AppBadge, useSettleIn, ChipGrid, TagStack, usePhone } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -636,7 +636,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                 {!m.answered && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.ac, textTransform: 'uppercase', padding: '2px 0', flexShrink: 0 }}>{T('Inbound')}</span>}
                 {!m.answered && !msgsRead && <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: C.ac }} />}
               </span>
-              <span style={{ fontFamily: m.kind === 'voice' ? FN : FB, fontSize: m.kind === 'voice' ? 10 : 12, letterSpacing: m.kind === 'voice' ? '0.08em' : 0, color: C.tm, textTransform: m.kind === 'voice' ? 'uppercase' : 'none', minWidth: 0, overflowWrap: 'break-word' }}>{m.kind === 'voice' ? <>🎤 {T('Voice note')}</> : m.msg}</span>
+              <span style={{ fontFamily: m.kind === 'voice' ? FN : FB, fontSize: m.kind === 'voice' ? 10 : 12, letterSpacing: m.kind === 'voice' ? '0.08em' : 0, color: C.tm, textTransform: m.kind === 'voice' ? 'uppercase' : 'none', minWidth: 0, overflowWrap: 'break-word' }}>{m.kind === 'voice' ? T('Voice note') : m.msg}</span>
             </span>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap' }}>{RT(m.when)}</span>
           </div>
@@ -2952,7 +2952,7 @@ function DemoPrograms({ resetToken = 0 }) {
               <button onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={tbBtn()}>⤴ {tr(readLang(), 'SHARE')}</button>
               <button onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={tbBtn()}>⎘ {tr(readLang(), 'DUPLICATE')}</button>
               <button onClick={e => e.stopPropagation()} title={T('Show only this program on the athlete portal (demo only)')} style={tbBtn()}>{T('SHOW ONLY')}</button>
-              <button onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={tbBtn(C.rd)}>🗑 {tr(readLang(), 'DELETE')}</button>
+              <button onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={tbBtn(C.rd)}>{tr(readLang(), 'DELETE')}</button>
             </>;
           })()}
           <button onClick={e => e.stopPropagation()} title={T('Demo only')}
@@ -3140,7 +3140,7 @@ function DemoPrograms({ resetToken = 0 }) {
                       {/* Trash slot mirrors PlansView line 777 so the 7 input
                           columns get the same widths under `auto`. Demo is
                           read-only — the icon is a non-interactive span. */}
-                      <span aria-hidden="true" style={{ color: C.rd, padding: 4, marginBottom: 4, opacity: 0.4, fontSize: 14, lineHeight: 1, alignSelf: 'end' }}>🗑</span>
+                      <span aria-hidden="true" style={{ color: C.rd, padding: 4, marginBottom: 4, fontSize: 14, lineHeight: 1, alignSelf: 'end' }}><TrashIcon size={15} /></span>
                     </div>
                     {/* Wave loads (per-week) — present when ex.wk is set, just
                         like the real PlanEditor's per-week reps grid. */}
@@ -3952,8 +3952,9 @@ function DemoReview() {
             }}>{selected.initials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>{selected.traineeName}</div>
-              <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginTop: 2 }}>
-                {selected.dayName.toUpperCase()} · {selected.planName} · {readLang() === 'he' ? <span dir="rtl" style={{unicodeBidi:'isolate'}}>{`שבוע ${selected.week}`}</span> : `W${selected.week}`} · {selected.date.toUpperCase()}
+              {/* the line reads in the page's direction (#789: on the Hebrew page it ran left to right) and its date in the page's words */}
+              <div dir={readLang() === 'he' ? 'rtl' : undefined} style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginTop: 2 }}>
+                <bdi>{selected.dayName.toUpperCase()}</bdi> · <bdi>{selected.planName}</bdi> · {readLang() === 'he' ? <span dir="rtl" style={{unicodeBidi:'isolate'}}>{`שבוע ${selected.week}`}</span> : `W${selected.week}`} · <bdi>{RT(selected.date).toUpperCase()}</bdi>
               </div>
             </div>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>
@@ -4093,11 +4094,11 @@ function DemoReview() {
                 {ex.hasVideo && <span title={T('Form video submitted')} style={{ color: C.gn, marginInlineStart: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                 {ex.comments > 0 && (
                   <span title={readLang() === 'he' ? (ex.comments === 1 ? 'הערה אחת על התרגיל' : `${ex.comments} הערות על התרגיל`) : `${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginInlineStart: 6 }}>
-                    💬{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
+                    <ChatGlyph />{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
                   </span>
                 )}
                 {ex.focus && (
-                  <span title={T('Weekly focus written')} style={{ color: C.or, marginInlineStart: 6 }}>🎯</span>
+                  <span title={T('Weekly focus written')} style={{ color: C.or, marginInlineStart: 6 }}><TargetGlyph /></span>
                 )}
               </div>
             </div>
@@ -4435,8 +4436,8 @@ function DemoWorkouts() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Badge color={C.gn}>{tr(readLang(), 'Completed')}</Badge>
-                <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>✏️</button>
-                <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
+                <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}><PencilGlyph /></button>
+                <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}><CrossGlyph /></button>
               </div>
             </div>
           </div>

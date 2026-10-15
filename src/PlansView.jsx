@@ -21,7 +21,7 @@ function supersetColor(s) {
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 import { isHebrew } from './script';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn, ChipGrid } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton, SegWord, CaretGlyph, useIsMobile, CollapsibleSection, useSettleIn, ChipGrid, PencilGlyph, TrashIcon } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -1005,7 +1005,7 @@ function ExPicker({ exercises, value, onChange, onPickName, onCreateLibrary, lab
         {/* The whole name, wrapped (12.10: one ellipsized line hid 18-112px of a long name in a phone's half-width column);
             minHeight keeps a one-line name at the field height. */}
         <span style={{ color: hasDisplay ? C.tx : C.td, display: 'block', whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1.25 }}>
-          {unlinked && <span style={{ color: C.or, marginInlineEnd: 6, fontSize: 10 }}>📝</span>}
+          {unlinked && <span style={{ color: C.or, marginInlineEnd: 6, fontSize: 10 }}><PencilGlyph /></span>}
           {hasDisplay ? displayTitle : 'Select exercise...'}
         </span>
         <span style={{ color: C.td, fontSize: 10, position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>▼</span>
@@ -1750,19 +1750,6 @@ function setDayDragImage(e, cardEl) {
     e.dataTransfer.setDragImage(wrap, 24, wrap.getBoundingClientRect().height / 2);
     setTimeout(() => wrap.remove(), 0);
   } catch { /* drag still works with the default image */ }
-}
-
-// Red trash icon — an SVG (not the 🗑 emoji, which ignores `color`) so it
-// renders clearly RED in both light and dark themes via C.rd.
-function TrashIcon({ size = 14, color = C.rd }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', opacity: 0.68 }} aria-hidden="true">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <line x1="10" y1="11" x2="10" y2="17" />
-      <line x1="14" y1="11" x2="14" y2="17" />
-    </svg>
-  );
 }
 
 // Build a full-shape exercise-library row (every field the ExercisesView form

@@ -2209,7 +2209,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           on the Hebrew seat it read "NICE WORK! / SESSION COMPLETE. ANY NOTES? /
           COMPLETE WORKOUT / Back" - the only strings here that never went
           through tt()). */}
-      <h2 dir="auto" style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>{tt('Nice work!')} 🎉</h2>
+      <h2 dir="auto" style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>{tt('Nice work!')}</h2>
       <div dir="auto" style={{color:C.tm,fontSize:13,marginBottom:20}}>{tt('Session complete. Any notes?')}</div>
 
       {/* New PRs from this session */}
@@ -2225,7 +2225,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             {(() => {
               const nPr = newPRs.filter(p => !p.debut).length, nDeb = newPRs.filter(p => p.debut).length;
               const heEnd = heCtx;
-              const head = nPr ? (heEnd ? `🏆 ${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `🏆 ${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? '✨ רישום ראשון' : '✨ FIRST LOGS');
+              const head = nPr ? (heEnd ? `${nPr === 1 ? 'שיא חדש' : `${nPr} שיאים חדשים`}` : `${nPr} NEW PR${nPr === 1 ? '' : 's'}`) : (heEnd ? 'רישום ראשון' : 'FIRST LOGS');
               const tail = nPr && nDeb ? (heEnd ? ` · ${nDeb === 1 ? 'תרגיל חדש' : `${nDeb} תרגילים חדשים`}` : ` · ${nDeb} debut${nDeb === 1 ? '' : 's'}`) : '';
               return head + tail;
             })()}
