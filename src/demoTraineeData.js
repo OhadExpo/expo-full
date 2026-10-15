@@ -211,6 +211,28 @@ export const DEMO_CLIENT_WORKOUTS = [
         sets: [ sett('12', '60kg', '7'), sett('12', '65kg', '8'), sett('11', '65kg', '9') ] },
     ],
   },
+  // ONE LOGGED RUN (15.10 #799): the PRs tab now reads a runner's records (longest run, fastest km, 5 km+ pace) from the
+  // logged distance + time of each rep - the demo shows them from this interval session of the Conditioning Runs program.
+  {
+    id: 'cw_demo_run_1',
+    clientId: 'tr_demo',
+    planName: 'Conditioning Runs',
+    dayName: 'Intervals',
+    week: 1,
+    date: daysAgo(4),
+    notes: 'Reps 3 and 4 hardest. HR under the cap.',
+    reviewedAt: null,
+    autoregulation: { pain: 'none', sleep: 'good', energy: 'good' },
+    formVideos: [],
+    exercises: [
+      { eid: 'run_demo_wu', title: 'Warm-up', prescribed: '1x1 km', substitution: null,
+        sets: [ { reps: '1', load: '', rpe: '', done: true, time: '6:20', hr: '128' } ] },
+      { eid: 'run_demo_int', title: 'Intervals', prescribed: '5x1 km', substitution: null,
+        sets: [ ['5:04', '152'], ['5:02', '158'], ['4:58', '161'], ['5:01', '163'], ['4:59', '164'] ].map(([time, hr]) => ({ reps: '1', load: '', rpe: '', done: true, time, hr })) },
+      { eid: 'run_demo_cd', title: 'Cool-down', prescribed: '1x1 km', substitution: null,
+        sets: [ { reps: '1', load: '', rpe: '', done: true, time: '6:45', hr: '139' } ] },
+    ],
+  },
 ];
 
 // Flat array — ClientPortal calls bwLog.filter(b => b.clientId === ci).

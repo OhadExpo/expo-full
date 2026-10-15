@@ -120,7 +120,8 @@ const isRunLog = (x) => !!x && Array.isArray(x.sets) && x.sets.some((st) => st &
 // "Day A · RPE 8.5" / "Pull · DB 2.5" as dates, and the logger would have dropped that day's week number (review, 14.10).
 const datedDay = (name) => {
   const m = /^(.+?)\s*·\s*([\u05D0\u05D1\u05D2\u05D3\u05D4\u05D5\u05E9]['\u05F3\u2019]|Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(\d{1,2}\.\d{1,2}(?:\.\d{2,4})?)\s*(?:·\s*(.+))?$/i.exec(String(name || '').trim());
-  return m ? { lead: m[1], wd: m[2], date: m[3], kind: m[4] || '', name: [m[1], m[4]].filter(Boolean).join(' · ') } : null;
+  // the weekday prints with a geresh (א׳) whatever the name stored - the NAME itself stays as typed: logs match on it
+  return m ? { lead: m[1], wd: m[2].replace(/^([א-ת])['’]$/, '$1׳'), date: m[3], kind: m[4] || '', name: [m[1], m[4]].filter(Boolean).join(' · ') } : null;
 };
 
 function SetsRepsHero({ sets, reps, splitCombined = false, run = false }) {
@@ -2486,7 +2487,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {isRun && (ex.tempo || ex.load || ex.rest) && (
         // the run's prescription in the coach's words: pace range, the heart-rate cap, the rest between reps
         <div data-run-rx style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 6, fontFamily: FN, fontSize: 12, color: C.tm }}>
-          {ex.tempo && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.tempo}{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</b></span>}
+          {ex.tempo && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi>{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</b></span>}
           {ex.load && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('HR CAP')}</span><b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{String(ex.load).replace(/^HR\s*/i, '')}</b></span>}
           {ex.rest && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('REST')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.rest}</b></span>}
         </div>
@@ -3694,7 +3695,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {/* Graph */}
         {bwData.length < 2 ? (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
-            <div style={{fontSize:24,marginBottom:8}}>📊</div>
             <div style={{fontSize:13}}>{tt('Log at least 2 weigh-ins to see your trend')}</div>
           </div>
         ) : (
@@ -4061,7 +4061,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
                   {/* fixed tempo column so the orange values form a true rail
                       instead of floating ragged between title and rx */}
-                  <span dir={dirOfVal(r.tempo)} style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right',unicodeBidi:'isolate'}}>{r.tempo || ''}</span>
+                  <span dir={dirOfVal(r.tempo)} style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right',unicodeBidi:'isolate'}}>{r.tempoNode || r.tempo || ''}</span>
                   <span dir={dirOfVal(r.rx)} style={{unicodeBidi:'isolate',fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
                 </div>
               );
@@ -4101,7 +4101,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                           if (ci === -1) return <span dir={dirOfVal(rx)} style={{...base,...iso,unicodeBidi:'isolate',color:C.ac}}>{rx}</span>;
                           return <span dir={dirOfVal(rx)} style={{...iso,unicodeBidi:'isolate'}}><span style={{...base,color:C.ac}}>{rx.slice(0,ci).trimEnd()}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></span>;
                         })()}
-                        {r.tempo && <span dir={dirOfVal(r.tempo)} style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',unicodeBidi:'isolate',display:'inline-block'}}>{r.tempo}</span>}
+                        {r.tempo && <span dir={dirOfVal(r.tempo)} style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',unicodeBidi:'isolate',display:'inline-block'}}>{r.tempoNode || r.tempo}</span>}
                       </div>
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
                     </div>
@@ -4325,6 +4325,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 num: i + 1,
                 rx: rxOf(ex),
                 tempo: vp.sport === 'running' && ex.load ? [ex.tempo, tt('HR up to {n}').replace('{n}', String(ex.load).replace(/^HR\s*/i, ''))]   /* in words: a trailing ≤ flips in a Hebrew line */.filter(Boolean).join(' · ') : ex.tempo,
+                // ...and the pace in its own direction: inside the Hebrew line the range's two times swapped ('5:55—5:45')
+                tempoNode: vp.sport === 'running' && ex.load && ex.tempo ? <><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi> · {tt('HR up to {n}').replace('{n}', String(ex.load).replace(/^HR\s*/i, ''))}</> : null,
                 title: d.t,
                 // FOCUS IS THE COACH'S WEEKLY EMPHASIS. NOTHING ELSE.
                 //

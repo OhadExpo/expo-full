@@ -18,7 +18,7 @@ import { isHebrew } from './script';
 const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload', 'club'];   // 'club' (14.10 #770): the Club log tab wrote #club but a reload dropped back to View All
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase, JoinedButtons } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase, JoinedButtons, usePhone } from './ui';
 import { savePlan } from './usePlansStore';
 import { useLineageLauncher } from './LineageLauncher';
 import { supabase } from './supabase';
@@ -148,6 +148,7 @@ function BwAddRow({ onAdd }) {
 
 export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, setBwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
   const t = useT();
+  const isPhone = usePhone();   // the payments table becomes cards on a phone (#786)
   // Section tabs are a MULTI-SELECT filter (Ohad): click tags to show only
   // those sections; an empty set = View All. The URL hash carries the active
   // ids (comma-joined) so a filtered view is deep-linkable and back/forward
@@ -863,26 +864,43 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         })}
       </div>
       {tPay.length===0?(sheetPays ? null /* the sheet's history below has them - 'No payments recorded.' above '33 payments' contradicted it (audit #612 C6) */ : <div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>{t('No payments recorded.')}</div>):(
+        (() => {
+          const payActs = (p) => (<>
+                {/* Pending rows get inline Paid / Cancel so the coach doesn't
+                    have to bounce to /coach/billing; mutations propagate back
+                    via the useBitPayments realtime channel. */}
+                {p.status==='Pending' && (<>
+                    <button onClick={()=>handleMarkReqPaid(p.id)} title={t('Mark this request as paid')}
+                      style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>✓ {tr(readLang(), 'PAID')}</button>
+                    <button onClick={()=>handleCancelReq(p.id)} title={t('Cancel this payment request')}
+                      style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>× {tr(readLang(), 'CANCEL')}</button>
+                  </>)}
+                <button onClick={()=>handleEditPay(p)} aria-label={t('Edit payment')} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
+                <button onClick={()=>handleDeletePay(p.id)} aria-label={t('Delete payment')} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
+          </>);
+          const stColor = (p) => (p.status==='Paid'?C.gn:p.status==='Overdue'?C.rd:C.or);
+          // A PHONE READS CARDS (#786, the phone pattern): the five columns scrolled sideways in a 328 px card and the
+          // actions sat off-screen. Line 1 = date | amount, line 2 = status, the note, the actions at the end.
+          return isPhone ? (<div>{tPay.slice().reverse().map(p=>(<div key={p.id} style={{padding:"8px 0 11px" /* date glyphs 14 under the rule, the status box 14 over the next */,borderBottom:`1px solid ${C.cardBd}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10}}>
+              <span style={{fontFamily:FB,fontSize:13,color:C.tm}}>{fmtPrettyDate(p.date)}</span>
+              <span dir="ltr" style={{fontFamily:FB,fontSize:13,color:C.gn,fontWeight:600,fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>₪{(parseFloat(p.amount)||0).toLocaleString()}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+              <Badge color={stColor(p)}>{t(p.status)}</Badge>
+              <span style={{flex:1,minWidth:0,fontFamily:FB,fontSize:12,color:C.td,overflowWrap:"anywhere"}}>{p.notes?<bdi>{p.notes}</bdi>:null}</span>
+              <span style={{whiteSpace:"nowrap",flexShrink:0}}>{payActs(p)}</span>
+            </div>
+          </div>))}</div>) : (
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
-          <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
+          <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h?t(h):h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{fmtPrettyDate(p.date)}</td>
             <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>₪{(parseFloat(p.amount)||0).toLocaleString()}</td>
-            <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
+            <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={stColor(p)}>{t(p.status)}</Badge></td>
             <td style={{padding:"8px 10px",color:C.td,textAlign:"center"}}>{p.notes||"—"}</td>
-            <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>
-              {/* Pending rows get inline Paid / Cancel so the coach doesn't
-                  have to bounce to /coach/billing; mutations propagate back
-                  via the useBitPayments realtime channel. */}
-              {p.status==='Pending' && (<>
-                  <button onClick={()=>handleMarkReqPaid(p.id)} title={t('Mark this request as paid')}
-                    style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>✓ {tr(readLang(), 'PAID')}</button>
-                  <button onClick={()=>handleCancelReq(p.id)} title={t('Cancel this payment request')}
-                    style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>× {tr(readLang(), 'CANCEL')}</button>
-                </>)}
-              <button onClick={()=>handleEditPay(p)} aria-label={t('Edit payment')} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
-              <button onClick={()=>handleDeletePay(p.id)} aria-label={t('Delete payment')} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
-            </td></tr>))}</tbody></table></div>)}
+            <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>{payActs(p)}</td></tr>))}</tbody></table></div>);
+        })())}
       {/* The roster sheet's history for this client (owner-only; empty for staff). */}
       <SheetBillingHistory traineeId={trainee} onCount={setSheetPays} gapTop={tPay.length ? 14 : 7} />
       </CollapsibleSection>

@@ -26,7 +26,7 @@ import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
 import { wrapNeed } from './wrapNeed';
 import { YouTubeLite } from './VideoEmbed';
-import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid, TagStack } from './ui';
+import { SegWord, JoinedButtons, useRailTrailMask, baseBtn as appBaseBtn, baseInput as appBaseInput, useIsMobile, SortArrow, StripCaret, useStripFit, stripBtnBase, CaretGlyph, CheckGlyph, PlayGlyph, NotesGlyph, CrossGlyph, Badge as AppBadge, useSettleIn, ChipGrid, TagStack, usePhone } from './ui';
 // the REAL coach nav's dropdown - the demo uses the component, not a drawing of it (#441 #448)
 import SubmenuTab from './SubmenuTab';
 
@@ -108,7 +108,7 @@ const inMonth = (n) => Math.min(n, new Date().getDate() - 1);
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: inMonth(12), online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 1800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', payment: 'PAID', paidDaysAgo: inMonth(12), online: true, age: 31, weight: 64, height: 168, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, pain-free overhead', ev: { vj: 38, bj: 185, dl: 95,  bp: 47.5 }, plans: ['Block #4 — Push/Pull', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
   { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 1800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', payment: 'OVERDUE', overdueDays: 21, online: false, age: 27, weight: 78, height: 182, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', ev: { vj: 52, bj: 235, dl: 150, bp: 75 }, plans: ['Block #4 — Pull Focus', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
   { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 2700, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', payment: 'PAID', paidDaysAgo: inMonth(14), online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', ev: { vj: 45, bj: 210, dl: 120, bp: 65 }, plans: ['Block #4 — Couples', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
   { id: 't4', name: 'דניאל אבני', short: 'Daniel', email: 'daniel.avni@example.co.il', phone: '+972545556677', status: 'Active', sessionsLeft: 7, monthly: 2000, format: 'Gym, Single', startDate: '2025-03-10', dormantDays: null, lastWorkout: '1 day ago', payment: 'PAID', paidDaysAgo: inMonth(21), online: true, age: 29, weight: 81, height: 179, injuries: 'None', goals: 'Add 10kg to squat', ev: { vj: 55, bj: 245, dl: 175, bp: 95 }, plans: ['Block #2 — Strength', 'Block #1 — Base'] },
@@ -1248,7 +1248,7 @@ function BWSparkline({ weight }) {
         display: 'flex', alignItems: 'center' /* the delta centred on the figure, not riding its baseline 3.6px low (#467) */, gap: 8, marginBottom: 6,
       }}>
         <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, lineHeight: 1, color: C.tx, letterSpacing: -0.3 }}>
-          {last.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginInlineStart: 2 }}>kg</span>
+          {last.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginInlineStart: readLang() === 'he' ? 4 : 2 }}>{T('KG')}</span>
         </span>
         <span style={{
           fontFamily: FN, fontSize: 11, color: parseFloat(delta) <= 0 ? C.gn : C.or, letterSpacing: 1, fontWeight: 700,
@@ -1661,7 +1661,7 @@ function DemoReadinessTrends() {
 // Every other date in this demo resolves from today; these now do too.
 const dAgoLabel = (n) => {
   const d = backDate(n);
-  return `${d.getDate()} ${MON3[d.getMonth()]} ${d.getFullYear()}`;
+  return `${d.getDate()} ${readLang() === 'he' ? MON_HE[MON3[d.getMonth()]] : MON3[d.getMonth()]} ${d.getFullYear()}`;   // '2 באוג׳ 2026' on the Hebrew page
 };
 const demoEvalFor = (t) => {
   const e = t.ev || {};
@@ -1686,7 +1686,7 @@ function DemoEvalIntake({ trainee }) {
     <div>
       <div style={{ border: `1px solid ${C.ac}`, marginBottom: 8 }}>
         <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
-          <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }} dir="ltr">{dAgoLabel(74)}</span>
+          <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }} dir="auto">{dAgoLabel(74)}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>{T('AGE')} </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>{T('HT')} </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>{T('WT')} </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>{T('FIELDS')} </span>{DEMO_EVAL.fields}</span>
           <span style={{ color: C.tm, fontSize: 12 }}><CaretGlyph rot={open ? 0 : -90} /></span>
         </div>
@@ -1710,7 +1710,7 @@ function DemoEvalIntake({ trainee }) {
       <div style={{ border: `1px solid ${C.cardBd}`, padding: '12px 14px' }}>
         <div style={{ textAlign: 'center', marginBottom: 10 }}>
           <Badge color={C.ac}>{T('INITIAL')}</Badge>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginInlineStart: 8 }}>· <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{dAgoLabel(156)}</span></span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginInlineStart: 8 }}>· <span dir="auto" style={{ unicodeBidi: 'isolate' }}>{dAgoLabel(156)}</span></span>
         </div>
         {[[T('Primary goal'), T(DEMO_EVAL.goals || '—')], [T('Injuries'), T(DEMO_EVAL.injuries || 'None')], [T('Days/week available'), '4'], [T('Equipment'), T(/Gym/.test(trainee?.format || '') ? 'Full commercial gym' : 'Home / minimal kit')]].map(([k, v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, fontSize: 12 }}>
@@ -1745,7 +1745,7 @@ const DEMO_OVERLOAD = [
 // offsets now and resolve from today, like every other date in the demo.
 const ovDate = (daysAgo) => {
   const d = backDate(daysAgo);
-  return `${d.getDate()} ${MON3[d.getMonth()]}`;
+  return `${d.getDate()} ${readLang() === 'he' ? MON_HE[MON3[d.getMonth()]] : MON3[d.getMonth()]}`;
 };
 const demoOverloadFor = (t) => {
   const f = (t?.ev?.dl ?? 200) / 200;
@@ -1796,7 +1796,7 @@ function DemoOverload({ trainee }) {
                         row of the showpiece table. Isolated. */}
                     <td style={{ padding: '9px 10px', textAlign: 'end', whiteSpace: 'nowrap', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{arrow}</span></td>
                     <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', color: C.tm }}>{st.sessions}</td>
-                    <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', whiteSpace: 'nowrap', color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[ex.ago.length - 1])}</span></td>
+                    <td className="ov-opt" style={{ padding: '9px 10px', textAlign: 'end', whiteSpace: 'nowrap', color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="auto" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[ex.ago.length - 1])}</span></td>
                   </tr>
                   {open && (
                     <tr><td colSpan={5} style={{ background: 'var(--c-sf2, var(--c-sf))', padding: '14px 16px 18px 30px' }}>
@@ -1804,7 +1804,7 @@ function DemoOverload({ trainee }) {
                         <div>
                           <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{T('ALL-TIME PR')}</div>
                           <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, marginTop: 2 }}><bdi>{st.pr} {T('KG')}</bdi> × {ex.reps[st.prIdx]}</div>
-                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[st.prIdx])}</span></div>
+                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}><span dir="auto" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[st.prIdx])}</span></div>
                         </div>
                         <div style={{ display: 'flex', gap: 18 }}>
                           {[[T('LATEST'), `${st.last}kg`, C.tx], [T('Δ ALL-TIME'), <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`}</span>, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], [T('SESSIONS'), String(st.sessions), C.tx]].map(([l, v, c]) => (
@@ -1818,7 +1818,7 @@ function DemoOverload({ trainee }) {
                         const isPr = ex.loads[i] === st.pr;
                         return (
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr auto', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', fontSize: 12 }}>
-                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[i])}</span></span>
+                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}><span dir="auto" style={{ unicodeBidi: 'isolate' }}>{ovDate(ex.ago[i])}</span></span>
                             <span><bdi style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]} {T('KG')}</bdi> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
                             {isPr ? <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', letterSpacing: '0.1em' }}>{T('PR')}</span> : <span />}
                           </div>
@@ -1837,6 +1837,7 @@ function DemoOverload({ trainee }) {
 }
 
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
+  const isPhone = usePhone();   // payments = cards on a phone, as the real page (#786)
   // How many days back the LAST payment was, off the trainee's own record:
   // a paying client's last cycle, an overdue one's last cycle before the
   // one they missed. Every date on this card is measured from it.
@@ -1919,7 +1920,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             headerRight={<DemoStatusMenu />}
             header={<span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, minWidth: 0, fontWeight: 700, fontSize: heb ? 16 : 14, fontFamily: heb ? FH : undefined, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase' }}>
               <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
-              <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500 }}>{trainee.format}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
+              <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500 }}>{T(trainee.format)}{trainee.phone ? <> · <bdi>{trainee.phone}</bdi></> : ''}</span>
             </span>}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', textTransform: 'uppercase', paddingTop: 8, fontWeight: 700 }}>{T('Shared household ·')}{coupleSplit.length} {T('members')}</div>
           </DemoDetailCard>
@@ -1941,7 +1942,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginBottom: 12 }}>{m.email} · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{m.phone}</span></div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, textAlign: 'center', marginBottom: 12 }}>
-                  {[['AGE', `${m.age}y`], ['WEIGHT', `${m.weight}kg`], ['HEIGHT', `${m.height}cm`]].map(([l, v]) => (
+                  {[[T('AGE'), `${m.age}`], [T('WEIGHT'), `${m.weight} ${readLang() === 'he' ? 'ק״ג' : 'kg'}`], [T('HEIGHT'), `${m.height} ${readLang() === 'he' ? 'ס״מ' : 'cm'}`]].map(([l, v]) => (
                     <div key={l}>
                       <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{l}</div>
                       <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, marginTop: 2 }}>{v}</div>
@@ -1950,14 +1951,14 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 </div>
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>{T('GOAL')}</div>
-                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }}>{m.goals}</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }} dir="auto">{T(m.goals)}</div>
                 </div>
                 <div>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.or, letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>{T('INJURIES')}</div>
-                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }}>{m.injuries}</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }} dir="auto">{T(m.injuries)}</div>
                 </div>
               </div>
-              <Panel title={`${m.first.toUpperCase()} · BODYWEIGHT · 8W`} tint={C.tm}>
+              <Panel title={`${m.first.toUpperCase()} · ${T('Bodyweight · 8W').toUpperCase()}`} tint={C.tm}>
                 <BWSparkline weight={m.weight} />
               </Panel>
             </div>
@@ -1993,7 +1994,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ].map((p, i) => (
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{T(p.method).toUpperCase()}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{fmtNumericDate(p.date)}</span>
                 <Badge color={C.gn}>{T('PAID')}</Badge>
               </Row>
@@ -2037,7 +2038,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         const lastPay = trainee.payment === 'NEVER PAID' ? '—' : (payments[0] ? payments[0].date : '—');
         // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
         const billingTerms = [
-          ['Package', trainee.isCouple ? '12 Sessions' : '8 Sessions'],
+          ['Package', T(trainee.isCouple ? '12 Sessions' : '8 Sessions')],
           ['Sessions Left', trainee.sessionsLeft],
           ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
           ['Per Session', perSession ? `₪${perSession}` : '—'],
@@ -2050,7 +2051,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         // every one of these ten athlete-detail card headers was a bare English
         // literal. The first screen a prospect opens on an athlete was captioned
         // in English over Hebrew content.
-        const secTitle = (t) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{T(t)}</span>;
+        const secTitle = (t, n) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{T(t)}{n != null ? ` (${n})` : ''}</span>;
         return (
         <div>
           {/* No identity band: the real athlete page removed it (Ohad: "remove the
@@ -2077,25 +2078,38 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {/* VITALS · INJURIES · GOALS (context — shown in View All) */}
           {showSec('vitals') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Vitals · Injuries · Goals')}>
             <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 132px)', justifyContent: 'center', gap: 12, maxWidth: 558, margin: '0 auto -2px' /* the values' leading (14.10 #735: 15 over, 17 under) */, textAlign: 'center' }}>
-              {[['Age', trainee.age ? `${trainee.age}` : '—'], ['Weight', trainee.weight ? `${trainee.weight}kg` : '—'], ['Height', trainee.height ? `${trainee.height}cm` : '—'], ['Format', trainee.format || '—']].map(([l, v]) => {
+              {[[T('Age'), trainee.age ? `${trainee.age}` : '—'], [T('Weight'), trainee.weight ? `${trainee.weight} ${readLang() === 'he' ? 'ק״ג' : 'kg'}` : '—'], [T('Height'), trainee.height ? `${trainee.height} ${readLang() === 'he' ? 'ס״מ' : 'cm'}` : '—'], [T('Format'), trainee.format ? T(trainee.format) : '—']].map(([l, v]) => {
                 const empty = v === '—';
                 return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{v}</div></div>;
               })}
             </div>
-            {trainee.injuries && <div style={{ marginTop: 12, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>{T('Injuries / Conditions')}</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(trainee.injuries) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(trainee.injuries) ? FH : undefined }}>{trainee.injuries}</div></div>}
-            {trainee.goals && <div style={{ marginTop: 8, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>{T('Goals')}</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(trainee.goals) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(trainee.goals) ? FH : undefined }}>{trainee.goals}</div></div>}
+            {trainee.injuries && <div style={{ marginTop: 12, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>{T('Injuries / Conditions')}</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(T(trainee.injuries)) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(T(trainee.injuries)) ? FH : undefined }}>{T(trainee.injuries)}</div></div>}
+            {trainee.goals && <div style={{ marginTop: 8, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>{T('Goals')}</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(T(trainee.goals)) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(T(trainee.goals)) ? FH : undefined }}>{T(trainee.goals)}</div></div>}
           </DemoDetailCard>}
 
           {/* BILLING — Date / Amount / Status / Notes (matches real; no "Method"). */}
-          {showSec('billing') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
+          {showSec('billing') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Billing', payments.length)}
             headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} {T('paid')}</span>}>
             {/* Contract terms strip (moved from the removed header cluster, #139 parity). */}
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px 32px', margin: '0 auto 16px', textAlign: 'center' }}>
-              {billingTerms.map(([l, v]) => {
+              {billingTerms.map(([l0, v]) => { const l = T(l0);
                 const empty = v === undefined || v === null || v === '' || v === '—';
                 return <div key={l} style={{ whiteSpace: 'nowrap' }}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{empty ? '—' : v}</div></div>;
               })}
             </div>
+            {/* a phone reads cards, as the real page (#786): line 1 date | amount, line 2 status + note */}
+            {isPhone ? <div style={{ marginBottom: -18 /* the last card ends on the card's edge band like the lists (#796) */ }}>{payments.map((p, i) => (
+              <div key={i} style={{ padding: '8px 0 11px' /* date glyphs 14 under the rule, the status box 14 over the next */, borderBottom: i < payments.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                  <span style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{fmtPrettyDate(p.date)}</span>
+                  <span dir="ltr" style={{ fontFamily: FB, fontSize: 13, color: C.gn, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>₪{p.amount.toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <Badge color={C.gn}>{T(p.status).toUpperCase()}</Badge>
+                  <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12, color: C.td, overflowWrap: 'anywhere' }}>{T(p.notes)}</span>
+                </div>
+              </div>
+            ))}</div> : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
                 <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{T(h)}</th>)}</tr></thead>
@@ -2106,11 +2120,11 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                   <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{T(p.notes)}</td>
                 </tr>))}</tbody>
               </table>
-            </div>
+            </div>)}
           </DemoDetailCard>}
 
           {/* MESSAGES */}
-          {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
+          {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Messages', DEMO_MESSAGES.length)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
           {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...stripBtnBase, height: 'var(--btn-h-in)', minHeight: 0, border: '1px solid var(--c-stripTx)', color: 'var(--c-stripTx)', flexShrink: 0 /* TraineeCRM's + LOG: the strip's nested height (26 / 32 on touch), not the 36 every <button> gets (#460) */ }}>{T('+ LOG')}</button>}><DemoCRM trainee={trainee} /></DemoDetailCard>}
@@ -2121,13 +2135,15 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           </DemoDetailCard>}
 
           {/* READINESS · CHECK-IN TRENDS */}
-          {showSec('readiness') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Readiness (${DEMO_READINESS_LOG.length})`)}><DemoReadinessTrends /></DemoDetailCard>}
+          {showSec('readiness') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Readiness', DEMO_READINESS_LOG.length)}><DemoReadinessTrends /></DemoDetailCard>}
 
           {/* RECENT WORKOUTS */}
           {showSec('workouts') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Recent Workouts')}>
             {/* a row list starts AT the strip: the first row centred between the strip
                 and its rule like the rest (rule-rhythm FIRSTGAP 22/10, 4.10) */}
-            <div style={{ marginTop: -12 }}>
+            {/* ...and ends at the card's edge the same way: the last row's 8 px + the card's 18 were 31 under it vs 14
+                above (#796 bands) - the list takes back 17 so the last band reads 14 / 14 */}
+            <div style={{ marginTop: -12, marginBottom: -17 }}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
@@ -2143,8 +2159,8 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           </DemoDetailCard>}
 
           {/* PROGRAMS */}
-          {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
-            <div style={{ marginTop: -12 }}>{/* rule-rhythm FIRSTGAP 20/8 (4.10) */}
+          {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Programs', trainee.plans.length)}>
+            <div style={{ marginTop: -12, marginBottom: -17 }}>{/* rule-rhythm FIRSTGAP 20/8 (4.10); the last row 12 / 12 like the rest (#796) */}
             {trainee.plans.map((name, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
                 {/* Was nowrap + ellipsis, so at 360 "Block #4 — Pull
@@ -4404,7 +4420,7 @@ function DemoWorkouts() {
         <div style={{
           background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
           padding: 36, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13,
-        }}>📊 {tr(readLang(), 'No completed workouts yet.')}</div>
+        }}>{tr(readLang(), 'No completed workouts yet.')}</div>
       ) : (
         completed.map((w, i) => (
           <div key={i} style={demoCardStyle({ marginBottom: 8 })}>

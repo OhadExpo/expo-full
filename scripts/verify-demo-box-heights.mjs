@@ -119,10 +119,10 @@ try {
             const G = which === 'demo' ? '.cd-cards-grid > div' : '.tv-cards-grid > *';
             for (let k = 0; k < 30; k++) { if (await pg.evaluate((g) => document.querySelectorAll(g).length > 0, G)) break; await wait(500); }
             await pg.evaluate((g) => { const c = document.querySelector(g); if (c) c.click(); }, G);
-            for (let k = 0; k < 20; k++) { await wait(600); if (await pg.evaluate(() => !!document.querySelector('.td-actions'))) break; }
+            for (let k = 0; k < 20; k++) { await wait(600); if (await pg.evaluate(() => !!document.querySelector('.td-actbar'))) break; }
             await wait(1500);
             // the click must have OPENED the athlete page, or the list gets measured as it (AUDIT-470)
-            if (!(await pg.evaluate(() => !!document.querySelector('.td-actions')))) { side[which] = []; continue; }
+            if (!(await pg.evaluate(() => !!document.querySelector('.td-actbar')))) { side[which] = []; continue; }
           }
           if (which === 'demo' && process.env.BREAK) await pg.evaluate(() => { for (const x of document.querySelectorAll('button')) x.style.minHeight = `${x.getBoundingClientRect().height + 6}px`; });
           side[which] = await pg.evaluate(collect);

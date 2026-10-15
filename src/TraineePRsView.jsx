@@ -16,6 +16,7 @@ import { C, FN, FB } from './theme';
 import { isRefined5b } from './ui';
 import { EX } from './exerciseData';
 import { useT as useAppT, useHe, countIn } from './i18n';
+import { runSeconds, fmtPaceSec as fmtPace } from './runPace';
 
 function topSetOfWorkoutEx(ex) {
   // ex.sets[] from the trainee log — { reps, load, rpe, done }
@@ -195,6 +196,92 @@ function Sparkline({ series, overlay, height = 64, overlayUid }) {
   );
 }
 
+// RUNNING RECORDS (#799): a runner's records come from his own logged runs - every done set that carries a distance
+// (reps, km) and a time. Longest run = the most km in one session; fastest pace = the quickest average over any rep of 1 km
+// or more (a PACE, not a fastest kilometre: reps are often logged as one set); over 5 km = the quickest CONTINUOUS 5 km+: one set of 5 km+, or a segment
+// prescribed as one rep and logged as watch laps (Yehu's 5 km) - interval reps with walks between them never add up.
+// Nothing is estimated: no time logged, no record. A set that cannot be a run (pace under 2:30 or over 15:00 per km,
+// more than 60 km - '100' typed for 100 m) is left out, so a typo never becomes a permanent record.
+const fmtKm = (km) => String(+km.toFixed(2));
+const plausible = (d, t) => d > 0 && d <= 60 && t > 0 && t / d >= 150 && t / d <= 900;
+export function runRecords(clientWorkouts, traineeId) {
+  const sessions = [];
+  for (const w of clientWorkouts || []) {
+    if (traineeId && w.clientId !== traineeId) continue;
+    let km = 0, sec = 0, fastest = null, seg5 = null;
+    for (const ex of w.exercises || []) {
+      let eKm = 0, eSec = 0;
+      const oneRep = /^\s*1\s*[x×]/i.test(String(ex.prescribed || ''));   // '1x5 ק״מ': one continuous rep
+      for (const s of ex.sets || []) {
+        if (!s || !s.done) continue;
+        const d = parseFloat(String(s.reps || '').replace(',', '.')), t = runSeconds(s.time);
+        if (!plausible(d, t)) continue;
+        eKm += d; eSec += t;
+        if (d >= 1 && (!fastest || t / d < fastest)) fastest = t / d;
+        if (d >= 5 && (!seg5 || t / d < seg5)) seg5 = t / d;
+      }
+      km += eKm; sec += eSec;
+      if (oneRep && eKm >= 5 && (!seg5 || eSec / eKm < seg5)) seg5 = eSec / eKm;
+    }
+    if (km > 0) sessions.push({ date: w.date, week: w.week, km, sec, fastest, seg5 });
+  }
+  if (!sessions.length) return null;
+  sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const pick = (val, better) => sessions.reduce((a, s) => { const v = val(s); return v && (!a || better(v, a.v)) ? { v, s } : a; }, null);
+  return {
+    sessions,
+    longest: pick((s) => s.km, (x, y) => x > y),
+    fastest: pick((s) => s.fastest, (x, y) => x < y),
+    seg5: pick((s) => s.seg5, (x, y) => x < y),
+  };
+}
+
+// The records in the house stat strip (the trend card's LATEST / CHANGE / WEEKS grammar: hairline dividers, one card),
+// then the runs as the session-history rows - date + week, distance and the run's average pace.
+function RunRecords({ runs, tt, he }) {
+  const cells = [
+    runs.longest && ['LONGEST RUN', <><bdi>{fmtKm(runs.longest.v)}</bdi><span style={{ fontSize: 10, color: C.tm, fontWeight: 400, marginInlineStart: 4 }}>{tt('KM')}</span></>, runs.longest.s.date],
+    runs.fastest && ['FASTEST PACE', <><bdi dir="ltr">{fmtPace(runs.fastest.v)}</bdi><span style={{ fontSize: 10, color: C.tm, fontWeight: 400, marginInlineStart: 4 }}>{tt('/km')}</span></>, runs.fastest.s.date],
+    runs.seg5 && ['5 KM+ PACE', <><bdi dir="ltr">{fmtPace(runs.seg5.v)}</bdi><span style={{ fontSize: 10, color: C.tm, fontWeight: 400, marginInlineStart: 4 }}>{tt('/km')}</span></>, runs.seg5.s.date],
+  ].filter(Boolean);
+  const n = runs.sessions.length;
+  return (
+    <>
+      <div data-run-records style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '16px 14px', marginBottom: 14 }}>
+        <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{tt('RUNNING RECORDS')}</div>
+        {/* the cells in the page's reading order (the EXPO portal root is LTR in Hebrew, #797; the club zone is RTL) */}
+        <div dir={he ? 'rtl' : 'ltr'} style={{ display: 'flex' }}>
+          {cells.map(([label, val, date], i) => (
+            <div key={label} style={{ flex: 1, minWidth: 0, textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.cardBd}` : 'none', padding: '0 6px' }}>
+              <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{tt(label)}</div>
+              <div dir={he ? 'rtl' : undefined} style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: C.ac, marginTop: 4, whiteSpace: 'nowrap' }}>{val}</div>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginTop: 4 }}><span dir="auto" style={{ unicodeBidi: 'isolate' }}>{fmtDate(date, he)}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('RUN HISTORY ·')} {he && n === 1 ? 'ריצה אחת' : `${n} ${tt(n === 1 ? 'RUN' : 'RUNS')}`}</div>
+      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
+        {runs.sessions.slice().reverse().map((s, i, arr) => {
+          const isLongest = runs.longest && s === runs.longest.s;
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: i < arr.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+              <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
+                <span dir="auto" style={{ unicodeBidi: 'isolate' }}>{fmtDate(s.date, he)}</span>
+                {s.week ? <span dir="auto" style={{ color: C.td, marginInlineStart: 4, unicodeBidi: 'isolate' }}>{he ? `שבוע ${s.week}` : `W${s.week}`}</span> : null}
+              </div>
+              <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FN, fontSize: 14, color: isLongest ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>
+                <bdi>{fmtKm(s.km)}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>{tt('KM')}</span></bdi>
+                <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}><bdi dir="ltr">{fmtPace(s.sec / s.km)}</bdi> {tt('/km')}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function fmtDate(iso, he) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -212,6 +299,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
   const tt = useAppT();
   const he = useHe();   // the context tt reads (1008b review: readLang() lags the toggle a render)
   const rows = useMemo(() => aggregate(clientWorkouts, traineeId), [clientWorkouts, traineeId]);
+  const runs = useMemo(() => runRecords(clientWorkouts, traineeId), [clientWorkouts, traineeId]);   // #799
   const options = useMemo(() => rows.slice().sort((a, b) => a.title.localeCompare(b.title)), [rows]);
   const [pickedId, setPickedId] = useState(null);
   const [query, setQuery] = useState('');
@@ -262,14 +350,16 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
           <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>{tt('RECORDS')}</div>
         )}
 
-        {rows.length === 0 ? (
+        {runs && <RunRecords runs={runs} tt={tt} he={he} />}
+
+        {rows.length === 0 ? (runs ? null : (
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO RECORDS YET')}</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               {tt('Log a few sessions with weights and your records will show up here.')}
             </div>
           </div>
-        ) : (
+        )) : (
           <>
             {/* Exercise picker — search-as-you-type combobox over only the
                 exercises this athlete has logged a top set for. */}

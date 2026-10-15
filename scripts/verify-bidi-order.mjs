@@ -58,7 +58,7 @@ try {
         if (d === 'ltr') return autoDir(el) === 'rtl' ? 'rtl' : 'ltr';   // HEBREW forced LTR is judged as Hebrew ("78.3 ק״ג")
         return getComputedStyle(el).direction;
       };
-      const out = []; let lines = 0; window.__dbg = [];
+      const out = []; let lines = 0, ranges = 0; window.__dbg = [];
       const paras = [...document.querySelectorAll('body *')].filter((e) => e.getClientRects().length && !['SCRIPT', 'STYLE', 'TEXTAREA', 'SELECT', 'OPTION', 'svg'].includes(e.tagName) && ((isBlock(e) && [...e.childNodes].some((n) => (n.nodeType === 3 && n.nodeValue.trim()) || (n.nodeType === 1 && !isBlock(n) && n.textContent.trim()))) || (!isBlock(e) && isIso(e) && e.textContent.trim())));
       for (const para of paras) {
         const blk = isBlock(para);
@@ -97,11 +97,27 @@ try {
           }
         }
       }
-      return { path: location.pathname + location.search, pageHe, lines, out, text: document.body.innerText.length, dbg: window.__dbg };
+      // A TIME RANGE reads left to right in both languages ('5:45–5:55'): inside a Hebrew line
+      // the two numbers are separate weak runs and the bidi algorithm can swap them (15.10, Yehu's day card printed
+      // '5:55—5:45 · דופק עד 142'). The merge above hides that, so every range is measured on its own: first part leftmost.
+      // TIMES only (m:ss / h:mm, a pace or a clock range): a prose range of whole numbers ('כאב 0–10') swaps by design
+      const RANGE = /(\d{1,2}:\d{2})\s*[–—-]\s*(\d{1,2}:\d{2})/g;
+      const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+        const pe = n.parentElement; if (!pe || !pe.getClientRects().length || pe.closest('script,style,svg,textarea') || getComputedStyle(pe).visibility === 'hidden') continue;
+        for (const m of n.nodeValue.matchAll(RANGE)) {
+          const xOf = (off, len) => { const r = document.createRange(); r.setStart(n, off); r.setEnd(n, off + len); const q = [...r.getClientRects()].filter((z) => z.width)[0]; return q ? q : null; };
+          const a = xOf(m.index, m[1].length), z = xOf(m.index + m[0].length - m[2].length, m[2].length);
+          if (!a || !z || Math.abs(a.top - z.top) > 4) continue;   // wrapped across lines: not judged
+          ranges++;
+          if (a.left > z.left + 1) { const r0 = pe.getBoundingClientRect(); out.push({ expect: 'range ltr', line: pe.textContent.trim().slice(0, 90), pair: `${m[1]} | ${m[2]}`, at: [Math.round(r0.left), Math.round(r0.top + scrollY)], tag: pe.tagName.toLowerCase() + '(range)' }); }
+        }
+      }
+      return { path: location.pathname + location.search, pageHe, lines, ranges, out, text: document.body.innerText.length, dbg: window.__dbg };
     });
     pages++; judged += res.lines; bad += res.out.length;
     all.push({ route, w, ...res });
-    console.log(`${res.out.length ? 'WRONG' : 'ok   '} ${route} @${w}  page ${res.pageHe ? 'he' : 'en'}  ${res.lines} mixed lines judged  ${res.out.length} read backwards  (landed ${res.path}, ${res.text} chars)`);
+    console.log(`${res.out.length ? 'WRONG' : 'ok   '} ${route} @${w}  page ${res.pageHe ? 'he' : 'en'}  ${res.lines} mixed lines + ${res.ranges} time ranges judged  ${res.out.length} read backwards  (landed ${res.path}, ${res.text} chars)`);
     for (const o of res.out.slice(0, 15)) console.log('        ', JSON.stringify(o));
     if (process.env.DEBUG === '1') for (const d of res.dbg) console.log('      judged', JSON.stringify(d));
   }
