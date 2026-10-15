@@ -56,7 +56,7 @@ function InlineVideo({ url }) {
   return null;
 }
 
-function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack, onBroadcastSet }) {
+function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack, onBroadcastSet, athleteName = '' }) {
   const tt = useT();
   const run = workout.sport === 'running';   // #808: a run's rep = km / time / HR, as the athlete portal's run logger
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); if (onBroadcastSet) { Object.entries(u).forEach(([k,v]) => onBroadcastSet(ei, si, k, v)); } };
@@ -164,104 +164,105 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     // (audit 08-22 #55).
     const cue = ex.notes || ex.q || exData?.cues || '';
     const doneCount = ex.sets.filter(s => s.completed).length;
-    // Collapsed = a one-line summary the coach can tap to reopen. Skipped when
-    // groupControlled — a superset's single header drives both members, so each
-    // member always renders full (no per-exercise collapse inside a superset).
-    if (isCollapsed(ex, exIdx) && !groupControlled) {
-      const fullyDone = allDone(ex);
-      return (
-        <div key={ex.id} onClick={() => toggleCollapse(ex, exIdx)}
-          style={{
-            background: inGroup ? 'transparent' : 'var(--c-sf)',
-            border: inGroup ? 'none' : `1px solid ${C.cardBd}`,
-            borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined,
-            
-            borderRadius: 0, padding: inGroup ? '12px' : '14px',
-            marginBottom: inGroup ? 0 : 10, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-          }}>
-          <span style={{ fontWeight: 700, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{fullyDone ? '✓' : ''}</span>
-            <span style={{ display: 'inline-block', width: 22, textAlign: 'end', marginInlineEnd: 5, flexShrink: 0 }}>{exIdx+1}.</span>
-            {exData?.title||ex.title||"Unknown"}
-          </span>
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {doneCount}/{ex.sets.length}{run ? ` · ${tt('EXPAND')}` : tt('SETS · EXPAND')}</span>
-        </div>
-      );
-    }
-    const fullyDoneOpen = allDone(ex);
+    const fullyDone = allDone(ex);
+    // Collapsed when every set is in (or the coach folded it): the card is just its strip. A superset member is
+    // driven by its group's one control, so it never folds on its own.
+    const folded = isCollapsed(ex, exIdx) && !groupControlled;
+    const title = exData?.title || ex.title || 'Unknown';
+    const capOf = (v) => String(v || '').replace(/^HR\s*/i, '');
+    // one prescription line (#809): what to do, in the order it is read - the amount, the pace / tempo, the cap
+    const rx = run
+      ? [(ex.sets || []).length > 1 ? (ex.sets || []).length + ' × ' + (ex.reps || '') : ex.reps, ex.tempo, ex.load ? tt('HR up to {n}').replace('{n}', capOf(ex.load)) : '']
+      : [(ex.sets || []).length + ' × ' + (ex.reps || '—'), (ex.tempo && String(ex.tempo) !== String(ex.reps)) ? ex.tempo : '', ex.rpe ? 'RPE ' + ex.rpe : '', ex.rest ? ex.rest + 's' : ''];
+    const GRID = { display: 'grid', gridTemplateColumns: '32px 1fr 1fr 1fr 44px', gap: 4, alignItems: 'center' };
+    // the athlete portal's set field: bordered on the card, no fill, 16px (iOS never zooms), the number centred
+    const SETI = { background: 'var(--c-sf)', border: '1px solid ' + C.cardBd, borderRadius: 0, color: C.tx, fontFamily: FB, fontSize: 16, padding: '0 6px', height: 44, width: '100%', minWidth: 0, boxSizing: 'border-box', textAlign: 'center', outline: 'none', fontVariantNumeric: 'tabular-nums' };
+    const strip = (
+      <div className="title-strip" role={groupControlled ? undefined : 'button'} tabIndex={groupControlled ? undefined : 0} aria-expanded={groupControlled ? undefined : !folded}
+        onClick={groupControlled ? undefined : () => toggleCollapse(ex, exIdx)}
+        onKeyDown={groupControlled ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(ex, exIdx); } }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 41, boxSizing: 'border-box', padding: inGroup ? '9px 2px' : '9px 14px', background: inGroup ? 'transparent' : 'var(--c-stripBg, var(--c-sf))', borderBottom: folded ? 'none' : '1px solid ' + C.cardBd, cursor: groupControlled ? 'default' : 'pointer' }}>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: fullyDone ? C.gn : 'var(--c-stripTx, ' + C.tx + ')', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{exIdx + 1}</span>
+          <span dir="auto" style={{ fontFamily: isHebrew(title) ? FH : FN, fontSize: isHebrew(title) ? 15 : 13, fontWeight: 700, letterSpacing: isHebrew(title) ? 0 : '0.06em', textTransform: isHebrew(title) ? 'none' : 'uppercase', color: 'var(--c-stripTx, ' + C.tx + ')', lineHeight: 1.35, overflowWrap: 'anywhere', unicodeBidi: 'isolate' }}>{title}</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, color: fullyDone ? C.gn : C.tm, fontVariantNumeric: 'tabular-nums' }}>
+          {fullyDone ? '✓ ' : ''}{doneCount}/{ex.sets.length}
+          {!groupControlled && <span style={{ display: 'inline-flex', transform: folded ? 'none' : 'rotate(180deg)', transition: 'transform .15s', color: C.tx }}><CaretGlyph /></span>}
+        </span>
+      </div>
+    );
+    if (folded) return (
+      <div key={ex.id} style={{ background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : '1px solid ' + C.cardBd, borderTop: withDivider ? '1px solid ' + C.cardBd : undefined, borderRadius: 0, marginBottom: inGroup ? 0 : 10 }}>{strip}</div>
+    );
     return (
-      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderInlineStart: inGroup ? undefined : `3px solid ${fullyDoneOpen ? C.gn : C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
-        {/* Header: title row + a readable prescription stat row (only fields
-            that actually have a value — no "RPE — · Rest undefineds" noise).
-            COLLAPSE control fixed top-right. Video plays INLINE below the cue
-            (same embedded, non-clickable rules as the group session) — never a
-            link that navigates away. */}
-        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
-              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign: 'end',marginInlineEnd:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
-            </div>
-            <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
-              {(run ? [[tt('DISTANCE'),(ex.sets||[]).length>1?`${(ex.sets||[]).length} × ${ex.reps||''}`:ex.reps],[tt('PACE'),ex.tempo],[tt('HR CAP'),ex.load?String(ex.load).replace(/^HR\s*/i,''):'']]
-                : [['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']])
-                .filter(([,v])=>v!=null && v!=='' )
-                .map(([k,v])=>(
-                  <span key={k} style={{display:'inline-flex',flexDirection:'column',lineHeight:1.15}}>
-                    <span style={{fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.16em',color:C.td}}>{k}</span>
-                    <span dir="auto" style={{fontFamily:FB,fontSize:15,fontWeight:600,color:C.tx,unicodeBidi:'isolate'}}>{v}</span>
-                  </span>
-                ))}
-            </div>
+      <div key={ex.id} style={{ background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : '1px solid ' + C.cardBd, borderTop: withDivider ? '1px solid ' + C.cardBd : undefined, borderRadius: 0, marginBottom: inGroup ? 0 : 10 }}>
+        {strip}
+        <div style={{ padding: inGroup ? '12px 2px 8px' : 14 }}>
+          {/* the prescription: one line, the amount first in the accent, each part isolated (a pace range never flips) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 8, rowGap: 2, marginBottom: 12, fontFamily: FB, fontSize: 15, fontWeight: 600, color: C.tx }}>
+            {rx.filter(Boolean).map((v, k) => (
+              <React.Fragment key={k}>
+                {k > 0 && <span style={{ color: C.td }}>·</span>}
+                <bdi dir="auto" style={{ color: k === 0 ? C.ac : C.tx, fontVariantNumeric: 'tabular-nums' }}>{v}</bdi>
+              </React.Fragment>
+            ))}
           </div>
-          {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title={tt('Collapse this exercise')}
-            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>{tt('COLLAPSE')} ▴</button>}
-        </div>
-        {/* Coach cue — was tiny faded italic (unreadable). Now a readable
-            accent-barred block: full-size, not italic, RTL-aware for Hebrew. */}
-        {cue && (
-          <div style={{display:'flex',gap:10,marginBottom:10,background:'rgba(57,189,255,0.06)',borderInlineStart:`3px solid ${C.ac}`,padding:'9px 12px'}}>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,flexShrink:0,paddingTop:2}}>{tt('CUE')}</span>
-            <div style={{minWidth:0,flex:1,fontSize:13,color:C.tx,lineHeight:1.5,direction:dirOfText(cue),textAlign:'start',fontFamily:isHebrew(cue)?FH:FB,wordBreak:'break-word'}}>{cue}</div>
+          {/* Coach cue - the plan's note for this row, an accent-barred block, RTL-aware */}
+          {cue && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, background: 'rgba(57,189,255,0.06)', borderInlineStart: '3px solid ' + C.ac, padding: '9px 12px' }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.ac, flexShrink: 0, paddingTop: 2 }}>{tt('CUE')}</span>
+              <div style={{ minWidth: 0, flex: 1, fontSize: 13, color: C.tx, lineHeight: 1.5, direction: dirOfText(cue), textAlign: 'start', fontFamily: isHebrew(cue) ? FH : FB, wordBreak: 'break-word' }}>{cue}</div>
+            </div>
+          )}
+          {videoUrl && <InlineVideo url={videoUrl} />}
+          <div style={{ ...GRID, marginBottom: 4 }}>
+            {(run ? ['', tt('KM'), tt('SPLIT'), tt('HR'), '✓'] : ['', tt('REPS'), tt('KG'), 'RPE', '✓']).map((h, k) => <div key={k} style={{ fontSize: 10.5, fontFamily: FN, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, textAlign: 'center' }}>{h}</div>)}
           </div>
-        )}
-        {videoUrl && <InlineVideo url={videoUrl} />}
-        <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
-          {(run ? ['#',tt('KM'),tt('SPLIT'),tt('HR'),'✓'] : ["SET","REPS","LOAD","RPE","DONE"]).map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
-        {ex.sets.map((set,sIdx)=>{
-          // Ghost row above each set: what the athlete logged for this same set
-          // index in the previous week (progressive-overload reference).
-          const prior = prevSets?.[sIdx];
-          return <React.Fragment key={sIdx}>
-            {prior && (parseFloat(prior.load)>0 || prior.reps || (run && prior.time)) && (
-              <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginTop:sIdx===0?0:6,opacity:0.5}}>
-                <span style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:C.ac,textAlign:"center"}}>W{prevWeekNum}</span>
-                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{prior.reps||'—'}</div>
-                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{run ? (prior.time||'—') : (parseFloat(prior.load)||'—')}</div>
-                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{run ? (prior.hr||'—') : (prior.rpe||'—')}</div>
-                <div/>
+          {ex.sets.map((set, sIdx) => {
+            // Ghost row above each set: what the athlete logged for this same set in the previous week, in the
+            // input columns (the portal's reference row)
+            const prior = prevSets?.[sIdx];
+            const pace = run ? runPace(set.reps, set.time) : '';
+            return <React.Fragment key={sIdx}>
+              {prior && (parseFloat(prior.load) > 0 || prior.reps || (run && prior.time)) && (
+                <div style={{ ...GRID, marginTop: sIdx === 0 ? 0 : 8, opacity: 0.72 }}>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, textAlign: 'center' }}>W{prevWeekNum}</span>
+                  {[prior.reps || '—', run ? (prior.time || '—') : (parseFloat(prior.load) || '—'), run ? (prior.hr || '—') : (prior.rpe || '—')].map((v, k) => <div key={k} style={{ fontFamily: FB, fontSize: 14, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{v}</div>)}
+                  <div />
+                </div>
+              )}
+              <div style={{ ...GRID, marginBottom: 4, opacity: set.completed ? 0.5 : 1 }}>
+                <span style={{ fontFamily: FN, fontSize: 13, color: C.td, textAlign: 'center' }}>{set.setNum}</span>
+                {run ? <>
+                  {/* a run's rep: DISTANCE in reps (km), TIME in its own field (never kg - PRs and tonnage never read a run), HR (#808) */}
+                  <input aria-label={tt('Distance (km)')} value={set.reps} inputMode="decimal" onChange={e => updateSet(exIdx, sIdx, { reps: e.target.value.replace(',', '.') })} style={SETI} placeholder={String(ex.reps || '').replace(/\s*(km|ק״מ|ק"מ)$/i, '') || '—'} />
+                  <input aria-label={tt('Time (mm:ss)')} value={set.time || ''} inputMode="numeric" onChange={e => updateSet(exIdx, sIdx, { time: e.target.value.replace(/[.,]/g, ':') })} style={SETI} placeholder={tt('mm:ss')} />
+                  <input aria-label={tt('Heart rate')} value={set.hr || ''} inputMode="numeric" onChange={e => updateSet(exIdx, sIdx, { hr: e.target.value.replace(/\D/g, '') })} style={SETI} placeholder={ex.load ? capOf(ex.load) : '—'} />
+                </> : <>
+                  <input aria-label={tt('Reps')} value={set.reps} inputMode="numeric" onChange={e => updateSet(exIdx, sIdx, { reps: e.target.value })} style={SETI} placeholder="—" />
+                  <input aria-label={tt('Weight (kg)')} value={set.load} inputMode="decimal" onChange={e => updateSet(exIdx, sIdx, { load: e.target.value.replace(',', '.') })} style={SETI} placeholder="—" />
+                  <input aria-label="RPE" value={set.rpe} inputMode="decimal" onChange={e => updateSet(exIdx, sIdx, { rpe: e.target.value.replace(',', '.') })} style={SETI} placeholder="—" />
+                </>}
+                {/* the whole cell is the tap target, a 24px tick centred in it (the portal's) */}
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={set.completed} onChange={e => updateSet(exIdx, sIdx, { completed: e.target.checked })} style={{ width: 24, height: 24, margin: 0, accentColor: C.gn, cursor: 'pointer' }} />
+                </label>
               </div>
-            )}
-            <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
-              <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
-              {run ? <>
-                {/* a run's rep: DISTANCE in reps (km), TIME in its own field (never kg - PRs and tonnage never read a run), HR (#808) */}
-                <input aria-label={tt('Distance (km)')} value={set.reps} inputMode="decimal" onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value.replace(',', '.')})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder={String(ex.reps||'').replace(/\s*(km|ק״מ|ק"מ)$/i,'') || '—'} />
-                <input aria-label={tt('Time (mm:ss)')} value={set.time||''} inputMode="numeric" onChange={e=>updateSet(exIdx,sIdx,{time:e.target.value.replace(/[.,]/g, ':')})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder={tt('mm:ss')} />
-                <input aria-label={tt('Heart rate')} value={set.hr||''} inputMode="numeric" onChange={e=>updateSet(exIdx,sIdx,{hr:e.target.value.replace(/\D/g, '')})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder={ex.load ? String(ex.load).replace(/^HR\s*/i,'') : '—'} />
-              </> : <>
-              <input type="number" value={set.reps} onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-              <input type="number" value={set.load} onChange={e=>updateSet(exIdx,sIdx,{load:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-              <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-              </>}
-              <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
-            </div>
-            {run && runPace(set.reps, set.time) && <div data-run-pace style={{fontFamily:FN,fontSize:11,color:C.tm,display:'flex',justifyContent:'center',alignItems:'baseline',gap:5,margin:'-2px 0 6px'}}><span>{tt('PACE')}</span><b dir="auto" style={{color:C.ac,unicodeBidi:'isolate'}}>{runPace(set.reps, set.time)} {tt('/km')}</b></div>}
-          </React.Fragment>;})}
-        {/* Coach's session note — separate from the prescribed cue above, so
-            this field starts blank instead of echoing the plan's note. */}
-        <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder={tt('Notes for this exercise…')} style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
+              {/* a run's pace, under its own TIME column (#809: it floated between the columns) */}
+              {pace && (
+                <div data-run-pace style={{ ...GRID, margin: '-2px 0 6px' }}>
+                  <span /><span />
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.ac, textAlign: 'center', fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }} dir="auto">{pace} {tt('/km')}</span>
+                  <span /><span />
+                </div>
+              )}
+            </React.Fragment>;
+          })}
+          {/* Coach's session note - separate from the prescribed cue above, so it starts blank */}
+          <input value={ex.coachNote || ''} onChange={e => updateEx(exIdx, { coachNote: e.target.value })} placeholder={tt('Notes for this exercise…')} dir="auto"
+            style={{ ...SETI, height: 'var(--btn-h, 36px)', fontSize: 13, textAlign: 'start', padding: '0 10px', marginTop: 8, fontFamily: FB }} />
+        </div>
       </div>);
   };
   const totalSets = workout.exercises.reduce((a,ex)=>a+ex.sets.length,0);
@@ -278,9 +279,11 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← {tr(readLang(), 'BACK')}</button>
           {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>{tt('Completed')}</Badge>}
         </div>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
-          <span><span style={{color:C.tx,fontWeight:700}}>{workout.dayName}</span> {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
-          <span style={{color:C.tx,fontWeight:700}}>W{workout.week} · {doneSets}/{totalSets} · {pct}%</span></div>
+        {/* WHO this session is for, first and big (#810: the head named the day and the block, never the athlete) */}
+        {athleteName && <div style={{fontFamily:isHebrew(athleteName)?FH:FN,fontSize:isHebrew(athleteName)?22:19,fontWeight:700,letterSpacing:isHebrew(athleteName)?0:'0.04em',textTransform:isHebrew(athleteName)?'none':'uppercase',color:C.tx,lineHeight:1.25,marginBottom:6,overflowWrap:'anywhere',textAlign:'start'}}><bdi>{athleteName}</bdi></div>}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:'baseline',gap:12,fontSize:12,fontFamily:FN,color:C.tm,marginBottom:6}}>
+          <span style={{minWidth:0,display:'flex',flexWrap:'wrap',columnGap:8,alignItems:'baseline'}}><bdi dir="auto" style={{color:C.tx,fontWeight:700}}>{workout.dayName}</bdi>{workout.planName&&<bdi dir="auto" style={{color:C.td}}>{workout.planName}</bdi>}</span>
+          <span style={{color:C.tx,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,unicodeBidi:'isolate'}}>{readLang() === 'he' ? `שבוע ${workout.week}` : `W${workout.week}`} · {doneSets}/{totalSets} · {pct}%</span></div>
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
       {groups.map((g,gi) => g.ss ? (() => {
@@ -298,7 +301,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:sc,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {allD && <span style={{marginInlineEnd:6}}>✓</span>}{tr(readLang(), 'Superset')} {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
             </span>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets}{tt('SETS ·')}{tt(collapsed?'EXPAND':'COLLAPSE')}</span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} · {tt(collapsed?'EXPAND':'COLLAPSE')}</span>
           </button>
           {!collapsed && <div style={{marginTop:4}}>{g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0, true))}</div>}
         </div>
@@ -666,7 +669,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     // Previous-week reference reads the athlete's portal history (the same
     // store the portal logs to, which now includes coach-logged sessions).
     const priorWorkouts = (clientWorkouts||[]).filter(x => x.clientId===w.traineeId);
-    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={updateActive} onComplete={completeWorkout} onBack={()=>setActive(null)} onBroadcastSet={broadcastSet} />;
+    const athleteName = (() => { const t = (trainees || []).find(x => traineeIdsFor(x.id).includes(w.traineeId)); if (!t) return ''; const mi = String(w.traineeId).split('__')[1]; return (mi != null && t.members && t.members[parseInt(mi, 10)]?.name) || t.name || ''; })();   // a couple's session names the partner on the floor (review)
+    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={updateActive} onComplete={completeWorkout} onBack={()=>setActive(null)} onBroadcastSet={broadcastSet} athleteName={athleteName} />;
   }
   // "Completed" = coach-logged sessions in the athlete's portal history.
   const completed = (clientWorkouts||[])

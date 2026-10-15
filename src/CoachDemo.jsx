@@ -4615,6 +4615,62 @@ function DemoGroupFloor() {
   );
 }
 
+// THE REAL 1-ON-1 LOGGER's card (WorkoutsView, 15.10 #809): the strip is the title and the fold, one prescription
+// line, the athlete portal's set grid (bordered 44px fields, no fills, a 24px tick in a 44px cell), the note field
+function DemoSingleExercise({ ex, index, open, onToggle }) {
+  const done = ex.sets.filter(x => x.done).length;
+  const all = done === ex.sets.length && ex.sets.length > 0;
+  const GRID = { display: 'grid', gridTemplateColumns: '32px 1fr 1fr 1fr 44px', gap: 4, alignItems: 'center' };
+  const SETI = { background: C.sf, border: '1px solid ' + C.cardBd, borderRadius: 0, color: C.tx, fontFamily: FB, fontSize: 16, padding: '0 6px', height: 44, width: '100%', minWidth: 0, boxSizing: 'border-box', textAlign: 'center', outline: 'none', fontVariantNumeric: 'tabular-nums' };
+  const L = readLang();
+  return (
+    <div style={{ background: C.sf, border: '1px solid ' + C.cardBd, marginBottom: 10 }}>
+      <div className="title-strip" role="button" tabIndex={0} aria-expanded={open} onClick={onToggle} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 41, boxSizing: 'border-box', padding: '9px 14px', background: 'var(--c-stripBg, var(--c-sf))', borderBottom: open ? '1px solid ' + C.cardBd : 'none', cursor: 'pointer' }}>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: all ? C.gn : 'var(--c-stripTx, ' + C.tx + ')', flexShrink: 0 }}>{index}</span>
+          <span dir="auto" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx, ' + C.tx + ')', lineHeight: 1.35, overflowWrap: 'anywhere', unicodeBidi: 'isolate' }}>{ex.title}</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, color: all ? C.gn : C.tm }}>
+          {all ? '✓ ' : ''}{done}/{ex.sets.length}
+          <span style={{ display: 'inline-flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s', color: C.tx }}><CaretGlyph /></span>
+        </span>
+      </div>
+      {open && (
+        <div style={{ padding: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 8, marginBottom: 12, fontFamily: FB, fontSize: 15, fontWeight: 600 }}>
+            {[ex.prescribed, ex.tempo].filter(Boolean).map((v, k) => (
+              <React.Fragment key={k}>{k > 0 && <span style={{ color: C.td }}>·</span>}<bdi dir="ltr" style={{ color: k === 0 ? C.ac : C.tx }}>{v}</bdi></React.Fragment>
+            ))}
+          </div>
+          {ex.cue && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, background: 'rgba(57,189,255,0.06)', borderInlineStart: '3px solid ' + C.ac, padding: '9px 12px' }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.ac, flexShrink: 0, paddingTop: 2 }}>{tr(L, 'CUE')}</span>
+              <div style={{ minWidth: 0, flex: 1, fontSize: 13, color: C.tx, lineHeight: 1.5, direction: isHeb(ex.cue) ? 'rtl' : 'ltr', textAlign: 'start', fontFamily: isHeb(ex.cue) ? FH : FB }}>{ex.cue}</div>
+            </div>
+          )}
+          <DemoInlineVideo title={ex.title} />
+          <div style={{ ...GRID, marginTop: 8, marginBottom: 4 }}>
+            {['', tr(L, 'REPS'), tr(L, 'KG'), 'RPE', '✓'].map((h, k) => <div key={k} style={{ fontSize: 10.5, fontFamily: FN, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, textAlign: 'center' }}>{h}</div>)}
+          </div>
+          {ex.sets.map((x, si) => (
+            <div key={si} style={{ ...GRID, marginBottom: 4, opacity: x.done ? 0.5 : 1 }}>
+              <span style={{ fontFamily: FN, fontSize: 13, color: C.td, textAlign: 'center' }}>{si + 1}</span>
+              <input defaultValue={x.reps} placeholder="—" inputMode="numeric" style={SETI} />
+              <input defaultValue={x.kg} placeholder="—" inputMode="decimal" style={SETI} />
+              <input defaultValue={x.rpe} placeholder="—" inputMode="decimal" style={SETI} />
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, cursor: 'pointer' }}>
+                <input type="checkbox" key={si + '-' + x.done} defaultChecked={x.done} style={{ width: 24, height: 24, margin: 0, accentColor: C.gn, cursor: 'pointer' }} />
+              </label>
+            </div>
+          ))}
+          <input placeholder={tr(L, 'Notes for this exercise…')} dir="auto" style={{ ...SETI, height: 'var(--btn-h, 36px)', fontSize: 13, textAlign: 'start', padding: '0 10px', marginTop: 8 }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DemoSingle() {
   const [openAthlete, setOpenAthlete] = useState(null);
   const [active, setActive] = useState(null); // {name, day}
@@ -4627,21 +4683,24 @@ function DemoSingle() {
       <div>
         <div style={{ position: 'sticky', top: 60, zIndex: 20, background: C.bg, paddingBottom: 10, marginBottom: 8, borderBottom: `1px solid ${C.cardBd}` }}>
           <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← {tr(readLang(), 'BACK')}</button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 4 }}>
-            <span>{active.day} · {active.name}</span>
-            <span style={{ color: C.tx, fontWeight: 700 }} dir="ltr"><span style={{ unicodeBidi: 'isolate' }}>{`W${active.week || DEMO_WEEK}`}</span> · {doneSets}/{totalSets} · {pct}%</span>
+          {/* the athlete first and big, as the real logger (#810) */}
+          <div style={{ fontFamily: isHeb(active.name) ? FH : FN, fontSize: isHeb(active.name) ? 22 : 19, fontWeight: 700, color: C.tx, lineHeight: 1.25, marginBottom: 6, textAlign: 'start' }}><bdi>{active.name}</bdi></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 6 }}>
+            <bdi dir="auto" style={{ color: C.tx, fontWeight: 700 }}>{active.day}</bdi>
+            <span style={{ color: C.tx, fontWeight: 700, whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{readLang() === 'he' ? `שבוע ${active.week || DEMO_WEEK}` : `W${active.week || DEMO_WEEK}`} · {doneSets}/{totalSets} · {pct}%</span>
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
         </div>
         {/* (Camera/movement tools live under Review › Tools in the real app, not
             inside the 1-on-1 logger — removed here to match.) */}
         {DEMO_SESSION_DAY.map(ex => (
-          <div key={ex.id} style={{ background: C.sf, border: `1px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
-            <DemoSessionExercise ex={ex} open={!!openEx[ex.id]} onToggle={() => setOpenEx(p => ({ ...p, [ex.id]: !p[ex.id] }))} />
-          </div>
+          <DemoSingleExercise key={ex.id} ex={ex} index={DEMO_SESSION_DAY.indexOf(ex) + 1} open={!!openEx[ex.id]} onToggle={() => setOpenEx(p => ({ ...p, [ex.id]: !p[ex.id] }))} />
         ))}
+        {/* the real logger's session note + its outlined COMPLETE (Btn success) - #809 parity */}
+        <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, marginBottom: 6 }}>{tr(readLang(), 'Workout Notes')}</div>
+        <textarea placeholder={tr(readLang(), 'Session observations...')} dir="auto" style={{ width: '100%', boxSizing: 'border-box', minHeight: 72, background: 'var(--c-sf2, ' + C.sf + ')', border: '1px solid transparent', borderRadius: 0, color: C.tx, fontFamily: FB, fontSize: 13, padding: 10, resize: 'vertical', outline: 'none' }} />
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-          <button style={{ ...baseBtn, background: C.gn, color: '#06251a', padding: '0 48px', fontSize: 14, fontWeight: 700 }}>{tr(readLang(), 'Complete Workout')}</button>
+          <button style={{ ...baseBtn, background: 'transparent', border: '1px solid ' + C.gn, color: C.gn, padding: '0 48px', fontSize: 14, fontWeight: 700 }}>{tr(readLang(), 'Complete Workout')}</button>
         </div>
       </div>
     );
