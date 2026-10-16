@@ -1751,7 +1751,9 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
   // leads at the reading size, from its own start edge, up to three lines (the whole of it once open); ONE quiet meta
   // line under it - the urgency and (outside the status board) the status as coloured words you can still change in
   // place, then the date, SHARED and the athlete. The 96px boxes and the centred 2-line clamp are gone.
-  if (board) {
+  // A PHONE LIST ROW IS THE BOARD CARD (16.10 #854, Ohad on the list at 390: "Too much wasted space and not enough ocd" -
+  // a centred title over a full-width status|urgency box pair and a third line of tags): the title, then one line of words
+  if (board || phone) {
     const word = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1.3, unicodeBidi: 'isolate' /* each word keeps its own order inside a Hebrew line ('31 MAY 11:15' read 'MAY 11:15 31') */ };
     const pr = PRIORITY_PICK.find((x) => x.id === priority) || PRIORITY_PICK[2];
     const st = STATUS_OPTIONS.find((x) => x.id === row.status) || STATUS_OPTIONS[0];

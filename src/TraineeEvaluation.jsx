@@ -19,6 +19,8 @@ import { EVAL_SCHEMA, romKey, countFilled, romLabel, romJointLabel } from './eva
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
+import EvalReport from './EvalReport';
+import { useUrlFlag, urlFlagFromPath } from './urlState';
 import { useT, readLang } from './i18n';
 import { todayLocalISO } from './dates';
 
@@ -164,7 +166,7 @@ function JointHeader({ label }) {
 // One row in the evaluations list. Collapsed = date + meta; expanded =
 // full per-section + ROM data underneath. EDIT button opens the editor.
 // ──────────────────────────────────────────────────────────────────────
-function EvalListRow({ evaluation, onOpenEditor }) {
+function EvalListRow({ evaluation, onOpenEditor, onOpenReport }) {
   const tt = useT();
   const [open, setOpen] = useState(false);
   const filled = useMemo(() => countFilled(evaluation.scores, evaluation.rom), [evaluation]);
@@ -194,11 +196,13 @@ function EvalListRow({ evaluation, onOpenEditor }) {
           {evaluation.weight_kg != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('WT')}</span> {evaluation.weight_kg}{readLang() === 'he' ? ' קילו' : 'kg'}</span>}
           <span>{filled === 1 ? tt('1 FIELD') : tt('{n} FIELDS').replace('{n}', filled)}</span>
         </div>
+        {onOpenReport && <button onClick={e => { e.stopPropagation(); onOpenReport(evaluation); }}
+          style={{ height: 36, background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', padding: '0 12px', borderRadius: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', cursor: 'pointer' }}>{readLang() === 'he' ? 'סיכום' : 'SUMMARY'}</button>}
         <button onClick={e => { e.stopPropagation(); onOpenEditor(evaluation); }}
           style={{
             background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
-            padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 9,
-            fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
+            height: 36, padding: '0 12px', borderRadius: 0, fontFamily: FN, fontSize: 10,
+            fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', cursor: 'pointer',
           }}>{tt('EDIT')}</button>
         <span style={{ color: 'var(--c-tm)', fontSize: 11, marginInlineStart: 4 }}>{open ? '▲' : '▼'}</span>
       </div>
@@ -272,7 +276,27 @@ const num = (x) => (x != null && x !== '' && Number.isFinite(parseFloat(x)) ? pa
 export default function TraineeEvaluation({ trainee, bwLog = [] }) {
   const tt = useT();
   const { rows, create, update, loading } = useTraineeEvaluations(trainee?.id);
-  const [editing, setEditing] = useState(null);
+  // a link straight to the editor / the analysis opens it (an id is held as a string until the rows arrive)
+  const evBase0 = (typeof window !== 'undefined' && trainee?.id && (window.location.pathname === `/coach/athletes/${trainee.id}` || window.location.pathname.startsWith(`/coach/athletes/${trainee.id}/`))) ? `/coach/athletes/${trainee.id}` : null;
+  const [editing, setEditing] = useState(() => (evBase0 ? urlFlagFromPath(window.location.pathname, evBase0, 'evaluation', true) : null));
+  // EVERY SURFACE HAS ITS URL (#837): /coach/athletes/<id>/evaluation/new, /evaluation/<evalId> (the editor),
+  // /evaluation-summary/<evalId> (the summary). A reload reopens it, Back closes it.
+  const evBase = evBase0;
+  const editKey = editing === 'new' ? 'new' : typeof editing === 'string' ? editing : (editing && editing.id) || null;
+  // before the rows arrive an id is held as a string (the URL keeps it) and resolved by the effect below
+  const setEditKey = (k) => setEditing(!k ? null : k === 'new' ? 'new' : rows.length ? (rows.find((r) => r.id === k) || null) : k);
+  useUrlFlag(editKey, setEditKey, evBase, 'evaluation', { withId: true });
+  const [reportId, setReportId] = useState(() => (evBase0 ? urlFlagFromPath(window.location.pathname, evBase0, 'evaluation-summary', true) : null));
+  useUrlFlag(reportId, (k) => setReportId(k || null), evBase, 'evaluation-summary', { withId: true });
+  // a URL opened before the rows arrived: resolve it once they do
+  // (rows start empty while they load - resolving then would drop the link)
+  useEffect(() => { if (loading) return; if (typeof editing === 'string' && editing !== 'new') setEditing(rows.find((r) => r.id === editing) || null); }, [rows, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  const reportRow = reportId ? rows.find((r) => r.id === reportId) : null;
+  // a summary link to an evaluation that is not there (deleted, another athlete's) closes once the rows are in
+  useEffect(() => { if (!loading && reportId && !rows.some((r) => r.id === reportId)) setReportId(null); }, [loading, rows, reportId]);
+  // the evaluation before this one: the newest dated earlier (a back-dated or re-dated one is compared in date order)
+  const evKey = (r) => `${r.eval_date || ''}|${r.created_at || ''}`;
+  const prevOf = (row) => rows.filter((r) => r.id !== row.id && evKey(r) < evKey(row)).sort((a, b) => (evKey(a) < evKey(b) ? 1 : -1))[0] || null;
 
   // Intake vitals — the athlete's own submitted DOB / height / weight, used only
   // as DEFAULTS for a new evaluation (never fabricated, blank if intake has none).
@@ -319,10 +343,24 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
     weight_kg: latestBwFromLog ?? num(trainee?.weight) ?? (intakeVitals ? num(intakeVitals.weight) : null),
   }), [intakeVitals, latestBwFromLog, trainee]);
 
+  // a save opens the analysis of what was just saved (#837: 'after saved, I need an output as an analysis'). The editor's
+  // close steps the history back, and that Back makes every URL-bound pop-up re-read the address - opened at once, the
+  // analysis was closed by it. So it opens once the editor is shut and the Back has landed (or after 600 ms without one).
+  const pendingReport = useRef(null);
   const onSave = async (input) => {
-    if (editing === 'new') return create(input);
-    if (editing?.id) return update(editing.id, input);
+    if (editing === 'new') { const row = await create(input); if (row && row.id) pendingReport.current = row.id; return row; }
+    if (editing?.id) { const id = editing.id; const ok = await update(id, input); if (ok) pendingReport.current = id; return ok; }
   };
+  useEffect(() => {
+    if (editing || !pendingReport.current) return undefined;
+    const id = pendingReport.current; pendingReport.current = null;
+    let done = false;
+    const open = () => { if (done) return; done = true; window.removeEventListener('popstate', onPop); clearTimeout(t); setReportId(id); };
+    const onPop = () => setTimeout(open, 0);
+    window.addEventListener('popstate', onPop);
+    const t = setTimeout(open, 600);
+    return () => { window.removeEventListener('popstate', onPop); clearTimeout(t); };
+  }, [editing]);
 
   // ── Camera-measurement session ────────────────────────────────────────────
   // CAMERA TEST opens a picker of every eval test/ROM-axis the camera can
@@ -552,10 +590,10 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
 
       {/* Evaluations list — newest first; click any row to expand it */}
       {rows.map(e => (
-        <EvalListRow key={e.id} evaluation={e} onOpenEditor={setEditing} />
+        <EvalListRow key={e.id} evaluation={e} onOpenEditor={setEditing} onOpenReport={(ev) => setReportId(ev.id)} />
       ))}
 
-      {editing && (
+      {(editing === 'new' || (editing && typeof editing === 'object')) && (
         <EvaluationEditor
           trainee={trainee}
           existing={editing === 'new' ? null : editing}
@@ -563,6 +601,10 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
           onSave={onSave}
           onClose={() => setEditing(null)}
         />
+      )}
+      {reportRow && (
+        <EvalReport evaluation={reportRow} prev={prevOf(reportRow)} traineeName={trainee?.name || ''}
+          onClose={() => setReportId(null)} onEdit={() => { setReportId(null); setEditing(reportRow); }} />
       )}
     </CollapsibleSection>
   );

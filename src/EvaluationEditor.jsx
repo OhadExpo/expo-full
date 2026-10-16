@@ -7,11 +7,11 @@
 // via the hook in evaluationsData.js. eval_id is null for create, set for
 // edit-in-place.
 
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { C, FN, FB } from './theme';
-import { useT } from './i18n';
-import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog, ChipGrid } from './ui';
+import { FN, FB } from './theme';
+import { useT, readLang } from './i18n';
+import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog } from './ui';
 import { EVAL_SCHEMA, romKey, romLabel, romJointLabel } from './evaluationSchema';
 import { todayLocalISO } from './dates';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
@@ -23,134 +23,127 @@ const MovementLab = lazy(() => import('./MovementLab'));
 // other embedded test tools.
 const HoldTimer = lazy(() => import('./HoldTimer'));
 
+// THE EVALUATION, REDESIGNED (16.10 #837, Ohad: "On ath eval. Page looks horrible text overflow. Boxes don't match.
+// Redesign the entire page"). One box height (36px) everywhere; a field's label sits in its own row ABOVE the inputs,
+// so a label that wraps can never push its box out of line or paint over it; sides are words (שמאל / ימין), never a
+// lone letter beside another field's text; the 1-2-3 scores are one joined row per side; the ROM is one aligned row
+// per motion; no glyphs. Every value is the same field it always was (same keys, same save).
+const BOX = 36;
 const inputBase = {
   background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
-  padding: '7px 8px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 12,
-  outline: 'none', boxSizing: 'border-box', minWidth: 0, textAlign: 'center',
+  padding: '0 8px', height: BOX, minHeight: BOX, color: 'var(--c-tx)', fontFamily: FN, fontSize: 13,
+  outline: 'none', boxSizing: 'border-box', minWidth: 0, width: '100%', textAlign: 'center',
 };
+const he0 = () => readLang() === 'he';   // the app's language (documentElement.lang can be left over from another page)
+const lab = () => ({ fontFamily: FN, fontSize: 9.5, color: 'var(--c-tm)', letterSpacing: he0() ? 0 : '0.06em', fontWeight: 700, textTransform: 'uppercase', lineHeight: 1.25, textAlign: 'center', overflowWrap: 'anywhere' });
+// the side words (the shared 'Left' key already means 'remaining')
+// a word with its English fallback (a key with no Hebrew would otherwise show as the key itself in English)
+const W = (tt, en, key) => { const v = tt(key); return v === key ? en : v; };
+const sideWord = (tt, s) => (s === 'L' ? W(tt, 'Left', 'eval·side·L') : s === 'R' ? W(tt, 'Right', 'eval·side·R') : s);
+const partWord = (tt, p) => { const k = `eval·part·${p}`; const v = tt(k); return v === k ? p : v; };
+const secWord = (tt, t) => { const k = `eval·sec·${t}`; const v = tt(k); return v === k ? t : v; };
 
-// One test row mirrors the ATH EVAL.xlsx layout: # · NAME · GOAL · SCORE.
-// Score column adapts to test shape (simple / sided / composite / sided
-// composite) but stays inside its column — never overflows the card.
-// A small "TEST" affordance next to a measurable row. Sided tests offer L/R;
-// not-yet-built tools show a disabled "soon" chip so the eval reveals the
-// intended camera coverage without pretending it works.
+// FIELDS: a grid whose first row holds every label and whose second row holds every input, so the inputs share one line
+// whatever the labels do. Up to `per` columns a row; more fields wrap into further label/input row pairs.
+function FieldGrid({ cells, per = 3 }) {
+  const rows = [];
+  for (let i = 0; i < cells.length; i += per) rows.push(cells.slice(i, i + per));
+  const cols = Math.min(per, Math.max(2, cells.length));
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      {rows.map((r, ri) => (
+        <div key={ri} style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, columnGap: 8, rowGap: 4, alignItems: 'end' }}>
+          {r.map((c, i) => <div key={'l' + i} style={lab()}>{c.label}</div>)}
+          {r.length < cols && Array.from({ length: cols - r.length }).map((_, i) => <div key={'le' + i} />)}
+          {r.map((c, i) => <div key={'i' + i} style={{ minWidth: 0 }}>{c.input}</div>)}
+          {r.length < cols && Array.from({ length: cols - r.length }).map((_, i) => <div key={'ie' + i} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// The camera / timer tool for a measurable test: a full-width 36px button, or two equal cells for a sided test.
 function TestButtons({ test, onTest }) {
   const tt = useT();
   const map = toolForTest(test.id);
   if (!map) return null;
   const soon = map.status === 'soon';
-  const base = {
-    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-    padding: '3px 8px', borderRadius: 0, cursor: soon ? 'default' : 'pointer',
-    border: `1px solid ${soon ? 'var(--c-cardBd)' : 'var(--c-ac)'}`,
-    background: 'transparent', color: soon ? 'var(--c-td)' : 'var(--c-ac)',
-    opacity: soon ? 0.6 : 1,
-  };
-  if (soon) return <div style={{ marginTop: 5 }}><span style={base}>{tt('◉ TEST · soon')}</span></div>;
   const sides = map.side ? ['L', 'R'] : [null];
-  // L / R as two equal cells (5.10 #574); an action, so nothing is "active" and the cyan stays
+  // a half-width cell (a sided test) takes the short word - 'Measure with the camera · Left' did not fit a phone's half
+  const word = soon ? W(tt, 'Measure · soon', 'eval·tool·soon') : map.tool === 'hold' ? W(tt, 'Timer', 'eval·tool·timer') : sides.length > 1 ? W(tt, 'Camera', 'eval·tool·camera short') : W(tt, 'Measure with the camera', 'eval·tool·camera');
   return (
-    <ChipGrid value={null} style={{ marginTop: 5 }}
-      items={sides.map(s => ({ k: s || 'x', label: `${tt('◉ TEST')}${s ? ` · ${s}` : ''}`, tone: 'var(--c-ac)', onClick: () => onTest(test, map, s) }))} />
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${sides.length}, minmax(0, 1fr))`, gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)', marginTop: 10 }}>
+      {sides.map((s) => (
+        <button key={s || 'x'} type="button" disabled={soon} onClick={() => !soon && onTest(test, map, s)}
+          style={{ height: BOX, border: 'none', background: 'var(--c-sf)', color: soon ? 'var(--c-td)' : 'var(--c-ac)', cursor: soon ? 'default' : 'pointer',
+            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: he0() ? 0 : '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 8px' }}>
+          {word}{s ? ` · ${sideWord(tt, s)}` : ''}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// a test's head: its number, its name (English, the platform's rule for test and exercise names) and its goal
+function TestHead({ index, test, extra = null }) {
+  const tt = useT();
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--c-td)', width: 18, flexShrink: 0, textAlign: 'center' }}>{index}</span>
+      <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+        {/* the name on the page's own side (an English name in a Hebrew page still reads left to right inside its bdi) */}
+        <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, color: 'var(--c-tx)', lineHeight: 1.3, textAlign: 'start', overflowWrap: 'anywhere' }}><bdi>{test.label}</bdi></div>
+        {test.goal && test.goal !== '—' && (
+          <div style={{ fontFamily: FN, fontSize: 10.5, color: 'var(--c-tm)', marginTop: 3, lineHeight: 1.3 }}>
+            {W(tt, 'Goal', 'eval·goal')}: <bdi dir="ltr">{test.goal}</bdi>
+          </div>
+        )}
+      </div>
+      {extra}
+    </div>
   );
 }
 
 function TestRow({ index, test, value, onChange, onTest }) {
+  const tt = useT();
   const isComposite = Array.isArray(test.composite);
   const hasSides = Array.isArray(test.sides);
-  const isMobile = useIsMobile();
-
-  const setSimple = (v) => onChange(v);
-  const setSide = (side, v) => onChange({ ...(typeof value === 'object' ? value : {}), [side]: v });
-  const setComposite = (partId, v) => onChange({ ...(typeof value === 'object' ? value : {}), [partId]: v });
-  const setSideComposite = (side, partId, v) => {
-    const cur = typeof value === 'object' && value ? value : {};
-    const sideCur = typeof cur[side] === 'object' && cur[side] ? cur[side] : {};
-    onChange({ ...cur, [side]: { ...sideCur, [partId]: v } });
-  };
-
-  const labelStyle = {
-    fontFamily: FN, fontSize: 9, color: 'var(--c-tm)',
-    letterSpacing: '0.1em', fontWeight: 700, marginBottom: 3,
-  };
-
+  const obj = typeof value === 'object' && value ? value : {};
+  const asObj = (c) => (typeof c === 'object' && c ? c : {});
+  const setSide = (side, v) => onChange((c) => ({ ...asObj(c), [side]: v }));
+  const setComposite = (partId, v) => onChange((c) => ({ ...asObj(c), [partId]: v }));
+  const setSideComposite = (side, partId, v) => onChange((c) => { const o = asObj(c); const sideCur = typeof o[side] === 'object' && o[side] ? o[side] : {}; return { ...o, [side]: { ...sideCur, [partId]: v } }; });
+  const unit0 = test.unit && test.unit !== 'composite' ? test.unit : '';
+  const unit = unit0 ? partWord(tt, unit0) : '';   // 'sec' -> 'שניות', 'cm' -> 'ס״מ' in a Hebrew page
+  const inp = (val, on, ph = unit) => <input dir="ltr" value={val || ''} onChange={(e) => on(e.target.value)} placeholder={ph} style={inputBase} />;
+  let fields;
+  if (!hasSides && !isComposite) {
+    fields = <FieldGrid per={2} cells={[{ label: unit || W(tt, 'Result', 'eval·result'), input: inp(typeof value === 'object' ? '' : value, (v) => onChange(v)) }]} />;
+  } else if (hasSides && !isComposite) {
+    fields = <FieldGrid per={2} cells={test.sides.map((s) => ({ label: `${sideWord(tt, s)}${unit ? ` · ${unit}` : ''}`, input: inp(obj[s], (v) => setSide(s, v)) }))} />;
+  } else if (!hasSides && isComposite) {
+    fields = <FieldGrid per={3} cells={test.composite.map((p) => ({ label: `${partWord(tt, p.label)}${p.unit ? ` · ${partWord(tt, p.unit)}` : ''}`, input: inp(obj[p.id], (v) => setComposite(p.id, v), p.unit ? partWord(tt, p.unit) : '') }))} />;
+  } else {
+    // sided composite: a small table - the parts across, one row per side
+    fields = (
+      <div style={{ display: 'grid', gridTemplateColumns: `64px repeat(${test.composite.length}, minmax(0, 1fr))`, columnGap: 8, rowGap: 6, alignItems: 'center' }}>
+        <div />
+        {test.composite.map((p) => <div key={p.id} style={lab()}>{partWord(tt, p.label)}{p.unit ? ` · ${p.unit}` : ''}</div>)}
+        {test.sides.map((s) => (
+          <React.Fragment key={s}>
+            <div style={{ ...lab(), color: 'var(--c-ac)', textAlign: 'start' }}>{sideWord(tt, s)}</div>
+            {test.composite.map((p) => <div key={p.id} style={{ minWidth: 0 }}>{inp(typeof obj[s] === 'object' && obj[s] ? obj[s][p.id] : '', (v) => setSideComposite(s, p.id, v), p.unit || '')}</div>)}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  }
   return (
-    <div className="eval-row" style={{
-      display: 'grid',
-      // phone (12.10): no GOAL column - 42px cut 'NORMATIVE' and the TEST · L / R pair; the goal is a line under the name and
-      // the test buttons get their own full-width line under the row
-      gridTemplateColumns: isMobile ? '16px minmax(0,1.4fr) minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
-      gap: isMobile ? 6 : 10, padding: '7px 0', alignItems: 'center',
-      borderBottom: `1px solid var(--c-cardBd)`,
-    }}>
-      <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
-      <div>
-        <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
-        {isMobile && test.goal && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3, marginTop: 2 }}>{test.goal}</div>}
-        {!isMobile && <TestButtons test={test} onTest={onTest} />}
-      </div>
-      {!isMobile && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>}
-      <div style={{ minWidth: 0 }}>
-        {/* simple — capped width so a lone number doesn't float in a huge box */}
-        {!hasSides && !isComposite && (
-          <input value={value || ''} onChange={e => setSimple(e.target.value)}
-            placeholder={test.unit || ''} style={{ ...inputBase, width: '100%', maxWidth: 120 }} />
-        )}
-        {/* sided, non-composite — two stacked rows on narrow, side-by-side on wide */}
-        {hasSides && !isComposite && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
-            {test.sides.map(s => (
-              <div key={s}>
-                <div style={labelStyle}>{s} · {test.unit || ''}</div>
-                <input value={(typeof value === 'object' && value?.[s]) || ''}
-                  onChange={e => setSide(s, e.target.value)}
-                  placeholder={test.unit || ''} style={{ ...inputBase, width: '100%' }} />
-              </div>
-            ))}
-          </div>
-        )}
-        {/* non-sided composite — sub-fields stacked vertically with labels */}
-        {!hasSides && isComposite && (
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${test.composite.length}, minmax(0, 1fr))`, gap: 6 }}>
-            {test.composite.map(part => (
-              <div key={part.id}>
-                <div style={labelStyle}>
-                  {part.label}{part.unit ? ` · ${part.unit}` : ''}
-                </div>
-                <input value={(typeof value === 'object' && value?.[part.id]) || ''}
-                  onChange={e => setComposite(part.id, e.target.value)}
-                  style={{ ...inputBase, width: '100%' }} />
-              </div>
-            ))}
-          </div>
-        )}
-        {/* sided composite — side header + composite sub-fields per side */}
-        {hasSides && isComposite && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-            {test.sides.map(s => (
-              <div key={s} style={{ minWidth: 0 }}>
-                <div style={{ ...labelStyle, color: 'var(--c-ac)', fontSize: 10, marginBottom: 4 }}>{s}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${test.composite.length}, minmax(0, 1fr))`, gap: 4 }}>
-                  {test.composite.map(part => (
-                    <div key={part.id} style={{ minWidth: 0 }}>
-                      <div style={{ ...labelStyle, fontSize: 8, marginBottom: 2 }}>
-                        {/* a narrow column (tablet, Hebrew): 'SSC/LSC·ms' was one unbreakable word and painted 6px outside
-                            its box - it may break after the slash and before the unit (#756) */}
-                        {String(part.label).split('/').map((w, i) => <React.Fragment key={i}>{i ? <>/<wbr /></> : null}{w}</React.Fragment>)}{part.unit ? <><wbr />{`·${part.unit}`}</> : ''}
-                      </div>
-                      <input value={(typeof value?.[s] === 'object' && value[s]?.[part.id]) || ''}
-                        onChange={e => setSideComposite(s, part.id, e.target.value)}
-                        style={{ ...inputBase, width: '100%', padding: '6px 8px', fontSize: 11 }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      {isMobile && toolForTest(test.id) && <div style={{ gridColumn: '2 / -1' }}><TestButtons test={test} onTest={onTest} /></div>}
+    <div className="eval-row" data-eval-test={test.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--c-cardBd)' }}>
+      <TestHead index={index} test={test} />
+      {fields}
+      <TestButtons test={test} onTest={onTest} />
     </div>
   );
 }
@@ -159,199 +152,123 @@ function TestRow({ index, test, value, onChange, onTest }) {
 const SCORE_COLORS = { 1: 'var(--c-rd)', 2: 'var(--c-or)', 3: 'var(--c-gn)' };
 const isScore = (v) => v === 1 || v === 2 || v === 3;
 
-// Tap group for one 1-3 score. Selected fills solid in its color; the rest sit
-// as faint outlines so an unscored row reads calm. Tapping the active number
-// clears it. Legacy free-text (e.g. "4", "R-4") shows as a faint `was:` hint.
-function ScoreButtons({ value, onChange }) {
+// One side's score: three EQUAL joined cells; the chosen one framed in its colour, the word in its colour (no fills);
+// tapping the chosen one clears it. A legacy free-text value shows under the row.
+function ScoreButtons({ value, onChange, label }) {
   const tt = useT();
   const sel = isScore(value) ? value : null;
   const legacy = (value != null && value !== '' && !isScore(value)) ? String(value) : null;
   return (
-    <div>
-      <div style={{ display: 'flex', gap: 5 }}>
-        {[1, 2, 3].map(n => {
+    <div style={{ minWidth: 0 }}>
+      <div role="radiogroup" aria-label={label} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+        {[1, 2, 3].map((n) => {
           const on = sel === n;
           const col = SCORE_COLORS[n];
           return (
-            <button key={n} type="button" onClick={() => onChange(on ? null : n)}
-              style={{
-                width: 32, height: 32, borderRadius: 0, cursor: 'pointer',
-                fontFamily: FN, fontSize: 14, fontWeight: 800,
-                border: `1px solid ${col}`, background: on ? col : 'transparent',
-                color: on ? '#000000' : col, opacity: on ? 1 : 0.45,
-                transition: 'opacity 120ms ease, background 120ms ease',
-              }}>{n}</button>
+            <button key={n} type="button" role="radio" aria-checked={on} onClick={() => onChange(on ? null : n)}
+              style={{ height: BOX, borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 15, fontWeight: 800, background: 'transparent',
+                border: `${on ? 2 : 1}px solid ${on ? col : 'var(--c-cardBd)'}`, color: on ? col : 'var(--c-tm)', boxSizing: 'border-box' }}>{n}</button>
           );
         })}
       </div>
-      {legacy && (
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', marginTop: 3 }}>{tt('was:')} {legacy}</div>
-      )}
+      {legacy && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-td)', marginTop: 4 }}>{tt('was:')} <bdi>{legacy}</bdi></div>}
     </div>
   );
 }
 
-// Movements row — qualitative scoring. Three zones: TEST+goal · WATCH (the
-// parameters to observe, from the ATH EVAL sheet) · SCORE (1-3 tap, per side
-// for sided moves) + a collapsible per-exercise note.
+// A movement: its head, what to watch (the sheet's parameters, one per line), then one score row per side and a note.
 function MovementRow({ index, test, value, note, onScore, onNote }) {
   const tt = useT();
   const hasSides = Array.isArray(test.sides);
-  const isMobile = useIsMobile();
   const [noteOpen, setNoteOpen] = useState(!!note);
-  const setSide = (side, v) => onScore({ ...(typeof value === 'object' && value ? value : {}), [side]: v });
-
+  const obj = typeof value === 'object' && value ? value : {};
+  const setSide = (side, v) => onScore((c) => ({ ...(typeof c === 'object' && c ? c : {}), [side]: v }));
   return (
-    <div style={{ borderBottom: `1px solid var(--c-cardBd)` }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '16px minmax(0,1.3fr) minmax(0,1.5fr) minmax(0,1.4fr)' : '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px',
-        gap: isMobile ? 6 : 12, padding: '12px 0', alignItems: 'start',
-      }}>
-        <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700, paddingTop: 6 }}>{index}</div>
-        <div style={{ paddingTop: 4 }}>
-          <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
-          {test.goal && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', marginTop: 2 }}>{test.goal}</div>}
-        </div>
-        {/* WATCH — parameters, one per line, muted reference */}
-        <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <div className="eval-row" data-eval-move={test.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--c-cardBd)' }}>
+      <TestHead index={index} test={test} />
+      {(test.params || []).length > 0 && (
+        <div style={{ margin: '0 0 12px', paddingInlineStart: 28 }}>
+          <div style={{ ...lab(), textAlign: 'start', marginBottom: 4 }}>{W(tt, 'Watch', 'eval·watch')}</div>
           {(test.params || []).map((p, i) => (
-            <div key={i} style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.3, display: 'flex', gap: 6 }}>
-              <span style={{ color: 'var(--c-ac)', flexShrink: 0 }}>·</span><span>{p}</span>
-            </div>
+            <div key={i} dir="ltr" style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.45, textAlign: 'start', unicodeBidi: 'plaintext' }}><bdi>{p}</bdi></div>
           ))}
-        </div>
-        {/* SCORE — 1-3 tap. Every line is [side-label · buttons], right-aligned,
-            with a fixed-width label slot (blank on bilateral) so the button
-            columns line up across sided and bilateral rows alike. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-          {(hasSides ? test.sides : [null]).map((s, i) => (
-            <div key={s || i} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', width: 12, textAlign: 'end' }}>{s || ''}</span>
-              <ScoreButtons
-                value={s ? (typeof value === 'object' && value ? value[s] : undefined) : value}
-                onChange={v => (s ? setSide(s, v) : onScore(v))} />
-            </div>
-          ))}
-          <button type="button" onClick={() => setNoteOpen(o => !o)}
-            title={note ? tt('Edit note') : tt('Add note')}
-            style={{
-              background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 0',
-              fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-              color: note ? 'var(--c-ac)' : 'var(--c-td)',
-            }}>{note ? tt('NOTE') : tt('NOTE +')}</button>
-        </div>
-      </div>
-      {noteOpen && (
-        <div style={{ padding: '0 0 12px 36px' }}>
-          <input value={note || ''} onChange={e => onNote(e.target.value)} dir="auto"
-            placeholder={`${tt('Note')} · ${test.label}`}
-            style={{ ...inputBase, width: '100%', maxWidth: 520 }} />
         </div>
       )}
+      <div style={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr)', columnGap: 8, rowGap: 8, alignItems: 'center' }}>
+        {(hasSides ? test.sides : [null]).map((s) => (
+          <React.Fragment key={s || 'x'}>
+            <div style={{ ...lab(), color: s ? 'var(--c-ac)' : 'var(--c-tm)', textAlign: 'start' }}>{s ? sideWord(tt, s) : W(tt, 'Score', 'eval·score')}</div>
+            <ScoreButtons label={`${test.label}${s ? ` · ${sideWord(tt, s)}` : ''}`}
+              value={s ? obj[s] : value}
+              onChange={(v) => (s ? setSide(s, v) : onScore(v))} />
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={{ marginTop: 10 }}>
+        {noteOpen
+          ? <input value={note || ''} onChange={(e) => onNote(e.target.value)} dir="auto" placeholder={W(tt, 'A note on this movement', 'eval·note')} style={{ ...inputBase, textAlign: 'start', fontFamily: FB }} />
+          : <button type="button" onClick={() => setNoteOpen(true)} style={{ height: BOX, width: '100%', background: 'transparent', border: '1px dashed var(--c-cardBd)', color: 'var(--c-tm)', cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: he0() ? 0 : '0.08em', textTransform: 'uppercase' }}>{W(tt, '+ Note', 'eval·add note')}</button>}
+      </div>
     </div>
+  );
+}
+
+// a section: one strip (its name), the hint, then its tests
+function SectionStrip({ title, hint }) {
+  return (
+    <>
+      <div style={{ borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 41, display: 'flex', alignItems: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: he0() ? 0 : '0.1em', textTransform: 'uppercase', color: 'var(--c-ac)', background: 'var(--c-stripBg, var(--c-sf))' }}>{title}</div>
+      {hint && <div style={{ padding: '10px 14px 0', fontFamily: FB, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5 }}>{hint}</div>}
+    </>
   );
 }
 
 function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
   const tt = useT();
   const isMovements = section.id === 'movements';
-  const isMobile = useIsMobile();
+  const hint = section.hint ? (() => { const k = `eval·hint·${section.id}`; const v = tt(k); return v === k ? section.hint : v; })() : null;
   return (
-    <div style={{
-      marginBottom: 22,
-      background: 'var(--c-sf)',
-      padding: '14px 16px',
-    }}>
-      <div style={{
-        fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
-        color: 'var(--c-ac)', marginBottom: 8, paddingBottom: 6,
-        borderBottom: `2px solid var(--c-ac)`,
-      }}>{section.title.toUpperCase()}</div>
-      {section.hint && (
-        <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 8, fontStyle: 'italic' }}>
-          {section.hint}
-        </div>
-      )}
-      {/* Column headers — template matches the row variant so they align */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMovements
-          ? (isMobile ? '16px minmax(0,1.3fr) minmax(0,1.5fr) minmax(0,1.4fr)' : '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px')
-          : (isMobile ? '16px minmax(0,1.4fr) minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)'),
-        gap: isMovements ? (isMobile ? 6 : 12) : (isMobile ? 6 : 10), padding: '4px 0 6px',
-        borderBottom: `1px solid var(--c-cardBd)`,
-      }}>
-        {(isMovements || !isMobile ? ['#', tt('TEST'), isMovements ? tt('WATCH') : tt('GOAL'), tt('SCORE')] : ['#', tt('TEST'), tt('SCORE')]).map((h, i) => (
-          <div key={i} style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>{h}</div>
-        ))}
+    <div data-eval-section={section.id} style={{ border: '1px solid var(--c-cardBd)', background: 'var(--c-sf)', marginBottom: 14 }}>
+      <SectionStrip title={secWord(tt, section.title)} hint={hint} />
+      <div style={{ padding: '0 14px' }}>
+        {isMovements
+          ? section.tests.map((t, i) => <MovementRow key={t.id} index={i + 1} test={t} value={scores[t.id]} note={notes?.[t.id]} onScore={(v) => setScore(t.id, v)} onNote={(v) => setNote(t.id, v)} />)
+          : section.tests.map((t, i) => <TestRow key={t.id} index={i + 1} test={t} value={scores[t.id]} onChange={(v) => setScore(t.id, v)} onTest={onTest} />)}
       </div>
-      {isMovements
-        ? section.tests.map((t, i) => (
-            <MovementRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
-              note={notes?.[t.id]} onScore={v => setScore(t.id, v)} onNote={v => setNote(t.id, v)} />
-          ))
-        : section.tests.map((t, i) => (
-            <TestRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
-              onChange={v => setScore(t.id, v)} onTest={onTest} />
-          ))}
     </div>
   );
 }
 
+// PASSIVE ROM: per joint a sub-strip, then one aligned row per motion - the motion, its degrees, the camera (only on the
+// motions 2D pose measures honestly; the rest keep an empty cell so the columns stay in line)
 function RomBlock({ rom, setRom, onRomTest }) {
   const tt = useT();
   const set = (key, v) => setRom({ ...rom, [key]: v });
   return (
-    <div style={{ marginBottom: 22, background: 'var(--c-sf)', padding: '14px 16px' }}>
-      <div style={{
-        fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
-        color: 'var(--c-ac)', marginBottom: 6, paddingBottom: 6,
-        borderBottom: `2px solid var(--c-ac)`,
-      }}>{romLabel(tt, EVAL_SCHEMA.rom.title).toUpperCase()}</div>
-      <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 6, fontStyle: 'italic' }}>
-        {romLabel(tt, EVAL_SCHEMA.rom.hint)}
-      </div>
-      <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 14 }}>
-        {tt("◉ CAM reads active range from one clip, coach-confirmed — shoulder/hip/knee flexion, knee over-extension, neck flex/ext + lateral, and ankle dorsi/plantar (each with its own framing). Rotations, scapula and foot inversion stay manual — 2D pose can't see them honestly.")}
-      </div>
-      {EVAL_SCHEMA.rom.joints.map((j, ji) => (
-        <div key={j.id} style={{
-          display: 'grid',
-          gridTemplateColumns: '120px 1fr',
-          gap: 14, padding: '10px 0', alignItems: 'start',
-          borderBottom: ji < EVAL_SCHEMA.rom.joints.length - 1 ? `1px solid var(--c-cardBd)` : 'none',
-        }}>
-          <div style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', fontWeight: 700, letterSpacing: '0.04em' }}>
-            {romLabel(tt, j.label)}
-          </div>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))', gap: 8,
-            minWidth: 0,
-          }}>
-            {j.axes.map(ax => {
+    <div data-eval-section="rom" style={{ border: '1px solid var(--c-cardBd)', background: 'var(--c-sf)', marginBottom: 14 }}>
+      <SectionStrip title={romLabel(tt, EVAL_SCHEMA.rom.title)} hint={romLabel(tt, EVAL_SCHEMA.rom.hint)} />
+      <div style={{ padding: '6px 14px 0', fontFamily: FB, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5 }}>{W(tt, 'The camera reads some of these ranges (shoulder, hip and knee flexion, knee over-extension, neck and ankle) and you confirm each one. Rotations, the scapula and foot inversion stay manual.', 'eval·rom camera hint')}</div>
+      <div style={{ padding: '0 14px 6px' }}>
+        {EVAL_SCHEMA.rom.joints.map((j) => (
+          <div key={j.id} data-eval-joint={j.id} style={{ paddingTop: 12 }}>
+            <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--c-tx)', letterSpacing: he0() ? 0 : '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{romLabel(tt, j.label)}</div>
+            {j.axes.map((ax) => {
               const k = romKey(j.id, ax);
               const camSpec = romAxisSpec(j.id, ax);
               return (
-                <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  {/* Wrap, don't ellipsis — "Internal/External Rotation" must show
-                      in full even in the narrow ROM column. */}
-                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.2 }}>{romLabel(tt, ax)}</div>
-                  {/* Camera goniometer only on axes 2D pose measures honestly
-                      (sagittal flexion). Everything else stays manual — no fake
-                      TEST button on a rotation axis the camera can't see. */}
-                  {camSpec && onRomTest && (
-                    <button type="button" onClick={() => onRomTest(camSpec, k)} title={tt('Measure {axis} with the camera').replace('{axis}', romLabel(tt, ax))}
-                      style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '4px 5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tt('◉ CAM')}</button>
-                  )}
-                  <input value={rom[k] || ''} onChange={e => set(k, e.target.value)}
-                    placeholder="°" style={{ ...inputBase, width: 56, padding: '6px 8px', textAlign: 'center' }} />
+                <div key={ax} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 84px 96px', columnGap: 8, alignItems: 'center', minHeight: BOX + 8, borderTop: '1px solid var(--c-cardBd)' }}>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.3, overflowWrap: 'anywhere', padding: '4px 0' }}>{romLabel(tt, ax)}</div>
+                  <input dir="ltr" value={rom[k] || ''} onChange={(e) => set(k, e.target.value)} placeholder="°" aria-label={`${romLabel(tt, j.label)} · ${romLabel(tt, ax)}`} style={inputBase} />
+                  {camSpec && onRomTest
+                    ? <button type="button" onClick={() => onRomTest(camSpec, k)} title={tt('Measure {axis} with the camera').replace('{axis}', romLabel(tt, ax))}
+                        style={{ height: BOX, background: 'transparent', border: '1px solid var(--c-ac)', color: 'var(--c-ac)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: he0() ? 0 : '0.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>{W(tt, 'Camera', 'eval·tool·camera short')}</button>
+                    : <span />}
                 </div>
               );
             })}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -396,8 +313,10 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
     });
   };
 
-  const setScore = (testId, value) => {
+  // value may be a function of the field's latest value (two quick taps on one test never drop the first)
+  const setScore = (testId, value0) => {
     setScores(prev => {
+      const value = typeof value0 === 'function' ? value0(prev[testId]) : value0;
       const next = { ...prev };
       if (value == null || value === '' ||
           (typeof value === 'object' && Object.values(value).every(v => v == null || v === ''))) {
@@ -468,66 +387,49 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
     } finally { setSaving(false); }
   };
 
+  // the meta fields: the date a full row, then time · age and height · weight as equal halves (desktop: five equal cells)
+  const metaInput = { ...inputBase, padding: '0 10px' };
+  const metaCell = (label, input, span = false) => (
+    <div style={{ minWidth: 0, gridColumn: span ? '1 / -1' : undefined }}>
+      <div style={{ ...lab(), textAlign: 'start', marginBottom: 4 }}>{label}</div>
+      {input}
+    </div>
+  );
   return (
     <>
     {createPortal((<div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Evaluation')} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 8px' : '40px 16px',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '12px 8px' : '40px 16px',
       overflowY: 'auto',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
+      <div data-eval-editor onClick={e => e.stopPropagation()} style={{
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
-        padding: isMobile ? 14 : 24, maxWidth: 880, width: '100%',
+        padding: isMobile ? 12 : 20, maxWidth: 880, width: '100%', boxSizing: 'border-box',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: 'var(--c-tx)', letterSpacing: '0.04em' }}>
-            {tt('EVALUATION')} · {trainee?.name || ''}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, minHeight: BOX }}>
+          <h2 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: 'var(--c-tx)', letterSpacing: he0() ? 0 : '0.04em', lineHeight: 1.3, minWidth: 0, overflowWrap: 'anywhere' }}>
+            {tt('EVALUATION')} · <bdi>{trainee?.name || ''}</bdi>
           </h2>
-          <button onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--c-tm)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+          <button type="button" onClick={onClose} aria-label={tt('Close')}
+            style={{ height: BOX, padding: '0 14px', flexShrink: 0, background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: he0() ? 0 : '0.08em', textTransform: 'uppercase' }}>{tt('Close')}</button>
         </div>
 
-        {/* Meta header — date / time / age / height / weight. One tidy row of
-            EVENLY-distributed, matching boxes: equal columns, one shared input
-            height/border/padding so the native date/time inputs line up with the
-            plain number inputs (no more narrow AGE box / mismatched heights). */}
-        {(() => {
-          const META_H = 34;
-          const metaInput = { ...inputBase, width: '100%', height: META_H, padding: '0 10px', boxSizing: 'border-box' };
-          const metaLabel = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 };
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 8, marginBottom: 18 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>{tt('DATE')}</div>
-                {/* dd/mm/yyyy overlay (native date renders the browser locale = MM/DD/YYYY
-                    on Ohad's en-US machine). Transparent native input + centered span. */}
-                <div style={{ position: 'relative', display: 'flex', height: META_H }}>
-                  <input type="date" value={evalDate} onChange={e => setEvalDate(e.target.value)}
-                    onClick={e => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
-                    style={{ ...metaInput, color: 'transparent', cursor: 'pointer' }} />
-                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', opacity: evalDate ? 1 : 0.45 }}>{evalDate ? evalDate.split('-').reverse().join('/') : 'DD/MM/YYYY'}</span>
-                </div>
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>{tt('TIME')}</div>
-                <input type="time" value={evalTime} onChange={e => setEvalTime(e.target.value)} style={metaInput} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>{tt('AGE')}</div>
-                <input type="number" value={age} onChange={e => setAge(e.target.value)} style={metaInput} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>{tt('HEIGHT (cm)')}</div>
-                <input type="number" value={heightCm} onChange={e => setHeightCm(e.target.value)} style={metaInput} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>{tt('WEIGHT (kg)')}</div>
-                <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} style={metaInput} />
-              </div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+          {metaCell(tt('DATE'), (
+            // dd/mm/yyyy over the native picker (the browser's own date text follows its locale)
+            <div style={{ position: 'relative', display: 'flex', height: BOX }}>
+              <input type="date" value={evalDate} onChange={e => setEvalDate(e.target.value)} aria-label={tt('DATE')}
+                onClick={e => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+                style={{ ...metaInput, color: 'transparent', cursor: 'pointer' }} />
+              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', fontFamily: FN, fontSize: 13, color: 'var(--c-tx)', opacity: evalDate ? 1 : 0.45 }}>{evalDate ? evalDate.split('-').reverse().join('/') : 'DD/MM/YYYY'}</span>
             </div>
-          );
-        })()}
+          ), isMobile)}
+          {metaCell(tt('TIME'), <input type="time" dir="ltr" value={evalTime} onChange={e => setEvalTime(e.target.value)} aria-label={tt('TIME')} style={metaInput} />)}
+          {metaCell(tt('AGE'), <input type="number" dir="ltr" inputMode="numeric" value={age} onChange={e => setAge(e.target.value)} aria-label={tt('AGE')} style={metaInput} />)}
+          {metaCell(tt('HEIGHT (cm)'), <input type="number" dir="ltr" inputMode="decimal" value={heightCm} onChange={e => setHeightCm(e.target.value)} aria-label={tt('HEIGHT (cm)')} style={metaInput} />)}
+          {metaCell(tt('WEIGHT (kg)'), <input type="number" dir="ltr" inputMode="decimal" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} aria-label={tt('WEIGHT (kg)')} style={metaInput} />)}
+        </div>
 
         {EVAL_SCHEMA.sections.map(s => (
           <SectionBlock key={s.id} section={s} scores={scores} setScore={setScore}
@@ -536,21 +438,20 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
 
         <RomBlock rom={rom} setRom={setRom} onRomTest={onRomTest} />
 
-        {/* Free notes */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('NOTES')}</div>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} dir="auto"
-            placeholder={tt('Coach observations · red flags · session-context')}
-            style={{ ...inputBase, width: '100%', resize: 'vertical' }} />
+        <div style={{ border: '1px solid var(--c-cardBd)', background: 'var(--c-sf)', marginBottom: 14 }}>
+          <SectionStrip title={tt('NOTES')} />
+          <div style={{ padding: 14 }}>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} dir="auto"
+              placeholder={tt('Coach observations · red flags · session-context')}
+              style={{ ...inputBase, height: 'auto', minHeight: 88, padding: '10px 12px', textAlign: 'start', fontFamily: FB, resize: 'vertical' }} />
+          </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={onClose}
-            style={{ padding: '10px 18px', borderRadius: 0, border: `1px solid var(--c-cardBd)`,
-              background: 'transparent', color: 'var(--c-tm)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>{tt('CANCEL')}</button>
-          <button onClick={save} disabled={saving}
-            style={{ padding: '10px 18px', borderRadius: 0, border: `1px solid var(--c-ac)`,
-              background: 'transparent', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)' }}>
+          <button type="button" onClick={onClose}
+            style={{ height: BOX, border: 'none', background: 'var(--c-sf)', color: 'var(--c-tm)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: he0() ? 0 : '0.1em', cursor: 'pointer' }}>{tt('CANCEL')}</button>
+          <button type="button" onClick={save} disabled={saving}
+            style={{ height: BOX, border: 'none', background: 'var(--c-sf)', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: he0() ? 0 : '0.1em', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? tt('SAVING…') : (existing ? tt('SAVE CHANGES') : tt('SAVE EVALUATION'))}
           </button>
         </div>

@@ -96,6 +96,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 |---------|-----|
 | Athlete portal pages | `/athlete/program` · `/bodyweight` · `/meal-log` · `/history` · `/progress` (an old `/prs` link opens it) · `/messages` (same tails under `/demo/athlete/…`, `/coach/athletes/<id>/preview/…`, `/coach/programs/<id>/preview/…`) |
 | Athlete page pop-ups | `/coach/athletes/<id>/edit` · `/contract` · `/add-payment` · `/edit-payment/<payment>` · `/assign-program` · `/remove-program/<program>` · `/archive` · `/delete` (sections stay `#vitals` … `#club`) |
+| Athlete evaluation (16.10 #837) | `/coach/athletes/<id>/evaluation/new` · `/evaluation/<eval>` (the editor) · `/evaluation-summary/<eval>` (the summary - opens after a save; SUMMARY on every saved evaluation; the demo athlete card: `/demo/coach/trainees/<id>/evaluation-summary`) |
 | BHBC pop-ups (any zone page) | `…/bhbc/<page>/player/<id>` (+ `/game/<date>`) · `/program/<id>` · `/log-lift[/<id>]` · `/log-s-and-c` · `/game-details` · `/minutes-played/<date>` · `/injury/<athlete>[/<injury>]` · `/manage-roster` (`/coach/bhbc/…` owner, `/bhbc/…` club coach) |
 | Review | `/coach/review/<workout>` (the open review) |
 | Review tools | `/coach/review-tools/movement-lab` · `/lift-metrics` · `/jump-test` · `/live-coach` · `/shot-analyzer` |

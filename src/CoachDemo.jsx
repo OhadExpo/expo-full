@@ -13,9 +13,10 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { DEMO_PLANS, DEMO_EXERCISES } from './demoTraineeData';
+import { EvalReportBody } from './EvalReport';
 import { normalizeDays } from './usePlansStore';
 import { displayPhoneIL } from './whatsappButton';
-import { useUrlSync } from './urlState';
+import { useUrlSync, useUrlFlag, urlFlagFromPath } from './urlState';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
@@ -1679,18 +1680,36 @@ const demoEvalFor = (t) => {
     ],
   };
 };
+// the demo evaluation in the real protocol's shape (for the real analysis): the athlete's own jumps, fixed demo readings
+const demoSchemaEval = (t) => {
+  const e = (t && t.ev) || {};
+  const vj = e.vj != null ? Number(e.vj) : 40;
+  return {
+    eval_date: (() => { const d = backDate(74); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
+    scores: { svj: String(vj), broad_jump: e.bj != null ? String(e.bj) : '', iso_sl_stand: { L: '24', R: '31' }, iso_dead_hang: '34', sl_jump: { L: String(Math.round(vj * 0.55)), R: String(Math.round(vj * 0.68)) },
+      bw_squat: 3, bw_lunge: { L: 2, R: 3 }, push_up: 3, hollow_hold: 2, db_rdl: 3, __notes: { bw_lunge: readLang() === 'he' ? 'הברך השמאלית נכנסת פנימה בעלייה' : 'Left knee drifts in on the way up' } },
+    rom: { hip_flexion: '118', hip_internal_rotation: '30', foot_ankle_dorsalflexion: '13', shoulder_flexion: '172', knee_flexion: '135' },
+    notes: null,
+  };
+};
 function DemoEvalIntake({ trainee }) {
   const DEMO_EVAL = demoEvalFor(trainee || {});
   const [open, setOpen] = useState(true);
+  const evBase = trainee && trainee.id ? `/demo/coach/trainees/${encodeURIComponent(trainee.id)}` : null;
+  const [analysis, setAnalysis] = useState(() => (typeof window !== 'undefined' && urlFlagFromPath(window.location.pathname, evBase, 'evaluation-summary')) === true);   // the real page's SUMMARY (#837 parity), on its own URL like the real one
+  useUrlFlag(analysis, (v) => setAnalysis(!!v), evBase, 'evaluation-summary');
   return (
     <div>
       <div style={{ border: `1px solid ${C.ac}`, marginBottom: 8 }}>
         <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }} dir="auto">{dAgoLabel(74)}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>{T('AGE')} </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>{T('HT')} </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>{T('WT')} </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>{T('FIELDS')} </span>{DEMO_EVAL.fields}</span>
+          <button type="button" onClick={(ev) => { ev.stopPropagation(); setAnalysis((v) => !v); }}
+            style={{ height: 36, background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, padding: '0 12px', borderRadius: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', cursor: 'pointer' }}>{readLang() === 'he' ? 'סיכום' : 'SUMMARY'}</button>
           <span style={{ color: C.tm, fontSize: 12 }}><CaretGlyph rot={open ? 0 : -90} /></span>
         </div>
-        {open && (
+        {analysis && <div data-demo-eval-analysis style={{ padding: '0 14px 14px' }}><EvalReportBody evaluation={demoSchemaEval(trainee)} /></div>}
+        {open && !analysis && (
           <div style={{ padding: '0 14px 14px' }}>
             {DEMO_EVAL.sections.map((s, si) => (
               <div key={si} style={{ marginTop: 10 }}>
@@ -4961,15 +4980,13 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
           .dtl-meta { justify-self: start; }
           .dtl-prio { justify-self: start; }
         }
-        /* THE PHONE ROW = the real list's (9.10 #618): title on line 1, status + priority
-           as two equal halves on line 2, the meta centred on line 3 only when there is any */
+        /* THE PHONE ROW = the real list's (16.10 #854): the title on its own line from the page's edge, then urgency,
+           status and the tags as words on one line - no box pair, no centred third line */
         @media (max-width: 560px) {
-          .dtl-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "title title" "status prio" "meta meta"; column-gap: 0; padding: 10px 12px; }
-          /* one joined pair: hairline between, one frame around, colour in the words */
-          .dtl-row > .dtl-status, .dtl-row > .dtl-prio { width: 100% !important; justify-self: stretch; border: 1px solid var(--c-cardBd) !important; background: var(--c-sf) !important; }
-          .dtl-row > .dtl-prio { border-inline-start: none !important; }
-          .dtl-meta { justify-self: center !important; }
-          .dtl-meta:empty { display: none; }
+          .dtl-row { grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "title title title" "prio status meta"; column-gap: 12px; row-gap: 6px; padding: 10px 12px; }
+          .dtl-row > .dtl-status, .dtl-row > .dtl-prio { width: auto !important; height: auto !important; min-height: 0 !important; border: none !important; background: none !important; padding: 0 !important; justify-self: start; font-size: 10px !important; } .dtl-row > button.dtl-status { padding: 10px 0 !important; margin: -10px 0 !important; }   /* the word is the tap target: 32px tall to a thumb, the row keeps its height */
+          .dtl-title { text-align: left !important; } [dir="rtl"] .dtl-title { text-align: right !important; }   /* one edge per column: the page's, whatever the title's script */
+          .dtl-meta { justify-self: start !important; }
         }
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 46, padding: '0 14px', borderBottom: `1px solid ${C.cardBd}` }}>
