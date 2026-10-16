@@ -19,7 +19,14 @@ const NOT_SANDBOXED_RPC = {
   my_trainee: 'athlete portal only - the partner seat never opens it',
   bhbc_activity_append: 'BHBC trail; refuses any non-club-coach with 42501, so it fails closed for the partner',
 };
-const NOT_SANDBOXED_TABLES = {};
+const NOT_SANDBOXED_TABLES = {
+  // Tasks -> נכסים (16.10): the section switch is hidden on a sandbox seat and these tables are is_staff() RLS
+  // (Ohad + Yuval only), so the partner seat can neither see the view nor read or write a row - it fails closed
+  nadlan_cards: 'staff-only property engine; the view is hidden on the partner seat and RLS refuses him',
+  nadlan_thumbs: 'staff-only property engine; the view is hidden on the partner seat and RLS refuses him',
+  nadlan_votes: 'staff-only property engine; the view is hidden on the partner seat and RLS refuses him',
+  nadlan_meta: 'staff-only property engine; the view is hidden on the partner seat and RLS refuses him',
+};
 
 const src = fs.readFileSync('src/supabase.js', 'utf8');
 const tablesBlock = (src.match(/const SBX_TABLES = new Set\(\[([\s\S]*?)\]\)/) || [])[1];
