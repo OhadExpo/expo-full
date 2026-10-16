@@ -1762,7 +1762,7 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
     // THE WORD IS THE CONTROL (re-review): a native select sizes itself to its widest option in Safari and Firefox and
     // task-select forces padding on it, so the word is a plain span and an invisible select over it takes the tap
     const wordPick = ({ value, options, color, label, onPick }) => (   // a function, not a component: no remount per render
-      <span style={{ position: 'relative', display: 'inline-flex', overflow: 'hidden' /* the invisible select never widens the word */ }} onClick={stop} onMouseDown={stop} onKeyDown={stop}>
+      <span style={{ position: 'relative', display: 'inline-flex', overflow: 'hidden' /* the invisible select never widens the word */, padding: '10px 0', margin: '-10px 0' /* a 32px tap target to a thumb; the row keeps its height */ }} onClick={stop} onMouseDown={stop} onKeyDown={stop}>
         <span style={{ ...word, color }}>{tt((options.find((x) => x.id === value) || options[0]).label)}</span>
         <select value={value} onChange={(e) => onPick(e.target.value)} title={label} aria-label={label}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', minHeight: 0, opacity: 0, cursor: 'pointer', margin: 0, padding: 0, border: 'none' }}>
