@@ -1,57 +1,210 @@
 // /coach/tasks/properties — the EXPO property engine inside Tasks (staff only: Ohad + Yuval).
-// The PC engine (M:\ExpoNadlan) writes nadlan_cards / nadlan_thumbs / nadlan_meta after every cycle; both coaches vote
-// here (nadlan_votes, one row per card per coach, live over realtime). "צריך שיחה" / "סיור" open a real task in
-// coach_notes, assigned to whoever pressed it, so property work lives in the same Tasks list as everything else.
-// Every tab has its own URL: /coach/tasks/properties/<new|shortlist|call|rejected|history|opportunities>.
+// The PC engine (M:\ExpoNadlan) writes nadlan_cards / nadlan_thumbs / nadlan_meta after every cycle; both coaches decide
+// here (nadlan_votes, one row per card per coach, live over realtime).
+// THE FORMULA (Ohad 17.10: "too many categories ... find a slightly simple formula"): one decision per card -
+//   מעניין -> the card moves to בטיפול and a call task opens for whoever pressed it; one row then walks it
+//             שיחה -> סיור -> מועמד (סיור opens the visit task);
+//   לא     -> archived at once; one tap tags why.
+// ציון is a 1-5 row. Five tabs: חדשים (every hard rule confirmed by the card gate) · לבירור (a fact missing - the card's
+// own questions settle it) · בטיפול · ארכיון · הזדמנויות. Every card carries its OWN analysis and questions, written by the
+// engine from that ad. Every tab has its own URL: /coach/tasks/properties/<new|check|active|archive|opportunities>.
+// Layout: one grid for every card - photo column | body; the body is title, place, a 4-cell fact table, the engine's
+// read, tags, questions, links, and the decision rows, each row with its label in a fixed column so all cards line up.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from './supabase';
-import { C, FN, FB } from './theme';
+import { C, FH } from './theme';
+import { ChipGrid } from './ui';
 import { useUrlSync, segmentAfter } from './urlState';
 
 const BASE = '/coach/tasks/properties';
 const TABS = [
-  { k: 'new', he: 'חדשים' }, { k: 'shortlist', he: 'רשימה קצרה' }, { k: 'call', he: 'צריך שיחה' },
-  { k: 'rejected', he: 'נדחו' }, { k: 'history', he: 'כבר נראו' }, { k: 'opportunities', he: 'הזדמנויות' },
+  { k: 'new', he: 'חדשים' }, { k: 'check', he: 'לבירור' }, { k: 'active', he: 'בטיפול' },
+  { k: 'archive', he: 'ארכיון' }, { k: 'opportunities', he: 'הזדמנויות' },
 ];
+const TAB_HINT = {
+  new: 'עברו את כל הבדיקות: אזור, גודל, קומה, מחיר ועסקת שכירות - כל אחד מאומת מתוך המודעה.',
+  check: 'לא שוברים אף כלל, אבל חסר נתון קריטי. השאלות בכל כרטיס סוגרות את זה בשיחה אחת.',
+  active: 'נכסים שסימנתם "מעניין", לפי שלב: מועמד, סיור, שיחה.',
+  archive: 'נכסים שסימנתם "לא", ונכסים שכבר נראו לפני המנוע.',
+  opportunities: 'עסקים למסירה, חללים לפי שעה, אותות מוקדמים וכתבות - לא נכסים להשכרה ישירה.',
+};
+const STAGES = [{ k: 'call', label: 'שיחה' }, { k: 'visited', label: 'סיור' }, { k: 'shortlist', label: 'מועמד' }];
+const ACTIVE = new Set(['call', 'visited', 'shortlist']);
+const STAGE_ORDER = { shortlist: 0, visited: 1, call: 2 };
 const AREAS = [
   { k: 0, he: 'כל האזורים' }, { k: 1, he: '1 · צפון ת״א' }, { k: 2, he: '2 · הרצליה פיתוח' },
-  { k: 3, he: '3 · ר״ה + הירוקה' }, { k: 4, he: '4 · רעננה / שמריהו / רשפון' }, { k: 5, he: 'שכונה לבדיקה' },
+  { k: 3, he: '3 · ר״ה + הירוקה' }, { k: 4, he: '4 · רעננה והסביבה' }, { k: 5, he: 'שכונה לבדיקה' },
 ];
 const REJECT = ['קומה', 'מחיר', 'אזור', 'גודל', 'מצב הנכס', 'רעש / שכנים', 'תחושה', 'כבר ראינו', 'אחר'];
-const VERDICT_HE = { shortlist: 'רשימה קצרה', call: 'צריך שיחה', rejected: 'לא מתאים', visited: 'סיור' };
+const VERDICT_HE = { shortlist: 'מועמד', call: 'מעניין · שיחה', rejected: 'לא', visited: 'מעניין · סיור' };
 const WHO_HE = { ohad: 'אוהד', yuval: 'יובל' };
-const DEAL_HE = { business_for_sale: 'עסק למסירה', hourly: 'לפי שעה', sublet: 'סאבלט', rent: 'השכרה' };
+const WHO_WIRE = { ohad: 'Ohad', yuval: 'Yuval' };
+const DEAL_HE = { business_for_sale: 'עסק למסירה', hourly: 'לפי שעה', sublet: 'סאבלט', rent: 'השכרה', signal: 'אות מוקדם' };
+const STAFF = { 'ohadyproductions@gmail.com': 'ohad', 'yuvalberkovitch@gmail.com': 'yuval' };
+const STALE_H = 4;
+// ONE type system that never changes with the app language (Ohad #860: the page jumped in size on he <-> en): the page
+// is Hebrew-only, so every text uses the Hebrew face FH, fixed sizes and line heights; letter-spacing is pinned by the
+// view's own <style> rule so both app languages space it the same.
+const T = (size, weight = 400, extra = null) => ({ fontFamily: FH, fontSize: size, fontWeight: weight, letterSpacing: 0, lineHeight: 1.4, ...extra });
+const GREEN = 'var(--c-gn, #2fbf71)', RED = 'var(--c-rd, #ef4444)', ORANGE = 'var(--c-or, #f5a524)';
 const fmt = (n) => (n == null ? '—' : Math.round(n).toLocaleString('he-IL'));
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? u : undefined);   // never a javascript: href from scraped data
 const newTaskId = () => 'note_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
 const tabFromPath = (p) => { const s = segmentAfter(p, BASE); return TABS.some(t => t.k === s) ? s : 'new'; };
+const uniq = (a) => [...new Set((a || []).filter(Boolean))];
+const gateOf = (c) => (c.gate && c.gate.verdict) || 'unverified';
+const floorHe = (f) => (f == null ? '?' : f === 0 ? 'קרקע' : f < 0 ? `מרתף ${f}` : String(f));
 
-function chip(kind) {
-  const map = { good: ['var(--c-gn, #2fbf71)', 'rgba(47,191,113,0.12)'], warn: ['var(--c-or, #f5a524)', 'rgba(245,165,36,0.12)'],
-    bad: ['var(--c-rd, #ef4444)', 'rgba(239,68,68,0.12)'], info: [C.tx, C.acD] };
-  const [fg, bg] = map[kind] || map.info;
-  return { display: 'inline-block', fontFamily: FB, fontSize: 12, padding: '2px 8px', borderRadius: 999, color: fg, background: bg };
+const chip = (kind) => ({   // a tag is coloured words, never a filled pill
+  display: 'inline-block', ...T(12, 600), color: { good: GREEN, warn: ORANGE, bad: RED, info: C.tm }[kind] || C.tm,
+});
+
+// one labelled control row: the label sits in a fixed column so every row on every card lines up
+function Row({ label, children }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '56px minmax(0,1fr)', alignItems: 'center', gap: 10 }}>
+      <span style={{ ...T(12, 700), color: C.tm }}>{label}</span>
+      <div style={{ minWidth: 0 }}>{children}</div>
+    </div>
+  );
 }
-const btn = (active, tone) => ({
-  fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '7px 11px', borderRadius: 0, cursor: 'pointer',
-  border: `1px solid ${active ? (tone || C.ac) : C.bd}`, background: active ? (tone || C.ac) : 'transparent',
-  color: active ? 'var(--c-bg)' : C.tx,
+
+// the four facts that decide a space, as one table row: label above, value below, equal cells
+function Facts({ c }) {
+  const cells = [
+    { l: 'גודל', v: c.size_m2 ? `${fmt(c.size_m2)} מ״ר` : '?' },
+    { l: 'קומה', v: floorHe(c.floor) },
+    { l: 'שכירות', v: c.price ? `₪${fmt(c.price)}` : '?' },
+    { l: '₪ למ״ר', v: c.price && c.size_m2 ? fmt(c.price / c.size_m2) : '—' },
+  ];
+  return (
+    <div className="nadlan-facts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', border: `1px solid ${C.cardBd}` }}>
+      {cells.map((x, i) => (
+        <div key={x.l} style={{ padding: '7px 10px', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', display: 'grid', gap: 2, minWidth: 0 }}>
+          <span style={{ ...T(11, 600), color: C.tm }}>{x.l}</span>
+          <span style={{ ...T(15, 700), color: x.v === '?' ? ORANGE : C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.v}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// One card. Module-level (never defined inside the view's render), so an open <details> survives the other coach's
+// vote arriving over realtime.
+const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, me, busy, onVote }) {
+  const g = c.gate || {};
+  const pass = gateOf(c) === 'pass';
+  const bad = (c.flags || []).some(f => /מעל התקרה|פינוי|שבת|מעטפת/.test(f));
+  const links = (c.links || []).map(l => ({ ...l, url: safeUrl(l.url) })).filter(l => l.url);
+  const qs = uniq(g.questions_he && g.questions_he.length ? g.questions_he : c.questions).slice(0, 6);   // this ad's own questions
+  const can = !!me && !busy;
+  const interested = ACTIVE.has(mine.verdict);
+  const rejected = mine.verdict === 'rejected';
+  const dis = (it) => ({ ...it, disabled: !can });
+  const title = [c.ptype, [c.street, c.house_no].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || c.title || 'נכס';
+  const place = [c.neighborhood, c.city].filter(Boolean).join(', ');
+  return (
+    <article className="nadlan-card" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,176px) minmax(0,1fr)', border: `1px solid ${bad ? RED : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }}>
+      <div className="nadlan-photo" style={{ position: 'relative', background: C.sf2, minHeight: 176 }}>
+        {thumb ? <img alt="" src={`data:image/jpeg;base64,${thumb}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: C.tm, ...T(12) }}>{c.n_photos ? 'תמונות במודעה' : 'אין תמונות'}</div>}
+        <div title="ציון התאמה של המנוע (0-100)" style={{ position: 'absolute', top: 8, insetInlineStart: 8, ...T(20, 800, { lineHeight: 1, fontVariantNumeric: 'tabular-nums' }), minWidth: 44, textAlign: 'center', padding: '6px 6px', background: C.sf, color: C.tx, border: `2px solid ${c.score >= 80 ? GREEN : c.score >= 60 ? ORANGE : C.bd}` }}>{Math.round(c.score)}</div>
+      </div>
+      <div style={{ padding: '12px 14px', display: 'grid', gap: 10, alignContent: 'start', minWidth: 0, direction: 'rtl', textAlign: 'right' }}>
+        <header style={{ display: 'grid', gap: 2 }}>
+          <h3 style={{ margin: 0, ...T(16, 700), color: C.tx }}>{title}</h3>
+          <div style={{ ...T(12), color: C.tm }}>{place}{c.first_seen ? `${place ? ' · ' : ''}נמצא ${c.first_seen}` : ''}{c.broker ? ' · תיווך' : ''}</div>
+        </header>
+        <Facts c={c} />
+        {(g.why_he || g.analysis_he) && (
+          <section style={{ display: 'grid', gap: 4, borderInlineStart: `3px solid ${pass ? GREEN : ORANGE}`, paddingInlineStart: 10 }}>
+            <div style={{ ...T(12, 700), color: pass ? GREEN : ORANGE }}>{pass ? 'עומד בכל הכללים' : 'חסר נתון לפני החלטה'}</div>
+            {g.why_he && <div style={{ ...T(13, 600), color: C.tx }}>{g.why_he}</div>}
+            {g.analysis_he && <div style={{ ...T(13), color: C.tx }}>{g.analysis_he}</div>}
+          </section>
+        )}
+        {(c.inactive || (c.flags || []).length > 0 || c.n_ads > 1 || c.seen_before || others.length > 0) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
+            {c.inactive && <span style={chip('warn')}>המודעה ירדה או כבר לא עומדת בכללים</span>}
+            {uniq(c.flags).map(f => <span key={'f' + f} style={chip(/מעל|פינוי|שבת|מעטפת/.test(f) ? 'bad' : 'warn')}>{f}</span>)}
+            {c.n_ads > 1 && <span style={chip('info')}>{c.n_ads} מודעות לאותו נכס</span>}
+            {c.seen_before && <span style={chip('warn')}>נראה בעבר: {c.seen_note || 'בגיליון'}</span>}
+            {others.map(o => <span key={'o' + o.voter} style={chip(o.verdict === 'rejected' ? 'bad' : 'good')}>{WHO_HE[o.voter]}: {VERDICT_HE[o.verdict]}{o.reason ? ` · ${o.reason}` : ''}{o.score ? ` · ${o.score}/5` : ''}</span>)}
+          </div>
+        )}
+        {qs.length > 0 && (
+          <details style={{ ...T(13), color: C.tx }}>
+            <summary style={{ cursor: 'pointer', color: C.acText, minHeight: 28, display: 'list-item' }}>שאלות לשיחה על הנכס הזה ({qs.length})</summary>
+            <ol style={{ margin: '6px 0 0', paddingInlineStart: 20, display: 'grid', gap: 4 }}>{qs.map(q => <li key={q}>{q}</li>)}</ol>
+          </details>
+        )}
+        {links.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, ...T(13, 600) }}>
+            {links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, minHeight: 28, display: 'inline-flex', alignItems: 'center' }}>פתח ב{l.src}</a>)}
+          </div>
+        )}
+        <div style={{ display: 'grid', gap: 8, borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
+          <Row label="החלטה">
+            <ChipGrid ariaLabel="החלטה" soft cols={2} phoneCols={2}
+              items={[dis({ k: 'yes', label: 'מעניין', color: GREEN, active: interested }), dis({ k: 'no', label: 'לא', color: RED, active: rejected })]}
+              onChange={(k) => (k === 'yes' ? onVote(c, interested ? null : 'call') : onVote(c, rejected ? null : 'rejected'))} />
+          </Row>
+          {interested && (
+            <Row label="שלב">
+              <ChipGrid ariaLabel="שלב" soft cols={3} phoneCols={3} value={mine.verdict}
+                items={STAGES.map(dis)} onChange={(k) => { if (k !== mine.verdict) onVote(c, k); }} />
+            </Row>
+          )}
+          {rejected && (
+            <Row label="למה">
+              <ChipGrid ariaLabel="סיבה" soft cols={3} phoneCols={3} value={mine.reason}
+                items={REJECT.map(r => dis({ k: r, label: r }))} onChange={(r) => onVote(c, 'rejected', mine.reason === r ? null : r)} />
+            </Row>
+          )}
+          <Row label="ציון">
+            <ChipGrid ariaLabel="ציון 1 עד 5" soft cols={5} phoneCols={5} value={mine.score || 0}
+              cellStyle={{ fontFamily: FH, fontSize: 15, letterSpacing: 0 }}
+              items={[1, 2, 3, 4, 5].map(n => dis({ k: n, label: String(n) }))}
+              onChange={(n) => onVote(c, mine.verdict || null, undefined, mine.score === n ? 0 : n)} />
+          </Row>
+          {mine.task_id && <div style={chip('info')}>נפתחה משימה ברשימת המשימות שלך</div>}
+        </div>
+      </div>
+    </article>
+  );
 });
-const pill = (active) => ({
-  fontFamily: FN, fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 0, cursor: 'pointer',
-  border: `1px solid ${active ? C.ac : C.bd}`, background: active ? C.ac : C.sf, color: active ? 'var(--c-bg)' : C.tx,
-});
+
+function OppCard({ o }) {
+  const url = safeUrl(o.url);
+  return (
+    <article style={{ border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', background: C.sf, display: 'grid', gap: 6, textAlign: 'right' }}>
+      <h3 style={{ margin: 0, ...T(15, 700), color: C.tx }}>{o.title}</h3>
+      {o.kind === 'signal' && <div style={{ ...T(12, 700), color: o.level === 'high' ? RED : o.level === 'med' ? ORANGE : C.tm }}>אות מוקדם{o.level === 'high' ? ' · חזק' : ''}</div>}
+      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : o.src, o.city, o.date].filter(Boolean).join(' · ')}</div>
+      {(o.size_m2 || o.price || o.asking) && (
+        <div style={{ ...T(13, 600), color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{[o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
+      )}
+      {o.summary && <div style={{ ...T(13), color: C.tm }}>{o.summary}</div>}
+      {url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, ...T(13, 600) }}>לפרטים</a>}
+    </article>
+  );
+}
 
 export default function PropertiesView() {
-  const [me, setMe] = useState(null);
+  const [me, setMe] = useState(null);               // 'ohad' | 'yuval' | null (unknown -> voting off; never guess a voter)
   const [cards, setCards] = useState([]);
   const [votes, setVotes] = useState({});           // card_id -> { ohad: row, yuval: row }
   const [opps, setOpps] = useState([]);
   const [run, setRun] = useState(null);
   const [thumbs, setThumbs] = useState({});
   const [area, setArea] = useState(0);
-  const [openReject, setOpenReject] = useState(null);
+  const [limit, setLimit] = useState(20);           // cards rendered in this tab (a long tab pages by 20)
+  const [busy, setBusy] = useState({});             // card_id -> true while a vote is in flight
   const [status, setStatus] = useState('טוען…');
+  const [now, setNow] = useState(() => Date.now());
+  const votesRef = useRef(votes); votesRef.current = votes;
+  const inflight = useRef(new Set());
   const [tab, setTab] = useState(() => (typeof window !== 'undefined' ? tabFromPath(window.location.pathname) : 'new'));
   useUrlSync(tab, (v) => setTab(v || 'new'), {
     toPath: (v) => (typeof window !== 'undefined' && window.location.pathname.startsWith(BASE) ? `${BASE}/${v}` : null),
@@ -59,30 +212,36 @@ export default function PropertiesView() {
   });
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const email = (data?.user?.email || '').toLowerCase();
-      setMe(email.includes('yuval') ? 'yuval' : 'ohad');
-    }).catch(() => setMe('ohad'));
+    supabase.auth.getSession().then(({ data }) => {
+      const email = (data?.session?.user?.email || '').toLowerCase();
+      setMe(STAFF[email] || null);
+    }).catch(() => setMe(null));
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
   }, []);
 
   const load = useCallback(async () => {
     const [c, v, m] = await Promise.all([
-      supabase.from('nadlan_cards').select('id,score,verdict,area,data,first_seen,updated_at').eq('active', true).order('score', { ascending: false }),
+      supabase.from('nadlan_cards').select('id,score,verdict,area,data,first_seen,active,updated_at').order('score', { ascending: false }),
       supabase.from('nadlan_votes').select('*'),
       supabase.from('nadlan_meta').select('key,value,updated_at'),
     ]);
     if (c.error || v.error) { setStatus('הטעינה נכשלה: ' + ((c.error || v.error).message || '')); return; }
-    setCards((c.data || []).map(r => ({ ...r.data, id: r.id, score: r.score, verdict: r.verdict, area: r.area, first_seen: r.first_seen })));
     const vv = {};
     for (const r of v.data || []) (vv[r.card_id] = vv[r.card_id] || {})[r.voter] = r;
     setVotes(vv);
-    const meta = Object.fromEntries((m.data || []).map(r => [r.key, r.value]));
-    setOpps(Array.isArray(meta.opps) ? meta.opps : []);
-    setRun(meta.run || null);
+    // active cards + any retired card someone still has a vote on (a decision never silently disappears)
+    setCards((c.data || []).filter(r => r.active || Object.values(vv[r.id] || {}).some(x => x && x.verdict))
+      .map(r => ({ ...r.data, id: r.id, score: r.score, verdict: r.verdict, area: r.area, first_seen: r.first_seen, inactive: !r.active })));
+    const rows = m.data || [];
+    const opp = rows.find(r => r.key === 'opps');
+    setOpps(Array.isArray(opp?.value) ? opp.value : []);
+    const runRow = rows.find(r => r.key === 'run');
+    setRun(runRow ? { ...runRow.value, _updated: runRow.updated_at } : null);
     setStatus('');
   }, []);
 
-  // live: the other coach's votes and each engine cycle show up without a reload
+  // live: the other coach's decisions and each engine cycle show up without a reload
   const pending = useRef(null);
   useEffect(() => {
     load();
@@ -98,9 +257,9 @@ export default function PropertiesView() {
 
   const bucket = useCallback((c) => {
     const v = votes[c.id]?.[me];
-    if (v?.verdict) return v.verdict === 'visited' ? 'shortlist' : v.verdict;
-    if (c.verdict && c.verdict !== 'new') return 'history';
-    return 'new';
+    if (v?.verdict) return v.verdict === 'rejected' ? 'archive' : 'active';
+    if (c.verdict && c.verdict !== 'new') return c.verdict === 'shortlist' || c.verdict === 'visited' ? 'active' : 'archive';   // seen before this engine
+    return gateOf(c) === 'pass' ? 'new' : 'check';
   }, [votes, me]);
 
   const counts = useMemo(() => {
@@ -109,124 +268,114 @@ export default function PropertiesView() {
     return n;
   }, [cards, opps, bucket]);
 
-  const shown = useMemo(() => cards.filter(c => bucket(c) === tab && (!area || c.area === area)), [cards, bucket, tab, area]);
+  useEffect(() => { setLimit(20); }, [tab, area]);
+  const shown = useMemo(() => {
+    const list = cards.filter(c => bucket(c) === tab && (!area || c.area === area));
+    if (tab === 'active') list.sort((a, b) => (STAGE_ORDER[votes[a.id]?.[me]?.verdict] ?? 3) - (STAGE_ORDER[votes[b.id]?.[me]?.verdict] ?? 3) || b.score - a.score);
+    return list;
+  }, [cards, bucket, tab, area, votes, me]);
+  const page = useMemo(() => shown.slice(0, limit), [shown, limit]);
 
-  // thumbnails for the cards on screen only
+  // thumbnails for the cards on screen, 60 at a time until every card on screen has one (or none exists)
   useEffect(() => {
-    const need = shown.map(c => c.id).filter(id => !(id in thumbs)).slice(0, 60);
-    if (!need.length) return;
+    const need = page.map(c => c.id).filter(id => !(id in thumbs)).slice(0, 60);
+    if (!need.length) return undefined;
+    let alive = true;
     supabase.from('nadlan_thumbs').select('card_id,jpeg_b64').in('card_id', need).then(({ data }) => {
+      if (!alive) return;
       const add = Object.fromEntries(need.map(id => [id, null]));
       for (const r of data || []) add[r.card_id] = r.jpeg_b64;
       setThumbs(t => ({ ...t, ...add }));
     });
-  }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { alive = false; };
+  }, [page, thumbs]);
 
-  const vote = async (c, verdict, reason, score) => {
-    if (!me) return;
-    const prev = votes[c.id]?.[me] || null;
-    let taskId = prev?.task_id || null;
-    if ((verdict === 'call' || verdict === 'visited') && !taskId) {
-      const where = [c.street, c.house_no, c.neighborhood, c.city].filter(Boolean).join(' ');
-      const row = {
-        id: newTaskId(), body: `${verdict === 'call' ? 'להתקשר' : 'סיור'}: ${c.ptype || 'נכס'} ${where} · ${fmt(c.size_m2)} מ"ר · ${c.price ? '₪' + fmt(c.price) : 'מחיר לבירור'}\n${(c.links?.[0]?.url) || ''}`,
-        target_kind: 'property', target_id: c.id, target_label: where || c.title || 'נכס', pinned: false, status: 'open',
-        auto_kind: 'nadlan', auto_ref: c.id, tags: ['נכס'], assigned_to: me, priority: c.score >= 85 ? 'high' : 'normal',
-        context: { questions: (c.questions || []).slice(0, 6), score: c.score }, created_at: new Date().toISOString(),
-      };
-      const { error } = await supabase.from('coach_notes').insert(row);
-      if (!error) taskId = row.id;
+  // a task in the Tasks wire format, so it lands in that coach's own queue with its priority; an open one is reused
+  const ensureTask = async (c, kind) => {
+    const where = [c.street, c.house_no, c.neighborhood, c.city].filter(Boolean).join(' ');
+    const verb = kind === 'call' ? 'להתקשר' : 'סיור';
+    const { data: open } = await supabase.from('coach_notes').select('id,body,status')
+      .eq('target_kind', 'property').eq('target_id', c.id).eq('assigned_to', me).neq('status', 'done');
+    const hit = (open || []).find(r => (r.body || '').includes(`${verb}:`));
+    if (hit) return hit.id;
+    const firstUrl = safeUrl(c.links?.[0]?.url) || '';
+    const row = {
+      id: newTaskId(),
+      body: `${WHO_WIRE[me]}: ${c.score >= 85 ? '[HIGH] ' : ''}${verb}: ${c.ptype || 'נכס'} ${where} · ${fmt(c.size_m2)} מ"ר · ${c.price ? '₪' + fmt(c.price) : 'מחיר לבירור'}${firstUrl ? ' ' + firstUrl : ''}`,
+      target_kind: 'property', target_id: c.id, target_label: where || c.title || 'נכס', pinned: false, status: 'open',
+      tags: ['נכס'], assigned_to: me, priority: c.score >= 85 ? 'high' : 'normal',
+      context: { questions: uniq(c.gate?.questions_he?.length ? c.gate.questions_he : c.questions).slice(0, 6), analysis: c.gate?.analysis_he || null, score: c.score },
+      created_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('coach_notes').insert(row);
+    if (error) throw new Error('המשימה לא נפתחה: ' + (error.message || ''));
+    return row.id;
+  };
+
+  const vote = useCallback(async (c, verdict, reason, score) => {
+    if (!me || inflight.current.has(c.id)) return;
+    inflight.current.add(c.id);
+    setBusy(b => ({ ...b, [c.id]: true }));
+    const prev = votesRef.current[c.id]?.[me] || null;
+    try {
+      let taskId = prev?.task_id || null;
+      if (verdict === 'call' || verdict === 'visited') taskId = await ensureTask(c, verdict);
+      const next = { card_id: c.id, voter: me, verdict: verdict || null,
+        reason: reason !== undefined ? reason : (verdict === prev?.verdict ? prev?.reason ?? null : null),
+        score: score !== undefined ? (score || null) : (prev?.score ?? null), task_id: taskId, updated_at: new Date().toISOString() };
+      setVotes(vs => ({ ...vs, [c.id]: { ...(vs[c.id] || {}), [me]: next } }));
+      const { error } = await supabase.from('nadlan_votes').upsert(next);
+      if (error) {
+        setVotes(vs => (vs[c.id]?.[me] === next ? { ...vs, [c.id]: { ...(vs[c.id] || {}), [me]: prev } } : vs));
+        throw new Error('ההחלטה לא נשמרה: ' + error.message);
+      }
+      setStatus('נשמר');
+    } catch (e) {
+      setStatus(e.message || 'שגיאה');
+    } finally {
+      inflight.current.delete(c.id);
+      setBusy(b => { const n = { ...b }; delete n[c.id]; return n; });
     }
-    const next = { card_id: c.id, voter: me, verdict: verdict || null, reason: reason ?? (verdict === prev?.verdict ? prev?.reason : null) ?? null,
-      score: score ?? prev?.score ?? null, task_id: taskId, updated_at: new Date().toISOString() };
-    setVotes(vs => ({ ...vs, [c.id]: { ...(vs[c.id] || {}), [me]: next } }));
-    setOpenReject(null);
-    const { error } = await supabase.from('nadlan_votes').upsert(next);
-    setStatus(error ? 'ההצבעה לא נשמרה: ' + error.message : 'נשמר');
-    if (error) setVotes(vs => ({ ...vs, [c.id]: { ...(vs[c.id] || {}), [me]: prev } }));
-  };
+  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const Card = ({ c }) => {
-    const mine = votes[c.id]?.[me] || {};
-    const others = Object.values(votes[c.id] || {}).filter(v => v.voter !== me && v.verdict);
-    const bad = (c.flags || []).some(f => /מעל התקרה|פינוי|שבת|מעטפת/.test(f));
-    const t = thumbs[c.id];
-    return (
-      <article style={{ display: 'grid', gridTemplateColumns: 'minmax(0,148px) 1fr', border: `1px solid ${bad ? 'var(--c-rd, #ef4444)' : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }} className="nadlan-card">
-        <div style={{ position: 'relative', background: C.sf2, minHeight: 148 }}>
-          {t ? <img alt="" src={`data:image/jpeg;base64,${t}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-             : <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: C.tm, fontSize: 12, fontFamily: FB }}>{c.n_photos ? 'תמונות במודעה' : 'אין תמונות'}</div>}
-          <div style={{ position: 'absolute', top: 8, insetInlineStart: 8, fontFamily: FN, fontWeight: 800, fontSize: 20, padding: '4px 8px', borderRadius: 0, background: C.sf, border: `2px solid ${c.score >= 80 ? 'var(--c-gn, #2fbf71)' : c.score >= 60 ? 'var(--c-or, #f5a524)' : C.bd}` }}>{Math.round(c.score)}</div>
-        </div>
-        <div style={{ padding: '12px 14px', display: 'grid', gap: 8, minWidth: 0, direction: 'rtl', textAlign: 'right' }}>
-          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx }}>{[c.ptype, [c.street, c.house_no].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || c.title}</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>{[c.neighborhood, c.city].filter(Boolean).join(', ')}{c.first_seen ? ` · נמצא ${c.first_seen}` : ''}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', fontFamily: FN, fontSize: 14, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>
-            <span>{fmt(c.size_m2)} מ״ר</span><span>{c.floor == null ? 'קומה ?' : c.floor === 0 ? 'קרקע' : `קומה ${c.floor}`}</span>
-            <span>{c.price ? `₪${fmt(c.price)} לחודש` : 'מחיר לבירור'}</span>{c.price && c.size_m2 ? <span>{fmt(c.price / c.size_m2)} ₪/מ״ר</span> : null}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {(c.reasons || []).filter(r => !/^אזור|מ"ר$|₪/.test(r)).slice(0, 6).map(r => <span key={r} style={chip('good')}>{r}</span>)}
-            {(c.flags || []).map(f => <span key={f} style={chip(/מעל|פינוי|שבת|מעטפת/.test(f) ? 'bad' : 'warn')}>{f}</span>)}
-            {c.n_ads > 1 && <span style={chip('info')}>{c.n_ads} מודעות לאותו נכס</span>}
-            {c.broker && <span style={chip('warn')}>תיווך</span>}
-            {c.seen_before && <span style={chip('warn')}>כבר נראה: {c.seen_note || 'בגיליון'}</span>}
-            {others.map(o => <span key={o.voter} style={chip(o.verdict === 'rejected' ? 'bad' : 'good')}>{WHO_HE[o.voter]}: {VERDICT_HE[o.verdict]}{o.reason ? ` · ${o.reason}` : ''}{o.score ? ` · ${o.score}/10` : ''}</span>)}
-          </div>
-          <details style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>
-            <summary style={{ cursor: 'pointer', color: C.acText }}>שאלות לשיחה ({(c.questions || []).length})</summary>
-            <ol style={{ margin: '6px 0 0', paddingInlineStart: 20 }}>{(c.questions || []).map(q => <li key={q}>{q}</li>)}</ol>
-          </details>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontFamily: FB, fontSize: 13 }}>
-            {(c.links || []).map(l => <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText }}>פתח ב{l.src}</a>)}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-            <button type="button" style={btn(mine.verdict === 'shortlist', 'var(--c-gn, #2fbf71)')} onClick={() => vote(c, mine.verdict === 'shortlist' ? null : 'shortlist')}>לרשימה הקצרה</button>
-            <button type="button" style={btn(mine.verdict === 'call', 'var(--c-or, #f5a524)')} onClick={() => vote(c, mine.verdict === 'call' ? null : 'call')}>צריך שיחה</button>
-            <button type="button" style={btn(mine.verdict === 'visited', C.ac)} onClick={() => vote(c, mine.verdict === 'visited' ? null : 'visited')}>סיור</button>
-            <button type="button" style={btn(mine.verdict === 'rejected', 'var(--c-rd, #ef4444)')} onClick={() => (mine.verdict === 'rejected' ? vote(c, null) : setOpenReject(openReject === c.id ? null : c.id))}>לא מתאים</button>
-            <select aria-label="ציון 1-10" value={mine.score || ''} onChange={e => vote(c, mine.verdict || null, undefined, e.target.value ? +e.target.value : null)}
-              style={{ fontFamily: FN, fontSize: 12, padding: 6, borderRadius: 0, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tx }}>
-              <option value="">ציון</option>{[...Array(10)].map((_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}
-            </select>
-            {mine.task_id && <span style={chip('info')}>נפתחה משימה</span>}
-          </div>
-          {openReject === c.id && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {REJECT.map(r => <button key={r} type="button" style={pill(mine.reason === r)} onClick={() => vote(c, 'rejected', r)}>{r}</button>)}
-            </div>
-          )}
-        </div>
-      </article>
-    );
-  };
+  // engine health: the time of the last engine publish, red when it is stale during the day
+  const runAt = run?._updated ? new Date(run._updated) : null;
+  const ageH = runAt ? (now - runAt.getTime()) / 3600000 : null;
+  const hourIL = Number(new Date(now).toLocaleString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', hour12: false }));
+  const stale = ageH != null && ageH > STALE_H && hourIL >= 7;
+  const runLabel = runAt ? runAt.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
 
   return (
     <div style={{ display: 'grid', gap: 12, direction: 'rtl' }} className="nadlan-view">
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {TABS.map(t => <button key={t.k} type="button" aria-pressed={tab === t.k} style={pill(tab === t.k)} onClick={() => setTab(t.k)}>{t.he} <span style={{ opacity: 0.7, fontSize: 11, marginInlineStart: 6 }}>{counts[t.k] || 0}</span></button>)}
-      </div>
-      {tab !== 'opportunities' && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {AREAS.map(a => <button key={a.k} type="button" aria-pressed={area === a.k} style={pill(area === a.k)} onClick={() => setArea(a.k)}>{a.he}</button>)}
+      {stale && (
+        <div role="alert" style={{ border: `1px solid ${RED}`, color: RED, padding: '10px 12px', ...T(13, 600) }}>
+          המנוע לא עדכן מאז {runLabel} ({Math.round(ageH)} שעות). הרשימה כאן עלולה להיות ישנה.
         </div>
       )}
-      <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-        {status || `${cards.length} נכסים פעילים`}{run?.at ? ` · סריקה אחרונה ${run.at}` : ''}{run?.sources ? ` · ${run.sources}` : ''}
+      <ChipGrid ariaLabel="לשוניות נכסים" soft cols={5} phoneCols={3} value={tab} onChange={setTab}
+        items={TABS.map(t => ({ k: t.k, label: t.he, n: counts[t.k] || 0 }))} />
+      {tab !== 'opportunities' && (
+        <ChipGrid ariaLabel="אזור" soft cols={3} phoneCols={2} value={area} onChange={setArea}
+          items={AREAS.map(a => ({ k: a.k, label: a.he }))} />
+      )}
+      <div className="nadlan-status" style={{ ...T(12), display: 'grid', gap: 2, color: stale ? RED : C.tm }}>
+        <div>{TAB_HINT[tab]}</div>
+        <div>{status || (runLabel ? `עדכון אחרון של המנוע: ${runLabel}` : '')}{!me && !status ? ' · ההחלטות כבויות עד שהזהות שלך נטענת' : ''}</div>
       </div>
       {tab === 'opportunities' ? (
-        opps.length ? opps.map(o => (
-          <article key={o.id} style={{ border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', background: C.sf, display: 'grid', gap: 6, textAlign: 'right' }}>
-            <div style={{ fontFamily: FN, fontWeight: 700, color: C.tx }}>{o.title}</div>
-            <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>{[o.src, o.city, o.date].filter(Boolean).join(' · ')}</div>
-            <div style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[o.deal && DEAL_HE[o.deal], o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
-            {o.summary && <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{o.summary}</div>}
-            {o.url && <a href={o.url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, fontFamily: FB, fontSize: 13 }}>לפרטים</a>}
-          </article>
-        )) : <div style={{ color: C.tm, fontFamily: FB, padding: 24, textAlign: 'center' }}>אין כרגע עסקים למסירה, חללים לפי שעה או כתבות רלוונטיות.</div>
-      ) : shown.length ? shown.map(c => <Card key={c.id} c={c} />)
-        : <div style={{ color: C.tm, fontFamily: FB, padding: 24, textAlign: 'center' }}>{cards.length ? 'אין נכסים בלשונית הזו כרגע.' : 'המנוע עוד לא העלה נכסים לכאן.'}</div>}
-      <style>{`@media (max-width: 560px) { .nadlan-card { grid-template-columns: 1fr !important } .nadlan-card > div:first-child { min-height: 0 !important; aspect-ratio: 16 / 9 } }`}</style>
+        opps.length ? opps.map(o => <OppCard key={o.id || o.url} o={o} />)
+          : <div style={{ color: C.tm, ...T(13), padding: 24, textAlign: 'center' }}>אין כרגע עסקים למסירה, חללים לפי שעה או אותות.</div>
+      ) : shown.length ? page.map(c => (
+        <PropertyCard key={c.id} c={c} me={me} thumb={thumbs[c.id]} busy={!!busy[c.id]}
+          mine={votes[c.id]?.[me] || {}} others={Object.values(votes[c.id] || {}).filter(v => v && v.voter !== me && v.verdict)}
+          onVote={vote} />
+      )) : <div style={{ color: C.tm, ...T(13), padding: 24, textAlign: 'center' }}>{cards.length ? 'אין נכסים בלשונית הזו כרגע.' : 'המנוע עוד לא העלה נכסים לכאן.'}</div>}
+      {tab !== 'opportunities' && shown.length > page.length && (
+        <ChipGrid ariaLabel="עוד נכסים" soft cols={1} phoneCols={1}
+          items={[{ k: 'more', label: `עוד ${Math.min(20, shown.length - page.length)} (מוצגים ${page.length} מתוך ${shown.length})` }]}
+          onChange={() => setLimit(l => l + 20)} />
+      )}
+      <style>{`.nadlan-view, .nadlan-view *:not(svg):not(svg *) { letter-spacing: 0.02em !important } @media (max-width: 560px) { .nadlan-card { grid-template-columns: 1fr !important } .nadlan-photo { min-height: 0 !important; aspect-ratio: 16 / 9 } } @media (max-width: 480px) { .nadlan-facts { grid-template-columns: repeat(2, minmax(0,1fr)) !important } .nadlan-facts > div:nth-child(odd) { border-inline-start: none !important } .nadlan-facts > div:nth-child(n+3) { border-top: 1px solid var(--c-cardBd) } }`}</style>
     </div>
   );
 }
