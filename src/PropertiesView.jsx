@@ -50,10 +50,14 @@ const T = (size, weight = 400, extra = null) => ({ fontFamily: FH, fontSize: siz
 const GREEN = 'var(--c-gn, #2fbf71)', RED = 'var(--c-rd, #ef4444)', ORANGE = 'var(--c-or, #f5a524)';
 const fmt = (n) => (n == null ? '—' : Math.round(n).toLocaleString('he-IL'));
 const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? u : undefined);   // never a javascript: href from scraped data
-const newTaskId = () => 'note_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
 const tabFromPath = (p) => { const s = segmentAfter(p, BASE); return TABS.some(t => t.k === s) ? s : 'new'; };
 const uniq = (a) => [...new Set((a || []).filter(Boolean))];
 const gateOf = (c) => (c.gate && c.gate.verdict) || 'unverified';
+const SRC_HE = { yad2: 'יד2', madlan: 'מדלן', homeless: 'הומלס', onmap: 'OnMap', fb: 'פייסבוק', anglosaxon: 'אנגלו סכסון', menivim: 'מניבים',
+  monopoli: 'מונופולי', yad2biz: 'יד2 עסקים', spacenter: 'Spacenter', bodyways: 'Bodyways', fitness360: 'Fitness360', news: 'חדשות', web: 'אתר', landlord: 'בעל הנכס' };
+const srcHe = (s) => SRC_HE[s] || (String(s || '').startsWith('signal') ? 'אות מוקדם' : s);
+// a history note written by the old scraper sheet ("auto-found by scraper ...") is noise, not a founder's note
+const seenNote = (n) => (n && !/scraper|auto-found|^auto/i.test(n) ? n : '');
 const floorHe = (f) => (f == null ? '?' : f === 0 ? 'קרקע' : f < 0 ? `מרתף ${f}` : String(f));
 
 const chip = (kind) => ({   // a tag is coloured words, never a filled pill
@@ -102,7 +106,7 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
   const interested = ACTIVE.has(mine.verdict);
   const rejected = mine.verdict === 'rejected';
   const dis = (it) => ({ ...it, disabled: !can });
-  const title = [c.ptype, [c.street, c.house_no].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || c.title || 'נכס';
+  const title = [c.ptype, c.street ? [c.street, c.house_no].filter(Boolean).join(' ') : null].filter(Boolean).join(' · ') || c.title || 'נכס';
   const place = [c.neighborhood, c.city].filter(Boolean).join(', ');
   return (
     <article className="nadlan-card" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,176px) minmax(0,1fr)', border: `1px solid ${bad ? RED : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }}>
@@ -129,7 +133,7 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
             {c.inactive && <span style={chip('warn')}>המודעה ירדה או כבר לא עומדת בכללים</span>}
             {uniq(c.flags).map(f => <span key={'f' + f} style={chip(/מעל|פינוי|שבת|מעטפת/.test(f) ? 'bad' : 'warn')}>{f}</span>)}
             {c.n_ads > 1 && <span style={chip('info')}>{c.n_ads} מודעות לאותו נכס</span>}
-            {c.seen_before && <span style={chip('warn')}>נראה בעבר: {c.seen_note || 'בגיליון'}</span>}
+            {c.seen_before && <span style={chip('warn')}>נראה בעבר{seenNote(c.seen_note) ? `: ${seenNote(c.seen_note)}` : ''}</span>}
             {others.map(o => <span key={'o' + o.voter} style={chip(o.verdict === 'rejected' ? 'bad' : 'good')}>{WHO_HE[o.voter]}: {VERDICT_HE[o.verdict]}{o.reason ? ` · ${o.reason}` : ''}{o.score ? ` · ${o.score}/5` : ''}</span>)}
           </div>
         )}
@@ -141,7 +145,7 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
         )}
         {links.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, ...T(13, 600) }}>
-            {links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, minHeight: 28, display: 'inline-flex', alignItems: 'center' }}>פתח ב{l.src}</a>)}
+            {links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, minHeight: 28, display: 'inline-flex', alignItems: 'center' }}>פתח ב{srcHe(l.src)}</a>)}
           </div>
         )}
         <div style={{ display: 'grid', gap: 8, borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
@@ -181,7 +185,7 @@ function OppCard({ o }) {
     <article style={{ border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', background: C.sf, display: 'grid', gap: 6, textAlign: 'right' }}>
       <h3 style={{ margin: 0, ...T(15, 700), color: C.tx }}>{o.title}</h3>
       {o.kind === 'signal' && <div style={{ ...T(12, 700), color: o.level === 'high' ? RED : o.level === 'med' ? ORANGE : C.tm }}>אות מוקדם{o.level === 'high' ? ' · חזק' : ''}</div>}
-      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : o.src, o.city, o.date].filter(Boolean).join(' · ')}</div>
+      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : srcHe(o.src), o.city, o.date].filter(Boolean).join(' · ')}</div>
       {(o.size_m2 || o.price || o.asking) && (
         <div style={{ ...T(13, 600), color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{[o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
       )}
@@ -264,9 +268,9 @@ export default function PropertiesView() {
 
   const counts = useMemo(() => {
     const n = { opportunities: opps.length };
-    for (const c of cards) { const b = bucket(c); n[b] = (n[b] || 0) + 1; }
+    for (const c of cards) { if (area && c.area !== area) continue; const b = bucket(c); n[b] = (n[b] || 0) + 1; }
     return n;
-  }, [cards, opps, bucket]);
+  }, [cards, opps, bucket, area]);
 
   useEffect(() => { setLimit(20); }, [tab, area]);
   const shown = useMemo(() => {
@@ -292,24 +296,33 @@ export default function PropertiesView() {
 
   // a task in the Tasks wire format, so it lands in that coach's own queue with its priority; an open one is reused
   const ensureTask = async (c, kind) => {
-    const where = [c.street, c.house_no, c.neighborhood, c.city].filter(Boolean).join(' ');
+    const where = [c.street, c.street ? c.house_no : null, c.neighborhood, c.city].filter(Boolean).join(' ');
     const verb = kind === 'call' ? 'להתקשר' : 'סיור';
-    const { data: open } = await supabase.from('coach_notes').select('id,body,status')
-      .eq('target_kind', 'property').eq('target_id', c.id).eq('assigned_to', me).neq('status', 'done');
-    const hit = (open || []).find(r => (r.body || '').includes(`${verb}:`));
-    if (hit) return hit.id;
+    // ONE task per card x coach x kind, whatever the number of open tabs or devices: a fixed id makes a second insert a
+    // no-op (23505) instead of a duplicate, and a task closed by un-pressing מעניין is reopened rather than re-created
+    const tid = `note_nadlan_${c.id}_${me}_${kind}`;
+    const { data: had } = await supabase.from('coach_notes').select('id,status').eq('id', tid).maybeSingle();
+    if (had) {
+      if (had.status === 'done') await supabase.from('coach_notes').update({ status: 'open', completed_at: null }).eq('id', tid);
+      return tid;
+    }
     const firstUrl = safeUrl(c.links?.[0]?.url) || '';
     const row = {
-      id: newTaskId(),
-      body: `${WHO_WIRE[me]}: ${c.score >= 85 ? '[HIGH] ' : ''}${verb}: ${c.ptype || 'נכס'} ${where} · ${fmt(c.size_m2)} מ"ר · ${c.price ? '₪' + fmt(c.price) : 'מחיר לבירור'}${firstUrl ? ' ' + firstUrl : ''}`,
+      id: tid,
+      body: `${WHO_WIRE[me]}: ${c.score >= 85 ? '[HIGH] ' : ''}${verb}: ${c.ptype || 'נכס'} ${where}${c.size_m2 ? ` · ${fmt(c.size_m2)} מ"ר` : ''} · ${c.price ? '₪' + fmt(c.price) : 'מחיר לבירור'}${firstUrl ? ' ' + firstUrl : ''}`,
       target_kind: 'property', target_id: c.id, target_label: where || c.title || 'נכס', pinned: false, status: 'open',
       tags: ['נכס'], assigned_to: me, priority: c.score >= 85 ? 'high' : 'normal',
       context: { questions: uniq(c.gate?.questions_he?.length ? c.gate.questions_he : c.questions).slice(0, 6), analysis: c.gate?.analysis_he || null, score: c.score },
       created_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('coach_notes').insert(row);
-    if (error) throw new Error('המשימה לא נפתחה: ' + (error.message || ''));
-    return row.id;
+    if (error && error.code !== '23505') throw new Error('המשימה לא נפתחה: ' + (error.message || ''));
+    return tid;
+  };
+  // 1. un-pressing מעניין (or moving to לא) closes the open tasks this card opened for this coach
+  const closeTasks = async (c) => {
+    await supabase.from('coach_notes').update({ status: 'done', completed_at: new Date().toISOString() })
+      .eq('target_kind', 'property').eq('target_id', c.id).eq('assigned_to', me).neq('status', 'done');
   };
 
   const vote = useCallback(async (c, verdict, reason, score) => {
@@ -320,6 +333,7 @@ export default function PropertiesView() {
     try {
       let taskId = prev?.task_id || null;
       if (verdict === 'call' || verdict === 'visited') taskId = await ensureTask(c, verdict);
+      else if (ACTIVE.has(prev?.verdict) && !ACTIVE.has(verdict) && score === undefined) { await closeTasks(c); taskId = null; }
       const next = { card_id: c.id, voter: me, verdict: verdict || null,
         reason: reason !== undefined ? reason : (verdict === prev?.verdict ? prev?.reason ?? null : null),
         score: score !== undefined ? (score || null) : (prev?.score ?? null), task_id: taskId, updated_at: new Date().toISOString() };
@@ -342,11 +356,23 @@ export default function PropertiesView() {
   const runAt = run?._updated ? new Date(run._updated) : null;
   const ageH = runAt ? (now - runAt.getTime()) / 3600000 : null;
   const hourIL = Number(new Date(now).toLocaleString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', hour12: false }));
-  const stale = ageH != null && ageH > STALE_H && hourIL >= 7;
+  // the first cycle of the day starts at 06:00 and can take ~2 h: from 10:00 a 4 h gap is stale; at any other hour only a
+  // gap longer than the night (10 h) - so a dead engine is flagged at night too, and a quiet night never is
+  const stale = ageH != null && (hourIL >= 10 ? ageH > STALE_H : ageH > 10);
+  // the cycle can publish while every collector fails: freshness of the DATA is the last real collection
+  const colAt = run?.last_collected_at ? new Date(run.last_collected_at) : null;
+  const colH = colAt ? (now - colAt.getTime()) / 3600000 : null;
+  const dry = !stale && colH != null && (hourIL >= 10 ? colH > 8 : colH > 14);
+  const colLabel = colAt ? colAt.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
   const runLabel = runAt ? runAt.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
 
   return (
-    <div style={{ display: 'grid', gap: 12, direction: 'rtl' }} className="nadlan-view">
+    <div lang="he" dir="rtl" style={{ display: 'grid', gap: 12, direction: 'rtl' }} className="nadlan-view">
+      {dry && (
+        <div role="status" style={{ border: `1px solid ${ORANGE}`, color: ORANGE, padding: '10px 12px', ...T(13, 600) }}>
+          המנוע פועל, אבל לא נאסף מידע חדש מהאתרים מאז {colLabel} ({Math.round(colH)} שעות).
+        </div>
+      )}
       {stale && (
         <div role="alert" style={{ border: `1px solid ${RED}`, color: RED, padding: '10px 12px', ...T(13, 600) }}>
           המנוע לא עדכן מאז {runLabel} ({Math.round(ageH)} שעות). הרשימה כאן עלולה להיות ישנה.
@@ -360,16 +386,21 @@ export default function PropertiesView() {
       )}
       <div className="nadlan-status" style={{ ...T(12), display: 'grid', gap: 2, color: stale ? RED : C.tm }}>
         <div>{TAB_HINT[tab]}</div>
-        <div>{status || (runLabel ? `עדכון אחרון של המנוע: ${runLabel}` : '')}{!me && !status ? ' · ההחלטות כבויות עד שהזהות שלך נטענת' : ''}</div>
+        <div role="status" aria-live="polite">{status || [runLabel && `עדכון אחרון של המנוע: ${runLabel}`, colLabel && `סריקה אחרונה: ${colLabel}`].filter(Boolean).join(' · ')}{!me && !status ? ' · ההחלטות כבויות עד שהזהות שלך נטענת' : ''}</div>
       </div>
       {tab === 'opportunities' ? (
-        opps.length ? opps.map(o => <OppCard key={o.id || o.url} o={o} />)
+        opps.length ? opps.slice(0, limit).map(o => <OppCard key={o.id || o.url} o={o} />)
           : <div style={{ color: C.tm, ...T(13), padding: 24, textAlign: 'center' }}>אין כרגע עסקים למסירה, חללים לפי שעה או אותות.</div>
       ) : shown.length ? page.map(c => (
         <PropertyCard key={c.id} c={c} me={me} thumb={thumbs[c.id]} busy={!!busy[c.id]}
           mine={votes[c.id]?.[me] || {}} others={Object.values(votes[c.id] || {}).filter(v => v && v.voter !== me && v.verdict)}
           onVote={vote} />
       )) : <div style={{ color: C.tm, ...T(13), padding: 24, textAlign: 'center' }}>{cards.length ? 'אין נכסים בלשונית הזו כרגע.' : 'המנוע עוד לא העלה נכסים לכאן.'}</div>}
+      {tab === 'opportunities' && opps.length > limit && (
+        <ChipGrid ariaLabel="עוד הזדמנויות" soft cols={1} phoneCols={1}
+          items={[{ k: 'more', label: `עוד ${Math.min(20, opps.length - limit)} (מוצגים ${limit} מתוך ${opps.length})` }]}
+          onChange={() => setLimit(l => l + 20)} />
+      )}
       {tab !== 'opportunities' && shown.length > page.length && (
         <ChipGrid ariaLabel="עוד נכסים" soft cols={1} phoneCols={1}
           items={[{ k: 'more', label: `עוד ${Math.min(20, shown.length - page.length)} (מוצגים ${page.length} מתוך ${shown.length})` }]}
