@@ -90,6 +90,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // the joint box's PLANE (13.10 #716): sagittal (the joint angles), frontal, transverse
   const [plane, setPlane] = useState(() => { try { const v = localStorage.getItem('expo-anatomy-plane'); return ['sag', 'front', 'trans'].includes(v) ? v : 'sag'; } catch { return 'sag'; } });
   useEffect(() => { try { localStorage.setItem('expo-anatomy-plane', plane); } catch { /* private mode */ } }, [plane]);
+  // the plane drawn through the body (#820): read by the render loop every frame
+  const planeRef = useRef(plane); planeRef.current = plane;
+  const planeOnRef = useRef(false);
   // THE ANATOMY BODY (13.10 #690, Ohad: "anatomy models based on skeleton and muscle layers"): the Z-Anatomy skeleton
   // and muscles on one rig, played from a 60-a-second track (#691). The mannequin below is only the fallback when the
   // model cannot load. layer: 'bones' | 'muscles' | 'both'
@@ -387,6 +390,12 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     // the floor: a grid on a plane that takes the body's shadow
     const plane = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.ShadowMaterial({ opacity: 0.35 }));
     plane.rotation.x = -Math.PI / 2; plane.position.y = floorY; plane.receiveShadow = true; scene.add(plane);
+    // THE ANATOMICAL PLANE (#820): a translucent sheet with a cyan rim, through his hips on his own axes
+    const bodyPlane = new THREE.Group();
+    bodyPlane.add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x39BDFF, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false })));
+    bodyPlane.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1, 1)), new THREE.LineBasicMaterial({ color: 0x39BDFF, transparent: true, opacity: 0.7, depthWrite: false })));
+    bodyPlane.visible = false; bodyPlane.renderOrder = 2; scene.add(bodyPlane);
+    const pm = new THREE.Matrix4();
     // a lit floor disc under him, so he stands somewhere rather than in a void
     const disc = new THREE.Mesh(new THREE.CircleGeometry(1.7, 64), new THREE.MeshStandardMaterial({ color: 0x161d25, roughness: 0.95, envMapIntensity: 0.12 }));   // the studio light is for the body, not the floor
     disc.rotation.x = -Math.PI / 2; disc.position.y = floorY - 0.002; disc.receiveShadow = true; scene.add(disc);
@@ -585,9 +594,37 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       try { if (typeof window !== 'undefined' && typeof window.__expoPoseHook === 'function') window.__expoPoseHook(i, u); } catch { /* the harness's problem */ }
       const ok = (k) => lmVisible(p[k]);
       const has = (k) => !!p[k] && Number.isFinite(p[k].x) && Number.isFinite(p[k].y) && Number.isFinite(p[k].z);
+      // the chosen plane, through the hips on his own axes (#820) - drawn after the body is posed for this time
+      const drawPlane = () => {
+        // on the ANATOMY body itself when it is drawn (its hip and shoulder joints - the raw points sit elsewhere in the
+        // scene), else on the points (the mannequin is drawn on them)
+        const planeAt = () => {
+          if (body) {
+          if (!body.group.visible) return null;   // not in view: no body, so no plane (it floated in an empty scene)
+            const hl = body.jointWorld(SEG.thighL), hr = body.jointWorld(SEG.thighR), sl = body.jointWorld(SEG.uarmL), sr = body.jointWorld(SEG.uarmR);
+            return { H: hl.clone().add(hr).multiplyScalar(0.5), S: sl.clone().add(sr).multiplyScalar(0.5), side: hr.clone().sub(hl) };
+          }
+          if (!(has(11) && has(12) && has(23) && has(24))) return null;
+          return { H: V(p[23]).add(V(p[24])).multiplyScalar(0.5), S: V(p[11]).add(V(p[12])).multiplyScalar(0.5), side: V(p[24]).sub(V(p[23])) };
+        };
+        const pa = planeOnRef.current ? planeAt() : null;
+        if (pa) {
+          const H0 = pa.H;
+          const sp = pa.S.clone().sub(H0); const L0 = Math.max(0.2, sp.length());
+          const [px, py, pz] = axesOf(pa.side, sp);
+          const which = planeRef.current;
+          const [ax1, ax2] = which === 'front' ? [px, py] : which === 'trans' ? [px, pz] : [pz, py];
+          pm.makeBasis(ax1, ax2, new THREE.Vector3().crossVectors(ax1, ax2).normalize());
+          bodyPlane.quaternion.setFromRotationMatrix(pm);
+          if (which === 'trans') { bodyPlane.position.copy(H0); bodyPlane.scale.set(L0 * 2.4, L0 * 2.4, 1); }
+          else { bodyPlane.position.copy(H0).addScaledVector(py, L0 * 0.35); bodyPlane.scale.set(which === 'front' ? L0 * 2.6 : L0 * 2.2, L0 * 4.2, 1); }
+          bodyPlane.visible = true;
+        } else bodyPlane.visible = false;
+        };
       // the anatomy body plays its own 60 Hz track at this exact time; the mannequin is drawn only without it
-      if (body) { const a0 = poseFrames[Math.max(0, Math.min(poseFrames.length - 1, i))], a1 = poseFrames[i + 1]; body.setTime(a0.t + (a1 && u > 0 ? (a1.t - a0.t) * u : 0)); }
+      if (body) { const a0 = poseFrames[Math.max(0, Math.min(poseFrames.length - 1, i))], a1 = poseFrames[i + 1]; body.setTime(a0.t + (a1 && u > 0 ? (a1.t - a0.t) * u : 0)); drawPlane(); }
       else {
+      drawPlane();
       for (const o of limbs) {
         if (!has(o.a) || !has(o.b)) { o.m.visible = false; continue; }
         const a = V(p[o.a]), b = V(p[o.b]); const len = a.distanceTo(b);
@@ -742,6 +779,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // the captured frame ~9 times a second. Stopping redraws the exact frame.
   useEffect(() => { const s = stateRef.current; if (s && !playingRef.current) s.pose(idx); }, [idx, compare, range, repSpans, playing]);   // the outline follows a toggle / a new first rep at once
   useEffect(() => { const s = stateRef.current; if (s) { s.handTrail.on = trails; s.hipTrail.on = trails; s.pose(idxRef.current); } }, [trails]);
+  // a plane chosen while paused is drawn at once (#820: the sheet moved only when the frame did - 'clicking doesn't do anything')
+  useEffect(() => { const s = stateRef.current; if (s && !playingRef.current) s.pose(idxRef.current); }, [plane, anat]);
   useEffect(() => { const s = stateRef.current; if (s && s.body) s.body.setLayers(LAYERS[layer] || LAYERS.surface); try { localStorage.setItem('expo-anatomy-layer', layer); } catch { /* private mode */ } }, [layer]);
 
   // follow the clip while not playing on its own
@@ -810,6 +849,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // (the number and the bones always agree; the ankle from the corrected foot, never MediaPipe's tipped foot points)
   const inViewNow = !track || !track.inView || !poseFrames[idx] || track.inView(poseFrames[idx].t);
   const MA = anat === 'ready' && track && poseFrames[idx] ? modelAngles(track, poseFrames[idx].t) : null;
+  planeOnRef.current = !!MA;   // the plane is drawn while its chips are on screen (#820)
   // the centre of mass and the bar (the hands) ahead of (+) / behind (−) mid-foot, cm (#715)
   const MB = MA && inViewNow ? modelBalance(track, poseFrames[idx].t) : null;
   const cm = (v, seen) => (MB && Number.isFinite(v) ? { v: Math.round(v * 100), seen, signed: true, unit: '' } : null);

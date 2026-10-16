@@ -1523,6 +1523,12 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
       `}</style>
       <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0,
           ...(vidAspect?.portrait ? {maxWidth:380,margin:'0 auto 6px'} : null)}}>
+        {/* FULL, ON the video (#818, Ohad: "closer to the embedded video... keep the esthetics"): the top corner, the house's
+            framed word on dark glass so it reads over any picture; gone in fullscreen (the player's own exit is there) */}
+        {!isFullscreen && (
+          <button type="button" onClick={fullscreen} data-fv="full" aria-label={tt('FULL')}
+            style={{ position: 'absolute', top: 8, left: 8 /* the top-LEFT in both languages: the REPS counter holds the top-right */, zIndex: 6, height: 36, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(6,16,22,0.62)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid rgba(57,189,255,0.85)', borderRadius: 0, color: '#FFFFFF', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.12em', textTransform: 'uppercase', cursor: 'pointer', lineHeight: 1 }}>⛶ {tt('FULL')}</button>
+        )}
         <video ref={videoRef} src={url} controls
           controlsList={isFullscreen ? '' : 'nofullscreen'}
           playsInline crossOrigin="anonymous"
@@ -1662,8 +1668,6 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             </button>
           ) : null,
         ].filter(Boolean);
-        // FULL closes the deck's last row: beside COMMENT (3 + 1 cells) for the coach, alone for the athlete
-        const fullBtn = <button key="fs" onClick={fullscreen} data-fv="full" style={cell(false)}>⛶ {tt('FULL')}</button>;
         // the bar is as wide as the VIDEO (29.9: at 1440 a 380px portrait clip had
         // its controls 370px out on the card's edges)
         return (<div className="fv-bar" style={{ display: 'flex', flexDirection: 'column', gap: 8, ...(vidAspect?.portrait ? { maxWidth: 380, marginInline: 'auto' } : null) }}>
@@ -1724,14 +1728,13 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                 <button onClick={() => setLoop(v => !v)} data-fv="loop" dir={readLang() === 'he' ? 'rtl' : 'ltr'} aria-pressed={loop} title={tt('Loop the video')} style={cell(loop)}>↻ {tr(readLang(), 'LOOP')}</button>
               </div>
             )}
-            {/* COMMENT, the coach's one action on a clip, + FULL: the deck's last row, 3 + 1 cells on the same 4 columns */}
+            {/* COMMENT, the coach's one action on a clip: the deck's last row, full width (FULL is on the video, #818) */}
             {onReviewNotesChange && role === 'trainer' ? (
-              <div data-fv-row="comment" style={row(4)}>
+              <div data-fv-row="comment" style={row(1)}>
                 <button onClick={addComment} data-fv="comment" title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
-                  style={{ ...cell(false), color: C.ac, fontSize: 11, letterSpacing: '0.1em', gridColumn: 'span 3' }}>＋ {tt("COMMENT")}</button>
-                {fullBtn}
+                  style={{ ...cell(false), color: C.ac, fontSize: 11, letterSpacing: '0.1em' }}>＋ {tt("COMMENT")}</button>
               </div>
-            ) : <div data-fv-row="full" style={row(1)}>{fullBtn}</div>}
+            ) : null}
           </div>
           {anatomyOn && (
             <div data-fv-anatomy style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>

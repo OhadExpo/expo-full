@@ -1031,6 +1031,9 @@ export const HE = {
   'Left half-way': 'עצרו באמצע',
   'Board columns': 'עמודות הלוח',
   'outside the block': 'מחוץ לבלוק',
+  'No block yet - add the weigh-in once the athlete has a program.': 'עוד אין בלוק - תוסיף את השקילה כשיש למתאמן תוכנית.',
+  '{kg} kg is already logged for that week - it stays.': 'לשבוע הזה כבר רשום {kg} ק״ג - הרישום נשאר.',
+  'Not saved.': 'לא נשמר.',
   'month open': 'לא סגור',   // billing: the current month's gap cell; native-checked 9.10
   WAITING: 'ממתין',
   STUCK: 'תקוע',

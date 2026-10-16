@@ -32,7 +32,7 @@ import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import TraineeIntake from './TraineeIntake';
 import { rowKind } from './bhbcSession';
-import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId, blockNum } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import { useT, tr, readLang, daysCount, exercisesCount, daysAgoHe } from './i18n';
 
@@ -124,7 +124,9 @@ function BwAddRow({ onAdd }) {
   const submit = () => {
     if (!ok) return;
     // Store at noon local to avoid TZ date-shift when sliced back to YYYY-MM-DD.
-    onAdd(Math.round(val * 10) / 10, new Date(date + 'T12:00:00').toISOString());
+    // the parent says what happened (#867): added, or refused and why - never a success toast over a refusal
+    const res = onAdd(Math.round(val * 10) / 10, new Date(date + 'T12:00:00').toISOString());
+    if (res && res.ok === false) { toast(res.msg, 'warn', { ttl: 7000 }); return; }
     setKg('');
     toast('Weigh-in added — synced to athlete portal');
   };
@@ -974,7 +976,29 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       {/* === BODYWEIGHT — slot #6 (collapsible; chart is self-carded → bare) */}
       <CollapsibleSection bare domId="td-sec-bw" title={tr(readLang(), 'Bodyweight')} count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0', display: showSec('bw') ? undefined : 'none'}}>
         <BWChart entries={tBw} />
-        <BwAddRow onAdd={(kg, dateISO) => setBwLog && setBwLog(prev => [...prev, { clientId: trainee, date: dateISO, bw: kg, blockName: null, week: null, source: 'coach' }])} />
+        {/* the coach's own entry files under the athlete's latest block and the latest week he logged in it (#867: it
+            went with no block, and the server needs one - it never left this device) */}
+        <BwAddRow onAdd={(kg, dateISO) => {
+          if (!setBwLog) return { ok: false, msg: tr(readLang(), 'Not saved.') };
+          // the block the athlete's own portal files his weigh-ins under (ClientPortal visPlans[0]): the portal's order, the
+          // coach's show / hide toggles, else the latest numbered block + the programs without a number
+          const sortedP = [...tp].sort(sortProgramsChrono);
+          const latestBlock = sortedP.find((p) => blockNum(p.name) !== -Infinity);
+          const visKey = (p) => { const idx = memberIndexFromId(p.traineeId, td.id); return idx != null ? `${td.name}:${p.name}:m${idx}` : `${td.name}:${p.name}`; };   // the portal's own key
+          const latest = sortedP.filter((p) => { const v = portalVis?.[visKey(p)]; if (v === true) return true; if (v === false) return false; return blockNum(p.name) === -Infinity || p === latestBlock; })[0] || null;
+          if (!latest) return { ok: false, msg: tr(readLang(), 'No block yet - add the weigh-in once the athlete has a program.') };
+          // the week of the chosen DATE in that block: the week of his last workout of the block on or before it (week 1 before any)
+          const day = String(dateISO).slice(0, 10);
+          const logs = tcw.filter((w) => (w.planId ? w.planId === latest.id : w.planName === latest.name) && String(w.date || '').slice(0, 10) <= day && Number(w.week) > 0)
+            .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+          const wk = logs.length ? Number(logs[logs.length - 1].week) : 1;
+          // one weigh-in per athlete, block and week on the server: never over the athlete's OWN entry for that week
+          const same = (b) => b.clientId === trainee && b.blockName === latest.name && Number(b.week) === wk;
+          const mine = (bwLog || []).find(same);
+          if (mine && mine.source !== 'coach') return { ok: false, msg: tr(readLang(), '{kg} kg is already logged for that week - it stays.').replace('{kg}', String(mine.bw)) };
+          setBwLog((prev) => [...prev.filter((b) => !same(b)), { clientId: trainee, date: dateISO, bw: kg, blockName: latest.name, planId: latest.id, week: wk, source: 'coach' }]);
+          return { ok: true };
+        }} />
       </CollapsibleSection>
 
       {/* === READINESS TRENDS — check-in graph (PAIN/SLEEP/ENERGY over time),

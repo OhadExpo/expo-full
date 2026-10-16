@@ -4091,6 +4091,8 @@ function DemoReview() {
                       <span style={{ fontFamily: FN, fontSize: 9, lineHeight: 1.5, letterSpacing: '0.06em', color: C.tm }}>{T("The athlete's own clip plays here")}</span>
                       <a href="/try?embed=1" target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, border: `1px solid ${C.ac}`, padding: '6px 9px', textDecoration: 'none' }}>{T('TRY IT WITH YOUR OWN CLIP')}{readLang() === 'he' ? ' ←' : ' →'}</a>
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.15)' }}><div style={{ width: '38%', height: '100%', background: '#39BDFF' }} /></div>
+                      {/* FULL on the video's corner, as the real player (#818) */}
+                      <span data-demo-full style={{ position: 'absolute', top: 6, left: 6, height: 28, padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(6,16,22,0.62)', border: '1px solid rgba(57,189,255,0.85)', color: '#FFFFFF', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>⛶ {T('FULL')}</span>
                     </div>
                   </div>
                   {vsDemo && (
@@ -4117,7 +4119,7 @@ function DemoReview() {
                 </div>
               </div>
               {/* THE REAL PLAYER'S CONTROL DECK (14.10 #761 / #763 / #765 parity): one block of 4 columns - SKELETON | JOINT
-                  ANGLES (2 + 2), REPS | METRICS (2 + 2), then ◀ | ▶ | speed | LOOP, then ＋ COMMENT (3 cells) | FULL. Active = coloured text + a
+                  ANGLES (2 + 2), REPS | METRICS (2 + 2), then ◀ | ▶ | speed | LOOP, then ＋ COMMENT (FULL is on the video, #818). Active = coloured text + a
                   thin frame, never a fill. Inert in the demo. */}
               <div style={{ padding: '0 14px 14px', maxWidth: 380, boxSizing: 'content-box' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'grid', gap: 1, background: C.bd, border: `1px solid ${C.bd}` }}>
@@ -4125,7 +4127,7 @@ function DemoReview() {
                     [[T('ANATOMY'), 2], [T('JOINT ANGLES'), 2]],
                     [[T('REPS'), 2], [T('METRICS'), 2]],
                     [['◀'], ['▶'], ['1x', 1, false, true], [`↻ ${T('LOOP')}`]],
-                    [[`＋ ${T('COMMENT')}`, 3, true], [`⛶ ${T('FULL')}`]],
+                    [[`＋ ${T('COMMENT')}`, 4, true]],
                   ].map((row, ri) => (
                     <div key={ri} dir={ri === 2 ? 'ltr' : undefined} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1 }}>
                       {row.map(([l, span = 1, accent = false, caret = false]) => (
