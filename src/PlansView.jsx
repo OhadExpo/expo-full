@@ -2673,7 +2673,9 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
             const n = parseInt(v) || 4;
             const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
             // propagate week count to every per-week array across the program
-            const nextDays = (plan.days || []).map(d0 => { const { onlyWeek: ow, ...rest } = d0; const d = (ow != null && Number(ow) > n) ? rest : d0; return d; }).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
+            // a day of a week past the new count KEEPS its week (#866 M4: stripping it made it an every-week day - week 4's Day
+            // A/B/C appeared in weeks 1-3 beside their own): it sits outside the block, and comes back if the weeks grow again
+            const nextDays = (plan.days || []).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
               ...ex,
               wk: ex.wk ? resize(ex.wk) : ex.wk,
               wkS: ex.wkS ? resize(ex.wkS) : ex.wkS,
@@ -2826,6 +2828,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                     style={{ ...baseInput, height: 24, width: 'auto', padding: '0 22px 0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', color: d.onlyWeek ? C.ac : C.tm, border: `1px solid ${d.onlyWeek ? C.ac : C.cardBd}`, flexShrink: 0, cursor: 'pointer' }}>
                     <option value="">{tt('Every week')}</option>
                     {Array.from({ length: Number(plan.weeks) || 4 }, (_, i) => <option key={i} value={String(i + 1)}>{`${tt('Week')} ${i + 1}`}</option>)}
+                    {d.onlyWeek && Number(d.onlyWeek) > (Number(plan.weeks) || 4) && <option value={String(d.onlyWeek)}>{`${tt('Week')} ${d.onlyWeek} · ${tt('outside the block')}`}</option>}
                   </select>
                 )}
                 <div data-dh="break" onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />

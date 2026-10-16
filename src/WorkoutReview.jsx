@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { blockNum } from './traineeUtils';
-import { runPace } from './runPace';
+import { runPace, runKm } from './runPace';
 import VideoEmbed, { safeUrl, canEmbed } from './VideoEmbed';
 // LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
 // frames and run the same VBT/ROM/tempo battery MovementLab uses, rendered
@@ -2114,9 +2114,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const isRunWorkout = (w) => (w.exercises || []).some(x => (x.sets || []).some(s => s && s.time));
   const isReviewable = (w) => hasReviewableVideo(w) || isRunWorkout(w);
   // how far a run went: the ticked reps, or every rep with a time when none is ticked (a run logged without the ✓)
+  // (#866) a segment is a run segment when any of its sets has a time OR its prescription names a distance - a warm-up
+  // ticked without a time still ran its km; a '400' typed under KM is 0.4
+  const namesDistance = (ex) => /(ק״מ|ק"מ|km|מ׳|מ'|מטר|\dm\b)/i.test(String(ex.prescribed || ''));
   const runKmOf = (w) => {
-    const sets = (w.exercises || []).filter(ex => (ex.sets || []).some(st => st && st.time)).flatMap(ex => ex.sets || []);   // run segments only - a drill row's reps are not km
-    const km = (arr) => arr.reduce((a, s) => a + (parseFloat(String(s.reps || '').replace(',', '.')) || 0), 0);
+    const sets = (w.exercises || []).filter(ex => (ex.sets || []).some(st => st && st.time) || namesDistance(ex)).flatMap(ex => ex.sets || []);   // run segments only - a drill row's reps are not km
+    const km = (arr) => arr.reduce((a, s) => a + (runKm(s.reps) || 0), 0);
     const ticked = km(sets.filter(s => s && s.done));
     return Math.round((ticked > 0 ? ticked : km(sets.filter(s => s && s.time))) * 10) / 10;
   };
@@ -2550,16 +2553,16 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                               return {
                                 cloudUrl: fv.cloudUrl,
                                 title: t,
-                                label: `W${w.week} · ${w.dayName} · ${fmtPrettyDate(w.date)}`,
+                                label: `${w.week != null ? `W${w.week} · ` : ''}${w.dayName} · ${fmtPrettyDate(w.date)}`,
                               };
                             }))
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
                           if (candidates.length === 0) return canEmbed(fromLib?.videoLink) ? (
-                            <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
+                            <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · ${wo.week != null ? `W${wo.week} · ` : ''}${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
                             title={tt("Play the athlete's rep next to the branded reference demo")}
                             style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>{tt('◫ vs DEMO')}</button>
                           ) : null;
-                          const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
+                          const leftLabel = `${wo.planName} · ${wo.week != null ? `W${wo.week} · ` : ''}${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
                               style={{background:'var(--c-sf)',border:`1px solid rgba(46,213,115,0.376)`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
@@ -2888,7 +2891,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <React.Fragment key={wo.id}>
               {_showWk && (
                 <div style={{display:'flex',alignItems:'center',gap:8,margin:_wi===0?'2px 0 8px':'16px 0 8px',fontFamily:FN,fontSize:9.5,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:C.tm}}>
-                  <span>{wo.planName} · {tt('Week')} {wo.week}{_pw?`/${_pw}`:''}</span>
+                  <span>{wo.planName}{wo.week != null ? <> · {tt('Week')} {wo.week}{_pw?`/${_pw}`:''}</> : null}</span>
                   <span style={{flex:1,height:1,background:C.cardBd}} />
                 </div>
               )}
@@ -2919,8 +2922,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
                     <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
                     <span className="wr-meta" style={{display:'flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>
-                      <span className="wr-dot">·</span>
-                      <span style={{color:C.tx,fontWeight:700,unicodeBidi:'isolate'}}>{readLang() === 'he' ? `שבוע ${wo.week}${planWeeks ? `/${planWeeks}` : ''}` : `W${wo.week}${planWeeks ? `/${planWeeks}` : ''}`}</span>{/* the dashboard's rule: 'שבוע 2/4' in Hebrew, not W2/4 (audit #612) */}
+                      {wo.week != null && <span className="wr-dot">·</span>}
+                      {wo.week != null && <span style={{color:C.tx,fontWeight:700,unicodeBidi:'isolate'}}>{readLang() === 'he' ? `שבוע ${wo.week}${planWeeks ? `/${planWeeks}` : ''}` : `W${wo.week}${planWeeks ? `/${planWeeks}` : ''}`}</span>}{/* the dashboard's rule: 'שבוע 2/4' in Hebrew, not W2/4 (audit #612) */}
                       <span className="wr-dot">·</span>
                       {/* day/month/year in the tight meta row (#294; 27.9 #328 gate: the
                           words-date broke onto two rows at 360) */}

@@ -53,7 +53,7 @@ export function blockEndingRows({ trainees, plans, workouts }) {
     if (newer) continue;
     const logs = tWorkouts.filter((w) => w.planName === current.name);
     const inLastWeek = logs.some((w) => Number(w.week) >= weeks);
-    const inW = (d, w) => d && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === w);   // #850
+    const inW = (d, w) => d && d.kind !== 'daily' && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === w);   // #850; a daily routine is not a session of the week (#866 M7)
     const prevDays = (current.days || []).filter((d) => inW(d, weeks - 1) && d.name);
     const lastDay = prevDays.length ? prevDays[prevDays.length - 1].name : dayNames[dayNames.length - 1];
     const finishedPrev = logs.some((w) => Number(w.week) === weeks - 1 && w.dayName === lastDay);

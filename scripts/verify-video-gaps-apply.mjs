@@ -65,6 +65,7 @@ ok(process.env.BREAK ? true : (act.b9 && !act.b7 && act.mr && act.b2), 'current 
 
 // --- the save + undo fences
 ok(unknownDataKeys({ days: [], warmup: [], weeks: 4, isTemplatePurchase: false }).length === 0, 'the four keys on prod are all round-tripped by savePlan');
+ok(unknownDataKeys({ days: [], weeks: 4, sport: 'running' }).length === 0, 'a running program (data.sport) is round-tripped, not refused');
 ok(unknownDataKeys({ days: [], extra: 1 }).join() === 'extra', 'a key savePlan would drop is caught (the program is refused, not stripped)');
 ok(undoVerdict('2026-10-05T01:00:00+00:00', { updated_at: '2026-10-05T01:00:00+00:00' }) === 'ok', 'undo when the program is still the version we wrote');
 ok(undoVerdict('2026-10-05T01:00:00+00:00', { updated_at: '2026-10-05T01:05:00+00:00' }) === 'changed', 'a program saved after us is NOT undone');

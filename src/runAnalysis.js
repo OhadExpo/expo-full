@@ -6,20 +6,22 @@
 // means, and only against a cap HE set (no invented ceiling); weekly km in Israeli weeks; a single run far longer than
 // anything in the month before it. Pure - no React, no Supabase; the view composes the words. It reads and advises,
 // the coach builds.
-import { runSeconds } from './runPace.js';
+import { runSeconds, runKm, runSecondsFor } from './runPace.js';
 import { dayInWeek, plannedSessions } from './planWeek.js';
 
 const fin = (n) => typeof n === 'number' && isFinite(n);
 const num = (s) => { const n = parseFloat(String(s == null ? '' : s).replace(',', '.')); return isFinite(n) ? n : null; };
 // a prescription's distance in km: '1 ק״מ', '1.5 km', '400 מ׳', '400 m', a bare '400' (metres) or '5' (km);
 // a duration ('40 דק׳', '8 שנ׳', '40 min') -> null
+// a prescription that NAMES a distance (km / ק״מ / מ׳ / m) - the planned km reads only these (#866 H1)
+const hasUnit = (s) => /(ק״מ|ק"מ|קמ|km|מ׳|מ'|מטר|\dm|\sm|\dמ|\sמ)(?=\s|$)/i.test(String(s || '')) || /\d\s*(ק״מ|ק"מ|km)/i.test(String(s || ''));
 export const presKm = (s) => {
   const t = String(s || '').trim();
   if (!t || /(דק|שנ|min|sec)/i.test(t) || /\d\s*s(?=\s|$)/i.test(t)) return null;
   if (/\d\s*[x×*]\s*\d/i.test(t)) return null;   // '4x400 מ׳' is sets x distance, not 0.004 km
   const n = num(t); if (n == null) return null;
   if (/(ק״מ|ק"מ|קמ|km)/i.test(t)) return n;
-  if (/(מ׳|מ'|מטר|\dm|\sm)(?=\s|$)/i.test(t)) return n / 1000;
+  if (/(מ׳|מ'|מטר|\dm|\sm|\dמ|\sמ)(?=\s|$)/i.test(t)) return n / 1000;   // '400 מ' without the geresh too (#866)
   if (/^\d+(\.\d+)?$/.test(t)) return n > 60 ? n / 1000 : n;   // a bare number: metres above 60
   return null;
 };
@@ -70,12 +72,13 @@ function readRun(w, day) {
     if (pi >= 0) used.add(pi);
     const pl = pi >= 0 ? presFor(plEx[pi], w.week) : null;
     const reps = [];
-    let timeOnly = 0;
+    let timeOnly = 0, kmNoTime = 0;
     for (const s of ex.sets || []) {
       if (!s || !s.done) continue;
-      const km = num(s.reps), sec = runSeconds(s.time);
+      const km = runKm(s.reps), sec = runSecondsFor(s.time, km);
       if (km != null && sec && plausible(km, sec)) reps.push({ km, sec, pace: sec / km, hr: num(s.hr) });
       else if (sec) timeOnly += sec;   // a duration run logged with a time and no km still counts as run
+      else if (km != null && km <= 60 && pl && hasUnit(pl.reps)) kmNoTime += km;   // #866 M1: ticked with no time, on a segment prescribed as a DISTANCE - its km, never a pace (a Lunge's '10' or a '40 דק׳' row is not km)
     }
     const km = reps.reduce((a, r) => a + r.km, 0), sec = reps.reduce((a, r) => a + r.sec, 0);
     const hrs = reps.map((r) => r.hr).filter(fin);
@@ -84,11 +87,11 @@ function readRun(w, day) {
     segs.push({
       title, plan: pl,
       role: isWarm(title) ? 'warm' : isCool(title) ? 'cool' : 'main',
-      reps, km, sec, timeOnly, pace: km > 0 ? sec / km : null,
+      reps, km, sec, timeOnly, kmNoTime, pace: km > 0 ? sec / km : null,
       hrMax: hrs.length ? Math.max(...hrs) : null,
       target: pl ? presPace(pl.tempo) : null, easyTarget: pl ? presEasy(pl.tempo) : false, hrCap: pl ? presHr(pl.load) : null,
       prescKm: prescKm != null && prescCount ? prescKm * prescCount : null, prescTimed: !!pl && prescKm == null,
-      logged: reps.length > 0 || timeOnly > 0,
+      logged: reps.length > 0 || timeOnly > 0 || kmNoTime > 0,
     });
   });
   // the main work: the segments that are not warm-up / cool-down - or, on a day that is ALL warm-up / cool-down words
@@ -111,7 +114,7 @@ function readRun(w, day) {
   else if (big && big.target) repList = main.filter((s) => s.target && s.target[0] === big.target[0] && s.target[1] === big.target[1] && s.km > 0).map((s) => ({ km: s.km, sec: s.sec, pace: s.pace, hr: s.hrMax }));
   const target = big ? big.target : null;
   const hrCap = main.map((s) => s.hrCap).find(fin) || null;
-  const km = segs.reduce((a, s) => a + s.km, 0), sec = segs.reduce((a, s) => a + s.sec, 0);
+  const km = segs.reduce((a, s) => a + s.km + (s.kmNoTime || 0), 0), sec = segs.reduce((a, s) => a + s.sec, 0);
   const mainSegs = target ? main.filter((s) => s.target && s.target[0] === target[0]) : main;
   const mainKm = mainSegs.reduce((a, s) => a + s.km, 0), mainSec = mainSegs.reduce((a, s) => a + s.sec, 0);
   const mainPace = mainKm > 0 ? mainSec / mainKm : null;
@@ -147,7 +150,8 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   const mineAll = (clientWorkouts || []).filter((w) => String(w.clientId) === String(traineeId));
   const dayIn = (p, name, week) => (p.days || []).find((d) => d.name === name && dayInWeek(d, week)) || (p.days || []).find((d) => d.name === name) || null;   // week 2's Day A is not week 1's (#850)
   // every logged run of every running block, read once
-  const readAll = mineAll.map((w) => { const p = runPlans.find((q) => belongs(w, q)); return p ? { w, p, r: readRun(w, dayIn(p, w.dayName, Number(w.week) || 1)) } : null; }).filter((x) => x && x.r.logged);
+  // a daily routine's log (calf raises, a plank) is not a run (#866)
+  const readAll = mineAll.map((w) => { const p = runPlans.find((q) => belongs(w, q)); if (!p) return null; const d = dayIn(p, w.dayName, Number(w.week) || 1); if (d && d.kind === 'daily') return null; return { w, p, r: readRun(w, d) }; }).filter((x) => x && x.r.logged);
   const runs = readAll.filter((x) => x.p === plan).map((x) => x.r).sort((a, b) => new Date(a.date) - new Date(b.date));
   {
     const los = [...new Set((plan.days || []).flatMap((d) => (d.exercises || []).map((ex) => { const t = presPace(ex.tempo); return t ? t[0] : null; }).filter((v) => v != null)))];
@@ -158,15 +162,17 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
     }
   }
   const weeksN = weeksOf(plan);
-  const plannedTotal = plannedSessions(plan.days, weeksN);   // #850: each week's own days
+  // #866 H1: RUN days only - a daily routine (calf raises, a plank) is not a planned run, and never planned km
+  const runDays = (plan.days || []).filter((d) => d && d.kind !== 'daily');
+  const plannedTotal = plannedSessions(runDays, weeksN);   // #850: each week's own days
   // due SO FAR: the weeks he has reached (the highest logged week), not the whole block - week 1 of 4 is not 'missing'
   const weekReached = Math.min(weeksN, Math.max(1, ...runs.map((r) => r.week)));
   const isLatest = plan === runPlans[runPlans.length - 1] || !!current;   // current: the block he is on while the next one is written (#851)
-  const plannedDue = runs.length && isLatest ? plannedSessions(plan.days, weekReached) : plannedTotal;
+  const plannedDue = runs.length && isLatest ? plannedSessions(runDays, weekReached) : plannedTotal;
   // planned km for the weeks reached (per-week prescriptions), and whether any day is time-based (km then a floor)
   let plannedKm = 0, kmPartial = false;
-  for (let wk = 1; wk <= weekReached; wk++) for (const d of plan.days || []) for (const ex of (dayInWeek(d, wk) ? d.exercises || [] : [])) {
-    const pr = presFor(ex, wk); const k = presKm(pr.reps);
+  for (let wk = 1; wk <= weekReached; wk++) for (const d of runDays) for (const ex of (dayInWeek(d, wk) ? d.exercises || [] : [])) {
+    const pr = presFor(ex, wk); const k = hasUnit(pr.reps) ? presKm(pr.reps) : null;   // a bare '15' on a strength row is not 15 km
     if (k == null) { if (String(pr.reps || '').trim()) kmPartial = true; continue; }
     plannedKm += k * Math.max(1, parseInt(pr.sets, 10) || 1);
   }
@@ -207,7 +213,7 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   const hardReads = hard.map((r) => ({ run: r, fastStart: r.reps && r.reps.firstVs != null && r.reps.firstVs < -PACE_TOL ? -r.reps.firstVs : 0, fade: r.reps ? r.reps.fade : null }));
   const fastStarts = hardReads.filter((h) => h.fastStart >= 10 && h.fade != null && h.fade >= 15);
   const capHits = runs.filter((r) => r.hrVs && r.hrVs.over > 0 && ['intervals', 'tempo', 'test'].includes(r.kind));
-  const upcoming = (plan.days || []).filter((d) => !runs.some((r) => r.dayName === d.name && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === r.week)));   // #850
+  const upcoming = runDays.filter((d) => !(d.onlyWeek && Number(d.onlyWeek) > weeksN)).filter((d) => !runs.some((r) => r.dayName === d.name && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === r.week)));   // #850
   const upcomingTest = upcoming.find((d) => runKind(d.name) === 'test') || null;
   const anyTarget = runs.some((r) => r.target);
   // the verdict, in the order a coach acts on it

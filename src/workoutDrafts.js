@@ -33,7 +33,7 @@ export function draftProgress(draft) {
   for (const rows of all) for (const s of (rows || [])) {
     total++;
     if (s && s.done) done++;
-    if (s && !s.prefill && (String(s.reps || '').trim() || String(s.load || '').trim() || String(s.rpe || '').trim())) typed = true;
+    if (s && !s.prefill && (String(s.reps || '').trim() || String(s.load || '').trim() || String(s.rpe || '').trim() || String(s.time || '').trim() || String(s.hr || '').trim())) typed = true;   // a run's time / HR too (#866 M6)
   }
   const notes = !!(draft && String(draft.notes || '').trim());
   const wu = draft && Array.isArray(draft.wuDone) ? draft.wuDone.some(Boolean) : false;

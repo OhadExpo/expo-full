@@ -43,7 +43,7 @@ export function markCurrent(plans) {
 // The keys savePlan round-trips in plans.data. A program carrying anything else
 // would lose it on a save from here, so it is refused instead (measured 5.10 on
 // prod: 250 plans, these four keys only - the guard is for tomorrow's key).
-export const PLAN_DATA_KEYS = ['days', 'warmup', 'weeks', 'isTemplatePurchase', 'kind'];
+export const PLAN_DATA_KEYS = ['days', 'warmup', 'weeks', 'isTemplatePurchase', 'kind', 'sport'];   // sport: savePlan round-trips it (#769) - a running program was refused (#866 review)
 export const unknownDataKeys = (data) => Object.keys(data || {}).filter((k) => !PLAN_DATA_KEYS.includes(k));
 
 // A pasted link. YouTube and Vimeo must name a video; any other https link is

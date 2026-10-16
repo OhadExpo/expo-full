@@ -4892,15 +4892,15 @@ function AttMark({ mark, overlays = [], label }) {
   if (!mark && !overlays.length) return null;
   const S = 14;
   let shape = null;
-  if (mark === 'practice') shape = <rect x="1" y="1" width="12" height="12" rx="1.5" fill={FX_COLOR.practice} />;
-  // a short session = a short bar (a 10px square beside the 12px practice square read as the same mark)
-  else if (mark === 'shootaround') shape = <rect x="1" y="4.5" width="12" height="5" rx="1.5" fill={FX_COLOR.shootaround} />;
-  else if (mark === 'played') shape = <circle cx="7" cy="7" r="6" fill={ATT_ORANGE} />;
-  else if (mark === 'scrimmage') shape = <path d="M7 0.8 L13.2 7 L7 13.2 L0.8 7 Z" fill={ATT_ORANGE} />;
-  else if (mark === 'dnp') shape = <circle cx="7" cy="7" r="5.2" fill="none" stroke={ATT_ORANGE} strokeWidth="1.8" />;
-  else if (mark === 'missed') shape = <path d="M2.5 2.5 L11.5 11.5 M11.5 2.5 L2.5 11.5" stroke="#DE4E3B" strokeWidth="2.2" strokeLinecap="round" />;
-  else if (mark === 'excused') shape = <path d="M3 7 H11" stroke="#8A919B" strokeWidth="2" strokeLinecap="round" />;
-  else if (mark === 'pending') shape = <circle cx="7" cy="7" r="5.2" fill="none" stroke="#8A919B" strokeWidth="1.4" strokeDasharray="2 2" />;
+  // ONE SHAPE (#821, Ohad: "too many symbols" - there were eight): a filled square = on court, its colour the kind;
+  // an outline square = expected, not on court; a game not logged yet = blank (the cell's title still says so)
+  const fill = (c) => <rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill={c} />;
+  const ring = (c) => <rect x="2.25" y="2.25" width="9.5" height="9.5" rx="1.5" fill="none" stroke={c} strokeWidth="1.6" />;
+  if (mark === 'practice' || mark === 'shootaround') shape = fill(FX_COLOR.practice);
+  else if (mark === 'played' || mark === 'scrimmage') shape = fill(ATT_ORANGE);
+  else if (mark === 'dnp') shape = ring(ATT_ORANGE);
+  else if (mark === 'missed') shape = ring('#DE4E3B');
+  else if (mark === 'excused') shape = ring('#8A919B');
   return (
     <span aria-label={label} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
       <svg width={S} height={S} viewBox="0 0 14 14" aria-hidden="true" style={{ display: 'block', visibility: shape ? 'visible' : 'hidden' }}>{shape}</svg>
@@ -5163,14 +5163,13 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
       <div className="bhbc-legend-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', columnGap: 14, rowGap: 8, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
         {/* the legend draws the SAME marks the cells draw, every one in words (#629) */}
         {[
-          ['practice', [], tr('Practice')], ['played', [], tr('Game played')], ['dnp', [], tr('did not play')],
-          ['scrimmage', [], tr('Scrimmage')], ['shootaround', [], tr('Shootaround')], ['missed', [], tr('missed')], ['excused', [], tr('Injured or away')],
-          ['pending', [], tr('Game not logged yet')],
+          ['practice', [], tr('Practice or shootaround')], ['played', [], tr('Game or scrimmage')], ['dnp', [], tr('did not play')],
+          ['missed', [], tr('missed')], ['excused', [], tr('Injured or away')],
           ...(showSc ? [[null, [SC_COLOR], tr('S&C')]] : []), ...(showLift ? [[null, [FX_COLOR.lift], tr('Lift')]] : []),
         ].map(([mark, overlays, lbl]) => (
           // the longest item takes a full row, like the dot line under it: in a half cell it broke
           // 'Game not logged yet' one word per line (10.10 overflow sweep, 1440 and 360)
-          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, gridColumn: mark === 'pending' ? '1 / -1' : undefined }}>
+          <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FB, fontSize: 11, color: C.tm, minWidth: 0, gridColumn: undefined }}>
             <span style={{ width: 14, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><AttMark mark={mark} overlays={overlays} /></span>{lbl}
           </span>
         ))}

@@ -34,7 +34,9 @@ import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
-import { runPace } from './runPace';
+import { runPace, runKm } from './runPace';
+// a logged distance as written for the athlete: '400' under KM is 0.4 (#866 M2)
+const kmText = (v) => { const k = runKm(v); return k == null ? String(v) : String(Math.round(k * 100) / 100); };
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx, dayInWeek, plannedSessions } from './planWeek';
 import { presKm } from './runAnalysis';
@@ -408,6 +410,7 @@ function GooglePhotosEmbed({ url }) {
 // reorders to '2 שבוע'. Week CHIPS stay 'W2' in both languages (32px cells, as in the coach app).
 function WeekWord({ n, style }) {
   const he = useHe();
+  if (n == null || n === '') return null;   // a log with no week (pre-program history) says no week, not 'null'
   return <span dir={he ? 'rtl' : 'ltr'} style={{ unicodeBidi: 'isolate', ...style }}>{he ? `שבוע ${n}` : `W${n}`}</span>;
 }
 const wuStructured = (w) => !!(w && (w.sets || w.reps) && ((w.sets && w.reps) || !w.rx));
@@ -3898,7 +3901,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* order: DAY · W# · BLOCK — the week sits between the day and the
                 block (Ohad); the date moves to the right on its own. */}
             {/* #789: on the Hebrew page the line reads DAY · W# · BLOCK from the right (an English day name read last) */}
-            <div dir={(lang || readLang()) === 'he' ? 'rtl' : undefined} style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· <WeekWord n={w.week} /> ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div dir={(lang || readLang()) === 'he' ? 'rtl' : undefined} style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· {w.week != null && w.week !== '' ? <><WeekWord n={w.week} /> ·</> : null}</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
             <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)}</div>
           </div>
           {/* Pre-workout readiness check-in the athlete logged for this session. */}
@@ -3920,7 +3923,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
                   <span style={{flex:1,minWidth:0,color:C.tx,display:'flex',gap:6}}><span style={{width:22,textAlign:'right',flexShrink:0,color:C.td}}>{i+1}.</span><span style={{minWidth:0}}>{x.title} <span style={{color:C.td}}>{(w.exercises || []).some(isRunLog) ? String(x.prescribed || '').replace(/^1x/i, '').replace(/x/i, ' × ') : x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span>{isRunLog(x) && (x.sets || []).filter((st) => st.done && (st.time || st.reps)).map((st, si) => (
                     // a RUN's set as he ran it: distance, time, the pace it works out to, heart rate (#769)
-                    <span key={si} data-run-set dir="auto" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tm, fontSize: 10, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{[st.reps ? `${st.reps} ${tt('KM').toLowerCase()}` : '', st.time || '', runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} ${tt('/km')}` : '', st.hr ? `${tt('HR')} ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
+                    <span key={si} data-run-set dir="auto" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tm, fontSize: 10, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{[st.reps ? `${kmText(st.reps)} ${tt('KM').toLowerCase()}` : '', st.time || '', runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} ${tt('/km')}` : '', st.hr ? `${tt('HR')} ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
                   ))}</span></span>
                   {/* VIDEO + NOTES are uniform bare caps tags (matching weight/
                       size, each with a leading severity dot) so the row reads as

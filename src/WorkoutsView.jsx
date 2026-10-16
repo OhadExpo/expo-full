@@ -13,6 +13,7 @@ import { traineeIdsFor } from './traineeUtils';
 import { useT, tr, readLang, dirOfText } from './i18n';
 import { useUrlSync, segmentAfter } from './urlState';
 import { runPace } from './runPace';
+import { presKm } from './runAnalysis';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -246,7 +247,8 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
                 </>}
                 {/* the whole cell is the tap target, a 24px tick centred in it (the portal's) */}
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={set.completed} onChange={e => updateSet(exIdx, sIdx, { completed: e.target.checked })} style={{ width: 24, height: 24, margin: 0, accentColor: C.gn, cursor: 'pointer' }} />
+                  {/* a run set ticked with its distance empty records the prescribed distance, as the athlete's own logger does (#851 / #866) */}
+                  <input type="checkbox" checked={set.completed} onChange={e => { const v = e.target.checked; const k = run && v && !String(set.reps || '').trim() ? presKm(String(ex.reps || '')) : null; updateSet(exIdx, sIdx, k != null ? { completed: v, reps: String(k) } : { completed: v }); }} style={{ width: 24, height: 24, margin: 0, accentColor: C.gn, cursor: 'pointer' }} />
                 </label>
               </div>
               {/* a run's pace, under its own TIME column (#809: it floated between the columns) */}

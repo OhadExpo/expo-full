@@ -119,6 +119,8 @@ export const HE = {
   'Lands': 'נוחת',
   'Landing / arrival date': 'תאריך נחיתה / הגעה',
   'Scrimmage': 'משחק אימון',
+  'Practice or shootaround': 'אימון או שוטאראונד',
+  'Game or scrimmage': 'משחק או משחק אימון',
   'Shootaround': 'שוטאראונד',
   'TBD': 'עוד לא נקבע',
   Group: 'קבוצתי',
