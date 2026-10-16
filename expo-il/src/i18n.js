@@ -107,8 +107,8 @@ const STRINGS = {
   'how.04.t':            { en: 'Train',               he: 'תתאמן' },
   // 5.10 parity: + the portal's offline queue (#560) - sets logged without signal sync on their own
   'how.04.d': {
-    en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine I run with the athletes I coach, no coach DMs in the way. No signal at the gym? Your sets are saved on the phone and sync on their own when the connection returns.',
-    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומראה לך על מה להתמקד השבוע. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לחכות לתשובה ממאמן. אין קליטה בחדר כושר? הסטים שלך נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
+    en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine I run with the athletes I coach, no coach DMs in the way. No signal at the gym? Your sets are saved on the phone and sync on their own when the connection returns. Stopped half-way? The workout is saved and waits where you left off, on any device.',
+    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומראה לך על מה להתמקד השבוע. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לחכות לתשובה ממאמן. אין קליטה בחדר כושר? הסטים שלך נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר. עצרת באמצע? האימון שמור ומחכה לך מאיפה שהפסקת, בכל מכשיר.',
   },
 
   // (Old in-line how.faq.* keys removed — FAQ now lives in its own section,

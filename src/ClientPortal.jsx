@@ -14,6 +14,7 @@ import { sendPush, isCoachMutedForAthlete } from './push';
 import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY, readStoredSession } from './supabase';
+import { pushDraft, dropDraft, useServerDrafts, seedLocalFromServer, localDraft, draftProgress, draftKeyOf } from './workoutDrafts';
 import { subscribe as subscribeNet } from './connectivity';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
@@ -1104,12 +1105,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return safe;
   });
+  // #815 THE LAST REAL EDIT: the entered content (sets, notes, check-in, warm-up ticks, swaps, clips) changing - not a
+  // step moved, not the logger opening. A restored draft keeps the time it carried. Read by the other device / the
+  // server copy to know which one is newer; savedAt only says when this phone last wrote it.
+  const editRef = React.useRef(null);
+  const mountAtRef = React.useRef(Date.now());
   const sessionDraft = React.useMemo(
     // exOrder fingerprints the day's exercise identities so resume can detect a
     // coach reorder/swap since the draft was written. allSets binds to exercises
     // purely by position, so restoring a positionally-valid but reordered draft
     // silently smears one exercise's logged sets onto another (data corruption).
-    () => ({ step, notes, autoregulation: checkin, allSets, fv: serializeFv(fv), wuDone, substitutions, exOrder: day.ex.map(e => e.eid), savedAt: Date.now() }),
+    () => {
+      const fvS = serializeFv(fv);
+      const content = JSON.stringify([notes, checkin, allSets, fvS, wuDone, substitutions]);
+      if (!editRef.current) editRef.current = { content, editedAt: Number(_restoredSession?.editedAt || 0) };
+      else if (editRef.current.content !== content) editRef.current = { content, editedAt: Date.now() };
+      return { step, notes, autoregulation: checkin, allSets, fv: fvS, wuDone, substitutions, exOrder: day.ex.map(e => e.eid), editedAt: editRef.current.editedAt, savedAt: Date.now() };
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [step, notes, checkin, allSets, fv, wuDone, substitutions, day]
   );
@@ -1124,7 +1136,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const clearSessionDraft = () => {
     try { localStorage.removeItem(sessionKey); localStorage.removeItem(_legacySessionKey); } catch {}
     sessionAutosave.markClean();
+    if (!demoMode) dropDraft(sessionKey);   // #815: the server copy goes with it
   };
+  // #815: the same draft on the server (2 s after the last change), so another device, the coach and the nudge see a
+  // workout that was started and not finished. The athlete's own seat only - never the demo or a coach's preview.
+  // Sent only after a real edit made in THIS session (re-opening a finished log or browsing a day sends nothing, and a
+  // stale copy on this device can never overwrite a newer one by being opened), never while correcting a saved log.
+  React.useEffect(() => {
+    if (demoMode || editOf) return;
+    if (!(sessionDraft.editedAt > mountAtRef.current)) return;
+    pushDraft(sessionKey, { clientId, planName: plan.name, dayName: day.name, week: weekNum + 1 }, sessionDraft);
+  }, [sessionDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Visible "did my data make it?" signal in the sticky session bar.
   // Tracks (a) the last time autosave wrote to localStorage, and (b) the
@@ -2759,6 +2781,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
   const ci = clientId;
+  const serverDrafts = useServerDrafts(ci, !demoMode);   // #815: workouts started on any device and not finished
   const logOut = async () => {
     setVw('prog');
     if (signOut) await signOut();
@@ -4311,6 +4334,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // Done days: neutral border (no green box) + a green ✓ next to the name
           // (Ohad: "don't like the green around the cyan DONE — green check instead").
           const doneBorderColor = done ? C.cardBd : C.ac;
+          // #815 STARTED, NOT FINISHED: this phone's draft, else another device's (the newer one wins on RESUME)
+          const dKey = draftKeyOf(ci, vp.name, day.name, di, vpWeek);
+          const dLocal = done ? null : localDraft(dKey);
+          const dLocalProg = dLocal ? draftProgress(dLocal) : null;
+          const dServer = done ? null : serverDrafts[dKey];
+          const dServerNewer = !!(dServer && (!dLocalProg || !dLocalProg.started || Date.parse(dServer.edited_at || 0) > Number(dLocal.editedAt || 0)));
+          const started = !done && ((dLocalProg && dLocalProg.started) || !!dServer);
+          const startedSets = !started ? null : dServerNewer ? [dServer.done_sets, dServer.total_sets] : [dLocalProg.done, dLocalProg.total];
           // Weekly cells are FREE-TEXT: some hold a full prescription
           // ("2x10 e"), some bare reps ("8"). Show full cells as-is; prefix
           // SETSx onto bare ones (Ohad 2026-07-05). No video in the
@@ -4340,10 +4371,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: day.name,
             count: vp.sport === 'running' ? (day.ex.length === 1 ? tt('1 SEGMENT') : `${day.ex.length} ${tt('SEGMENTS')}`) : `${day.ex.length} ${tt('EX')}`,
             extras: <>
+              {started && <span data-day-started title={tt('Started, not finished')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:(lang||readLang())==='he'?0:'0.1em',flexShrink:0,whiteSpace:'nowrap',gap:6}}>{tt('STARTED')}{startedSets[0] > 0 && <bdi dir="ltr">{startedSets[0]}/{startedSets[1]}</bdi>}</span>}
               {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',minWidth:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
             </>,
-            action: { label: tt(done ? 'AGAIN' : 'START'), onClick: () => setLg(dayIdx) },
+            action: { label: tt(done ? 'AGAIN' : started ? 'RESUME' : 'START'), onClick: async () => { if (!done && !demoMode && (dServer || (dLocalProg && dLocalProg.started))) await seedLocalFromServer(dKey); setLg(dayIdx); } },
             rows: day.ex.map((ex,i) => {
               const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' };
               return {

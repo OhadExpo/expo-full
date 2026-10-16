@@ -40,6 +40,17 @@ function DormantWhatsAppButton({ trainee, days }) {
 export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout, onOpenBilling }) {
   const tt = useT();
   const he = useHe();
+  // #815 workouts an athlete started and did not finish (workout_drafts, deleted when one is completed)
+  const [openDrafts, setOpenDrafts] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const since = new Date(Date.now() - 14 * 864e5).toISOString();
+      const { data, error } = await supabase.from('workout_drafts').select('id,client_id,plan_name,day_name,week,done_sets,total_sets,updated_at').gte('updated_at', since).order('updated_at', { ascending: false });
+      if (!cancelled && !error && Array.isArray(data)) setOpenDrafts(data);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   // Package values like 'Sessions 8' carry the count inside the string, so
   // tt() misses them; in Hebrew the count comes first ('8 אימונים').
   const pkgLabel = (p) => { const m = /^(?:(\d+)\s*Sessions|Sessions\s*(\d+))$/i.exec(p || ''); const n = m && (m[1] || m[2]); return m ? (he ? `${n} אימונים` : p) : tt(p); };
@@ -245,6 +256,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // Online now
   const ONLINE_MS = 2 * 60 * 1000;
   const onlineNow = enriched.filter(t => traineeIdsFor(t.id).some(id => presence?.[id] && (now.getTime() - presence[id]) < ONLINE_MS));
+  // #815 one row per open workout, its athlete from the roster (a couple member's id carries __N)
+  const startedOpen = openDrafts.map((d) => { const t = enriched.find((x) => traineeIdsFor(x.id).includes(d.client_id) || x.id === String(d.client_id).replace(/__\d+$/, '')); return t ? { ...d, t } : null; }).filter(Boolean);
+  const agoShort = (iso) => { const m = Math.max(0, Math.round((now.getTime() - Date.parse(iso)) / 60000)); if (m < 60) return he ? `לפני ${m} דק׳` : `${m} min ago`; const h = Math.round(m / 60); if (h < 24) return he ? (h === 1 ? 'לפני שעה' : h === 2 ? 'לפני שעתיים' : `לפני ${h} שעות`) : `${h}h ago`; return he ? daysAgoHe(Math.round(h / 24)) : `${Math.round(h / 24)}d ago`; };
 
   // Overdue payment: active clients whose last payment (from payments array OR legacy lastPayment field) is >30 days ago,
   // OR active clients with a monthly rate but no payment record at all.
@@ -772,6 +786,21 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
               <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
               {t.name}
+            </div>
+          ))}
+        </CollapsibleSection>
+      )}
+
+      {/* STARTED, NOT FINISHED (#815): a workout he opened and left - worth a message before it is forgotten */}
+      {startedOpen.length > 0 && (
+        <CollapsibleSection storageKey="dash-started-open" leftStripe={C.or} padY={12} style={{ marginBottom: 14 }} domId="dash-started-open"
+          titleNode={<SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: he ? 0 : '0.08em' }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Left half-way')} ({startedOpen.length})</SectionLabel>}>
+          {startedOpen.map((d) => (
+            <div key={d.id} data-started-open {...asButton(() => onSelectTrainee(d.t.id))} aria-label={readLang() === 'he' ? `פתיחת ${d.t.name}` : `Open ${d.t.name}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 12, rowGap: 2, alignItems: 'baseline', padding: '6px 0', cursor: 'pointer' }}>
+              <span style={{ color: C.tx, fontSize: 13, minWidth: 0, overflowWrap: 'anywhere' }}>{d.t.name}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, whiteSpace: 'nowrap' }}>{agoShort(d.updated_at)}</span>
+              {/* the day on its own line: on a phone it wrapped mid-phrase beside the name */}
+              <span style={{ gridColumn: '1 / -1', color: C.tm, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere' }}><bdi>{d.day_name}</bdi>{d.week ? ` · ${he ? 'שבוע ' : 'W'}${d.week}` : ''}{d.done_sets > 0 ? <> · <bdi dir="ltr">{d.done_sets}/{d.total_sets}</bdi> {he ? 'סטים' : 'sets'}</> : ''}</span>
             </div>
           ))}
         </CollapsibleSection>

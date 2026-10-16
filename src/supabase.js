@@ -343,7 +343,7 @@ const SBX_TABLES = new Set([
   'coach_payment_settings', 'coach_tasks', 'coaching_contracts', 'intake_submissions', 'intake_tokens',
   'invoices', 'leads', 'plans', 'program_shares', 'revenue_cell_history', 'revenue_month_total',
   'revenue_owed', 'revenue_sheet_event', 'store', 'subscriptions', 'trainee_activity',
-  'trainee_evaluations', 'trainee_next_actions', 'weekly_focus', 'bw_logs', 'plan_index',
+  'trainee_evaluations', 'trainee_next_actions', 'weekly_focus', 'bw_logs', 'plan_index', 'workout_drafts',
 ]);
 // every RPC that reads or writes a sandboxed table has an sbx_ twin (security
 // invoker - the sbx_ tables' own rule is the gate). The link pages (program

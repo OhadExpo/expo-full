@@ -401,6 +401,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
   const [tasksOpen, setTasksOpen] = useState(true);
   const [msgsOpen, setMsgsOpen] = useState(true);
   const [onlineOpen, setOnlineOpen] = useState(true);
+  const [halfOpen, setHalfOpen] = useState(true);   // #815 the LEFT HALF-WAY card
   const [answeredOpen, setAnsweredOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(true);
   const [rosterFilter, setRosterFilter] = useState('');
@@ -612,6 +613,24 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
             </Row>
           ))}
+        </div>
+      )}
+
+      {/* LEFT HALF-WAY (#815 parity): the real dashboard's card of workouts started and not finished - one fixture row */}
+      {MOCK_TRAINEES[2] && (
+        <div className="alert-card alert-sev cd-halfway" data-demo-halfway style={{ background: C.sf, border: `1px solid ${C.or}`, padding: halfOpen ? '14px 18px' : '14px 18px 0', marginBottom: 14 }}>
+          <div className="title-strip" onClick={() => setHalfOpen((o) => !o)} {...stripToggleProps(halfOpen, () => setHalfOpen((o) => !o))} style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: halfOpen ? '-14px -18px 8px' : '-14px -18px -14px', padding: '0 18px', borderBottom: halfOpen ? `1px solid ${C.cardBd}` : 'none', ...DEMO_STRIP_H, justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
+            <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}><DemoSectionIcon kind="dot" />{T('Left half-way')} (1)</span>
+            <StripCaret open={halfOpen} />
+          </div>
+          {halfOpen && (
+            <div role="button" tabIndex={0} onClick={() => onJumpToTrainee(MOCK_TRAINEES[2].id, 'dashboard')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpToTrainee(MOCK_TRAINEES[2].id, 'dashboard'); } }}
+              style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 12, rowGap: 2, alignItems: 'baseline', padding: '6px 0', cursor: 'pointer' }}>
+              <span style={{ color: C.tx, fontSize: 13, minWidth: 0, overflowWrap: 'anywhere' }}>{MOCK_TRAINEES[2].name}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, whiteSpace: 'nowrap' }}>{readLang() === 'he' ? 'לפני 3 שעות' : '3h ago'}</span>
+              <span style={{ gridColumn: '1 / -1', color: C.tm, fontSize: 12 }}><bdi>{T('Day B')}</bdi> · {readLang() === 'he' ? 'שבוע 2' : 'W2'} · <bdi dir="ltr">7/16</bdi> {readLang() === 'he' ? 'סטים' : 'sets'}</span>
+            </div>
+          )}
         </div>
       )}
 

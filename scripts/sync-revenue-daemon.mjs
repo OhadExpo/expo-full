@@ -174,7 +174,23 @@ function runOwed() {
     owedLast = line;
   });
 }
-say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + scrimmage watch + owed + practice warm-up + game warm-up sheet every 20 min`);
+// A WORKOUT LEFT HALF-WAY GETS ONE NUDGE (16.10 #815): every 20 minutes, a started workout untouched for 3 hours
+// gets one push to its athlete (never at night; the script stamps it so it sends once). Quiet when nothing is due.
+let openRunning = false;
+function runOpenWorkouts() {
+  if (openRunning) return;
+  openRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/nudge-open-workouts.mjs', '--send'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', () => {
+    openRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 400);
+    if (line && !/quiet hours/.test(line)) say(line);
+  });
+}
+say(`daemon up, pid ${process.pid}, slots ${SLOTS.join('/')}:00, games + BCL games + scrimmage watch + owed + practice warm-up + game warm-up sheet + open-workout nudge every 20 min`);
 tick();
 setInterval(tick, 60 * 1000);
 runGames();
@@ -186,6 +202,8 @@ setInterval(runOwed, 20 * 60 * 1000);
 runWarmup();
 setInterval(runWarmup, 20 * 60 * 1000);
 setInterval(runScrimmageWatch, 20 * 60 * 1000);
+// 11 minutes in, clear of the owed / game warm-up downloads
+setTimeout(() => { runOpenWorkouts(); setInterval(runOpenWorkouts, 20 * 60 * 1000); }, 11 * 60 * 1000);
 // 7 minutes after the owed cycle: both download through the same Chrome (1010c review)
 setTimeout(() => { runGameWarmup(); setInterval(runGameWarmup, 20 * 60 * 1000); }, 7 * 60 * 1000);
 // THE DATABASE NEVER STAYS DOWN UNNOTICED (4.10 #543): probe every minute, alert Ohad
