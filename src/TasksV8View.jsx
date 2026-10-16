@@ -56,6 +56,8 @@ import {
 } from './googleCalendarSync';
 
 import { isHebrew } from './script';
+// The property engine (16.10): staff-only third view, loaded only when opened.
+const PropertiesView = React.lazy(() => import('./PropertiesView'));
 // The task detail's control rows were forced LTR so a Hebrew task BODY would not
 // flip them on the English screen. On the Hebrew screen they mirror with the page.
 const uiDir = () => (readLang() === 'he' ? 'rtl' : 'ltr');
@@ -520,6 +522,27 @@ function OwnerTab({ label, count, active, onClick }) {
       <span>{label}</span>
       <span style={{ opacity: 0.65, fontSize: 9, fontWeight: 700 }}>{count}</span>
     </button>
+  );
+}
+
+// SECTION switch (16.10, Ohad: the property tool is "a different toggle completely", not a third List/Board view):
+// the page title itself becomes two headings, TASKS | נכסים, the active one underlined in the accent. Staff only.
+function SectionToggle({ value, onChange, tasksLabel }) {
+  const items = [{ id: 'tasks', label: tasksLabel }, { id: 'properties', label: 'נכסים' }];
+  return (
+    <div role="tablist" style={{ display: 'flex', alignItems: 'flex-end', gap: 18 }}>
+      {items.map((it) => {
+        const on = value === it.id;
+        return (
+          <button key={it.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(it.id)} style={{
+            background: 'none', border: 0, padding: '2px 0 5px', cursor: 'pointer',
+            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: it.id === 'tasks' ? '0.18em' : '0.04em',
+            textTransform: 'uppercase', color: on ? 'var(--c-tx)' : 'var(--c-tm)',
+            borderBottom: `2px solid ${on ? 'var(--c-ac)' : 'transparent'}`,
+          }}>{it.label}</button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -2025,12 +2048,14 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // selection to a tab they can actually see. Default 'ohad' until Yuval
   // has his own auth — the comparison checks email containing 'yuval'.
   const [viewerOwner, setViewerOwner] = useState('ohad');
+  const [staffViewer, setStaffViewer] = useState(false);   // exactly the two staff emails (= is_staff() in the DB)
   useEffect(() => {
     let alive = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!alive) return;
       const email = (data?.user?.email || '').toLowerCase();
       setViewerOwner(email.includes('yuval') ? 'yuval' : 'ohad');
+      setStaffViewer(['ohadyproductions@gmail.com', 'yuvalberkovitch@gmail.com'].includes(email) && !isSandboxSeat());
     }).catch(() => {});
     return () => { alive = false; };
   }, []);
@@ -2045,10 +2070,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // opens that view, Back walks the switch.
   const TK_BASE = '/coach/tasks';
   const onTasks = () => typeof window !== 'undefined' && window.location.pathname.startsWith(TK_BASE);
-  const viewFromPath = (pth) => (segmentAfter(pth, TK_BASE) === 'board' ? 'board' : 'list');
-  const [view, setView] = useState(() => (onTasks() ? viewFromPath(window.location.pathname) : 'list')); // 'list' | 'board'
+  // /coach/tasks/properties[/<tab>] = the property engine (16.10).
+  const viewFromPath = (pth) => { const sg = segmentAfter(pth, TK_BASE); return sg === 'board' || sg === 'properties' ? sg : 'list'; };
+  const [view, setView] = useState(() => (onTasks() ? viewFromPath(window.location.pathname) : 'list')); // 'list' | 'board' | 'properties'
+  const lastTaskView = useRef('list');   // the List/Board the section switch returns to
+  useEffect(() => { if (view !== 'properties') lastTaskView.current = view; }, [view]);
   useUrlSync(view, (v) => setView(v || 'list'), {
-    toPath: (v) => (!onTasks() ? null : v === 'board' ? `${TK_BASE}/board` : (segmentAfter(window.location.pathname, TK_BASE) === 'board' ? { path: TK_BASE } : null)),
+    toPath: (v) => (!onTasks() ? null : v === 'board' || v === 'properties' ? `${TK_BASE}/${v}` : (['board', 'properties'].includes(segmentAfter(window.location.pathname, TK_BASE)) ? { path: TK_BASE } : null)),
     fromPath: (pth) => (onTasks() ? viewFromPath(pth) : null),
   });
   // Board grouping (Monday-style): 'status' = a To Do→In Progress→Done kanban,
@@ -2828,11 +2856,18 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         marginBottom: 12, gap: 12, flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {staffViewer ? (
+            <h2 style={{ margin: 0 }}>
+              <SectionToggle value={view === 'properties' ? 'properties' : 'tasks'} tasksLabel={tt("Tasks")}
+                onChange={(sct) => setView(sct === 'properties' ? 'properties' : (lastTaskView.current || 'list'))} />
+            </h2>
+          ) : (
           <h2 style={{
             margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.18em', textTransform: 'uppercase',
             color: 'var(--c-tx)',
           }}>{tt("Tasks")}</h2>
+          )}
           {/* No always-on "LIVE" badge (a permanently-green dot carries no info).
               Instead, surface a warning ONLY when the realtime channel actually
               drops — that's information. The 90s poll still refreshes data, so
@@ -2846,7 +2881,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-or)' }} />{tt('Sync lost — reconnecting')}</span>
           )}
         </div>
-        <div style={{ width: 168 }}><ViewToggle value={view} onChange={setView} /></div>
+        {view !== 'properties' && <div style={{ width: 168 }}><ViewToggle value={view} onChange={setView} /></div>}
       </div>
 
       {/* Two-column layout: left filter RAIL + content (Ohad's design 7).
@@ -2857,7 +2892,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         {/* LEFT: filter rail — sticky below the sticky header so the filters
             stay pinned as the (long) list scrolls; scrolls internally if it
             ever outgrows the viewport. Static + full-width when narrow. */}
-        <div className="side-rail" style={{
+        {view !== 'properties' && <div className="side-rail" style={{
           // 'auto' let the rail size to its own widest child, so at 360 it was
           // 316px inside a 308px column and the whole board scrolled sideways.
           // Full width of the column when narrow, and it may shrink.
@@ -2910,12 +2945,14 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           </RailGroup>
 
           </>)}
-        </div>
+        </div>}
 
         {/* RIGHT: content — the list/board (view toggle now lives above). */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-      {view === 'list' ? (
+      {view === 'properties' ? (
+        <React.Suspense fallback={<div style={{ padding: 24, color: 'var(--c-tm)', fontFamily: FB }}>טוען…</div>}><PropertiesView /></React.Suspense>
+      ) : view === 'list' ? (
         <div style={{
           border: `1px solid var(--c-cardBd)`,
           background: 'var(--c-sf)',
