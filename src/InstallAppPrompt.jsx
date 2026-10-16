@@ -18,6 +18,7 @@ import { getInstallEvent, clearInstallEvent, onInstallReady, isIOS, isIOSSafari,
 // It reads the stored language directly instead. Same structural miss that kept
 // the athlete portal in English; caught by the same measurement.
 import { tr, readLang } from './i18n';
+import { isClubPage } from './clubBrand';
 
 // A DISMISSAL snooze in localStorage (not sessionStorage) so tapping "MAYBE
 // LATER" isn't re-nagged with a blocking modal every browser session
@@ -33,12 +34,15 @@ export default function InstallAppPrompt() {
 
   useEffect(() => {
     if (isStandalone()) return undefined;                 // already IN the installed app
+    // a coach previewing an athlete's portal is not the athlete installing it (#832: the EXPO prompt showed in a coach's preview)
+    if (typeof window !== 'undefined' && /\/preview(\/|$)/.test(window.location.pathname)) return undefined;
     let shown = false;
     try { shown = Date.now() < (parseInt(localStorage.getItem(SNOOZE_KEY), 10) || 0); } catch { /* private mode */ }
     let cancelled = false;
 
     const show = (m) => {
       if (cancelled || shown || isStandalone()) return;
+      if (/\/preview(\/|$)/.test(window.location.pathname)) return;   // reached a preview in-app after mount
       shown = true;
       setMode(m);
       setOpen(true);
@@ -90,7 +94,7 @@ export default function InstallAppPrompt() {
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || (typeof window !== 'undefined' && /\/preview(\/|$)/.test(window.location.pathname))) return null;
 
   const doPrimary = async () => {
     if (prompt) {
@@ -111,7 +115,7 @@ export default function InstallAppPrompt() {
   // THE CLUB'S OWN PROMPT on club routes (27.9, Ohad: "there should be a bhbc
   // version for this attached to bhbc sites"): the club's name in every line,
   // its crest, navy and orange - the same steps, the same snooze.
-  const club = typeof window !== 'undefined' && /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname);
+  const club = isClubPage();   // a club route, or a club coach's page wherever it is (#832)
   const clubName = readLang() === 'he' ? 'בני הרצליה' : 'Bnei Herzliya';
   const t = (str) => { const v = tr(readLang(), str); return club ? String(v).replace(/EXPO/g, clubName) : v; };
   const ACC = club ? '#F26A2B' : C.ac;

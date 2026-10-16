@@ -102,6 +102,7 @@ import { logAppOpen } from './logAppOpen';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import { getState as netState, subscribe as subscribeNet } from './connectivity';
 import InstallAppPrompt from './InstallAppPrompt';
+import { applyClubBranding, removeClubBranding, CLUB_PATH } from './clubBrand';
 import ErrorBoundary from './ErrorBoundary';
 import { setSeat } from './seatWrite';
 // Imported at CALL time, below - it pulls poseLab (1,265 lines) and this is
@@ -1285,6 +1286,22 @@ function AuthedApp() {
     const start = setTimeout(() => { h = idle(next); }, 2500);   // after the first screen has had its turn
     return () => { cancelled = true; clearTimeout(start); try { if (window.cancelIdleCallback) window.cancelIdleCallback(h); else clearTimeout(h); } catch { /* */ } };
   }, [isCoach, isBhbcCoach]);
+  // A CLUB COACH'S APP IS THE CLUB'S (16.10 #832): signed in from expo-app.co.il he saw the club zone at /coach/dashboard with
+  // EXPO's manifest, icon and title - 'Add to Home Screen' installed EXPO. The address becomes the club door (replace,
+  // no history entry) and the page is branded as the club (clubBrand.js), so the installed app is Bnei Herzliya and opens
+  // at /bhbc - the club login, or straight into the zone.
+  useEffect(() => {
+    if (!isBhbcCoach || typeof window === 'undefined') return;
+    if (!CLUB_PATH.test(window.location.pathname)) { try { window.history.replaceState(window.history.state, '', '/bhbc' + window.location.search + window.location.hash); } catch { /* */ } }
+    applyClubBranding();
+    return () => { if (!CLUB_PATH.test(window.location.pathname)) removeClubBranding(); };   // signed out off the club door: EXPO again
+  }, [isBhbcCoach]);
+  // the owner moving between EXPO and the club zone in-app: the tab's title follows (the club's boot branding named it)
+  useEffect(() => {
+    if (isBhbcCoach || typeof document === 'undefined') return;
+    const want = CLUB_PATH.test(window.location.pathname) ? 'Bnei Herzliya' : 'EXPO';
+    if (document.title !== want) document.title = want;
+  }, [isBhbcCoach, tab]);
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [previewPlan,setPreviewPlan]=useState(initRoute.planPreviewId || null);

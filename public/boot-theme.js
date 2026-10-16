@@ -97,6 +97,7 @@
       document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function (l) { l.setAttribute('href', '/bhbc-icon-180.png'); });
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.setAttribute('content', 'Bnei Herzliya');
       var c = document.querySelector('meta[name="theme-color"]'); if (c) c.setAttribute('content', '#14294F');
+      document.title = 'Bnei Herzliya';   // the tab and the installed app's name (#832)
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
   } catch (e) { /* never block boot */ }
