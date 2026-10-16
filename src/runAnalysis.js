@@ -16,6 +16,7 @@ const num = (s) => { const n = parseFloat(String(s == null ? '' : s).replace(','
 export const presKm = (s) => {
   const t = String(s || '').trim();
   if (!t || /(דק|שנ|min|sec)/i.test(t) || /\d\s*s(?=\s|$)/i.test(t)) return null;
+  if (/\d\s*[x×*]\s*\d/i.test(t)) return null;   // '4x400 מ׳' is sets x distance, not 0.004 km
   const n = num(t); if (n == null) return null;
   if (/(ק״מ|ק"מ|קמ|km)/i.test(t)) return n;
   if (/(מ׳|מ'|מטר|\dm|\sm)(?=\s|$)/i.test(t)) return n / 1000;
@@ -138,7 +139,7 @@ const weekKey = (d) => { const iso = ilDate(d); if (!iso) return null; const x =
 // plans: the athlete's plans (with days); viewedId: the block to read (else the latest running block)
 // sameBlock(w, plan): whether a logged workout belongs to a plan (default: the plan's name - the strength report also
 // matches the block number; pass its rule so both halves of the page count the same runs)
-export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = null, now = Date.now(), sameBlock = null } = {}) {
+export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = null, now = Date.now(), sameBlock = null, current = false } = {}) {
   const runPlans = (plans || []).filter((p) => p && p.sport === 'running' && (p.days || []).length);
   if (!runPlans.length) return null;
   const plan = (viewedId && runPlans.find((p) => p.id === viewedId)) || runPlans[runPlans.length - 1];
@@ -160,7 +161,7 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   const plannedTotal = plannedSessions(plan.days, weeksN);   // #850: each week's own days
   // due SO FAR: the weeks he has reached (the highest logged week), not the whole block - week 1 of 4 is not 'missing'
   const weekReached = Math.min(weeksN, Math.max(1, ...runs.map((r) => r.week)));
-  const isLatest = plan === runPlans[runPlans.length - 1];
+  const isLatest = plan === runPlans[runPlans.length - 1] || !!current;   // current: the block he is on while the next one is written (#851)
   const plannedDue = runs.length && isLatest ? plannedSessions(plan.days, weekReached) : plannedTotal;
   // planned km for the weeks reached (per-week prescriptions), and whether any day is time-based (km then a floor)
   let plannedKm = 0, kmPartial = false;

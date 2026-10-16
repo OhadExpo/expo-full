@@ -688,7 +688,7 @@ export function vsLastBlock(a, plans, clientWorkouts, traineeId, deps, phaseOf =
   const prev = buildBlockSessions(clientWorkouts || [], traineeId, plans, deps, { targetBlockId: prevMeta.id });
   const sess = a.sessions || [];
   const reached = sess.length && sess.every((s) => Number(s.week) > 0) ? Math.max(...sess.map((s) => Number(s.week))) : null;
-  const weeks = i === 0 && reached && reached < (Number(a.weeks) || 0) ? reached : null;
+  const weeks = (i === 0 || a.autoFrom) && reached && reached < (Number(a.weeks) || 0) ? reached : null;   // the block he is on (the latest, or the analysis' fallback while the next is written)
   const key = (t) => String(t).trim().toLowerCase().replace(/\s+/g, ' ');
   const ballistic = new Set((a.staples || []).filter((s) => s.ballistic).map((s) => key(s.title)));
   const out = compareBlocks(a, prev, { weeks, ballistic });

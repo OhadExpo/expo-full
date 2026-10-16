@@ -284,7 +284,15 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const [selBlock, setSelBlock] = useState(null); // null = latest; else a plan/block ID to view a PREVIOUS block (id keys every block, numbered or not — #231)
   const a = useMemo(() => {
     if (!plans) return null;
-    return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockId: selBlock, he });
+    const run1 = (id) => analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockId: id, he });
+    const first = run1(selBlock);
+    // THE LATEST BLOCK NOT STARTED YET (16.10 #851): open on the newest block that has logged sessions, and say so - the
+    // picker still opens any block, the latest included
+    if (selBlock == null && first && first.empty && Array.isArray(first.blocks)) {
+      const routine = (id) => { const p = plans.find((q) => q.id === id); return !!p && (!!p.kind || /routine|שגרה/i.test(p.name || '')); };
+      for (const b of first.blocks.slice(1, 6)) { if (routine(b.id)) continue; const r = run1(b.id); if (r && !r.empty) return { ...r, autoFrom: first.blockName }; }
+    }
+    return first;
   }, [clientWorkouts, traineeId, plans, exMap, selBlock, he]);
   // VS THE LAST BLOCK (#814): the viewed block against the one before it, each from its own sessions
   const cmp = useMemo(() => {
@@ -312,7 +320,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const run = useMemo(() => {
     if (!plans || !a || !a.blockId) return null;
     const viewed = plans.find((p) => p.id === a.blockId);
-    return viewed && viewed.sport === 'running' ? analyzeRunner(clientWorkouts || [], traineeId, plans, { viewedId: a.blockId, sameBlock: (w, p) => w.planName === p.name || (blockNum(p.name) != null && blockNum(w.planName) === blockNum(p.name)) /* the strength side's rule: the strip and the review count the same runs */ }) : null;
+    return viewed && viewed.sport === 'running' ? analyzeRunner(clientWorkouts || [], traineeId, plans, { viewedId: a.blockId, current: !!a.autoFrom, sameBlock: (w, p) => w.planName === p.name || (blockNum(p.name) != null && blockNum(w.planName) === blockNum(p.name)) /* the strength side's rule: the strip and the review count the same runs */ }) : null;
   }, [plans, a, clientWorkouts, traineeId]);
   // Auto-analyse EVERY uploaded clip for bar-speed + symmetry — no manual "save
   // to trend" (Ohad). Runs once per clip in the background when the report opens
@@ -388,6 +396,12 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
   );
 
+  const autoNote = a.autoFrom ? (
+    <div data-analysis-auto style={{ ...card, padding: '10px 14px', fontSize: 12.5, color: C.tm, lineHeight: 1.5 }}>
+      {L(he, `\u2068${a.autoFrom}\u2069 has no logged sessions yet - showing \u2068${a.blockName}\u2069.`, `ב־\u2068${a.autoFrom}\u2069 עוד אין אימונים רשומים - מוצג \u2068${a.blockName}\u2069.`)}
+    </div>
+  ) : null;
+
   // no plans at all
   if (!a.hasPlans) {
     return shell(<>{Strip}
@@ -410,11 +424,12 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </>);
   }
 
-  if (run) return shell(<>{Strip}<RunReview a={run} he={he} /><BlockTalk ctx={talk} he={he} /></>);
+  if (run) return shell(<>{Strip}{autoNote}<RunReview a={run} he={he} /><BlockTalk ctx={talk} he={he} /></>);
 
 
   return shell(<>
     {Strip}
+    {autoNote}
 
     {/* THE TOP, REBUILT (16.10 #814): the block in one line + the next-block moves, the scorecard, the block at a
         glance, the main lifts - StrengthReview.jsx (the old verdict / gate / response cards said the same things three times) */}

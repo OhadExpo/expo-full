@@ -36,6 +36,7 @@ import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue }
 import { runPace } from './runPace';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { deriveWeekIdx, dayInWeek, plannedSessions } from './planWeek';
+import { presKm } from './runAnalysis';
 import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 import { resolveStoredUrl } from './storageUrl';
@@ -1761,7 +1762,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // live 0-done rows have them) — offer to tick them, and a second Complete
     // saves as is. A video alone is a real log too, and must never be orphaned.
     const setsNow = opts.tickFilled
-      ? allSets.map(rows => (rows || []).map(st => isFilledUnticked(st) ? { ...st, done: true, prefill: false } : st))
+      ? allSets.map((rows, ei) => (rows || []).map(st => {
+          if (!isFilledUnticked(st)) return st;
+          // a run set ticked here with its distance empty records the prescribed distance, as a tick on the set does (#851)
+          const e = day.ex[ei];
+          const km = isRun && e && !String(st.reps || '').trim() ? presKm(String((Array.isArray(e.wk) && String(e.wk[weekNum] ?? '').trim()) || e.r || '')) : null;
+          return { ...st, ...(km != null ? { reps: String(km) } : {}), done: true, prefill: false };
+        }))
       : allSets;
     if (opts.tickFilled) setAllSets(setsNow);
     const doneNow = countDoneSets(setsNow.map(sets => ({ sets })));
@@ -2612,7 +2619,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               {/* Whole cell is the tap target (not just the 18px box) so a
                   sweaty mid-set tap lands. 24px box, centered. */}
               <label style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:44,cursor:'pointer'}}>
-                <input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:24,height:24,accentColor:C.gn,cursor:'pointer'}}/>
+                {/* a run set ticked done with its distance empty records the prescribed distance (16.10 #851: a run was logged
+                    with every km box empty - the 1 km he saw was only the placeholder); a typed distance always wins */}
+                <input type="checkbox" checked={set.done} onChange={e => { const v = e.target.checked; if (isRun && v && !String(set.reps || '').trim()) { const k = presKm(String(repsForDisplay || '')); if (k != null) uSet(ei, si, 'reps', String(k)); } uSet(ei,si,'done',v); }} style={{width:24,height:24,accentColor:C.gn,cursor:'pointer'}}/>
               </label>
             </div>
             {isRun && runPace(set.reps, set.time) && <div data-run-pace style={{ fontFamily: FN, fontSize: 11, color: C.tm, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 5, margin: '-2px 0 6px' }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.ac, unicodeBidi: 'isolate' }}>{runPace(set.reps, set.time)} {tt('/km')}</b></div>}
