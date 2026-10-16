@@ -28,6 +28,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { localiseAutoBody, addLocalNames } from './autoTaskHe';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useUrlSync, segmentAfter } from './urlState';
+import { lazyReload } from './lazyReload';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton, SortArrow, CaretGlyph, useSettleIn, ChipGrid } from './ui';
@@ -57,7 +58,7 @@ import {
 
 import { isHebrew } from './script';
 // The property engine (16.10): staff-only third view, loaded only when opened.
-const PropertiesView = React.lazy(() => import('./PropertiesView'));
+const PropertiesView = lazyReload(() => import('./PropertiesView'));   // survives a deploy (a stale tab 404'd the old chunk)
 // The task detail's control rows were forced LTR so a Hebrew task BODY would not
 // flip them on the English screen. On the Hebrew screen they mirror with the page.
 const uiDir = () => (readLang() === 'he' ? 'rtl' : 'ltr');
@@ -528,7 +529,8 @@ function OwnerTab({ label, count, active, onClick }) {
 // SECTION switch (16.10, Ohad: the property tool is "a different toggle completely", not a third List/Board view):
 // the page title itself becomes two headings, TASKS | נכסים, the active one underlined in the accent. Staff only.
 function SectionToggle({ value, onChange, tasksLabel }) {
-  const items = [{ id: 'tasks', label: tasksLabel }, { id: 'properties', label: 'נכסים' }];
+  const he = readLang() === 'he';
+  const items = [{ id: 'tasks', label: tasksLabel }, { id: 'properties', label: he ? 'נכסים' : 'Assets' }];   // #857: ASSETS in English
   return (
     <div role="tablist" style={{ display: 'flex', alignItems: 'flex-end', gap: 18 }}>
       {items.map((it) => {
@@ -536,7 +538,9 @@ function SectionToggle({ value, onChange, tasksLabel }) {
         return (
           <button key={it.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(it.id)} style={{
             background: 'none', border: 0, padding: '2px 0 5px', cursor: 'pointer',
-            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: it.id === 'tasks' ? '0.18em' : '0.04em',
+            // #860: each tab is as wide as its wider label in either language, so a language switch moves nothing
+            width: it.id === 'tasks' ? 66 : 78, textAlign: 'center', boxSizing: 'border-box', whiteSpace: 'nowrap',
+            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: he ? 0 : '0.18em',   // one spacing for both words; none on Hebrew
             textTransform: 'uppercase', color: on ? 'var(--c-tx)' : 'var(--c-tm)',
             borderBottom: `2px solid ${on ? 'var(--c-ac)' : 'transparent'}`,
           }}>{it.label}</button>
@@ -1778,7 +1782,7 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
           style={{
             // THE SELECT BOX HAS ITS OWN COLUMN (#846, Ohad: 'isn't aligned with the text and is just random'): at the card's
             // start, centred on the title's FIRST line, the same x on every card - the text column beside it
-            display: 'grid', gridTemplateColumns: selectSlot ? '16px minmax(0, 1fr)' : 'minmax(0, 1fr)', columnGap: 10, alignItems: 'start', direction: uiDir(),
+            display: 'grid', gridTemplateColumns: selectSlot ? '16px minmax(0, 1fr) 16px' /* #856 an empty twin of the select box: the text is centred on the CARD */ : 'minmax(0, 1fr)', columnGap: 10, alignItems: 'start', direction: uiDir(),
             padding: '10px 12px', cursor: 'pointer',
             borderBottom: '1px solid var(--c-cardBd)', borderInlineStart: `3px solid ${edgeColor}`,
             background: expanded ? 'var(--c-sf2, transparent)' : hover ? 'var(--c-sf2, rgba(57,189,255,0.04))' : 'transparent',
@@ -1792,20 +1796,20 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
               shared, the athlete - and the select box at the end of that last line. */}
           <div dir="auto" style={{
             fontFamily: FB, fontSize: heb ? 14 : 13.5, fontWeight: 500, lineHeight: 1.4, color: 'var(--c-tx)',
-            unicodeBidi: 'plaintext', textAlign: uiDir() === 'rtl' ? 'right' : 'left', wordBreak: 'break-word',
+            unicodeBidi: 'plaintext', textAlign: 'center' /* #856 (Ohad: "everything is left aligned. should be middle") - centred, every line of every card */, wordBreak: 'break-word',
             ...(expanded ? { whiteSpace: 'normal' } : { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }),
           }}>
             <TaskTitleText text={row._display} query={search} />
           </div>
           {dateStr && (
-            <div dir={uiDir()} style={{ marginTop: 6, display: 'flex' }}>
+            <div dir={uiDir()} style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}>
               <span style={{ ...word, color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : 'var(--c-tm)', fontWeight: isOverdue ? 800 : 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {isOverdue ? <>{tt('OVERDUE')} <span style={{ opacity: 0.55 }}>{RELATIVE_WORDS.has(dm.label) ? tt(dm.label) : dm.label}</span></> : dateStr}
               </span>
             </div>
           )}
-          <div dir={uiDir()} style={{ display: 'flex', alignItems: 'center', columnGap: 12, marginTop: dateStr ? 4 : 6, minHeight: 18, color: 'var(--c-tm)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', columnGap: 12, rowGap: 4, flexWrap: 'wrap', minWidth: 0, flex: '1 1 auto' }}>
+          <div dir={uiDir()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', columnGap: 12, marginTop: dateStr ? 4 : 6, minHeight: 18, color: 'var(--c-tm)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', columnGap: 12, rowGap: 4, flexWrap: 'wrap', minWidth: 0, flex: '1 1 auto' }}>
               {readOnly
                 ? <span style={{ ...word, color: pr.color }}>{tt(pr.label)}</span>
                 : wordPick({ value: priority, options: PRIORITY_PICK, color: pr.color, label: tt('Change urgency'), onPick: (v) => onSetPriority(row, v) })}
@@ -2081,9 +2085,17 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   useEffect(() => { if (view !== 'properties') lastTaskView.current = view; }, [view]);
   // a seat that is not staff never stays on נכסים (a hand-typed /coach/tasks/properties): back to the list once the
   // sign-in is read. staffKnown keeps a staff reload on the section while getUser() is still in flight.
-  useEffect(() => { if (staffKnown && !staffViewer && view === 'properties') setView('list'); }, [staffKnown, staffViewer, view]);
+  // the bounce REPLACES the address (#863 F11: pushed, Back looped between /properties and /tasks)
+  const bounceRef = useRef(false);
+  useEffect(() => { if (staffKnown && !staffViewer && view === 'properties') { bounceRef.current = true; setView('list'); } }, [staffKnown, staffViewer, view]);
   useUrlSync(view, (v) => setView(v || 'list'), {
-    toPath: (v) => (!onTasks() ? null : v === 'board' || v === 'properties' ? `${TK_BASE}/${v}` : (['board', 'properties'].includes(segmentAfter(window.location.pathname, TK_BASE)) ? { path: TK_BASE } : null)),
+    toPath: (v) => {
+      if (!onTasks()) return null;
+      if (v === 'board' || v === 'properties') return `${TK_BASE}/${v}`;
+      if (!['board', 'properties'].includes(segmentAfter(window.location.pathname, TK_BASE))) return null;
+      const replace = bounceRef.current; bounceRef.current = false;
+      return replace ? { path: TK_BASE, replace: true } : { path: TK_BASE };
+    },
     fromPath: (pth) => (onTasks() ? viewFromPath(pth) : null),
   });
   // Board grouping (Monday-style): 'status' = a To Do→In Progress→Done kanban,
@@ -2568,6 +2580,57 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     return sections;
   }, [view, boardGroup, statusSections, sections]);
 
+  // #855 the status board's columns: the open ones (DONE is the strip under the board); on a tablet / phone the row
+  // swipes, the tab row above it follows the column in view and a tab brings its column in
+  const boardCols = useMemo(() => (boardGroup === 'status' ? boardSections.filter((s) => s.statusId !== 'done') : boardSections), [boardGroup, boardSections]);
+  const boardRowRef = useRef(null);
+  // EVERY TAB ITS URL: the column in view is /coach/tasks/board/<word> on a tablet / phone (swapped in place - never a new history entry)
+  const BOARD_COL_WORDS = ['to-do', 'in-progress', 'waiting', 'stuck'];
+  const colFromPath = (pth) => { const p = String(pth || ''); const pre = `${TK_BASE}/board/`; if (!p.startsWith(pre)) return null; const i = BOARD_COL_WORDS.indexOf(p.slice(pre.length).split('/')[0]); return i >= 0 ? i : null; };
+  const [boardColIdx, setBoardColIdx] = useState(() => (typeof window !== 'undefined' ? colFromPath(window.location.pathname) ?? 0 : 0));
+  useUrlSync(boardColIdx, (i) => { if (i != null) setBoardColIdx(i); }, {
+    toPath: (i) => (onTasks() && view === 'board' && boardGroup === 'status' && tight && window.location.pathname.startsWith(`${TK_BASE}/board`) ? { path: `${TK_BASE}/board/${BOARD_COL_WORDS[i] || BOARD_COL_WORDS[0]}`, swap: true } : null),
+    fromPath: (pth) => colFromPath(pth),
+  });
+  // a reload / link on a column: the board opens scrolled to it
+  // every time the status board opens (a reload, a link, List -> Board, back from Assets) it lands on the remembered
+  // column - once the columns have their cards (the tasks load after the first render) - and the URL names it
+  const boardLoaded = boardCols.some((c) => c.rows.length > 0);
+  useEffect(() => {
+    if (view !== 'board' || boardGroup !== 'status' || !tight || !boardLoaded) return undefined;
+    const t = setTimeout(() => {
+      scrollBoardTo(boardColIdx, false);
+      const want = `${TK_BASE}/board/${BOARD_COL_WORDS[boardColIdx] || BOARD_COL_WORDS[0]}`;
+      if (window.location.pathname.startsWith(`${TK_BASE}/board`) && window.location.pathname !== want) window.history.replaceState(window.history.state, '', want + window.location.search + window.location.hash);
+    }, 60);
+    return () => clearTimeout(t);
+  }, [view, boardGroup, tight, boardLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the columns in view (two on a tablet, one on a phone) light their tabs; boardColIdx is the one the URL names
+  const [boardVisible, setBoardVisible] = useState([0]);
+  const tapLockRef = useRef(0);
+  const visibleCols = () => {
+    const row = boardRowRef.current; if (!row) return [];
+    const r0 = row.getBoundingClientRect();
+    return [...row.children].map((c, i) => { const r = c.getBoundingClientRect(); const seen = Math.max(0, Math.min(r.right, r0.right) - Math.max(r.left, r0.left)); return seen >= r.width * 0.6 ? i : -1; }).filter((i) => i >= 0);
+  };
+  const scrollBoardTo = (i, smooth = true) => {
+    const row = boardRowRef.current; const col = row && row.children[i];
+    if (!col) return;
+    setBoardColIdx(i);
+    tapLockRef.current = Date.now() + 900;   // the scroll it starts must not walk the highlight back through the columns
+    // the ROW scrolls, never the page (scrollIntoView moved the window too); measured from the row's own start edge
+    const rtl = getComputedStyle(row).direction === 'rtl';
+    const c = col.getBoundingClientRect(), r0 = row.getBoundingClientRect();
+    row.scrollBy({ left: rtl ? c.right - r0.right : c.left - r0.left, behavior: smooth ? 'smooth' : 'auto' });
+    setTimeout(() => setBoardVisible(visibleCols()), smooth ? 920 : 30);
+  };
+  const onBoardScroll = () => {
+    if (Date.now() < tapLockRef.current) return;
+    const vis = visibleCols(); if (!vis.length) return;
+    setBoardVisible(vis);
+    if (!vis.includes(boardColIdx)) setBoardColIdx(vis[0]);   // a swipe: the URL follows the first column now in view
+  };
+
   // Drop a dragged card onto a column → change that column's dimension.
   const onDropToColumn = async (section) => {
     const row = draggedRowRef.current; draggedRowRef.current = null; setDropKey(null);
@@ -2659,6 +2722,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     () => decorated.filter(r => ownerMatches(r) && (r.status === 'done' || r.status === 'cancelled')),
     [decorated, owner]
   );
+
+  // on the status board the DONE strip is that board's DONE column: the same search / quick filter as the columns
+  const doneStrip = (view === 'board' && boardGroup === 'status') ? ((statusSections.find((x) => x.statusId === 'done') || {}).rows || []) : done;
 
   const toggleRow = (id) => setExpandedRows(prev => {
     const n = new Set(prev);
@@ -2958,7 +3024,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         <div style={{ flex: 1, minWidth: 0 }}>
 
       {view === 'properties' ? (
-        <React.Suspense fallback={<div style={{ padding: 24, color: 'var(--c-tm)', fontFamily: FB }}>טוען…</div>}><PropertiesView /></React.Suspense>
+        // staff only, and only once the seat is known (#863 F11: it mounted and opened its realtime channel first)
+        staffViewer ? <React.Suspense fallback={<div style={{ padding: 24, color: 'var(--c-tm)', fontFamily: FB }}>טוען…</div>}><PropertiesView /></React.Suspense> : null
       ) : view === 'list' ? (
         <div style={{
           border: `1px solid var(--c-cardBd)`,
@@ -3076,14 +3143,37 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       ) : (
         // BOARD view — same data as cards. Uses auto-fill (not auto-fit) so
         // a single matching card doesn't stretch the full width on search.
-        <div style={boardGroup === 'status'
-          // Status kanban = columns that flex to fill the width and WRAP to a new
-          // row on narrow screens — no horizontal scroll (Ohad).
-          ? { display: 'flex', flexWrap: 'wrap', gap: 10, paddingBottom: 8, alignItems: 'flex-start' }
+        <React.Fragment>
+        {/* A BOARD, NOT A LIST (#855, Ohad 16.10: "Board in tasks look like a list. Not good enough design"): the
+            columns WRAPPED - on a phone they stacked top to bottom (a list), at 1024 DONE fell to a second row. Now the
+            open columns are ONE row at every width: side by side to fill a desktop; on a tablet / phone a swipe moves
+            column to column inside the board (snapping, the next column's edge in view - the page itself never
+            scrolls sideways, the old rule), with the columns as a joined row of tabs above it. DONE is the strip
+            under the board (cards can be dropped on it) - it was a second copy of that strip as a column. */}
+        {boardGroup === 'status' && tight && (
+          <div role="tablist" aria-label={tt('Board columns')} style={{ display: 'grid', gridTemplateColumns: `repeat(${boardCols.length}, minmax(0, 1fr))`, gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)', marginBottom: 10 }}>
+            {boardCols.map((section, i) => {
+              const on = boardVisible.includes(i);
+              const label = tt(STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId);
+              return (
+                <button key={section.key} type="button" role="tab" aria-selected={on} onClick={() => scrollBoardTo(i)}
+                  style={{ height: 36, minWidth: 0, padding: '0 4px', border: 'none', background: 'var(--c-sf)', boxShadow: on ? 'inset 0 -2px 0 var(--c-ac)' : 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', color: on ? 'var(--c-tx)' : 'var(--c-tm)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                  <span style={{ color: on ? 'var(--c-ac)' : 'var(--c-td)' }}>{section.rows.length}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div ref={boardRowRef} onScroll={boardGroup === 'status' && tight ? onBoardScroll : undefined} data-board-row style={boardGroup === 'status'
+          ? (tight
+            ? { display: 'flex', flexWrap: 'nowrap', gap: 10, alignItems: 'flex-start', overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: 8, scrollbarWidth: 'none' }
+            : { display: 'flex', flexWrap: 'nowrap', gap: 10, alignItems: 'flex-start', paddingBottom: 8 })
           // List grouping keeps the responsive wrapping grid.
           : { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 14 }
         }>
-          {boardSections.map(section => {
+          {(boardGroup === 'status' ? boardCols : boardSections).map(section => {
             const isStatus = !!section.statusId;
             // Saturated, white-text-safe header colours per status (To Do→Done).
             const STATUS_HEAD = { open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' };
@@ -3101,7 +3191,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 border: `1px solid ${isDropTarget ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
                 background: isDropTarget ? 'var(--c-sf2)' : 'var(--c-sf)',
                 borderRadius: 0, display: 'flex', flexDirection: 'column', transition: 'background 0.12s, border-color 0.12s',
-                ...(isStatus ? { flex: '1 1 170px', minWidth: 170 } : {}),
+                // one row: equal shares of the width on a desktop; a swipe page each on a tablet (two side by side) / phone
+                ...(isStatus ? (tight ? { flex: narrow ? '0 0 86%' : '0 0 calc(50% - 5px)', scrollSnapAlign: 'start' } : { flex: '1 1 0', minWidth: 0 }) : {}),
               }}>
               {/* Neutral header for EVERY column (Ohad: "too many colors" — five
                   saturated header fills were a rainbow). Status/source now reads
@@ -3176,13 +3267,19 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             }}>{search ? `No matches for "${search}"` : `No tasks for ${owner}`}</div>
           )}
         </div>
+        </React.Fragment>
       )}
 
-      {done.length > 0 && (
-        <div style={{
+      {view !== 'properties' && (doneStrip.length > 0 || (view === 'board' && boardGroup === 'status')) && (   // never under the Assets page
+        // on the status board this strip IS the DONE column: a card dropped on it is done (#855)
+        <div data-done-strip
+          onDragOver={view === 'board' && boardGroup === 'status' ? (e) => { if (!draggedRowRef.current) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dropKey !== 'status:done') setDropKey('status:done'); } : undefined}
+          onDragLeave={view === 'board' && boardGroup === 'status' ? (e) => { if (e.currentTarget === e.target && dropKey === 'status:done') setDropKey(null); } : undefined}
+          onDrop={view === 'board' && boardGroup === 'status' ? (e) => { e.preventDefault(); onDropToColumn({ key: 'status:done', statusId: 'done' }); } : undefined}
+          style={{
           marginTop: 14,
-          border: `1px solid var(--c-cardBd)`,
-          background: 'var(--c-sf)',
+          border: `1px solid ${dropKey === 'status:done' ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+          background: dropKey === 'status:done' ? 'var(--c-sf2)' : 'var(--c-sf)',
         }}>
           <div
             {...asButton(() => setDoneOpen(o => !o))}
@@ -3196,13 +3293,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               borderBottom: doneOpen ? `1px solid var(--c-cardBd)` : 'none',
             }}>
-            <span><CaretGlyph rot={doneOpen ? 0 : -90} /> {tt('Done')} · {done.length}</span>
+            <span><CaretGlyph rot={doneOpen ? 0 : -90} /> {tt('Done')} · {doneStrip.length}</span>
             <span style={{ opacity: 0.6, fontSize: 9 }}>
-              {doneOpen ? (readLang() === 'he' ? `מציג את ${Math.min(done.length, 5)} האחרונות` : `${tt('Showing latest')} ${Math.min(done.length, 5)}`) : tt('Click to expand')}
+              {doneOpen ? (readLang() === 'he' ? `מציג את ${Math.min(doneStrip.length, 5)} האחרונות` : `${tt('Showing latest')} ${Math.min(doneStrip.length, 5)}`) : tt('Click to expand')}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: doneOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
-          {[...done]
+          {[...doneStrip]
             .sort((a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at))
             .slice(0, 5)
             .map(row => {
@@ -3229,13 +3326,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   />
               );
             })}
-          {done.length > 5 && (
+          {doneStrip.length > 5 && (
             <div style={{
               padding: '10px 14px',
               fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', color: 'var(--c-tm)',
               textTransform: 'uppercase', textAlign: 'center',
-            }}>{readLang() === 'he' ? (done.length - 5 === 1 ? 'עוד אחת הושלמה · הכול בהיסטוריה' : `עוד ${done.length - 5} הושלמו · הכול בהיסטוריה`) : `${done.length - 5} ${tt('more done · view all in the history')}`}</div>
+            }}>{readLang() === 'he' ? (doneStrip.length - 5 === 1 ? 'עוד אחת הושלמה · הכול בהיסטוריה' : `עוד ${doneStrip.length - 5} הושלמו · הכול בהיסטוריה`) : `${doneStrip.length - 5} ${tt('more done · view all in the history')}`}</div>
           )}
           </div></div>
         </div>

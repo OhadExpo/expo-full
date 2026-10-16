@@ -115,7 +115,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 | Owed detail | `/coach/billing/owed/<athlete>` · `/coach/dashboard/owed/<athlete>` (a sheet-only client = a short hash, never a name) (14.10 phase 2) |
 | BHBC schedule views | `…/bhbc/schedule` (Month) · `/schedule/week` · `/schedule/list` (14.10 phase 2) |
 | Exercise matching pop-ups | `/coach/exercise-matching/change/<title>` · `/preview/<exercise>` (alone or on top of the picker) · `/apply` (14.10 phase 2) |
-| Tasks board | `/coach/tasks` (list) · `/coach/tasks/board` (14.10 phase 2) · demo `/demo/coach/tasks` · `/demo/coach/tasks/board` (16.10 #842) |
+| Tasks board | `/coach/tasks` (list) · `/coach/tasks/board` (14.10 phase 2) · demo `/demo/coach/tasks` · `/demo/coach/tasks/board` (16.10 #842) · the board column in view on a tablet / phone: `/coach/tasks/board/<to-do / in-progress / waiting / stuck>` · demo `/demo/coach/tasks/board/<column>` (16.10 #855, swapped in place) |
 | Tasks → נכסים (property engine, staff only) | `/coach/tasks/properties` · tabs `/coach/tasks/properties/<new\|shortlist\|call\|rejected\|history\|opportunities>` (16.10; no demo - Ohad + Yuval only) |
 | Challenge form | `/coach/challenges/new` · `/coach/challenges/<id>/edit` (14.10 phase 2) |
 | Intake pop-ups | `/coach/intake/<submission>` · `/coach/intake/generate-link` (14.10 phase 2) |

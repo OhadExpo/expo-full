@@ -1029,6 +1029,7 @@ export const HE = {
   'STARTED': 'באמצע',
   'Started, not finished': 'התחלת ולא סיימת',
   'Left half-way': 'עצרו באמצע',
+  'Board columns': 'עמודות הלוח',
   'month open': 'לא סגור',   // billing: the current month's gap cell; native-checked 9.10
   WAITING: 'ממתין',
   STUCK: 'תקוע',

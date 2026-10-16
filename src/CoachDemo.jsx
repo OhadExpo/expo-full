@@ -11,7 +11,7 @@
 // Companion to /demo (TrySandbox pov="trainee") which stays as the simple
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { DEMO_PLANS, DEMO_EXERCISES } from './demoTraineeData';
 import { EvalReportBody } from './EvalReport';
 import { normalizeDays } from './usePlansStore';
@@ -5066,6 +5066,20 @@ function DemoTasks() {
   // defaulted to OHAD and had no "All" option at all, so nothing could ever
   // fill them. A prospect reads an empty column as a feature that does not work.
   const [owner, setOwner] = useState('ALL');
+  // #855 parity: the board is one row of columns; on a tablet / phone it swipes, with the column tabs above it
+  const [dtTight, setDtTight] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 860);
+  const [dtNarrow, setDtNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 560);
+  useEffect(() => { const on = () => { setDtTight(window.innerWidth <= 860); setDtNarrow(window.innerWidth <= 560); }; window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
+  const dtRowRef = useRef(null);
+  const DT_COL_WORDS = ['to-do', 'in-progress', 'waiting', 'stuck'];
+  const dtColFromPath = (pth) => { const pre = '/demo/coach/tasks/board/'; const p = String(pth || ''); if (!p.startsWith(pre)) return null; const i = DT_COL_WORDS.indexOf(p.slice(pre.length).split('/')[0]); return i >= 0 ? i : null; };
+  const [dtCol, setDtCol] = useState(() => (typeof window !== 'undefined' ? dtColFromPath(window.location.pathname) ?? 0 : 0));
+  const [dtVisible, setDtVisible] = useState([0]);
+  const dtLockRef = useRef(0);
+  const [dtDoneOpen, setDtDoneOpen] = useState(false);
+  const dtVisibleCols = () => { const row = dtRowRef.current; if (!row) return []; const r0 = row.getBoundingClientRect(); return [...row.children].map((c, i) => { const r = c.getBoundingClientRect(); return Math.max(0, Math.min(r.right, r0.right) - Math.max(r.left, r0.left)) >= r.width * 0.6 ? i : -1; }).filter((i) => i >= 0); };
+  const dtScrollTo = (i, smooth = true) => { const row = dtRowRef.current; const col = row && row.children[i]; if (!col) return; setDtCol(i); dtLockRef.current = Date.now() + 900; const rtl = getComputedStyle(row).direction === 'rtl'; const c = col.getBoundingClientRect(), r0 = row.getBoundingClientRect(); row.scrollBy({ left: rtl ? c.right - r0.right : c.left - r0.left, behavior: smooth ? 'smooth' : 'auto' }); setTimeout(() => setDtVisible(dtVisibleCols()), smooth ? 920 : 30); };   // the row scrolls, never the page
+  const dtOnScroll = () => { if (Date.now() < dtLockRef.current) return; const vis = dtVisibleCols(); if (!vis.length) return; setDtVisible(vis); if (!vis.includes(dtCol)) setDtCol(vis[0]); };
   // the board has its URL, as on the real page (16.10 #842 parity): /demo/coach/tasks · /demo/coach/tasks/board
   const DT_BASE = '/demo/coach/tasks';
   const onDT = () => typeof window !== 'undefined' && window.location.pathname.startsWith(DT_BASE);
@@ -5079,6 +5093,20 @@ function DemoTasks() {
   const [quickFilter, setQuickFilter] = useState('all');
   const [sortBy, setSortBy] = useState('soonest');
   const [boardGroup, setBoardGroup] = useState('status');
+  // the column in view has its URL on a tablet / phone, as on the real board (swapped in place, never a new entry)
+  useUrlSync(dtCol, (i) => { if (i != null) setDtCol(i); }, {
+    toPath: (i) => (onDT() && view === 'board' && boardGroup !== 'category' && dtTight && window.location.pathname.startsWith(DT_BASE + '/board') ? { path: `${DT_BASE}/board/${DT_COL_WORDS[i] || DT_COL_WORDS[0]}`, swap: true } : null),
+    fromPath: (pth) => dtColFromPath(pth),
+  });
+  useEffect(() => {
+    if (view !== 'board' || boardGroup === 'category' || !dtTight) return undefined;
+    const t = setTimeout(() => {
+      dtScrollTo(dtCol, false);
+      const want = `${DT_BASE}/board/${DT_COL_WORDS[dtCol] || DT_COL_WORDS[0]}`;
+      if (window.location.pathname.startsWith(DT_BASE + '/board') && window.location.pathname !== want) window.history.replaceState(window.history.state, '', want + window.location.search + window.location.hash);
+    }, 60);
+    return () => clearTimeout(t);
+  }, [view, boardGroup, dtTight]); // eslint-disable-line react-hooks/exhaustive-deps
   // THE RAIL HAS TO ACTUALLY FILTER.
   //
   // quickFilter, sortBy and boardGroup were written and never read, and the
@@ -5135,14 +5163,24 @@ function DemoTasks() {
       </div>}
       {/* BOARD = status kanban (mirrors the real board); LIST = source-grouped */}
       {view === 'board' ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' }}>
+        <React.Fragment>
+        {boardGroup !== 'category' && dtTight && (
+          <div role="tablist" data-demo-board-tabs style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 10 }}>
+            {STATUS_COLS.filter((c) => c.id !== 'done').map((col, i) => (
+              <button key={col.id} type="button" role="tab" aria-selected={dtVisible.includes(i)} onClick={() => dtScrollTo(i)} style={{ height: 36, minWidth: 0, padding: '0 4px', border: 'none', background: 'var(--c-sf)', boxShadow: dtVisible.includes(i) ? `inset 0 -2px 0 ${C.ac}` : 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', color: dtVisible.includes(i) ? C.tx : C.tm, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{T(col.label)}</span><span style={{ color: dtVisible.includes(i) ? C.ac : C.td }}>{visible.filter((t) => t.status === col.id).length}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div ref={dtRowRef} onScroll={boardGroup !== 'category' && dtTight ? dtOnScroll : undefined} data-demo-board-row style={boardGroup === 'category' ? { display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' } : dtTight ? { display: 'flex', flexWrap: 'nowrap', gap: 10, alignItems: 'flex-start', overflowX: 'auto', scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', paddingBottom: 8, scrollbarWidth: 'none' } : { display: 'flex', flexWrap: 'nowrap', gap: 10, alignItems: 'flex-start' }}>
           {(boardGroup === 'category'
             ? [{ id: 'auto', label: 'AUTO-ALERTS', color: '#2C82C9' }, { id: 'manual', label: 'MANUAL', color: '#5B6B7A' }]
-            : STATUS_COLS
+            : STATUS_COLS.filter((c) => c.id !== 'done')   // DONE is the strip under the board, as on the real one
           ).map(col => {
             const rows = visible.filter(t => (boardGroup === 'category' ? t.src : t.status) === col.id);
             return (
-              <div key={col.id} style={{ flex: '1 1 170px', minWidth: 170, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
+              <div key={col.id} style={{ ...(boardGroup === 'category' ? { flex: '1 1 170px', minWidth: 170 } : dtTight ? { flex: dtNarrow ? '0 0 86%' : '0 0 calc(50% - 5px)', scrollSnapAlign: 'start' } : { flex: '1 1 0', minWidth: 0 }), border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '0 10px', minHeight: 36, boxSizing: 'border-box' /* 30 -> 36 (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
@@ -5156,9 +5194,9 @@ function DemoTasks() {
                     return (
                       <div key={t.id} style={{ padding: '10px 12px', borderBottom: `1px solid ${C.bd}` }}>
                         {/* one edge per column, as the real card (#845): every line on the page's side; the date its own line */}
-                        <div dir="auto" style={{ fontFamily: FB, fontSize: 13.5, fontWeight: 500, color: C.tx, lineHeight: 1.4, textAlign: readLang() === 'he' ? 'right' : 'left', unicodeBidi: 'plaintext' }}>{taskTitle(t)}</div>
-                        <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ marginTop: 6, display: 'flex' }}><span style={{ ...word, color: overdue ? C.tx : C.tm, fontWeight: overdue ? 800 : 700 }}>{T(t.due)}</span></div>
-                        <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ marginTop: 4, display: 'flex' }}><span style={{ ...word, color: PRIO_INK[pr] }}>{T(pr.charAt(0).toUpperCase() + pr.slice(1))}</span></div>
+                        <div dir="auto" style={{ fontFamily: FB, fontSize: 13.5, fontWeight: 500, color: C.tx, lineHeight: 1.4, textAlign: 'center' /* #856 parity: centred */, unicodeBidi: 'plaintext' }}>{taskTitle(t)}</div>
+                        <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}><span style={{ ...word, color: overdue ? C.tx : C.tm, fontWeight: overdue ? 800 : 700 }}>{T(t.due)}</span></div>
+                        <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ marginTop: 4, display: 'flex', justifyContent: 'center' }}><span style={{ ...word, color: PRIO_INK[pr] }}>{T(pr.charAt(0).toUpperCase() + pr.slice(1))}</span></div>
                       </div>
                     );
                   })}
@@ -5168,6 +5206,18 @@ function DemoTasks() {
             );
           })}
         </div>
+        {boardGroup !== 'category' && (
+          <div data-demo-done-strip style={{ marginTop: 14, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+            <div role="button" tabIndex={0} aria-expanded={dtDoneOpen} onClick={() => setDtDoneOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDtDoneOpen((o) => !o); } }} style={{ padding: '0 14px', minHeight: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.18em', color: C.td, textTransform: 'uppercase', cursor: 'pointer', borderBottom: dtDoneOpen ? `1px solid ${C.cardBd}` : 'none' }}>
+              <span><CaretGlyph rot={dtDoneOpen ? 0 : -90} /> {T('Done')} · {visible.filter((t) => t.status === 'done').length}</span>
+              <span style={{ opacity: 0.6, fontSize: 9 }}>{dtDoneOpen ? '' : T('Click to expand')}</span>
+            </div>
+            {dtDoneOpen && visible.filter((t) => t.status === 'done').slice(0, 5).map((t) => (
+              <div key={t.id} style={{ padding: '10px 12px', borderBottom: `1px solid ${C.bd}`, textAlign: 'center', fontFamily: FB, fontSize: 13.5, color: C.tm, textDecoration: 'line-through' }}><bdi>{taskTitle(t)}</bdi></div>
+            ))}
+          </div>
+        )}
+        </React.Fragment>
       ) : (
         <DemoTaskList visible={visible} doneOpen={doneOpen} setDoneOpen={setDoneOpen} />
       )}
