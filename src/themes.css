@@ -2478,3 +2478,14 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
 .td-prog-actions > div { display: contents !important; }
 .td-prog-actions button { height: var(--btn-h) !important; min-height: 0 !important; border: none !important; justify-content: center; text-align: center; white-space: nowrap; }
 @media (max-width: 640px) { .td-prog-actions { display: grid; width: 100%; box-sizing: border-box; grid-auto-columns: minmax(0, 1fr); } }   /* 3 cells solo, 2 for a couple - equal either way */
+/* #828 (16.10): a program day header in a narrow pane - row 1: handle, caret, name, count, copy + delete;
+   row 2: WEEK / DAILY / EXPAND ALL as three equal 36px cells (they were three rows of odd boxes) */
+.dayhead-narrow { row-gap: 8px !important; }
+.dayhead-narrow [data-dh="name"] { flex: 1 1 90px !important; max-width: none !important; height: 36px; box-sizing: border-box; }
+.dayhead-narrow [data-dh="tools"] { order: 5; flex: 0 0 auto; }
+.dayhead-narrow [data-dh="count"] { display: none !important; }   /* on a phone the numbered cards say how many; the name row keeps room for copy + delete */
+.dayhead-narrow [data-dh="tools"] button { width: 36px !important; height: 36px !important; }
+.dayhead-narrow [data-dh="break"] { order: 9; flex: 0 0 100% !important; min-height: 0 !important; height: 0; margin-bottom: -8px; }   /* the break line is 0 tall: one row gap between the rows, not two */
+.dayhead-narrow [data-dh="chip"] { order: 10; box-sizing: border-box !important; flex: 1 1 0 !important; width: 0 !important; min-width: 0 !important; max-width: none !important; height: 36px !important; }   /* width 0 + equal grow = three equal cells (a select keeps its widest option otherwise) */
+.dayhead-narrow [data-dh="chip"] { padding-left: 15px !important; padding-right: 15px !important; font-size: 9px !important; }
+.dayhead-narrow select[data-dh="chip"] { padding-left: 8px !important; padding-right: 22px !important; text-align: center; text-align-last: center; }   /* the same 30px of padding as the buttons (equal cells), the room on the chevron side */   /* one padding for all three: a flex base never smaller than its padding, so unequal padding = unequal cells */

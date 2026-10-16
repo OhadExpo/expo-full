@@ -52,7 +52,8 @@ export function normalizeDays(days) {   // exported for the coach demo (#760): i
     // day.kind = 'daily' marks this specific day as a daily-routine (unlimited
     // logs per block, no DONE lock). Round-trip the field so the flag
     // survives close/reopen. Undefined / any other value = standard day.
-    return { id: d.id || uid(), name: d.name || d.n || '', kind: d.kind || undefined, exercises };
+    // onlyWeek (#850): the day belongs to that week only - round-tripped like kind
+    return { id: d.id || uid(), name: d.name || d.n || '', kind: d.kind || undefined, ...(d.onlyWeek != null && d.onlyWeek !== '' ? { onlyWeek: Number(d.onlyWeek) } : {}), exercises };
   });
 }
 
@@ -90,6 +91,7 @@ export function usePlanIndex() {
           dayCount: p.day_count || 0,
           exerciseCount: p.exercise_count || 0,
           dayNames: Array.isArray(p.day_names) ? p.day_names : [],
+          dayWeeks: Array.isArray(p.day_weeks) ? p.day_weeks : [],   // #850: each day's onlyWeek (null = every week), parallel to dayNames
         })));
         setLoaded(true);
         return;
@@ -125,6 +127,7 @@ export function usePlanIndex() {
             dayCount: days.length,
             exerciseCount: days.reduce((a, d) => a + ((d.exercises || d.ex || []).length), 0),
             dayNames: days.map(d => d.name || d.n),
+            dayWeeks: days.map(d => (d && d.onlyWeek != null ? d.onlyWeek : null)),
           };
         });
         setIndex(enriched);

@@ -104,8 +104,10 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
   useEffect(() => { setWeek(w => Math.min(Math.max(1, w), focusSlots)); }, [focusSlots]);
   const days = useMemo(() => {
     if (!plan) return [];
-    return (plan.data?.days || []).map((d, i) => resolveDay(d, i, exById, exByTitle));
-  }, [plan, exById, exByTitle]);
+    // #850: only the days of the week this focus is FOR (a day of another week never reaches the athlete)
+    const all = plan.data?.days || [];
+    return all.map((d, i) => resolveDay(d, i, exById, exByTitle)).filter((_, i) => { const ow = all[i] && all[i].onlyWeek; return ow == null || ow === '' || Number(ow) === week + 1; });
+  }, [plan, exById, exByTitle, week]);
 
   // The athlete portal reads weekly-focus under the PARENT trainee id (a couple
   // member logs into the shared row → clientId is the parent), so key on the

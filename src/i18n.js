@@ -746,6 +746,8 @@ export const HE = {
   'Stay': 'להישאר',
   'Copy URL': 'העתק קישור',
   'No date': 'בלי תאריך',
+  'Every week': 'כל שבוע',
+  'Which week this day is for': 'לאיזה שבוע היום הזה',
   'Due date': 'תאריך יעד',
   'Due time': 'שעת יעד',
   'Remove the date': 'להסיר את התאריך',

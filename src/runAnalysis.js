@@ -7,6 +7,7 @@
 // anything in the month before it. Pure - no React, no Supabase; the view composes the words. It reads and advises,
 // the coach builds.
 import { runSeconds } from './runPace.js';
+import { dayInWeek, plannedSessions } from './planWeek.js';
 
 const fin = (n) => typeof n === 'number' && isFinite(n);
 const num = (s) => { const n = parseFloat(String(s == null ? '' : s).replace(',', '.')); return isFinite(n) ? n : null; };
@@ -143,9 +144,9 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   const plan = (viewedId && runPlans.find((p) => p.id === viewedId)) || runPlans[runPlans.length - 1];
   const belongs = sameBlock || ((w, p) => w.planName === p.name);
   const mineAll = (clientWorkouts || []).filter((w) => String(w.clientId) === String(traineeId));
-  const dayIn = (p, name) => (p.days || []).find((d) => d.name === name) || null;
+  const dayIn = (p, name, week) => (p.days || []).find((d) => d.name === name && dayInWeek(d, week)) || (p.days || []).find((d) => d.name === name) || null;   // week 2's Day A is not week 1's (#850)
   // every logged run of every running block, read once
-  const readAll = mineAll.map((w) => { const p = runPlans.find((q) => belongs(w, q)); return p ? { w, p, r: readRun(w, dayIn(p, w.dayName)) } : null; }).filter((x) => x && x.r.logged);
+  const readAll = mineAll.map((w) => { const p = runPlans.find((q) => belongs(w, q)); return p ? { w, p, r: readRun(w, dayIn(p, w.dayName, Number(w.week) || 1)) } : null; }).filter((x) => x && x.r.logged);
   const runs = readAll.filter((x) => x.p === plan).map((x) => x.r).sort((a, b) => new Date(a.date) - new Date(b.date));
   {
     const los = [...new Set((plan.days || []).flatMap((d) => (d.exercises || []).map((ex) => { const t = presPace(ex.tempo); return t ? t[0] : null; }).filter((v) => v != null)))];
@@ -156,15 +157,14 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
     }
   }
   const weeksN = weeksOf(plan);
-  const days = (plan.days || []).length;
-  const plannedTotal = days * weeksN;
+  const plannedTotal = plannedSessions(plan.days, weeksN);   // #850: each week's own days
   // due SO FAR: the weeks he has reached (the highest logged week), not the whole block - week 1 of 4 is not 'missing'
   const weekReached = Math.min(weeksN, Math.max(1, ...runs.map((r) => r.week)));
   const isLatest = plan === runPlans[runPlans.length - 1];
-  const plannedDue = runs.length && isLatest ? days * weekReached : plannedTotal;
+  const plannedDue = runs.length && isLatest ? plannedSessions(plan.days, weekReached) : plannedTotal;
   // planned km for the weeks reached (per-week prescriptions), and whether any day is time-based (km then a floor)
   let plannedKm = 0, kmPartial = false;
-  for (let wk = 1; wk <= weekReached; wk++) for (const d of plan.days || []) for (const ex of d.exercises || []) {
+  for (let wk = 1; wk <= weekReached; wk++) for (const d of plan.days || []) for (const ex of (dayInWeek(d, wk) ? d.exercises || [] : [])) {
     const pr = presFor(ex, wk); const k = presKm(pr.reps);
     if (k == null) { if (String(pr.reps || '').trim()) kmPartial = true; continue; }
     plannedKm += k * Math.max(1, parseInt(pr.sets, 10) || 1);
@@ -206,7 +206,7 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   const hardReads = hard.map((r) => ({ run: r, fastStart: r.reps && r.reps.firstVs != null && r.reps.firstVs < -PACE_TOL ? -r.reps.firstVs : 0, fade: r.reps ? r.reps.fade : null }));
   const fastStarts = hardReads.filter((h) => h.fastStart >= 10 && h.fade != null && h.fade >= 15);
   const capHits = runs.filter((r) => r.hrVs && r.hrVs.over > 0 && ['intervals', 'tempo', 'test'].includes(r.kind));
-  const upcoming = (plan.days || []).filter((d) => !runs.some((r) => r.dayName === d.name));
+  const upcoming = (plan.days || []).filter((d) => !runs.some((r) => r.dayName === d.name && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === r.week)));   // #850
   const upcomingTest = upcoming.find((d) => runKind(d.name) === 'test') || null;
   const anyTarget = runs.some((r) => r.target);
   // the verdict, in the order a coach acts on it

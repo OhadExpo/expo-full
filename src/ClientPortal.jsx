@@ -35,7 +35,7 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { runPace } from './runPace';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
-import { deriveWeekIdx } from './planWeek';
+import { deriveWeekIdx, dayInWeek, plannedSessions } from './planWeek';
 import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 import { resolveStoredUrl } from './storageUrl';
@@ -244,6 +244,7 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
         // checkbox so the athlete portal can render that day with unlimited
         // logs / no DONE lock.
         kind: d.kind || undefined,
+        onlyWeek: d.onlyWeek != null && d.onlyWeek !== '' ? Number(d.onlyWeek) : undefined,   // #850: a day of one week
         ex: rawList.map((pe, peIdx) => {
           // Normalize: compressed shape uses eid/s/r, trainer shape uses exerciseId/sets/reps.
           const libId = pe.exerciseId || pe.eid || null;
@@ -651,7 +652,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const findExistingLog = (list, { emptyOnly = false } = {}) => {
     if (day?.kind === 'daily' || plan?.kind === 'daily') return null;
     if (nameAmbiguous) return null;
-    if (Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name).length > 1) return null;
+    // two days of one name IN THE SAME WEEK are ambiguous; week 1's Day A and week 2's Day A (#850) are not
+    if (Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name && dayInWeek(d, weekNum + 1)).length > 1) return null;
     let best = null, bestAt = -Infinity;
     const now = Date.now();
     for (const w of (list || [])) {
@@ -3349,9 +3351,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             (total block sessions − distinct logged (week,day)), not billing. */}
         {(() => {
           const primaryPlan = visPlans[0];
-          const weekDays = (primaryPlan?.days || []).filter(d => d.kind !== 'daily');
+          const allWeekDays = (primaryPlan?.days || []).filter(d => d.kind !== 'daily');
           const weeks = Number(primaryPlan?.weeks) || Number(primaryPlan?.data?.weeks) || 4;
-          const dayNames = new Set(weekDays.map(d => d.name));
+          const dayNames = new Set(allWeekDays.map(d => d.name));
           // Scope progress to THIS block only. Day names and week numbers repeat
           // across blocks (week resets to 1, "Push/Pull"/"Day A" recur), so
           // unscoped `cw` let a previous block's logs mark the current block's
@@ -3360,10 +3362,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           const pName = primaryPlan?.name;
           const pcw = pName ? cw.filter(w => w.planName === pName) : cw;
           const loggedWeeks = pcw.map(w => w.week).filter(n => Number.isFinite(n));
-          const curWeek = loggedWeeks.length ? Math.max(...loggedWeeks) : 1;
+          const curWeek0 = loggedWeeks.length ? Math.max(...loggedWeeks) : 1;
+          // a block with days of one week (#850): THIS WEEK is the week he is on - the same derived week the list shows
+          const curWeek = allWeekDays.some(d => d.onlyWeek != null) && primaryPlan ? deriveWeekIdx(primaryPlan, cw, dupPlanNames) + 1 : curWeek0;
+          const weekDays = allWeekDays.filter(d => dayInWeek(d, curWeek));   // #850: THIS WEEK = the days of the week he is on
           const isDayDone = (d) => pcw.some(w => w.dayName === d.name && w.week === curWeek);
           const doneThisWeek = weekDays.filter(isDayDone).length;
-          const total = weeks * weekDays.length;
+          const total = plannedSessions(allWeekDays, weeks);   // #850: each week's own days
           const completed = new Set(pcw.filter(w => dayNames.has(w.dayName) && w.week >= 1 && w.week <= weeks).map(w => w.week + '|' + w.dayName)).size;
           const blockLeft = Math.max(0, total - completed);
           // v2 — one symmetric strip: three EQUAL cells, every cell the same
@@ -4286,7 +4291,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // done-badge / prescription / focus against that same week — else a
           // completed secondary day reads "not done" (duplicate re-log) or an
           // untrained one reads "done" (skipped), and the rx shown is off-by-week.
-          const vpWeek = (vp.name === activePlan?.name) ? wk : deriveWeekIdx(vp, cw);
+          const vpWeek = (vp.name === activePlan?.name) ? wk : deriveWeekIdx(vp, cw, dupPlanNames);
+          if (!dayInWeek(day, vpWeek + 1)) return null;   // #850: a day of another week (the global index still counted it, so the logger's index stays right)
           const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === vpWeek + 1 && isLogOfPlan(w, vp, dupPlanNames));
           // doneBorderColor hoisted out of the inline template — the
           // build-time guard's parser mis-tracks single-quoted strings

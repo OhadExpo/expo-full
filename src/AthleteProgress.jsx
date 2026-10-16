@@ -12,6 +12,7 @@ import { analyzeRunner } from './runAnalysis';
 import { blockContext } from './athleteContext';
 import { blockNum, classifyPattern, repsTop } from './patternRules';
 import { normalizeDays } from './usePlansStore';
+import { plannedSessions } from './planWeek';
 import { FitStrip, liftState } from './StrengthReview';
 import { CoachWords } from './BlockTalk';
 import TraineePRsView from './TraineePRsView';
@@ -57,7 +58,7 @@ export default function AthleteProgress({ header, clientWorkouts, clientId, plan
   // the sessions due SO FAR (days x the week he has reached), not the whole block - week 2 of 4 is not '17%'
   const sessW = a && !a.empty ? (a.sessions || []).map((x) => Number(x.week)).filter((x) => x > 0) : [];
   const reached = sessW.length ? Math.max(...sessW) : null;
-  const dueSoFar = a && !a.empty ? (reached && a.plannedDays && a.plannedDays.length ? Math.min(a.plannedSessionCount || Infinity, a.plannedDays.length * reached) : (a.plannedSessionCount || 0)) : 0;
+  const dueSoFar = a && !a.empty ? (reached && a.plannedDays && a.plannedDays.length ? Math.min(a.plannedSessionCount || Infinity, a.plannedDayObjs ? plannedSessions(a.plannedDayObjs, reached) : a.plannedDays.length * reached) : (a.plannedSessionCount || 0)) : 0;
   const dueLabel = reached && dueSoFar < (a?.plannedSessionCount || 0);
   let line = null;
   if (a && !a.empty && !run) {

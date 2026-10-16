@@ -154,7 +154,7 @@ function Glance({ a, he }) {
           {days.map((d, di) => (
             <React.Fragment key={di}>
               <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, paddingBlock: 7, paddingInlineEnd: 8, borderTop: `1px solid ${C.cardBd}`, overflowWrap: 'anywhere', lineHeight: 1.3 }}><bdi>{d}</bdi></span>
-              {Array.from({ length: weeks }, (_, w) => <span key={w} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}` }}><Mark k={cell(d, w + 1)} /></span>)}
+              {Array.from({ length: weeks }, (_, w) => <span key={w} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', alignSelf: 'stretch', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}` }}>{(() => { const ow = (a.plannedDayObjs || [])[di] && a.plannedDayObjs[di].onlyWeek; return ow == null || ow === '' || Number(ow) === w + 1 ? <Mark k={cell(d, w + 1)} /> : null; })() /* #850: a day of another week is not 'not logged' */}</span>)}
             </React.Fragment>
           ))}
         </div>

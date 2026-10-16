@@ -2466,11 +2466,14 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
         {/* Mobile: the athlete/block dropdowns get crushed between the fixed BACK
             and SAVE. Drop them to their own full-width line (order:3, basis:100%)
             with BACK ↔ SAVE spread on the line above. */}
-        <style>{`@media (max-width:760px){ .editor-top-row{ justify-content: space-between !important; } .editor-top-row > .editor-top-mid{ order: 3 !important; flex-basis: 100% !important; justify-content: flex-start !important; } }`}</style>
+        {/* A PHONE (16.10 #852, Ohad: 'Button layout is too random make it ocd'): row 1 BACK + UNDO/REDO at the two edges; SAVE the
+            full width; the athlete + block pickers two equal halves; PORTAL / OVERVIEW / MORE three equal cells; the portal switch +
+            DELETE two equal cells - every row edge to edge, one 42px height */}
+        <style>{`@media (max-width:760px){ .editor-top-row{ justify-content: space-between !important; } .editor-top-row > .editor-top-mid{ order: 4 !important; flex-basis: 100% !important; justify-content: flex-start !important; } .editor-top-row > .editor-save{ order: 3 !important; flex: 1 1 100% !important; min-width: 0 !important; } .plan-toolbar-secondary > div{ display: grid !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); flex: 1 1 100%; gap: 8px !important; } .plan-toolbar-secondary > div > div, .plan-toolbar-secondary > div > div > button{ width: 100% !important; min-width: 0 !important; } .plan-toolbar-secondary > div > div > button{ height: 42px !important; justify-content: center !important; box-sizing: border-box; } .plan-toolbar-secondary > div > button{ width: 100% !important; min-width: 0 !important; height: 42px !important; justify-content: center !important; box-sizing: border-box; } }`}</style>
         <div className="editor-top-row" style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flexWrap:'wrap'}}>
           <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',flexShrink:0}}>{tt('← BACK')}</button>
           {/* Undo / redo (Ohad) — coarse per-pause history; also Ctrl+Z / Ctrl+Shift+Z. */}
-          <div style={{display:'inline-flex',gap:4,flexShrink:0}}>
+          <div className="editor-undo" style={{display:'inline-flex',gap:4,flexShrink:0}}>
             {/* Word labels, not glyphs (Ohad) — right next to BACK. */}
             <button onClick={doUndo} disabled={!canUndo} title={tt('Undo (Ctrl+Z)')} style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 12px',height:42,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("UNDO")}</button>
             <button onClick={doRedo} disabled={!canRedo} title={tt('Redo (Ctrl+Shift+Z)')} style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 12px',height:42,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("REDO")}</button>
@@ -2544,7 +2547,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
             );
           })()}
           </div>
-          <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? tt('Saving...') : tt('SAVE PROGRAM')}</Btn>
+          <Btn className="editor-save" onClick={handleSave} disabled={saving} style={{height:42,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? tt('Saving...') : tt('SAVE PROGRAM')}</Btn>
         </div>
         {/* Autosave status on its OWN right-aligned line with a RESERVED height,
             so it appearing / disappearing / changing width ("Saving…" ⇄
@@ -2670,7 +2673,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
             const n = parseInt(v) || 4;
             const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
             // propagate week count to every per-week array across the program
-            const nextDays = (plan.days || []).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
+            const nextDays = (plan.days || []).map(d0 => { const { onlyWeek: ow, ...rest } = d0; const d = (ow != null && Number(ow) > n) ? rest : d0; return d; }).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
               ...ex,
               wk: ex.wk ? resize(ex.wk) : ex.wk,
               wkS: ex.wkS ? resize(ex.wkS) : ex.wkS,
@@ -2721,6 +2724,8 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
           // scannable list of headers — same trick the exercise rows use.
           // collapsedDays itself is untouched; cards re-open where they were.
           const dayCollapsed = !!collapsedDays[d.id] || dayDragging;
+          // a running day in a narrow pane: segment cards, not the sideways table (#828)
+          const runCards = plan.sport === 'running' && daysW > 0 && daysW < 600 && !compareActive;
           // Drag-reorder. The whole day grid is the drop zone (not just the
           // narrow drag-handle column it used to be — that made the indicator
           // update only when the cursor happened to be over the # cell, so it
@@ -2781,7 +2786,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
               {/* Sticky header (compare) gets a hairline below it — rows
                   scroll under it, so without a divider the pinned row reads
                   as floating over the table (Ohad). */}
-              <div data-dayheader
+              <div data-dayheader className={daysW > 0 && daysW < 600 ? 'dayhead-narrow' : undefined}
                 onClick={e => { if (e.target === e.currentTarget) toggleDayCollapse(d.id); }}
                 style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:dayCollapsed?0:8,borderBottom:dayCollapsed?'none':`1px solid ${C.cardBd}`} : {})}}>
                 {/* The header's EMPTY space (between the name/count and the
@@ -2809,20 +2814,31 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
                   title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')}
                   style={{cursor:'pointer',color:'var(--c-tx)',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}><CaretGlyph /></span>
-                <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
+                <input data-dh="name" value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
-                <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({readLang()==='he' ? exercisesCount(dayExs.length) : `${dayExs.length} ex`})</span>
-                <div onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
+                <span data-dh="count" style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>{plan.sport === 'running' ? (readLang()==='he' ? (dayExs.length === 1 ? 'מקטע אחד' : `${dayExs.length} מקטעים`) : `${dayExs.length} segment${dayExs.length === 1 ? '' : 's'}`) : `(${readLang()==='he' ? exercisesCount(dayExs.length) : `${dayExs.length} ex`})`}</span>
+                {/* WHICH WEEK (16.10 #850, Ohad: 'completely different runs for week 2'): a day can be one week's only; the
+                    athlete sees the days of the week he is on. Every week = as before. */}
+                {(Number(plan.weeks) || 4) > 1 && d.kind !== 'daily' && (   /* a daily-routine day has no week */
+                  <select data-day-week data-dh="chip" value={d.onlyWeek ? String(d.onlyWeek) : ''}
+                    onChange={e => { const v = e.target.value; if (!v) { const { onlyWeek: _w, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { onlyWeek: Number(v) }); }}
+                    title={tt('Which week this day is for')} aria-label={tt('Which week this day is for')}
+                    style={{ ...baseInput, height: 24, width: 'auto', padding: '0 22px 0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', color: d.onlyWeek ? C.ac : C.tm, border: `1px solid ${d.onlyWeek ? C.ac : C.cardBd}`, flexShrink: 0, cursor: 'pointer' }}>
+                    <option value="">{tt('Every week')}</option>
+                    {Array.from({ length: Number(plan.weeks) || 4 }, (_, i) => <option key={i} value={String(i + 1)}>{`${tt('Week')} ${i + 1}`}</option>)}
+                  </select>
+                )}
+                <div data-dh="break" onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                 {/* Per-day Daily-Routine toggle — ported from the old detail view
                     (the unified view had dropped it). ON = athlete logs this day
                     unlimited times per block, no DONE lock, no week rotation. */}
-                <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
+                <button data-dh="chip" onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else { const { onlyWeek: _w, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? { ...rest, kind: 'daily' } : dd) })); } }} /* #850: a daily day has no week */
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
                   style={{background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?tt('DAILY ✓'):tt('DAILY')}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
-                  return <button onClick={()=>{
+                  return <button data-dh="chip" onClick={()=>{
                     // Expanding exercises inside a COLLAPSED day card is
                     // invisible — open the card along with them.
                     if (!anyOpen && dayCollapsed) setCollapsedDays(prev => ({ ...prev, [d.id]: false }));
@@ -2844,7 +2860,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                     28×24 boxes, glyphs optically centred (⤴ smaller than × per
                     point, so 12 vs 15 balances). Delete only shows when >1 day. */}
                 {(onCopyDays || plan.days.length > 1) && (
-                  <div style={{display:'inline-flex',gap:4,flexShrink:0,alignItems:'center'}}>
+                  <div data-dh="tools" style={{display:'inline-flex',gap:4,flexShrink:0,alignItems:'center'}}>
                     {onCopyDays && <button onClick={()=>setCopyDaysModal({ dayIdxs: new Set([dayIdx]) })} title={tt('Copy this day to another program')} aria-label={tt('Copy day to another program')}
                       style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></button>}
                     {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title={tt('Delete this day')} aria-label={tt('Delete day')}
@@ -2863,6 +2879,77 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                   {anyExDragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.y != null && (
                     <div style={{ position: 'absolute', left: 0, right: 0, top: dragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 2 }} />
                   )}
+                </div>
+              ) : runCards ? (
+                // THE RUN DAY ON A PHONE (16.10 #828 + #849, Ohad: "Bad design with the box sizes and layout" / "Grp is bad box
+                // size. Everything needs to be aligned"): the table scrolled sideways and cut DISTANCE and PACE off the screen.
+                // One card per segment - its number and name, then two rows of three EQUAL labelled boxes, every box the
+                // house 36px: reps · distance · pace, then HR cap · RPE · group. A per-week value takes its whole row.
+                <div data-run-cards style={{ display: 'flex', flexDirection: 'column' }}>
+                  {dayExs.map((ex, exIdx) => {
+                    const exData = exById(exercises).get(ex.exerciseId);
+                    const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
+                    const update = (u) => updateExInDay(dayIdx, exIdx, u);
+                    const onResolveVideo = (original, resolved) => setPlan(p => {
+                      const cur = p.days?.[dayIdx]?.exercises?.[exIdx];
+                      const stored = cur ? (cur.videoUrl ?? cur.vid ?? '') : '';
+                      if (!cur || cur.id !== ex.id || (stored && stored !== original)) return p;
+                      return { ...p, days: p.days.map((dd, i2) => i2 === dayIdx ? { ...dd, exercises: (dd.exercises || []).map((e, j2) => j2 === exIdx ? { ...e, videoUrl: resolved } : e) } : dd) };
+                    });
+                    const exOpen = !!ovExpanded[ex.id];
+                    const box = { ...baseInput, height: 36, minHeight: 36, width: '100%', boxSizing: 'border-box', padding: '0 6px', fontSize: 13, textAlign: 'center', minWidth: 0 };
+                    const lab = { fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: readLang() === 'he' ? 0 : '0.08em', textTransform: 'uppercase', marginBottom: 4, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+                    const fld = (label, node, wide = false) => <label style={{ display: 'block', minWidth: 0, gridColumn: wide ? '1 / -1' : undefined }}><div style={lab}>{label}</div>{node}</label>;
+                    const weekRow = (arr, key, placeholder) => {
+                      const wN = Math.max(weeks, arr.length);   // never fewer weeks than the row holds (#89)
+                      return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${wN}, minmax(0, 1fr))`, gap: 6 }}>{Array.from({ length: wN }).map((_, wi) => (
+                        <input dir="auto" key={wi} value={arr[wi] || ''} aria-label={`W${wi + 1}`} placeholder={`W${wi + 1}${placeholder ? ' · ' + placeholder : ''}`}
+                          onChange={e => { const next = resize(arr, wN, ''); next[wi] = e.target.value; update({ [key]: next }); }} style={box} />))}</div>;
+                    };
+                    const perWeekS = !!(ex.wkS && ex.wkS.length), perWeek = !!(ex.wk && ex.wk.length);
+                    return (
+                      <div key={ex.id} data-run-seg style={{ borderTop: exIdx ? `1px solid ${C.cardBd}` : 'none', padding: '10px 0 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 36 }}>
+                          <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, color: C.tm, width: 18, textAlign: 'center', flexShrink: 0 }}>{exIdx + 1}</span>
+                          <button type="button" onClick={() => toggleOvExpand(ex.id)} aria-expanded={exOpen} title={tt('Click to expand — swap exercise, edit notes & video inline')}
+                            style={{ flex: '1 1 auto', minWidth: 0, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: C.tx, textAlign: 'start', fontFamily: FB, fontSize: 14, fontWeight: 600 }}>
+                            <span style={{ color: C.ac, fontSize: 11, lineHeight: 1, flexShrink: 0, transform: exOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}><CaretGlyph /></span>
+                            <bdi style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{title}</bdi>
+                          </button>
+                          <button type="button" onClick={() => setConfirmDeleteEx({ dayIdx, exIdx, title })} title={tt('Remove exercise from this day')} aria-label={tt('Remove exercise')}
+                            style={{ width: 36, height: 36, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: `1px solid ${C.cardBd}`, cursor: 'pointer', padding: 0 }}><TrashIcon size={15} /></button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
+                          {fld(tt('REPS'), perWeekS ? weekRow(ex.wkS, 'wkS', '') : <input dir="auto" value={ex.sets ?? ''} onChange={e => { const v = e.target.value; const n = parseInt(v, 10); update({ sets: (v.trim() !== '' && String(n) === v.trim()) ? n : v }); }} placeholder="1" style={box} />, perWeekS)}
+                          {fld(tt('DISTANCE'), perWeek ? weekRow(ex.wk, 'wk', '') : <input dir="auto" value={ex.reps || ''} onChange={e => update({ reps: e.target.value })} placeholder="1 km" style={box} />, perWeek)}
+                          {fld(tt('PACE'), <input dir="auto" value={ex.tempo || ''} onChange={e => update({ tempo: e.target.value })} placeholder="5:00-5:10" style={box} />)}
+                          {fld(tt('HR CAP'), <input dir="auto" value={ex.load || ''} onChange={e => update({ load: e.target.value })} placeholder="—" style={box} />)}
+                          {fld('RPE', <input dir="auto" value={ex.rpe || ''} onChange={e => update({ rpe: e.target.value })} placeholder="—" style={box} />)}
+                          {fld(tt('GRP'), <select value={ex.superset || ''} onChange={e => update({ superset: e.target.value })} title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'} style={{ ...box, padding: '0 22px 0 6px', textAlignLast: 'center', cursor: 'pointer', color: ex.superset ? C.tx : C.td }}>
+                            {SUPERSET_LABELS.map(sl => <option key={sl} value={sl}>{sl || '—'}</option>)}
+                          </select>)}
+                        </div>
+                        {exOpen && (
+                          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                              {[[perWeekS, () => (perWeekS ? update({ wkS: null, sets: parseInt(ex.wkS[0]) || ex.sets || 1 }) : update({ wkS: Array.from({ length: weeks }, () => String(ex.sets || 1)) })), tt('REPS')],
+                                [perWeek, () => (perWeek ? update({ wk: null, reps: ex.wk[0] || '' }) : update({ wk: Array.from({ length: weeks }, () => ex.reps || ''), reps: '>' })), tt('DISTANCE')]].map(([on, flip, what], k) => (
+                                <label key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 36, border: `1px solid ${on ? C.ac : C.cardBd}`, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, color: on ? C.ac : C.tm, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase' }}>
+                                  <input type="checkbox" checked={on} onChange={flip} style={{ accentColor: C.ac, width: 14, height: 14, margin: 0, cursor: 'pointer' }} />{`${what} · ${tt('per week')}`}
+                                </label>))}
+                            </div>
+                            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
+                                exercises={exercises} setExercises={setExercises}
+                                picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id => { if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || undefined, vid: undefined, notes: lib?.cues || '', notesEdited: false, n: lib?.cues || '' }); }} onPickName={name => update({ exerciseId: '', title: name, videoUrl: '', vid: undefined, notes: '', notesEdited: false, n: '' })}
+                                  onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name, notes: '', notesEdited: false, n: '' }); }) : undefined}
+                                  label={tt('Exercise')} fallbackTitle={ex.title} />} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(${nameMin}px,3.3fr) 64px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : 312 + nameMin + 8*8 + Math.max(56,weeks*22) + Math.max(64,weeks*26)}}>
@@ -2955,7 +3042,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
-                        style={{...tinyInput, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : tinyInput.background, color: ex.superset ? C.tx : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, width:'100%', minWidth:0, padding:'0 18px 0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
+                        style={{...tinyInput, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : tinyInput.background, color: ex.superset ? C.tx : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:36, minHeight:36 /* #849: the height of every input beside it (it stood 24 among 36s) */, width:'100%', minWidth:0, padding:'0 18px 0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s} style={{color: supersetColor(s), fontWeight: 700}}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (() => {
@@ -2996,10 +3083,10 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
                       {exOpen && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
-                        <input type="checkbox" checked={!!(ex.wkS&&ex.wkS.length)} onChange={()=> (ex.wkS&&ex.wkS.length) ? update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3}) : update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
+                        <input type="checkbox" checked={!!(ex.wkS&&ex.wkS.length)} onChange={()=> (ex.wkS&&ex.wkS.length) ? update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||(plan.sport === 'running' ? 1 : 3)}) : update({wkS:Array.from({length:weeks},()=>String(ex.sets||(plan.sport === 'running' ? 1 : 3)))})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
                       </label>}
                       {exOpen && <label style={{gridColumn:5,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
-                        <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||"8-12"}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
+                        <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||(plan.sport === 'running' ? '' : "8-12")}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
                       </label>}
                       {/* Inline full detail — the combined overview+detail panel. */}
                       <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: exOpen?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
@@ -3032,13 +3119,15 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                   couldn't add exercises at all). Targets THIS day. */}
               {plan.sport === 'running' && (
                 // RUN SEGMENTS, one tap each (#769): the tracker's own pieces - warm-up, the main work, cool-down
-                <div data-run-presets style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 6, marginTop: 6 }}>
+                <div data-run-presets style={{ display: 'grid', gridTemplateColumns: runCards ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(104px, 1fr))', gap: 6, marginTop: 6 }}>
                   {RUN_SEGMENTS.map((sg) => (
-                    <button key={sg.key} type="button" onClick={() => addRunSegment(dayIdx, sg)} style={{ height: 32, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {tt(sg.label)}</button>
+                    <button key={sg.key} type="button" onClick={() => addRunSegment(dayIdx, sg)} style={{ height: 36, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {tt(sg.label)}</button>
                   ))}
+                  {/* a narrow pane: ADD SEGMENT is the grid's 8th cell (7 presets alone left one orphan under two rows of three) */}
+                  {runCards && <button type="button" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{ height: 36, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {tt('ADD SEGMENT')}</button>}
                 </div>
               )}
-              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ {tt(plan.sport === 'running' ? 'ADD SEGMENT' : 'ADD EXERCISE')}</Btn>
+              {!runCards && <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ {tt(plan.sport === 'running' ? 'ADD SEGMENT' : 'ADD EXERCISE')}</Btn>}
               </div></div>
             </div>
           );
@@ -4366,7 +4455,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         // (ex.wk arrays sized to the source's weeks) stays fully visible in
         // the new program — hardcoding 4 hid weeks 5+ of a longer block.
         const newWeeks = Math.max(1, Number(target.weeks) || 4);
-        const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: cloned, warmup: [], weeks: newWeeks };
+        const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: cloned.map((cd) => (cd && cd.onlyWeek != null && Number(cd.onlyWeek) > newWeeks ? (({ onlyWeek: _w, ...rest }) => rest)(cd) : cd)) /* #850 */, warmup: [], weeks: newWeeks };
         const saved = await savePlan(fresh);
         await reloadIndex();
         if (saved) { const whoName = target.traineeId ? (trainees.flatMap(t=>t.members&&t.members.length===2?t.members.map((m,i)=>({v:t.id+'__'+i,n:m.name})):[{v:t.id,n:t.name}]).find(o=>o.v===target.traineeId)?.n) : null; toast(readLang() === 'he' ? `התוכנית "${fresh.name}" נוצרה${whoName ? ` עבור ${whoName}` : ''} עם ${cloned.length === 1 ? 'יום אחד' : `${cloned.length} ימים`}` : `Created "${fresh.name}"${whoName?` for ${whoName}`:''} with ${cloned.length} day${cloned.length===1?'':'s'}`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
@@ -4383,7 +4472,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       const merged = {
         id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
         active: data.active, createdAt: data.created_at, updatedAt: data.updated_at,   // the version just read (#510-B7)
-        days: [...existingDays, ...cloned],
+        // a day of week N copied into a program of fewer weeks keeps no week (it would appear in none) - #850
+        days: [...existingDays, ...cloned.map((cd) => (cd && cd.onlyWeek != null && Number(cd.onlyWeek) > (Number(data.data?.weeks) || 4) ? (({ onlyWeek: _w, ...rest }) => rest)(cd) : cd))],
         warmup: data.data?.warmup || [], weeks: data.data?.weeks || 4, kind: data.data?.kind, sport: data.data?.sport,
         isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,
       };

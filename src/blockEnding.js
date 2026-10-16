@@ -53,12 +53,15 @@ export function blockEndingRows({ trainees, plans, workouts }) {
     if (newer) continue;
     const logs = tWorkouts.filter((w) => w.planName === current.name);
     const inLastWeek = logs.some((w) => Number(w.week) >= weeks);
-    const lastDay = dayNames[dayNames.length - 1];
+    const inW = (d, w) => d && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === w);   // #850
+    const prevDays = (current.days || []).filter((d) => inW(d, weeks - 1) && d.name);
+    const lastDay = prevDays.length ? prevDays[prevDays.length - 1].name : dayNames[dayNames.length - 1];
     const finishedPrev = logs.some((w) => Number(w.week) === weeks - 1 && w.dayName === lastDay);
     if (!inLastWeek && !finishedPrev) continue;
     // completion: distinct (week, day) logged out of weeks x days
     const done = new Set(logs.map((w) => `${Number(w.week) || 1}|${w.dayName}`));
-    const planned = weeks * dayNames.length;
+    let planned = 0;
+    for (let w = 1; w <= weeks; w++) planned += (current.days || []).filter((d) => inW(d, w) && d.name).length;   // each week's own days
     const logged = Math.min(done.size, planned);
     // the best numbers: the most-logged lift's heaviest set in this block, and its first
     const byLift = new Map();

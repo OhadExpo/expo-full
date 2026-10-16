@@ -350,6 +350,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   // (week, day) the athlete hasn't logged in their portal history. Partially-done
   // week stays in that week (W1 day1 done, day2 not → W1 day2, NOT W2). Fully-done
   // block → last week, day 0 (nothing left). This is "the workout we're on".
+  // #850: a day of one week (plan index dayWeeks) is offered in that week only
+  const inWk = (p, i, w) => { const ow = p.dayWeeks && p.dayWeeks[i]; return ow == null || ow === '' || Number(ow) === Number(w); };
   const nextWorkoutFor = (p) => {
     const dayNames = p.dayNames || [];
     const planWeeks = Number(p.weeks) || 4;
@@ -361,7 +363,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     const maxWk = logs.length ? Math.max(...logs.map(x => Number(x.week) || 1)) : 1;
     for (let wk = Math.max(1, maxWk); wk <= planWeeks; wk++) {
       for (let di = 0; di < dayNames.length; di++) {
-        if (!done.has(`${wk}|${dayNames[di]}`)) return { week: wk, dayIdx: di };
+        if (inWk(p, di, wk) && !done.has(`${wk}|${dayNames[di]}`)) return { week: wk, dayIdx: di };
       }
     }
     return { week: Math.min(planWeeks, Math.max(1, maxWk)), dayIdx: 0 };
@@ -372,7 +374,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     const doneDays = new Set((clientWorkouts || [])
       .filter(x => x.clientId === p.traineeId && x.planName === p.name && (Number(x.week) || 1) === week)
       .map(x => x.dayName));
-    return (p.dayNames || []).findIndex(d => !doneDays.has(d));
+    return (p.dayNames || []).findIndex((d, i) => inWk(p, i, week) && !doneDays.has(d));
   };
   // Default week for a plan = the week of the next un-logged workout.
   const defaultWeekFor = (p) => nextWorkoutFor(p).week;
@@ -756,7 +758,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                               // hovered ATHLETES item in the top nav: faint cyan wash +
                               // cyan text, NO loud box, NO "NEXT" label - so the grid is `soft`.
                               <ChipGrid ariaLabel={p.name} soft value={nextDay} onChange={(i)=>startWorkout(p,i,selWeek)}
-                                items={(p.dayNames||[]).map((dName,i)=>({k:i,label:`▶ ${dName}`,title:i===nextDay?'Next workout — the one to do now':undefined}))} />
+                                items={(p.dayNames||[]).map((dName,i)=>({k:i,label:`▶ ${dName}`,title:i===nextDay?'Next workout — the one to do now':undefined})).filter((it)=>inWk(p,it.k,selWeek))} />
                             ); })()}
                           </div>
                           );

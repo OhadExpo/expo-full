@@ -111,7 +111,9 @@ const ruleNextBlockDue = {
       if (!weeks || weeks < 2) continue;
       const planDays = current.days || [];
       if (planDays.length === 0) continue;
-      const lastDayName = planDays[planDays.length - 1].name;
+      // the last day OF week (weeks-1) - a day of another week (#850 onlyWeek) never ends that week
+      const ofWeek = planDays.filter((d) => d && (d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === weeks - 1));
+      const lastDayName = (ofWeek.length ? ofWeek : planDays)[(ofWeek.length ? ofWeek : planDays).length - 1].name;
       // Did the trainee finish last day of W(weeks-1)?
       const milestoneHit = tWorkouts.some(w =>
         w.planName === current.name &&

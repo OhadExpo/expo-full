@@ -25,6 +25,8 @@
 //   }]
 // All analyses tolerate missing fields (null) and degrade to a thin state.
 
+import { plannedSessions } from './planWeek.js';
+
 // ---- small helpers -------------------------------------------------------
 const num = (x) => (typeof x === 'number' && isFinite(x) ? x : null);
 const ms = (d) => (d instanceof Date ? d.getTime() : (typeof d === 'number' ? d : Date.parse(d)));
@@ -546,6 +548,8 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
         const keyEid = ex.exerciseId ? `${norm(d.name)}|${ex.exerciseId}` : null;
         const keyTitle = `${norm(d.name)}|t:${norm(title)}`;
         const rec = { prescribedReps: minReps(ex.reps), prescribedRpe: pf(ex.rpe), pattern, title };
+        // #850: a day of one week also files under its week, so week 2's Day A reads week 2's prescription
+        if (d.onlyWeek != null && d.onlyWeek !== '') { const w = `#w${Number(d.onlyWeek)}`; if (keyEid && !presc.has(`${norm(d.name)}${w}|${ex.exerciseId}`)) presc.set(`${norm(d.name)}${w}|${ex.exerciseId}`, rec); if (!presc.has(`${norm(d.name)}${w}|t:${norm(title)}`)) presc.set(`${norm(d.name)}${w}|t:${norm(title)}`, rec); }
         if (keyEid && !presc.has(keyEid)) presc.set(keyEid, rec);
         if (!presc.has(keyTitle)) presc.set(keyTitle, rec);
       }
@@ -564,7 +568,8 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
     date: w.date, week: w.week, day: w.dayName,
     exercises: (w.exercises || []).map((ex) => {
       const title = (ex.title || '').trim();
-      const p = (ex.eid && presc.get(`${norm(w.dayName)}|${ex.eid}`)) || presc.get(`${norm(w.dayName)}|t:${norm(title)}`) || null;
+      const wk = Number(w.week) > 0 ? `#w${Number(w.week)}` : '';
+      const p = (ex.eid && wk && presc.get(`${norm(w.dayName)}${wk}|${ex.eid}`)) || (wk && presc.get(`${norm(w.dayName)}${wk}|t:${norm(title)}`)) || (ex.eid && presc.get(`${norm(w.dayName)}|${ex.eid}`)) || presc.get(`${norm(w.dayName)}|t:${norm(title)}`) || null;
       return {
         title: title || p?.title || 'Exercise',
         pattern: p?.pattern || (classifyPattern ? classifyPattern(title, null) : null),
@@ -583,10 +588,13 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   // plannedSessionCount and letting sessionPct exceed 100%.
   const wRaw = Array.isArray(latest.weeks) ? latest.weeks.length : Number(latest.weeks);
   const weeks = (isFinite(wRaw) && wRaw > 0) ? wRaw : 1;
-  const plannedSessionCount = (latest.days || []).length * weeks;
+  const plannedSessionCount = plannedSessions(latest.days, weeks);   // #850: each week's own days
 
   const plannedDays = (latest.days || []).map((d) => d.name || 'Day');
-  return { sessions, plannedSessionCount, plannedDays, weeks, blockName: latest.name, blockNumber: latestNum, blockId: latest.id, hasPlans: true, totalBlocks: withDays.length, blocks };
+  // #850: how many times each day name is due over the block (a day of one week = once, an every-week day = weeks)
+  const plannedDayExpect = {};
+  for (let w = 1; w <= weeks; w++) for (const d of latest.days || []) if (!d || d.onlyWeek == null || d.onlyWeek === '' || Number(d.onlyWeek) === w) { const k = d.name || 'Day'; plannedDayExpect[k] = (plannedDayExpect[k] || 0) + 1; }
+  return { sessions, plannedSessionCount, plannedDays, plannedDayObjs: latest.days || [], plannedDayExpect, weeks, blockName: latest.name, blockNumber: latestNum, blockId: latest.id, hasPlans: true, totalBlocks: withDays.length, blocks };
 }
 
 // ---- vs THE LAST BLOCK (16.10 #814) ---------------------------------------------------------------------------
@@ -612,7 +620,7 @@ export function blockSnapshot(b, opts = {}) {
     if (st.load != null && st.reps != null && st.load > 0 && st.reps > 0) work += st.load * st.reps;
   }
   const days = (b && b.plannedDays && b.plannedDays.length) || 0;
-  const planned = N && allNumbered && days ? days * N : (b ? b.plannedSessionCount : 0);
+  const planned = N && allNumbered && days ? (b.plannedDayObjs ? plannedSessions(b.plannedDayObjs, N) : days * N) : (b ? b.plannedSessionCount : 0);   // #850
   const adh = adherence(sessions, planned);
   const best = new Map();
   for (const [title, ser] of perLiftSeries(sessions)) {
@@ -689,7 +697,7 @@ export function vsLastBlock(a, plans, clientWorkouts, traineeId, deps, phaseOf =
 
 // Which planned day is the athlete skipping? Returns the day with the biggest
 // (expected − logged) gap, so "always Day 4" reads as a pattern, not noise.
-export function skipPattern(sessions, plannedDays, weeks) {
+export function skipPattern(sessions, plannedDays, weeks, expect = null) {
   if (!plannedDays || !plannedDays.length || !weeks) return null;
   const logged = {};
   for (const s of sessions) { const d = (s.day || '').trim(); if (d) logged[d] = (logged[d] || 0) + 1; }
@@ -698,9 +706,10 @@ export function skipPattern(sessions, plannedDays, weeks) {
   // athlete who trained daily as skipping. Suppress rather than fabricate.
   if (!plannedDays.some((d) => logged[d] != null)) return null;
   let worst = null;
-  for (const d of plannedDays) {
-    const gap = weeks - (logged[d] || 0);
-    if (gap > 0 && (!worst || gap > worst.gap)) worst = { day: d, gap, logged: logged[d] || 0, expected: weeks };
+  for (const d of [...new Set(plannedDays)]) {
+    const exp = expect && expect[d] != null ? expect[d] : weeks;   // #850: a day of one week is due once
+    const gap = exp - (logged[d] || 0);
+    if (gap > 0 && (!worst || gap > worst.gap)) worst = { day: d, gap, logged: logged[d] || 0, expected: exp };
   }
   // A skip PATTERN means he attends his other days but consistently misses THIS
   // one — so the worst day must be logged clearly LESS than his best-attended day.
@@ -999,7 +1008,7 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
     else { side = 'stalled'; read = 'neither strength nor power is moving right now'; move = 'both flat — this is a stimulus-change or a deload block, not a "push harder" one'; }
     transfer = { side, read, move, sT: Math.round(sT * 10) / 10, pT: Math.round(pT * 10) / 10, strengthN: strengthLifts.length, powerN: powerLifts.length };
   }
-  const skip = skipPattern(sessions, built.plannedDays, built.weeks);
+  const skip = skipPattern(sessions, built.plannedDays, built.weeks, built.plannedDayExpect);
   const verdict = synthesizeVerdict({ adh, region, staples, acwr, velocity: { state: 'thin' }, he: !!deps.he });
   // readiness density (rpe on sets, autoreg on sessions) for the honest thin card
   let setsWithRpe = 0, totalSets = 0;

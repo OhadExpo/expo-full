@@ -908,6 +908,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
     const score = (p) => Math.max(lastLog(p.name), new Date(p.createdAt || 0).getTime());
     return [...plans].sort((a, b) => (score(b) - score(a)) || (blockNum(b.name) - blockNum(a.name)) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)))[0];
   };
+  const inWk = (p, i, w) => { const ow = p && p.dayWeeks && p.dayWeeks[i]; return ow == null || ow === '' || Number(ow) === Number(w); };   // #850
   const nextWorkout = (traineeId) => {
     const latest = currentPlan(traineeId);
     if (!latest) return null;
@@ -918,20 +919,25 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
     const maxWk = logs.length ? Math.max(...logs.map(x => Number(x.week) || 1)) : 1;
     for (let wk = Math.max(1, maxWk); wk <= planWeeks; wk++) {
       for (let di = 0; di < dayNames.length; di++) {
-        if (!done.has(`${wk}|${dayNames[di]}`)) return { planId: latest.id, dayIdx: di, week: wk };
+        if (inWk(latest, di, wk) && !done.has(`${wk}|${dayNames[di]}`)) return { planId: latest.id, dayIdx: di, week: wk };
       }
     }
-    return { planId: latest.id, dayIdx: 0, week: Math.min(planWeeks, Math.max(1, maxWk)) }; // block fully done
+    { const w = Math.min(planWeeks, Math.max(1, maxWk)); const f = dayNames.findIndex((_, k) => inWk(latest, k, w)); return { planId: latest.id, dayIdx: f < 0 ? 0 : f, week: w }; } // block fully done
   };
   const addRow = () => setRows(r => [...r, { traineeId: '', planId: '', dayIdx: 0, week: 0 }]);
   const setRow = (i, patch) => setRows(r => r.map((x, j) => j === i ? { ...x, ...patch } : x));
   const delRow = (i) => setRows(r => r.filter((_, j) => j !== i));
   useEffect(() => { if (rows.length === 0) addRow(); }, []); // eslint-disable-line
 
+  // the day a row logs: its picked day if that day is in the row's week, else the week's first day (#850 - a stored index
+  // could point at a day the week hides, and confirm would have logged that hidden day)
+  const dayEffOf = (plan, r, week) => { const di = Number(r.dayIdx) || 0; if (inWk(plan, di, week)) return di; const f = (plan?.dayNames || []).findIndex((_, k) => inWk(plan, k, week)); return f < 0 ? di : f; };
   const confirm = () => {
     const picks = rows.filter(r => r.traineeId && r.planId).map(r => {
       const plan = planIndex.find(p => p.id === r.planId);
-      return { traineeId: r.traineeId, planId: r.planId, dayIdx: Number(r.dayIdx) || 0, dayName: plan?.dayNames?.[r.dayIdx] || '', week: Number(r.week) || dfltWeek(r) };
+      const week = Number(r.week) || dfltWeek(r);
+      const di = dayEffOf(plan, r, week);
+      return { traineeId: r.traineeId, planId: r.planId, dayIdx: di, dayName: plan?.dayNames?.[di] || '', week };
     });
     if (!picks.length) { toast('Pick at least one athlete + program.', 'warn'); return; }
     // Two rows can name the SAME athlete on the same program/day/week — each
@@ -991,8 +997,8 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
                 <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title={tt('Week to log into')}>
                   {Array.from({ length: weeks }, (_, wi) => wi + 1).map(wn => <option key={wn} value={wn}>W{wn}</option>)}
                 </select>
-                <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
-                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || (readLang() === 'he' ? `יום ${di + 1}` : `Day ${di + 1}`)}</option>) : <option value={0}>{tr(readLang(), 'Day 1')}</option>}
+                <select value={dayEffOf(plan, r, wkVal)} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
+                  {dayNames.length ? dayNames.map((d, di) => (inWk(plan, di, wkVal) ? <option key={di} value={di}>{d || (readLang() === 'he' ? `יום ${di + 1}` : `Day ${di + 1}`)}</option> : null) /* #850: the chosen week's days */) : <option value={0}>{tr(readLang(), 'Day 1')}</option>}
                 </select>
                 <button onClick={() => delRow(i)} style={{ ...miniBtn, height: 32, boxSizing: 'border-box', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
               </div>
