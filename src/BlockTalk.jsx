@@ -113,3 +113,37 @@ export default function BlockTalk({ ctx, he, coach = true }) {
     </div>
   );
 }
+
+// THE ATHLETE'S VERSION (16.10 #830, Ohad: "a bit too long for the athlete. It needs to be precise"): only what the
+// coach told him. The weekly focus is ONE line - he already reads it beside each exercise in his program and logger, so
+// listing it again here was a wall of text; then the last three video comments. His own notes are not read back to him.
+export function CoachWords({ ctx, he }) {
+  if (!ctx) return null;
+  const fws = ctx.weeks.filter((w) => w.focus.length);
+  const fw = fws.length ? fws[fws.length - 1] : null;   // never a week he has not reached (athleteContext's upToWeek)
+  const comments = ctx.weeks.flatMap((w) => w.sessions.flatMap((s) => s.comments.map((n) => ({ ...n, date: s.date }))))
+    .sort((x, y) => new Date(y.date) - new Date(x.date)).slice(0, 3);
+  if (!fw && !comments.length) return null;
+  const line = { fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 };
+  const nf = fw ? new Set(fw.focus.map((f) => f.title || String(f.eid || f.text).replace(/#\d+$/, ''))).size : 0;   // one exercise focused on two days is one exercise (a dyn_ id differs per day: keyed on the name)
+  return (
+    <div style={card} data-coach-words>
+      <FitStrip he={he} title={L(he, 'From your coach', 'מהמאמן')} />
+      {fw && (
+        <div style={{ ...line, padding: '10px 14px' }}>
+          {he
+            ? `פוקוס ${fw.week != null ? `לשבוע ${I(fw.week)}` : 'השבוע'} ${nf === 1 ? 'על תרגיל אחד' : `על ${I(nf)} תרגילים`} - הוא מופיע ליד כל תרגיל בתוכנית.`
+            : `Focus for ${fw.week != null ? `week ${fw.week}` : 'this week'} on ${nf === 1 ? 'one exercise' : `${nf} exercises`} - it sits beside each one in your program.`}
+        </div>
+      )}
+      {comments.length > 0 && (
+        <div style={{ padding: '10px 14px 12px', borderTop: fw ? `1px solid ${C.cardBd}` : 'none' }}>
+          <Label color={C.ac}>{L(he, 'On your videos', 'על הסרטונים שלך')}</Label>
+          {comments.map((n, i) => (
+            <div key={i} style={{ ...line, marginTop: i ? 6 : 2 }}><span style={{ color: C.tm }}><bdi>{n.title}</bdi>{n.ts != null ? <> <bdi dir="ltr">{mmss(n.ts)}</bdi></> : null}: </span><bdi>{n.text}</bdi></div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

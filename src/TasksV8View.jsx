@@ -790,14 +790,14 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-          placeholder={tt('Add a task…')} data-hotkey="add"
+          placeholder={tt('Add a task…')} data-hotkey="add" dir="auto"
           style={{
             // minWidth 0 or the input refuses to shrink past its intrinsic
             // size: measured at 360 the composer row overflowed by 15px and the
             // "ENTER TO SAVE" hint crossed the row's own edge.
-            // Leading-aligned, like the search field directly above it. The
-            // app-wide centring in index.html is for the set-entry cells.
-            textAlign: 'start',
+            // CENTRED (16.10 #839, Ohad: 'The text in the text box that I'm writing should be center aligned
+            // (horizontally)') - it was leading-aligned. dir=auto: a Hebrew task reads right to left as it is typed.
+            textAlign: 'center',
             flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none',
             fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', padding: 0,
           }}
@@ -1263,7 +1263,7 @@ export function CommentsThread({ noteId, viewer }) {
     : [];
   // Floor at 32 so an empty composer matches the 32px author chip + Send button
   // exactly (Ohad: "o is not the same as the textbox size"); grow to 160 max.
-  const autosize = (el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.max(32, Math.min(el.scrollHeight, 160)) + 'px'; } };
+  const autosize = (el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.max(36, Math.min(el.scrollHeight, 160)) + 'px'; } };   // the house 36 (#841)
   const detectMention = (value, caret) => {
     // '@' before the caret with only word-chars after it = an in-progress
     // mention. Anchored to start-or-whitespace so "a@b" (an email) never fires.
@@ -1307,12 +1307,12 @@ export function CommentsThread({ noteId, viewer }) {
   };
   const now = Date.now();
   return (
-    <div style={{ marginTop: 6 }}>
-      <div style={{
+    <div style={{ marginTop: 10 }}>
+      {rows.length > 0 && <div style={{
         fontFamily: FN, fontSize: 9, fontWeight: 700,
-        letterSpacing: '0.12em', color: 'var(--c-tm)',
+        letterSpacing: readLang() === 'he' ? 0 : '0.12em', color: 'var(--c-tm)',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>{tr(readLang(), 'Comments')} {rows.length > 0 ? `· ${rows.length}` : ''}</div>
+      }}>{tr(readLang(), 'Comments')} · {rows.length}</div>   /* no label over an empty thread - the box's placeholder says it (#841) */}
       {rows.map(c => {
         const heb = isHebrew(c.body || '');
         const mine = c.author === author;          // only your own comments are editable
@@ -1388,7 +1388,7 @@ export function CommentsThread({ noteId, viewer }) {
         <span title={tr(readLang(), author === 'yuval' ? 'Posting as Yuval' : 'Posting as Ohad')}
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, width: 32, height: 32, boxSizing: 'border-box', borderRadius: 0,
+            flexShrink: 0, width: 36, height: 36, boxSizing: 'border-box', borderRadius: 0,
             background: author === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
             color: '#FFFFFF', fontFamily: FN, fontSize: 11, fontWeight: 700,
           }}>{author === 'yuval' ? 'Y' : 'O'}</span>
@@ -1416,8 +1416,8 @@ export function CommentsThread({ noteId, viewer }) {
             flex: 1, background: 'transparent',
             border: `1px solid var(--c-cardBd)`,
             fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
-            padding: '6px 10px', borderRadius: 0, outline: 'none',
-            resize: 'vertical', minHeight: 32, height: 32, lineHeight: 1.4, boxSizing: 'border-box',
+            borderRadius: 0, outline: 'none',
+            padding: '8px 10px', resize: 'vertical', minHeight: 36, height: 36, lineHeight: 1.4, boxSizing: 'border-box',
           }} />
         {mention && mentionMatches.length > 0 && (
           <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
@@ -1436,7 +1436,7 @@ export function CommentsThread({ noteId, viewer }) {
           style={{
             background: draft.trim() ? 'var(--c-ac)' : 'var(--c-sf2)',
             color: draft.trim() ? '#FFFFFF' : 'var(--c-td)',
-            border: 'none', padding: '0 14px', height: 32, boxSizing: 'border-box', flexShrink: 0,
+            border: 'none', padding: '0 14px', height: 36, boxSizing: 'border-box', flexShrink: 0,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: draft.trim() && !busy ? 'pointer' : 'default',
@@ -1455,19 +1455,20 @@ export function CommentsThread({ noteId, viewer }) {
 
 export function EventTimeline({ noteId }) {
   const { rows, available } = useCoachNoteEvents(noteId);
+  const [all, setAll] = useState(false);   // #841: the newest line shows; the rest one tap away
   // Quiet when migration is pending — no point in showing an empty
   // "Activity" header. Comments component already surfaces the hint.
   if (!available || rows.length === 0) return null;
   const now = Date.now();
   return (
-    <div style={{ marginTop: 14 }}>
-      <div style={{
-        fontFamily: FN, fontSize: 9, fontWeight: 700,
-        letterSpacing: '0.12em', color: 'var(--c-tm)',
-        textTransform: 'uppercase', marginBottom: 6,
-      }}>{tr(readLang(), 'Activity')}</div>
+    <div style={{ marginTop: 10 }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); setAll((v) => !v); }} aria-expanded={all} disabled={rows.length < 2}
+        style={{ display: 'inline-flex', alignItems: 'center', minHeight: 24, padding: 0, background: 'transparent', border: 'none', cursor: rows.length < 2 ? 'default' : 'pointer',
+          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.12em', color: 'var(--c-tm)', textTransform: 'uppercase' }}>
+        {tr(readLang(), 'Activity')}{rows.length > 1 ? ` · ${rows.length}` : ''}{rows.length > 1 ? <span style={{ color: 'var(--c-ac)', marginInlineStart: 10 }}>{tr(readLang(), all ? 'Show less' : 'Show all')}</span> : null}
+      </button>
       <div style={{ direction: uiDir() }}>
-        {rows.map(ev => {
+        {(all ? rows : rows.slice(-1)).map(ev => {
           const he = readLang() === 'he';
           const verb = (he ? EVENT_VERB_HE : EVENT_VERB)[ev.kind] || ev.kind;
           const val = (v) => (he ? EVENT_VALUE_HE[v] || v : v);
@@ -1508,7 +1509,67 @@ export function EventTimeline({ noteId }) {
   );
 }
 
-function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, onDelete, readOnly = false }) {
+// THE OPEN TASK (16.10 #840 + #841, Ohad: "I cannot edit the date..." / "look how much extra space there is. Redesign
+// it to make it perfect"): ONE toolbar row - the date and time (editable here), the list, then Archive and Delete at the
+// far end - then the comments and the activity. Every control is the house 36px; no label rows, no 38px indent.
+function DueEditor({ row, onSetDue }) {
+  const tt = useT();
+  const m = (row.body || '').match(DUE_RE);
+  const saved = { date: m ? m[1] : '', time: m && m[2] ? `${String(m[2].split(':')[0]).padStart(2, '0')}:${m[2].split(':')[1]}` : '' };
+  // A DRAFT, saved ONCE (16.10 re-reviews). A native date field fires a change for every segment typed (day 2, then 25)
+  // and empties itself while a segment is being retyped, so: the draft follows the field; it is saved 1.2 s after the
+  // last change (a pick from the calendar lands there too) or when the field loses focus; a field left half-typed
+  // (validity.badInput) goes back to the saved value instead of being saved as 'no date'; and the same value is never
+  // sent twice (a Tab right after the last digit sent it twice - two writes, and a second calendar event).
+  const [d, setD] = useState(saved.date);
+  const [t, setT] = useState(saved.time);
+  const sent = useRef(`${saved.date}|${saved.time}`);
+  const timer = useRef(null);
+  useEffect(() => { setD(saved.date); setT(saved.time); sent.current = `${saved.date}|${saved.time}`; }, [saved.date, saved.time]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const okDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number(v.slice(0, 4)) >= 2020 && Number(v.slice(0, 4)) <= 2100;
+  const commit = (nd, nt) => {
+    clearTimeout(timer.current);
+    if (nd && !okDate(nd)) return;
+    const key = `${nd}|${nd ? nt : ''}`;
+    if (key === sent.current) return;
+    sent.current = key;
+    onSetDue(row, nd, nd ? nt : '');
+  };
+  const later = (nd, nt) => { clearTimeout(timer.current); timer.current = setTimeout(() => commit(nd, nt), 1200); };
+  // blur: a half-typed field shows the saved value again, a whole one is saved now
+  const onBlurDate = (e) => { if (!e.target.value && e.target.validity && e.target.validity.badInput) { clearTimeout(timer.current); setD(saved.date); setT(saved.time); return; } commit(d, t); };
+  const onBlurTime = (e) => { if (!e.target.value && e.target.validity && e.target.validity.badInput) { clearTimeout(timer.current); setT(saved.time); return; } commit(d, t); };
+  const ctl = { background: 'transparent', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '0 6px', height: 'var(--btn-h)', boxSizing: 'border-box', borderRadius: 0, outline: 'none' };
+  const stop = (e) => e.stopPropagation();
+  const enter = (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } };
+  return (
+    <span data-task-due dir="ltr" /* the dd/mm/yyyy overlay sits clear of the picker glyph in a Hebrew row too */ style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <input type="date" value={d} aria-label={tt('Due date')}
+          onChange={(e) => { const v = e.target.value; setD(v); if (okDate(v)) later(v, t); }}
+          onBlur={onBlurDate} onKeyDown={enter}
+          onMouseDown={stop}
+          onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+          style={{ ...ctl, color: 'transparent', width: 124, cursor: 'pointer' }} />
+        <span style={{ position: 'absolute', insetInlineStart: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: d ? 'var(--c-tx)' : 'var(--c-td)', pointerEvents: 'none' }}>{d && okDate(d) ? fmtDMY(d) : 'DD/MM/YYYY'}</span>
+      </span>
+      <input type="time" value={t} disabled={!d} aria-label={tt('Due time')}
+        title={tr(readLang(), d ? 'Time (default 09:00)' : 'Pick a date first')}
+        onChange={(e) => { const v = e.target.value; setT(v); if (v && okDate(d)) later(d, v); }}
+        onBlur={onBlurTime} onKeyDown={enter}
+        onMouseDown={stop}
+        onClick={(e) => { e.stopPropagation(); if (d) { try { e.currentTarget.showPicker(); } catch { /* noop */ } } }}
+        style={{ ...ctl, color: d ? 'var(--c-tx)' : 'var(--c-td)', opacity: d ? 1 : 0.5, cursor: d ? 'pointer' : 'default' }} />
+      {saved.date && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); setD(''); setT(''); commit('', ''); }} onKeyDown={stop} title={tt('Remove the date')}
+          style={{ ...ctl, color: 'var(--c-tm)', fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', textTransform: 'uppercase', padding: '0 10px', cursor: 'pointer' }}>{tt('No date')}</button>
+      )}
+    </span>
+  );
+}
+
+function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onSetDue, onArchive, onDelete, readOnly = false }) {
   const tt = useT();
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
@@ -1524,70 +1585,70 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
   // 'center:property' → 'Center · Property' — no hashtag noise, no raw colon.
   const labelTag = (t) => t.split(':').map(p => p.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(' · ');
   const cat = sourceKey(row);
+  const he = readLang() === 'he';
+  const btn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 'var(--btn-h)', boxSizing: 'border-box', background: 'transparent', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: he ? 0 : '0.1em', padding: '0 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' };
+  const showCat = !readOnly && onSetCategory && (cat === 'manual' || cat === 'center');
+  const showDue = !readOnly && onSetDue;
 
   return (
-    <div style={{
-      padding: '10px 14px 14px 38px',
+    <div data-task-open style={{
+      padding: '10px 14px 12px',
       background: 'var(--c-sf2, transparent)',
       borderBottom: `1px solid var(--c-cardBd)`,
       fontFamily: heb ? FH : FB,
       fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.6,
-      direction: dirOfText(displayBody || ''),
+      direction: uiDir(),
     }}>
-      {/* Title is NOT repeated here — the row above shows it in full once
-          expanded. Detail starts at tags / approval / calendar / comments. */}
+      {/* Title is NOT repeated here — the row above shows it in full once expanded. */}
       {tags.length > 0 && (
         // plain cyan words, no filled boxes (#675: tags in one quiet line, the meta-line grammar)
-        <div style={{ marginTop: 6, direction: uiDir(), fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-ac)', lineHeight: 1.5 }}>
+        <div style={{ marginBottom: 8, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: he ? 0 : '0.1em', color: 'var(--c-ac)', lineHeight: 1.5 }}>
           {/* one span per tag with a clear gap - labelTag already joins a namespaced tag's parts with ' · ' (12.10 review) */}
           {tags.map((tg) => <span key={tg} style={{ display: 'inline-block', marginInlineEnd: 16, whiteSpace: 'nowrap' }}>{labelTag(tg)}</span>)}
         </div>
       )}
       {readOnly && (
-        <div style={{ marginTop: 10, direction: uiDir() }}>
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{tt('Read-only — belongs to the other coach')}</span>
+        <div style={{ marginBottom: 8 }}>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: he ? 0 : '0.04em', textTransform: 'uppercase' }}>{tt('Read-only — belongs to the other coach')}</span>
         </div>
       )}
-      {/* Move the task between General and Performance Center (Ohad). */}
-      {!readOnly && onSetCategory && (cat === 'manual' || cat === 'center') && (
-        <div style={{ marginTop: 10, direction: uiDir(), display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Compact picker — was a "List" label + two buttons, too wide (Ohad). */}
-          <select value={cat} onClick={(e) => e.stopPropagation()}
-            onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
-            title={tt('Move this task to another list')}
-            style={{ width: 175, boxSizing: 'border-box', background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
-            <option value="manual">{tt('General')}</option>
-            <option value="center">{tt('Performance Center')}</option>
-          </select>
-        </div>
-      )}
-      {/* Per-task management (Yuval): Archive moves it to the Done/Cancelled
-          pool at the bottom (recoverable); Delete removes it for good with a
-          typed-free confirm. Both hidden on the other coach's read-only tasks. */}
-      {!readOnly && (onArchive || onDelete) && (
-        <div style={{ marginTop: 10, direction: uiDir(), display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* THE TOOLBAR: date + time, the list, then Archive and Delete at the end (they were three rows) */}
+      {!readOnly && (showDue || showCat || onArchive || onDelete) && (
+        <div data-task-toolbar style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 8, flexWrap: 'wrap' }}>
+          {showDue && <DueEditor row={row} onSetDue={onSetDue} />}
+          {showCat && (
+            // Move the task between General and Performance Center (Ohad).
+            <select value={cat} onClick={(e) => e.stopPropagation()}
+              onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
+              title={tt('Move this task to another list')} aria-label={tt('Move this task to another list')}
+              style={{ width: 175, height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: he ? 0 : '0.1em', padding: '0 8px', borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase' }}>
+              <option value="manual">{tt('General')}</option>
+              <option value="center">{tt('Performance Center')}</option>
+            </select>
+          )}
+          <span style={{ flex: '1 1 0', minWidth: 0 }} />
+          {/* Per-task management (Yuval): Archive moves it to the Done/Cancelled pool at the bottom (recoverable);
+              Delete removes it for good with a confirm. */}
           {onArchive && row.status !== 'cancelled' && (
-            <button onClick={(e) => { e.stopPropagation(); onArchive(row); }}
+            <button type="button" onClick={(e) => { e.stopPropagation(); onArchive(row); }}
               title={tt('Archive — moves this task to the Done/Cancelled pool (recoverable)')}
-              style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ {tr(readLang(), 'Archive')}</button>
+              style={{ ...btn, border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)' }}>{tt('Archive')}</button>
           )}
           {onDelete && (
-            <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
+            <button type="button" onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
               title={tt('Delete this task permanently')}
-              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{tr(readLang(), 'Delete')}</button>
+              style={{ ...btn, border: `1px solid var(--c-rd)`, color: 'var(--c-rd)' }}>{tt('Delete')}</button>
           )}
         </div>
       )}
-      {/* Comments + audit timeline (Phase 2). Both gracefully no-op
-          when their migrations haven't been applied — Comments shows
-          a hint, EventTimeline silently absents itself. */}
+      {/* Comments + audit timeline (Phase 2). Both gracefully no-op when their migrations haven't been applied. */}
       <CommentsThread noteId={row.id} viewer={viewer} />
       <EventTimeline noteId={row.id} />
     </div>
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false, tight = false }) {
+function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onSetDue, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false, tight = false }) {
   const tt = useT();
   // On phones, wrap the list row the same way board columns do — title on its
   // own line, meta + status pill below — so nothing gets clipped off-screen.
@@ -1621,7 +1682,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   const dm = dateMeta(row._dueAt || null, now);
   const hasDue = !!row._dueAt;
   const isToday = hasDue && dm.label === 'TODAY';
-  const isOverdue = hasDue && dm.isOverdue;
+  const isOverdue = hasDue && dm.isOverdue && row.status !== 'done' && row.status !== 'cancelled';   // a finished task is never 'overdue' (#842: the DONE column read OVERDUE on every card)
   const isStuck = row.status === 'stuck';
   const priority = row._priority || 'normal';
   const [hover, setHover] = useState(false);
@@ -1662,6 +1723,90 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // bolder text — so "YESTERDAY" reads as a notification without adding a colour.
   const dateBorder = isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tm)' : 'var(--c-cardBd)';
   const dateBg = isToday ? 'rgba(57,189,255,0.12)' : isOverdue ? 'var(--c-sf2)' : 'transparent';
+
+  // THE BOARD CARD (16.10 #842, Ohad's laptop photo: "I can barely see the text. Redesign the board view"): the title
+  // leads at the reading size, from its own start edge, up to three lines (the whole of it once open); ONE quiet meta
+  // line under it - the urgency and (outside the status board) the status as coloured words you can still change in
+  // place, then the date, SHARED and the athlete. The 96px boxes and the centred 2-line clamp are gone.
+  if (board) {
+    const word = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1.3, unicodeBidi: 'isolate' /* each word keeps its own order inside a Hebrew line ('31 MAY 11:15' read 'MAY 11:15 31') */ };
+    const pr = PRIORITY_PICK.find((x) => x.id === priority) || PRIORITY_PICK[2];
+    const st = STATUS_OPTIONS.find((x) => x.id === row.status) || STATUS_OPTIONS[0];
+    const STATUS_INK = { open: 'var(--c-tm)', working: 'var(--c-ac)', waiting: '#C9851E', stuck: 'var(--c-rd)', done: 'var(--c-gn, #2E9E5B)', cancelled: 'var(--c-td)' };
+    const stop = (e) => e.stopPropagation();
+    // THE WORD IS THE CONTROL (re-review): a native select sizes itself to its widest option in Safari and Firefox and
+    // task-select forces padding on it, so the word is a plain span and an invisible select over it takes the tap
+    const wordPick = ({ value, options, color, label, onPick }) => (   // a function, not a component: no remount per render
+      <span style={{ position: 'relative', display: 'inline-flex', overflow: 'hidden' /* the invisible select never widens the word */ }} onClick={stop} onMouseDown={stop} onKeyDown={stop}>
+        <span style={{ ...word, color }}>{tt((options.find((x) => x.id === value) || options[0]).label)}</span>
+        <select value={value} onChange={(e) => onPick(e.target.value)} title={label} aria-label={label}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', minHeight: 0, opacity: 0, cursor: 'pointer', margin: 0, padding: 0, border: 'none' }}>
+          {options.map((x) => <option key={x.id} value={x.id} style={{ background: '#fff', color: '#111' }}>{tt(x.label)}</option>)}
+        </select>
+      </span>
+    );
+    return (
+      <React.Fragment>
+        <div {...asButton(onToggleExpand)} data-taskid={row.id} data-board-card
+          aria-label={tt('Expand task for comments + detail')}
+          onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+          style={{
+            // THE SELECT BOX HAS ITS OWN COLUMN (#846, Ohad: 'isn't aligned with the text and is just random'): at the card's
+            // start, centred on the title's FIRST line, the same x on every card - the text column beside it
+            display: 'grid', gridTemplateColumns: selectSlot ? '16px minmax(0, 1fr)' : 'minmax(0, 1fr)', columnGap: 10, alignItems: 'start', direction: uiDir(),
+            padding: '10px 12px', cursor: 'pointer',
+            borderBottom: '1px solid var(--c-cardBd)', borderInlineStart: `3px solid ${edgeColor}`,
+            background: expanded ? 'var(--c-sf2, transparent)' : hover ? 'var(--c-sf2, rgba(57,189,255,0.04))' : 'transparent',
+            transition: 'background 120ms ease',
+          }}>
+          {selectSlot && <span onKeyDown={stop} style={{ display: 'inline-flex', marginTop: Math.round(((heb ? 14 : 13.5) * 1.4 - 16) / 2) /* the title's first line box, centred */ }}>{selectSlot}</span>}
+          <div style={{ minWidth: 0 }}>
+          {/* ONE EDGE PER COLUMN (#845, Ohad: "Bad built" - a Hebrew-led title stood right, its meta left, the next card
+              the other way): every line of every card starts on the page's own side; a mixed title still reads in
+              its own order (plaintext bidi) but sits on that edge. Fixed lines: title · the date · urgency, status,
+              shared, the athlete - and the select box at the end of that last line. */}
+          <div dir="auto" style={{
+            fontFamily: FB, fontSize: heb ? 14 : 13.5, fontWeight: 500, lineHeight: 1.4, color: 'var(--c-tx)',
+            unicodeBidi: 'plaintext', textAlign: uiDir() === 'rtl' ? 'right' : 'left', wordBreak: 'break-word',
+            ...(expanded ? { whiteSpace: 'normal' } : { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }),
+          }}>
+            <TaskTitleText text={row._display} query={search} />
+          </div>
+          {dateStr && (
+            <div dir={uiDir()} style={{ marginTop: 6, display: 'flex' }}>
+              <span style={{ ...word, color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : 'var(--c-tm)', fontWeight: isOverdue ? 800 : 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {isOverdue ? <>{tt('OVERDUE')} <span style={{ opacity: 0.55 }}>{RELATIVE_WORDS.has(dm.label) ? tt(dm.label) : dm.label}</span></> : dateStr}
+              </span>
+            </div>
+          )}
+          <div dir={uiDir()} style={{ display: 'flex', alignItems: 'center', columnGap: 12, marginTop: dateStr ? 4 : 6, minHeight: 18, color: 'var(--c-tm)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', columnGap: 12, rowGap: 4, flexWrap: 'wrap', minWidth: 0, flex: '1 1 auto' }}>
+              {readOnly
+                ? <span style={{ ...word, color: pr.color }}>{tt(pr.label)}</span>
+                : wordPick({ value: priority, options: PRIORITY_PICK, color: pr.color, label: tt('Change urgency'), onPick: (v) => onSetPriority(row, v) })}
+              {!hideStatus && (readOnly
+                ? <span style={{ ...word, color: STATUS_INK[st.id] }}>{tt(st.label)}</span>
+                : wordPick({ value: row.status || 'open', options: STATUS_OPTIONS, color: STATUS_INK[st.id], label: tt('Change status'), onPick: (v) => onSetStatus(row, v) }))}
+              {row._owner === 'shared' && <span style={{ ...word, opacity: 0.8 }}>{tt('Shared')}</span>}
+              {showAvatar && row._owner !== 'shared' && <AssigneeDot owner={row._owner} />}
+              {showAthlete && <span title={`${tr(readLang(), 'Athlete:')} ${athleteName}`} style={{ ...word, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{athleteName}</span>}
+            </span>
+          </div>
+          </div>
+        </div>
+        {expanded && (
+          <div data-task-detail style={{ display: 'grid', gridTemplateRows: '1fr', animation: 'tasks-v8-expand 240ms ease-out' }}>
+            <div style={{ overflow: 'hidden', minHeight: 0 }}>
+              <ExpandedDetail row={row} displayBody={row._display} viewer={viewer}
+                onSetCategory={onSetCategory} onSetDue={onSetDue}
+                onArchive={onSetStatus ? (r) => onSetStatus(r, 'cancelled') : undefined}
+                onDelete={onDelete} readOnly={readOnly} />
+            </div>
+          </div>
+        )}
+      </React.Fragment>
+    );
+  }
 
   return (
     <React.Fragment>
@@ -1851,6 +1996,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           <ExpandedDetail row={row} displayBody={row._display}
             viewer={viewer}
             onSetCategory={onSetCategory}
+            onSetDue={onSetDue}
             onArchive={onSetStatus ? (r) => onSetStatus(r, 'cancelled') : undefined}
             onDelete={onDelete}
             readOnly={readOnly}
@@ -2506,6 +2652,21 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     const newTags = cat === 'center' ? [...others, 'center'] : others;
     await update(row.id, { tags: newTags.length ? newTags : null });
   };
+  // EDIT THE DATE (16.10 #840): the due lives in the body's suffix, so a new date rewrites it (an empty date removes it);
+  // the audit line says it, and the calendar event follows the new date the way a status change re-syncs it.
+  const setDue = async (row, date, time) => {
+    const m = (row.body || '').match(DUE_RE);
+    const cur = m ? `${m[1]}${m[2] ? ' ' + m[2] : ''}` : '';
+    const next = date ? `${date}${time ? ' ' + time : ''}` : '';
+    if (cur === next) return;
+    const body = stripDueSuffix(row.body || '').replace(/[ \t]+$/, '') + (next ? ` · due ${next}` : '');
+    await update(row.id, { body });
+    recordNoteEvent({ noteId: row.id, actor: viewerOwner, kind: 'due_changed', fromValue: cur || null, toValue: next || null });
+    if (next) { const nr = { ...row, body }; await syncRowToCalendar(nr, calendarOptsFor(nr)); }
+    else if (gcalConnected && Array.isArray(row.tags) && row.tags.some((t) => typeof t === 'string' && t.startsWith('gevent:'))) {
+      try { const r = await unlinkAndDeleteEvent({ ...row, body }); if (r && r.tags) await update(row.id, { tags: r.tags }); } catch (err) { console.error('Calendar remove failed:', err); }
+    }
+  };
   const setStatus = async (row, target) => {
     // No dual-approval / half-approved state (removed 2026-06-06). A shared
     // task is a single row with a single status — either partner changes it
@@ -2816,7 +2977,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       theme={theme} showAvatar={owner === 'shared'}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
-                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onSetDue={setDue} onDelete={handleDeleteTask}
                       now={now} search={search} viewer={viewerOwner}
                       gcalConnected={gcalConnected}
                       onSyncToCalendar={handleSyncToCalendar}
@@ -2857,7 +3018,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
+                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onSetDue={setDue} onDelete={handleDeleteTask}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
@@ -2874,7 +3035,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         <div style={boardGroup === 'status'
           // Status kanban = columns that flex to fill the width and WRAP to a new
           // row on narrow screens — no horizontal scroll (Ohad).
-          ? { display: 'flex', flexWrap: 'wrap', gap: 12, paddingBottom: 8, alignItems: 'flex-start' }
+          ? { display: 'flex', flexWrap: 'wrap', gap: 10, paddingBottom: 8, alignItems: 'flex-start' }
           // List grouping keeps the responsive wrapping grid.
           : { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 14 }
         }>
@@ -2896,7 +3057,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 border: `1px solid ${isDropTarget ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
                 background: isDropTarget ? 'var(--c-sf2)' : 'var(--c-sf)',
                 borderRadius: 0, display: 'flex', flexDirection: 'column', transition: 'background 0.12s, border-color 0.12s',
-                ...(isStatus ? { flex: '1 1 175px', minWidth: 175 } : {}),
+                ...(isStatus ? { flex: '1 1 170px', minWidth: 170 } : {}),
               }}>
               {/* Neutral header for EVERY column (Ohad: "too many colors" — five
                   saturated header fills were a rainbow). Status/source now reads
@@ -2912,7 +3073,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 </span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-tm)' }}>{section.rows.length}</span>
               </div>
-              <div className={settle} style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
+              <div className={settle} style={{ maxHeight: 'max(360px, calc(100vh - 280px))' /* #842: the column runs to the screen's foot - at 360 every column scrolled in a box over an empty half page */, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (
                   <div key={row.id} className="tv8-board-card"
                     draggable={!isReadOnly(row)}
@@ -2922,16 +3083,18 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDragLeave={e => { e.stopPropagation(); if (dropOnId === row.id) setDropOnId(null); }}
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); reorderOnto(row, section); }}
                     style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2, boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
-                    <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title={tr(readLang(), 'Select')}
-                      className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
-                      style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
+                    {(() => { const selectSlot = (
+                      <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title={tr(readLang(), 'Select')}
+                        className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
+                        style={{ position: 'relative', zIndex: 3, width: 16, height: 16, minHeight: 0, minWidth: 0, flexShrink: 0, boxSizing: 'border-box', borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
+                    ); return (
                     <TaskRow row={row} readOnly={isReadOnly(row)} compact narrow={narrow} tight={tight}
                       theme={theme} showAvatar={owner === 'shared'} board hideStatus={!!section.statusId}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
-                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onSetDue={setDue} onDelete={handleDeleteTask}
                       search={search} viewer={viewerOwner}
-                      now={now} />
+                      now={now} selectSlot={selectSlot} />); })()}
                   </div>
                 ))}
                 {(isStatus || boardGroup === 'list') && section.rows.length === 0 && (
@@ -3014,7 +3177,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
+                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onSetDue={setDue} onDelete={handleDeleteTask}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}

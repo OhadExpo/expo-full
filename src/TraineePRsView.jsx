@@ -248,19 +248,19 @@ function RunRecords({ runs, tt, he }) {
   return (
     <>
       <div data-run-records style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '16px 14px', marginBottom: 14 }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{tt('RUNNING RECORDS')}</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{tt('RUNNING RECORDS')}</div>
         {/* the cells in the page's reading order (the EXPO portal root is LTR in Hebrew, #797; the club zone is RTL) */}
         <div dir={he ? 'rtl' : 'ltr'} style={{ display: 'flex' }}>
           {cells.map(([label, val, date], i) => (
             <div key={label} style={{ flex: 1, minWidth: 0, textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.cardBd}` : 'none', padding: '0 6px' }}>
-              <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{tt(label)}</div>
+              <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: he ? 0 : '0.12em', fontWeight: 700 }}>{tt(label)}</div>
               <div dir={he ? 'rtl' : undefined} style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: C.ac, marginTop: 4, whiteSpace: 'nowrap' }}>{val}</div>
               <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginTop: 4 }}><span dir="auto" style={{ unicodeBidi: 'isolate' }}>{fmtDate(date, he)}</span></div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('RUN HISTORY ·')} {he && n === 1 ? 'ריצה אחת' : `${n} ${tt(n === 1 ? 'RUN' : 'RUNS')}`}</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('RUN HISTORY ·')} {he && n === 1 ? 'ריצה אחת' : `${n} ${tt(n === 1 ? 'RUN' : 'RUNS')}`}</div>
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
         {runs.sessions.slice().reverse().map((s, i, arr) => {
           const isLongest = runs.longest && s === runs.longest.s;
@@ -347,14 +347,14 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
       {header}
       <div style={innerStyle}>
         {!embedded && (
-          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>{tt('RECORDS')}</div>
+          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 14 }}>{tt('RECORDS')}</div>
         )}
 
         {runs && <RunRecords runs={runs} tt={tt} he={he} />}
 
         {rows.length === 0 ? (runs ? null : (
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO RECORDS YET')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO RECORDS YET')}</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               {tt('Log a few sessions with weights and your records will show up here.')}
             </div>
@@ -364,7 +364,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
             {/* Exercise picker — search-as-you-type combobox over only the
                 exercises this athlete has logged a top set for. */}
             <div ref={wrapRef} style={{ marginBottom: 14, position: 'relative' }}>
-              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('EXERCISE')}</div>
+              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('EXERCISE')}</div>
               <input
                 // THE NAME GETS THE FIELD. An <input> clips without an
                 // ellipsis, so on a phone "Alternating DB Chest Press (4
@@ -396,7 +396,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 }}
               />
               {!open && picked ? (
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, marginTop: 6 }}>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: he ? 0 : '0.1em', color: C.tm, marginTop: 6 }}>
                   {he && picked.sessionCount === 1 ? 'אימון אחד' : countIn(he ? 'he' : 'en', picked.sessionCount, 'session')}
                 </div>
               ) : null}
@@ -436,20 +436,20 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
-                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('ALL-TIME PR')}</div>
+                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('ALL-TIME PR')}</div>
                   <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
                     <bdi>{picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>{tt('KG')}</span></bdi>
                     {picked.allTimePRReps > 0 && (
                       <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>× {picked.allTimePRReps}</span>
                     )}
                   </div>
-                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, marginTop: 10 }}>
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: he ? 0 : 1, fontWeight: 700, marginTop: 10 }}>
                     {/* own direction (#789): a Hebrew date that starts with its day number, in the LTR portal shell,
                         put the number on the wrong side ("באוק׳ 13" to a Hebrew reader) */}
                     <span dir="auto" style={{ unicodeBidi: 'isolate' }}>{fmtDate(picked.allTimePRDate, he)}</span>
                   </div>
                   {picked.swappedAny && (
-                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>{tt('Includes sessions from mid-session swaps.')}</div>
+                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: he ? 0 : 0.8 }}>{tt('Includes sessions from mid-session swaps.')}</div>
                   )}
                 </div>
 
@@ -478,7 +478,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   const W = Math.max(kgData.length * 60, 300);
                   return (
                     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{tt('TREND · KG / WEEK')}</div>
+                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: he ? 0 : '0.15em', fontWeight: 700, marginBottom: 10 }}>{tt('TREND · KG / WEEK')}</div>
                       <svg viewBox={`0 -10 ${W} 185`} style={{ width: '100%', height: 185 }}>
                         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
                           const y = 10 + p * 130;
@@ -542,7 +542,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                           <div style={{ display: 'flex', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
                             {cells.map(([label, val, color], i) => (
                               <div key={i} style={{ flex: 1, textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.cardBd}` : 'none' }}>
-                                <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</div>
+                                <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: he ? 0 : '0.12em', fontWeight: 700 }}>{label}</div>
                                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color, marginTop: 3 }}>{val}</div>
                               </div>
                             ))}
@@ -554,7 +554,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 })()}
 
                 {/* Session history */}
-                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('SESSION HISTORY ·')} {picked.sessionCount} {tt(picked.sessionCount === 1 ? 'ENTRY' : 'ENTRIES')}
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('SESSION HISTORY ·')} {picked.sessionCount} {tt(picked.sessionCount === 1 ? 'ENTRY' : 'ENTRIES')}
                 </div>
                 <div style={{ border: `1px solid ${C.cardBd}` }}>
                   {picked.series.slice().reverse().map((s, i, arr) => {
@@ -577,7 +577,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                           {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginInlineStart: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
                           {/* the chip rides its own text's baseline and hung 1.5 px low (#735 band probe 15.10: 13 above / 10 below
                               in the row) - lifted visually, the line box unchanged */}
-                          {isPR && <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px', transform: 'translateY(-1.5px)' }}>PR</span>}
+                          {isPR && <span data-box="pr-chip" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: he ? 0 : '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px', transform: 'translateY(-1.5px)' }}>PR</span>}
                         </div>
                       </div>
                     );

@@ -114,7 +114,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 | Owed detail | `/coach/billing/owed/<athlete>` · `/coach/dashboard/owed/<athlete>` (a sheet-only client = a short hash, never a name) (14.10 phase 2) |
 | BHBC schedule views | `…/bhbc/schedule` (Month) · `/schedule/week` · `/schedule/list` (14.10 phase 2) |
 | Exercise matching pop-ups | `/coach/exercise-matching/change/<title>` · `/preview/<exercise>` (alone or on top of the picker) · `/apply` (14.10 phase 2) |
-| Tasks board | `/coach/tasks` (list) · `/coach/tasks/board` (14.10 phase 2) |
+| Tasks board | `/coach/tasks` (list) · `/coach/tasks/board` (14.10 phase 2) · demo `/demo/coach/tasks` · `/demo/coach/tasks/board` (16.10 #842) |
 | Challenge form | `/coach/challenges/new` · `/coach/challenges/<id>/edit` (14.10 phase 2) |
 | Intake pop-ups | `/coach/intake/<submission>` · `/coach/intake/generate-link` (14.10 phase 2) |
 

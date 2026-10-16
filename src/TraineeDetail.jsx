@@ -1010,10 +1010,10 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
-        <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<span className="td-prog-actions" /* #843: one joined row of equal cells - on a phone the full width, never odd widths hanging off the right */>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?`↕ ${t('DATE')}`:`↕ ${t('A→Z')}`}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ {tr(readLang(), 'New Program')}</button>
-          </>}>
+          </span>}>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
           {[0,1].map(mi => {
             const m = td.members[mi];
@@ -1056,11 +1056,11 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             Program / sort / visibility stay reachable even when the program list
             is collapsed. Clean order: sort → portal-visibility → + New Program
             (primary, last); wraps under the title on narrow widths. */}
-        <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<span className="td-prog-actions" /* #843: one joined row of equal cells - on a phone the full width, never odd widths hanging off the right */>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?`↕ ${t('DATE')}`:`↕ ${t('A→Z')}`}</button>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ {tr(readLang(), 'New Program')}</button>
-          </>}>
+          </span>}>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>{t('No programs assigned.')}</div>:renderProgramsList()}
         </CollapsibleSection>
       </>}

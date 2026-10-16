@@ -47,7 +47,7 @@ export const stripStyle = (he) => ({ borderBottom: `1px solid ${C.cardBd}`, padd
 export const subStyle = (he) => ({ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: track(he, '0.04em'), textTransform: 'none', fontWeight: 600 });
 
 // a lift's state, in the words the coach acts on - stuck BEFORE dropping, as the engine reads it
-function liftState(s, athlete = false) {
+export function liftState(s, athlete = false) {
   if (s.count < 3) return { k: 'few', en: 'Too few', he: 'מעט נתונים', c: C.td };
   if (s.ballistic) return { k: 'power', en: 'Explosive', he: 'מתפרץ', c: C.ac };
   if (s.stale?.stale) return athlete ? { k: 'stuck', en: 'Holding', he: 'יציב', c: C.tm } : { k: 'stuck', en: 'Stuck', he: 'תקוע', c: C.or };

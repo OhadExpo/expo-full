@@ -4020,7 +4020,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:'var(--btn-h)',padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt("SAVE")}</button>}
             </div></div></div>
-        {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>{tt("REST")}</span>{activePlan.rest}</div>}
+        {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:(lang||readLang())==='he'?0:'0.15em',marginInlineEnd:10}}>{tt('COACH NOTE') /* 16.10 #838: the plan note is the coach's note - it was labelled REST */}</span><span dir="auto" style={{unicodeBidi:'isolate'}}>{activePlan.rest}</span></div>}
         {unreadCoachNotes > 0 && <div onClick={() => setVw('hist')}
           role="button" tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setVw('hist'); } }}
@@ -4266,7 +4266,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               title: w.t,
             })),
           })}
-          {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>{tt("REST")}</span>{vp.rest}</div>}
+          {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:(lang||readLang())==='he'?0:'0.15em',marginInlineEnd:10}}>{tt('COACH NOTE')}</span><span dir="auto" style={{unicodeBidi:'isolate'}}>{vp.rest}</span></div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
           // athlete log THIS specific day any number of times during the

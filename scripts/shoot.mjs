@@ -39,6 +39,16 @@ async function wsEndpoint() {
     const browserWSEndpoint = await wsEndpoint();
     browser = await puppeteer.connect({ browserWSEndpoint, protocolTimeout: 60000 });
     page = await browser.newPage();
+    // the install prompt (iOS UA: it opens 1.2 s after load, in either language - the 'maybe later' click below missed
+    // the Hebrew one and the late one) is snoozed before the page runs (16.10)
+    // SHOOT_LS='{"key":"raw value"}' seeds localStorage first (a zone's own language, e.g. expo-collapse:bhbc-lang = "he").
+    // This is HIS logged-in profile: what was there before is kept (once per tab, in sessionStorage) and put back when
+    // the shot is done (re-review 16.10: a seeded language would have stayed his language).
+    await page.evaluateOnNewDocument((j) => { try {
+      const seed = { 'expo-install-snooze-until': String(Date.now() + 864e5), ...(j ? JSON.parse(j) : {}) };
+      if (!sessionStorage.getItem('__shootPrev')) { const prev = {}; for (const k of Object.keys(seed)) prev[k] = localStorage.getItem(k); sessionStorage.setItem('__shootPrev', JSON.stringify(prev)); }
+      for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
+    } catch { /* private */ } }, process.env.SHOOT_LS || '');
     await setWidth(page, parseInt(w) || 1440, parseInt(h) || 900);
     // Re-assert after navigation: a fresh document can come up at the window's
     // own size, and a screenshot at the wrong width is a screenshot of a layout
@@ -94,6 +104,7 @@ async function wsEndpoint() {
     console.error('SHOOT FAILED:', e.message);
     process.exitCode = 1;
   } finally {
+    try { if (page) await page.evaluate(() => { const p = JSON.parse(sessionStorage.getItem('__shootPrev') || '{}'); for (const [k, v] of Object.entries(p)) { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } }); } catch { /* page gone */ }
     try { if (page) await page.close(); } catch {}
     try { if (browser) await browser.disconnect(); } catch {} // NOT close()
   }

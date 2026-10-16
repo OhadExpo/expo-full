@@ -1866,6 +1866,8 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
 .hl-grid > * { border-top: 1px solid var(--c-cardBd) !important; border-inline-start: 1px solid var(--c-cardBd) !important; margin-top: -1px; margin-inline-start: -1px; }
 .hl-rows { gap: 0 !important; }
 .hl-rows > * + * { border-top: 1px solid var(--c-cardBd); }
+/* the month grids (16.10 #831 / #821): light lines between the rows, as between the days */
+.hl-rows.hl-light > * + * { border-top-color: color-mix(in srgb, var(--c-cardBd) 50%, transparent); }
 
 /* ONE CHIP GRID (5.10 #574, ui.jsx ChipGrid): the EXPO twin of the BHBC
    history filter above. Desktop keeps the caller's columns; with a count one
@@ -2471,3 +2473,8 @@ body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; 
 /* SMART IMPORT drop zone (14.10 #735): on a wide screen its sentence is one line and that line's leading is 2 of the
    48 under it (51 / 53); on a phone it wraps and is midway as it is */
 @media (min-width: 621px) { .si-drop { padding-bottom: 46px !important; } }
+/* #843 (16.10): the athlete page programs actions (sort / hide all / + new program) - one joined row of equal cells */
+.td-prog-actions { display: inline-grid; grid-auto-flow: column; grid-auto-columns: auto; gap: 1px; background: var(--c-cardBd); border: 1px solid var(--c-cardBd); }
+.td-prog-actions > div { display: contents !important; }
+.td-prog-actions button { height: var(--btn-h) !important; min-height: 0 !important; border: none !important; justify-content: center; text-align: center; white-space: nowrap; }
+@media (max-width: 640px) { .td-prog-actions { display: grid; width: 100%; box-sizing: border-box; grid-auto-columns: minmax(0, 1fr); } }   /* 3 cells solo, 2 for a couple - equal either way */

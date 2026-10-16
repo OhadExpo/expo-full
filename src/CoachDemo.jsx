@@ -4936,7 +4936,7 @@ const STATUS_COLS = [
 // SHARED tag, the OVERDUE badge, the title centred, the status button; on a
 // phone the title and status lead, the pill and tags go under them.
 const DEMO_TASK_PRIO = { 1: 'high', 2: 'normal', 3: 'urgent', 4: 'high', 5: 'low', 6: 'normal', 7: 'normal', 8: 'normal', 9: 'normal' };
-const PRIO_INK = { urgent: C.rd, high: '#FFFFFF', normal: 'var(--c-tm)', low: 'var(--c-td)' };
+const PRIO_INK = { urgent: C.rd, high: 'var(--c-tx)' /* white vanished on the light theme */, normal: 'var(--c-tm)', low: 'var(--c-td)' };
 function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
   const open = visible.filter((t) => t.status !== 'done');
   const done = visible.filter((t) => t.status === 'done');
@@ -4974,7 +4974,7 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 46, padding: '0 14px', borderBottom: `1px solid ${C.cardBd}` }}>
         <span aria-hidden style={{ width: 20, height: 20, border: `1px solid ${C.ac}`, color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, lineHeight: 1 }}>+</span>
-        <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, flex: 1 }}>{T('Add a task…')}</span>
+        <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, flex: 1, textAlign: 'center' /* the real box is centred (#839) */ }}>{T('Add a task…')}</span>
         <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: 'var(--c-td)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Enter to save')}</span>
       </div>
       {groups.map((g) => (
@@ -5030,7 +5030,15 @@ function DemoTasks() {
   // defaulted to OHAD and had no "All" option at all, so nothing could ever
   // fill them. A prospect reads an empty column as a feature that does not work.
   const [owner, setOwner] = useState('ALL');
-  const [view, setView] = useState('list');   // the real Tasks page opens on LIST
+  // the board has its URL, as on the real page (16.10 #842 parity): /demo/coach/tasks · /demo/coach/tasks/board
+  const DT_BASE = '/demo/coach/tasks';
+  const onDT = () => typeof window !== 'undefined' && window.location.pathname.startsWith(DT_BASE);
+  const dtView = (pth) => (pth.startsWith(DT_BASE + '/board') ? 'board' : 'list');
+  const [view, setView] = useState(() => (onDT() ? dtView(window.location.pathname) : 'list'));   // the real Tasks page opens on LIST
+  useUrlSync(view, (v) => setView(v || 'list'), {
+    toPath: (v) => (!onDT() ? null : v === 'board' ? DT_BASE + '/board' : (window.location.pathname.startsWith(DT_BASE + '/board') ? { path: DT_BASE } : null)),
+    fromPath: (pth) => (onDT() ? dtView(pth) : null),
+  });
   const [doneOpen, setDoneOpen] = useState(false);
   const [quickFilter, setQuickFilter] = useState('all');
   const [sortBy, setSortBy] = useState('soonest');
@@ -5087,7 +5095,7 @@ function DemoTasks() {
       {/* An input in all but tag, and 57px tall beside 36px controls. */}
       {view === 'board' && <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', minHeight: CTRL_H, boxSizing: 'border-box' }) }}>
         <span style={{ color: C.ac, fontSize: 16, fontWeight: 700 }}>+</span>
-        <span style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Add a task…')}</span>
+        <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, flex: 1, textAlign: 'center' /* #839 parity */ }}>{T('Add a task…')}</span>
       </div>}
       {/* BOARD = status kanban (mirrors the real board); LIST = source-grouped */}
       {view === 'board' ? (
@@ -5098,18 +5106,23 @@ function DemoTasks() {
           ).map(col => {
             const rows = visible.filter(t => (boardGroup === 'category' ? t.src : t.status) === col.id);
             return (
-              <div key={col.id} style={{ flex: '1 1 175px', minWidth: 175, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
+              <div key={col.id} style={{ flex: '1 1 170px', minWidth: 170, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '0 10px', minHeight: 36, boxSizing: 'border-box' /* 30 -> 36 (OCD #494) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
-                <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 46 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', minHeight: 46 }}>
                   {rows.map(t => {
-                    const meta = TASK_SRC[t.src];
                     const overdue = /OVERDUE/i.test(t.due);
+                    const pr = DEMO_TASK_PRIO[t.id] || 'normal';
+                    const word = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', unicodeBidi: 'isolate' };
+                    // THE REAL BOARD CARD (16.10 #842): the title at the reading size from its start edge, one meta line
+                    // of coloured words under it (urgency, the date), hairlines between cards - no box per card
                     return (
-                      <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5, justifyContent: 'center', minHeight: CTRL_H, boxSizing: 'border-box' })}>
-                        <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{taskTitle(t)}</span>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: 'none', padding: 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
+                      <div key={t.id} style={{ padding: '10px 12px', borderBottom: `1px solid ${C.bd}` }}>
+                        {/* one edge per column, as the real card (#845): every line on the page's side; the date its own line */}
+                        <div dir="auto" style={{ fontFamily: FB, fontSize: 13.5, fontWeight: 500, color: C.tx, lineHeight: 1.4, textAlign: readLang() === 'he' ? 'right' : 'left', unicodeBidi: 'plaintext' }}>{taskTitle(t)}</div>
+                        <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ marginTop: 6, display: 'flex' }}><span style={{ ...word, color: overdue ? C.tx : C.tm, fontWeight: overdue ? 800 : 700 }}>{T(t.due)}</span></div>
+                        <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ marginTop: 4, display: 'flex' }}><span style={{ ...word, color: PRIO_INK[pr] }}>{T(pr.charAt(0).toUpperCase() + pr.slice(1))}</span></div>
                       </div>
                     );
                   })}

@@ -484,6 +484,10 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 const LIFT_DUE_DAYS = 6;
 const LIFTS_NAME_W = 212;   // the longest FULL name fits (LUCAS GOLDENBERG) - one name form per table needs every row to (11.10 #673); 212 + 150 + 31 x 24 = 1106 in the 1162 card
 const LIFTS_LAST_W = 150;
+// THE INNER LINES of the two month grids (16.10 #831 / #821): a light line between every two days, through the header,
+// the rows and the footer, and light lines between the rows - the name and last columns keep the full-strength line.
+const GRID_IN = 'color-mix(in srgb, var(--c-cardBd) 50%, transparent)';
+const dayLine = (i) => (i ? `1px solid ${GRID_IN}` : 'none');
 const pinStart = (bg) => ({ position: 'sticky', insetInlineStart: 0, zIndex: 1, background: bg, marginInlineStart: -14, paddingInlineStart: 14 });
 const pinEnd = (bg) => ({ position: 'sticky', insetInlineEnd: 0, zIndex: 1, background: bg, marginInlineEnd: -14, paddingInlineEnd: 14 });
 
@@ -5095,15 +5099,15 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
         <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
           <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* #735: the two-line day heads 8.2 / 10.7 -> even */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
             <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }} />
-            {days.list.map((d) => (
+            {days.list.map((d, di) => (
               d.future
-                ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
-                : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
+                ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15, alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(di) }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
+                : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(di) }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
             ))}
             <SortHeader data-end-head="" k="pct" float sort={sort} title={`${tr('Sort by')} ${tr('attended')}`} aLabel={tr('attended')} label={<><span className="lifts-age-long">{tr('attended')}</span><span className="lifts-age-short">{tr('made')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10, borderInlineStart: `1px solid ${C.cardBd}` }} />
           </div>
           <NameScopeProvider>
-          <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
+          <div className="hl-rows hl-light" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
             {sort.rows.map(({ t, cells, last, todayCode, went, owed }) => (
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
@@ -5111,10 +5115,10 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                 style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
                 <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                   <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, textAlign: 'right' /* the ones digits in one column, in either direction (#831) */, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
                 </span>
-                {cells.map((c) => {
+                {cells.map((c, ci) => {
                   const label = c.state === 'none' ? (t.arrival && c.iso < t.arrival && dayFx[c.iso] ? `${monDay(c.iso)} · ${tr('before he landed')}` : monDay(c.iso))
                     : `${monDay(c.iso)} · ${tr(FX_LABEL[c.kind] || 'Practice')} · ${tr(
                       c.state === 'in' ? 'attended' : c.state === 'played' ? 'played' : c.state === 'dnp' ? 'did not play' : c.state === 'pending' ? 'box score not in yet' : c.state === 'missed' ? 'missed' : c.state === 'excused' ? AVAIL[c.code] ? AVAIL[c.code].label : 'out' : 'attended')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}`;
@@ -5126,7 +5130,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   if (showLift && c.lift) overlays.push(FX_COLOR.lift);
                   return (
                     <span key={c.iso} title={label}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent' }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 36, alignSelf: 'stretch', boxSizing: 'border-box', background: 'transparent', borderInlineStart: dayLine(ci) }}>
                       <AttMark mark={mark} overlays={overlays} label={label} />
                     </span>
                   );
@@ -5146,7 +5150,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
             <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('present')}</span>
             {perDay.map((v, i) => (
               // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
-              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
+              <span key={days.list[i].iso} title={v && !v.expected ? tr('all out') : undefined} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: v == null || !v.expected ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums', alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(i) }}>{days.list[i].future ? '' : v == null || !v.expected ? '—' : v.went}</span>
             ))}
             <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }} />
           </div>
@@ -5334,15 +5338,15 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
           <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
             <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* the two-line day heads, as Attendance's (#735) */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
               <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }} />
-              {days.list.map((d) => (
+              {days.list.map((d, di) => (
                 d.future
-                  ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
-                  : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
+                  ? <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15, alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(di) }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>
+                  : <SortHeader key={d.iso} k={`d:${d.iso}`} sort={sort} label={<span style={{ display: 'inline-block', lineHeight: 1.15, textAlign: 'center' }}><span data-stack="weekday" style={{ display: 'block', fontSize: 8, opacity: 0.75 }}>{wdOf(d.iso, he)}</span>{d.dom}</span>} float title={monDay(d.iso)} aLabel={`${tr('Sort by')} ${monDay(d.iso)}`} style={{ fontFamily: FN, fontSize: 10, fontWeight: d.iso === today ? 800 : 600, color: dayHeadInk(d, today), textAlign: 'center', fontVariantNumeric: 'tabular-nums', alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(di) }} {...(d.iso === today ? { 'data-today-col': '' } : {})} />
               ))}
               <SortHeader data-end-head="" k="last" float sort={sort} title={`${tr('Sort by')} ${tr('last lift')}`} aLabel={tr('last lift')} label={<><span className="lifts-age-long">{tr('last lift')}</span><span className="lifts-age-short">{he ? 'אחרון' : tr('last')}</span></>} style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10, borderInlineStart: `1px solid ${C.cardBd}` }} />
             </div>
             <NameScopeProvider>
-            <div className="hl-rows" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
+            <div className="hl-rows hl-light" style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {sort.rows.map(({ t, cells, since, last, todayCode }) => (
                 // A table row is never under 36 (24.9).
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
@@ -5351,17 +5355,17 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                   style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
                   <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                     <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
-                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, textAlign: 'right' /* the ones digits in one column, in either direction (#831) */, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
                   </span>
-                  {cells.map((c) => {
+                  {cells.map((c, ci) => {
                     const bands = [];
                     if (c.lift) bands.push(FX_COLOR.lift);
                     if (showSc && c.sc) bands.push(SC_COLOR);
                     const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
                     return (
                       <span key={c.iso} title={c.future ? monDay(c.iso) : title}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 36, background: 'transparent' }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 36, alignSelf: 'stretch', boxSizing: 'border-box', background: 'transparent', borderInlineStart: dayLine(ci) }}>
                         <CellMarks bands={bands} label={title} />
                       </span>
                     );
@@ -5384,7 +5388,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
               <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('lifted')}</span>
               {liftedPerDay.map((n, i) => (
-                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: n == null ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
+                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: n == null ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums', alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(i) }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>
               ))}
               <span style={{ ...pinEnd('var(--c-sf2)'), alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }} />
             </div>
