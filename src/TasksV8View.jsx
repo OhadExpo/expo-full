@@ -2051,6 +2051,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // has his own auth — the comparison checks email containing 'yuval'.
   const [viewerOwner, setViewerOwner] = useState('ohad');
   const [staffViewer, setStaffViewer] = useState(false);   // exactly the two staff emails (= is_staff() in the DB)
+  const [staffKnown, setStaffKnown] = useState(false);
   useEffect(() => {
     let alive = true;
     supabase.auth.getUser().then(({ data }) => {
@@ -2058,7 +2059,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       const email = (data?.user?.email || '').toLowerCase();
       setViewerOwner(email.includes('yuval') ? 'yuval' : 'ohad');
       setStaffViewer(['ohadyproductions@gmail.com', 'yuvalberkovitch@gmail.com'].includes(email) && !isSandboxSeat());
-    }).catch(() => {});
+      setStaffKnown(true);
+    }).catch(() => { if (alive) setStaffKnown(true); });
     return () => { alive = false; };
   }, []);
   // Default landing tab = the viewer's own queue.
@@ -2077,6 +2079,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const [view, setView] = useState(() => (onTasks() ? viewFromPath(window.location.pathname) : 'list')); // 'list' | 'board' | 'properties'
   const lastTaskView = useRef('list');   // the List/Board the section switch returns to
   useEffect(() => { if (view !== 'properties') lastTaskView.current = view; }, [view]);
+  // a seat that is not staff never stays on נכסים (a hand-typed /coach/tasks/properties): back to the list once the
+  // sign-in is read. staffKnown keeps a staff reload on the section while getUser() is still in flight.
+  useEffect(() => { if (staffKnown && !staffViewer && view === 'properties') setView('list'); }, [staffKnown, staffViewer, view]);
   useUrlSync(view, (v) => setView(v || 'list'), {
     toPath: (v) => (!onTasks() ? null : v === 'board' || v === 'properties' ? `${TK_BASE}/${v}` : (['board', 'properties'].includes(segmentAfter(window.location.pathname, TK_BASE)) ? { path: TK_BASE } : null)),
     fromPath: (pth) => (onTasks() ? viewFromPath(pth) : null),
@@ -2797,7 +2802,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         document.querySelector('input[data-hotkey="add"]')?.focus();
       } else if (k === 'b') {                          // B = toggle Board / List
         e.preventDefault();
-        setView(v => (v === 'board' ? 'list' : 'board'));
+        setView(v => (v === 'properties' ? v : v === 'board' ? 'list' : 'board'));   // inert on נכסים (its own section)
       } else if (e.key === 'Escape') {
         if (search) setSearch('');
         if (expandedRows.size) setExpandedRows(new Set());
