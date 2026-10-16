@@ -294,6 +294,26 @@ const remember = (plan, at) => {
 export const lastWrittenAt = (planId) => { const m = lastSavedAt.get(planId); return m ? m.at : null; };
 const readPlanLangHe = () => { try { return (localStorage.getItem('expo-lang') || '') === 'he' || document.documentElement.lang === 'he'; } catch { return false; } };
 
+// A RENAMED BLOCK KEEPS ITS LOGS (17.10 #865, found in the #864 audit). A log is matched to its block by NAME, so a
+// rename used to leave every logged workout and bodyweight entry on the old name (done badges, the derived week, the
+// analysis and the BW trend all fell off). Every log now carries its plan's id (client_workouts.plan_id / bw_logs.plan_id,
+// backfilled 17.10), so after each save the logs OF THIS PLAN take its current name - by id, so never another plan's
+// logs, a couple partner's or a same-named block's. Idempotent: a save with no rename moves nothing; typing a name
+// through intermediate saves ends on the final one. Best effort - the plan itself is already saved.
+// (Day renames and the portal show/hide key are still by name - a day id on the logs is the next step.)
+async function syncLogNames(plan) {
+  const name = String(plan && plan.name || '');
+  if (!plan || !plan.id || !name.trim()) return;
+  try {
+    const a = await supabase.from('client_workouts').update({ plan_name: name }).eq('plan_id', plan.id).neq('plan_name', name);
+    if (a.error && !/plan_id/i.test(a.error.message || '')) console.warn('[savePlan] logs not renamed', a.error.message);
+    // one row at a time: (client, block, week) is unique, so an entry whose week the new name already has (a stale
+    // tab's) must not stop the others moving - it stays, and says so
+    const { data: bws } = await supabase.from('bw_logs').select('id').eq('plan_id', plan.id).neq('block_name', name);
+    for (const r of bws || []) { const b = await supabase.from('bw_logs').update({ block_name: name }).eq('id', r.id); if (b.error) console.warn('[savePlan] a bodyweight entry not renamed', r.id, b.error.message); }
+  } catch (e) { console.warn('[savePlan] logs not renamed', e); }
+}
+
 export async function savePlan(plan) {
   // Blank-overwrite guard. Old drive-imported plans store exercises under
   // day.ex (compressed keys: eid/s/r); the editor reads day.exercises (full
@@ -399,7 +419,7 @@ export async function savePlan(plan) {
     let { data: upd, error: ue } = await casUpdate(rowWithCol);
     if (colMissing(ue)) ({ data: upd, error: ue } = await casUpdate(baseRow));
     if (ue) { console.error('savePlan error:', ue); return false; }
-    if (upd && upd.length) { remember(plan, upd[0].updated_at); return true; }
+    if (upd && upd.length) { remember(plan, upd[0].updated_at); await syncLogNames(plan); return true; }
     const { data: cur, error: ce } = await supabase.from('plans').select('updated_at').eq('id', plan.id).maybeSingle();
     if (ce) { console.error('savePlan error:', ce); return false; }
     if (cur && cur.updated_at !== base) {

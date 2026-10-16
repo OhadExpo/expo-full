@@ -303,9 +303,8 @@ registerHandler('store.upsert', async ({ key, value, baseAt, baseVal }) => {
 // no plan_id fallback: a workout queued offline carried plan_id, the column does
 // not exist yet, and every replay failed with 42703 until it parked, forever.)
 
-// The live table has no plan_id column (27.9). Once a write has proven that,
-// stop sending it: one request per save instead of a failed one plus a retry.
-let planIdColumnMissing = false;
+// plan_id exists on the live table since 17.10 (#865). A missing column (an old
+// database) still falls back per write below - never cached.
 const isPlanIdColumnError = (error) => !!error && (/plan_id/i.test(error.message || '') || error.code === '42703' || error.code === 'PGRST204');
 
 // A hung request must not hold the row's write chain (and the athlete) forever.
@@ -367,12 +366,12 @@ export async function upsertWorkoutRow(row) {
       }
     } catch { /* a malformed server slot - keep this device's */ }
   }
-  if (planIdColumnMissing && row && 'plan_id' in row) { row = { ...row }; delete row.plan_id; }
+  // (the column exists since 17.10 - every write tries it first; a missing column still falls back below, per write, never
+  // cached: a cached 'missing' kept a tab writing logs WITHOUT their plan id for days, and those do not follow a rename #865)
   let { error } = await withTimeout(() => supabase.from('client_workouts').upsert(row));
   // plan_id is what lets the portal tell two couple members' identically-named
   // plans apart (audit #31). The column may not exist yet — retry without it.
   if (error && row && 'plan_id' in row && isPlanIdColumnError(error)) {
-    planIdColumnMissing = true;
     const rest = { ...row };
     delete rest.plan_id;
     ({ error } = await withTimeout(() => supabase.from('client_workouts').upsert(rest)));

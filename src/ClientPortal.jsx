@@ -3180,7 +3180,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       // SAVE button already files under activePlan; this matches it.
       const blockName = activePlan?.name || w.planName || null;
       const wkNum = wk + 1;
-      const planId = clientPlans.find(p => p.name === blockName)?.id || activePlan?.id || null;
+      const planId = (activePlan && activePlan.name === blockName ? activePlan.id : null) || clientPlans.find(p => p.name === blockName)?.id || activePlan?.id || null;   // the active plan's own id first: a couple's same-named plans (#865 review)
       if (blockName) {
         setBwLog(prev => {
           const filtered = prev.filter(b => !(b.clientId === ci && b.blockName === blockName && b.week === wkNum));
