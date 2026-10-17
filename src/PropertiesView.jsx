@@ -128,12 +128,13 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
             {g.analysis_he && <div style={{ ...T(13), color: C.tx }}>{g.analysis_he}</div>}
           </section>
         )}
-        {(c.inactive || (c.flags || []).length > 0 || c.n_ads > 1 || c.seen_before || others.length > 0) && (
+        {(c.inactive || (c.flags || []).length > 0 || c.n_ads > 1 || c.seen_before || c.scan_note || others.length > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
             {c.inactive && <span style={chip('warn')}>המודעה ירדה או כבר לא עומדת בכללים</span>}
             {uniq(c.flags).map(f => <span key={'f' + f} style={chip(/מעל|פינוי|שבת|מעטפת/.test(f) ? 'bad' : 'warn')}>{f}</span>)}
             {c.n_ads > 1 && <span style={chip('info')}>{c.n_ads} מודעות לאותו נכס</span>}
             {c.seen_before && <span style={chip('warn')}>נראה בעבר{seenNote(c.seen_note) ? `: ${seenNote(c.seen_note)}` : ''}</span>}
+            {c.scan_note && !c.seen_before && <span style={chip('info')}>{c.scan_note}</span>}
             {others.map(o => <span key={'o' + o.voter} style={chip(o.verdict === 'rejected' ? 'bad' : 'good')}>{WHO_HE[o.voter]}: {VERDICT_HE[o.verdict]}{o.reason ? ` · ${o.reason}` : ''}{o.score ? ` · ${o.score}/5` : ''}</span>)}
           </div>
         )}
