@@ -2450,7 +2450,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 <div style={{flex:1}}>
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
-                    {setsArr.some((st) => st && st.time) ? <>{String(ex.prescribed || '').replace(/^1x/i, '').replace(/x/i, ' × ')} · {doneSets}/{setsArr.length}</> : <>{ex.prescribed} · {doneSets}/{setsArr.length} {tt('sets')}</>}
+                    {setsArr.some((st) => st && st.time) ? <>{ex.prescribed ? `${String(ex.prescribed).replace(/^1x/i, '').replace(/x/i, ' × ')} · ` : ''}{doneSets}/{setsArr.length}</> : <>{ex.prescribed ? `${ex.prescribed} · ` : ''}{doneSets}/{setsArr.length} {tt('sets')}</>}
                     {/* a RUN (#769): what he ran, at a glance - distance · time · pace · HR of each done rep */}
                     {setsArr.some((st) => st && st.time) && setsArr.filter((st) => st.done && st.time).map((st, k) => (
                       <span key={k} data-run-summary dir="auto" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tx, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{[st.reps ? `${st.reps} ${tt('KM').toLowerCase()}` : '', st.time, runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} ${tt('/km')}` : '', st.hr ? `${tt('HR')} ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>

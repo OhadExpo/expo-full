@@ -241,6 +241,7 @@ export const lyingFacing = (title) => (!title ? 0 : FACE_DOWN_EX.test(String(tit
 // bar-on-back lift by the logged name (a front squat, a trap bar, dumbbells: the hands move with the load).
 export const BAR_ON_BACK_EX = /back[\s-]?squat|good[\s-]?morning|(?:high|low)[\s-]?bar[\s-]?(?:back[\s-]?)?squat|(?:\bbb\b|barbell|back)[\s-]?(?:box|pause|pin)[\s-]?squat|(?:\bbb\b|barbell)[\s-]?(?:split[\s-]?squat|lunge|reverse[\s-]?lunge|walking[\s-]?lunge|(?:ff|fr|rf)ess|rear[\s-]?foot|front[\s-]?foot|bulgarian|step[\s-]?up)/i;   // FFESS / FRESS = front-foot elevated (#819: 'BB FFESS' had no bar-on-back arms)
 const BAR_ARMS = !(ENV.BARARMS != null && +ENV.BARARMS === 0);
+const BARARMS_DEPTH = !(ENV.BARARMS_DEPTH != null && +ENV.BARARMS_DEPTH === 0);
 const ARM_IDX = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
 export function steadyBarArms(frames, exercise = '') {
   if (!BAR_ARMS || !BAR_ON_BACK_EX.test(String(exercise || '')) || /front[\s-]?squat|front[\s-]?rack|trap[\s-]?bar|\bdb\b|dumbbell|kettlebell|\bkb\b|goblet|safety[\s-]?bar|zercher/i.test(String(exercise || ''))) return frames;
@@ -267,7 +268,12 @@ export function steadyBarArms(frames, exercise = '') {
       const vals = win.map((j) => local[j][a]).filter(Boolean); if (vals.length < 3 || !fin(pts[i])) return;
       const m = [med(vals.map((v) => v[0])), med(vals.map((v) => v[1])), med(vals.map((v) => v[2]))];
       const o = pts[i % 2 ? 11 : 12];
-      pts[i] = { ...pts[i], x: o.x + m[0] * B.x[0] + m[1] * B.y[0] + m[2] * B.z[0], y: o.y + m[0] * B.x[1] + m[1] * B.y[1] + m[2] * B.z[1], z: o.z + m[0] * B.x[2] + m[1] * B.y[2] + m[2] * B.z[2] };
+      // ONLY THE DEPTH IS STEADIED (17.10 #869, Ohad: "Limbs are horribly inaccurate"): the whole point taken from the median
+      // moved the hands off the picture - wrist error worse on every bar-on-back clip (c38 right wrist median 8.0 -> 11.9% of
+      // his height, p90 17.7 -> 27.8; c21 and c50 too). The picture is the reliable reading, the depth the jumping one.
+      // BARARMS_DEPTH=0 (node) = the whole point, as before.
+      const zS = o.z + m[0] * B.x[2] + m[1] * B.y[2] + m[2] * B.z[2];
+      pts[i] = BARARMS_DEPTH ? { ...pts[i], z: zS } : { ...pts[i], x: o.x + m[0] * B.x[0] + m[1] * B.y[0] + m[2] * B.z[0], y: o.y + m[0] * B.x[1] + m[1] * B.y[1] + m[2] * B.z[1], z: zS };
     });
     return { ...f, pts, barArms: true };
   });

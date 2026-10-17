@@ -1908,8 +1908,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const wkSets = (ex.wkS && ex.wkS[weekNum]) || ex.s;
         // A blank prescription (coach left sets+reps empty) persists as '' — never
         // a fabricated "x"/"3x8-12" written as if it were prescribed. (empty = empty)
-        const prescribed = /[x×]/i.test(String(wkReps)) ? String(wkReps)
-          : ((String(wkSets ?? '').trim() || String(wkReps ?? '').trim()) ? `${wkSets}x${wkReps}` : '');
+        // (#866: half a prescription wrote '3xundefined' / 'undefinedx10' - sets AND reps make 'SxR', reps alone stand alone)
+        const rS = String(wkSets ?? '').trim(), rR = String(wkReps ?? '').trim();
+        const prescribed = /[x×]/i.test(rR) ? rR : rS && rR ? `${rS}x${rR}` : rR || (rS ? `${rS}x` : '');   // sets alone keep their old '3x'
         return {
           eid: ex.eid,
           title: sub ? sub.title : prescribedTitle,
@@ -3921,7 +3922,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   role={canExpand ? 'button' : undefined} tabIndex={canExpand ? 0 : undefined} aria-expanded={canExpand ? isOpen : undefined}
                   onKeyDown={canExpand ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedHistEx(isOpen ? null : expandKey); } }) : undefined}
                   style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
-                  <span style={{flex:1,minWidth:0,color:C.tx,display:'flex',gap:6}}><span style={{width:22,textAlign:'right',flexShrink:0,color:C.td}}>{i+1}.</span><span style={{minWidth:0}}>{x.title} <span style={{color:C.td}}>{(w.exercises || []).some(isRunLog) ? String(x.prescribed || '').replace(/^1x/i, '').replace(/x/i, ' × ') : x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span>{isRunLog(x) && (x.sets || []).filter((st) => st.done && (st.time || st.reps)).map((st, si) => (
+                  <span style={{flex:1,minWidth:0,color:C.tx,display:'flex',gap:6}}><span style={{width:22,textAlign:'right',flexShrink:0,color:C.td}}>{i+1}.</span><span style={{minWidth:0}}>{x.title} <span style={{color:C.td}}>{x.prescribed ? `${(w.exercises || []).some(isRunLog) ? String(x.prescribed).replace(/^1x/i, '').replace(/x/i, ' × ') : x.prescribed} · ` : ''}{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span>{isRunLog(x) && (x.sets || []).filter((st) => st.done && (st.time || st.reps)).map((st, si) => (
                     // a RUN's set as he ran it: distance, time, the pace it works out to, heart rate (#769)
                     <span key={si} data-run-set dir="auto" style={{ display: 'block', unicodeBidi: 'isolate', color: C.tm, fontSize: 10, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{[st.reps ? `${kmText(st.reps)} ${tt('KM').toLowerCase()}` : '', st.time || '', runPace(st.reps, st.time) ? `${runPace(st.reps, st.time)} ${tt('/km')}` : '', st.hr ? `${tt('HR')} ${st.hr}` : ''].filter(Boolean).join(' · ')}</span>
                   ))}</span></span>

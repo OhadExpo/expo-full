@@ -607,7 +607,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         exercises: (w.exercises || []).map(ex => ({
           eid: ex.exerciseId || '',
           title: libById.get(ex.exerciseId)?.title || ex.title || '',
-          prescribed: w.sport === 'running' ? `${(ex.sets || []).length}x${ex.reps || ''}` : `${(ex.sets || []).length}×${ex.reps || ''}`,   // a run as the portal writes it (#808)
+          // a run as the portal writes it (#808); no reps prescribed = no prescription ('1x' before, #866)
+          prescribed: !String(ex.reps || '').trim() ? '' : w.sport === 'running' ? `${(ex.sets || []).length}x${ex.reps}` : `${(ex.sets || []).length}×${ex.reps}`,
           sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: !!s.completed, ...(s.time ? { time: s.time } : {}), ...(s.hr ? { hr: s.hr } : {}) })),
           substitution: null,
         })),

@@ -135,7 +135,11 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
             </div>
           ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
+            {/* FIXED COLUMNS (17.10 #860): sized by their dropdowns' words, the columns differed per language - the name
+                column 344px in English, 363 in Hebrew at 820, names wrapping in English only - and 760px ran 14px past a
+                746px tablet card. The three dropdowns take 17% each, the name the rest, in both languages. */}
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720, tableLayout: 'fixed' }}>
+              <colgroup><col /><col style={{ width: '17%' }} /><col style={{ width: '17%' }} /><col style={{ width: '17%' }} /><col style={{ width: 43 }} /></colgroup>
               <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                 <th style={{ ...th, padding: '8px 8px', textAlign: 'start' }}>{tt('Exercise')}</th>
                 <th style={{ ...th, padding: '8px 8px' }}>{tt('Resistance')}</th>

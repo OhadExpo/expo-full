@@ -4,6 +4,8 @@ import { readLang } from './i18n';
 // presets write them; the demo reloads when its language changes, so the language at load is the page's
 const HE_RUN = (() => { try { return readLang() === 'he'; } catch { return false; } })();
 const KM1 = HE_RUN ? '1 ק״מ' : '1 km', EASY = HE_RUN ? 'קל' : 'easy';
+// ...and titled as the Hebrew presets title them (an English title before a Hebrew prescription read backwards - #789)
+const WU = HE_RUN ? 'חימום' : 'Warm-up', INT = HE_RUN ? 'חזרות' : 'Intervals', CD = HE_RUN ? 'שחרור' : 'Cool-down';
 // Mock dataset for /demo/trainee. Mirrors the real ClientPortal data shape so
 // the page renders the actual production component — no separate demo UI.
 // Exercise IDs reference real seeded library entries so videos resolve.
@@ -152,11 +154,11 @@ export const DEMO_PLANS = [
     weeks: 4,
     days: [
       {
-        name: 'Intervals',
+        name: HE_RUN ? 'חזרות' : 'Intervals',
         exercises: [
-          { title: 'Warm-up', s: 1, r: KM1, tempo: EASY },
-          { title: 'Intervals', s: 5, r: KM1, tempo: '5:00-5:05', rest: HE_RUN ? '2.5 דק׳ הליכה' : '2.5 min walk', load: '165' },
-          { title: 'Cool-down', s: 1, r: KM1, tempo: EASY },
+          { title: WU, s: 1, r: KM1, tempo: EASY },
+          { title: INT, s: 5, r: KM1, tempo: '5:00-5:05', rest: HE_RUN ? '2.5 דק׳ הליכה' : '2.5 min walk', load: '165' },
+          { title: CD, s: 1, r: KM1, tempo: EASY },
         ],
       },
     ],
@@ -222,7 +224,7 @@ export const DEMO_CLIENT_WORKOUTS = [
     id: 'cw_demo_run_1',
     clientId: 'tr_demo',
     planName: 'Conditioning Runs',
-    dayName: 'Intervals',
+    dayName: HE_RUN ? 'חזרות' : 'Intervals',
     week: 1,
     date: daysAgo(4),
     notes: 'Reps 3 and 4 hardest. HR under the cap.',
@@ -230,11 +232,11 @@ export const DEMO_CLIENT_WORKOUTS = [
     autoregulation: { pain: 'none', sleep: 'good', energy: 'good' },
     formVideos: [],
     exercises: [
-      { eid: 'run_demo_wu', title: 'Warm-up', prescribed: `1x${KM1}`, substitution: null,
+      { eid: 'run_demo_wu', title: WU, prescribed: `1x${KM1}`, substitution: null,
         sets: [ { reps: '1', load: '', rpe: '', done: true, time: '6:20', hr: '128' } ] },
-      { eid: 'run_demo_int', title: 'Intervals', prescribed: `5x${KM1}`, substitution: null,
+      { eid: 'run_demo_int', title: INT, prescribed: `5x${KM1}`, substitution: null,
         sets: [ ['5:04', '152'], ['5:02', '158'], ['4:58', '161'], ['5:01', '163'], ['4:59', '164'] ].map(([time, hr]) => ({ reps: '1', load: '', rpe: '', done: true, time, hr })) },
-      { eid: 'run_demo_cd', title: 'Cool-down', prescribed: `1x${KM1}`, substitution: null,
+      { eid: 'run_demo_cd', title: CD, prescribed: `1x${KM1}`, substitution: null,
         sets: [ { reps: '1', load: '', rpe: '', done: true, time: '6:45', hr: '139' } ] },
     ],
   },

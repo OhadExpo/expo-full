@@ -486,7 +486,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         const setCount = Number((Array.isArray(ex.wkS) && ex.wkS[wi] != null) ? ex.wkS[wi] : (ex.sets ?? ex.s)) || 3;
         const tempo = ex.tempo ?? '';
         const videoUrl = ex.videoUrl ?? ex.vid ?? lib?.videoLink ?? '';
-        return { eid, title, reps, tempo, videoUrl, prescribed: `${setCount}×${reps}`, sets: Array.from({ length: Math.max(1, setCount) }, fresh) };
+        return { eid, title, reps, tempo, videoUrl, prescribed: String(reps ?? '').trim() ? `${setCount}×${reps}` : '' /* no reps prescribed = no prescription (#866; '3×' was invented from the default count) */, sets: Array.from({ length: Math.max(1, setCount) }, fresh) };
       });
       return {
         rowId: uid(),
