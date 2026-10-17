@@ -1435,6 +1435,18 @@ function AuthedApp() {
   // LangCtx provider itself, so it reads its own lang state, not the context.
   const tb = useMemo(() => tbFor(lang), [lang]);
   useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
+  // ONE LANGUAGE IN EVERY TAB (17.10 #860): a switch in one tab wrote the stored language under the others, whose
+  // components that read it (readLang) turned Hebrew while the rest kept speaking from this state - one card in two
+  // languages. Another tab's switch now switches this one too.
+  useEffect(() => {
+    const on = (e) => {
+      if (e.key !== LANG_KEY || (e.newValue !== 'he' && e.newValue !== 'en')) return;
+      try { if (new URLSearchParams(window.location.search).has('lang')) return; } catch { /* no URL */ }   // a ?lang= link keeps its language
+      setLang(e.newValue);
+    };
+    window.addEventListener('storage', on);
+    return () => window.removeEventListener('storage', on);
+  }, []);
 
   React.useEffect(() => {
     // THE ACTIVE TAB IS ALWAYS WHOLE ON A PHONE (27.9 #304, measured at 390:

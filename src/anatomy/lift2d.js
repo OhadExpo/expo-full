@@ -25,6 +25,23 @@ function windows(times, ms) {
   for (let i = 0; i < n; i++) { while (times[a] < times[i] - ms) a++; if (b < i) b = i; while (b + 1 < n && times[b + 1] <= times[i] + ms) b++; lo[i] = a; hi[i] = b; }
   return { lo, hi };
 }
+// THE CAMERA IS CLOSE (17.10 #819, Ohad: "definitely not doing a bb lunge like the video" - c50, a BB FFESS filmed from
+// behind by a phone on the floor). The rebuild above read the picture as if every ray were parallel (a camera infinitely
+// far). A phone a metre or two away is not: his shoulders, higher and farther from the lens than his hips, took fewer pixels
+// per metre (c50: 1,005 at the shoulders, 1,118 at the hips), so the trunk drew short in the picture and the rebuild tipped
+// it 35-40 degrees forward where the video shows him upright (the 881 px/m of the trunk = upright, seen from 33 degrees
+// below). PERSPECTIVE: the hips stand at the depth their scale gives (depth = focal x metres-per-pixel), and every other
+// joint on ITS OWN ray from the lens, at its bone's length from its parent (the nearer or farther crossing, by the world
+// sign as before). The focal length is a phone's: 0.8 of the picture's long side (~26 mm equivalent).
+// MEASURED 17.10 - OFF BY DEFAULT: on c50 the trunk lean went 35 -> 9 deg (median; the video: upright) and the floor fit
+// found the phone's own 16 deg tilt, but on the 24-clip corpus the angle gate's p90 went 14.3 -> 19.7 deg and the facing
+// gate's disagreements 35 -> 67: the clips' true focal length is unknown (most are 360x480 crops) and the front/back
+// repair flips on small changes (c29: 21 -> 63 mirrored frames). On with LIFT_PERSP=1 / window.__LIFT_PERSP = true; it
+// can be the default once each clip carries its focal length.
+const ENVL = (typeof process !== 'undefined' && process.env) || {};
+const LIFT_F = +(ENVL.LIFT_F || 0.8);
+const liftPersp = () => (typeof window !== 'undefined' && window.__LIFT_PERSP != null ? !!window.__LIFT_PERSP : ENVL.LIFT_PERSP != null ? /^(1|true)$/i.test(ENVL.LIFT_PERSP) : PERSP_DEFAULT);
+const PERSP_DEFAULT = false;
 export function liftFrom2D(frames, dims) {
   if (!Array.isArray(frames) || !frames.length) return frames;
   const W = dims && dims.w > 0 ? dims.w : null, H = dims && dims.h > 0 ? dims.h : null;
@@ -50,6 +67,7 @@ export function liftFrom2D(frames, dims) {
   const wk = windows(frames.map((f) => f.t), 1500);
   const steadyK = frames.map((f, i) => median(fitK.slice(wk.lo[i], wk.hi[i] + 1)));
   const ks = [];
+  const PERSP = liftPersp(), FPX = LIFT_F * Math.max(W, H);
   const out = frames.map((f, fi) => {
     const w = f.worldLandmarks, l = f.landmarks;
     if (!w || !l || !fin(w[23]) || !fin(w[24]) || !l[23] || !l[24]) return f;
@@ -74,17 +92,36 @@ export function liftFrom2D(frames, dims) {
     const inPlane = (j) => { if (fromWorld(j)) return fin(w[j]) ? { x: (w[j].x - h3.x), y: (w[j].y - h3.y) } : null; const i = img(j); return i ? { x: (i.x - h2.x) * k, y: (i.y - h2.y) * k } : null; };
     // the hips: the picture's place, the world's depth
     for (const j of [23, 24]) { const q = inPlane(j); P[j] = q ? { x: q.x, y: q.y, z: w[j].z - h3.z, visibility: w[j].visibility ?? l[j].visibility } : null; }
+    // perspective: the camera-space points C (x right, y down, z from the lens); the hips' middle at depth focal x scale
+    let C = null, HC = null;
+    if (PERSP && P[23] && P[24] && !legsBad) {
+      const Z0 = FPX * k; C = new Array(w.length).fill(null);
+      for (const j of [23, 24]) { const i = img(j); const Z = Z0 + P[j].z; C[j] = [(i.x - W / 2) / FPX * Z, (i.y - H / 2) / FPX * Z, Z]; }
+      HC = [(C[23][0] + C[24][0]) / 2, (C[23][1] + C[24][1]) / 2, (C[23][2] + C[24][2]) / 2];
+      for (const j of [23, 24]) P[j] = { ...P[j], x: C[j][0] - HC[0], y: C[j][1] - HC[1], z: C[j][2] - HC[2] };
+    }
     for (const [a, b] of EDGES) {
       const pa = P[a], q = inPlane(b), len = L.get(`${a}-${b}`);
-      if (!pa || !q || !fin(w[a]) || !fin(w[b]) || !Number.isFinite(len)) { P[b] = fin(w[b]) && pa ? { x: pa.x + (w[b].x - w[a].x), y: pa.y + (w[b].y - w[a].y), z: pa.z + (w[b].z - w[a].z), visibility: w[b].visibility ?? (l[b] && l[b].visibility) } : null; continue; }
+      if (!pa || !q || !fin(w[a]) || !fin(w[b]) || !Number.isFinite(len)) { P[b] = fin(w[b]) && pa ? { x: pa.x + (w[b].x - w[a].x), y: pa.y + (w[b].y - w[a].y), z: pa.z + (w[b].z - w[a].z), visibility: w[b].visibility ?? (l[b] && l[b].visibility) } : null; if (C) C[b] = P[b] ? [P[b].x + HC[0], P[b].y + HC[1], P[b].z + HC[2]] : null; continue; }
       const dx = q.x - pa.x, dy = q.y - pa.y, dz2 = len * len - dx * dx - dy * dy;
       const wdz = w[b].z - w[a].z, key = `${a}-${b}`;
       // the sign: the world's, once it is clearly one way (over a quarter of the bone); held until it clearly turns
       let sg = sign.get(key) ?? (wdz >= 0 ? 1 : -1);
       if (Math.abs(wdz) > 0.25 * len) sg = wdz >= 0 ? 1 : -1;
       sign.set(key, sg);
+      if (PERSP && C && C[a] && !fromWorld(b) && img(b)) {
+        // on the child's ray r: |t r - parent| = len, the crossing nearer (sg < 0) or farther (sg > 0) from the lens
+        const ib = img(b), r = [(ib.x - W / 2) / FPX, (ib.y - H / 2) / FPX, 1], A = C[a];
+        const rr = r[0] * r[0] + r[1] * r[1] + 1, ra = r[0] * A[0] + r[1] * A[1] + r[2] * A[2], aa = A[0] * A[0] + A[1] * A[1] + A[2] * A[2];
+        const disc = ra * ra - rr * (aa - len * len);
+        const t = disc > 0 ? (ra + sg * Math.sqrt(disc)) / rr : ra / rr;   // no crossing (the picture's bone longer than the bone): the nearest point
+        C[b] = [t * r[0], t * r[1], t * r[2]];
+        P[b] = { x: C[b][0] - HC[0], y: C[b][1] - HC[1], z: C[b][2] - HC[2], visibility: w[b].visibility ?? (l[b] && l[b].visibility) };
+        continue;
+      }
       const dz = dz2 > 0 ? sg * Math.sqrt(dz2) : 0;
       P[b] = { x: q.x, y: q.y, z: pa.z + dz, visibility: w[b].visibility ?? (l[b] && l[b].visibility) };
+      if (C) C[b] = [P[b].x + HC[0], P[b].y + HC[1], P[b].z + HC[2]];
     }
     // THE SHOULDERS KEEP THEIR WIDTH (13.10, c05 3.8-4.3 s: facing the camera, trunk level, his shoulders overlapped in
     // the picture; each was rebuilt from its own hip and they ended 5 cm apart - with no shoulder line the chest rolled
@@ -102,7 +139,8 @@ export function liftFrom2D(frames, dims) {
     }
     // the face: the picture's place around the shoulders, the world's depth offsets
     const sm = P[11] && P[12] ? { z: (P[11].z + P[12].z) / 2 } : null, wsm = fin(w[11]) && fin(w[12]) ? (w[11].z + w[12].z) / 2 : null;
-    for (const j of FACE) { const q = inPlane(j); P[j] = q && fin(w[j]) && sm && wsm != null ? { x: q.x, y: q.y, z: sm.z + (w[j].z - wsm), visibility: w[j].visibility ?? (l[j] && l[j].visibility) } : (fin(w[j]) ? { ...w[j] } : null); }
+    if (C && C[11] && C[12] && wsm != null) { const zs = (C[11][2] + C[12][2]) / 2; for (const j of FACE) { const i = img(j); if (!i || !fin(w[j]) || fromWorld(j)) continue; const Z = zs + (w[j].z - wsm); C[j] = [(i.x - W / 2) / FPX * Z, (i.y - H / 2) / FPX * Z, Z]; } }
+    for (const j of FACE) { if (C && C[j]) { P[j] = { x: C[j][0] - HC[0], y: C[j][1] - HC[1], z: C[j][2] - HC[2], visibility: w[j].visibility ?? (l[j] && l[j].visibility) }; continue; } const q = inPlane(j); P[j] = q && fin(w[j]) && sm && wsm != null ? { x: q.x, y: q.y, z: sm.z + (w[j].z - wsm), visibility: w[j].visibility ?? (l[j] && l[j].visibility) } : (fin(w[j]) ? { ...w[j] } : null); }
     return { ...f, worldLandmarks: P, _hip2: h2 };
   });
   const ksS = ks.slice().sort((x, y) => x - y), kMed = ksS.length ? ksS[ksS.length >> 1] : 0;

@@ -22,7 +22,7 @@
 // Both tables are owner-only, so for staff and athletes the queries return
 // nothing and the card renders nothing at all.
 import React, { useEffect, useState, useMemo } from 'react';
-import { useT, readLang } from './i18n';
+import { useT, readLang, useHe } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { CollapsibleSection, ScrollFade, usePhone } from './ui';
@@ -258,6 +258,7 @@ function PhonePayments({ payments, tt }) {
   ));
 }
 function ClientsPhone({ list, open, setOpen, statusOf, tt }) {
+  const he = useHe();   // (#860) the English line on one line, as the Hebrew: LAST PAYMENT is PAID on a phone
   return (
     <div>
       {list.map((c) => {
@@ -272,7 +273,7 @@ function ClientsPhone({ list, open, setOpen, statusOf, tt }) {
               </span>
               {c.alsoKnownAs.length > 0 && <span style={{ display: 'block', fontSize: 11, color: C.td, paddingInlineStart: 14 }}><bdi>{c.alsoKnownAs.join(' · ')}</bdi></span>}
               <span style={{ ...P_META, paddingInlineStart: 14 }}>
-                <span>{tt('Last payment')} <span dir="ltr">{c.latest ? fmtNumericDate(c.latest) : '—'}</span></span>
+                <span>{he ? tt('Last payment') : <><span className="strip-meta">{tt('Last payment')}</span><span className="phone-only-word">{tt('Paid')}</span></>} <span dir="ltr">{c.latest ? fmtNumericDate(c.latest) : '—'}</span></span>
                 <span>{c.payments.length} {tt('payments')}</span>
                 {c.sessions ? <span>{c.sessions} {tt('Sessions')}</span> : null}
                 {c.rate ? <span>{fmtRate(c.rate)}</span> : null}
@@ -298,6 +299,9 @@ function ClientsPhone({ list, open, setOpen, statusOf, tt }) {
   );
 }
 function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt }) {
+  // (17.10 #860) the month's line in English on a phone: 'ROSTER ESTIMATE ... NATIONAL INSURANCE' took two lines where the
+  // Hebrew took one - 'Roster' steps aside and the insurance is 'Nat. Ins.' there, as the strip titles' words do
+  const he = useHe();
   return (
     <div>
       {byMonth.map((g) => {
@@ -313,10 +317,10 @@ function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt 
                 <span dir="ltr" style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap' }}>{ILS(g.coaching)}</span>
               </span>
               <span style={{ ...P_META, paddingInlineStart: 14 }}>
-                <span>{tt('Roster estimate')} <span dir="ltr">{est ? ILS(est.est) : '—'}</span></span>
+                <span>{he ? tt('Roster estimate') : <><span className="strip-meta">{tt('Roster')} </span>{tt('estimate')}</>} <span dir="ltr">{est ? ILS(est.est) : '—'}</span></span>
                 {est && est.unknown ? <span>{tt('No amount')} {est.unknown}</span> : null}
                 <span>{tt('Gap')} {monthOpen ? tt('month open') : <span dir="ltr">{gap == null ? '—' : signedILS(gap)}</span>}</span>
-                {g.other ? <span>{noDangle(tt(CHANNEL_LABEL.national_insurance))} <span dir="ltr">{ILS(g.other)}</span></span> : null}
+                {g.other ? <span>{he ? noDangle(tt(CHANNEL_LABEL.national_insurance)) : <><span className="strip-meta">{tt(CHANNEL_LABEL.national_insurance)}</span><span className="phone-only-word">{tt('Nat. Ins.')}</span></>} <span dir="ltr">{ILS(g.other)}</span></span> : null}
               </span>
             </button>
             {isOpenM && (
@@ -605,7 +609,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
       {activeClients.length > 0 && (
         <>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 8 }}>
-            {tt('Payments recorded per client')} · <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{tt('tap a row for the full history')}</span>
+            {tt('Payments recorded per client')}<span className="strip-meta"> · <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{tt('tap a row for the full history')}</span></span>
           </div>
           {phone ? <ClientsPhone list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} /> : <ClientsTable list={activeClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />}
         </>

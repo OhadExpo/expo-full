@@ -128,13 +128,14 @@ function useScrollbarInset(active) {
 
 // RUN SEGMENTS (14.10 #769) - the running tracker's pieces, each with its usual prescription (editable after adding)
 const RUN_SEGMENTS = [
-  { key: 'warmup', label: 'Warm-up', he: 'חימום', sets: 1, dist: '1 km', pace: 'easy', rest: '' },
-  { key: 'easy', label: 'Easy run', he: 'ריצה קלה', sets: 1, dist: '5 km', pace: '6:00-6:30', rest: '' },
-  { key: 'long', label: 'Long run', he: 'ריצה ארוכה', sets: 1, dist: '7 km', pace: '5:45-5:55', rest: '' },
-  { key: 'tempo', label: 'Tempo', he: 'טמפו', sets: 3, dist: '1.5 km', pace: '5:30-5:35', rest: '1 min walk' },
-  { key: 'intervals', label: 'Intervals', he: 'חזרות', sets: 5, dist: '1 km', pace: '5:00-5:05', rest: '2.5 min walk' },
-  { key: 'strides', label: 'Strides', he: 'האצות', sets: 4, dist: '100 m', pace: 'fast, relaxed', rest: 'walk back' },
-  { key: 'cooldown', label: 'Cool-down', he: 'שחרור', sets: 1, dist: '1 km', pace: 'easy', rest: '' },
+// (#866: on the Hebrew app the whole prescription is Hebrew, as his running plans write it - 1 ק״מ, 600 מ׳, 40 דק׳)
+  { key: 'warmup', label: 'Warm-up', he: 'חימום', sets: 1, dist: '1 km', pace: 'easy', rest: '', distHe: '1 ק״מ', paceHe: 'קל' },
+  { key: 'easy', label: 'Easy run', he: 'ריצה קלה', sets: 1, dist: '5 km', pace: '6:00-6:30', rest: '', distHe: '5 ק״מ' },
+  { key: 'long', label: 'Long run', he: 'ריצה ארוכה', sets: 1, dist: '7 km', pace: '5:45-5:55', rest: '', distHe: '7 ק״מ' },
+  { key: 'tempo', label: 'Tempo', he: 'טמפו', sets: 3, dist: '1.5 km', pace: '5:30-5:35', rest: '1 min walk', distHe: '1.5 ק״מ', restHe: '1 דק׳ הליכה' },
+  { key: 'intervals', label: 'Intervals', he: 'חזרות', sets: 5, dist: '1 km', pace: '5:00-5:05', rest: '2.5 min walk', distHe: '1 ק״מ', restHe: '2.5 דק׳ הליכה' },
+  { key: 'strides', label: 'Strides', he: 'האצות', sets: 4, dist: '100 m', pace: 'fast, relaxed', rest: 'walk back', distHe: '100 מ׳', paceHe: 'מהיר ומשוחרר', restHe: 'חזרה בהליכה' },
+  { key: 'cooldown', label: 'Cool-down', he: 'שחרור', sets: 1, dist: '1 km', pace: 'easy', rest: '', distHe: '1 ק״מ', paceHe: 'קל' },
 ];
 function PatternCoverage({ plan, exercises, cols = 5 }) {
   const tt = useAppT();
@@ -2302,8 +2303,9 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
     const ex = defaultPlanEx();
     const day = plan.days[dayIdx];
     ex.order = day?.exercises.length || 0;
-    ex.title = readLang() === 'he' ? sg.he : sg.label;
-    ex.sets = sg.sets; ex.reps = sg.dist; ex.tempo = sg.pace; ex.rest = sg.rest || '';
+    const he = readLang() === 'he';
+    ex.title = he ? sg.he : sg.label;
+    ex.sets = sg.sets; ex.reps = he ? sg.distHe || sg.dist : sg.dist; ex.tempo = he ? sg.paceHe || sg.pace : sg.pace; ex.rest = (he ? sg.restHe || sg.rest : sg.rest) || '';
     updateDay(dayIdx, { exercises: [...(day?.exercises || []), ex] });
   };
   const addExByName = (name) => {
@@ -3076,7 +3078,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
                         </div>); })() : (
-                        <input dir="auto" value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder={plan.sport === 'running' ? '1 km' : '8-12'} style={tinyInput} />
+                        <input dir="auto" value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder={plan.sport === 'running' ? (readLang() === 'he' ? '1 ק״מ' : '1 km') : '8-12'} style={tinyInput} />
                       )}
                       <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder={plan.sport === 'running' ? '5:00-5:10' : '3010'} style={tinyInput} />
                       <input dir="auto" value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder={plan.sport === 'running' ? '—' : 'kg/%'} style={tinyInput} />
@@ -5026,7 +5028,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                   <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap', flexBasis: he ? '100%' : undefined /* Hebrew: always its own line - beside the name it fitted on some rows and not others */ }}>{he ? (cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`) : `${cur.dayCount}D`} · {he ? (cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`) : `${cur.exerciseCount} EX`}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, whiteSpace: 'nowrap', flexBasis: '100%' /* always its own line, in both languages (17.10 #860: English fitted beside the name, Hebrew could not - the cards stood 60 vs 75px) - beside the name it fitted on some rows and not others */ }}>{he ? (cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`) : `${cur.dayCount}D`} · {he ? (cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`) : `${cur.exerciseCount} EX`}</span>
                   </span>
                   <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 /* on the program line */ }}>
                     {row.earlier.length > 0 && (

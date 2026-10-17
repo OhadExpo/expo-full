@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
-import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe, tr } from './i18n';
 import { monthAbbr } from './dates';
 import { syncAutoTasks } from './autoTasks';
 import { blockEndingRows } from './blockEnding';
@@ -630,7 +630,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                       box"): a phone gets the short label where the full one would
                       wrap in a half-width tile. */}
                   <SectionLabel className="kpi-title" style={{ color: 'var(--c-stripTx)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, whiteSpace: 'nowrap' }}>{s.short ? <><span className="kpi-full">{s.label}</span><span className="kpi-short">{s.short}</span></> : s.label}</SectionLabel>
-                  <span title={tr(readLang(), 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
+                  <span title={tr(he ? 'he' : 'en', 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
                 </span>
               </RefinedHeaderStrip>
               {/* 20.9 (Ohad, phone, Hebrew): "all the text inside the 4 boxes is
@@ -783,7 +783,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <CollapsibleSection storageKey="dash-online-now" leftStripe={C.gn} padY={12} /* the body opens 12 under the strip: 12 above the frame too, so a name sits centred (rule-rhythm CENTRE 18/20, 4.10) */ style={{ marginBottom: 14 /* it sat flush on MESSAGES (29.9) */ }}
           titleNode={<SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>}>
           {onlineNow.map(t => (
-            <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
+            <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={he ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
               <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
               {t.name}
             </div>
@@ -796,7 +796,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <CollapsibleSection storageKey="dash-started-open" leftStripe={C.or} padY={12} style={{ marginBottom: 14 }} domId="dash-started-open"
           titleNode={<SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: he ? 0 : '0.08em' }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Left half-way')} ({startedOpen.length})</SectionLabel>}>
           {startedOpen.map((d) => (
-            <div key={d.id} data-started-open {...asButton(() => onSelectTrainee(d.t.id))} aria-label={readLang() === 'he' ? `פתיחת ${d.t.name}` : `Open ${d.t.name}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 12, rowGap: 2, alignItems: 'baseline', padding: '6px 0', cursor: 'pointer' }}>
+            <div key={d.id} data-started-open {...asButton(() => onSelectTrainee(d.t.id))} aria-label={he ? `פתיחת ${d.t.name}` : `Open ${d.t.name}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 12, rowGap: 2, alignItems: 'baseline', padding: '6px 0', cursor: 'pointer' }}>
               <span style={{ color: C.tx, fontSize: 13, minWidth: 0, overflowWrap: 'anywhere' }}>{d.t.name}</span>
               <span style={{ fontFamily: FN, color: C.or, fontSize: 11, whiteSpace: 'nowrap' }}>{agoShort(d.updated_at)}</span>
               {/* the day on its own line: on a phone it wrapped mid-phrase beside the name */}
@@ -838,7 +838,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('expiring', expiring).map(t => (
-                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ ...ALERT_ROW, justifyContent: 'space-between', cursor: 'pointer', fontSize: 13 }}>
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={he ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ ...ALERT_ROW, justifyContent: 'space-between', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx }}>{t.name}</span>
                       <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining}{tt('LEFT')}</span>
                     </div>
@@ -854,7 +854,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('overdue', overduePayment).map(t => (
-                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ ...ALERT_ROW, justifyContent: 'space-between', cursor: 'pointer', fontSize: 13 }}>
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={he ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ ...ALERT_ROW, justifyContent: 'space-between', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
                       <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? tt('Never paid') : (he ? daysOverdueHe(t.daysOverdue) : `${t.daysOverdue}d overdue`)}</span>
                     </div>
@@ -870,7 +870,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     </RefinedHeaderStrip>
                   </div>
                   {capAlert('blockEnding', blockEnding).map((r) => (
-                    <div key={r.traineeId} data-box="block-ending-row" {...asButton(() => onSelectTrainee(r.traineeId))} aria-label={readLang() === 'he' ? `פתיחת ${r.name}` : `Open ${r.name}`}
+                    <div key={r.traineeId} data-box="block-ending-row" {...asButton(() => onSelectTrainee(r.traineeId))} aria-label={he ? `פתיחת ${r.name}` : `Open ${r.name}`}
                       style={{ ...ALERT_ROW, flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 3, padding: '7px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 0 }}>
                         <span style={{ color: C.tx, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
@@ -898,7 +898,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                     return (
                       <div key={t.id} style={{ ...ALERT_ROW, justifyContent: 'space-between', fontSize: 13 }}>
-                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minHeight: 36, lineHeight: '36px' /* the row's one 36px (#474): as a button on a phone it took the 40px touch floor, so DORMANT alone ran 40 beside OVERDUE's 36 - the whole row height is still the target */ }}>{t.name}</span>
+                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={he ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minHeight: 36, lineHeight: '36px' /* the row's one 36px (#474): as a button on a phone it took the 40px touch floor, so DORMANT alone ran 40 beside OVERDUE's 36 - the whole row height is still the target */ }}>{t.name}</span>
                         <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('No workouts logged') /* not 'Never trained': gym clients train every week and log nothing in the app (audit #612) */ : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one).
@@ -933,7 +933,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title (OCD #494: 600 / 0.04em) */ }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
-                  <span title={readLang() === 'he' ? (gateOpen ? 'עברנו את הסף — זה הזמן להריץ את המעבר לכמה מאמנים' : `המעבר לכמה מאמנים יקרה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
+                  <span title={he ? (gateOpen ? 'עברנו את הסף — זה הזמן להריץ את המעבר לכמה מאמנים' : `המעבר לכמה מאמנים יקרה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: 'var(--c-stripTx)', border: 'none', background: 'transparent', borderRadius: 0, padding: '2px 0', letterSpacing: '0.04em' }}>
                     {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
                   </span>
@@ -954,7 +954,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                     <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
                     <button onClick={() => markLeadContacted(l.id)} title={tt('Mark contacted')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
-                    <button onClick={() => deleteLead(l.id)} title={tr(readLang(), 'Delete')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => deleteLead(l.id)} title={tr(he ? 'he' : 'en', 'Delete')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                   </div>
                 );
               })}
@@ -999,9 +999,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
                 <SH k="name" label={tt('Athlete')} />
                 <SH k="status" label={tt('Status')} />
-                <th className="dash-opt" style={plainHeadStyle}>{tt('Format')}</th>
-                <th className="dash-opt" style={plainHeadStyle}>{tt('Package')}</th>
-                <SH k="sessions" label={readLang() === 'he' ? 'נותרו' : tt('Sessions')} />
+                {/* FORMAT + PACKAGE step aside on a tablet beside the owner's two payment columns (themes.css .dash-mid, #860) */}
+                <th className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={plainHeadStyle}>{tt('Format')}</th>
+                <th className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={plainHeadStyle}>{tt('Package')}</th>
+                <SH k="sessions" label={he ? 'נותרו' : tt('Sessions')} />
                 {isOwner && <SH k="paid" label={tt('Total Paid')} cls="dash-opt" />}
                 {isOwner && <SH k="lastPay" label={tt('Last Payment')} cls="dash-opt" />}
                 <SH k="workouts" label={tt('Workouts')} cls="dash-opt" />
@@ -1010,15 +1011,15 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             </thead>
             <tbody>
               {sorted.map(t => (
-                <tr key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`}
+                <tr key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={he ? `פתיחת ${t.name}` : `Open ${t.name}`}
                   style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   {/* 13.10 #735: Nord's caps sit 1px low in a 13px line - 11.5 / 12.5 puts names and the taller digits midway between the row's lines (18 / 16 -> even) */}
                   <td style={{ padding: '11.5px 12px 12.5px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
                   <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
-                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
-                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
+                  <td className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
@@ -1102,7 +1103,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
 
   return (
-    <CollapsibleSection title={tr(readLang(), 'Revenue')} storageKey="dash-revenue" style={{ marginBottom: 20 }}
+    <CollapsibleSection title={tr(he ? 'he' : 'en', 'Revenue')} storageKey="dash-revenue" style={{ marginBottom: 20 }}
       right={<span style={{ fontFamily: FN, fontSize: 10, color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
@@ -1136,7 +1137,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
               {tt('OUTSTANDING')}
             </span>
             <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(outstanding.amount).toLocaleString()}`}</span>
-            <span style={subStyle}>{readLang() === 'he' ? (outstanding.count === 0 ? 'אין בקשות תשלום פתוחות' : outstanding.count === 1 ? 'בקשת תשלום פתוחה אחת' : `${outstanding.count} בקשות תשלום פתוחות`) : `${outstanding.count} ${tt('Pending requests')}`}</span>
+            <span style={subStyle}>{he ? (outstanding.count === 0 ? 'אין בקשות תשלום פתוחות' : outstanding.count === 1 ? 'בקשת תשלום פתוחה אחת' : `${outstanding.count} בקשות תשלום פתוחות`) : `${outstanding.count} ${tt('Pending requests')}`}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG LTV')}</span>

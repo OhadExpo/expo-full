@@ -34,8 +34,8 @@ for (const f of files) {
   const R = process.env.BREAK === 'nolift' ? (U ? U.R : [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) : (st.uprightR || [[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
   const ap = (v) => new Vector3(R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], R[1][0] * v[0] + R[1][1] * v[1] + R[1][2] * v[2], R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2]);
   const ours = (v) => new Vector3(v.x, -v.y, -v.z);
-  const camX = ours(ap([1, 0, 0])), camY = ours(ap([0, 1, 0]));   // image right, image DOWN
-  if (tr.levelQ) { camX.applyQuaternion(tr.levelQ); camY.applyQuaternion(tr.levelQ); }   // the rig levelled the floor: the camera turned with it
+  const camX = ours(ap([1, 0, 0])), camY = ours(ap([0, 1, 0])), camZ = ours(ap([0, 0, 1]));   // image right, image DOWN, away from the lens
+  if (tr.levelQ) { camX.applyQuaternion(tr.levelQ); camY.applyQuaternion(tr.levelQ); camZ.applyQuaternion(tr.levelQ); }   // the rig levelled the floor: the camera turned with it
   const Q = PIVOT.map(() => new Quaternion()), root = new Vector3(), piv = PIVOT.map(() => new Vector3());
   const errs = [], perJ = {}, frameMed = [];
   const hgtClip = bodyPx(raw.length, (a, k) => { const l = raw[a].landmarks[k]; return l ? [l.x * W, l.y * H] : null; }, true);
@@ -48,8 +48,15 @@ for (const f of files) {
     // the parts the replay DRAWS as seen (14.10 #750): a faded part is a declared guess, and the engine no longer follows
     // MediaPipe's guess for a hidden leg (REPRO_ALL=1: every point at visibility 0.5+, the gate before)
     const kS = Math.max(0, Math.min(tr.m - 1, Math.round((x.t - tr.t0) / (1000 / tr.hz))));
-    const KS = []; for (const [seg, k0] of PAIRS) { const k = mir ? SW[k0] : k0; const l = im.landmarks[k]; if (!l || !(l.visibility >= 0.5)) continue; if (!process.env.REPRO_ALL && !tr.seen[kS * NSEG + seg]) continue; A.push([piv[seg].dot(camX), piv[seg].dot(camY)]); B.push([l.x * W, l.y * H]); KS.push(k); }
+    const KS = [], A3 = []; for (const [seg, k0] of PAIRS) { const k = mir ? SW[k0] : k0; const l = im.landmarks[k]; if (!l || !(l.visibility >= 0.5)) continue; if (!process.env.REPRO_ALL && !tr.seen[kS * NSEG + seg]) continue; A.push([piv[seg].dot(camX), piv[seg].dot(camY)]); A3.push(piv[seg].dot(camZ)); B.push([l.x * W, l.y * H]); KS.push(k); }
     if (A.length < 6) continue;
+    if (process.env.REPRO_PERSP === '1') {
+      // the camera distance D (to the joints' middle) that fits best; x / (1 + z / D) -> the far camera as D grows
+      const fitErr = (P) => { const m0 = [0, 1].map((c) => P.reduce((q, p) => q + p[c], 0) / P.length), m1 = [0, 1].map((c) => B.reduce((q, p) => q + p[c], 0) / B.length); let nu = 0, de = 0; P.forEach((p, i) => { nu += (p[0] - m0[0]) * (B[i][0] - m1[0]) + (p[1] - m0[1]) * (B[i][1] - m1[1]); de += (p[0] - m0[0]) ** 2 + (p[1] - m0[1]) ** 2; }); const sc = de > 0 ? nu / de : 1; return P.reduce((q, p, i) => q + Math.hypot((p[0] - m0[0]) * sc + m1[0] - B[i][0], (p[1] - m0[1]) * sc + m1[1] - B[i][1]) ** 2, 0); };
+      const zc = A3.reduce((q, v) => q + v, 0) / A3.length; let best = A, be = fitErr(A);
+      for (let D = 0.6; D <= 12; D *= 1.15) { if (A3.some((z) => D + z - zc < 0.2)) continue; const P = A.map((p, i) => [p[0] / (1 + (A3[i] - zc) / D), p[1] / (1 + (A3[i] - zc) / D)]); const e = fitErr(P); if (e < be) { be = e; best = P; } }
+      A.splice(0, A.length, ...best);
+    }
     // best scale + shift (no rotation: the camera is the camera)
     const ma = [0, 1].map((c) => A.reduce((s, p) => s + p[c], 0) / A.length), mb = [0, 1].map((c) => B.reduce((s, p) => s + p[c], 0) / B.length);
     let num = 0, den = 0; A.forEach((p, i) => { num += (p[0] - ma[0]) * (B[i][0] - mb[0]) + (p[1] - ma[1]) * (B[i][1] - mb[1]); den += (p[0] - ma[0]) ** 2 + (p[1] - ma[1]) ** 2; });

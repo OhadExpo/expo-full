@@ -12,7 +12,7 @@ import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
 import { useT, tr, readLang, dirOfText } from './i18n';
 import { useUrlSync, segmentAfter } from './urlState';
-import { runPace } from './runPace';
+import { runPace, hrCap } from './runPace';
 import { presKm } from './runAnalysis';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
@@ -170,7 +170,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     // driven by its group's one control, so it never folds on its own.
     const folded = isCollapsed(ex, exIdx) && !groupControlled;
     const title = exData?.title || ex.title || 'Unknown';
-    const capOf = (v) => String(v || '').replace(/^HR\s*/i, '');
+    const capOf = hrCap;
     // one prescription line (#809): what to do, in the order it is read - the amount, the pace / tempo, the cap
     const rx = run
       ? [(ex.sets || []).length > 1 ? (ex.sets || []).length + ' × ' + (ex.reps || '') : ex.reps, ex.tempo, ex.load ? tt('HR up to {n}').replace('{n}', capOf(ex.load)) : '']
@@ -431,7 +431,11 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         .map(x => Number(x.week) || 1);
       week = loggedWeeks.length ? Math.max(...loggedWeeks) + 1 : 1;
     }
-    week = Math.min(planWeeks, Math.max(1, week));
+    // A DAY OF ONE WEEK (#850 onlyWeek, his run days) is logged in that week - whatever the picker or the next un-logged
+    // week says (#866 M8: the coach's logger filed it under the next free week)
+    // (only inside the block: a day marked past its weeks would have pinned the athlete's portal to the last week - review)
+    const onlyW = day.onlyWeek != null && day.onlyWeek !== '' && Number(day.onlyWeek) >= 1 && Number(day.onlyWeek) <= planWeeks ? Number(day.onlyWeek) : null;
+    week = onlyW || Math.min(planWeeks, Math.max(1, week));
     // a RUNNING block (#808): the logger takes km / time / HR per rep, saved in the portal's own run shape
     const isRun = fullPlan.data?.sport === 'running';
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,

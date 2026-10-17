@@ -34,7 +34,7 @@ import TraineeIntake from './TraineeIntake';
 import { rowKind } from './bhbcSession';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId, blockNum } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
-import { useT, tr, readLang, daysCount, exercisesCount, daysAgoHe } from './i18n';
+import { useT, useHe, tr, readLang, daysCount, exercisesCount, daysAgoHe } from './i18n';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
 // markers counts, the way PlansView already had to accept all three.
@@ -149,6 +149,7 @@ function BwAddRow({ onAdd }) {
 }
 
 export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, setBwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
+  const heTD = useHe();
   const t = useT();
   const isPhone = usePhone();   // the payments table becomes cards on a phone (#786)
   // Section tabs are a MULTI-SELECT filter (Ohad): click tags to show only
@@ -665,6 +666,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           .td-hdr-identity { flex-wrap: wrap !important; min-width: 0; max-width: 100%; row-gap: 2px; }
           .td-hdr-contact { flex-basis: 100%; white-space: normal !important; word-break: break-word; }
           .td-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
+          /* FORMAT, the 4th tile, alone on the second row: the whole row (17.10 #860 - in its third of a row 'Online Client' took two lines in English only) */
+          .td-vitals-grid > :nth-child(4):last-child { grid-column: 1 / -1; }
         }
       `}</style>
       {/* 17.9, Ohad on the two rows here: "designed ugly, un-asthetic and not nice
@@ -852,7 +855,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length + sheetPays} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
+      <CollapsibleSection domId="td-sec-billing" title={t('Billing')} count={tPay.length + sheetPays} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
           <div style={{display:'flex',gap:0}}>
@@ -860,7 +863,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           <button onClick={()=>setShowContract(true)}
             style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF'}}>{t('CONTRACT')}</button>
           <button onClick={()=>setShowPayForm(true)}
-            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderInlineStart:'none',color:'#FFFFFF'}}>{t('+ ADD PAYMENT')}</button>
+            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderInlineStart:'none',color:'#FFFFFF'}}>{heTD ? t('+ ADD PAYMENT') : <span>+ <span className="strip-meta">{t('ADD')} </span>{t('PAYMENT')}</span> /* a phone: + PAYMENT - beside BILLING + CONTRACT the English button stepped under the strip, the Hebrew stayed (#860) */}</button>
         </div></div>}>
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").

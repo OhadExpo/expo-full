@@ -199,12 +199,15 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   const [fontsTick, setFontsTick] = useState(0);
   useEffect(() => { let on = true; try { document.fonts && document.fonts.ready.then(() => { if (on) setFontsTick((x) => x + 1); }); } catch { /* old browser */ } return () => { on = false; }; }, []);
   const colNeed = useMemo(() => {
-    const lang = readLang();
-    // (Hebrew pages letter-space everything 0.02em - themes.css body[data-lang=he], !important)
-    const heLS = lang === 'he' ? 0.02 : 0;
+    // THE SAME COLUMNS IN BOTH LANGUAGES (17.10 #860): each taxonomy column was sized to its values in the language on
+    // screen - the English ones are longer, so the English name column got 263px against Hebrew's 287 and titles broke
+    // onto two lines in English only (55 vs 49px rows). Each column now takes the wider of its two languages' needs.
+    // (Hebrew screens are untracked since #860 - no letter-spacing term.)
+    const heLS = 0;
     const taxo = TAXO_KEYS.map((k) => {
-      const vals = []; for (const ex of filtered) for (const v of splitVals(ex[k])) vals.push(taxoHe(v, lang) || v);
-      return Math.max(54, Math.min(190, wrapNeed(vals, { font: `600 10px ${FN}`, ls: heLS * 10, perChar: 7.3 })));
+      const en = [], he = []; for (const ex of filtered) for (const v of splitVals(ex[k])) { en.push(v); he.push(taxoHe(v, 'he') || v); }
+      const need = (vals) => wrapNeed(vals, { font: `600 10px ${FN}`, ls: 0, perChar: 7.3 });
+      return Math.max(54, Math.min(190, Math.max(need(en), need(he))));
     });
     // the NAME too (its own 13px font): its floor is what its longest-needing title needs - on 200px titles broke
     // one word a line ('A-Stance Continuous MED-Ball Throw')

@@ -34,6 +34,13 @@
 @font-face {
   font-family: 'Heebo';
   src: url('/fonts/heebo-latin-ext.woff2') format('woff2');
+  /* (17.10 #860) Nord has no glyph for some Latin characters - the separator dot, the ellipsis, the shekel sign, 1/2 - so they
+     fall through to these Heebo buckets, whose own line box (160%) made any line holding one 3px taller at 9px: a Hebrew
+     label with a dot stood 13px against the English 10px (dashboard: נכנס · 30 יום). Pinned to Nord's line box (93.5 /
+     26.5, no gap), as the Hebrew bucket above; the glyphs are untouched. */
+  ascent-override: 93.5%;
+  descent-override: 26.5%;
+  line-gap-override: 0%;
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -43,8 +50,16 @@
 @font-face {
   font-family: 'Heebo';
   src: url('/fonts/heebo-latin.woff2') format('woff2');
+  /* (17.10 #860) Nord has no glyph for some Latin characters - the separator dot, the ellipsis, the shekel sign, 1/2 - so they
+     fall through to these Heebo buckets, whose own line box (160%) made any line holding one 3px taller at 9px: a Hebrew
+     label with a dot stood 13px against the English 10px (dashboard: נכנס · 30 יום). Pinned to Nord's line box (93.5 /
+     26.5, no gap), as the Hebrew bucket above; the glyphs are untouched. */
+  ascent-override: 93.5%;
+  descent-override: 26.5%;
+  line-gap-override: 0%;
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+

@@ -736,7 +736,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {(() => {
         const q = rosterFilter.trim().toLowerCase();
         const rows = MOCK_TRAINEES.filter((t) => !q || String(t.name).toLowerCase().includes(q)).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
-        const th = (h, opt, sorted) => <th key={h} className={opt ? 'dash-opt' : undefined} style={{ textAlign: 'center', padding: '10px 12px', whiteSpace: 'nowrap', fontSize: 9, fontFamily: FN, color: sorted ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h)}{sorted && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>;
+        const th = (h, opt, sorted) => <th key={h} className={opt ? (opt === 'mid' ? 'dash-opt dash-mid' : 'dash-opt') : undefined} style={{ textAlign: 'center', padding: '10px 12px', whiteSpace: 'nowrap', fontSize: 9, fontFamily: FN, color: sorted ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h)}{sorted && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>;
         return (
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 8 }}>
             <div className="title-strip" onClick={() => setRosterOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
@@ -751,7 +751,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                 <table className="dash-roster" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-                      {th('Athlete', false, true)}{th('Status', false)}{th('Format', true)}{th('Package', true)}{th('Sessions', false)}{th('Total Paid', true)}{th('Last Payment', true)}{th('Workouts', true)}{th('Programs', true)}
+                      {th('Athlete', false, true)}{th('Status', false)}{th('Format', 'mid')}{th('Package', 'mid')}{th('Sessions', false)}{th('Total Paid', true)}{th('Last Payment', true)}{th('Workouts', true)}{th('Programs', true)}
                     </tr>
                   </thead>
                   <tbody>
@@ -767,8 +767,8 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                           style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' /* the real row: a button (a finger's 40px on a phone), height from its 12px cells + the real badge - was 44 / 36 against 43 / 40 (AUDIT-470) */ }}>
                           <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
                           <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><AppBadge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</AppBadge></td>
-                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
-                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
+                          <td className="dash-opt dash-mid" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
+                          <td className="dash-opt dash-mid" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
                           <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
                           <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
                           <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
@@ -1926,6 +1926,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
       <style>{`
         @media (max-width: 760px) {
           .demo-td-vitals { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
+          .demo-td-vitals > :nth-child(4):last-child { grid-column: 1 / -1; }   /* FORMAT spans its row, as the real page (#860) */
         }
       `}</style>
       {/* The real athlete page's top, 1:1 (14.10 #755): BACK + NOTIFICATION, then the joined action bar (themes.css
@@ -2815,7 +2816,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         </span>
                         <span style={{ gridColumn: 1, gridRow: 2, display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0, lineHeight: '14px' }}>
                           <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, minWidth: 0, overflowWrap: 'break-word' }}>{cur.name || 'Untitled'}</span>
-                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap', flexBasis: heL ? '100%' : undefined }}>{heL ? (cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`) : `${cur.dayCount}D`} · {heL ? (cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`) : `${cur.exerciseCount} EX`}</span>
+                          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap', flexBasis: '100%' /* both languages, as the real list (#860) */ }}>{heL ? (cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`) : `${cur.dayCount}D`} · {heL ? (cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`) : `${cur.exerciseCount} EX`}</span>
                         </span>
                         <span style={{ gridColumn: 2, gridRow: 2, justifySelf: 'start', alignSelf: 'start', display: 'inline-flex', alignItems: 'center', minHeight: 14 }}>
                           {row.earlier.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 16, minWidth: 44, margin: '-1px 0', padding: '0 7px', boxSizing: 'border-box', background: 'rgba(127,127,138,0.16)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}><bdi dir="ltr">+{row.earlier.length}</bdi><span aria-hidden style={{ fontSize: 8, lineHeight: 1 }}>▾</span></span>}

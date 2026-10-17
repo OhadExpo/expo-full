@@ -1385,6 +1385,13 @@ export const HE = {
   "payments": 'תשלומים',
   "sessions counted": 'אימונים שנספרו',
   "Roster estimate": 'אומדן מהרשימה',
+  // (#860) the English phone line's halves - the Hebrew line keeps the whole phrase
+  estimate: 'אומדן',
+  "Nat. Ins.": 'ביטוח לאומי',
+  REQUEST: 'בקשה',
+  '+ NEW': '+ חדשה',
+  ADD: 'הוסף',
+  PAYMENT: 'תשלום',
   "Gap": 'פער',
   "Estimated total": 'סה״כ משוער',
   "Sessions counted": 'אימונים שנספרו',
@@ -3272,10 +3279,16 @@ export function useHe() {
 // dir="auto", and it reads both languages correctly.
 export const dirOfText = (s) => (/^[^\p{L}]*[֐-׿]/u.test(String(s || '')) ? 'rtl' : 'ltr');
 
+let HINT_WRITTEN = false;
 export function readLang() {
   try {
     const hint = new URLSearchParams(window.location.search).get('lang');
-    if (hint === 'he' || hint === 'en') { try { localStorage.setItem(LANG_KEY, hint); } catch { /* private mode */ } return hint; }
+    if (hint === 'he' || hint === 'en') {
+      // written ONCE per page load and only when it differs (#860 review: written on every render, a /demo?lang=he tab kept
+      // switching the other tabs back - they follow the stored language now)
+      if (!HINT_WRITTEN) { HINT_WRITTEN = true; try { if (localStorage.getItem(LANG_KEY) !== hint) localStorage.setItem(LANG_KEY, hint); } catch { /* private mode */ } }
+      return hint;
+    }
   } catch { /* no window */ }
   try {
     const saved = localStorage.getItem(LANG_KEY);

@@ -239,11 +239,11 @@ export const lyingFacing = (title) => (!title ? 0 : FACE_DOWN_EX.test(String(tit
 // trunk's own frame (shoulder line x spine) and replaced by its median over +-0.6 s: the trunk's own motion - the
 // descent, the hinge, the walk-out - passes through untouched, only the arm's wobble against it is filtered. Only for a
 // bar-on-back lift by the logged name (a front squat, a trap bar, dumbbells: the hands move with the load).
-export const BAR_ON_BACK_EX = /back[\s-]?squat|good[\s-]?morning|(?:high|low)[\s-]?bar[\s-]?(?:back[\s-]?)?squat|(?:\bbb\b|barbell|back)[\s-]?(?:box|pause|pin)[\s-]?squat|(?:\bbb\b|barbell)[\s-]?(?:split[\s-]?squat|lunge|reverse[\s-]?lunge|walking[\s-]?lunge|rfess|rear[\s-]?foot|bulgarian|step[\s-]?up)/i;
+export const BAR_ON_BACK_EX = /back[\s-]?squat|good[\s-]?morning|(?:high|low)[\s-]?bar[\s-]?(?:back[\s-]?)?squat|(?:\bbb\b|barbell|back)[\s-]?(?:box|pause|pin)[\s-]?squat|(?:\bbb\b|barbell)[\s-]?(?:split[\s-]?squat|lunge|reverse[\s-]?lunge|walking[\s-]?lunge|(?:ff|fr|rf)ess|rear[\s-]?foot|front[\s-]?foot|bulgarian|step[\s-]?up)/i;   // FFESS / FRESS = front-foot elevated (#819: 'BB FFESS' had no bar-on-back arms)
 const BAR_ARMS = !(ENV.BARARMS != null && +ENV.BARARMS === 0);
 const ARM_IDX = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
 export function steadyBarArms(frames, exercise = '') {
-  if (!BAR_ARMS || !BAR_ON_BACK_EX.test(String(exercise || '')) || /front[\s-]?squat|trap[\s-]?bar|\bdb\b|dumbbell|kettlebell|\bkb\b|goblet|safety[\s-]?bar|zercher/i.test(String(exercise || ''))) return frames;
+  if (!BAR_ARMS || !BAR_ON_BACK_EX.test(String(exercise || '')) || /front[\s-]?squat|front[\s-]?rack|trap[\s-]?bar|\bdb\b|dumbbell|kettlebell|\bkb\b|goblet|safety[\s-]?bar|zercher/i.test(String(exercise || ''))) return frames;
   const W = 600;
   // the trunk frame of a frame: origin = the shoulder of that arm, x = left->right shoulder, y = spine, z = x * y
   const frameOf = (q) => {
@@ -1011,7 +1011,10 @@ const SEEN_RAW = (typeof process !== 'undefined' && process.env && process.env.S
 // free leg in a single-leg RDL (c31 15.4-17.4 s: off the floor behind him in the video, drawn standing) from a hidden
 // standing leg in a two-legged RDL (c01), and three reading-based guards all broke one of them. The logged exercise
 // name can: split, staggered, kneeling and single-leg stances are not mirrored (the gap fill still carries the leg).
-export const ASYM_STANCE = /b[\s-]?stance|kick[\s-]?stand|stagger|split|lunge|rfess|bulgarian|step[\s-]?(up|down)|single[\s-]?leg|\bsl\b|one[\s-]?leg|\b1[\s-]?leg|pistol|shrimp|skater|curts(y|ey)|cossack|kneel/i;
+// (#819, his library's own names: FFESS / FRESS / R+FFESS front-foot-elevated split squats, the Jefferson straddle
+// deadlift, 'Kossac', SLDL / SLRDL in one word, bounds, shuffles, crossover / T-steps and sprints matched nothing - a BB
+// FFESS stood its hidden leg like the seen one)
+export const ASYM_STANCE = /b[\s-]?stance|kick[\s-]?stand|stagger|split|lunge|(?:ff|fr|rf)ess|bulgarian|step[\s-]?(up|down)|single[\s-]?leg|\bsl\b|\bsl(?:dl|rdl)\b|one[\s-]?leg|\b1[\s-]?leg|pistol|shrimp|skater|curts(y|ey)|cossack|kossac|(?<!tall[\s-]?)kneel(?!(?:ed|ing)?[\s-]*push)|jeffe?r?son(?![\s-]*curl)|lateral[\s-]?(?:bound|squat|lunge)|\bbound\b|bounding|\ba[\s-]?(?:switch|march|skip)|march\b|shuffle|cross[\s-]?(?:over|under)[\s-]?step|\bt[\s-]?step|pendulum[\s-]?step|sprint/i;
 export const asymStance = (title) => !!title && ASYM_STANCE.test(String(title));
 export function buildTrack(frames, { smoothMs = 45, hz = TRACK_HZ, interp = 'c2', dims = null, exercise = '' } = {}) {
   const asym = asymStance(exercise);

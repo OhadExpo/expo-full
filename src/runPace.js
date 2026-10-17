@@ -24,6 +24,16 @@ export const runSecondsFor = (time, km) => {
   return n * 60;
 };
 // A RUN's pace from a logged distance (km) and time - '5:12' /km, or '' (#769)
+// THE HEART-RATE CAP AS A NUMBER (#866): the coach's cell may say 150, HR 150, 'דופק עד 150', '≤150' - the screens add
+// their own words ('HR up to {n}' / 'דופק עד {n}'), so his are taken off ('דופק עד דופק עד 150' before)
+// whole words only ('דופק מקסימלי 150' must not lose half a word), as many as lead it ('HR cap: up to 150'), and the
+// signs between them; a trailing 'max' too
+const HR_WORD = /^(?:hr|heart[\s-]?rate|דופק|cap|max(?:imum)?|up[\s-]*to|עד|מקס(?:ימום|ימלי|ימאלי)?['׳]?)(?=[\s:≤<=.\-–\d]|$)/i;
+export const hrCap = (v) => {
+  let s = String(v == null ? '' : v).trim(), prev;
+  do { prev = s; s = s.replace(HR_WORD, '').replace(/^[\s:≤<=.\-–]+/, ''); } while (s !== prev && s);
+  return s.replace(/\s+(?:max|cap|מקס['׳]?)$/i, '').trim();
+};
 export const runPace = (km, time) => {
   const d = runKm(km);
   const sec = runSecondsFor(time, d);

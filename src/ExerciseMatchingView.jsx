@@ -293,7 +293,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
               <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>
-                  {/* how many plan rows use this title - said in words, framed, no fill (audit #612 D1/D2: an orange tint with no words) */}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>{readLang() === 'he' ? `בתוכניות: ${g.count}` : `${g.count}× in plans`}</span>
+                  {/* how many plan rows use this title - said in words, framed, no fill (audit #612 D1/D2: an orange tint with no words) */}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap', display: 'inline-block', minWidth: 88, boxSizing: 'border-box', textAlign: 'center' /* one width in both languages: '2× in plans' was wider than 'בתוכניות: 2', so the English name column was 15px narrower and long names wrapped in English only (#860) */ }}>{readLang() === 'he' ? `בתוכניות: ${g.count}` : `${g.count}× in plans`}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 5 }}>
                   {g.rows.slice(0, 3).map((r) => `${r.planName || 'plan'} · ${r.dayName}`).join('  ·  ')}{g.rows.length > 3 ? `  +${g.rows.length - 3}` : ''}

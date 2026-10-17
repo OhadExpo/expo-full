@@ -1712,6 +1712,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    steps aside on a phone rather than pushing a second row into the title box
    (Ohad 26.9: "never put two rows in a title box ... always one row"). */
 @media (max-width: 620px) { .strip-meta { display: none !important; } }
+/* ...and its other half: a short word that only a phone shows, in place of the long one strip-meta hides (#860) */
+.phone-only-word { display: none; }
+@media (max-width: 620px) { .phone-only-word { display: inline !important; } }
 
 /* KPI tile titles: the short phone label where the full one would wrap (26.9). */
 .kpi-title .kpi-short { display: none; }
@@ -2248,6 +2251,18 @@ html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { 
   /* 14.10 #735: the row's height is the status pill's cell; only the NAME cell's text sat 0.75px low at this width (16.5 / 15) */
   table.dash-roster tbody td:first-child { padding-top: 10px !important; padding-bottom: 13px !important; }
 }
+/* ...AND ON A TABLET (17.10 #860, Ohad: "make sure all the sizes are matching everywhere between english and hebrew"):
+   at 820 the English roster ran 883px in a 794px card (sideways) and its rows stood 53-55px - 'Bnei Herzliya',
+   a full name and ACTIVE took two lines under the longer English headers - against Hebrew's 43. One line per cell,
+   6px sides; under 961px FORMAT + PACKAGE (the athlete's profile, a tap away) step aside beside the owner's payment
+   columns: 43px rows in both languages, nothing scrolls sideways. */
+@media (min-width: 701px) and (max-width: 1100px) {
+  table.dash-roster th, table.dash-roster td { padding-left: 6px !important; padding-right: 6px !important; }
+  table.dash-roster td { white-space: nowrap; }
+}
+@media (min-width: 769px) and (max-width: 960px) {
+  table.dash-roster .dash-mid { display: none !important; }
+}
 
 /* SCHEDULE > WEEK (#509): an hour-axis week where there is room, the seven
    days as rows on a phone (BhbcView ScheduleWeek renders both). */
@@ -2426,9 +2441,14 @@ html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { 
 /* HEBREW IS NOT TRACKED (9.10 audit #612 B8). The labels' letter-spacing (0.08-0.22em) is
    for Nord capitals; on Hebrew letters it pulls a word apart into separate letters - the
    side rail already dropped it for that reason (#191). In Hebrew the whole app sets type
-   at 0.02em; Latin capitals inside a Hebrew screen keep a hint of their tracking. */
+   untracked (17.10 #860: it was 0.02em, which tracked the LATIN names too - an exercise title that
+   fitted one line in English took two in the Hebrew list, 40 vs 53px rows; untracked, a Latin name is
+   the same width in both languages and Hebrew is set as Hebrew is). */
 /* every Hebrew element, the page AND the portals (modals, drawers, toasts render outside #root - review S1) */
-body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0.02em !important; }
+body[data-lang="he"] *:not(svg):not(svg *) { letter-spacing: 0 !important; }
+/* ...except the assets page, which pins its own 0.02em in BOTH languages (PropertiesView .nadlan-view, #860) - the rule
+   above outranked its pin in Hebrew only (review 17.10) */
+body[data-lang="he"] .nadlan-view, body[data-lang="he"] .nadlan-view *:not(svg):not(svg *) { letter-spacing: 0.02em !important; }
 
 /* MATCHING SUGGESTIONS ON A PHONE (9.10): the name squeezed into four lines beside its
    video / cues marks, its reason and VIEW. On a phone the name takes the first line and the

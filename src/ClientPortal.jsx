@@ -34,7 +34,7 @@ import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
-import { runPace, runKm } from './runPace';
+import { runPace, runKm, hrCap } from './runPace';
 // a logged distance as written for the athlete: '400' under KM is 0.4 (#866 M2)
 const kmText = (v) => { const k = runKm(v); return k == null ? String(v) : String(Math.round(k * 100) / 100); };
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
@@ -2524,7 +2524,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // the run's prescription in the coach's words: pace range, the heart-rate cap, the rest between reps
         <div data-run-rx style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 6, fontFamily: FN, fontSize: 12, color: C.tm }}>
           {ex.tempo && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi>{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</b></span>}
-          {ex.load && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('HR CAP')}</span><b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{String(ex.load).replace(/^HR\s*/i, '')}</b></span>}
+          {ex.load && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('HR CAP')}</span><b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{hrCap(ex.load)}</b></span>}
           {ex.rest && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('REST')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.rest}</b></span>}
         </div>
       )}
@@ -2635,7 +2635,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                     never read a run), HEART RATE */}
                 <input aria-label={tt('Distance (km)')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={String(repsForDisplay || '').replace(/\s*km$/i, '') || 'km'} style={seti}/>
                 <input aria-label={tt('Time (mm:ss)')} value={set.time || ''} onChange={e => uSet(ei,si,'time',e.target.value.replace(/[.,]/g, ':'))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder={tt('mm:ss')} style={seti}/>
-                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={ex.load ? String(ex.load).replace(/^HR\s*/i, '') : '—'} style={seti}/>
+                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={ex.load ? hrCap(ex.load) : '—'} style={seti}/>
               </> : <>
               <input aria-label={timedHold ? tt('Seconds') : tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
@@ -4384,9 +4384,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               return {
                 num: i + 1,
                 rx: rxOf(ex),
-                tempo: vp.sport === 'running' && ex.load ? [ex.tempo, tt('HR up to {n}').replace('{n}', String(ex.load).replace(/^HR\s*/i, ''))]   /* in words: a trailing ≤ flips in a Hebrew line */.filter(Boolean).join(' · ') : ex.tempo,
+                tempo: vp.sport === 'running' && ex.load ? [ex.tempo, tt('HR up to {n}').replace('{n}', hrCap(ex.load))]   /* in words: a trailing ≤ flips in a Hebrew line */.filter(Boolean).join(' · ') : ex.tempo,
                 // ...and the pace in its own direction: inside the Hebrew line the range's two times swapped ('5:55—5:45')
-                tempoNode: vp.sport === 'running' && ex.load && ex.tempo ? <><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi> · {tt('HR up to {n}').replace('{n}', String(ex.load).replace(/^HR\s*/i, ''))}</> : null,
+                tempoNode: vp.sport === 'running' && ex.load && ex.tempo ? <><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi> · {tt('HR up to {n}').replace('{n}', hrCap(ex.load))}</> : null,
                 title: d.t,
                 // FOCUS IS THE COACH'S WEEKLY EMPHASIS. NOTHING ELSE.
                 //

@@ -23,7 +23,7 @@ import { supabase } from './supabase';
 import { isRefined5b, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase, CollapsibleSection } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
-import { tr, readLang, useT, useTB } from './i18n';
+import { tr, readLang, useT, useTB, useHe } from './i18n';
 import RevenueSheetCard from './RevenueSheetCard';
 import OwedCard from './OwedCard';
 
@@ -39,13 +39,16 @@ export default function BillingView({ trainees, onSelectTrainee }) {
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
   const refined = isRefined5b();
+  const he = useHe();
   // PAYMENT REQUESTS keeps its title on one line (#452): + NEW REQUEST rides the
+  // (17.10 #860: on a phone the English button is '+ NEW' - beside the longer English title the whole button stepped
+  // under the strip in English only, the card 60px taller than the Hebrew one; 'REQUEST' steps aside like the title's word)
   // CollapsibleSection's `right`, which steps it under the strip itself when the
   // two do not fit side by side (the section runs the same useStripFit)
   const reqPending = requests.filter(r => r.status === 'pending').length;
   const newReqBtn = (
     <button onClick={() => setShowRequest(true)} className="strip-btn-stacks"
-      style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+      style={{ ...stripBtnBase, flexShrink: 0, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{he ? <span><span className="strip-meta">{tb('+ NEW REQUEST')}</span><span className="phone-only-word">{tb('+ NEW')}</span></span> : <span>+ {tt('NEW')}<span className="strip-meta"> {tt('REQUEST')}</span></span> /* ONE inline box: the button is inline-flex, and as separate flex items the space vanished ('+ NEWREQUEST') */}</button>
   );
   const PAD = 14;
 
@@ -205,7 +208,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
         titleNode={
           <span style={{ display: 'block', width: 'fit-content', maxWidth: '100%', minWidth: 0 /* a block (its own 13px line - inline sat 2px low, box-centring 4.10) that is only as wide as its words: full-width, the strip-fit check read it as the whole strip and + NEW REQUEST stacked under it at every width (4.10 audit) */, overflowWrap: 'break-word', fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: '0.08em' /* the house strip title (OCD #494) */, textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {/* one line on a phone: the count stays, its word steps aside */}
-            {tt('PAYMENT REQUESTS')} · {reqPending}<span className="strip-meta"> {readLang() === 'he' ? 'ממתינות' : tt('Waiting')}</span>
+            {tt('PAYMENT REQUESTS')} · {reqPending}<span className="strip-meta"> {he ? 'ממתינות' : tt('Waiting')}</span>
           </span>
         }>
         {loadError ? (

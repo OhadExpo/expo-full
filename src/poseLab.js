@@ -1871,7 +1871,7 @@ export function captureQuality(frames, title, movement) {
   const upper = mv !== undefined ? !!(mv && mv.region === 'upper')
     : /\b(bench|ohp|overhead|press|push[-\s]?up|dip|row|pull[-\s]?up|chin|pull[-\s]?down|lat|fly|raise|shrug|curl|tricep|bicep)\b/.test(t) && !/\bleg\b/.test(t);
   const lower = mv !== undefined ? !!(mv && mv.region === 'lower')
-    : /\b(squat|lunge|split|pistol|rfess|bulgarian|step[-\s]?up|deadlift|rdl|hinge|thrust|glute|leg|calf|jump|pogo|hop|bound|nordic|good[-\s]?morning)\b/.test(t);
+    : /\b(squat|lunge|split|pistol|rfess|ffess|fress|bulgarian|step[-\s]?up|deadlift|rdl|sldl|dl|jefferson|kossac|cossack|hinge|thrust|glute|leg|calf|jump|pogo|hop|bound|nordic|good[-\s]?morning)\b/.test(t);
   const KEY = (upper && !lower) ? [11, 12, 13, 14]
     : (lower && !upper) ? [23, 24, 25, 26, 27, 28]
       : [11, 12, 13, 14, 23, 24, 25, 26, 27, 28];
