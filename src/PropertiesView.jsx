@@ -191,6 +191,12 @@ function OppCard({ o }) {
         <div style={{ ...T(13, 600), color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{[o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
       )}
       {o.summary && <div style={{ ...T(13), color: C.tm }}>{o.summary}</div>}
+      {Array.isArray(o.questions) && o.questions.length > 0 && (
+        <details style={{ ...T(13), color: C.tx }}>
+          <summary style={{ cursor: 'pointer', color: C.acText, minHeight: 28, display: 'list-item' }}>שאלות לבירור ({o.questions.length})</summary>
+          <ol style={{ margin: '6px 0 0', paddingInlineStart: 20, display: 'grid', gap: 4 }}>{o.questions.map(q => <li key={q}>{q}</li>)}</ol>
+        </details>
+      )}
       {url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, ...T(13, 600) }}>לפרטים</a>}
     </article>
   );
