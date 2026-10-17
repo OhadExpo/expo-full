@@ -5061,7 +5061,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.map((p) => (
                       <div key={p.id} role="button" tabIndex={0} onClick={() => handleOpenPlan(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPlan(p.id); } }}
                         style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, padding: '10px 12px', boxSizing: 'border-box', cursor: 'pointer', opacity: openingId === p.id ? 0.45 : 0.85 }}>
-                        <span style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em' }}>{p.name || 'Untitled'}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, opacity: 0.8, whiteSpace: 'normal', overflowWrap: 'anywhere', letterSpacing: '0.04em' /* the whole name, wrapped - it was cut with an ellipsis at 360 (text-overlap gate 17.10; his rule: a word is never cut, #651) */ }}>{p.name || 'Untitled'}</span>
                         <span style={{ fontFamily: FN, fontSize: 11, color: C.td, whiteSpace: 'nowrap' }}>{he ? (p.dayCount === 1 ? 'יום אחד' : `${p.dayCount} ימים`) : `${p.dayCount}D`} · {he ? (p.exerciseCount === 1 ? 'תרגיל אחד' : `${p.exerciseCount} תרגילים`) : `${p.exerciseCount} EX`}</span>
                       </div>
                     ))}

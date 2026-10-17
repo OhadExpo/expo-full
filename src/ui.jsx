@@ -1852,7 +1852,7 @@ export function ChipGrid({ items, value, onChange, cols = null, phoneCols = null
               ...cellStyle,
             }}>
             {it.label}
-            {it.n != null && <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75, flexShrink: 0 }}>{it.n}</span>}
+            {it.n != null && <span style={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0 /* the chip's own ink: at 0.75 over an inactive chip's secondary ink it read 3.24:1 on dark (peer audit 17.10, the #786 double-dim) */ }}>{it.n}</span>}
           </button>
         );
       })}

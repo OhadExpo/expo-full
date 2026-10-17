@@ -1803,8 +1803,8 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
           </div>
           {dateStr && (
             <div dir={uiDir()} style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}>
-              <span style={{ ...word, color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : 'var(--c-tm)', fontWeight: isOverdue ? 800 : 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {isOverdue ? <>{tt('OVERDUE')} <span style={{ opacity: 0.55 }}>{RELATIVE_WORDS.has(dm.label) ? tt(dm.label) : dm.label}</span></> : dateStr}
+              <span style={{ ...word, color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : 'var(--c-tm)', fontWeight: isOverdue ? 800 : 700, whiteSpace: 'normal', overflowWrap: 'anywhere', textAlign: 'center' /* a narrow board column cut 'OVERDUE 28 JUN' to '28 JU…' at 1024 (text-overlap gate 17.10): it wraps, never cut */ }}>
+                {isOverdue ? <>{tt('OVERDUE')} <span style={{ opacity: 0.55, whiteSpace: 'nowrap' /* '28 JUN' stays one piece when the line wraps */ }}>{RELATIVE_WORDS.has(dm.label) ? tt(dm.label) : dm.label}</span></> : dateStr}
               </span>
             </div>
           )}

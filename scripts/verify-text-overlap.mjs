@@ -139,6 +139,9 @@ const MEASURE = (BREAK) => {
     const cs = getComputedStyle(el);
     if (cs.visibility === 'hidden' || cs.display === 'none') continue;
     if (el.offsetParent === null && cs.position !== 'fixed' && el !== document.body) continue;
+    // laid out but never painted: the content of a CLOSED <details> keeps its boxes in Chromium (17.10: 640 'overlaps' of a
+    // collapsed questions list on the assets page - the peer's audit); checkVisibility() says what is really drawn
+    if (typeof el.checkVisibility === 'function' && !el.checkVisibility() /* not contentVisibilityAuto: an off-screen auto section is still painted for a user who scrolls (review) */) continue;
     if (opacityOf(el) <= 0.05) continue;
     const rg = document.createRange(); rg.selectNodeContents(node);
     const rects = [...rg.getClientRects()].filter((x) => x.width > 0.5 && x.height > 0.5);
