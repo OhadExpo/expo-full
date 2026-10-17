@@ -168,10 +168,14 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   // due SO FAR: the weeks he has reached (the highest logged week), not the whole block - week 1 of 4 is not 'missing'
   const weekReached = Math.min(weeksN, Math.max(1, ...runs.map((r) => r.week)));
   const isLatest = plan === runPlans[runPlans.length - 1] || !!current;   // current: the block he is on while the next one is written (#851)
-  const plannedDue = runs.length && isLatest ? plannedSessions(runDays, weekReached) : plannedTotal;
+  // ...and in the week he is IN, only the days he has run: the days still ahead of him this week are not missing yet
+  // (#879, 17.10: Yehu's Saturday run read 'missing' 1 of 3 - Tuesday and Friday were still to come). Past weeks count whole.
+  const curWeekDone = (d) => runs.some((r) => r.week === weekReached && r.dayName === d.name);
+  const aheadThisWeek = (d, wk) => isLatest && wk === weekReached && !curWeekDone(d);
+  const plannedDue = runs.length && isLatest ? (weekReached > 1 ? plannedSessions(runDays, weekReached - 1) : 0) + runDays.filter((d) => dayInWeek(d, weekReached) && curWeekDone(d)).length : plannedTotal;
   // planned km for the weeks reached (per-week prescriptions), and whether any day is time-based (km then a floor)
   let plannedKm = 0, kmPartial = false;
-  for (let wk = 1; wk <= weekReached; wk++) for (const d of runDays) for (const ex of (dayInWeek(d, wk) ? d.exercises || [] : [])) {
+  for (let wk = 1; wk <= weekReached; wk++) for (const d of runDays) for (const ex of (dayInWeek(d, wk) && !aheadThisWeek(d, wk) ? d.exercises || [] : [])) {
     const pr = presFor(ex, wk); const k = hasUnit(pr.reps) ? presKm(pr.reps) : null;   // a bare '15' on a strength row is not 15 km
     if (k == null) { if (String(pr.reps || '').trim()) kmPartial = true; continue; }
     plannedKm += k * Math.max(1, parseInt(pr.sets, 10) || 1);
