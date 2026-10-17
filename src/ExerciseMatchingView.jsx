@@ -262,7 +262,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
       <style>{CONF_THEME_CSS}</style>
-      <Card leftStripe={C.ac} header={tt('Exercise Matching')}>
+      <Card leftStripe={C.ac} header={tt('Exercise Matching')} style={{ paddingBottom: 13 /* a header card's body starts under its strip; Card's own bottom is 20: the note read 18 / 25 (#796) */ }}>
         {/* The page's actions, moved out of the title strip into the body (26.9: a title box is ONE row — a toolbar of counts and long buttons never fits one row on a phone). */}
         {/* ONE STATS LINE, ONE JOINED PAIR, A SHORT NOTE (9.10, after #619 on Classify: two lone
             boxes of different widths and a paragraph of capitals) */}

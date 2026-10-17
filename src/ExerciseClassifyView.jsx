@@ -130,22 +130,22 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
       ) : (
         <Card>
           {phone ? (
-            <div style={{ marginTop: -12 }}>
+            <div style={{ marginTop: -23 /* the first name as far under the card's edge as over its dropdowns (#796: 25 / 14) */ }}>
               {rows.map(({ e, g }) => <PhoneRow key={e.id} e={e} g={g} skip={!!(edits[e.id] || {}).skip} val={val} setVal={setVal} toggleSkip={toggleSkip} tt={tt} />)}
             </div>
           ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', marginTop: -16 /* the column names centred between the card's edge and their rule (#796: 34 / 9.5), with the cells' 15 under them */ }}>
             {/* FIXED COLUMNS (17.10 #860): sized by their dropdowns' words, the columns differed per language - the name
                 column 344px in English, 363 in Hebrew at 820, names wrapping in English only - and 760px ran 14px past a
                 746px tablet card. The three dropdowns take 17% each, the name the rest, in both languages. */}
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720, tableLayout: 'fixed' }}>
               <colgroup><col /><col style={{ width: '17%' }} /><col style={{ width: '17%' }} /><col style={{ width: '17%' }} /><col style={{ width: 43 }} /></colgroup>
               <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-                <th style={{ ...th, padding: '8px 8px', textAlign: 'start' }}>{tt('Exercise')}</th>
-                <th style={{ ...th, padding: '8px 8px' }}>{tt('Resistance')}</th>
-                <th style={{ ...th, padding: '8px 8px' }}>{tt('Position')}</th>
-                <th style={{ ...th, padding: '8px 8px' }}>{tt('Movement')}</th>
-                <th style={{ ...th, padding: '8px 8px', width: 40 }} />
+                <th style={{ ...th, padding: '8px 8px 15px', textAlign: 'start' }}>{tt('Exercise')}</th>
+                <th style={{ ...th, padding: '8px 8px 15px' }}>{tt('Resistance')}</th>
+                <th style={{ ...th, padding: '8px 8px 15px' }}>{tt('Position')}</th>
+                <th style={{ ...th, padding: '8px 8px 15px' }}>{tt('Movement')}</th>
+                <th style={{ ...th, padding: '8px 8px 15px', width: 40 }} />
               </tr></thead>
               <tbody>
                 {rows.map(({ e, g }) => {
@@ -173,7 +173,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
           </div>
           )}
           {!showAll && filtered.length > CAP && (
-            <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <div style={{ textAlign: 'center', marginTop: phone ? 23 : 18 /* as far under the last row as over the card's bottom (#796: 13.5 / 20; a phone wraps the note under it: 23) */ }}>
               <Btn variant="ghost" onClick={() => setShowAll(true)}>{tt('Show all')} {filtered.length}</Btn>
               <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, marginInlineStart: 10 }}>{tt('showing {n} — most-complete guesses first').replace('{n}', CAP)}</span>
             </div>
