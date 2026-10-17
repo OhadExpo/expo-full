@@ -2107,7 +2107,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           <div style={{ margin: '0 0 16px' }}>
             {(() => {
               // the real athlete page's tabs, in its order (TraineeDetail SEC_TABS)
-              const tabs = [['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['messages', 'Messages'], ['crm', 'Coach History', 'History'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['eval', 'Evaluation'], ['overload', 'Overload']];
+              const tabs = [['all', readLang() === 'he' ? 'All' : 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['messages', 'Messages'], ['crm', 'Coach History', 'History'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['eval', 'Evaluation'], ['overload', 'Overload']];
               return (
                 <>
                 <SectionPicker label={T(readLang() === 'he' ? 'View' : 'Show')} tabs={tabs.map(([id, l]) => ({ id, label: T(l) }))} value={activeSecs.size === 1 ? [...activeSecs][0] : 'all'} onChange={(v) => { if (v === 'all') setActiveSecs(new Set()); else setActiveSecs(new Set([v])); }} />
@@ -2427,13 +2427,13 @@ function DemoLineage({ athleteName }) {
   const said = {
     'd-u0': { notes: he ? 'הבנץ׳ הרגיש מהיר היום' : 'Bench felt fast today' },
     'd-l1': { notes: he ? 'הגב התחתון נתפס בסט האחרון של הסקוואט' : 'Lower back got tight on the last squat set', autoregulation: { pain: 'moderate', sleep: 'poor', energy: 'ok' },
-      formVideos: [{ has: true, note: he ? 'הרגשתי שהירכיים עולות ראשונות ביציאה מהתחתית' : 'Felt my hips shoot up out of the hole', reviewNotes: [{ id: 'dr1', ts: 12, author: 'trainer', text: he ? 'הירכיים עולות לפני החזה - תחזיק את החזה למעלה ביציאה מהתחתית' : 'Hips rise before the chest - keep the chest up out of the hole', createdAt: '2026-06-11T10:00:00Z' }] }] },
+      formVideos: [{ has: true, note: he ? 'הרגשתי שהירכיים עולות ראשונות ביציאה מהתחתית' : 'Felt my hips shoot up out of the hole', reviewNotes: [{ id: 'dr1', ts: 12, author: 'trainer', text: he ? 'הישבן עולה לפני בית החזה - תחזיק את בית החזה למעלה ביציאה מהתחתית' : 'Hips rise before the chest - keep the chest up out of the hole', createdAt: '2026-06-11T10:00:00Z' }] }] },
     'd-l2': { autoregulation: { pain: 'mild', sleep: 'ok', energy: 'ok' } },
   };
   const talked = workouts.map((w) => (said[w.id] ? { ...w, ...said[w.id] } : w));
   const focus = {
     [`demo|${latestOf(plans)}|Day 2 · Lower|l0|W2`]: he ? 'שבוע קל לגב: 2 סטים פחות בסקוואט, ובכל חזרה עצירה של שנייה בתחתית' : 'An easy week for the back: two sets fewer on the squat, and a one-second pause at the bottom of every rep',
-    [`demo|${latestOf(plans)}|Day 1 · Upper|u0|W1`]: he ? 'תעלה 2.5 ק״ג אם כל החזרות נקיות' : 'Add 2.5 kg if every rep is clean',
+    [`demo|${latestOf(plans)}|Day 1 · Upper|u0|W1`]: he ? 'תעלה 2.5 קילו אם כל החזרות נקיות' : 'Add 2.5 kg if every rep is clean',
   };
   return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={plans} clientWorkouts={talked} loading={false} onOpenPlan={() => {}} focus={focus} />;
 }
@@ -5171,7 +5171,7 @@ function DemoTasks() {
           <div role="tablist" data-demo-board-tabs style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 10 }}>
             {STATUS_COLS.filter((c) => c.id !== 'done').map((col, i) => (
               <button key={col.id} type="button" role="tab" aria-selected={dtVisible.includes(i)} onClick={() => dtScrollTo(i)} style={{ height: 36, minWidth: 0, padding: '0 4px', border: 'none', background: 'var(--c-sf)', boxShadow: dtVisible.includes(i) ? `inset 0 -2px 0 ${C.ac}` : 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', color: dtVisible.includes(i) ? C.tx : C.tm, whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{T(col.label)}</span><span style={{ color: dtVisible.includes(i) ? C.ac : C.td }}>{visible.filter((t) => t.status === col.id).length}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{col.id === 'working' && readLang() !== 'he' ? <><span className="strip-meta">{T(col.label)}</span><span className="phone-only-word">{T('Doing')}</span></> : T(col.label)}</span><span style={{ color: dtVisible.includes(i) ? C.ac : C.td }}>{visible.filter((t) => t.status === col.id).length}</span>
               </button>
             ))}
           </div>

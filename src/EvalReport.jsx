@@ -83,7 +83,7 @@ export function EvalReportBody({ evaluation, prev = null }) {
   const card = { border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', marginTop: 12 };
   const nW = a.needsWork.length, nM = a.watch.length;
   const heW = nW === 0 ? 'אין נקודות שדורשות עבודה' : nW === 1 ? 'נקודה אחת דורשת עבודה' : `${I(nW)} נקודות דורשות עבודה`;
-  const heM = nM === 0 ? 'אין מה לשים לב אליו' : nM === 1 ? 'אחת שצריך לשים לב אליה' : `${I(nM)} שצריך לשים לב אליהן`;
+  const heM = nM === 0 ? 'אין נקודות לשים לב אליהן' : nM === 1 ? 'אחת שצריך לשים לב אליה' : `${I(nM)} שצריך לשים לב אליהן`;
   const line = he
     ? `בוצעו ${I(a.counts.tested)} מתוך ${I(a.counts.tests)} בדיקות ונמדדו ${I(a.counts.romTested)} מתוך ${I(a.counts.rom)} טווחי תנועה. ${heW}, ${heM}, ${I(a.onTarget)} ביעד.${a.recorded ? ` ${a.recorded === 1 ? 'תוצאה אחת נרשמה' : `${I(a.recorded)} תוצאות נרשמו`} בלי יעד להשוואה.` : ''}`
     : `${a.counts.tested} of ${a.counts.tests} tests and ${a.counts.romTested} of ${a.counts.rom} ranges of motion were tested. ${nW} need${nW === 1 ? 's' : ''} work, ${nM} to watch, ${a.onTarget} on target.${a.recorded ? ` ${a.recorded} recorded with no goal to read ${a.recorded === 1 ? 'it' : 'them'} by.` : ''}`;

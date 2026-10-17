@@ -625,7 +625,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
   const TD_ACT_BASE = { fontSize: 11, padding: '0 12px', height: 'var(--btn-h)', boxSizing: 'border-box', whiteSpace: 'nowrap' };
   const TD_ACT = { ...TD_ACT_BASE, border: `1px solid ${C.cardBd}` };
   const SEC_TABS = [
-    { id: 'all', label: t('View All') },
+    { id: 'all', label: heTD ? t('All') : t('View All') },   // after the selector's 'הצג:' the Hebrew 'הצג הכל' said 'show' twice (voice pass 17.10)
     { id: 'vitals', label: t('Vitals') },
     // No BILLING tab for a club athlete - the club pays, so there is nothing
     // under it but an empty ledger with their name on it (Ohad, 21.9).
@@ -857,13 +857,13 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           empty state. */}
       <CollapsibleSection domId="td-sec-billing" title={t('Billing')} count={tPay.length + sheetPays} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
-          {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
+          {totalPaid>0&&<span style={{color:'var(--c-stripTx)',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
-            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF'}}>{t('CONTRACT')}</button>
+            style={{...stripBtnBase,border:'1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)',color:'var(--c-stripTx)' /* the strip's own ink: white on the light theme's light strip was invisible (#786) */}}>{t('CONTRACT')}</button>
           <button onClick={()=>setShowPayForm(true)}
-            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderInlineStart:'none',color:'#FFFFFF'}}>{heTD ? t('+ ADD PAYMENT') : <span>+ <span className="strip-meta">{t('ADD')} </span>{t('PAYMENT')}</span> /* a phone: + PAYMENT - beside BILLING + CONTRACT the English button stepped under the strip, the Hebrew stayed (#860) */}</button>
+            style={{...stripBtnBase,border:'1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)',borderInlineStart:'none',color:'var(--c-stripTx)'}}>{heTD ? t('+ ADD PAYMENT') : <span>+ <span className="strip-meta">{t('ADD')} </span>{t('PAYMENT')}</span> /* a phone: + PAYMENT - beside BILLING + CONTRACT the English button stepped under the strip, the Hebrew stayed (#860) */}</button>
         </div></div>}>
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").

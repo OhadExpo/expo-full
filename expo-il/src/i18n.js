@@ -108,7 +108,7 @@ const STRINGS = {
   // 5.10 parity: + the portal's offline queue (#560) - sets logged without signal sync on their own
   'how.04.d': {
     en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine I run with the athletes I coach, no coach DMs in the way. No signal at the gym? Your sets are saved on the phone and sync on their own when the connection returns. Stopped half-way? The workout is saved and waits where you left off, on any device.',
-    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומראה לך על מה להתמקד השבוע. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לחכות לתשובה ממאמן. אין קליטה בחדר כושר? הסטים שלך נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר. עצרת באמצע? האימון שמור ומחכה לך מאיפה שהפסקת, בכל מכשיר.',
+    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון ודיווחי כאב — ומראה לך על מה להתמקד השבוע. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לחכות לתשובה ממאמן. אין קליטה בחדר הכושר? הסטים שלך נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר. עצרת באמצע? האימון שמור ומחכה לך בדיוק איפה שעצרת, בכל מכשיר.',
   },
 
   // (Old in-line how.faq.* keys removed — FAQ now lives in its own section,
@@ -429,7 +429,7 @@ const STRINGS = {
   // 5.10 parity: + the offline line, same as how.04.d
   'faq.a6': {
     en: "Within a few hours of receiving your Bit confirmation you get an email with a sign-in link to expo-app.co.il. Your purchased program is already loaded onto a private account. No app to install, no subscription — runs in any browser, on phone or laptop. No signal at the gym? Your sets are saved on the phone and sync on their own when the connection returns.",
-    he: 'תוך כמה שעות מהאישור בביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר מחכה בחשבון הפרטי שלך. בלי אפליקציה להתקין, בלי מנוי — עובד בכל דפדפן, בטלפון או במחשב. אין קליטה בחדר כושר? הסטים שלך נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
+    he: 'תוך כמה שעות מהאישור בביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר מחכה בחשבון הפרטי שלך. בלי אפליקציה להתקין, בלי מנוי — עובד בכל דפדפן, בטלפון או במחשב. אין קליטה בחדר הכושר? הסטים שלך נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
   },
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {

@@ -78,7 +78,7 @@ function moves(a, he, deloadHeadline) {
   if (a.rpeCoverage != null && a.rpeCoverage < 30 && out.length < 4) out.push({ tone: 'info', t: he ? `תבקש ממנו לרשום RPE - נרשם רק ב־${I(a.rpeCoverage + '%')} מהסטים, ובלי זה אי אפשר לדעת אם הוא עייף או שהגיע לתקרה.` : `Ask him to log effort (RPE) - on ${a.rpeCoverage}% of sets now, and without it fatigue and a ceiling look the same.` });
   if (!out.length) out.push(mains.length
     ? { tone: 'ok', t: L(he, 'Keep progressing - nothing is dropping or stuck.', 'תמשיך להתקדם - שום תרגיל לא יורד ולא תקוע.') }
-    : { tone: 'info', t: L(he, 'Too little logged on the main lifts to call the block.', 'נרשם מעט מדי בתרגילים המרכזיים כדי לקבוע משהו על הבלוק.') });
+    : { tone: 'info', t: L(he, 'Too little logged on the main lifts to call the block.', 'נרשם מעט מדי בתרגילים המרכזיים כדי להגיד משהו על הבלוק.') });
   return out.slice(0, 4);
 }
 
@@ -118,7 +118,7 @@ function Glance({ a, he }) {
   if (sess.length && !sess.some((x) => dayKeys.has(norm(x.day)))) {
     return (
       <div style={card}>
-        <FitStrip he={he} title={L(he, 'The block at a glance', 'הבלוק במבט אחד')} />
+        <FitStrip he={he} title={L(he, 'The block at a glance', 'הבלוק בקצרה')} />
         <div style={{ padding: '10px 14px', fontFamily: FB, fontSize: 12.5, color: C.tm, lineHeight: 1.5 }}>{L(he, 'The logged days carry other names than the plan\'s days (probably renamed after logging), so they cannot be laid on the plan.', 'השמות של הימים שנרשמו לא תואמים לימים בתוכנית (כנראה שונו אחרי הרישום), אז אי אפשר לשבץ אותם בטבלה.')}</div>
       </div>
     );
@@ -146,7 +146,7 @@ function Glance({ a, he }) {
   const cols = `minmax(88px, 260px) repeat(${weeks}, 34px)`;
   return (
     <div style={card}>
-      <FitStrip he={he} title={L(he, 'The block at a glance', 'הבלוק במבט אחד')} meta={L(he, 'every planned day, week by week', 'כל יום מתוכנן, שבוע אחרי שבוע')} />
+      <FitStrip he={he} title={L(he, 'The block at a glance', 'הבלוק בקצרה')} meta={L(he, 'every planned day, week by week', 'כל יום מתוכנן, שבוע אחרי שבוע')} />
       <div style={{ padding: '8px 14px 12px', overflowX: 'auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: cols, alignItems: 'center', minWidth: 0 }}>
           <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: track(he, '0.08em'), textTransform: 'uppercase' }}>{L(he, 'Week', 'שבוע')}</span>

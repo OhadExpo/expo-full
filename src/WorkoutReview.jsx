@@ -2830,7 +2830,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const lw = latest ? (((planIndex || []).find(p => p.traineeId === latest.clientId && p.name === latest.planName) || (planIndex || []).find(p => p.name === latest.planName))?.weeks || null) : null;
             const segCount = lw && lw <= 12 ? lw : 0;
             const cnt = (data.workouts || []).filter(w => !w.reviewedAt).length;
-            return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>
+            return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'var(--c-stripTx)' /* the strip's own ink: white on the light theme's light strip read 1.39:1 (#786 contrast sweep) */,fontWeight:700}}>
               <span style={{lineHeight:1}}><bdi>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()}</bdi> ({cnt})</span>
               {/* The block name and the week dashes are SAID AGAIN two lines
                   below, in the group header ("BLOCK #19 · WEEK 2/4"). On a

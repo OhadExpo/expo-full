@@ -842,7 +842,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
         ) : (
           <span style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-            color: 'var(--c-td)', textTransform: 'uppercase', opacity: 0.75, flexShrink: 0,
+            color: 'var(--c-tm)', textTransform: 'uppercase', flexShrink: 0,   // the secondary ink (#786: the dimmest, dimmed again, read 1.61:1 on dark)
           }}>{tt('Enter to save')}</span>
         )}
         {/* Discard / collapse — resets every field and closes the composer (Ohad:
@@ -1376,7 +1376,7 @@ export function CommentsThread({ noteId, viewer }) {
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
                   ref={(el) => { if (el && el.style.height === '') { el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } }}
                   style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none', resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box' }} />
-                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: 'var(--c-stripTx)', border: 'none' }}>{tr(readLang(), 'Save')}</button>
+                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: 'var(--c-acOnSurface)', border: 'none' }}>{tr(readLang(), 'Save')}</button>
                 <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>{tr(readLang(), 'Cancel')}</button>
               </div>
             ) : (
@@ -3159,7 +3159,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 <button key={section.key} type="button" role="tab" aria-selected={on} onClick={() => scrollBoardTo(i)}
                   style={{ height: 36, minWidth: 0, padding: '0 4px', border: 'none', background: 'var(--c-sf)', boxShadow: on ? 'inset 0 -2px 0 var(--c-ac)' : 'none', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', color: on ? 'var(--c-tx)' : 'var(--c-tm)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                  {/* a phone says DOING for IN PROGRESS (#786: 'IN PROG…' was cut by an ellipsis - a title fits by its wording) */}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{section.statusId === 'working' && readLang() !== 'he' ? <><span className="strip-meta">{label}</span><span className="phone-only-word">{tt('Doing')}</span></> : label}</span>
                   <span style={{ color: on ? 'var(--c-ac)' : 'var(--c-td)' }}>{section.rows.length}</span>
                 </button>
               );
@@ -3294,7 +3295,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               borderBottom: doneOpen ? `1px solid var(--c-cardBd)` : 'none',
             }}>
             <span><CaretGlyph rot={doneOpen ? 0 : -90} /> {tt('Done')} · {doneStrip.length}</span>
-            <span style={{ opacity: 0.6, fontSize: 9 }}>
+            <span style={{ color: 'var(--c-tm)', fontSize: 9 }}>{/* the secondary ink (#786: 1.44:1 dimmed twice) */}
               {doneOpen ? (readLang() === 'he' ? `מציג את ${Math.min(doneStrip.length, 5)} האחרונות` : `${tt('Showing latest')} ${Math.min(doneStrip.length, 5)}`) : tt('Click to expand')}
             </span>
           </div>

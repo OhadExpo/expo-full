@@ -1052,7 +1052,8 @@ function MenuCard({ glyph, title, desc, onClick }) {
     </button>
   );
 }
-const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
+// the ink ON the accent fill (#786: the strip's ink was black on the light theme's black accent - 1.00:1, invisible)
+const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: C.acOnSurface, fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
 const stripBtn = { ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' };
 // EVERY miniBtn IS THE SAME BOX. It had no height and no display, so a button
 // that added display:inline-flex measured 22px while its neighbour, left on

@@ -628,7 +628,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Blocks in a row each main lift has run, up to the latest block. An orange number = 4 or more in a row - long enough to ask whether it is still being progressed or has gone stale. Your call, not a verdict.', 'כמה בלוקים ברצף כל תרגיל מרכזי נמצא בתוכנית, עד הבלוק האחרון. מספר בכתום = 4 בלוקים ברצף ומעלה - מספיק זמן כדי לשאול אם עוד מתקדמים בו או שהוא כבר נשחק. ההחלטה שלך, לא פסק דין.')}</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Blocks in a row each main lift has run, up to the latest block. An orange number = 4 or more in a row - long enough to ask whether it is still being progressed or has gone stale. Your call, not a verdict.', 'כמה בלוקים ברצף כל תרגיל מרכזי נמצא בתוכנית, עד הבלוק האחרון. מספר בכתום = 4 בלוקים ברצף ומעלה - מספיק זמן כדי לשאול אם עוד מתקדמים בו או שהוא כבר נשחק. ההחלטה שלך - המספר רק מסמן, לא פוסק.')}</div>
         </Section>
       );
     })()}

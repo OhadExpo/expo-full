@@ -98,7 +98,7 @@ const STRINGS = {
   'feat.portal.body': {
     // 5.10 parity: the offline queue (#560) - sets logged without signal sync when it returns
     en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in. No signal at the gym? Sets are saved on the phone and sync on their own when the connection returns.',
-    he: 'לכל מתאמן יש מסך אישי עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים. אין קליטה בחדר כושר? הסטים נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
+    he: 'לכל מתאמן יש מסך אישי עם התוכנית שלו, בדיקות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים. אין קליטה בחדר הכושר? הסטים נשמרים בטלפון ומסתנכרנים לבד כשהחיבור חוזר.',
   },
   'feat.ops.tag':        { en: 'OPS',                  he: 'תפעול' },
   'feat.ops.title':      { en: 'WhatsApp nudges', he: 'תזכורות בוואטסאפ' },

@@ -40,7 +40,7 @@ export default function BlockTalk({ ctx, he, coach = true }) {
     c.notes ? (he ? (c.notes === 1 ? 'הערה אחת שלך' : `${I(c.notes)} הערות שלך`) : `${c.notes} note${c.notes === 1 ? '' : 's'} of yours`) : null,
     c.exNotes ? (he ? (c.exNotes === 1 ? 'הערה אחת שלך על תרגיל' : `${I(c.exNotes)} הערות שלך על תרגילים`) : `${c.exNotes} note${c.exNotes === 1 ? '' : 's'} of yours on an exercise`) : null,
   ]).filter(Boolean);   // both voices drop the empty counts (the coach's '· · ·' line, 16.10)
-  const title = coach ? L(he, 'What was said', 'מה נאמר בבלוק') : L(he, 'Notes and focus', 'הערות ופוקוס');
+  const title = coach ? L(he, 'What was said', 'מה נכתב בבלוק') : L(he, 'Notes and focus', 'הערות ופוקוס');
   if (!ctx.any) {
     return (
       <div style={card} data-block-talk>

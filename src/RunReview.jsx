@@ -42,7 +42,7 @@ function moves(a, he) {
     const t = h.run.target; const slow = t ? I(pace(t[1])) : null; const hr = h.run.reps && h.run.reps.hrRise;
     out.push({ tone: 'warn', t: he ? `שיתחיל ${h.run.kind === 'tempo' ? 'את הטמפו' : 'את החזרות'} בקצה האיטי של הטווח${slow ? ` (${slow})` : ''} וישמור על קצב אחיד - ב־${I(dm(h.run.date))} הוא פתח מהר מהטווח ב־${I(h.fastStart)} שנ׳ לק״מ ואיבד ${I(h.fade)} שנ׳ לק״מ עד הסוף${hr ? `, והדופק עלה ב־${I(hr)} פעימות` : ''}.` : `Start the reps at the slow end of the range${slow ? ` (${slow})` : ''} and hold them even - on ${dm(h.run.date)} he opened ${h.fastStart} s/km faster than the range and lost ${h.fade} s/km by the end${hr ? `, heart rate up ${hr}` : ''}.` });
   }
-  for (const c of a.capHits.slice(0, 1)) out.push({ tone: 'warn', t: he ? `לשמור על תקרת הדופק: ב־${I(dm(c.date))} הוא הגיע ל־${I(c.hrVs.max)} מול תקרה של ${I(c.hrVs.cap)} - שיוריד קצב ברגע שהדופק נוגע בתקרה.` : `Hold the heart-rate cap: on ${dm(c.date)} he reached ${c.hrVs.max} against a cap of ${c.hrVs.cap} - ease off the moment it touches the cap.` });
+  for (const c of a.capHits.slice(0, 1)) out.push({ tone: 'warn', t: he ? `שישמור על תקרת הדופק: ב־${I(dm(c.date))} הוא הגיע ל־${I(c.hrVs.max)} מול תקרה של ${I(c.hrVs.cap)} - שיוריד קצב ברגע שהדופק נוגע בתקרה.` : `Hold the heart-rate cap: on ${dm(c.date)} he reached ${c.hrVs.max} against a cap of ${c.hrVs.cap} - ease off the moment it touches the cap.` });
   if (a.easyFastHrOk.length) {
     const e = a.easyFastHrOk[0], r = e.run;
     out.push({ tone: 'info', t: he ? `אפשר להעלות את קצב הריצה הקלה: ב־${I(dm(r.date))} הוא רץ ב־${I(pace(r.mainPace))} לק״מ${e.hr ? ` בדופק ${I(e.hr)}` : ''}, כשהיעד היה ${range(r.target)}.` : `His easy pace can come up: on ${dm(r.date)} he ran ${pace(r.mainPace)} /km${e.hr ? ` at heart rate ${e.hr}` : ''} against a target of ${pace(r.target[0])}–${pace(r.target[1])}.` });
@@ -69,7 +69,7 @@ function vsWord(r, he) {
   if (!r.paceVs) return null;
   const d = r.paceVs;
   if (d.dir === 'in') return { c: C.gn, t: L(he, 'on target', 'בטווח') };
-  return { c: d.dir === 'fast' ? C.or : C.ac, t: he ? `${d.dir === 'fast' ? 'מהר' : 'לאט'} ב־${I(d.by)} שנ׳` : `${d.by} s ${d.dir}` };
+  return { c: d.dir === 'fast' ? C.or : C.ac, t: he ? `${d.dir === 'fast' ? 'מהר יותר' : 'לאט יותר'} ב־${I(d.by)} שנ׳` : `${d.by} s ${d.dir}` };
 }
 
 export default function RunReview({ a, he }) {
@@ -107,7 +107,7 @@ export default function RunReview({ a, he }) {
 
       {/* RUN BY RUN */}
       <div style={card}>
-        <div style={strip}><span>{L(he, 'Run by run', 'ריצה אחרי ריצה')}</span><span style={sub}>{L(he, 'the main work against its plan', 'החלק העיקרי מול התכנון')}</span></div>
+        <div style={strip}><span>{L(he, 'Run by run', 'ריצה אחרי ריצה')}</span><span style={sub}>{L(he, 'the main work against its plan', 'החלק העיקרי מול המתוכנן')}</span></div>
         {a.runs.map((r, i) => {
           const w = vsWord(r, he); const isFlag = a.flags.some((f) => f.run === r);
           return (
@@ -124,7 +124,7 @@ export default function RunReview({ a, he }) {
                 {r.mainPace ? <span><Ltr>{pace(r.mainPace)}</Ltr> {L(he, '/km', 'לק״מ')}{r.target && <span style={{ color: C.tm }}> {L(he, 'vs', 'מול')} <Ltr>{pace(r.target[0])}–{pace(r.target[1])}</Ltr></span>}</span> : <span style={{ color: C.tm }}>{L(he, 'time logged, no distance', 'נרשם זמן בלי מרחק')}</span>}
                 {r.hrVs && <span style={{ color: r.hrVs.over ? C.rd : C.tm }}>{L(he, 'HR', 'דופק')} <Ltr>{r.hrVs.max}</Ltr> {L(he, 'cap', 'תקרה')} <Ltr>{r.hrVs.cap}</Ltr></span>}
                 {r.reps && r.reps.paces.length >= 2 && r.reps.spread > 0 && (
-                  <span style={{ color: C.tm }}>{L(he, 'reps', 'חזרות')} <Ltr>{r.reps.paces.map(pace).join(' · ')}</Ltr>{r.reps.fade >= 10 && <span style={{ color: C.or }}> ({L(he, 'slowed', 'ירידת קצב')} <Ltr>{r.reps.fade}</Ltr> {L(he, 's', 'שנ׳')})</span>}</span>
+                  <span style={{ color: C.tm }}>{L(he, 'reps', 'חזרות')} <Ltr>{r.reps.paces.map(pace).join(' · ')}</Ltr>{r.reps.fade >= 10 && <span style={{ color: C.or }}> ({L(he, 'slowed', 'האטה')} <Ltr>{r.reps.fade}</Ltr> {L(he, 's', 'שנ׳')})</span>}</span>
                 )}
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function RunReview({ a, he }) {
                 <div key={w.wk} style={{ display: 'grid', gridTemplateColumns: '44px 1fr 74px', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}><Ltr>{dm(w.wk + 'T12:00:00Z')}</Ltr></span>
                   <span style={{ height: 8, border: `1px solid ${C.ac}`, boxSizing: 'border-box', width: `${Math.max(4, (100 * w.km) / max)}%`, borderStyle: w.current ? 'dashed' : 'solid' }} />
-                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, textAlign: 'end' }}><Ltr>{km1(w.km)}</Ltr> {w.current ? L(he, 'so far', 'עד כה') : L(he, 'km', 'ק״מ')}</span>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, textAlign: 'end' }}><Ltr>{km1(w.km)}</Ltr> {w.current ? L(he, 'so far', 'עד עכשיו') : L(he, 'km', 'ק״מ')}</span>
                 </div>
               ))}
             </div>

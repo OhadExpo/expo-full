@@ -134,7 +134,7 @@ const RUN_SEGMENTS = [
   { key: 'long', label: 'Long run', he: 'ריצה ארוכה', sets: 1, dist: '7 km', pace: '5:45-5:55', rest: '', distHe: '7 ק״מ' },
   { key: 'tempo', label: 'Tempo', he: 'טמפו', sets: 3, dist: '1.5 km', pace: '5:30-5:35', rest: '1 min walk', distHe: '1.5 ק״מ', restHe: '1 דק׳ הליכה' },
   { key: 'intervals', label: 'Intervals', he: 'חזרות', sets: 5, dist: '1 km', pace: '5:00-5:05', rest: '2.5 min walk', distHe: '1 ק״מ', restHe: '2.5 דק׳ הליכה' },
-  { key: 'strides', label: 'Strides', he: 'האצות', sets: 4, dist: '100 m', pace: 'fast, relaxed', rest: 'walk back', distHe: '100 מ׳', paceHe: 'מהיר ומשוחרר', restHe: 'חזרה בהליכה' },
+  { key: 'strides', label: 'Strides', he: 'האצות', sets: 4, dist: '100 m', pace: 'fast, relaxed', rest: 'walk back', distHe: '100 מ׳', paceHe: 'מהיר ומשוחרר', restHe: 'הליכה חזרה להתחלה' },
   { key: 'cooldown', label: 'Cool-down', he: 'שחרור', sets: 1, dist: '1 km', pace: 'easy', rest: '', distHe: '1 ק״מ', paceHe: 'קל' },
 ];
 function PatternCoverage({ plan, exercises, cols = 5 }) {
