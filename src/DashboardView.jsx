@@ -725,7 +725,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           // 10px one sat the ink 1px low - rule-rhythm CENTRE) - themes.css .dash-storage
           <div className="dash-storage" style={{
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-            borderRadius: 0, padding: '8px 14px', marginBottom: 14,
+            borderRadius: 0, padding: '8px 14px', marginBottom: 14, minHeight: 36, boxSizing: 'border-box',   // the 36px floor of every bordered box (#871: it sat at 33)
             display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
           }}>
             <span className="ds-label" style={{

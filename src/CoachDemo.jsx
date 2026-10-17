@@ -523,11 +523,11 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       <DemoOwedCard onJumpToTrainee={onJumpToTrainee} onNav={onNav} />
 
       {/* STORAGE - the real dashboard's slim meter under OWED */}
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 14px', minHeight: 36, boxSizing: 'border-box', padding: '8px 14px', border: `1px solid ${C.cardBd}`, background: C.sf, marginBottom: 14 }}>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase' }}>{T('Storage')}</span>
-        <span style={{ flex: '1 1 160px', height: 4, background: C.cardBd, position: 'relative' }}><span style={{ position: 'absolute', insetInlineStart: 0, top: 0, bottom: 0, width: '1.2%' /* 1.2 of 100 GB - it drew 2% beside '1%' (AUDIT-470) */, background: C.gn }} /></span>
-        <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, letterSpacing: '0.06em' }}>1.2 GB / 100 GB · 1%</span>
-        <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.1em', textTransform: 'uppercase' }}>48 {T('form videos')}</span>
+      <div className="dash-storage" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, minHeight: 36, boxSizing: 'border-box', padding: '8px 14px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', marginBottom: 14 }}>
+        <span className="ds-label" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, textTransform: 'uppercase', flexShrink: 0 }}>{T('Storage')}</span>
+        <span className="ds-bar" style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, position: 'relative' }}><span style={{ position: 'absolute', insetInlineStart: 0, top: 0, bottom: 0, width: '1.2%' /* 1.2 of 100 GB - it drew 2% beside '1%' (AUDIT-470) */, background: C.gn }} /></span>
+        <span className="ds-fig" dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.gn, letterSpacing: '0.04em', flexShrink: 0, unicodeBidi: 'isolate' }}>1.2 GB / 100 GB · 1%</span>
+        <span className="ds-files" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.08em', flexShrink: 0 }}>48 {T('form videos')}</span>
       </div>
 
       {/* TASKS - the real card (NotesWidget compact): the scope toggle, only the
@@ -5042,11 +5042,11 @@ function DemoTaskList({ visible, doneOpen, setDoneOpen }) {
         </div>
       ))}
       {done.length > 0 && (
-        /* the real DONE toggle's box (TasksV8View): 10px 14px around the text, the
-           caret inline, the hint at 9px - not a 36px min-height row (#460) */
-        <div role="button" tabIndex={0} aria-expanded={doneOpen} onClick={() => setDoneOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDoneOpen((o) => !o); } }} style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.cardBd}`, borderRadius: 0, color: 'var(--c-td)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'start' }}>
+        /* the real DONE toggle's box (TasksV8View): a 36px row (#494), the caret inline, the hint at 9px in the
+           secondary ink (#786) */
+        <div role="button" tabIndex={0} aria-expanded={doneOpen} onClick={() => setDoneOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDoneOpen((o) => !o); } }} style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', minHeight: 36, background: 'transparent', border: 'none', borderTop: `1px solid ${C.cardBd}`, borderRadius: 0, color: 'var(--c-td)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.18em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'start' }}>
           <span><CaretGlyph rot={doneOpen ? 0 : -90} /> {T('Done')} · {done.length}</span>
-          {!doneOpen && <span style={{ opacity: 0.6, fontSize: 9 }}>{T('Click to expand')}</span>}
+          {!doneOpen && <span style={{ color: 'var(--c-tm)', fontSize: 9 }}>{T('Click to expand')}</span>}
         </div>
       )}
       {doneOpen && done.map((t) => (
@@ -5213,7 +5213,7 @@ function DemoTasks() {
           <div data-demo-done-strip style={{ marginTop: 14, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
             <div role="button" tabIndex={0} aria-expanded={dtDoneOpen} onClick={() => setDtDoneOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDtDoneOpen((o) => !o); } }} style={{ padding: '0 14px', minHeight: 36, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.18em', color: C.td, textTransform: 'uppercase', cursor: 'pointer', borderBottom: dtDoneOpen ? `1px solid ${C.cardBd}` : 'none' }}>
               <span><CaretGlyph rot={dtDoneOpen ? 0 : -90} /> {T('Done')} · {visible.filter((t) => t.status === 'done').length}</span>
-              <span style={{ opacity: 0.6, fontSize: 9 }}>{dtDoneOpen ? '' : T('Click to expand')}</span>
+              <span style={{ color: 'var(--c-tm)', fontSize: 9 }}>{dtDoneOpen ? '' : T('Click to expand')}</span>
             </div>
             {dtDoneOpen && visible.filter((t) => t.status === 'done').slice(0, 5).map((t) => (
               <div key={t.id} style={{ padding: '10px 12px', borderBottom: `1px solid ${C.bd}`, textAlign: 'center', fontFamily: FB, fontSize: 13.5, color: C.tm, textDecoration: 'line-through' }}><bdi>{taskTitle(t)}</bdi></div>

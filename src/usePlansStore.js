@@ -301,6 +301,14 @@ const readPlanLangHe = () => { try { return (localStorage.getItem('expo-lang') |
 // logs, a couple partner's or a same-named block's. Idempotent: a save with no rename moves nothing; typing a name
 // through intermediate saves ends on the final one. Best effort - the plan itself is already saved.
 // (Day renames and the portal show/hide key are still by name - a day id on the logs is the next step.)
+// #873: the database carried the logs of a renamed day (by day id); the open log lists follow (useSupaClientWorkouts)
+function announceDays(plan) {
+  try {
+    if (typeof window === 'undefined' || !plan || !plan.id || !Array.isArray(plan.days)) return;
+    window.dispatchEvent(new CustomEvent('expo-plan-days', { detail: { planId: plan.id, traineeId: plan.traineeId || '', days: plan.days.map((d) => ({ id: d && d.id, name: d && d.name })) } }));
+  } catch { /* the lists catch up on their next load */ }
+}
+
 async function syncLogNames(plan) {
   const name = String(plan && plan.name || '');
   if (!plan || !plan.id || !name.trim()) return;
@@ -419,7 +427,7 @@ export async function savePlan(plan) {
     let { data: upd, error: ue } = await casUpdate(rowWithCol);
     if (colMissing(ue)) ({ data: upd, error: ue } = await casUpdate(baseRow));
     if (ue) { console.error('savePlan error:', ue); return false; }
-    if (upd && upd.length) { remember(plan, upd[0].updated_at); await syncLogNames(plan); return true; }
+    if (upd && upd.length) { remember(plan, upd[0].updated_at); await syncLogNames(plan); announceDays(plan); return true; }
     const { data: cur, error: ce } = await supabase.from('plans').select('updated_at').eq('id', plan.id).maybeSingle();
     if (ce) { console.error('savePlan error:', ce); return false; }
     if (cur && cur.updated_at !== base) {

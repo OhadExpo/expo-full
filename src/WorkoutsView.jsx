@@ -438,7 +438,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     week = onlyW || Math.min(planWeeks, Math.max(1, week));
     // a RUNNING block (#808): the logger takes km / time / HR per rep, saved in the portal's own run shape
     const isRun = fullPlan.data?.sport === 'running';
-    const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
+    const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,dayId:day.id||null,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress", week, planWeeks, ...(isRun ? { sport: 'running' } : {}),
       // Plans that vary reps/sets per week store ex.wk / ex.wkS — read the
       // CHOSEN week, exactly as SessionsView and the athlete portal already do.
@@ -601,7 +601,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     // (the coach logged it, nothing to review) and source tags its origin.
     if (setClientWorkouts) {
       const row = {
-        id: 'cw_' + uid(), clientId: w.traineeId, planId: w.planId || null, planName: w.planName, dayName: w.dayName,
+        id: 'cw_' + uid(), clientId: w.traineeId, planId: w.planId || null, planName: w.planName, dayName: w.dayName, dayId: w.dayId || null,
         week: Number(w.week) || 1, date: finishedAt, completedAt: finishedAt,
         notes: w.notes || '', formVideos: [], reviewedAt: finishedAt, source: 'coach-session',
         exercises: (w.exercises || []).map(ex => ({

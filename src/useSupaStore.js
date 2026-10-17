@@ -305,7 +305,7 @@ registerHandler('store.upsert', async ({ key, value, baseAt, baseVal }) => {
 
 // plan_id exists on the live table since 17.10 (#865). A missing column (an old
 // database) still falls back per write below - never cached.
-const isPlanIdColumnError = (error) => !!error && (/plan_id/i.test(error.message || '') || error.code === '42703' || error.code === 'PGRST204');
+const isPlanIdColumnError = (error) => !!error && (/plan_id|day_id/i.test(error.message || '') || error.code === '42703' || error.code === 'PGRST204');
 
 // A hung request must not hold the row's write chain (and the athlete) forever.
 // An abort reads as 'aborted' → transient → the row stays queued and retries.
@@ -371,10 +371,14 @@ export async function upsertWorkoutRow(row) {
   let { error } = await withTimeout(() => supabase.from('client_workouts').upsert(row));
   // plan_id is what lets the portal tell two couple members' identically-named
   // plans apart (audit #31). The column may not exist yet — retry without it.
-  if (error && row && 'plan_id' in row && isPlanIdColumnError(error)) {
-    const rest = { ...row };
-    delete rest.plan_id;
-    ({ error } = await withTimeout(() => supabase.from('client_workouts').upsert(rest)));
+  // ONLY the column the server says is missing goes (review #873: dropping both stripped plan_id from every log of a
+  // plan with day ids while day_id did not exist yet); a code-only error drops the newer column first
+  for (let i = 0, rest = row; i < 2 && error && rest && ('plan_id' in rest || 'day_id' in rest) && isPlanIdColumnError(error); i++) {
+    const msg = String(error.message || '');
+    rest = { ...rest };
+    if ('day_id' in rest && (/day_id/i.test(msg) || !/plan_id/i.test(msg))) delete rest.day_id; else delete rest.plan_id;
+    const next = rest;
+    ({ error } = await withTimeout(() => supabase.from('client_workouts').upsert(next)));
   }
   if (error) throw error;
   // CONFIRMED BY THE SERVER, NOT BY THE REQUEST (5.10 #560). A write whose
@@ -999,7 +1003,7 @@ export function useSupaClientWorkouts(initial = []) {
             // plan_name alone cannot (audit 08-22 #31). Undefined until the
             // column exists — every consumer falls back to the name.
             id: r.id, clientId: r.client_id, planId: r.plan_id || null, planName: r.plan_name,
-            dayName: r.day_name, week: r.week, date: r.date,
+            dayName: r.day_name, dayId: r.day_id || null, week: r.week, date: r.date,
             autoregulation: r.autoregulation || {}, notes: r.notes || '',
             exercises: r.exercises || [], formVideos: r.form_videos || [],
             reviewedAt: r.reviewed_at || null
@@ -1025,12 +1029,14 @@ export function useSupaClientWorkouts(initial = []) {
               // History would show the old sets until the queue drained.
               if (haveIds.has(r.id)) {
                 const at = mapped.findIndex(w => w.id === r.id);
-                if (at >= 0) mapped[at] = { ...mapped[at], planName: r.plan_name, dayName: r.day_name, week: r.week, date: r.date, autoregulation: r.autoregulation || {}, notes: r.notes || '', exercises: r.exercises || [] };
+                // the server's day name wins when the server knows the day (#873: a queued copy can hold the name
+                // from before a rename, and the logger finds its log by that name)
+                if (at >= 0) mapped[at] = { ...mapped[at], planName: r.plan_name, dayName: mapped[at].dayId ? mapped[at].dayName : r.day_name, dayId: mapped[at].dayId || r.day_id || null, week: r.week, date: r.date, autoregulation: r.autoregulation || {}, notes: r.notes || '', exercises: r.exercises || [] };
                 continue;
               }
               mapped.push({
                 id: r.id, clientId: r.client_id, planId: r.plan_id || null, planName: r.plan_name,
-                dayName: r.day_name, week: r.week, date: r.date,
+                dayName: r.day_name, dayId: r.day_id || null, week: r.week, date: r.date,
                 autoregulation: r.autoregulation || {}, notes: r.notes || '',
                 exercises: r.exercises || [], formVideos: r.form_videos || [],
                 reviewedAt: r.reviewed_at || null
@@ -1085,6 +1091,31 @@ export function useSupaClientWorkouts(initial = []) {
     return () => window.removeEventListener('expo-cw-patched', onPatch);
   }, []);
 
+  // A RENAMED DAY, ON THIS SCREEN (#873). The database gives a log its day's current name after every plan save; this
+  // tab's copy of the logs follows at once (by the day's id, this plan's athlete only), so a session started right
+  // after a rename finds that day's logs. Local state only - nothing is written from here.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onDays = (e) => {
+      const { planId, traineeId, days } = (e && e.detail) || {};
+      if (!planId || !Array.isArray(days)) return;
+      const names = new Map(days.filter((d) => d && d.id && String(d.name || '').trim()).map((d) => [d.id, d.name]));
+      const owner = String(traineeId || ''), base = owner.replace(/__[0-9]+$/, '');
+      if (!owner) return;   // an unassigned plan: the database carries nothing either (re-review N2)
+      let changed = false;
+      const next = (dataRef.current || []).map((w) => {
+        if (!w || w.planId !== planId || !w.dayId || !names.has(w.dayId) || w.dayName === names.get(w.dayId)) return w;
+        if (w.clientId !== owner && w.clientId !== base) return w;
+        changed = true; return { ...w, dayName: names.get(w.dayId) };
+      });
+      if (!changed) return;
+      setData(next); dataRef.current = next;
+      try { lsSnapshotRecent('expo-cw', next); } catch {}
+    };
+    window.addEventListener('expo-plan-days', onDays);
+    return () => window.removeEventListener('expo-plan-days', onDays);
+  }, []);
+
   // save(next, { upsertIds }) returns a Promise of
   //   { ok, confirmed, queued, permanent, authWait, settled }
   //   ok        — the workout is SAFE: on the server, or durably in the queue
@@ -1127,6 +1158,9 @@ export function useSupaClientWorkouts(initial = []) {
       // device's copy — null on a re-save — and wiped the coach's review.
       if (!isExisting && w.reviewedAt) row.reviewed_at = w.reviewedAt;
       if (w.planId) row.plan_id = w.planId;
+      // #873: the day's id - the database gives the log its day's CURRENT name on every write and after every plan
+      // save, so a renamed day keeps its logs (scripts/migrations/2026-10-17-workout-day-id.sql)
+      if (w.dayId) row.day_id = w.dayId;
       // DURABLE BEFORE NETWORK. The row goes into the critical queue FIRST,
       // synchronously, before any await: a tab closed 50 ms after Complete, a
       // silent SW reload, a dead phone — the queue replays it on the next

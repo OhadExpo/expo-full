@@ -234,7 +234,9 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
       const changed = working.filter((np) => { const op = (fresh || []).find((p) => p.id === np.id); return op && JSON.stringify(op.data) !== JSON.stringify(np.data); });
       let ok = 0; const failedIds = new Set();
       for (const p of changed) {
-        const { error } = await supabase.from('plans').update({ data: p.data }).eq('id', p.id);
+        // updated_at moves with the data: an editor open on this plan gets a save conflict and reloads, instead of
+        // writing its older copy (and its own day ids) over this one (#873 review)
+        const { error } = await supabase.from('plans').update({ data: p.data, updated_at: new Date().toISOString() }).eq('id', p.id);
         if (!error) ok++; else failedIds.add(p.id);
       }
       // Local state reflects reality: successful writes only — a failed plan

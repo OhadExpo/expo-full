@@ -498,6 +498,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         // nextWeekFor capped at the fallback 8. (audit)
         planWeeks: Number(planIndex.find(pi => pi.id === p.planId)?.weeks) || undefined,
         dayName: day.name || p.dayName || 'Session',
+        dayId: day.id || null,   // #873: a renamed day keeps its logs
         week,
         checkedIn: false,
         curEx: 0,
@@ -553,6 +554,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           planId: a.planId || null,
           planName: a.planName,
           dayName: a.dayName,
+          dayId: a.dayId || null,
           week: Number(a.week) || nextWeekFor(a.traineeId, a.planName, a.dayName, a.planWeeks),
           date: finishedAt, completedAt: finishedAt,
           notes: 'Logged in group session',

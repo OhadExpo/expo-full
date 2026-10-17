@@ -243,6 +243,7 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
         : (trainerArr || compactArr || [])).filter(Boolean);
       const seenEid = new Map();   // #51: disambiguate the same exercise appearing twice in one day
       return {
+        id: d.id || undefined,   // #873: the log carries its day's id, so a renamed day keeps its logs (database trigger)
         name: d.name,
         // Per-day daily-routine flag. Propagates from PlanEditor's per-day
         // checkbox so the athlete portal can render that day with unlimited
@@ -658,11 +659,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (day?.kind === 'daily' || plan?.kind === 'daily') return null;
     if (nameAmbiguous) return null;
     // two days of one name IN THE SAME WEEK are ambiguous; week 1's Day A and week 2's Day A (#850) are not
-    if (Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name && dayInWeek(d, weekNum + 1)).length > 1) return null;
+    // (only when the match is by NAME: a log that knows its day's id is matched by the id - #873)
+    const dayNameShared = Array.isArray(plan?.days) && plan.days.filter(d => d && d.name === day.name && dayInWeek(d, weekNum + 1)).length > 1;
     let best = null, bestAt = -Infinity;
     const now = Date.now();
     for (const w of (list || [])) {
-      if (!w || w.dayName !== day.name || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, null)) continue;
+      if (!w || w.week !== weekNum + 1 || !isLogOfPlan(w, plan, null)) continue;
+      // by the day's id when both know it (#873: a name can be another day's after a rename), else by the name
+      if (w.dayId && day.id) { if (w.dayId !== day.id) continue; }
+      else if (dayNameShared || w.dayName !== day.name) continue;
       const at = Date.parse(w.date || '') || 0;
       const recent = at > 0 && at <= now && now - at < REUSE_WINDOW_MS;
       if (!recent) continue;
@@ -1892,7 +1897,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // planId identifies WHICH plan this is, where the name cannot: two couple
       // members can hold plans with the same name and the same day names
       // (audit 08-22 #31).
-      id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
+      id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name, dayId: (existingLog && existingLog.dayId) || day.id || null,   // a re-save keeps its log's day
       // A re-saved log keeps the day it was trained and the coach's review mark.
       // (reviewedAt is deliberately absent: the coach's mark is never re-sent.)
       week: weekNum + 1, date: existingLog?.date || finishedAt, notes: notesRef.current, autoregulation: checkin,
