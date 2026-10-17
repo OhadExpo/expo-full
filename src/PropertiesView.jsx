@@ -388,7 +388,7 @@ export default function PropertiesView() {
         </div>
       )}
       <ChipGrid ariaLabel="לשוניות נכסים" soft cols={5} phoneCols={3} value={tab} onChange={setTab}
-        items={TABS.map(t => ({ k: t.k, label: t.he, n: counts[t.k] || 0 }))} />
+        items={TABS.map(t => ({ k: t.k, label: t.he, n: counts[t.k] || 0, dim: !counts[t.k] && tab !== t.k }))} />
       {tab !== 'opportunities' && (
         <ChipGrid ariaLabel="אזור" soft cols={3} phoneCols={2} value={area} onChange={setArea}
           items={AREAS.map(a => ({ k: a.k, label: a.he }))} />
