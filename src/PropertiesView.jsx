@@ -26,7 +26,7 @@ const TAB_HINT = {
   new: 'עברו את כל הבדיקות: אזור, גודל, קומה, מחיר ועסקת שכירות - כל אחד מאומת מתוך המודעה.',
   check: 'לא שוברים אף כלל, אבל חסר נתון קריטי. השאלות בכל כרטיס סוגרות את זה בשיחה אחת.',
   active: 'נכסים שסימנתם "מעניין", לפי שלב: מועמד, סיור, שיחה.',
-  archive: 'נכסים שסימנתם "לא", ונכסים שכבר נראו לפני המנוע.',
+  archive: 'נכסים שסימנתם "לא", ונכסים שנדחו כבר לפני המנוע.',
   opportunities: 'עסקים למסירה, חללים לפי שעה, אותות מוקדמים וכתבות - לא נכסים להשכרה ישירה.',
 };
 const STAGES = [{ k: 'call', label: 'שיחה' }, { k: 'visited', label: 'סיור' }, { k: 'shortlist', label: 'מועמד' }];
@@ -262,7 +262,10 @@ export default function PropertiesView() {
   const bucket = useCallback((c) => {
     const v = votes[c.id]?.[me];
     if (v?.verdict) return v.verdict === 'rejected' ? 'archive' : 'active';
-    if (c.verdict && c.verdict !== 'new') return c.verdict === 'shortlist' || c.verdict === 'visited' ? 'active' : 'archive';   // seen before this engine
+    // history from before this engine: only a real decision moves a card (audit R5: "seen in a sheet" is not a decision -
+    // a strong space the founders once glanced at stays in חדשים / לבירור with a "נראה בעבר" label)
+    if (c.verdict === 'rejected') return 'archive';
+    if (c.verdict === 'shortlist' || c.verdict === 'visited') return 'active';
     return gateOf(c) === 'pass' ? 'new' : 'check';
   }, [votes, me]);
 
