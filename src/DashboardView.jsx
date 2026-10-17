@@ -1117,11 +1117,11 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
           <div style={metricStyle}>
             <span style={labelStyle}>{noDangle(tt('30D COLLECTED'))}</span>
             <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {delta30 !== null && (
+            {delta30 !== null ? (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
               </span>
-            )}
+            ) : <span style={subStyle}>{tt('Last 30 days')}</span> /* no month before to compare: the tile still has its second line, as its neighbours */}
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{noDangle(tt('90D COLLECTED'))}</span>
