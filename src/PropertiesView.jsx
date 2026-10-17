@@ -75,6 +75,16 @@ function Row({ label, children }) {
 }
 
 // the four facts that decide a space, as one table row: label above, value below, equal cells
+function Questions({ title, items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)} style={{ ...T(13), color: C.tx }}>
+      <summary style={{ cursor: 'pointer', color: C.acText, minHeight: 28, display: 'list-item' }}>{title} ({items.length})</summary>
+      {open && <ol style={{ margin: '6px 0 0', paddingInlineStart: 20, display: 'grid', gap: 4 }}>{items.map(q => <li key={q}>{q}</li>)}</ol>}
+    </details>
+  );
+}
+
 function Facts({ c }) {
   const cells = [
     { l: 'גודל', v: c.size_m2 ? `${fmt(c.size_m2)} מ״ר` : '?' },
@@ -137,12 +147,7 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
             {others.map(o => <span key={'o' + o.voter} style={chip(o.verdict === 'rejected' ? 'bad' : 'good')}>{WHO_HE[o.voter]}: {VERDICT_HE[o.verdict]}{o.reason ? ` · ${o.reason}` : ''}{o.score ? ` · ${o.score}/5` : ''}</span>)}
           </div>
         )}
-        {qs.length > 0 && (
-          <details style={{ ...T(13), color: C.tx }}>
-            <summary style={{ cursor: 'pointer', color: C.acText, minHeight: 28, display: 'list-item' }}>שאלות לשיחה על הנכס הזה ({qs.length})</summary>
-            <ol style={{ margin: '6px 0 0', paddingInlineStart: 20, display: 'grid', gap: 4 }}>{qs.map(q => <li key={q}>{q}</li>)}</ol>
-          </details>
-        )}
+        {qs.length > 0 && <Questions title="שאלות לשיחה על הנכס הזה" items={qs} />}
         {links.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, ...T(13, 600) }}>
             {links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, minHeight: 28, display: 'inline-flex', alignItems: 'center' }}>פתח ב{srcHe(l.src)}</a>)}
@@ -190,12 +195,7 @@ function OppCard({ o }) {
         <div style={{ ...T(13, 600), color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{[o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
       )}
       {o.summary && <div style={{ ...T(13), color: C.tm }}>{o.summary}</div>}
-      {Array.isArray(o.questions) && o.questions.length > 0 && (
-        <details style={{ ...T(13), color: C.tx }}>
-          <summary style={{ cursor: 'pointer', color: C.acText, minHeight: 28, display: 'list-item' }}>שאלות לבירור ({o.questions.length})</summary>
-          <ol style={{ margin: '6px 0 0', paddingInlineStart: 20, display: 'grid', gap: 4 }}>{o.questions.map(q => <li key={q}>{q}</li>)}</ol>
-        </details>
-      )}
+      {Array.isArray(o.questions) && o.questions.length > 0 && <Questions title="שאלות לבירור" items={o.questions} />}
       {url && <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.acText, ...T(13, 600) }}>לפרטים</a>}
     </article>
   );
