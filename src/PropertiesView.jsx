@@ -102,14 +102,13 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
   const bad = (c.flags || []).some(f => /מעל התקרה|פינוי|שבת|מעטפת/.test(f));
   const links = (c.links || []).map(l => ({ ...l, url: safeUrl(l.url) })).filter(l => l.url);
   const qs = uniq(g.questions_he && g.questions_he.length ? g.questions_he : c.questions).slice(0, 6);   // this ad's own questions
-  const can = !!me && !busy;
   const interested = ACTIVE.has(mine.verdict);
   const rejected = mine.verdict === 'rejected';
-  const dis = (it) => ({ ...it, disabled: !can });
+  const dis = (it) => ({ ...it, disabled: !me });
   const title = [c.ptype, c.street ? [c.street, c.house_no].filter(Boolean).join(' ') : null].filter(Boolean).join(' · ') || c.title || 'נכס';
   const place = [c.neighborhood, c.city].filter(Boolean).join(', ');
   return (
-    <article className="nadlan-card" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,176px) minmax(0,1fr)', border: `1px solid ${bad ? RED : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }}>
+    <article className="nadlan-card" aria-busy={busy || undefined} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,176px) minmax(0,1fr)', border: `1px solid ${bad ? RED : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }}>
       <div className="nadlan-photo" style={{ position: 'relative', background: C.sf2, minHeight: 176 }}>
         {thumb ? <img alt="" src={`data:image/jpeg;base64,${thumb}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           : <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: C.tm, ...T(12) }}>{c.n_photos ? 'תמונות במודעה' : 'אין תמונות'}</div>}
@@ -319,10 +318,10 @@ export default function PropertiesView() {
     const firstUrl = safeUrl(c.links?.[0]?.url) || '';
     const row = {
       id: tid,
-      body: `${WHO_WIRE[me]}: ${c.score >= 85 ? '[HIGH] ' : ''}${verb}: ${c.ptype || 'נכס'} ${where}${c.size_m2 ? ` · ${fmt(c.size_m2)} מ"ר` : ''} · ${c.price ? '₪' + fmt(c.price) : 'מחיר לבירור'}${firstUrl ? ' ' + firstUrl : ''}`,
+      body: `${WHO_WIRE[me]}: ${c.score >= 85 ? '[HIGH] ' : ''}${verb}: ${c.ptype || 'נכס'} ${where}${c.size_m2 ? ` · ${fmt(c.size_m2)} מ"ר` : ''} · ${c.price ? '₪' + fmt(c.price) : 'מחיר לבירור'}`,
       target_kind: 'property', target_id: c.id, target_label: where || c.title || 'נכס', pinned: false, status: 'open',
       tags: ['נכס'], assigned_to: me, priority: c.score >= 85 ? 'high' : 'normal',
-      context: { questions: uniq(c.gate?.questions_he?.length ? c.gate.questions_he : c.questions).slice(0, 6), analysis: c.gate?.analysis_he || null, score: c.score },
+      context: { url: firstUrl || null, questions: uniq(c.gate?.questions_he?.length ? c.gate.questions_he : c.questions).slice(0, 6), analysis: c.gate?.analysis_he || null, score: c.score },
       created_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('coach_notes').insert(row);
@@ -342,7 +341,7 @@ export default function PropertiesView() {
     const prev = votesRef.current[c.id]?.[me] || null;
     try {
       let taskId = prev?.task_id || null;
-      if (verdict === 'call' || verdict === 'visited') taskId = await ensureTask(c, verdict);
+      if ((verdict === 'call' || verdict === 'visited') && verdict !== prev?.verdict) taskId = await ensureTask(c, verdict);
       else if (ACTIVE.has(prev?.verdict) && !ACTIVE.has(verdict) && score === undefined) { await closeTasks(c); taskId = null; }
       const next = { card_id: c.id, voter: me, verdict: verdict || null,
         reason: reason !== undefined ? reason : (verdict === prev?.verdict ? prev?.reason ?? null : null),
@@ -416,7 +415,7 @@ export default function PropertiesView() {
           items={[{ k: 'more', label: `עוד ${Math.min(20, shown.length - page.length)} (מוצגים ${page.length} מתוך ${shown.length})` }]}
           onChange={() => setLimit(l => l + 20)} />
       )}
-      <style>{`.nadlan-view, .nadlan-view *:not(svg):not(svg *) { letter-spacing: 0.02em !important } @media (max-width: 560px) { .nadlan-card { grid-template-columns: 1fr !important } .nadlan-photo { min-height: 0 !important; aspect-ratio: 16 / 9 } } @media (max-width: 480px) { .nadlan-facts { grid-template-columns: repeat(2, minmax(0,1fr)) !important } .nadlan-facts > div:nth-child(odd) { border-inline-start: none !important } .nadlan-facts > div:nth-child(n+3) { border-top: 1px solid var(--c-cardBd) } }`}</style>
+      <style>{`.nadlan-view, .nadlan-view *:not(svg):not(svg *) { letter-spacing: 0.02em !important } .nadlan-view .chip-grid button span { opacity: 1 !important } @media (max-width: 560px) { .nadlan-card { grid-template-columns: 1fr !important } .nadlan-photo { min-height: 0 !important; aspect-ratio: 16 / 9 } } @media (max-width: 480px) { .nadlan-facts { grid-template-columns: repeat(2, minmax(0,1fr)) !important } .nadlan-facts > div:nth-child(odd) { border-inline-start: none !important } .nadlan-facts > div:nth-child(n+3) { border-top: 1px solid var(--c-cardBd) } }`}</style>
     </div>
   );
 }
