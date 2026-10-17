@@ -4378,7 +4378,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             accent: C.ac,
             borderColor: doneBorderColor,
             title: day.name,
-            count: vp.sport === 'running' ? (day.ex.length === 1 ? tt('1 SEGMENT') : `${day.ex.length} ${tt('SEGMENTS')}`) : `${day.ex.length} ${tt('EX')}`,
+            // a run day says its WHOLE distance (#876, 17.10: Yehu ran 4 km of a 6 km run - he read '6 ק״מ' on the main line as
+            // the session with its warm-up and cool-down, the 2nd mix-up in two days): every segment's sets x km for this week;
+            // a segment without a distance (a timed one) leaves the segment count
+            count: vp.sport === 'running' ? ((() => { let km = 0; for (const ex of day.ex) { const r = String((Array.isArray(ex.wk) && String(ex.wk[vpWeek] ?? '').trim()) || ex.r || ''); const k = presKm(r); if (k == null || !(k > 0)) return null; km += k * (parseInt((ex.wkS && ex.wkS[vpWeek]) || ex.s, 10) || 1); } return km > 0 ? tt('{n} KM TOTAL').replace('{n}', String(Math.round(km * 10) / 10)) : null; })() || (day.ex.length === 1 ? tt('1 SEGMENT') : `${day.ex.length} ${tt('SEGMENTS')}`)) : `${day.ex.length} ${tt('EX')}`,
             extras: <>
               {started && <span data-day-started title={tt('Started, not finished')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:(lang||readLang())==='he'?0:'0.1em',flexShrink:0,whiteSpace:'nowrap',gap:6}}>{tt('STARTED')}{startedSets[0] > 0 && <bdi dir="ltr">{startedSets[0]}/{startedSets[1]}</bdi>}</span>}
               {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:'var(--btn-h)',minWidth:'var(--btn-h)',boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}

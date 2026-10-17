@@ -101,6 +101,28 @@ const BHBC_NAVY = '#1E3D74', BHBC_ORANGE = '#F26A2B';
 const bhbcZoneDir = () => { try { const z = document.querySelector('.bhbc-zone'); return z ? (z.getAttribute('dir') || 'ltr') : null; } catch { return null; } };
 const inBhbc = () => { try { return !!document.querySelector('.bhbc-zone') || /^\/(coach\/)?bhbc(\/|$)/.test(window.location.pathname); } catch { return false; } };
 
+// #878: the last automatic update reload in this tab (sessionStorage survives the reload) - never two within 2 minutes
+const K_AUTO = 'expo-sw-auto-reload-at';
+const recentAuto = () => { try { return Date.now() - Number(sessionStorage.getItem(K_AUTO) || 0) < 120000; } catch { return false; } };
+// the new worker activates first (no reload of its own), then the page reloads exactly once - on the controller change
+// or the worker's 'activated' (10 s fallback) - so the one reload lands on the new build with everything new at once
+let applying = false;
+function applyOnce(reg, updateSW) {
+  if (applying) return; applying = true;
+  let done = false;
+  const go = () => {
+    if (done) return; done = true;
+    try { sessionStorage.setItem(K_AUTO, String(Date.now())); } catch { /* storage blocked */ }
+    try { window.location.reload(); } catch { /* noop */ }
+  };
+  try { if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('controllerchange', go, { once: true }); } catch { /* noop */ }
+  const w = reg && reg.waiting;
+  try { if (w) w.addEventListener('statechange', () => { if (w.state === 'activated') go(); }); } catch { /* noop */ }
+  try { updateSW(false); } catch { /* noop */ }
+  setTimeout(go, 10000);
+  setTimeout(() => { applying = false; }, 15000);   // a reload a beforeunload held: the pill works again (review)
+}
+
 export default function SwUpdateBanner() {
   const regRef = React.useRef(null);
   const { needRefresh: [swNeedRefresh], updateServiceWorker } = useRegisterSW({
@@ -162,10 +184,13 @@ export default function SwUpdateBanner() {
     // Activate the waiting SW and reload. updateServiceWorker(true) reloads on
     // controllerchange; the hard fallback guarantees the page lands on the new
     // build even if that event never fires.
-    const applyUpdate = () => {
-      try { updateServiceWorker(true); } catch { /* noop */ }
-      setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500);
-    };
+    // ONE RELOAD PER UPDATE (#878, Ohad 17.10: "it refreshes the page nonstop, 10-30 refreshes until it settles").
+    // updateServiceWorker(true) reloads on 'controlling' AND a blind 2.5 s reload raced it; a reload that landed before
+    // the new worker had activated came back on the old build, found the update still waiting and reloaded again, and
+    // again. Now: the waiting worker is told to activate (no reload of its own), the page reloads exactly once - when
+    // the new worker controls it or reports 'activated' (10 s fallback) - and an automatic update is not taken again
+    // within 2 minutes of the last one in this tab (a stuck update waits for the pill instead of looping).
+    const applyUpdate = () => applyOnce(regRef.current, updateServiceWorker);
     const tryUpdate = () => {
       if (updating) return;
       setUpdating(true);
@@ -226,7 +251,7 @@ export default function SwUpdateBanner() {
     // Rule A: a fresh load with an update already waiting takes it at once.
     const loadedAtMs = (typeof performance !== 'undefined' && performance.timeOrigin) || Date.now();
     const freshNoInput = () => Date.now() - loadedAtMs < FRESH_MS && lastActivity <= loadedAtMs + 50;
-    const silentApply = () => { if (updating) return; setSilent(true); setUpdating(true); setTimeout(() => applyUpdate(), 50); };
+    const silentApply = () => { if (updating || recentAuto()) return; setSilent(true); setUpdating(true); setTimeout(() => applyUpdate(), 50); };
     // Rule B, second half: the navigation's own check found it just now - the
     // page was opened moments ago and nothing has been typed on it.
     let lastKey = 0;
@@ -282,7 +307,7 @@ export default function SwUpdateBanner() {
   if (zoneDir) lang = zoneDir === 'rtl' ? 'he' : 'en';
   const dirAttr = zoneDir || undefined;
   const crest = club ? <img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0 }} /> : null;
-  const onUpdate = () => { setUpdating(true); setTimeout(() => { try { updateServiceWorker(true); } catch { /* noop */ } setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500); }, 200); };
+  const onUpdate = () => { setUpdating(true); setTimeout(() => applyOnce(regRef.current, updateServiceWorker), 200); };
 
   if (nag || updating) {
     // The old blocking modal, kept for the case that earns it.

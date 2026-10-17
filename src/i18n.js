@@ -706,6 +706,7 @@ export const HE = {
   'vs prev 30d': 'מול 30 הימים הקודמים',
   'Trailing 3 months': '3 חודשים אחרונים',
   'Last 30 days': '30 ימים אחרונים',
+  '{n} KM TOTAL': 'סה״כ {n} ק״מ',
   Close: 'סגור',
   '+ Task': '+ משימה',
   Storage: 'אחסון',
