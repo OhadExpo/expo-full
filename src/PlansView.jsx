@@ -5328,7 +5328,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </div>
                   {phoneList ? (
                     // meta + PORTAL share one line (they collided as two stacked blocks at 390)
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:6,minHeight:24}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:6,minHeight:24,marginBottom:-6 /* the PORTAL switch's 36px tap box held 24 over the actions against 17-20 under the strip (#796, phone grid) */}}>
                       <span style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',whiteSpace:'nowrap'}}>{plural(cur.dayCount, 'day', he ? 'he' : 'en')} · {plural(cur.exerciseCount, 'exercise', he ? 'he' : 'en')}</span>
                       <span onClick={e=>e.stopPropagation()}>{portalToggle(cur)}</span>
                     </div>
@@ -5338,7 +5338,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </div>
                 {phoneList ? (
                   // four text actions spread edge to edge on one line
-                  <div className="prog-actions-phone" onMouseEnter={cancelHover} style={{padding:`10px 14px ${row.earlier.length > 0 ? 12 : 18}px` /* the 6 a chip-less title gave up (#796 review): one card height, chip or not */,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:`1px solid ${C.cardBd}`,marginTop:10}}>
+                  <div className="prog-actions-phone" onMouseEnter={cancelHover} style={{padding:'10px 14px 9px' /* the words as far over the card's bottom as under the row's rule (#796: 12 / 15) */,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:`1px solid ${C.cardBd}`,marginTop:10}}>
                     {txtActs(cur.id, () => { setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped(''); })}
                   </div>
                 ) : (
