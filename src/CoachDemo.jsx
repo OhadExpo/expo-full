@@ -1748,10 +1748,10 @@ function DemoEvalIntake({ trainee }) {
         </div>
         {analysis && <div data-demo-eval-analysis style={{ padding: '0 14px 14px' }}><EvalReportBody evaluation={demoSchemaEval(trainee)} /></div>}
         {open && !analysis && (
-          <div style={{ padding: '0 14px 14px' }}>
+          <div style={{ padding: '0 14px 5px' /* the last row's band ends 13 / 13 at the card's edge (#796) */ }}>
             {DEMO_EVAL.sections.map((s, si) => (
               <div key={si} style={{ marginTop: 10 }}>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, borderBottom: `1px solid ${C.cardBd}`, paddingBottom: 4, marginBottom: 4 }}>{T(s.title).toUpperCase()}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, borderBottom: `1px solid ${C.cardBd}`, paddingBottom: 10 /* as far over its rule as the rows start under it (#796: 7 / 13) */, marginBottom: 4 }}>{T(s.title).toUpperCase()}</div>
                 {s.rows.map(([test, unit, score], ri) => (
                   <div key={ri} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 70px', gap: 8, padding: '5px 0', fontSize: 12 }}>
                     <span style={{ color: C.tx }}>{test}</span>
@@ -1764,8 +1764,8 @@ function DemoEvalIntake({ trainee }) {
           </div>
         )}
       </div>
-      <div style={{ border: `1px solid ${C.cardBd}`, padding: '12px 14px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 10 }}>
+      <div style={{ border: `1px solid ${C.cardBd}`, padding: '0 14px 12px' /* the header as far under the card's edge as the first row's line under it (#796: 20 / 8) */ }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 23, marginBottom: 6 /* its own height, not the inherited line's (a fallback font changed the gap) */ }}>
           <Badge color={C.ac}>{T('INITIAL')}</Badge>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginInlineStart: 8 }}>· <span dir="auto" style={{ unicodeBidi: 'isolate' }}>{dAgoLabel(156)}</span></span>
         </div>

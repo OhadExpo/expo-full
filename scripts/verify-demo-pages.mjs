@@ -309,7 +309,10 @@ for (const [name, route] of SURFACES) {
           const out = [];
           // an open full-screen dialog (the Training Analysis) covers the page behind it by design - only its own
           // controls can be buried
-          const modal = document.querySelector('[aria-modal="true"]');
+          // the TOP one that is really there (a confirm can open over the analysis; a fading one or a drawer that lets
+          // the page through - pointer-events none - does not cover anything)
+          const modal = [...document.querySelectorAll('[aria-modal="true"]')].filter((m) => m.getClientRects().length && getComputedStyle(m).visibility !== 'hidden' && getComputedStyle(m).pointerEvents !== 'none' && !m.classList.contains('motion-fade-out')).pop() || null;
+          if (modal) modal.scrollTop = modal.scrollHeight;   // its own resting place, as the page's is the window's bottom
           for (const el of document.querySelectorAll('a[href],button,input,select,[role=button]')) {
             if (modal && !modal.contains(el)) continue;
             const bb = el.getBoundingClientRect();

@@ -36,7 +36,7 @@ export default function BWChart({ entries }) {
   const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
   const fmt = v => `${v.toFixed(1)} ${readLang() === 'he' ? 'ק״ג' : 'kg'}`; // the unit in the page's language (12.10)
   return (
-    <Card style={{padding:14}}>
+    <Card padding={14} style={{paddingBottom:14 /* the chart ends on its date labels, no text slack under them: 14, not Card's 14-4 (as a style shorthand Card had kept its own 20 - #796: 16 / 22) */}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:10,marginBottom:10}}>
         <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{tr(readLang(), 'Current')}</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>

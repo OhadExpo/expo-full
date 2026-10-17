@@ -91,7 +91,7 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
   const t = useT();
   const btn = { height:24, boxSizing:'border-box', borderRadius:0, cursor:'pointer', fontFamily:FN, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center' };
   return (
-    <Card style={{ marginBottom:8, padding:10 }}>
+    <Card padding={10} style={{ marginBottom:8, paddingBottom:12 }} /* it ends on buttons (no text slack under them): 12, not Card's 10-4; as a style shorthand Card had kept its own 20 (#796: 13 / 20) */>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, flexWrap:'wrap' }}>
         <div style={{ flex:'1 1 140px', minWidth:0, cursor:'pointer' }} onClick={onOpen}>
           <div style={{ fontWeight:600, color:C.tx, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
@@ -432,7 +432,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
       // and the other doesn't (Ohad — equal boxes). flex:1 on the Card only in
       // couple mode (showPrograms=false) so a future solo caller isn't squished.
       <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
-        <Card style={{marginBottom:8, flex: showPrograms ? undefined : 1}}
+        <Card style={{marginBottom:8, flex: showPrograms ? undefined : 1, paddingBottom:12 /* as far under the last line or box as the body starts under the strip (#796: 17 / 24) */}}
           header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{m.name}</span>}>
           {/* Name + email body block — rendered in BOTH themes (was `!isRefined5b()`,
               i.e. dark only, which made dark 56px taller than light). Ohad wants
@@ -544,7 +544,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
         </div>
 
         {/* Light text actions — PORTAL toggle (green, kept) + spacer + Only / Remove. */}
-        <div className="prog-actions" style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+        <div className="prog-actions" style={{padding:'8px 14px 4px' /* the toggle's 36px tap box already holds 9 under it: the card ends as far under it as the name starts over the strip (#796: 13 / 21) */,display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
           {(() => {
             const vk = visKeyOf(cur);
             const isVis = portalVis?.[vk] !== false;
@@ -781,7 +781,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
             (it also has the actions + payment ledger), so the duplicate grid is
             removed here. This bar keeps only the couple identity, status, and the
             one datum NOT in the Billing section: the household Workouts count. */}
-        <Card style={{marginBottom:12,textAlign:'center'}}
+        <Card style={{marginBottom:12,textAlign:'center',paddingBottom:12 /* a header card's body starts 12 under its strip; Card's own bottom is 20 (#796: 14 / 24) */}}
           header={(() => {
             const heb = isHebrew(td.name);
             return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{t(td.format)}</span>;   /* the name is the page's h1 now (#810) */
@@ -1065,7 +1065,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
               <React.Fragment key={mi}>
                 {mi === 1 && <div className="td-couple-divider" style={{width:1,background:`${C.cardBd}`,alignSelf:'stretch',flexShrink:0}} />}
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'6px 0',gap:8}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'2px 0 12px' /* the section already sits 9-13 over it: as far over the first program as under the strip (#796: 19 / 7) */,gap:8}}>
                     <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — {sorted.length}</div>
                     {bulkToggleBtn(sorted, memberVisKey)}
                   </div>
