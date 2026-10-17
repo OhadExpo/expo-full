@@ -1681,7 +1681,7 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    card and under it on the next. (The dashboard's attention strip stacks via
    the real app's own .alert-rail rule above, which the demo now shares.) */
 @media (max-width: 560px) {
-  .cd-prog-title { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+  .cd-prog-title { flex-direction: column; align-items: flex-start !important; gap: 8px !important; justify-content: center; }   /* a lone name centred in its 36px box, as on the wide card (#796) */
   /* and its actions row: the PORTAL switch takes a line of its own, and the
      four text actions share the next one evenly - instead of DELETE wrapping
      alone under the other three */
@@ -2349,12 +2349,14 @@ html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { 
   .wr-day-card .wr-meta{ width: 100% !important; display: grid !important; grid-template-columns: 5em 1fr auto auto !important; align-items: center !important; gap: 0 6px !important; }
   .wr-day-card .wr-meta > *{ min-width: 0; }
   .wr-day-card .wr-meta .wr-dot{ display: none !important; }
+  /* a log with no week (a run logged before its program): every cell slid one track left and the date ran over the km - each in its own track */
+  .wr-day-card .wr-meta > .wr-date{ grid-column: 2; grid-row: 1; } .wr-day-card .wr-meta > .wr-km{ grid-column: 3; grid-row: 1; } .wr-day-card .wr-meta > .wr-vid{ grid-column: 4; grid-row: 1; }
   .wr-strip-repeat{ display: none !important; }
 }
 
 /* 13.10 #735: on a phone the payment-requests body opens with the + NEW button (12 under the strip) and the empty line
    sat 31 over the card's edge - its own 14 on top of the card's. Desktop keeps the button in the strip. */
-@media (max-width: 620px) { .bill-req-empty { padding-bottom: 0 !important; margin-bottom: -5px; } }
+@media (max-width: 620px) { .bill-req-empty { padding-top: 0 !important; padding-bottom: 0 !important; margin-bottom: -2px; } }   /* #796: the section pads 14 over it - the line 15 under the strip, 15 over the card's edge (was 29 / 12) */
 
 /* 14.10 #735: on a phone a recent clip's two lines read 9 under the row's line and 12 over the next (desktop is even) */
 @media (max-width: 620px) { .rt-clip { padding-top: 7.5px !important; padding-bottom: 4.5px !important; } }
@@ -2516,3 +2518,8 @@ body[data-lang="he"] .nadlan-view, body[data-lang="he"] .nadlan-view *:not(svg):
 .dayhead-narrow [data-dh="chip"] { order: 10; box-sizing: border-box !important; flex: 1 1 0 !important; width: 0 !important; min-width: 0 !important; max-width: none !important; height: 36px !important; }   /* width 0 + equal grow = three equal cells (a select keeps its widest option otherwise) */
 .dayhead-narrow [data-dh="chip"] { padding-left: 15px !important; padding-right: 15px !important; font-size: 9px !important; }
 .dayhead-narrow select[data-dh="chip"] { padding-left: 8px !important; padding-right: 22px !important; text-align: center; text-align-last: center; }   /* the same 30px of padding as the buttons (equal cells), the room on the chevron side */   /* one padding for all three: a flex base never smaller than its padding, so unequal padding = unequal cells */
+
+/* #796: a club athlete's row on the phone programs list - the 20px BHBC badge stands 1px over the name's 18px line, so the
+   badge, not the name, is the row's first ink (9 under the rule, the last line 15 over the next): its content 3px lower,
+   the row's height unchanged (one row height, badge or not - #752) */
+.prog-phone-list [role="button"]:has(.prog-badge-slot > *) { padding-top: 13px !important; padding-bottom: 7px !important; }

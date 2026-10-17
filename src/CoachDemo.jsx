@@ -2900,7 +2900,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         </span>
                         </span>
                       </div>
-                      <div onClick={() => setSelectedProgramId(cur.id)} style={{ cursor: 'pointer', padding: '12px 14px 4px' }}>
+                      <div onClick={() => setSelectedProgramId(cur.id)} style={{ cursor: 'pointer', padding: `${row.earlier.length > 0 ? 12 : 6}px 14px 4px` /* as the real card (#796): without the chip 6 of its 12 move under the actions */ }}>
                         {/* minHeight reserves the "N previous" pill's height (the control height) so a
                             card WITHOUT the pill is the same height as one WITH it —
                             parity with the real Programs card-height fix (PlansView). */}
@@ -2921,7 +2921,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         const txt = (color) => ({ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color });
                         const on = isVis(cur.id);
                         return (
-                          <div className="cd-prog-actions" style={{ padding: '8px 14px 12px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <div className="cd-prog-actions" style={{ padding: `8px 14px ${row.earlier.length > 0 ? 4 : 10}px` /* the 36px toggle box holds 9 under its pill (#796: 13 / 21) */, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                             <button className="cd-onportal" onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
                               title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>

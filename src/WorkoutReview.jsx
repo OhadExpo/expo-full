@@ -2930,15 +2930,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <span className="wr-dot">·</span>
                       {/* day/month/year in the tight meta row (#294; 27.9 #328 gate: the
                           words-date broke onto two rows at 360) */}
-                      <span>{fmtNumericDate(wo.date)}</span>
+                      <span className="wr-date">{fmtNumericDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
-                      <span style={{unicodeBidi:'isolate'}}>{runKm != null ? `${runKm} ${tt('KM')}` : `${doneSets}/${totalSets} ${tt('sets')}`}</span>
+                      <span className="wr-km" style={{unicodeBidi:'isolate'}}>{runKm != null ? `${runKm} ${tt('KM')}` : `${doneSets}/${totalSets} ${tt('sets')}`}</span>
                       {/* The video slot is ALWAYS 13px wide, filled or not. On
                           mobile the meta is a grid and the sets column is placed
                           from the right; a card with no form video would collapse
                           this track and slide its own sets 19px out of line with
                           the card above it. */}
-                      <span style={{width:13,height:13,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
+                      <span className="wr-vid" style={{width:13,height:13,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
                         {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label={tr(readLang(), 'has form video')}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
                       </span>
                     </span>

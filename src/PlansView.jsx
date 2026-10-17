@@ -5146,7 +5146,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
+                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:`${row.earlier.length > 0 ? 12 : 6}px 14px 4px` /* the title row is a 36px box (one card height, chip or not): with the 'N previous' chip its edge is the first ink, 12 under the strip; without it the centred name sat 26 under - 6 of its 12 move under the actions (#796) */}}>
                   <div className="cd-prog-title" style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:'var(--btn-h)'}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {row.earlier.length > 0 && (
@@ -5167,7 +5167,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </div>
                 {/* Light text actions — hovering here cancels the plan hover-preview. */}
                 <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+                  style={{padding:`8px 14px ${row.earlier.length > 0 ? 4 : 10}px` /* (10 under a card without the chip: the 6 its title gave up) the PORTAL toggle's button is 36 tall (the global min) and holds 9 under its pill: 4 more ends the card 13 under it, as the name starts 13 under the strip (#796: 13 / 21) */,display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
                   {setPortalVis && (() => {
                     const vk = visKeyForPlan(cur, trainees);
                     if (!vk) return null;
@@ -5321,7 +5321,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 {stripHeader}
                 {/* No minHeight / flex stretch — grid cards compress to the same
                     natural height as the table rows (Ohad 2026-08-21). */}
-                <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
+                <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:`${row.earlier.length > 0 ? 12 : 6}px 14px 4px` /* the title row is a 36px box (one card height, chip or not): with the 'N previous' chip its edge is the first ink, 12 under the strip; without it the centred name sat 26 under - 6 of its 12 move under the actions (#796) */}}>
                   <div className="cd-prog-title" style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:'var(--btn-h)'}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
@@ -5338,11 +5338,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </div>
                 {phoneList ? (
                   // four text actions spread edge to edge on one line
-                  <div className="prog-actions-phone" onMouseEnter={cancelHover} style={{padding:'10px 14px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:`1px solid ${C.cardBd}`,marginTop:10}}>
+                  <div className="prog-actions-phone" onMouseEnter={cancelHover} style={{padding:`10px 14px ${row.earlier.length > 0 ? 12 : 18}px` /* the 6 a chip-less title gave up (#796 review): one card height, chip or not */,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:`1px solid ${C.cardBd}`,marginTop:10}}>
                     {txtActs(cur.id, () => { setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped(''); })}
                   </div>
                 ) : (
-                <div className="prog-actions" onMouseEnter={cancelHover} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+                <div className="prog-actions" onMouseEnter={cancelHover} style={{padding:`8px 14px ${row.earlier.length > 0 ? 4 : 10}px` /* (10 under a card without the chip: the 6 its title gave up) the PORTAL toggle's button is 36 tall (the global min) and holds 9 under its pill: 4 more ends the card 13 under it, as the name starts 13 under the strip (#796: 13 / 21) */,display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
                   {portalToggle(cur)}
                   <div className="prog-spacer" style={{flex:1,minWidth:8}} />
                   {txtActs(cur.id, () => { setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped(''); })}
@@ -5428,7 +5428,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||"Untitled"}</div>
               <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(p.dayCount, 'day', he ? 'he' : 'en')} · {plural(p.exerciseCount, 'exercise', he ? 'he' : 'en')}{p.phase?` · ${p.phase}`:''}</div>
             </div>
-            <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+            <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{padding:'8px 14px 4px' /* the PORTAL toggle's button is 36 tall (the global min) and holds 9 under its pill: 4 more ends the card 13 under it, as the name starts 13 under the strip (#796: 13 / 21) */,display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
               {setPortalVis && (() => {
                 const vk = visKeyForPlan(p, trainees);
                 if (!vk) return null;
