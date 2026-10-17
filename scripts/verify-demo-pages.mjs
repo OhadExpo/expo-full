@@ -52,6 +52,8 @@ const SURFACES = [
   // payments ledger and a hardcoded April date. It has a URL; use it.
   ['athlete-detail', '/demo/coach/trainees/t1'],
   ['athlete-couple', '/demo/coach/trainees/t3'],
+  ['athlete-runner', '/demo/coach/trainees/t9'],
+  ['athlete-runner-analysis', '/demo/coach/programs/analysis/t9'],
   ['athlete-overdue', '/demo/coach/trainees/t2'],
   ['athlete', '/demo/athlete'],
   ['sandbox', '/demo/sandbox'],
@@ -305,7 +307,11 @@ for (const [name, route] of SURFACES) {
         await wait(400);
         const buried = await pg.evaluate(() => {
           const out = [];
+          // an open full-screen dialog (the Training Analysis) covers the page behind it by design - only its own
+          // controls can be buried
+          const modal = document.querySelector('[aria-modal="true"]');
           for (const el of document.querySelectorAll('a[href],button,input,select,[role=button]')) {
+            if (modal && !modal.contains(el)) continue;
             const bb = el.getBoundingClientRect();
             if (bb.width < 6 || bb.height < 6) continue;
             if (bb.bottom < 0 || bb.top > innerHeight) continue;

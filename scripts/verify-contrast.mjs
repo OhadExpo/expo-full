@@ -54,6 +54,8 @@ const SURFACES = [
   // hardcoded April date. It has a URL; use it.
   ['athlete-detail', '/demo/coach/trainees/t1'],
   ['athlete-couple', '/demo/coach/trainees/t3'],
+  ['athlete-runner', '/demo/coach/trainees/t9'],
+  ['athlete-runner-analysis', '/demo/coach/programs/analysis/t9'],
   ['athlete-overdue', '/demo/coach/trainees/t2'],
   ['athlete', '/demo/athlete'],
   ['engine', '/try?embed=1'],

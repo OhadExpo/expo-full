@@ -2210,6 +2210,12 @@ html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { 
   .td-secs { display: none !important; }
   .td-secs-select { display: flex; }
 }
+/* #860: the eleven tabs need 984px in English and 640 in Hebrew - on a tablet English wrapped to two rows (74px) where
+   Hebrew sat in one (36): the same one-row picker for both languages up to a desktop width */
+@media (max-width: 1099px) {
+  .td-secs { display: none !important; }
+  .td-secs-select { display: flex; }
+}
 
 /* THE EXERCISES HUB SUB-TABS (moved from App.jsx 29.9: the demo's hub renders
    the same row and never mounted App's header style) */

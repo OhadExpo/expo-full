@@ -12,7 +12,8 @@
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { DEMO_PLANS, DEMO_EXERCISES } from './demoTraineeData';
+import { DEMO_PLANS, DEMO_EXERCISES, DEMO_RUNNER } from './demoTraineeData';
+import { runKm, runSecondsFor, fmtPaceSec } from './runPace';
 import { EvalReportBody } from './EvalReport';
 import { normalizeDays } from './usePlansStore';
 import { displayPhoneIL } from './whatsappButton';
@@ -117,6 +118,8 @@ const MOCK_TRAINEES = [
   { id: 't6', name: 'איתי כץ', short: 'Itai', email: 'itai.katz@example.co.il', phone: '+972541112233', status: 'Trial', sessionsLeft: 1, monthly: 0, format: 'Gym, Single', startDate: '2025-06-12', dormantDays: null, lastWorkout: '3 days ago', payment: 'NEVER PAID', online: false, age: 24, weight: 70, height: 176, injuries: 'None', goals: 'Learn the lifts, build a base', ev: { vj: 48, bj: 220, dl: 100, bp: 55 }, plans: ['Block #1 — Onboarding'] },
   { id: 't7', name: 'שירה לוין', short: 'Shira', email: 'shira.levin@example.co.il', phone: '+972502223344', status: 'Inactive', sessionsLeft: 0, monthly: 1800, format: 'Online', startDate: '2024-08-20', dormantDays: 41, lastWorkout: '41 days ago', payment: 'OVERDUE', overdueDays: 62, online: false, age: 38, weight: 67, height: 170, injuries: 'Lower-back stiffness', goals: 'Re-engage after travel', ev: { vj: 34, bj: 175, dl: 85,  bp: 42.5 }, plans: ['Block #5 — Volume', 'Block #4 — Strength', 'Block #3 — Base'] },
   { id: 't8', name: 'עומר דגן', short: 'Omer', email: 'omer.dagan@example.co.il', phone: '+972544445566', status: 'Active', sessionsLeft: 5, monthly: 2200, format: 'Gym, Single', startDate: '2025-02-05', dormantDays: null, lastWorkout: 'Today', payment: 'PAID', paidDaysAgo: inMonth(5), online: true, age: 26, weight: 88, height: 185, injuries: 'None', goals: 'Powerlifting meet prep', ev: { vj: 50, bj: 240, dl: 210, bp: 130 }, plans: ['Block #3 — Peaking', 'Block #2 — Volume', 'Block #1 — Base'] },
+  // a RUNNER (#866): his blocks are running programs (demoTraineeData DEMO_RUNNER - his own plans and runs)
+  { id: 't9', name: 'רון שגיא', short: 'Ron', email: 'ron.sagi@example.co.il', phone: '+972547778899', status: 'Active', sessionsLeft: 8, monthly: 900, format: 'Online', startDate: dAgo(130), dormantDays: null, lastWorkout: DEMO_RUNNER.lastAgo === 1 ? '1 day ago' : `${DEMO_RUNNER.lastAgo} days ago`, payment: 'PAID', paidDaysAgo: inMonth(9), online: true, age: 34, weight: 71, height: 177, injuries: 'None', goals: 'Sub-50 10K by spring', ev: { vj: 41, bj: 215, dl: null, bp: null }, plans: ['Block #2 — 10K Build', 'Block #1 — Base Miles'], runner: true },
 ];
 
 // Per-block plan content. Block #4 is the active block (Week 2 of 4 wave);
@@ -1509,16 +1512,23 @@ const DEMO_MESSAGES = [
   { role: 'athlete', time: msgTime(4, '18:02'), text: 'Thanks! Felt strong — no niggles this week.' },
   { role: 'coach',   time: msgTime(3, '08:40'), text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
 ];
+// the runner's thread (#866): his intervals and his heart-rate cap, not the strength athletes' bench
+const DEMO_RUNNER_MESSAGES = [
+  { role: 'coach',   time: msgTime(DEMO_RUNNER.lastAgo, '19:40'), text: 'Week 3 intervals: the same pace as week 1, and HR under 165 on every rep. In week 1 it hit 171.' },
+  { role: 'athlete', time: msgTime(DEMO_RUNNER.lastAgo, '20:15'), text: 'Felt easy today. I had more in me.' },
+  { role: 'coach',   time: msgTime(Math.max(0, DEMO_RUNNER.lastAgo - 1), '08:40'), text: 'Good, keep it there. Week 4 is the down week: the long run goes back to 8 km.' },
+];
+const demoMessagesFor = (t) => (t && t.runner ? DEMO_RUNNER_MESSAGES : DEMO_MESSAGES);
 // CoachMessages' recBtnStyle: the composer's buttons are 30px, not the house 36
 // the program editor's name column: as wide as the day's longest-needing name needs to wrap two words a line (#751,
 // as the real editor); +14 = the cell's border and inset
 const demoNameMin = (d) => Math.max(180, Math.min(280, Math.ceil(wrapNeed((d.exercises || []).map((e) => e.name || ''), { font: `12px ${FB}`, ls: readLang() === 'he' ? 0.24 : 0, perChar: 7.6 })) + 14));
 const DEMO_REC_BTN = (color) => ({ height: 30, padding: '0 12px', borderRadius: 0, background: 'transparent', color, border: `1px solid ${color}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' });
-function DemoMessages() {
+function DemoMessages({ trainee }) {
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', marginBottom: 12 }}>
-        {DEMO_MESSAGES.map((m, i) => {
+        {demoMessagesFor(trainee).map((m, i) => {
           const self = m.role === 'coach';
           return (
             <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
@@ -1573,10 +1583,10 @@ function DemoCRM({ trainee }) {
     T('Confirm payment for next month'),
   ];
   const activity = [
-    { kind: T('SESSION'), color: C.gn, when: when(2, '14:20'), auto: true,  text: T('Completed Upper A — 6 exercises logged') },
+    { kind: T('SESSION'), color: C.gn, when: when(t.runner ? DEMO_RUNNER.lastAgo : 2, '14:20'), auto: true,  text: T(t.runner ? 'Completed a 12 km long run' : 'Completed Upper A — 6 exercises logged') },
     { kind: T('WHATSAPP'), color: C.gn, when: when(3, '09:10'), auto: false, text: hurt ? `${T('Checked in about')} ${T(hurt)}` : T('Checked in — feeling good') },
     { kind: T('PAYMENT'), color: C.gn, when: when(t.paidDaysAgo != null ? t.paidDaysAgo : 30, '08:00'), auto: true,  text: <><span dir="ltr" style={{ unicodeBidi: 'isolate', lineHeight: 1 /* the ₪ comes from a fallback font with a taller line box (14.10 #735) */ }}>{'₪' + (t.monthly || 0).toLocaleString()}</span> — {T('monthly package')}</> },
-    { kind: T('PLAN'), color: C.ac, when: when(12, '17:45'), auto: true,  text: `${T('Assigned')} ${block}` },
+    { kind: T('PLAN'), color: C.ac, when: when(t.runner ? DEMO_RUNNER.blockAgo : 12, '17:45'), auto: true,  text: `${T('Assigned')} ${block}` },
   ];
   return (
     <div>
@@ -1691,11 +1701,11 @@ const demoEvalFor = (t) => {
     injuries: t.injuries, goals: t.goals,
     sections: [
       { title: 'Lower Body Power', rows: [['Standing Vertical Jump', 'cm', n(e.vj)], ['Broad Jump', 'cm', n(e.bj)]] },
-      { title: 'Max Strength', rows: [
+      ...(t.runner ? [] /* a runner was not tested for 1RMs */ : [{ title: 'Max Strength', rows: [
         ['Trap-Bar Deadlift 1RM', 'kg', n(e.dl)],
         ['Bench Press 1RM', 'kg', n(e.bp)],
         ['Back Squat 1RM', 'kg', '—'],
-      ] },
+      ] }]),
     ],
   };
 };
@@ -1710,6 +1720,15 @@ const demoSchemaEval = (t) => {
     rom: { hip_flexion: '118', hip_internal_rotation: '30', foot_ankle_dorsalflexion: '13', shoulder_flexion: '172', knee_flexion: '135' },
     notes: null,
   };
+};
+// the runner's last three runs for his athlete page: the day, how long ago, distance + average pace
+const demoRecentRuns = () => {
+  const ago = (d) => { const n = Math.round((Date.now() - new Date(d + 'T12:00:00').getTime()) / 86400000); return n <= 0 ? 'Today' : n === 1 ? '1 day ago' : `${n} days ago`; };   // RT turns them into Hebrew
+  return DEMO_RUNNER.workouts.slice(-3).reverse().map((w) => {
+    let km = 0, sec = 0;
+    for (const ex of w.exercises) for (const s of ex.sets) { const k = runKm(s.reps), t = runSecondsFor(s.time, k); if (k && t) { km += k; sec += t; } }
+    return { day: w.dayName, date: ago(w.date), vol: `${Math.round(km * 10) / 10} ${readLang() === 'he' ? 'ק״מ' : 'km'} · ${fmtPaceSec(sec / km)}${readLang() === 'he' ? ' לק״מ' : ' /km'}` };   // the real run review's own words
+  });
 };
 function DemoEvalIntake({ trainee }) {
   const DEMO_EVAL = demoEvalFor(trainee || {});
@@ -2046,11 +2065,11 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           </Panel>
 
           <Panel title={T('SHARED · RECENT WORKOUTS')} tint={C.ac}>
-            {[
+            {(trainee.runner ? demoRecentRuns() : [
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
               { day: 'Day B · Pull', date: '1 week ago', vol: '4,180 kg' },
-            ].map((w, i) => (
+            ]).map((w, i) => (
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{w.day}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{RT(w.date)}</span>
@@ -2107,7 +2126,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           <div style={{ margin: '0 0 16px' }}>
             {(() => {
               // the real athlete page's tabs, in its order (TraineeDetail SEC_TABS)
-              const tabs = [['all', readLang() === 'he' ? 'All' : 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['messages', 'Messages'], ['crm', 'Coach History', 'History'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['eval', 'Evaluation'], ['overload', 'Overload']];
+              const tabs = [['all', readLang() === 'he' ? 'All' : 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['messages', 'Messages'], ['crm', 'Coach History', 'History'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['eval', 'Evaluation'], ...(trainee.runner ? [] /* lifts only - his progress is his run analysis */ : [['overload', 'Overload']])];
               return (
                 <>
                 <SectionPicker label={T(readLang() === 'he' ? 'View' : 'Show')} tabs={tabs.map(([id, l]) => ({ id, label: T(l) }))} value={activeSecs.size === 1 ? [...activeSecs][0] : 'all'} onChange={(v) => { if (v === 'all') setActiveSecs(new Set()); else setActiveSecs(new Set([v])); }} />
@@ -2171,7 +2190,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           </DemoDetailCard>}
 
           {/* MESSAGES */}
-          {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Messages', DEMO_MESSAGES.length)}><DemoMessages /></DemoDetailCard>}
+          {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Messages', demoMessagesFor(trainee).length)}><DemoMessages trainee={trainee} /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
           {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...stripBtnBase, height: 'var(--btn-h-in)', minHeight: 0, border: '1px solid var(--c-stripTx)', color: 'var(--c-stripTx)', flexShrink: 0 /* TraineeCRM's + LOG: the strip's nested height (26 / 32 on touch), not the 36 every <button> gets (#460) */ }}>{T('+ LOG')}</button>}><DemoCRM trainee={trainee} /></DemoDetailCard>}
@@ -2191,11 +2210,11 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             {/* ...and ends at the card's edge the same way: the last row's 8 px + the card's 18 were 31 under it vs 14
                 above (#796 bands) - the list takes back 17 so the last band reads 14 / 14 */}
             <div style={{ marginTop: -12, marginBottom: -17 }}>
-            {[
+            {(trainee.runner ? demoRecentRuns() : [
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
               { day: 'Day B · Pull', date: '1 week ago', vol: '4,180 kg' },
-            ].map((w, i) => (
+            ]).map((w, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < 2 ? `1px solid ${C.cardBd}` : 'none' }}>
                 <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0 }}>{w.day}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, whiteSpace: 'nowrap' }}>{RT(w.date)}</span>
@@ -2225,7 +2244,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('eval') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Evaluation · Intake')}><DemoEvalIntake trainee={trainee} /></DemoDetailCard>}
 
           {/* PROGRESSIVE OVERLOAD — the showpiece */}
-          {showSec('overload') && <DemoDetailCard header={secTitle('Progressive Overload')}><DemoOverload trainee={trainee} /></DemoDetailCard>}
+          {showSec('overload') && !trainee.runner /* lifts only - a runner's progress is his run analysis */ && <DemoDetailCard header={secTitle('Progressive Overload')}><DemoOverload trainee={trainee} /></DemoDetailCard>}
         </div>
         );
       })()}
@@ -2282,6 +2301,8 @@ const MOCK_PROGRAM_INDEX = MOCK_TRAINEES.flatMap((t) => (t.plans || []).map((nam
   dayCount: 3 + ((i + idSeed(t.id)) % 2),
   exerciseCount: 18 + ((i * 4 + idSeed(t.id)) % 10),
   phase: ['Volume', 'Strength', 'Base', 'Intake'][Math.min(i, 3)],
+  // the runner's blocks are his real fixtures: their own day / segment counts, and they say they are running
+  ...(() => { const rp = t.runner && DEMO_RUNNER.plans.find((p) => p.name === name); return rp ? { sport: 'running', phase: '', dayCount: rp.days.length, exerciseCount: rp.days.reduce((a, d) => a + d.exercises.length, 0) } : {}; })(),
   created: dAgo(24 + i * 31),
   updated: dAgo(i === 0 ? 3 + (idSeed(t.id) % 5) : 24 + i * 31 - 4),
 })));
@@ -2412,6 +2433,8 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
 const latestOf = (plans) => plans[plans.length - 1].name;
 function DemoLineage({ athleteName }) {
   const subject = MOCK_TRAINEES.find((t) => t.name === athleteName);
+  // the runner reads HIS runs against HIS running blocks - the real run analysis (RunReview), not a renamed strength history
+  if (subject && subject.runner) return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={DEMO_RUNNER.plans} clientWorkouts={DEMO_RUNNER.workouts} loading={false} onOpenPlan={() => {}} focus={{}} />;
   const own = (subject && subject.plans) ? subject.plans.slice().reverse() : null;   // chronological
   const plans = (!own || !own.length)
     ? DEMO_LINEAGE_PLANS
@@ -2444,7 +2467,7 @@ function DemoLineage({ athleteName }) {
 // from the product again.
 const RealPlanEditor = React.lazy(() => import('./PlansView').then((m) => ({ default: m.PlanEditor })));
 function DemoRealEditor({ program, onBack, onSwitch }) {
-  const base = DEMO_PLANS.find((p) => p.name === program.name) || DEMO_PLANS[0];
+  const base = DEMO_RUNNER.plans.find((p) => p.name === program.name) || DEMO_PLANS.find((p) => p.name === program.name) || DEMO_PLANS[0];
   // the mock plan through the SAME load shape the real editor gets from the database (usePlansStore.normalizeDays)
   const [plan, setPlan] = useState(() => { const c = JSON.parse(JSON.stringify(base)); return { ...c, days: normalizeDays(c.days), id: program.id, name: program.name, traineeId: program.traineeId }; });
   const [lib, setLib] = useState(DEMO_EXERCISES);
@@ -3003,7 +3026,7 @@ function DemoPrograms({ resetToken = 0 }) {
   // wave-week label on a one-off template, which feels off.
   const isCurrentBlock = !!selectedProgram?.name?.match(/Block\s*#\d+/);
   const headingWhen = isCurrentBlock ? block.when : 'TEMPLATE';
-  if (selectedProgram) return <DemoRealEditor program={selectedProgram} onBack={() => setSelectedProgramId(null)} onSwitch={(id) => setSelectedProgramId(id)} />;
+  if (selectedProgram) return <DemoRealEditor key={selectedProgram.id} /* a switch loads the other block, not the first one's copy */ program={selectedProgram} onBack={() => setSelectedProgramId(null)} onSwitch={(id) => setSelectedProgramId(id)} />;
   return (
     <section>
       {/* Editor top row — mirrors PlansView's PlanEditor: BACK / program-switch
@@ -4803,7 +4826,7 @@ function DemoSingle() {
             and left out עומר, who is active and trained today. You cannot
             start a session with someone frozen and out of sessions. The list
             is whoever you actually could start one with. */}
-        {MOCK_TRAINEES.filter(t => (t.status === 'Active' || t.status === 'Trial') && t.sessionsLeft > 0).map((t, i) => {
+        {MOCK_TRAINEES.filter(t => (t.status === 'Active' || t.status === 'Trial') && t.sessionsLeft > 0 && !t.runner /* the demo session is a strength day; he logs runs from his own portal */).map((t, i) => {
           const isOpen = openAthlete === t.id;
           const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
           return (

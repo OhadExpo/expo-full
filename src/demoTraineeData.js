@@ -242,6 +242,85 @@ export const DEMO_CLIENT_WORKOUTS = [
   },
 ];
 
+// THE COACH DEMO'S RUNNER (#866): an athlete whose blocks are RUNNING programs, so a prospect sees what the coach app
+// shows for a runner - the real editor in running mode and the real run analysis (RunReview). His own plans and runs,
+// never another athlete's renamed (a strength athlete made to run read his strength history as runs - reverted 17.10).
+// Plans chronological; runs in the logged shape (per set: km, the set's time, HR), clientId 'demo' like the lineage.
+// The story: week 1 the intervals ran at pace but over the 165 cap, by week 3 the same pace sits under it.
+const KM = (n) => (HE_RUN ? `${n} ק״מ` : `${n} km`);
+// Day A / B / C as the house names run days ('יום A' - a Hebrew letter reads as a weekday; the weekdays go in the note)
+const RD = {
+  a: HE_RUN ? 'יום A · חזרות' : 'Day A · Intervals',
+  b: HE_RUN ? 'יום B · ריצה קלה' : 'Day B · Easy run',
+  c: HE_RUN ? 'יום C · ריצה ארוכה' : 'Day C · Long run',
+  aEasy: HE_RUN ? 'יום A · ריצה קלה' : 'Day A · Easy run',
+  tempo: HE_RUN ? 'יום B · טמפו' : 'Day B · Tempo',
+};
+const EASYRUN = HE_RUN ? 'ריצה קלה' : 'Easy run', LONGRUN = HE_RUN ? 'ריצה ארוכה' : 'Long run', TEMPO = HE_RUN ? 'טמפו' : 'Tempo';
+const WALK = HE_RUN ? '2.5 דק׳ הליכה' : '2.5 min walk';
+const RUNNER_PLANS = [
+  {
+    id: 'demo-run-blk-1', name: 'Block #1 — Base Miles', sport: 'running', weeks: 4, createdAt: null,
+    days: [
+      { name: RD.aEasy, exercises: [{ title: EASYRUN, sets: 1, reps: KM(6), tempo: EASY, load: '150' }] },
+      { name: RD.tempo, exercises: [{ title: WU, sets: 1, reps: KM1, tempo: EASY }, { title: TEMPO, sets: 1, reps: KM(3), tempo: '5:20-5:30', load: '165' }, { title: CD, sets: 1, reps: KM1, tempo: EASY }] },
+      { name: RD.c, exercises: [{ title: LONGRUN, sets: 1, reps: KM(8), wk: [KM(8), KM(8), KM(9), KM(10)], tempo: '6:10-6:30', load: '155' }] },
+    ],
+  },
+  {
+    id: 'demo-run-blk-2', name: 'Block #2 — 10K Build', sport: 'running', weeks: 4, createdAt: null,
+    days: [
+      { name: RD.a, exercises: [{ title: WU, sets: 1, reps: KM1, tempo: EASY }, { title: INT, sets: 5, reps: KM1, tempo: '5:00-5:05', rest: WALK, load: '165' }, { title: CD, sets: 1, reps: KM1, tempo: EASY }] },
+      { name: RD.b, exercises: [{ title: EASYRUN, sets: 1, reps: KM(6), tempo: EASY, load: '150' }] },
+      { name: RD.c, exercises: [{ title: LONGRUN, sets: 1, reps: KM(10), wk: [KM(10), KM(11), KM(12), KM(8)], tempo: '6:00-6:20', load: '155' }] },
+    ],
+  },
+];
+const runSet = (km, time, hr) => ({ reps: String(km), load: '', rpe: '', done: true, time, hr: String(hr) });
+// each block-week is one calendar week (Sunday to Saturday, as the analysis counts weekly km), finished: Sunday, Tuesday,
+// Thursday of 1-5 weeks back, whatever day the demo is opened on (days-ago put two block-weeks in one week on some days
+// and the analysis read a 77% jump)
+// from Friday on, this week's Sunday / Tuesday / Thursday runs are done: the latest block-week is this week (his last run
+// is never more than 6 days old)
+const WEEK_SHIFT = today.getDay() >= 5 ? 1 : 0;
+const onWeek = (weeksBack, dow) => { const d = new Date(today); d.setDate(d.getDate() - d.getDay() - 7 * (weeksBack - WEEK_SHIFT) + dow); return todayLocalISO(d); };
+const runLog = (id, plan, day, week, [weeksBack, dow], exercises, extra = {}) => ({ id, clientId: 'demo', planName: plan, dayName: day, week, date: onWeek(weeksBack, dow), reviewedAt: null, notes: '', autoregulation: {}, formVideos: [], exercises, ...extra });
+const intervals = (reps) => [
+  { title: WU, sets: [runSet(1, '6:20', 128)] },
+  { title: INT, sets: reps.map(([t, hr]) => runSet(1, t, hr)) },
+  { title: CD, sets: [runSet(1, '6:40', 135)] },
+];
+const B1 = RUNNER_PLANS[0].name, B2 = RUNNER_PLANS[1].name;
+const RUNNER_WORKOUTS = [
+  // the base block, every week: 18, 19, 20, 21 km - so the 10K block's first week (23 km) is a gentle step up
+  runLog('dr-1-b1', B1, RD.aEasy, 1, [7, 0], [{ title: EASYRUN, sets: [runSet(5, '32:10', 149)] }]),
+  runLog('dr-1-t1', B1, RD.tempo, 1, [7, 2], [{ title: WU, sets: [runSet(1, '6:30', 131)] }, { title: TEMPO, sets: [runSet(3, '16:30', 168)] }, { title: CD, sets: [runSet(1, '6:50', 140)] }]),
+  runLog('dr-1-c1', B1, RD.c, 1, [7, 4], [{ title: LONGRUN, sets: [runSet(8, '52:00', 153)] }]),
+  runLog('dr-1-b2', B1, RD.aEasy, 2, [6, 0], [{ title: EASYRUN, sets: [runSet(6, '38:30', 149)] }]),
+  runLog('dr-1-t2', B1, RD.tempo, 2, [6, 2], [{ title: WU, sets: [runSet(1, '6:28', 130)] }, { title: TEMPO, sets: [runSet(3, '16:21', 167)] }, { title: CD, sets: [runSet(1, '6:48', 139)] }]),
+  runLog('dr-1-c2', B1, RD.c, 2, [6, 4], [{ title: LONGRUN, sets: [runSet(8, '51:40', 152)] }]),
+  runLog('dr-1-b3', B1, RD.aEasy, 3, [5, 0], [{ title: EASYRUN, sets: [runSet(6, '38:10', 148)] }]),
+  runLog('dr-1-t3', B1, RD.tempo, 3, [5, 2], [{ title: WU, sets: [runSet(1, '6:25', 130)] }, { title: TEMPO, sets: [runSet(3, '16:12', 166)] }, { title: CD, sets: [runSet(1, '6:45', 138)] }]),
+  runLog('dr-1-c3', B1, RD.c, 3, [5, 4], [{ title: LONGRUN, sets: [runSet(9, '57:40', 151)] }]),
+  runLog('dr-1-b4', B1, RD.aEasy, 4, [4, 0], [{ title: EASYRUN, sets: [runSet(6, '37:50', 146)] }]),
+  runLog('dr-1-t4', B1, RD.tempo, 4, [4, 2], [{ title: WU, sets: [runSet(1, '6:22', 129)] }, { title: TEMPO, sets: [runSet(3, '16:03', 163)] }, { title: CD, sets: [runSet(1, '6:42', 137)] }]),
+  runLog('dr-1-c4', B1, RD.c, 4, [4, 4], [{ title: LONGRUN, sets: [runSet(10, '63:40', 152)] }]),
+  runLog('dr-2-a1', B2, RD.a, 1, [3, 0], intervals([['5:08', 163], ['5:06', 166], ['5:05', 168], ['5:07', 169], ['5:04', 171]]),
+    { notes: HE_RUN ? 'הדופק עלה מהר מהחזרה השלישית' : 'HR climbed fast from rep 3', autoregulation: { pain: 'none', sleep: 'ok', energy: 'ok' } }),
+  runLog('dr-2-b1', B2, RD.b, 1, [3, 2], [{ title: EASYRUN, sets: [runSet(6, '37:30', 146)] }]),
+  runLog('dr-2-c1', B2, RD.c, 1, [3, 4], [{ title: LONGRUN, sets: [runSet(10, '62:30', 150)] }]),
+  runLog('dr-2-a2', B2, RD.a, 2, [2, 0], intervals([['5:03', 160], ['5:02', 163], ['5:01', 164], ['5:02', 166], ['5:00', 167]])),
+  runLog('dr-2-b2', B2, RD.b, 2, [2, 2], [{ title: EASYRUN, sets: [runSet(6, '37:00', 143)] }]),
+  runLog('dr-2-c2', B2, RD.c, 2, [2, 4], [{ title: LONGRUN, sets: [runSet(11, '68:20', 152)] }]),
+  runLog('dr-2-a3', B2, RD.a, 3, [1, 0], intervals([['4:59', 158], ['5:00', 160], ['4:58', 162], ['5:00', 163], ['4:57', 164]]),
+    { notes: HE_RUN ? 'אותו קצב, דופק מתחת לתקרה כל החזרות' : 'Same pace, HR under the cap on every rep', autoregulation: { pain: 'none', sleep: 'good', energy: 'good' } }),
+  runLog('dr-2-b3', B2, RD.b, 3, [1, 2], [{ title: EASYRUN, sets: [runSet(6, '36:24', 141)] }]),
+  runLog('dr-2-c3', B2, RD.c, 3, [1, 4], [{ title: LONGRUN, sets: [runSet(12, '74:10', 153)] }]),
+];
+// days since his last run (the roster's 'last workout', his messages) and since the 10K block started (its PLAN row)
+const agoOf = (iso) => Math.round((new Date(todayLocalISO(today) + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 86400000);
+export const DEMO_RUNNER = { plans: RUNNER_PLANS, workouts: RUNNER_WORKOUTS, lastAgo: agoOf(RUNNER_WORKOUTS[RUNNER_WORKOUTS.length - 1].date), blockAgo: agoOf(RUNNER_WORKOUTS.find((w) => w.planName === B2).date) + 1 };
+
 // Flat array — ClientPortal calls bwLog.filter(b => b.clientId === ci).
 // Each row: { date, clientId, week, bw, blockName, planId }.
 // ONE WEIGH-IN PER BLOCK-WEEK. The log held FOUR week-2 rows, and the save
