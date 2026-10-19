@@ -137,7 +137,15 @@ export default async function handler(req, res) {
       headers: { apikey: SUPA_PUBLISHABLE_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({ email: CANARY_EMAIL, password }),
     });
-    if (!signIn.ok) throw new Error(`sign-in HTTP ${signIn.status}`);
+    if (!signIn.ok) {
+      // A 400 invalid_credentials is the canary's OWN password drifting from
+      // CANARY_PASSWORD (fixture reset / in-app password change) — not proof
+      // athletes are locked out. Name the code so the page says which it is.
+      let code = '';
+      try { const b = await signIn.json(); code = b?.error_code || b?.msg || ''; } catch (_) { /* ignore */ }
+      const hint = code === 'invalid_credentials' ? ' — fixture password ≠ CANARY_PASSWORD; reset diego in Supabase Auth or update the env var' : '';
+      throw new Error(`sign-in HTTP ${signIn.status}${code ? ` ${code}` : ''}${hint}`);
+    }
     const token = (await signIn.json())?.access_token;
     if (!token) throw new Error('sign-in returned no access_token');
     checks.signIn = 'ok';
