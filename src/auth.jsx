@@ -768,6 +768,10 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
     // COACH's password. Hard no-op with a clear notice.
     const t = (x) => tr(readLang(), x);
     if (demoMode) { setError(t('Password changes are disabled in preview.')); return; }
+    // The athlete-health canary signs in as this fixture with CANARY_PASSWORD.
+    // Rotating it here blinds every check behind the login (19.10: paged
+    // "athlete experience is BROKEN" on sign-in 400, nothing else ran).
+    if (String(email || '').toLowerCase() === 'diego@diegoday.com') { setError(t('This is the monitoring test account - its password is managed in Supabase only.')); return; }
     if (!currentPw) { setError(t('Enter your current password.')); return; }
     if (pw.length < 4) { setError(t('New password must be at least 4 characters.')); return; }
     if (pw !== confirmPw) { setError(t("Passwords don't match.")); return; }

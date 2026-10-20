@@ -1996,6 +1996,7 @@ export const HE = {
   'New password': 'סיסמה חדשה',
   'Confirm new password': 'אימות הסיסמה החדשה',
   'Password changes are disabled in preview.': 'אי אפשר לשנות סיסמה בתצוגה מקדימה.',
+  'This is the monitoring test account - its password is managed in Supabase only.': 'זה חשבון הבדיקה של הניטור - את הסיסמה שלו משנים רק בSupabase.',
   'Enter your current password.': 'תכתוב את הסיסמה הנוכחית.',
   'New password must be at least 4 characters.': 'הסיסמה החדשה צריכה להיות לפחות 4 תווים.',
   "Passwords don't match.": 'הסיסמאות לא תואמות.',

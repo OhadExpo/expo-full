@@ -48,7 +48,7 @@ function vapidReady() {
   return true;
 }
 
-async function pageCoaches(failure) {
+async function pageCoaches(failure, blind = false) {
   const healthSecret = process.env.HEALTH_SECRET;
   if (!healthSecret || !vapidReady()) return { paged: 0, note: 'no VAPID/secret' };
   let subs = [];
@@ -61,7 +61,18 @@ async function pageCoaches(failure) {
     if (r.ok) subs = await r.json();
   } catch (_) { /* ignore */ }
   if (!Array.isArray(subs)) subs = [];
-  const payload = JSON.stringify({
+  // BLIND = the canary could not log in but Supabase Auth itself is answering:
+  // athletes are probably fine, yet NOTHING behind the login is being checked
+  // until the fixture password is fixed. Different words, same urgency.
+  const payload = JSON.stringify(blind ? {
+    title: '⚠️ Athlete monitor is BLIND',
+    body: `The test athlete cannot log in (${failure}). Supabase Auth is up, so athletes are probably fine — but no athlete path is being checked until this is fixed.`,
+    url: '/coach/dashboard',
+    tag: 'athlete-health',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    requireInteraction: true,
+  } : {
     title: '⚠️ Athlete experience is BROKEN',
     body: `Synthetic athlete check failed: ${failure}. Clients are hitting this right now — check immediately.`,
     url: '/coach/dashboard',
@@ -129,6 +140,7 @@ export default async function handler(req, res) {
   }
 
   let failure = null;
+  let blind = false;
   const checks = {};
   try {
     // 1. Sign in as the canary athlete.
@@ -144,6 +156,9 @@ export default async function handler(req, res) {
       let code = '';
       try { const b = await signIn.json(); code = b?.error_code || b?.msg || ''; } catch (_) { /* ignore */ }
       const hint = code === 'invalid_credentials' ? ' — fixture password ≠ CANARY_PASSWORD; reset diego in Supabase Auth or update the env var' : '';
+      if (code === 'invalid_credentials') {
+        try { blind = (await fetch(`${SUPA_URL}/auth/v1/health`, { headers: { apikey: SUPA_PUBLISHABLE_KEY } })).ok; } catch (_) { /* stays BROKEN */ }
+      }
       throw new Error(`sign-in HTTP ${signIn.status}${code ? ` ${code}` : ''}${hint}`);
     }
     const token = (await signIn.json())?.access_token;
@@ -256,8 +271,8 @@ export default async function handler(req, res) {
   }
 
   if (failure) {
-    const alert = await pageCoaches(failure);
-    res.status(200).json({ ok: false, failure, checks, alert });
+    const alert = await pageCoaches(failure, blind);
+    res.status(200).json({ ok: false, blind, failure, checks, alert });
     return;
   }
   res.status(200).json({ ok: true, checks });
