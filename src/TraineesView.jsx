@@ -5,6 +5,7 @@ import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } fro
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast, CaretGlyph, useSettleIn } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { SideRail } from './SideRail';
+import { layoutIncludes } from './searchLayout';
 import { WhatsAppCheckInButton, normalizePhoneIL, displayPhoneIL } from './whatsappButton';
 
 // Clickable status pill for the athlete cards — same control as the trainee
@@ -666,10 +667,11 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
     const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
     // nameLocal holds the Hebrew spelling of an athlete whose display name is now
     // English (the BHBC roster, 18.9). Typing עמית still has to find Amit.
-    if ((t.name || '').toLowerCase().includes(s) || (t.nameLocal || '').toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
+    // layoutIncludes: "hhjb" typed on the English layout still finds a Hebrew name.
+    if (layoutIncludes(t.name, s) || layoutIncludes(t.nameLocal, s) || layoutIncludes(emailStr, s)) return true;
     if (t.members) return t.members.some(m => {
       const memEmail = Array.isArray(m.email) ? m.email.join(' ') : (m.email || '');
-      return (m.name || '').toLowerCase().includes(s) || memEmail.toLowerCase().includes(s);
+      return layoutIncludes(m.name, s) || layoutIncludes(memEmail, s);
     });
     return false;
   };

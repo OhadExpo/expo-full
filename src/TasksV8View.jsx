@@ -26,6 +26,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { localiseAutoBody, addLocalNames } from './autoTaskHe';
+import { layoutIncludes } from './searchLayout';
 import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useUrlSync, segmentAfter } from './urlState';
 import { lazyReload } from './lazyReload';
@@ -2474,7 +2475,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const searched = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return ownerBase;
-    return ownerBase.filter(r => `${r._display || ''} ${r.body || ''}`.toLowerCase().includes(q)); // both spellings find it
+    return ownerBase.filter(r => layoutIncludes(`${r._display || ''} ${r.body || ''}`, q)); // both spellings, and both keyboard layouts, find it
   }, [ownerBase, search]);
 
   // Quick-filter counts (computed off ownerBase so chips show real numbers
@@ -2549,7 +2550,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       return true;
     };
     const src = decorated.filter(r => ownerMatches(r) && r.status !== 'cancelled'
-      && (!q || `${r._display || ''} ${r.body || ''}`.toLowerCase().includes(q))
+      && (!q || layoutIncludes(`${r._display || ''} ${r.body || ''}`, q))
       && quickMatch(r));
     const order = ['open', 'working', 'waiting', 'stuck', 'done'];
     const byStatus = new Map(order.map(s => [s, []]));

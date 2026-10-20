@@ -23,6 +23,7 @@ import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
+import { layoutIncludes, layoutIncludesAll } from './searchLayout';
 import TrainingLineageV2 from './TrainingLineageV2';
 import { tr, readLang, daysAgoHe, sessionsLeftHe } from './i18n';
 import { taxoHe } from './taxonomyHe';
@@ -910,7 +911,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   });
   const activeAttn = Object.keys(attnFlags).filter(k => attnFlags[k]);
   let filtered = MOCK_TRAINEES.filter(t => {
-    if (q) { const hay = `${t.name || ''} ${t.email || ''} ${t.format || ''}`.toLowerCase(); if (!hay.includes(q)) return false; }
+    if (q && !layoutIncludes(`${t.name || ''} ${t.email || ''} ${t.format || ''}`, q)) return false;
     if (statusFilter !== 'All' && t.status !== statusFilter) return false;
     if (formatFilter !== 'All' && fmtOf(t) !== formatFilter) return false;
     if (activeAttn.length) { const a = attnOf(t); if (!activeAttn.every(k => a[k])) return false; }
@@ -2674,7 +2675,7 @@ function DemoPrograms({ resetToken = 0 }) {
       if (filterTrainee && p.traineeId !== filterTrainee) return false;
       if (flags.unassigned && p.traineeId) return false;
       if (flags.empty && p.exerciseCount && p.dayCount) return false;
-      if (q && !p.name.toLowerCase().includes(q)) return false;
+      if (q && !layoutIncludes(p.name, q)) return false;
       return true;
     });
     filtered = filtered.slice().sort((a, b) => {
@@ -3613,7 +3614,7 @@ function DemoExercises() {
   const pass = (e, skip) => {
     if (q) {
       const hay = [e.name, e.resistanceType, e.bodyPosition, e.movementType, e.primaryJoints, e.jointMovements, e.primaryMuscles, e.secondaryMuscles].filter(Boolean).join(' ').toLowerCase();
-      if (!q.split(/\s+/).filter(Boolean).every(t => hay.includes(t))) return false;
+      if (!layoutIncludesAll(hay, q)) return false;
     }
     for (const k of FILTER_KEYS) {
       if (k === skip) continue;
@@ -5145,7 +5146,7 @@ function DemoTasks() {
   const visible = React.useMemo(() => {
     let rows = DEMO_TASKS.filter(t => owner === 'ALL' ? true : (t.who === owner || (owner === 'SHARED' && t.who === 'SHARED')));
     const q = search.trim().toLowerCase();
-    if (q) rows = rows.filter(t => (taskTitle(t) + ' ' + t.due + ' ' + t.who).toLowerCase().includes(q));
+    if (q) rows = rows.filter(t => layoutIncludes(taskTitle(t) + ' ' + t.due + ' ' + t.who, q));
     if (quickFilter === 'today')   rows = rows.filter(t => /today/i.test(t.due));
     if (quickFilter === 'overdue') rows = rows.filter(t => t.status === 'stuck' || t.titleKey === 'overdue' || /overdue/i.test(t.title || ''));
     if (quickFilter === 'stuck')   rows = rows.filter(t => t.status === 'stuck');

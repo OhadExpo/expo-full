@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { layoutIncludesAll } from './searchLayout';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile, SegWord, SortArrow, StripCaret, PlayGlyph, NotesGlyph, TagStack } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
@@ -113,7 +114,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
     if (tokens.length) {
       const hay = [e.title, e.resistanceType, e.bodyPosition, e.movementType, e.primaryJoints, e.jointMovements, e.primaryMuscles, e.secondaryMuscles].filter(Boolean).join(' ').toLowerCase();
-      if (!tokens.every(t => hay.includes(t))) return false;
+      if (!layoutIncludesAll(hay, q)) return false; // the wrong keyboard layout still finds it
     }
     // Single-value fields: OR — the row's value must be one of the picked.
     if (skip !== 'resistanceType' && f.resistanceType.length && !f.resistanceType.includes(e.resistanceType)) return false;

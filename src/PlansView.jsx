@@ -1,6 +1,7 @@
 import { blockNum, repsTop, classifyPattern } from './patternRules';
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { wrapNeed } from './wrapNeed';
+import { layoutIncludes, layoutIncludesAll } from './searchLayout';
 import { createPortal } from 'react-dom';
 import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
@@ -231,7 +232,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
         ex.movementPattern, ex.laterality, ex.primaryMuscles, ex.secondaryMuscles,
         ex.primaryJoints, ex.jointMovements
       ].filter(Boolean).join(' ').toLowerCase();
-      return tokens.every(t => haystack.includes(t));
+      return layoutIncludesAll(haystack, q); // "ברמבי" typed on the Hebrew layout still finds "bench"
     };
     return (exercises || []).filter(match).slice(0, 200);
   }, [exercises, search, filters, open]);
@@ -4268,7 +4269,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
     if (flags.unassigned) result = result.filter(isUnassigned);
     if (flags.empty) result = result.filter(isEmpty);
-    if (search) { const q = search.toLowerCase(); result = result.filter(p => (p.name||'').toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
+    if (search) result = result.filter(p => layoutIncludes(p.name, search) || layoutIncludes(traineeMap[p.traineeId], search));
     // Apply the user-chosen sort. 'created' uses sortProgramsRecent — last
     // created/added first (so a just-made un-numbered block floats to the top),
     // with Block #N as the tiebreak for Drive-import batches that share one
