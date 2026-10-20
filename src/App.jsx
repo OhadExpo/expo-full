@@ -1782,7 +1782,7 @@ function AuthedApp() {
   // rtl/Hebrew and the portal stayed ltr/English beside it.
   if (isClient) return (<LangCtx.Provider value={lang}><div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
     <ErrorBoundary inline>
-    <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
+    <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} loginEmail={email} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
       lang={lang} onSetLang={setLang}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
     </ErrorBoundary>
@@ -1862,7 +1862,7 @@ function AuthedApp() {
         <BhbcView stale={!!traineesLoadError} trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} gameWarmup={bhbcGameWarmup} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} canLogLoad={canLogLoad(email) || isOwner} currentUser={email} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))}
           // MY PROGRAM (14.10 #769): his REAL portal - logs save as any athlete's do. 'loading' while his row is looked up.
           myProgram={!isBhbcCoach ? null : selfTrainee === undefined && !storeClientTrainee ? 'loading' : !clientTrainee ? null : () => (
-            <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={() => {}} signOut={signOut} updateFormVideos={updateFormVideos} inZone />
+            <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} loginEmail={email} onDecrementSession={() => {}} signOut={signOut} updateFormVideos={updateFormVideos} inZone />
           )} />
       </ErrorBoundary>
     </Suspense></>

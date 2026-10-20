@@ -2766,7 +2766,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null, inZone = false, previewReal = true }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null, inZone = false, previewReal = true, loginEmail = '' }) {
   const tt = useAppT();
   // EVERY HEBREW LINE IN ITS OWN DIRECTION (29.9 #391 pass 7). The portal keeps
   // its left-to-right LAYOUT (as production), and so every Hebrew sentence in
@@ -3005,6 +3005,22 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   }, [ci, demoMode]);
 
   const clientName = trainee?.name || '';
+  // A couple shares ONE trainee row ("נטע ותום רונן") and one portal. The header
+  // used the row's first word, so Tom signed in and was greeted as Neta (20.10),
+  // and he saw her block beside his. The signed-in email picks the member: his
+  // name in the header, his plans only. No match (the coach's preview) keeps
+  // both members' plans and names both.
+  const selfMemberIdx = useMemo(() => {
+    const em = String(loginEmail || '').trim().toLowerCase();
+    const ms = Array.isArray(trainee?.members) ? trainee.members : [];
+    if (!em || ms.length < 2) return null;
+    const i = ms.findIndex(m => (Array.isArray(m?.email) ? m.email : [m?.email]).some(x => String(x || '').trim().toLowerCase() === em));
+    return i < 0 ? null : i;
+  }, [loginEmail, trainee]);
+  const memberNames = Array.isArray(trainee?.members) ? trainee.members.map(m => String(m?.name || '').trim()).filter(Boolean) : [];
+  const displayFirstName = selfMemberIdx != null
+    ? (memberNames[selfMemberIdx] || '').split(' ')[0]
+    : (memberNames.length > 1 ? memberNames.map(n => n.split(' ')[0]).join(' & ') : clientName.split(' ')[0]);
 
   // Prebuilt lookup maps so plan→portal conversion is O(1) per exercise instead
   // of scanning the whole (1,467-entry) library twice per row, every render.
@@ -3051,8 +3067,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // that let one member's logs mark the other's day done (audit #31). It is the
   // ONLY place the plan id gets to override the name.
   const dupPlanNames = React.useMemo(() => duplicatePlanNames(sorted), [sorted]);
-  const latestBlock = sorted.find(p => blockNum(p.name) !== -Infinity);
-  const visPlans = sorted.filter(p => {
+  // the other member's plans never show on a member's own sign-in, and his
+  // "latest block" default is chosen among HIS blocks only
+  const ownPlans = selfMemberIdx == null ? sorted : sorted.filter(p => { const mi = memberIndexFromId(p.traineeId, ci); return mi == null || mi === selfMemberIdx; });
+  const latestBlock = ownPlans.find(p => blockNum(p.name) !== -Infinity);
+  const visPlans = ownPlans.filter(p => {
     if (clientName && portalVis) {
       const v = portalVis[visKeyFor(p)];
       if (v === true) return true;   // coach explicitly opted this plan IN
@@ -3211,7 +3230,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       if (await isCoachMutedForAthlete(ci)) return;
       sendPush({
         toEmail: 'ohadyproductions@gmail.com',
-        title: `${clientName || 'Athlete'} finished a workout`,
+        title: `${selfMemberIdx != null && memberNames[selfMemberIdx] ? `${memberNames[selfMemberIdx]} (${clientName})` : (clientName || 'Athlete')} finished a workout`,
         body: `${w.dayName || 'Session'} · W${w.week ?? wk + 1} · ${exCount} ex`,
         url: `/coach/trainees/${ci}`,
         tag: `workout:${w.id || ci}`,
@@ -3379,7 +3398,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:12}}>
           {/* Just the athlete's first name (Ohad: drop the "Hey"/"היי" prefix).
               Hebrew names use the Hebrew font so they don't render oversized. */}
-          <h1 dir="auto" style={{margin:0,lineHeight:1,fontFamily:FN,fontSize:21,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}><span style={/[֐-׿]/.test(clientName.split(' ')[0]) ? {fontFamily:FH} : undefined}>{clientName.split(' ')[0]}</span></h1>
+          <h1 dir="auto" style={{margin:0,lineHeight:1,fontFamily:FN,fontSize:21,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}><span style={/[֐-׿]/.test(displayFirstName) ? {fontFamily:FH} : undefined}>{displayFirstName}</span></h1>
           <div style={{width:24,height:1,background:C.ac,marginTop:12,opacity:0.5}}/>
           {isBnei && (
             <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',lineHeight:1,color:C.ac,marginTop:12,textAlign:'center'}}>{tt('Bnei Herzliya').toUpperCase()}</div>
