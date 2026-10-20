@@ -82,8 +82,18 @@ const val = (v) => { const c = clean(v); return (!c || DITTO.test(c) || isDateSe
     };
   });
 
+  // The warm-up sits above the day tables; the parser reads it, and the plan
+  // stores it as { t, rx, vid }. It used to be written as [] — every imported
+  // block lost its warm-up (20.10, Tom Block #8).
+  const warmup = (sb.warmup || []).map((w) => {
+    const L = findLib(w.title);
+    const vid = clean(w.url).replace(/&amp;/g, '&') || (L && L.videoLink) || '';
+    return { t: clean(w.title), rx: clean(w.rx), vid };
+  });
+
   const rows = days.reduce((a, d) => a + d.exercises.length, 0);
-  console.log(`"${sb.tab}" -> ${TRAINEE}: ${days.length} days, ${rows} exercises`);
+  console.log(`"${sb.tab}" -> ${TRAINEE}: ${days.length} days, ${rows} exercises, ${warmup.length} warm-up steps`);
+  warmup.forEach((w) => console.log(`   warm-up: ${w.t} (${w.rx})${w.vid ? ' vid' : ''}`));
   console.log(`  library matched ${matched}, unmatched ${unmatched} | videos ${withVideo} | superset rows ${withSS}`);
   days.forEach((d) => console.log(`   ${d.name}: ${d.exercises.length} ex`));
   if (!APPLY) { console.log('DRY RUN — pass --apply to create.'); process.exit(0); }
@@ -95,7 +105,7 @@ const val = (v) => { const c = clean(v); return (!c || DITTO.test(c) || isDateSe
     phase: '',
     notes: '',
     active: !INACTIVE,
-    data: { days, warmup: [], weeks: 4 },
+    data: { days, warmup, weeks: 4 },
   };
   const { error } = await s.from('plans').insert(plan);
   if (error) { console.log('INSERT FAILED:', error.message); process.exit(1); }
@@ -103,7 +113,9 @@ const val = (v) => { const c = clean(v); return (!c || DITTO.test(c) || isDateSe
   const { data: back } = await s.from('plans').select('id,name,data').eq('id', plan.id).single();
   const gotRows = (back.data.days || []).reduce((a, d) => a + (d.exercises || []).length, 0);
   const gotVid = (back.data.days || []).reduce((a, d) => a + (d.exercises || []).filter((e) => e.videoUrl).length, 0);
-  console.log(`VERIFIED FROM DB: "${back.name}" ${back.data.days.length} days, ${gotRows} exercises, ${gotVid} with a video  (${plan.id})`);
+  const gotWarm = (back.data.warmup || []).length;
+  console.log(`VERIFIED FROM DB: "${back.name}" ${back.data.days.length} days, ${gotRows} exercises, ${gotVid} with a video, ${gotWarm} warm-up steps  (${plan.id})`);
+  if (gotWarm !== warmup.length) { console.log('WARM-UP MISMATCH'); process.exit(1); }
   fs.appendFileSync('scripts/_imported-blocks.log', `${new Date().toISOString()} ${plan.id} ${TRAINEE} ${plan.name} ${gotRows}ex\n`);
   process.exit(gotRows === rows ? 0 : 1);
 })();
