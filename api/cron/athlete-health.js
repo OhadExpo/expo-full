@@ -133,29 +133,36 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-  const password = process.env.CANARY_PASSWORD;
-  if (!password) {
-    res.status(500).json({ error: 'CANARY_PASSWORD not configured.' });
-    return;
-  }
+  // The fixture's password is the system default every verify script signs in
+  // with ('1234'). CANARY_PASSWORD drifted from it (21.10) and the monitor went
+  // blind for two days over a Vercel setting. The env var is tried first; when
+  // Auth rejects it the shared fixture default is tried, so a stale variable
+  // costs a note in the JSON, not the whole athlete check.
+  const FIXTURE_DEFAULT_PW = '1234';
+  const candidates = [...new Set([process.env.CANARY_PASSWORD, FIXTURE_DEFAULT_PW].filter(Boolean))];
 
   let failure = null;
   let blind = false;
   const checks = {};
   try {
     // 1. Sign in as the canary athlete.
-    const signIn = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+    const trySignIn = (password) => fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: { apikey: SUPA_PUBLISHABLE_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({ email: CANARY_EMAIL, password }),
     });
-    if (!signIn.ok) {
-      // A 400 invalid_credentials is the canary's OWN password drifting from
-      // CANARY_PASSWORD (fixture reset / in-app password change) — not proof
-      // athletes are locked out. Name the code so the page says which it is.
-      let code = '';
+    let signIn = null, code = '';
+    for (const [i, pw] of candidates.entries()) {
+      signIn = await trySignIn(pw);
+      if (signIn.ok) { if (i > 0) checks.canaryPasswordEnv = 'stale - signed in with the fixture default; set CANARY_PASSWORD=1234 in Vercel'; break; }
+      code = '';
       try { const b = await signIn.json(); code = b?.error_code || b?.msg || ''; } catch (_) { /* ignore */ }
-      const hint = code === 'invalid_credentials' ? ' — fixture password ≠ CANARY_PASSWORD; reset diego in Supabase Auth or update the env var' : '';
+      if (code !== 'invalid_credentials') break;   // Auth itself is failing - no point trying another password
+    }
+    if (!signIn.ok) {
+      // invalid_credentials on EVERY candidate = the fixture's own password moved
+      // (not proof athletes are locked out). Name the code so the page says which.
+      const hint = code === 'invalid_credentials' ? ' — fixture password matches neither CANARY_PASSWORD nor the default; reset diego in Supabase Auth' : '';
       if (code === 'invalid_credentials') {
         try { blind = (await fetch(`${SUPA_URL}/auth/v1/health`, { headers: { apikey: SUPA_PUBLISHABLE_KEY } })).ok; } catch (_) { /* stays BROKEN */ }
       }
