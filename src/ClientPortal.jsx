@@ -3014,7 +3014,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const em = String(loginEmail || '').trim().toLowerCase();
     const ms = Array.isArray(trainee?.members) ? trainee.members : [];
     if (!em || ms.length < 2) return null;
-    const i = ms.findIndex(m => (Array.isArray(m?.email) ? m.email : [m?.email]).some(x => String(x || '').trim().toLowerCase() === em));
+    const emailsOf = (m) => (Array.isArray(m?.email) ? m.email : [m?.email]).map(x => String(x || '').trim().toLowerCase()).filter(Boolean);
+    // Only when EVERY member signs in with an address of his own. A member with
+    // no email (Hilik, Daniel) uses the partner's login, so that login is a
+    // shared seat and must keep showing both - narrowing it to the address's
+    // owner hid Hilik's whole program (22.10).
+    if (ms.some(m => emailsOf(m).length === 0)) return null;
+    const i = ms.findIndex(m => emailsOf(m).includes(em));
     return i < 0 ? null : i;
   }, [loginEmail, trainee]);
   const memberNames = Array.isArray(trainee?.members) ? trainee.members.map(m => String(m?.name || '').trim()).filter(Boolean) : [];
