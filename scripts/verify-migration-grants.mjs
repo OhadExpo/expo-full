@@ -5,14 +5,19 @@
 // default (8 of 16), so the habit is real. Every migration dated 2026-10-20 or
 // later that creates a public table must grant it in the SAME file.
 // Recreating a table (drop + create) counts as new.
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const DIR = 'scripts/migrations';
-const FROM = '2026-10-20';
+// Two homes for SQL: scripts/migrations (2026-10-20-x.sql) and supabase/
+// migrations + supabase/proposed (20261012_x.sql). The date is read from the
+// name in either form.
+const DIRS = ['scripts/migrations', 'supabase/migrations', 'supabase/proposed'];
+const FROM = '20261020';
+const dateOf = (n) => (n.match(/^(\d{4})-?(\d{2})-?(\d{2})/) || []).slice(1).join('');
 const bad = [];
-for (const f of readdirSync(DIR).filter((n) => n.endsWith('.sql') && n.slice(0, 10) >= FROM).sort()) {
-  const sql = readFileSync(join(DIR, f), 'utf8').replace(/--[^\n]*/g, '');
+const files = DIRS.filter((d) => existsSync(d)).flatMap((d) => readdirSync(d).filter((n) => n.endsWith('.sql') && dateOf(n) >= FROM).map((n) => join(d, n)));
+for (const f of files.sort()) {
+  const sql = readFileSync(f, 'utf8').replace(/--[^\n]*/g, '');
   const re = /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?/gi;
   for (const m of sql.matchAll(re)) {
     const t = m[1];
