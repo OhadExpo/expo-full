@@ -1719,6 +1719,11 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    steps aside on a phone rather than pushing a second row into the title box
    (Ohad 26.9: "never put two rows in a title box ... always one row"). */
 @media (max-width: 620px) { .strip-meta { display: none !important; } }
+/* SIX ITEMS, NEVER AN ORPHAN ROW (#886, 22.10): auto-fit put the dashboard's 6 KPI tiles 4 + 2 and the BHBC legend 5 + 1
+   at tablet width. 6 across, else 3 + 3, else 2 + 2 + 2. */
+.grid-632 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .grid-632 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .grid-632 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* ...and its other half: a short word that only a phone shows, in place of the long one strip-meta hides (#860) */
 .phone-only-word { display: none; }
 @media (max-width: 620px) { .phone-only-word { display: inline !important; } }

@@ -485,7 +485,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
           <span>{T('REVENUE')}</span><span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><span className="strip-meta" style={{ opacity: 0.85, fontSize: 10 }}>{T('INCL. VAT · 6 MO TREND')}</span><StripCaret open={revOpen} /></span>
         </div>
         {revOpen && <div style={{ padding: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
+          <div className="grid-632" style={{ gap: 8, marginBottom: 16 }}>{/* same 6 / 3 / 2 as the real dashboard (#886) */}
             {[
               // the real RevenueCard's words, tile by tile (1.10 #493: the sheets live in Billing only)
               [T('MRR (ACTIVE)'), num(mrr), <SegWord full={T('Recurring committed')} short={T('Recurring')} />],

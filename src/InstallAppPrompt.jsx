@@ -136,7 +136,7 @@ export default function InstallAppPrompt() {
       </>
     )
   ) : (
-    <>{t("Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.")}</>
+    <>{t("Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.").replace(' — ', ' —\u00A0') /* #886: never a line ending on the dash */}</>
   );
 
   // Only the Android/Chrome path has a real one-tap action button; iOS/installed

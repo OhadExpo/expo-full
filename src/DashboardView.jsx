@@ -1106,9 +1106,8 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
     <CollapsibleSection title={tr(he ? 'he' : 'en', 'Revenue')} storageKey="dash-revenue" style={{ marginBottom: 20 }}
       right={<span style={{ fontFamily: FN, fontSize: 10, color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
-        {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
-            to 3 / 2 / 1 column at narrower viewports. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
+        {/* Top row — 6 metric tiles: 6 / 3 / 2 across, never 4 + 2 (.grid-632, #886) */}
+        <div className="grid-632" style={{ gap: 8, marginBottom: 16 }}>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('MRR (ACTIVE)')}</span>
             <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>

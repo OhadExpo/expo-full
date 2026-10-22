@@ -5719,7 +5719,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             // lower part of each box"): the height comes from the content - every
             // line above the rule is reserved, so every card is still the same box.
             height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
-            <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
+            <div aria-hidden="true" data-ghost style={{ position: 'absolute', insetInlineEnd: 10 /* #886: was right - under the '#3' label in Hebrew */, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_TEXT, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
               {/* Two lines are reserved whether or not the name needs them, so a

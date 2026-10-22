@@ -622,7 +622,7 @@ export default function RevenueSheetCard({ trainees = [] }) {
           <button type="button" onClick={() => setShowInactive((v) => !v)} aria-expanded={showInactive}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', height: 'var(--btn-h)', padding: 0, background: 'transparent', border: 'none', borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, textAlign: 'start' }}>
             <Chev open={showInactive} />
-            <span>{tt('Inactive clients')} · {inactiveClients.length}</span>
+            <span>{tt('Inactive clients')}{'\u00A0·\u00A0'}{inactiveClients.length}</span>
             <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginInlineStart: 8 }}>{tt('not linked in EXPO, or not active')}</span>
           </button>
           {showInactive && <div style={{ marginTop: 8 }}>{phone ? <ClientsPhone list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} /> : <ClientsTable list={inactiveClients} open={open} setOpen={setOpen} statusOf={statusOf} tt={tt} th={th} td={td} />}</div>}
