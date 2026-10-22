@@ -11,7 +11,8 @@
 // to revert, swap `strategies: 'injectManifest'` back to the default
 // in vite.config.js and delete this file.
 
-import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL, addPlugins } from 'workbox-precaching';
+import { setCacheNameDetails } from 'workbox-core';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -31,6 +32,28 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// A SCRIPT IS NEVER CACHED AS A PAGE (23.10, found by the post-deploy smoke: the dashboard rendered 271 characters).
+// A worker that installed while Vercel's edge was still swapping deployments asked for a new chunk the old deployment did
+// not have; the catch-all rewrite answered with index.html and a 200, and Workbox - which trusts a hashed URL - stored
+// that HTML AS the chunk, forever (the URL never changes). Now: a .js that is not JavaScript, or a .css that is not CSS,
+// is refused - the install fails and the browser retries it later, instead of caching a page. (vercel.json no longer
+// rewrites /assets/* either, so a missing asset is a 404.)
+addPlugins([{
+  cacheWillUpdate: async ({ request, response }) => {
+    if (!response || response.status !== 200) return null;
+    const ct = response.headers.get('content-type') || '';
+    const u = request.url || '';
+    if (/\.m?js(\?|$)/.test(u) && !/javascript/.test(ct)) return null;
+    if (/\.css(\?|$)/.test(u) && !/css/.test(ct)) return null;
+    return response;
+  },
+}]);
+// A NEW PRECACHE NAME: every browser whose cache holds an HTML page under a chunk's URL downloads everything again into a
+// clean cache; the poisoned one is deleted when this worker activates.
+setCacheNameDetails({ prefix: 'expo', suffix: 'v3' });
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => /^workbox-precache-/.test(k)).map((k) => caches.delete(k)))));
+});
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
