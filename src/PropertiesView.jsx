@@ -118,9 +118,12 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
   const title = [c.ptype, c.street ? [c.street, c.house_no].filter(Boolean).join(' ') : null].filter(Boolean).join(' · ') || c.title || 'נכס';
   const place = [c.neighborhood, c.city].filter(Boolean).join(', ');
   return (
-    <article className="nadlan-card" aria-busy={busy || undefined} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,176px) minmax(0,1fr)', border: `1px solid ${bad ? RED : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }}>
-      <div className="nadlan-photo" style={{ position: 'relative', background: C.sf2, minHeight: 176 }}>
-        {thumb ? <img alt="" src={`data:image/jpeg;base64,${thumb}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+    <article className="nadlan-card" aria-busy={busy || undefined} style={{ display: 'grid', gridTemplateColumns: '270px minmax(0,1fr)' /* #900: 270 = the engine's portrait thumbnail width (270x360), shown 1:1 */, border: `1px solid ${bad ? RED : C.cardBd}`, borderRadius: 0, overflow: 'hidden', background: C.sf }}>
+      <div className="nadlan-photo" style={{ position: 'relative', background: C.sf2, minHeight: 176, alignSelf: 'stretch' }}>
+        {/* THE WHOLE PICTURE, AT ITS OWN SHAPE (#900, Ohad 23.10: "pictures dont dispaly good enough"): it was stretched to the card's
+            full height in a 176px column - a 360px landscape thumbnail cropped to a sliver and blown up. Now it sits at the top,
+            uncropped, never larger than the thumbnail itself. */}
+        {thumb ? <img alt="" src={`data:image/jpeg;base64,${thumb}`} style={{ width: '100%', height: 'auto', maxWidth: 360, display: 'block', margin: '0 auto' }} />
           : <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: C.tm, ...T(12) }}>{c.n_photos ? 'תמונות במודעה' : 'אין תמונות'}</div>}
         <div title="ציון התאמה של המנוע (0-100)" style={{ position: 'absolute', top: 8, insetInlineStart: 8, ...T(20, 800, { lineHeight: 1, fontVariantNumeric: 'tabular-nums' }), minWidth: 44, textAlign: 'center', padding: '6px 6px', background: C.sf, color: C.tx, border: `2px solid ${c.score >= 80 ? GREEN : c.score >= 60 ? ORANGE : C.bd}` }}>{Math.round(c.score)}</div>
       </div>
@@ -387,10 +390,10 @@ export default function PropertiesView() {
           המנוע לא עדכן מאז {runLabel} ({Math.round(ageH)} שעות). הרשימה כאן עלולה להיות ישנה.
         </div>
       )}
-      <ChipGrid ariaLabel="לשוניות נכסים" soft cols={5} phoneCols={3} value={tab} onChange={setTab}
+      <ChipGrid ariaLabel="לשוניות נכסים" soft cols={5} /* #896 (Ohad 23.10: "buttons in properties at the top or not ocd enough"): no forced 3 on a phone - 3 + 2 left a hole; the grid's own rule fills every row (2 + 2 + 1 across) */ value={tab} onChange={setTab}
         items={TABS.map(t => ({ k: t.k, label: t.he, n: counts[t.k] || 0, dim: !counts[t.k] && tab !== t.k }))} />
       {tab !== 'opportunities' && (
-        <ChipGrid ariaLabel="אזור" soft cols={3} phoneCols={2} value={area} onChange={setArea}
+        <ChipGrid ariaLabel="אזור" soft cols={6} /* #896: ONE row of 6 under the ONE row of 5 (was 3 x 2 under 5 - two grids, unrelated column lines) */ phoneCols={2} value={area} onChange={setArea}
           items={AREAS.map(a => ({ k: a.k, label: a.he }))} />
       )}
       <div className="nadlan-status" style={{ ...T(12), display: 'grid', gap: 2, color: stale ? RED : C.tm }}>
@@ -415,7 +418,7 @@ export default function PropertiesView() {
           items={[{ k: 'more', label: `עוד ${Math.min(20, shown.length - page.length)} (מוצגים ${page.length} מתוך ${shown.length})` }]}
           onChange={() => setLimit(l => l + 20)} />
       )}
-      <style>{`.nadlan-view, .nadlan-view *:not(svg):not(svg *) { letter-spacing: 0.02em !important } .nadlan-view .chip-grid button span { opacity: 1 !important } @media (max-width: 560px) { .nadlan-card { grid-template-columns: 1fr !important } .nadlan-photo { min-height: 0 !important; aspect-ratio: 16 / 9 } } @media (max-width: 480px) { .nadlan-facts { grid-template-columns: repeat(2, minmax(0,1fr)) !important } .nadlan-facts > div:nth-child(odd) { border-inline-start: none !important } .nadlan-facts > div:nth-child(n+3) { border-top: 1px solid var(--c-cardBd) } }`}</style>
+      <style>{`.nadlan-view, .nadlan-view *:not(svg):not(svg *) { letter-spacing: 0.02em !important } .nadlan-view .chip-grid button span { opacity: 1 !important } @media (max-width: 560px) { .nadlan-card { grid-template-columns: 1fr !important } .nadlan-photo { min-height: 0 !important } .nadlan-photo img { max-height: 360px; width: auto !important; max-width: 100% !important } } @media (min-width: 621px) and (max-width: 1100px) { .nadlan-view .chip-grid[aria-label="אזור"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important } } @media (max-width: 480px) { .nadlan-facts { grid-template-columns: repeat(2, minmax(0,1fr)) !important } .nadlan-facts > div:nth-child(odd) { border-inline-start: none !important } .nadlan-facts > div:nth-child(n+3) { border-top: 1px solid var(--c-cardBd) } }`}</style>
     </div>
   );
 }

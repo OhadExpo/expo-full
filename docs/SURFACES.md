@@ -99,6 +99,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 | Athlete evaluation (16.10 #837) | `/coach/athletes/<id>/evaluation/new` · `/evaluation/<eval>` (the editor) · `/evaluation-summary/<eval>` (the summary - opens after a save; SUMMARY on every saved evaluation; the demo athlete card: `/demo/coach/trainees/<id>/evaluation-summary`) |
 | BHBC pop-ups (any zone page) | `…/bhbc/<page>/player/<id>` (+ `/game/<date>`) · `/program/<id>` · `/log-lift[/<id>]` · `/log-s-and-c` · `/game-details` · `/minutes-played/<date>` · `/injury/<athlete>[/<injury>]` · `/manage-roster` (`/coach/bhbc/…` owner, `/bhbc/…` club coach) |
 | Report a bug (any coach or athlete page) | `<page>/report-bug` - e.g. `/coach/dashboard/report-bug`, `/athlete/messages/report-bug`; opened from More options -> Report a bug (coach) or the Messages tab's 'Something not working? Report it' (athlete), never a loose header button (#893, 22.10) |
+| Run laps from the watch (athlete run logger) | `<logger page>/from-watch` - the preview of laps read from the runner's watch screenshot(s), before FILL writes them into the run's sets (#898, 23.10) |
 | Review | `/coach/review/<workout>` (the open review) |
 | Review tools | `/coach/review-tools/movement-lab` · `/lift-metrics` · `/jump-test` · `/live-coach` · `/shot-analyzer` |
 | Coach demo sub-pages | `/demo/coach/review-tools`, `/demo/coach/sessions-single` (were the same URL as Workouts / Group) |

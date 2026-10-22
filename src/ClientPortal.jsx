@@ -44,7 +44,7 @@ import { useT as useAppT, useHe, tr, readLang, LangCtx, countIn } from './i18n';
 import { StoredVideo, StoredLink } from './StoredMedia';   // stored media renders signed (#510-S): the public bucket is a finding, not a feature
 import { resolveStoredUrl } from './storageUrl';
 import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
-import { useUrlSync } from './urlState';
+import { useUrlSync, useUrlFlag } from './urlState';
 // the portal's pages in the URL, in the tabs' own words (#770)
 const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'progress', msg: 'messages' };   // 16.10 #826: PRs grew into PROGRESS
 const PORTAL_KEY = { ...Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k])), prs: 'pr' };   // an old /prs link still opens it
@@ -587,6 +587,87 @@ function SetAnalysisPanel({ src, title, fileName, analysis, onResult }) {
       </div>
     )}
   </div>;
+}
+
+// FROM THE WATCH (#898, Ohad 23.10: "make the running system program better"). Every run this week was typed in by hand
+// from WhatsApp screenshots of the runner's watch (#829, #876, #890) - up to 21 boxes after a run. Now: one or more
+// screenshots -> /api/smart-import (kind run-laps) reads the laps -> a PREVIEW pairs lap 1 with the first rep of the first
+// segment and so on, says so when the counts differ -> FILL writes km / time / HR into every segment and ticks them.
+// Nothing is written without the preview; a value the photo does not show stays empty. Its own URL: <logger>/from-watch.
+async function imageToJpegB64(file, max = 1280) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.82).replace(/^data:[^,]+,/, '');
+  } finally { URL.revokeObjectURL(url); }
+}
+function WatchImport({ segments, allSets, onFill, tt }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [laps, setLaps] = useState(null);   // null = closed; [] or [...] = the preview is open
+  const fileRef = useRef(null);
+  const base = typeof window !== 'undefined' ? window.location.pathname.replace(/\/from-watch\/?$/, '').replace(/\/+$/, '') : '';
+  useUrlFlag(laps !== null, (v) => { if (!v) setLaps(null); }, base, 'from-watch');
+  // every set of every segment, in the order they are run
+  const slots = [];
+  (segments || []).forEach((x, ei) => (allSets[ei] || []).forEach((_, si) => slots.push({ ei, si, name: String(x.title || x.t || x.name || `#${ei + 1}`) })));
+  const read = async (files) => {
+    const list = [...(files || [])].filter((f) => /^image\//.test(f.type)).slice(0, 4);
+    if (!list.length) return;
+    setBusy(true); setErr('');
+    try {
+      const images = [];
+      for (const f of list) images.push({ mediaType: 'image/jpeg', data: await imageToJpegB64(f) });
+      let tok = '';
+      try { const { data } = await supabase.auth.getSession(); tok = data?.session?.access_token || ''; } catch { /* signed out */ }
+      const r = await fetch('/api/smart-import', { method: 'POST', headers: { 'content-type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify({ kind: 'run-laps', images, plannedSegments: (segments || []).length }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+      if (!Array.isArray(j.laps) || !j.laps.length) { setErr(tt('Could not read laps from that photo')); return; }
+      setLaps(j.laps);
+    } catch (e) { setErr(`${tt('Could not read laps from that photo')} (${String(e.message || e).slice(0, 60)})`); }
+    finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; }
+  };
+  const pairs = laps ? slots.map((sl, i) => ({ ...sl, lap: laps[i] || null })) : [];
+  const box = { height: 36, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', borderRadius: 0 };
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => read(e.target.files)} />
+      <button type="button" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()} style={{ ...box, width: '100%', background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, opacity: busy ? 0.6 : 1 }}>
+        {busy ? tt('Reading the photo…') : tt('FROM YOUR WATCH - ADD A SCREENSHOT')}
+      </button>
+      {err && <div dir="auto" style={{ marginTop: 6, fontFamily: FB, fontSize: 12, color: C.rd }}>{err}</div>}
+      {laps && createPortal(
+        <div role="dialog" aria-modal="true" aria-label={tt('Laps from your watch')} onClick={() => setLaps(null)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--c-scrim, rgba(0,0,0,0.6))', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(460px, 100%)', maxHeight: '86vh', overflow: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 14 }}>
+            <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: C.tx, marginBottom: 8 }}>{tt('Laps from your watch')}</div>
+            {laps.length !== slots.length && (
+              <div dir="auto" style={{ fontFamily: FB, fontSize: 12, color: C.or, marginBottom: 8 }}>
+                {tt('The watch shows {a} laps and this run has {b} - filled in order.').replace('{a}', laps.length).replace('{b}', slots.length)}
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 64px 64px 52px', columnGap: 8, rowGap: 6, fontFamily: FN, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+              {['', tt('KM'), tt('SPLIT'), tt('HR')].map((h, i) => <div key={i} style={{ fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.08em' }}>{h}</div>)}
+              {pairs.map((p, i) => (
+                <React.Fragment key={i}>
+                  <div dir="auto" style={{ color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}{(allSets[p.ei] || []).length > 1 ? ` ${p.si + 1}` : ''}</div>
+                  <div style={{ color: p.lap ? C.tx : C.td }}>{p.lap && p.lap.km != null ? p.lap.km : '—'}</div>
+                  <div style={{ color: p.lap ? C.tx : C.td }}>{p.lap && p.lap.time ? p.lap.time : '—'}</div>
+                  <div style={{ color: p.lap ? C.tx : C.td }}>{p.lap && p.lap.hr ? p.lap.hr : '—'}</div>
+                </React.Fragment>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+              <button type="button" onClick={() => setLaps(null)} style={{ ...box, background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm }}>{tt('Cancel')}</button>
+              <button type="button" onClick={() => { onFill(pairs.filter((p) => p.lap)); setLaps(null); }} style={{ ...box, background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac }}>{tt('Fill the log')}</button>
+            </div>
+          </div>
+        </div>, document.body)}
+    </div>
+  );
 }
 
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, localWrites = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
@@ -2598,6 +2679,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* "Best ever" all-time pill removed (Ohad) — the reference the athlete
           wants is the PREVIOUS-WEEK per-set ghost rows inside the grid below,
           not an all-time best. */}
+      {isRun && !demoMode && <WatchImport segments={day.ex} allSets={allSets} tt={tt}
+        onFill={(pairs) => { for (const p of pairs) { const l = p.lap; if (l.km != null) uSet(p.ei, p.si, 'reps', String(l.km)); if (l.time) uSet(p.ei, p.si, 'time', l.time); if (l.hr) uSet(p.ei, p.si, 'hr', String(l.hr)); uSet(p.ei, p.si, 'done', true); } }} />}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
           {(isRun ? ['', tt('KM'), tt('SPLIT'), tt('HR'), '✓'] : ['',timedHold?tt('SEC'):tt('REPS'),tt('KG'),'RPE','✓']).map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>

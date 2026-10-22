@@ -390,6 +390,19 @@ For each broken item, look at the schemaErrors message and apply the minimal tar
 
 Every object in "fixed" MUST carry "itemIdx" - the itemIdx of the broken item it fixes, copied exactly. A fix without itemIdx is discarded.`;
 
+const SYSTEM_PROMPT_RUN_LAPS = `You read running data off screenshots of a sports watch or running app (Garmin, Apple Watch / Fitness, Coros, Polar, Suunto, Strava, Nike Run Club, a treadmill display, or similar). The screenshots may be in Hebrew or English and may be photos of a screen.
+
+Return ONLY JSON:
+{"laps":[{"km":number,"time":"m:ss" or "h:mm:ss","hr":number|null}], "totalKm":number|null, "totalTime":"..."|null, "avgHr":number|null, "source":"garmin|apple|coros|polar|strava|treadmill|other", "confidence":"high|medium|low", "note":"one short sentence"}
+
+Rules:
+- laps = the splits / laps / intervals shown, in the order they happened (lap 1 first). One entry per lap: its DISTANCE in km (convert m to km: 400 m = 0.4; miles to km x1.609), its DURATION (the lap's own elapsed time, not a pace, not a clock time of day), and its AVERAGE heart rate if shown for that lap.
+- If a column shows PACE (e.g. 5:40 /km) and no lap time, compute time = pace x distance and say so in note.
+- If only a whole-run summary is visible (no laps), return ONE lap with the total distance and time.
+- Several screenshots of the same run: merge them in order, never count a lap twice.
+- NEVER invent a number that is not on the screen. Unknown = null. If nothing readable is there, return {"laps":[],"confidence":"low","note":"why"}.
+- Recovery / rest laps (walking between reps) ARE laps if the watch lists them - keep them, and mention it in note.`;
+
 const SYSTEM_PROMPT_VISION = `You are EXPO's senior document-OCR + extraction engineer. Coaches send any kind of document — handwritten training-block PDFs, screenshots of Google Sheets, photos of paper notebooks, exported reports. Your job: read the image(s) and turn the data into a CLEAN tabular AOA (array-of-arrays) — exactly the shape a parsed XLSX sheet would produce.
 
 Respond with strict JSON only. No prose, no markdown fences:
@@ -524,12 +537,40 @@ export default async function handler(req, res) {
     const u = await userR.json().catch(() => null);
     const em = (u?.email || '').toLowerCase();
     if (PARTNER_EMAILS.includes(em)) pfx = 'sbx_';
+    // RUN LAPS ARE THE RUNNER'S OWN (#898, 23.10): the one who ran logs it - an athlete or a club coach, not only a
+    // trainer. It stays cheap on purpose: at most 4 images, a small model, a short answer (see 'run-laps' below).
+    else if (kind === 'run-laps') { /* any valid session */ }
     else if (!TRAINER_EMAILS.includes(em)) {
       res.status(403).json({ error: 'Not authorized.' }); return;
     }
   } catch { res.status(500).json({ error: 'Auth lookup failed.' }); return; }
 
   try {
+    // ONE PHOTO INSTEAD OF 21 BOXES (#898, Ohad 23.10: "make the running system program better"). The runner's watch / app
+    // screenshot(s) -> laps {km, time, hr} the run logger lays over its sets in order, behind a preview. Every run this week
+    // was typed in by hand from WhatsApp screenshots (#829, #876, #890).
+    if (kind === 'run-laps') {
+      const images = Array.isArray(body?.images) ? body.images.slice(0, 4) : [];
+      if (images.length === 0) { res.status(400).json({ error: 'images[] required' }); return; }
+      const content = [];
+      for (const img of images) {
+        const mediaType = /^image\/(png|jpeg|webp|gif)$/.test(String(img.mediaType)) ? String(img.mediaType) : 'image/jpeg';
+        const data = String(img.data || '').replace(/^data:[^,]+,/, '');
+        if (!data) continue;
+        content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data } });
+      }
+      if (!content.length) { res.status(400).json({ error: 'no readable image' }); return; }
+      const planned = Number(body?.plannedSegments) || 0;
+      content.push({ type: 'text', text: `Read the run from ${content.length === 1 ? 'this screenshot' : 'these screenshots'}.${planned ? ` The plan for this run has ${planned} segments (warm-up, the main work, cool-down) - that is context, never a reason to invent or merge laps.` : ''} Strict JSON only.` });
+      const result = await anthropicJsonVision({ apiKey, system: SYSTEM_PROMPT_RUN_LAPS, content, maxTokens: 1200, model: 'claude-sonnet-5-5' });
+      const laps = (Array.isArray(result?.laps) ? result.laps : []).slice(0, 60).map((l) => ({
+        km: Number.isFinite(Number(l?.km)) && Number(l.km) > 0 && Number(l.km) < 100 ? Math.round(Number(l.km) * 100) / 100 : null,
+        time: /^\d{1,2}(:\d{2}){1,2}$/.test(String(l?.time || '').trim()) ? String(l.time).trim() : null,
+        hr: Number.isFinite(Number(l?.hr)) && Number(l.hr) >= 50 && Number(l.hr) <= 230 ? Math.round(Number(l.hr)) : null,
+      })).filter((l) => l.km || l.time);
+      res.status(200).json({ laps, totalKm: Number(result?.totalKm) || null, totalTime: result?.totalTime || null, avgHr: Number(result?.avgHr) || null, source: String(result?.source || '').slice(0, 40), confidence: String(result?.confidence || '').slice(0, 10), note: String(result?.note || '').slice(0, 300) });
+      return;
+    }
     if (kind === 'vision-extract') {
       const images = Array.isArray(body?.images) ? body.images.slice(0, 12) : [];
       if (images.length === 0) { res.status(400).json({ error: 'images[] required' }); return; }
@@ -688,7 +729,7 @@ Fix each. Strict JSON only.`;
       return;
     }
 
-    res.status(400).json({ error: 'kind must be one of: plan | vision-extract | analyze | transform' });
+    res.status(400).json({ error: 'kind must be one of: plan | vision-extract | analyze | transform | run-laps' });
   } catch (e) {
     console.error('smart-import error', e);
     res.status(500).json({ error: e?.message || 'smart-import failed' });
@@ -837,7 +878,7 @@ async function runWithTools({ apiKey, system, userPrompt, maxTokens, authToken =
 // Vision variant: same model + prompt caching, but accepts a content array
 // of mixed image + text blocks. Used for PDF page renderings and direct
 // image uploads (screenshots, photos of paper notebooks).
-async function anthropicJsonVision({ apiKey, system, content, maxTokens }) {
+async function anthropicJsonVision({ apiKey, system, content, maxTokens, model = 'claude-opus-4-7' }) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -846,7 +887,7 @@ async function anthropicJsonVision({ apiKey, system, content, maxTokens }) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-7',
+      model,
       max_tokens: maxTokens,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content }],

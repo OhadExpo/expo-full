@@ -40,7 +40,7 @@ import { PROBE } from './lib/ocd-probe.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const W = Number((process.argv.find((a) => a.startsWith('--w=')) || '').slice(4)) || 390;
 const ONLY = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
-const SCOPE = process.argv.includes('--expo') ? 'expo' : process.argv.includes('--all') ? 'all' : 'zone';
+const SCOPE = process.argv.includes('--every') ? 'every' : process.argv.includes('--expo') ? 'expo' : process.argv.includes('--all') ? 'all' : 'zone';
 const SHOOT = !process.argv.includes('--no-shot');
 const DIR = 'audit-out/ocd';
 fs.mkdirSync(DIR, { recursive: true });
@@ -73,7 +73,16 @@ const EXPO = [
   ['expo-intake', '/coach/intake', []],
   ['expo-waitlist', '/coach/waitlist', []],
 ];
-let SURFACES = SCOPE === 'expo' ? EXPO : SCOPE === 'all' ? [...ZONE, ...EXPO] : ZONE;
+// --every (#886 reopened 22.10, Ohad: "that's ocd sweep that i required" - exercise-matching had never been swept): the
+// surface list is READ FROM docs/SURFACES.md - every concrete /coach/... and /athlete/... route it names - plus each club
+// tab by its own URL (clicking a tab open missed some). A page added to the manifest is swept without editing this file.
+const EVERY = (() => {
+  const md = fs.readFileSync('docs/SURFACES.md', 'utf8');
+  const paths = [...new Set([...md.matchAll(/`(\/(?:coach|athlete)\/[a-z0-9/-]*[a-z0-9])`/g)].map((m) => m[1]))].filter((pth) => !/<|\.\.\./.test(pth));
+  for (const t of ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games']) paths.push(`/coach/bhbc/${t}`);
+  return [...new Set(paths)].sort().map((pth) => [pth.replace(/^\//, '').replace(/\//g, '-'), pth, []]);
+})();
+let SURFACES = SCOPE === 'every' ? EVERY : SCOPE === 'expo' ? EXPO : SCOPE === 'all' ? [...ZONE, ...EXPO] : ZONE;
 if (ONLY) SURFACES = SURFACES.filter((s) => s[0].includes(ONLY));
 
 // ---------------------------------------------------------------- the driver
