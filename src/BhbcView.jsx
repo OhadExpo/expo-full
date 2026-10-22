@@ -45,6 +45,9 @@ const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 // old sizes beside it for comparison
 const READ_PROTO = !(typeof location !== 'undefined' && /[?&]read=0/.test(location.search));
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
+// ORANGE AS TEXT is its own token (#883, 22.10 light-mode sweep): ORANGE_DEEP is a FILL colour and read 3.2-4.1:1 as
+// text on the light page/rows. Light #B4441A (5.55 on white), dark #F0955F (the AWAY ink). Fills keep ORANGE / ORANGE_DEEP.
+const ORANGE_TEXT = 'var(--bhbc-orange-text, #B4441A)';
 // TODAY's ink and edge (#509): the zone's theme-aware navy - raw NAVY on the
 // dark page was near-invisible (the week's "FRI 2", the list's day, the
 // microcycle's TODAY).
@@ -538,7 +541,7 @@ function usePhoneGrid() {
   }, []);
   return on;
 }
-const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_DEEP : d.future || d.dow === 6 || d.dow === 5 ? C.td : C.tm);   // C.td, not the hairline colour (#803: 'hard to read')
+const dayHeadInk = (d, today) => (d.iso === today ? ORANGE_TEXT : d.future || d.dow === 6 || d.dow === 5 ? C.td : C.tm);   // C.td, not the hairline colour (#803: 'hard to read')
 // today in view on a narrow screen: the scroller moves so today's column sits
 // at the inner edge of the days (works in both directions - it moves by the
 // measured overshoot, never by an absolute scrollLeft, which RTL inverts)
@@ -887,7 +890,7 @@ function SortHeader({ k, sort, label, as: Tag = 'div', style, center = false, fl
     // it; outside a table the button says its own state (27.9 review)
     <Tag {...rest} aria-sort={Tag === 'th' ? (on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
       onClick={go} title={title || (on ? tr(sort.dir === 'asc' ? 'Sort descending' : 'Sort ascending') : `${tr('Sort by')} ${label}`)}
-      style={{ ...style, ...(on ? { color: ORANGE_DEEP } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+      style={{ ...style, ...(on ? { color: ORANGE_TEXT } : null), cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
       <span role="button" tabIndex={0} aria-label={Tag === 'th' ? (aLabel || undefined) : `${aLabel || label}${on ? ` · ${tr(sort.dir === 'asc' ? 'Sort ascending' : 'Sort descending')}` : ''}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }}
         style={hang || flexCell ? { ...(hang ? { position: 'relative' } : null), ...(flexCell ? { display: 'inline-flex', alignItems: 'center', justifyContent: (style.justifyContent || 'flex-start'), minHeight: 0, minWidth: 0 /* the phone's 36 / 40px [role=button] floor is the CELL's (it takes the tap): on the label it stood the hung arrow 11px over LAST (review) */ } : null) } : undefined}>
@@ -2396,7 +2399,7 @@ function attendance28(rec, days) {
             screen is right; saying nothing about it is not. */}
         {stale && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', background: C.sf, border: `1px solid ${ORANGE}`, borderRadius: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, lineHeight: 1.5 }}>{tr('Offline')}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_TEXT, lineHeight: 1.5 }}>{tr('Offline')}</span>
             <span style={{ fontFamily: FN, fontSize: 12, color: C.tm, flex: 1, minWidth: 200, lineHeight: 1.5 }}>{tr('Showing the last data saved on this device. It may be out of date, and anything you log will be sent when the connection returns.')}</span>
           </div>
         )}
@@ -2405,7 +2408,7 @@ function attendance28(rec, days) {
           // flex row squeezed EXIT PREVIEW out of its box at 390. Two rows now on every width: the label and the button
           // on top (each one line, never shrinking), the sentence under them across the whole width.
           <div data-bhbc-preview style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 12, rowGap: 6, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>◉ {tr(previewSeat === 'head-coach' ? 'Head coach view' : previewSeat === 'pt' ? 'Physio (PT) view' : 'Coach view')}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--bhbc-orange-on-page, #9E3A10)' /* #883: on the bare page ground #B4441A read 3.81:1 */, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>◉ {tr(previewSeat === 'head-coach' ? 'Head coach view' : previewSeat === 'pt' ? 'Physio (PT) view' : 'Coach view')}</span>
             <button onClick={() => setPreviewCoach(false)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>{tr('Exit preview')}</button>
             <span style={{ gridColumn: '1 / -1', fontFamily: FN, fontSize: 12, color: C.tm, lineHeight: 1.5, overflowWrap: 'break-word' }}>{tr(previewSeat === 'head-coach' ? 'This is exactly what the head coach sees, his own program included. Nothing you do here is saved.' : previewSeat === 'pt' ? 'This is exactly what the physio sees - medical can be edited and loads logged. Nothing you do here is saved.' : 'This is exactly what your BHBC coaches see — no roster management, medical is view-only.')}</span>
           </div>
@@ -2571,17 +2574,17 @@ function attendance28(rec, days) {
       <style>{`
         /* Legible secondary text: brighter muted/dim greys, theme-aware, scoped to
            the zone (Ohad: dark-mode grey text was too faded). */
-        .bhbc-zone{ --c-tm:#6B727B; --c-td:#5F666F; }
+        .bhbc-zone{ --c-tm:#4F5663; --c-td:#565D6A; }   /* #883: #6B727B read 3.34:1 on the page, 4.26 on the rows */
         .bhbc-zone[data-theme="dark"]{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
-        :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; --bhbc-amber-text: #8A6410; }
-        :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; }
+        :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: #B4441A; --bhbc-amber-text: #8A6410; --bhbc-orange-text: #B4441A; --bhbc-orange-on-page: #9E3A10; }   /* #883: AWAY in ORANGE_DEEP read 4.01:1 on white */
+        :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; --bhbc-orange-text: #F0955F; --bhbc-orange-on-page: #F0955F; }
         /* The zone carries its OWN data-theme on .bhbc-zone, not on :root, so a
            light APP with a dark ZONE resolved the light navy #1E3D74 onto the
            zone's near-black page - measured 1.86:1 by the light/dark parity
            sweep, i.e. the HOME chip was all but invisible. Scope the tones to
            the zone too, the way --c-tm/--c-td two lines above already are. */
-        .bhbc-zone[data-theme="light"] { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; --bhbc-amber-text: #8A6410; }
-        .bhbc-zone[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; }
+        .bhbc-zone[data-theme="light"] { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: #B4441A; --bhbc-orange-text: #B4441A; --bhbc-amber-text: #8A6410; }
+        .bhbc-zone[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; --bhbc-orange-text: #F0955F; }
         .bhbc-roster-actions{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr}
                 .bhbc-row{transition:background 120ms}
         .bhbc-row:hover{background:color-mix(in srgb, ${NAVY} 6%, transparent)}
@@ -3209,10 +3212,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                   <tbody>
                     {shownActivity.map((a, i) => (
                       <tr key={i} onClick={a.gameLine ? () => setGameOpen(a.gameLine) : undefined} className={a.gameLine ? 'bhbc-row' : undefined} style={{ cursor: a.gameLine ? 'pointer' : undefined }}>
-                        <td style={{ ...td, color: a.game ? ORANGE_DEEP : C.tm, fontWeight: a.game ? 700 : 400, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ddmm(a.date)}/{String(a.date).slice(2, 4)}</span><span className="hist-ph" style={{ color: C.tm, fontWeight: 400, fontSize: 10, marginTop: 2 }}>{tr(KIND1[a.kind || 'other'] || 'Other')}</span></td>
+                        <td style={{ ...td, color: a.game ? ORANGE_TEXT : C.tm, fontWeight: a.game ? 700 : 400, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ddmm(a.date)}/{String(a.date).slice(2, 4)}</span><span className="hist-ph" style={{ color: C.tm, fontWeight: 400, fontSize: 10, marginTop: 2 }}>{tr(KIND1[a.kind || 'other'] || 'Other')}</span></td>
                         <td className="hist-c-type" style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{tr(KIND1[a.kind || 'other'] || 'Other')}</td>
                         <td style={{ ...td, overflowWrap: 'break-word', whiteSpace: 'normal' }}>{a.game
-                          ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{tr('vs')} <span style={{ unicodeBidi: 'isolate' }}>{a.game.opp}</span> · <span style={{ color: ORANGE_DEEP, fontWeight: 700 }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a</span></span>
+                          ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{tr('vs')} <span style={{ unicodeBidi: 'isolate' }}>{a.game.opp}</span> · <span style={{ color: ORANGE_TEXT, fontWeight: 700 }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a</span></span>
                           : <>{a.label}{a.note ? <span style={{ display: 'block', fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 2 }}>{a.note}</span> : null}</>}{a.by ? <span className="hist-ph" style={{ color: C.td, fontSize: 10, marginTop: 2 }}>{tr('logged by')} {byName(a.by)}</span> : null}</td>
                         <td style={{ ...td, textAlign: 'end', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{minOf(a) || '—'}</td>
                         <td className="hist-c-by" style={{ ...td, color: C.tm, whiteSpace: 'nowrap' }}>{a.by ? byName(a.by) : '—'}</td>
@@ -3276,11 +3279,11 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                   className={a.gameLine ? 'bhbc-row' : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box', cursor: a.gameLine ? 'pointer' : undefined,
                   borderBottom: i < group.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
-                  <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 44, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{ddmm(a.date)}</span>
+                  <span style={{ color: a.game ? ORANGE_TEXT : C.td, width: 44, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{ddmm(a.date)}</span>
                   {a.game ? (
                     <span style={{ color: C.tx, minWidth: 0, flex: 1, display: 'flex', gap: 8, alignItems: 'baseline' }} dir="ltr">
                       <span style={{ fontWeight: 600, unicodeBidi: 'isolate' }}>{tr('vs')} <span style={{ unicodeBidi: 'isolate' }}>{a.game.opp}</span></span>
-                      <span style={{ marginInlineStart: 'auto', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a · {a.game.min}′</span>
+                      <span style={{ marginInlineStart: 'auto', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: ORANGE_TEXT, whiteSpace: 'nowrap' }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a · {a.game.min}′</span>
                     </span>
                   ) : a.sess && editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx ? (
                     // EDITING IS A FORM, NOT A 64PX BOX (5.10 #576, Ohad: "allow me to
@@ -3320,7 +3323,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
                       ]} />
                     </span>
                   )}
-                  {a.load != null && <span style={{ marginInlineStart: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
+                  {a.load != null && <span style={{ marginInlineStart: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_TEXT, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
                     ))}
                   </React.Fragment>
@@ -4067,11 +4070,11 @@ function NextGamePanel({ nextGame, today, onEdit }) {
     <Card padding={14} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{when}</span>{onEdit && <button className="bhbc-strip-btn" onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
       <div className="bhbc-nextgame" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
-          <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 28, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
+          <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 28, lineHeight: 1, color: ORANGE_TEXT, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 4 }}>{tr(Math.max(0, days) === 1 ? 'day' : 'days')}</div>
         </div>
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {nextGame.comp && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{tr(nextGame.comp)}</div>}
+          {nextGame.comp && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE_TEXT }}>{tr(nextGame.comp)}</div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, color: C.tx }}>{nextGame.opponent ? `${tr('vs')} ${nextGame.opponent}` : tr('Opponent TBD')}</span>
             <HAChip home={nextGame.home} />
@@ -4340,7 +4343,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
               </button>
             )}
             <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>
-              {tr('Week')} <span style={{ color: ORANGE_DEEP }}>{'W' + week}</span>{weeks > 1 ? ' / ' + weeks : ''}
+              {tr('Week')} <span style={{ color: ORANGE_TEXT }}>{'W' + week}</span>{weeks > 1 ? ' / ' + weeks : ''}
             </span>
           </div>
           {pickOpen && plans.length > 1 && (
@@ -4396,22 +4399,22 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenEx(open ? null : key); } }}
                             style={{ padding: '9px 11px', cursor: 'pointer' }}>
                             <div style={{ display: 'flex', gap: 8, minWidth: 0, alignItems: 'flex-start' }}>
-                              <span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: open ? ORANGE_DEEP : C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span>
+                              <span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: open ? ORANGE_TEXT : C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span>
                               <span style={{ minWidth: 0, flex: 1, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', lineHeight: 1.3 }}>{r.title}</span>
                               <svg aria-hidden width="9" height="6" viewBox="0 0 9 6" fill="none"
-                                style={{ flexShrink: 0, marginTop: 4, color: open ? ORANGE_DEEP : C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+                                style={{ flexShrink: 0, marginTop: 4, color: open ? ORANGE_TEXT : C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
                                 <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0, paddingInlineStart: 24 }}>
-                              <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
+                              <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: ORANGE_TEXT, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
                               {r.tempo && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, whiteSpace: 'nowrap' }}>{r.tempo}</span>}
                             </div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 220ms ease' }}>
                             <div style={{ overflow: 'hidden' }} inert={open ? undefined : ''}>
                             <div style={{ padding: '0 11px 10px 24px', borderTop: '1px solid ' + C.cardBd, marginTop: 2, paddingTop: 8 }}>
-                              {r.tempo && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE_DEEP, marginBottom: 7 }}>{'⏱ ' + r.tempo}</div>}
+                              {r.tempo && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE_TEXT, marginBottom: 7 }}>{'⏱ ' + r.tempo}</div>}
                               {r.setCount > 0 ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', columnGap: 10, rowGap: 3 }}>
                                   <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.tm }}>{tr('SET')}</span>
@@ -4757,7 +4760,7 @@ function TodayPanel({ today, fixtures, fx, rows, loads = {}, bare = false }) {
     const sc = scLoggedFor(loads, ids, f, fixtures);
     const started = !!f.start && f.start <= nowHHMM;
     return (
-      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sc ? C.tx : started ? ORANGE_DEEP : C.td, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sc ? C.tx : started ? ORANGE_TEXT : C.td, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         {sc ? <><span aria-hidden style={{ width: 8, height: 8, background: SC_COLOR, flexShrink: 0 }} />{tr('S&C')}<MinTok n={sc.min} /></> : tr('S&C not logged yet')}
       </span>
     );
@@ -5058,7 +5061,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
   return (
     <Card leftStripe={FX_COLOR.practice} padding={0} header={secTitle('Practice Attendance')}
       headerRight={(
-        <span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, whiteSpace: 'nowrap' }}>
+        <span className="strip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' /* #883: C.tm on the navy strip read 2.96:1 */, whiteSpace: 'nowrap' }}>
           {monthOwed ? `${monthWent}/${monthOwed} ${tr(phone ? 'attended this week' : 'attended this month')}` : tr(phone ? 'nothing logged this week' : 'nothing logged this month')}
         </span>
       )}>
@@ -5280,7 +5283,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
     <>
       <Card leftStripe={NAVY} padding={0} header={secTitle('Lifts')}
         headerRight={(
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' /* #883 */ }}>
             <span className="strip-meta">{liftedToday ? `${liftedToday} ${countWord(liftedToday, 'lifted today')}` : tr('nobody has lifted today')}</span>
             {action}
           </span>
@@ -5667,11 +5670,11 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             return row(t, { borderInlineStart: `2px solid ${acwr.band.color}` }, <>
               <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
               <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
-              <span style={{ ...meta, color: ppg != null ? ORANGE_DEEP : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="auto" style={{ unicodeBidi: 'isolate' }} /* the number + unit in the unit's language: forced ltr read 'נק׳ למשחק 13.3' backwards (#789b) */>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
+              <span style={{ ...meta, color: ppg != null ? ORANGE_TEXT : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="auto" style={{ unicodeBidi: 'isolate' }} /* the number + unit in the unit's language: forced ltr read 'נק׳ למשחק 13.3' backwards (#789b) */>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
               <span style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
                 <span style={{ fontFamily: FB, fontSize: 11, color: C.td, flexShrink: 0 }}>{tr(t.position) || '—'}</span>
                 {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status), whiteSpace: 'nowrap' }}>{injShort}</span>}
-                {lands && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {monDay(t.arrival)}</span>}
+                {lands && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_TEXT }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {monDay(t.arrival)}</span>}
               </span>
               {/* the injury takes the whole second line (at 390 it was cut: "KNEE R · AVAILA..."); its colour is its status, the rail is the load band */}
             </>);
@@ -5718,7 +5721,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
+              <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_TEXT, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
               {/* Two lines are reserved whether or not the name needs them, so a
                   short Latin name and a long Hebrew one leave the rows below at
                   the same y. lineHeight is fixed for the same reason - Heebo and
@@ -5746,7 +5749,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                         has not landed yet - when he lands (it used to add a line
                         of its own, so that card's row grew; 27.9 review) */}
                     {!injShort && t.arrival && t.arrival > todayISO()
-                      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</span>
+                      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: ORANGE_TEXT, whiteSpace: 'nowrap' }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</span>
                       : <span style={{ fontFamily: FN, fontSize: 11, lineHeight: '14px', fontWeight: 700, color: injShort ? medText(inj.status) : 'transparent', whiteSpace: 'nowrap' }} aria-hidden={injShort ? undefined : 'true'}>{injShort ? `${injShort} · ${tr((MED_STATUS[inj.status] || {}).label || inj.status)}` : '·'}</span>}
                   </div>
                 );
@@ -5781,7 +5784,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
                     pushes its own hairline UP — which is the "borders don't
                     align from card to card" he reported on 02.09. Two words on
                     one line; the sessions text beside it is the flexible one. */}
-                {(() => { const ppg = ppgFor(t); return ppg != null ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('Points per game this season')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ppg} PPG</span></span> : null; })()}
+                {(() => { const ppg = ppgFor(t); return ppg != null ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_TEXT, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('Points per game this season')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ppg} PPG</span></span> : null; })()}
                 <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'baseline', lineHeight: 1 }}>{acwr.ratio != null
                   ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} />
                   /* NO ACWR IS NOT THE SAME AS NO TRAINING. Without an RPE there
@@ -5891,7 +5894,7 @@ function MicrocycleView({ fx, today }) {
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, minWidth: 0 }}>{dow(d.iso)} {monDay(d.iso)}</span>
                 {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: TODAY_INK }}>{tr('TODAY')}</span>}
               </div>
-              <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{tr(d.plan.label)}</span>
+              <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_TEXT : C.tx }}>{tr(d.plan.label)}</span>
               <Segmented text={tr(d.plan.emphasis)} style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }} />
               {/* Relative load — 5-segment bar, colour = intensity (signal, not paint). */}
               <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
@@ -6453,7 +6456,7 @@ function ScheduleList({ fx, today }) {
             <div style={{ width: 84, flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 12, color: isToday ? TODAY_INK : C.tx }}>{dow(d.date)}</div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{monDay(d.date)}</div>
-              {gdLabel && <div style={{ marginTop: 3, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: gd === 0 ? ORANGE_DEEP : C.tm, whiteSpace: 'nowrap' }}>{gdLabel}</div>}
+              {gdLabel && <div style={{ marginTop: 3, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: gd === 0 ? ORANGE_TEXT : C.tm, whiteSpace: 'nowrap' }}>{gdLabel}</div>}
             </div>
             {/* chips span the row, one under the other - as on the planner and
                 the phone week; a game's venue is the line under its chip */}
@@ -6760,14 +6763,14 @@ function StandingsTable({ standings }) {
             const td = { fontFamily: FN, fontSize: 13, color: C.tx, padding: '9px 10px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
               <tr key={s.team} className="bhbc-row" style={{ borderBottom: `1px solid ${C.cardBd}`, background: 'transparent' /* no fill (his 5.10 rule, #673) */ /* our row: the orange stripe, the orange rank and the bold name */, borderInlineStart: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
-                <td style={{ ...td, fontWeight: 800, color: bh ? ORANGE_DEEP : C.td }}>{s.rank}</td>
+                <td style={{ ...td, fontWeight: 800, color: bh ? ORANGE_TEXT : C.td }}>{s.rank}</td>
                 <td style={{ ...td, textAlign: 'start', fontWeight: bh ? 800 : 600, color: C.tx, whiteSpace: 'nowrap' }}>{s.team}</td>
                 <td style={td}>{s.gp}</td>
-                <td style={{ ...td, fontWeight: 700, color: '#2E9E6B' }}>{s.w}</td>
+                <td style={{ ...td, fontWeight: 700, color: 'var(--c-gnText)' }}>{s.w}</td>
                 <td style={{ ...td, color: C.td }}>{s.l}</td>
                 <td style={td}>{s.pf}</td>
                 <td style={td}>{s.pa}</td>
-                <td style={{ ...td, fontWeight: 700, color: s.diff > 0 ? '#2E9E6B' : s.diff < 0 ? '#C9462F' : C.td }}>{s.diff > 0 ? '+' : ''}{s.diff}</td>
+                <td style={{ ...td, fontWeight: 700, color: s.diff > 0 ? 'var(--c-gnText)' : s.diff < 0 ? '#C9462F' : C.td }}>{s.diff > 0 ? '+' : ''}{s.diff}</td>
                 <td style={{ ...td, padding: '9px 10px' }}><FormDots form={s.form} /></td>
               </tr>
             );
@@ -7010,7 +7013,7 @@ function ResultsList({ games, bhbcOnly, fixtures = [], onPick = null }) {
               onClick={fx ? () => onPick(fx) : null}
               end={(
                 <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: won ? '#2E9E6B' : '#C9462F', minWidth: 12, textAlign: 'center' }}>{won ? tr('W') : tr('L')}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: won ? 'var(--c-gnText)' : '#C9462F', minWidth: 12, textAlign: 'center' }}>{won ? tr('W') : tr('L')}</span>
                   <span dir="ltr" style={{ fontSize: 14, fontWeight: 800, color: C.tx, unicodeBidi: 'isolate', minWidth: 62, textAlign: 'end' }}>{us}<span style={{ color: C.tm, margin: '0 3px' }}>–</span>{them}</span>
                 </span>
               )} />;
@@ -7132,14 +7135,14 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
     { k: tr('Record'), v: played ? `${t.w}–${t.l}` : '—', c: C.tx },
     { k: tr('Points'), v: played ? t.ppg : '—', sub: tr('per game'), c: C.tx },
     { k: tr('Allowed'), v: played ? t.oppg : '—', sub: tr('per game'), c: C.tx },
-    { k: tr('Margin'), v: played ? `${(t.ppg - t.oppg) > 0 ? '+' : ''}${(t.ppg - t.oppg).toFixed(1)}` : '—', c: played && (t.ppg - t.oppg) >= 0 ? '#2E9E6B' : played ? '#C9462F' : C.tx },
+    { k: tr('Margin'), v: played ? `${(t.ppg - t.oppg) > 0 ? '+' : ''}${(t.ppg - t.oppg).toFixed(1)}` : '—', c: played && (t.ppg - t.oppg) >= 0 ? 'var(--c-gnText)' : played ? '#C9462F' : C.tx },
   ];
   return (
     <>
       {/* Team stats + live badge */}
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
         pastData
-          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C828B' }} />{currentSeason} · {tr('Pre-season')}</span>
+          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' /* #883 */ }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C828B' }} />{currentSeason} · {tr('Pre-season')}</span>
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? tr('Last season') : tr('Live')}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt, heL)}` : ''}</span>
       }>
         {showCurrent ? (
@@ -7504,7 +7507,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, medical = {}, onClose, onSa
                 style={{ width: '100%', height: 'var(--btn-h)', boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (Number(v) > 60 || Number(v) < 0 ? '#DE4E3B' : on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
               {/* minutes for a player the day's record has OUT are said, not
                   hidden (#305 F4): the save keeps the minutes and notes the clash */}
-              {(() => { const clash = on && availOn((bhbcLoads || {})[t.id], medical, t.id, date) >= 4; return <span title={clash ? tr('Marked out on this date - the minutes win for the day') : undefined} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: clash ? '#DE4E3B' : on ? ORANGE_DEEP : C.tm }}>{clash ? tr('was out') : on ? tr('min') : tr('DNP')}</span>; })()}
+              {(() => { const clash = on && availOn((bhbcLoads || {})[t.id], medical, t.id, date) >= 4; return <span title={clash ? tr('Marked out on this date - the minutes win for the day') : undefined} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: clash ? '#DE4E3B' : on ? ORANGE_TEXT : C.tm }}>{clash ? tr('was out') : on ? tr('min') : tr('DNP')}</span>; })()}
             </div>
           );
         })}
@@ -7713,7 +7716,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     );
                   })()}
                   </div>
-                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{canMedical ? tr('Update ›') : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_TEXT }}>{canMedical ? tr('Update ›') : ''}</div>
                 </div>
               );
             })}
@@ -7991,7 +7994,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', activ
                   {editIdx === i ? (
                     <input type="number" min="0" max="10" value={editPain} onChange={(e) => setEditPain(e.target.value)}
                       placeholder={tr('pain')} style={{ ...sel, width: 62, height: 24, flexShrink: 0 }} />
-                  ) : (p.pain != null && <span style={{ color: ORANGE_DEEP, fontWeight: 700, flexShrink: 0 }}>{tr('pain')} {p.pain}</span>)}
+                  ) : (p.pain != null && <span style={{ color: ORANGE_TEXT, fontWeight: 700, flexShrink: 0 }}>{tr('pain')} {p.pain}</span>)}
                   {p.by && editIdx !== i && <span style={{ color: C.td, fontSize: 10, flexShrink: 0 }}>{byName(p.by)}</span>}
                   {/* Ohad: "rehab progress doesnt allow me to edit/delete". A dated
                       log a PT writes into is not append-only in practice - a wrong

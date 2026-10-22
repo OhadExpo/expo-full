@@ -12,7 +12,7 @@ const CAP = 150;
 // colour of a guess: all three / some / none - said in words beside it, never a lone dot
 // a long 'A/B' name breaks after its slash, never mid-word ('PROTRACTION/RETRA-CTION' at 390)
 const slashWbr = (t) => String(t || '').split('/').flatMap((part, i, all) => (i < all.length - 1 ? [part, '/', <wbr key={i} />] : [part]));
-const GUESS_INK = (n) => (n === 3 ? '#2E9E6B' : n ? C.ac : '#E0A73A');
+const GUESS_INK = (n) => (n === 3 ? 'var(--c-gnText)' : n ? C.ac : '#E0A73A');
 
 // A PHONE GETS CARDS, NOT A TABLE (9.10 #619, Ohad: "This can look much better. Lacking
 // design"): at 390 the table showed only the names - the three dropdowns the screen is for

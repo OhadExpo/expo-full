@@ -8,6 +8,8 @@ export default defineConfig({
   // Doesn't make the bundle uncopyable (anything served to a browser can be
   // read), but raises the bar from "literal source" to "minified bundle".
   build: { sourcemap: false },
+  // #887: every bug report names the commit it ran on (Vercel sets VERCEL_GIT_COMMIT_SHA at build time)
+  define: { __BUILD_SHA__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 12)) },
   plugins: [
     react(),
     clubHtml(),

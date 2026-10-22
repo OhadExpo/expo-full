@@ -67,6 +67,16 @@ export default function BugsView() {
   useEffect(() => { reload(); }, [reload]);
 
   const counts = rows.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
+  // ONE ROW PER BUG (#887): an auto-captured error carries a fingerprint (consoleBuffer.js fingerprintOf), so the same
+  // fault on ten tabs is one row with x10, not ten rows. A typed report stands alone. rows are newest-first, so the
+  // first of each group is its latest occurrence.
+  const groupCount = new Map();
+  const shown = rows.filter((r) => {
+    const fp = r.context && r.context.fingerprint;
+    if (!fp) return true;
+    const n = groupCount.get(fp) || 0; groupCount.set(fp, n + 1);
+    return n === 0;
+  });
 
   const setStatus = async (id, status) => {
     const { error } = await supabase.from('bug_reports').update({ status }).eq('id', id);
@@ -122,8 +132,9 @@ export default function BugsView() {
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
           {tt(filter === 'all' ? 'No reports.' : `No ${filter} reports.`)}
         </div>
-      ) : rows.map(r => {
+      ) : shown.map(r => {
         const expanded = expandedId === r.id;
+        const times = (r.context && r.context.fingerprint && groupCount.get(r.context.fingerprint)) || 1;
         const sevColor = r.status === 'fixed' ? C.gn : r.status === 'triaged' ? C.or : C.rd;
         return (
           <div key={r.id} style={{
@@ -138,7 +149,7 @@ export default function BugsView() {
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: sevColor, fontWeight: 700, letterSpacing: '0.12em',
                 border: `1px solid ${sevColor}`, padding: '3px 6px', width: 74, boxSizing: 'border-box', flexShrink: 0 }}>{(r.status||'').toUpperCase()}</span>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em' }}>
-                {r.role?.toUpperCase() || 'ANON'} · {fmtTs(r.created_at)}
+                {r.context?.auto ? tt('AUTO') : (r.role?.toUpperCase() || 'ANON')} · {fmtTs(r.created_at)}{times > 1 ? ` · ×${times}` : ''}
                 {r.reporter_email && <> · {r.reporter_email}</>}
               </span>
               <span style={{ marginInlineStart: 'auto', color: C.td, fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
@@ -166,7 +177,20 @@ export default function BugsView() {
                       <b style={{ color: C.tm }}>{tt('Theme:')}</b> {r.context.theme || '—'} ·{' '}
                       <b style={{ color: C.tm }}>{tr(readLang(), 'Locale:')}</b> {r.context.locale || '—'} ·{' '}
                       <b style={{ color: C.tm }}>{tr(readLang(), 'Bundle:')}</b> {r.context.bundle || '—'}
+                      {r.context.release ? <> · <b style={{ color: C.tm }}>{tt('Release:')}</b> {r.context.release}</> : null}
                     </div>
+                    {/* what the user did right before it (#887): routes, taps, failed requests - never anything typed */}
+                    {Array.isArray(r.context.trail) && r.context.trail.length > 0 && (
+                      <div style={{ marginTop: 6 }}>
+                        <b style={{ color: C.tm }}>{tt('Trail:')}</b>
+                        <div style={{ marginTop: 4, maxHeight: 180, overflow: 'auto', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: 8 }}>
+                          {r.context.trail.map((t, i) => (
+                            <div key={i}><span style={{ color: C.tm }}>{t.at} {t.kind}</span> <span style={{ color: C.tx, wordBreak: 'break-word' }}>{t.what}</span></div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {r.context.stack ? <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 160, overflow: 'auto' }}>{r.context.stack}</div> : null}
                     {Array.isArray(r.context.consoleErrors) && r.context.consoleErrors.length > 0 && (
                       <div style={{ marginTop: 6 }}>
                         <b style={{ color: C.tm }}>{tt('Console errors (')}{r.context.consoleErrors.length}):</b>

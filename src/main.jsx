@@ -7,12 +7,13 @@ import ReactDOM from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
-import { installConsoleBuffer } from './consoleBuffer.js'
+import { installConsoleBuffer, installSelfReporting } from './consoleBuffer.js'
 import { installCopyGuard } from './copyGuard.js'
 
 // Patch console.error + listen for window error events BEFORE React renders
 // so the BugReportButton always has stack-trace context for what blew up.
 installConsoleBuffer();
+installSelfReporting();   // #887: errors report themselves, with the trail and the commit
 // Block copy + right-click site-wide (anti-scraping); the program editor opts
 // back in via data-allow-copy so Ohad can copy/paste while building programs.
 installCopyGuard();

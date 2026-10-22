@@ -104,7 +104,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.bd}`, paddingTop: 12 }}>
           <Btn variant="ghost" onClick={onClose}>{tt('Close')}</Btn>
-          {onAccept && <Btn onClick={onAccept} style={{ background: '#2E9E6B', borderColor: '#2E9E6B', color: '#04121f' }}>{tt('Use this match')}</Btn>}
+          {onAccept && <Btn onClick={onAccept} style={{ background: 'var(--c-gnText)', borderColor: 'var(--c-gnText)', color: '#04121f' }}>{tt('Use this match')}</Btn>}
         </div>
       </div>
     </Modal>
@@ -290,7 +290,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
         const chosen = dec && dec.action === 'accept' ? dec.ex : null;
         const skipped = dec && dec.action === 'skip';
         return (
-          <Card key={g.key} leftStripe={chosen ? '#2E9E6B' : skipped ? C.bd : C.or} style={{ opacity: skipped ? 0.6 : 1 }}>
+          <Card key={g.key} leftStripe={chosen ? 'var(--c-gnText)' : skipped ? C.bd : C.or} style={{ opacity: skipped ? 0.6 : 1 }}>
             <div className="em-card" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap', position: 'relative', top: -2 /* 13.10 #735: 24 under the card's edge, 20 over its bottom -> 22 / 22 */ }}>
               <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -300,7 +300,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 5 }}>
                   {g.rows.slice(0, 3).map((r) => `${r.planName || 'plan'} · ${r.dayName}`).join('  ·  ')}{g.rows.length > 3 ? `  +${g.rows.length - 3}` : ''}
                 </div>
-                {chosen && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: '#2E9E6B', marginTop: 8 }}>→ {chosen.title || chosen.t}</div>}
+                {chosen && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-gnText)', marginTop: 8 }}>→ {chosen.title || chosen.t}</div>}
               </div>
               <div className="em-sugg" style={{ flex: '1 1 320px', minWidth: 0 }}>
                 {top ? (
@@ -312,7 +312,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                         // a long reason tag ('ipsilateral↔contralateral', 174px, no shrink) squeezed the exercise's name to
                         // 144px - one word a line at 1440 (#651). The tag is as wide as its longest half and breaks only at its arrow; the
                         // name keeps all the free space (a 220px base or wrapping the row both made it worse - shot 11.10)
-                        <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} className="em-sugg-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
+                        <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} className="em-sugg-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? 'var(--c-gnText)' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} />
                           <span className="em-sugg-title" style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}

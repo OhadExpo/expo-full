@@ -219,8 +219,26 @@ setInterval(runOwed, 20 * 60 * 1000);
 runWarmup();
 setInterval(runWarmup, 20 * 60 * 1000);
 setInterval(runScrimmageWatch, 20 * 60 * 1000);
+// EVERY BUG REPORT REACHES THE QUEUE (#887, 22.10): every 20 minutes, new reports - typed or auto-captured - go onto
+// QUEUE-LIVE.md with a ready repro; a report a person typed also pushes Ohad. Quiet when nothing is new.
+let bugsRunning = false;
+function runBugs() {
+  if (bugsRunning) return;
+  bugsRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/bugs-to-queue.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', () => {
+    bugsRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 400);
+    if (line && !/nothing new/.test(line)) say(line);
+  });
+}
 // 11 minutes in, clear of the owed / game warm-up downloads
 setTimeout(() => { runOpenWorkouts(); setInterval(runOpenWorkouts, 20 * 60 * 1000); }, 11 * 60 * 1000);
+// 3 minutes in: reads one small table, writes only the local queue file
+setTimeout(() => { runBugs(); setInterval(runBugs, 20 * 60 * 1000); }, 3 * 60 * 1000);
 // 15 minutes in: the shootarounds (it writes expo-bhbc-loads - clear of the warm-up step's write)
 setTimeout(() => { runShootarounds(); setInterval(runShootarounds, 20 * 60 * 1000); }, 15 * 60 * 1000);
 // 7 minutes after the owed cycle: both download through the same Chrome (1010c review)

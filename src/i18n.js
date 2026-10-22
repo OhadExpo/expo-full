@@ -2919,6 +2919,8 @@ export const HE = {
   'Cancel this booking?': 'לבטל את ההזמנה?',
   'Describe the bug first.': 'קודם תאר את הבאג.',
   'Bug report sent. Thanks — fix queued.': 'הדיווח נשלח. תודה — זה בתור לטיפול.',
+  'Release:': 'גרסה:',
+  'Trail:': 'מה קרה לפני:',
   'Delete this bug report permanently?': 'למחוק את הדיווח לצמיתות?',
   'Leaderboard snapshot saved.': 'תמונת מצב של הטבלה נשמרה.',
   'Delete this challenge?': 'למחוק את האתגר?',

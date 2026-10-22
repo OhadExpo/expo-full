@@ -79,6 +79,7 @@
 .side-rail:hover::-webkit-scrollbar-thumb { background: var(--c-ac); }
 
 :root, [data-theme="dark"] {
+  --c-gnText: #2E9E6B;            /* success-green TEXT (#883): the hue the views hard-coded; light overrides it */
   --c-bg: #000000;
   --c-sf: #0a0a0c;
   --c-sf2: #111114;
@@ -207,7 +208,9 @@
   --c-bd: rgba(57,189,255,0.32);
   --c-bd2: rgba(57,189,255,0.48);
   --c-tx: #0E0F12;
-  --c-tm: #4A5263;
+  /* #883 (22.10, Ohad: "audit all the expo white mode for texts that are too hard to see"): one notch darker so the
+     dim level below can clear AA on the PAGE ground too and the two greys stay apart (10.1 vs 6.6 on white). */
+  --c-tm: #3B4251;
   /* DIM TEXT, DARKENED TO CLEAR WCAG AA ON WHITE.
      #7B8390 measured 3.82:1 on a white card — under the 4.5:1 body-text bar,
      and 2.62:1 where it sits on the page ground. #6B7280 measures 4.82:1 on
@@ -216,7 +219,10 @@
      This is a NEUTRAL, not a brand colour. Cyan and orange are untouched —
      the palette is his ruling, and "check colour and contrast" from his
      checklist is answered by fixing the grey and REPORTING the rest. */
-  --c-td: #6B7280;
+  /* ...and on everything else it sits on (#883 sweep, 42 light pages): #6B7280 read 3.32:1 on the page ground
+     #D2D6DD (filter labels, sub-tabs, "Loading...") and 4.23 on the #EEF0F3 rows. #565D6A: page 4.54, rows 5.80,
+     white 6.63. */
+  --c-td: #565D6A;
   --c-ac: #0E0F12;
   --c-acText: #0A6E9E;            /* same hue, dark enough to read on the pale fills */
   --c-acH: #000000;
@@ -228,6 +234,7 @@
   --c-rdD: rgba(185,28,28,0.10);
   --c-gn: #15803D;
   --c-gnD: rgba(21,128,61,0.10);
+  --c-gnText: #15803D;            /* #883: the hard-coded #2E9E6B text read 3.38:1 on white */
   --c-or: #C2410C;
   --c-orD: rgba(194,65,12,0.10);
   --c-pu: #6D28D9;

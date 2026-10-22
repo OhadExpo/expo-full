@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { toast, useEscClose } from './ui';
 import { supabase } from './supabase';
-import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
+import { snapshotConsoleBuffer, onError, hasSeenError, snapshotTrail, BUILD_SHA } from './consoleBuffer.js';
 
 import { useT } from './i18n';
 
@@ -55,6 +55,8 @@ function gatherContext() {
     bundle: bundleHash(),
     consoleErrors: snapshotConsoleBuffer(),
     storageKeys: listStorageKeys(),
+    release: BUILD_SHA,          // #887: the commit, not only the bundle hash
+    trail: snapshotTrail(),      // #887: the last routes / taps / failed requests before the report
   };
 }
 

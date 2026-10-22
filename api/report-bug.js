@@ -102,6 +102,15 @@ export default async function handler(req, res) {
     storageKeys: Array.isArray(c.storageKeys)
       ? c.storageKeys.slice(0, 40).map(k => trunc(String(k || ''), 80))
       : [],
+    // #887 self-reporting: what groups it, what build it ran on, and what the user did before it (capped the same way)
+    auto: c.auto === true,
+    fingerprint: trunc(String(c.fingerprint || ''), 300),
+    source: trunc(String(c.source || ''), 240),
+    release: trunc(String(c.release || ''), 64),
+    stack: trunc(String(c.stack || ''), 2000),
+    trail: Array.isArray(c.trail)
+      ? c.trail.slice(-30).map(t => ({ at: trunc(String(t?.at || ''), 12), kind: trunc(String(t?.kind || ''), 12), what: trunc(String(t?.what || ''), 80) }))
+      : [],
   };
 
   const row = {
