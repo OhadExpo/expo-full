@@ -390,6 +390,17 @@ For each broken item, look at the schemaErrors message and apply the minimal tar
 
 Every object in "fixed" MUST carry "itemIdx" - the itemIdx of the broken item it fixes, copied exactly. A fix without itemIdx is discarded.`;
 
+// a lap's duration as m:ss or h:mm:ss, rounded to the second; anything else (a pace, a clock time with am/pm) -> null
+function lapTime(v) {
+  const m = String(v || '').trim().match(/^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,](\d+))?$/);
+  if (!m) return null;
+  let total = (Number(m[1] || 0) * 3600) + Number(m[2]) * 60 + Number(m[3]) + (m[4] ? Number(`0.${m[4]}`) : 0);
+  total = Math.round(total);
+  if (!(total > 0) || Number(m[3]) > 59) return null;
+  const h = Math.floor(total / 3600), mm = Math.floor((total % 3600) / 60), ss = total % 60;
+  return h ? `${h}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${mm}:${String(ss).padStart(2, '0')}`;
+}
+
 const SYSTEM_PROMPT_RUN_LAPS = `You read running data off screenshots of a sports watch or running app (Garmin, Apple Watch / Fitness, Coros, Polar, Suunto, Strava, Nike Run Club, a treadmill display, or similar). The screenshots may be in Hebrew or English and may be photos of a screen.
 
 Return ONLY JSON:
@@ -565,7 +576,7 @@ export default async function handler(req, res) {
       const result = await anthropicJsonVision({ apiKey, system: SYSTEM_PROMPT_RUN_LAPS, content, maxTokens: 1200, model: 'claude-sonnet-5-5' });
       const laps = (Array.isArray(result?.laps) ? result.laps : []).slice(0, 60).map((l) => ({
         km: Number.isFinite(Number(l?.km)) && Number(l.km) > 0 && Number(l.km) < 100 ? Math.round(Number(l.km) * 100) / 100 : null,
-        time: /^\d{1,2}(:\d{2}){1,2}$/.test(String(l?.time || '').trim()) ? String(l.time).trim() : null,
+        time: lapTime(l?.time),   // '6:20.8' on a Garmin lap table -> '6:21' (his logs read whole seconds)
         hr: Number.isFinite(Number(l?.hr)) && Number(l.hr) >= 50 && Number(l.hr) <= 230 ? Math.round(Number(l.hr)) : null,
       })).filter((l) => l.km || l.time);
       res.status(200).json({ laps, totalKm: Number(result?.totalKm) || null, totalTime: result?.totalTime || null, avgHr: Number(result?.avgHr) || null, source: String(result?.source || '').slice(0, 40), confidence: String(result?.confidence || '').slice(0, 10), note: String(result?.note || '').slice(0, 300) });
