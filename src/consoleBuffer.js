@@ -180,7 +180,8 @@ export function installSelfReporting() {
       sessionStorage.setItem('expo-preload-reload-at', String(Date.now()));
       if (ev && ev.preventDefault) ev.preventDefault();
       crumb('remedy', 'stale chunk -> reload');
-      location.reload();
+      // through a clean cache (#903): the bad copy may live in the worker's precache
+      import('./lazyReload').then((m) => m.purgePrecacheThenReload()).catch(() => location.reload());
     } catch { /* */ }
   });
 }

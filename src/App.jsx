@@ -103,6 +103,7 @@ import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeM
 import { getState as netState, subscribe as subscribeNet } from './connectivity';
 import InstallAppPrompt from './InstallAppPrompt';
 import { applyClubBranding, removeClubBranding, CLUB_PATH } from './clubBrand';
+import { purgePrecacheThenReload } from './lazyReload';
 import ErrorBoundary from './ErrorBoundary';
 import { setSeat } from './seatWrite';
 // Imported at CALL time, below - it pulls poseLab (1,265 lines) and this is
@@ -135,7 +136,7 @@ function lazyReload(importFn) {
       try {
         if (!sessionStorage.getItem(RELOAD_FLAG) && !unsafeToReload()) {
           sessionStorage.setItem(RELOAD_FLAG, '1');
-          window.location.reload();
+          purgePrecacheThenReload();   /* #903: through a clean cache, not the bad copy */
           // Park the promise so React.lazy doesn't surface the error
           // before the reload completes.
           return new Promise(() => {});

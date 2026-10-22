@@ -8,13 +8,29 @@ const RELOAD_FLAG = 'expo-chunk-reload-once';   // the same key App.jsx sets and
 const CHUNK_ERR_RX = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
 const unsafeToReload = () => { try { return navigator.onLine === false || (window.__expoUploadInFlight | 0) > 0 || (window.__expoWorkoutActive | 0) > 0; } catch { return false; } };
 
+// THE RELOAD MUST NOT GO THROUGH THE SAME BAD COPY (#903, 23.10 - Ohad's dashboard: "Failed to fetch dynamically
+// imported module", "thats a horrible mistake"). A service worker that installed mid-deploy had stored a PAGE under a
+// chunk's URL; reloading once fetched it from that cache again. So a chunk failure first deletes the offline precache -
+// the worker then goes to the network for every file - and only then reloads.
+export function purgePrecacheThenReload() {
+  const go = () => { try { window.location.reload(); } catch { /* */ } };
+  try {
+    if (typeof caches === 'undefined') { go(); return; }
+    caches.keys()
+      .then((ks) => Promise.all(ks.filter((k) => /precache/i.test(k)).map((k) => caches.delete(k))))
+      .catch(() => {})
+      .then(go);
+    setTimeout(go, 3000);   // never wait on a stuck cache API
+  } catch { go(); }
+}
+
 export function lazyReload(importFn) {
   return lazy(() => importFn().catch((err) => {
     if (err && err.message && CHUNK_ERR_RX.test(err.message)) {
       try {
         if (!sessionStorage.getItem(RELOAD_FLAG) && !unsafeToReload()) {
           sessionStorage.setItem(RELOAD_FLAG, '1');
-          window.location.reload();
+          purgePrecacheThenReload();
           return new Promise(() => {});   // parked: React.lazy never shows the error before the reload lands
         }
       } catch { /* storage blocked: fall through to the boundary */ }
