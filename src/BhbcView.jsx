@@ -2048,7 +2048,7 @@ function attendance28(rec, days) {
      six surnames started at 78, 82, 87, 94, 103 and
      111px, a 33px spread down six rows. 96 holds the longest surname in the
      squad and the UPDATE button that sits under it on a phone. */
-  .bhbc-med-row{ grid-template-columns: 10px 96px minmax(0,1fr) !important; margin-inline-start: 0 !important; }
+  .bhbc-med-row{ grid-template-columns: 10px var(--med-name-w, 96px) minmax(0,1fr) !important; margin-inline-start: 0 !important; }
           .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
           .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
                   .bhbc-week-row{gap:7px!important}
@@ -4445,6 +4445,16 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
 }
 
 function HeadCoachReport({ rows, fx, fixtures, medical, loads = {}, today, onOpen, onMedical, onReportNew, onCopy, copied }) {
+  // MEDICAL: the surname column is as wide as the LONGEST surname in the list, so no name ever breaks across two rows
+  // (#885, Ohad 22.10: "no way goldenberg is differnt rows" - the fixed 96px broke it GOLDENBER / G) and every row's
+  // diagnosis still starts on one x. Measured from the text itself (a Range), not the cell, so it also shrinks back.
+  const medRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = medRef.current; if (!el) return undefined;
+    const fit = () => { let w = 0; el.querySelectorAll('.bhbc-med-name').forEach((n) => { const r = document.createRange(); r.selectNodeContents(n); w = Math.max(w, r.getBoundingClientRect().width); }); el.style.setProperty('--med-name-w', `${Math.max(96, Math.ceil(w) + 1)}px`); };
+    fit(); let live = true; if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (live) fit(); }).catch(() => {});
+    return () => { live = false; };
+  });
   const he = useHe();
   const tr = useT();
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: [GIVEN],
@@ -4563,7 +4573,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       {/* MEDICAL */}
       <Section label={tr("Medical")} list last={!sessions.length} src={tr('From the medical record')}>
         {injuries.length
-          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
+          ? <div ref={medRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {/* EVERY PLAYER, NO BORDERS (27.9 #351/#369, Ohad: "the players and
                   rows and borders is not very asthetic" / "show all players
                   instead" of "+1 more"). The 19.9 line above and beneath each
@@ -4578,9 +4588,9 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px 96px minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '2px 0' }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px var(--med-name-w, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '2px 0' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                    <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{surnameOf(t.name)}</span>
+                    <span className="bhbc-med-name" style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, whiteSpace: 'nowrap' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
