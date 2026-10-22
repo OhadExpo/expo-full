@@ -348,6 +348,9 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
           else if (pe.notesEdited) out.nCleared = true;
           if (Array.isArray(pe.wk) && pe.wk.length) out.wk = pe.wk;
           if (Array.isArray(pe.wkS) && pe.wkS.length) out.wkS = pe.wkS;
+          // a run's pace and HR cap per week (#898 step 2)
+          if (Array.isArray(pe.wkT) && pe.wkT.length) out.wkT = pe.wkT;
+          if (Array.isArray(pe.wkL) && pe.wkL.length) out.wkL = pe.wkL;
           return out;
         })
       };
@@ -362,6 +365,8 @@ const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius
 // breaks the logging flow). Used with inputMode + select-on-focus below.
 const seti = {...bi,fontSize:16,padding:"12px 8px",fontVariantNumeric:"tabular-nums"};
 const selectOnFocus = (e) => { try { e.target.select(); } catch {} };
+// a per-week value (wk / wkS / wkT / wkL) for week index i, else the base; a blank cell is MISSING, not a value (#898)
+const atWk = (arr, i, flat) => { const v = Array.isArray(arr) ? arr[i] : undefined; return (v == null || v === '') ? flat : v; };
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:0,fontSize:10,fontWeight:700,fontFamily:FN,background:'var(--c-sf)',border:`1px solid ${color}`,color,letterSpacing:'0.18em',textTransform:'uppercase',...s}}>{children}</span>;
 
 // Renders a Google Photos share URL as an inline player. Google blocks
@@ -2457,6 +2462,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wrS = ex.wkS?.length > 0 ? pickWk(ex.wkS, weekNum, ex.s) : null;
     const setsForDisplay = wrS ?? ex.s;
     const repsForDisplay = wr ?? ex.r;
+    // a run's pace and HR cap for THIS week (#898 step 2): a per-week value wins, else the base
+    const runTempo = pickWk(ex.wkT, weekNum, ex.tempo);
+    const runLoad = pickWk(ex.wkL, weekNum, ex.load);
     // A TIMED HOLD LOGS SECONDS (10.10 #617, audit #612 B3): '3 x 20 SEC' showed a REPS column. The
     // number still saves to the set's reps field - nothing downstream changes - the column says SEC.
     const timedHold = /\d\s*(sec|secs|second|seconds|s(?![a-z])|שנ)/i.test(String(repsForDisplay ?? '')) && !/rep|חזר/i.test(String(repsForDisplay ?? ''));   // '15 SEC to 10 Reps' logs reps
@@ -2607,11 +2615,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </React.Suspense>
       )}
       <SetsRepsHero sets={setsForDisplay} reps={repsForDisplay} run={isRun} />
-      {isRun && (ex.tempo || ex.load || ex.rest) && (
+      {isRun && (runTempo || runLoad || ex.rest) && (
         // the run's prescription in the coach's words: pace range, the heart-rate cap, the rest between reps
         <div data-run-rx style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 14px', marginTop: 6, fontFamily: FN, fontSize: 12, color: C.tm }}>
-          {ex.tempo && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi>{/\d:\d/.test(String(ex.tempo)) ? ' ' + tt('/km') : ''}</b></span>}
-          {ex.load && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('HR CAP')}</span><b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{hrCap(ex.load)}</b></span>}
+          {runTempo && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('PACE')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}><bdi dir={dirOfVal(runTempo)}>{runTempo}</bdi>{/\d:\d/.test(String(runTempo)) ? ' ' + tt('/km') : ''}</b></span>}
+          {runLoad && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('HR CAP')}</span><b dir="ltr" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{hrCap(runLoad)}</b></span>}
           {ex.rest && <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5 }}><span>{tt('REST')}</span><b dir="auto" style={{ color: C.tx, unicodeBidi: 'isolate' }}>{ex.rest}</b></span>}
         </div>
       )}
@@ -2724,7 +2732,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                     never read a run), HEART RATE */}
                 <input aria-label={tt('Distance (km)')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={String(repsForDisplay || '').replace(/\s*km$/i, '') || 'km'} style={seti}/>
                 <input aria-label={tt('Time (mm:ss)')} value={set.time || ''} onChange={e => uSet(ei,si,'time',e.target.value.replace(/[.,]/g, ':'))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder={tt('mm:ss')} style={seti}/>
-                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={ex.load ? hrCap(ex.load) : '—'} style={seti}/>
+                <input aria-label={tt('Heart rate')} value={set.hr || ''} onChange={e => uSet(ei,si,'hr',e.target.value.replace(/\D/g, ''))} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="done" placeholder={runLoad ? hrCap(runLoad) : '—'} style={seti}/>
               </> : <>
               <input aria-label={timedHold ? tt('Seconds') : tt('Reps')} value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
               <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value.replace(',', '.'))} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
@@ -4504,9 +4512,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               return {
                 num: i + 1,
                 rx: rxOf(ex),
-                tempo: vp.sport === 'running' && ex.load ? [ex.tempo, tt('HR up to {n}').replace('{n}', hrCap(ex.load))]   /* in words: a trailing ≤ flips in a Hebrew line */.filter(Boolean).join(' · ') : ex.tempo,
+                tempo: vp.sport === 'running' && atWk(ex.wkL, vpWeek, ex.load) ? [atWk(ex.wkT, vpWeek, ex.tempo), tt('HR up to {n}').replace('{n}', hrCap(atWk(ex.wkL, vpWeek, ex.load)))]   /* in words: a trailing ≤ flips in a Hebrew line */.filter(Boolean).join(' · ') : ex.tempo,
                 // ...and the pace in its own direction: inside the Hebrew line the range's two times swapped ('5:55—5:45')
-                tempoNode: vp.sport === 'running' && ex.load && ex.tempo ? <><bdi dir={dirOfVal(ex.tempo)}>{ex.tempo}</bdi> · {tt('HR up to {n}').replace('{n}', hrCap(ex.load))}</> : null,
+                tempoNode: vp.sport === 'running' && atWk(ex.wkL, vpWeek, ex.load) && atWk(ex.wkT, vpWeek, ex.tempo) ? <><bdi dir={dirOfVal(atWk(ex.wkT, vpWeek, ex.tempo))}>{atWk(ex.wkT, vpWeek, ex.tempo)}</bdi> · {tt('HR up to {n}').replace('{n}', hrCap(atWk(ex.wkL, vpWeek, ex.load)))}</> : null,
                 title: d.t,
                 // FOCUS IS THE COACH'S WEEKLY EMPHASIS. NOTHING ELSE.
                 //

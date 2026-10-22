@@ -41,6 +41,8 @@ export function normalizeDays(days) {   // exported for the coach demo (#760): i
       superset: e.superset ?? '',
       wk: e.wk ?? null,
       wkS: e.wkS ?? null,
+      wkT: e.wkT ?? null,   // a run's pace per week (#898)
+      wkL: e.wkL ?? null,   // a run's HR cap per week (#898)
       // Per-exercise URL override. Three states matter and must round-trip:
       //   - undefined  → no override; fall back to library videoLink
       //   - ''         → explicit "no video for this program"; do NOT fall back

@@ -56,7 +56,10 @@ const presFor = (ex, week) => {
   const w = Math.max(1, Number(week) || 1) - 1;
   const reps = Array.isArray(ex.wk) && ex.wk[w] != null && ex.wk[w] !== '' ? ex.wk[w] : ex.reps;
   const sets = Array.isArray(ex.wkS) && ex.wkS[w] != null && ex.wkS[w] !== '' ? ex.wkS[w] : ex.sets;
-  return { reps, sets, tempo: ex.tempo, load: ex.load, title: ex.title };
+  // a run's pace and HR cap per week (#898 step 2): blank = the base
+  const tempo = Array.isArray(ex.wkT) && ex.wkT[w] != null && ex.wkT[w] !== '' ? ex.wkT[w] : ex.tempo;
+  const load = Array.isArray(ex.wkL) && ex.wkL[w] != null && ex.wkL[w] !== '' ? ex.wkL[w] : ex.load;
+  return { reps, sets, tempo, load, title: ex.title };
 };
 const weeksOf = (plan) => { const w = Array.isArray(plan.weeks) ? plan.weeks.length : Number(plan.weeks); return isFinite(w) && w > 0 ? w : 1; };
 

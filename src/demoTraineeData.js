@@ -270,7 +270,7 @@ const RUNNER_PLANS = [
   {
     id: 'demo-run-blk-2', name: 'Block #2 — 10K Build', sport: 'running', weeks: 4, createdAt: null,
     days: [
-      { name: RD.a, exercises: [{ title: WU, sets: 1, reps: KM1, tempo: EASY }, { title: INT, sets: 5, reps: KM1, tempo: '5:00-5:05', rest: WALK, load: '165' }, { title: CD, sets: 1, reps: KM1, tempo: EASY }] },
+      { name: RD.a, exercises: [{ title: WU, sets: 1, reps: KM1, tempo: EASY }, { title: INT, sets: 5, reps: KM1, tempo: '5:00-5:05', wkT: ['5:00-5:05', '4:55-5:00', '4:50-4:55', '5:05-5:10'] /* #898: pace by week - build, then the deload */, rest: WALK, load: '165' }, { title: CD, sets: 1, reps: KM1, tempo: EASY }] },
       { name: RD.b, exercises: [{ title: EASYRUN, sets: 1, reps: KM(6), tempo: EASY, load: '150' }] },
       { name: RD.c, exercises: [{ title: LONGRUN, sets: 1, reps: KM(10), wk: [KM(10), KM(11), KM(12), KM(8)], tempo: '6:00-6:20', load: '155' }] },
     ],

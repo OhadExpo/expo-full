@@ -2682,6 +2682,8 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
               ...ex,
               wk: ex.wk ? resize(ex.wk) : ex.wk,
               wkS: ex.wkS ? resize(ex.wkS) : ex.wkS,
+              wkT: ex.wkT ? resize(ex.wkT) : ex.wkT,   // a run's pace per week (#898)
+              wkL: ex.wkL ? resize(ex.wkL) : ex.wkL,   // a run's HR cap per week (#898)
             }))}));
             setPlan({...plan, weeks: n, days: nextDays});
           }} />
@@ -3081,8 +3083,25 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                         </div>); })() : (
                         <input dir="auto" value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder={plan.sport === 'running' ? (readLang() === 'he' ? '1 ק״מ' : '1 km') : '8-12'} style={tinyInput} />
                       )}
-                      <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder={plan.sport === 'running' ? '5:00-5:10' : '3010'} style={tinyInput} />
-                      <input dir="auto" value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder={plan.sport === 'running' ? '—' : 'kg/%'} style={tinyInput} />
+                      {/* A RUN'S PACE AND HR CAP CAN CHANGE BY WEEK (#898 step 2, Ohad 23.10: "make the running system program better"):
+                          they could only change by writing a whole new day (Yehu's block 2 week 2, #850). Same per-week boxes as the
+                          distance column; a blank week falls back to the base. */}
+                      {plan.sport === 'running' && Array.isArray(ex.wkT) && ex.wkT.length > 0 ? (
+                        <div style={{display:"grid", gridTemplateColumns:`repeat(${Math.max(weeks, ex.wkT.length)},minmax(0,1fr))`, gap:2}}>
+                          {Array.from({length:Math.max(weeks, ex.wkT.length)}).map((_,wi) => (
+                            <input dir="auto" key={wi} value={ex.wkT[wi]||""} onChange={e=>{const next=resize(ex.wkT,Math.max(weeks, ex.wkT.length),""); next[wi]=e.target.value; update({wkT:next});}}
+                              placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
+                          ))}
+                        </div>
+                      ) : <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder={plan.sport === 'running' ? '5:00-5:10' : '3010'} style={tinyInput} />}
+                      {plan.sport === 'running' && Array.isArray(ex.wkL) && ex.wkL.length > 0 ? (
+                        <div style={{display:"grid", gridTemplateColumns:`repeat(${Math.max(weeks, ex.wkL.length)},minmax(0,1fr))`, gap:2}}>
+                          {Array.from({length:Math.max(weeks, ex.wkL.length)}).map((_,wi) => (
+                            <input dir="auto" key={wi} value={ex.wkL[wi]||""} onChange={e=>{const next=resize(ex.wkL,Math.max(weeks, ex.wkL.length),""); next[wi]=e.target.value; update({wkL:next});}}
+                              placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
+                          ))}
+                        </div>
+                      ) : <input dir="auto" value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder={plan.sport === 'running' ? '—' : 'kg/%'} style={tinyInput} />}
                       <input dir="auto" value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder={plan.sport === 'running' ? '—' : '7-8'} style={tinyInput} />
                       <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title={tt('Remove exercise from this day')} aria-label={tt('Remove exercise')}
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
@@ -3093,6 +3112,12 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                       </label>}
                       {exOpen && <label style={{gridColumn:5,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
                         <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||(plan.sport === 'running' ? '' : "8-12")}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
+                      </label>}
+                      {exOpen && plan.sport === 'running' && <label style={{gridColumn:6,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
+                        <input type="checkbox" checked={!!(ex.wkT&&ex.wkT.length)} onChange={()=> (ex.wkT&&ex.wkT.length) ? update({wkT:null,tempo:ex.wkT[0]||ex.tempo||''}) : update({wkT:Array.from({length:weeks},()=>ex.tempo||'')})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
+                      </label>}
+                      {exOpen && plan.sport === 'running' && <label style={{gridColumn:7,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
+                        <input type="checkbox" checked={!!(ex.wkL&&ex.wkL.length)} onChange={()=> (ex.wkL&&ex.wkL.length) ? update({wkL:null,load:ex.wkL[0]||ex.load||''}) : update({wkL:Array.from({length:weeks},()=>ex.load||'')})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
                       </label>}
                       {/* Inline full detail — the combined overview+detail panel. */}
                       <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: exOpen?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>

@@ -414,6 +414,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       // logger silently falls back to the base placeholder (audit 08-22 #17).
       wk: e.wk,
       wkS: e.wkS,
+      wkT: e.wkT,   // a run's pace per week (#898)
+      wkL: e.wkL,   // a run's HR cap per week (#898)
       // The per-row video override must survive too (audit 08-22 #102). Without
       // it the logger fell back to the library clip on old-shape plans — 174 of
       // 209 — showing a video the coach had overridden, or one they had
@@ -454,7 +456,9 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         // exactly the portal's rule, so the two loggers hold the same rows for the live sync (#808)
         const runN = (v) => { const n = parseInt(v, 10); return n > 0 ? n : 0; };
         const setCount = isRun ? (runN(Array.isArray(ex.wkS) ? ex.wkS[wi] : null) || runN(ex.sets) || 1) : Math.max(1, Number(rawS) || 3);
-        return {...ex,id:uid(),reps,sets:Array.from({length:setCount},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",...(isRun ? { time:"", hr:"" } : {}),completed:false}))};
+        // a run's pace and HR cap for the chosen week (#898 step 2) - the summary line and the HR placeholder read these
+        const wkv = (arr, flat) => (Array.isArray(arr) && arr[wi] != null && arr[wi] !== '') ? arr[wi] : flat;
+        return {...ex,id:uid(),reps,tempo:wkv(ex.wkT, ex.tempo),load:wkv(ex.wkL, ex.load),sets:Array.from({length:setCount},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",...(isRun ? { time:"", hr:"" } : {}),completed:false}))};
       }),
       notes:""};
     setActive(w);
