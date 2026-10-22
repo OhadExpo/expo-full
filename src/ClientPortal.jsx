@@ -4029,7 +4029,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             demoMode={demoMode}
             readReal={coachPreview && previewReal && !!ci && ci !== 'preview'}
             recipientEmail="ohadyproductions@gmail.com"
-            senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
+            senderLabel={displayFirstName || 'your athlete' /* member-aware: Tom's message is not 'from נטע' */} />
         </ErrorBoundary>
       ) : null}
     </div>
