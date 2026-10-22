@@ -3023,10 +3023,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const i = ms.findIndex(m => emailsOf(m).includes(em));
     return i < 0 ? null : i;
   }, [loginEmail, trainee]);
-  const memberNames = Array.isArray(trainee?.members) ? trainee.members.map(m => String(m?.name || '').trim()).filter(Boolean) : [];
-  const displayFirstName = selfMemberIdx != null
-    ? (memberNames[selfMemberIdx] || '').split(' ')[0]
-    : (memberNames.length > 1 ? memberNames.map(n => n.split(' ')[0]).join(' & ') : clientName.split(' ')[0]);
+  // index-aligned with trainee.members (an unnamed member keeps his slot, so
+  // memberNames[selfMemberIdx] is always HIS name)
+  const memberNames = Array.isArray(trainee?.members) ? trainee.members.map(m => String(m?.name || '').trim()) : [];
+  const namedMembers = memberNames.filter(Boolean);
+  const displayFirstName = (selfMemberIdx != null && memberNames[selfMemberIdx])
+    ? memberNames[selfMemberIdx].split(' ')[0]
+    : (namedMembers.length > 1 ? namedMembers.map(n => n.split(' ')[0]).join(' & ') : clientName.split(' ')[0]);
 
   // Prebuilt lookup maps so plan→portal conversion is O(1) per exercise instead
   // of scanning the whole (1,467-entry) library twice per row, every render.
