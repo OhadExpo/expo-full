@@ -130,7 +130,7 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
       <div style={{ padding: '12px 14px', display: 'grid', gap: 10, alignContent: 'start', minWidth: 0, direction: 'rtl', textAlign: 'right' }}>
         <header style={{ display: 'grid', gap: 2 }}>
           <h3 style={{ margin: 0, ...T(16, 700), color: C.tx }}>{title}</h3>
-          <div style={{ ...T(12), color: C.tm }}>{place}{c.first_seen ? `${place ? ' · ' : ''}נמצא ${c.first_seen}` : ''}{c.broker ? ' · תיווך' : ''}</div>
+          <div style={{ ...T(12), color: C.tm }}>{place}{c.first_seen ? `${place ? ' ·\u00A0' : ''}נמצא ${c.first_seen}` : ''}{c.broker ? ' ·\u00A0תיווך' : ''}</div>
         </header>
         <Facts c={c} />
         {(g.why_he || g.analysis_he) && (
@@ -193,7 +193,7 @@ function OppCard({ o }) {
     <article style={{ border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', background: C.sf, display: 'grid', gap: 6, textAlign: 'right' }}>
       <h3 style={{ margin: 0, ...T(15, 700), color: C.tx }}>{o.title}</h3>
       {o.kind === 'signal' && <div style={{ ...T(12, 700), color: o.level === 'high' ? RED : o.level === 'med' ? ORANGE : C.tm }}>אות מוקדם{o.level === 'high' ? ' · חזק' : ''}</div>}
-      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : srcHe(o.src), o.city, o.date].filter(Boolean).join(' · ')}</div>
+      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : srcHe(o.src), o.city, o.date].filter(Boolean).join(' ·\u00A0')}</div>
       {(o.size_m2 || o.price || o.asking) && (
         <div style={{ ...T(13, 600), color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{[o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
       )}

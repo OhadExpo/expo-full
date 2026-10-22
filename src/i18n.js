@@ -3239,12 +3239,19 @@ export const HE = {
 // those were live when this was written.
 const HE_CI = new Map(Object.keys(HE).map((k) => [k.toLowerCase(), HE[k]]));
 
-export function tr(lang, s) {
+function trRaw(lang, s) {
   if (lang !== 'he' || typeof s !== 'string') return s;
   const hit = HE[s];
   if (hit !== undefined) return hit;
   const ci = HE_CI.get(s.toLowerCase());
   return ci !== undefined ? ci : s;
+}
+// A LINE NEVER ENDS ON A SEPARATOR (#886 OCD sweep 23.10: 26 places on a phone ended a line on '·', '/' or '—' - "Bar
+// speed (VBT) + per-goal stop-set cutoff ·" with the rest on the next line). Every UI string passes through here, so the
+// separator is bound to the word AFTER it (a no-break space): the line breaks before the separator, never after it.
+export const glueSeps = (s) => (typeof s === 'string' ? s.replace(/ ([\u00B7/\u2014\u2013]) (?=\S)/g, ' $1\u00A0') : s);
+export function tr(lang, s) {
+  return glueSeps(trRaw(lang, s));
 }
 
 /** `const t = useT();` then `t('PROGRAM')`. */
@@ -3260,10 +3267,10 @@ export function useT() {
  *  sees Hebrew. In English it is just the string. */
 export function tbFor(lang) {
   return (s) => {
-    const he = tr('he', s);
-    if (he === s) return s;                       // no Hebrew for it: plain text
-    const shown = lang === 'he' ? he : s;
-    const other = lang === 'he' ? s : he;
+    const he = trRaw('he', s);
+    if (he === s) return glueSeps(s);             // no Hebrew for it: plain text
+    const shown = glueSeps(lang === 'he' ? he : s);
+    const other = glueSeps(lang === 'he' ? s : he);
     return createElement('span', { style: { display: 'inline-grid', justifyItems: 'center', verticalAlign: 'top' } },
       createElement('span', { 'aria-hidden': 'true', style: { gridArea: '1 / 1', visibility: 'hidden', whiteSpace: 'nowrap' } }, other),
       createElement('span', { style: { gridArea: '1 / 1', whiteSpace: 'nowrap' } }, shown));

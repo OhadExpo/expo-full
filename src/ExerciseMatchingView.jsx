@@ -13,7 +13,7 @@ import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, EmptyState, toast, JoinedButtons } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
-import { useT, readLang, tr } from './i18n';
+import { useT, readLang, tr, glueSeps } from './i18n';
 
 // VIEW: a tag of its own height, its word on its centre (29.9 #447: as a bare
 // span it stretched with a wrapped row and the word sat 11px high in a 40px box)
@@ -294,11 +294,11 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
             <div className="em-card" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap', position: 'relative', top: -2 /* 13.10 #735: 24 under the card's edge, 20 over its bottom -> 22 / 22 */ }}>
               <div className="em-head" style={{ flex: '1 1 300px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{g.title}</span>
+                  <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: C.tx }}>{glueSeps(g.title) /* #886: 'Crossaint squat / Walking lunge' never ends a line on the slash */}</span>
                   {/* how many plan rows use this title - said in words, framed, no fill (audit #612 D1/D2: an orange tint with no words) */}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap', display: 'inline-block', minWidth: 88, boxSizing: 'border-box', textAlign: 'center' /* one width in both languages: '2× in plans' was wider than 'בתוכניות: 2', so the English name column was 15px narrower and long names wrapped in English only (#860) */ }}>{readLang() === 'he' ? `בתוכניות: ${g.count}` : `${g.count}× in plans`}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 5 }}>
-                  {g.rows.slice(0, 3).map((r) => `${r.planName || 'plan'} · ${r.dayName}`).join('  ·  ')}{g.rows.length > 3 ? `  +${g.rows.length - 3}` : ''}
+                  {glueSeps(g.rows.slice(0, 3).map((r) => `${r.planName || 'plan'} · ${r.dayName}`).join(' · '))}{g.rows.length > 3 ? `  +${g.rows.length - 3}` : ''}
                 </div>
                 {chosen && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-gnText)', marginTop: 8 }}>→ {chosen.title || chosen.t}</div>}
               </div>
@@ -314,7 +314,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                         // name keeps all the free space (a 220px base or wrapping the row both made it worse - shot 11.10)
                         <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} aria-pressed={!!on} /* the chosen suggestion says so (#889: clicking it again changes nothing) */ className="em-sugg-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? 'var(--c-gnText)' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} />
-                          <span className="em-sugg-title" style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
+                          <span className="em-sugg-title" style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal' }} title={s.ex.title || s.ex.t}>{glueSeps(s.ex.title || s.ex.t)}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
                           <span className="em-sugg-tag" style={{ flex: '0 0 auto', width: (String(tr(readLang(), s.why)).length > 20 ? 'min-content' : 'max-content') /* #894 (Ohad 22.10: 'osciliotary-wide should be hoz centered or on the same row'): ONE ROW for every tag up to 20 characters (deceleration<->reverse = 146px measured); only a longer one (ipsilateral<->contralateral, 174px) breaks at its arrow, CENTRED, so the name keeps its room (#651). min-content used to break every tag. */, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf], unicodeBidi: 'isolate', textAlign: 'center' }} dir="ltr" /* '+plate' / '-horizontal' are diff marks: their sign stays on the left in Hebrew */>{String(tr(readLang(), s.why)).split('↔').map((part, k, all) => <React.Fragment key={k}>{k ? <wbr /> : null}<span style={{ whiteSpace: 'nowrap' }}>{part}{k < all.length - 1 ? '↔' : ''}</span></React.Fragment>)}</span>
