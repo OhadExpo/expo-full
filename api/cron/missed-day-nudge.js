@@ -112,9 +112,15 @@ export default async function handler(req, res) {
 
   let sent = 0, gone = 0, errors = 0;
   for (const [email, info] of byUser) {
-    const first = (info.name || '').split(' ')[0] || 'there';
+    // A couple shares one row ("נטע ותום רונן"); its first word greeted Tom as
+    // Neta (the portal header did the same, 20.10). The RPC returns the row's
+    // name, not the member's, so a couple-shaped name ("X ו<Y>" / "X & Y") gets
+    // no name at all - a generic greeting beats the partner's name.
+    const nm = String(info.name || '').trim();
+    const isCouple = /\sו[א-ת]/.test(nm) || /\s&\s/.test(nm);
+    const first = isCouple ? '' : nm.split(' ')[0];
     const payload = JSON.stringify({
-      title: `${first}, you missed your last session`,
+      title: first ? `${first}, you missed your last session` : 'You missed your last session',
       body: `It's been ${info.days} day${info.days === 1 ? '' : 's'} — log a workout when you can.`,
       url: '/athlete',
       tag: `missed-day:${email}`,
