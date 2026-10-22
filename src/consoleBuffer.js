@@ -121,7 +121,11 @@ let autoSent = 0;
 const autoSeen = new Set();
 function autoReport(message, stack, source) {
   try {
-    if (NOISE.test(String(message || '')) || NOISE.test(String(stack || ''))) return;
+    // an extension frame disqualifies an error only when NONE of our code is in the stack: extensions (ad blockers,
+    // password managers) wrap window.fetch, so a real app fetch failure carries their frame too (22.10 probe: it was
+    // dropped as noise on a profile with one installed)
+    const st = String(stack || '');
+    if (NOISE.test(String(message || '')) || (NOISE.test(st) && !/\/assets\/|\/src\//.test(st))) return;
     if (!/^https?:$/.test(location.protocol) || /^(localhost|127\.)/.test(location.hostname)) return;   // dev servers have no /api
     const fp = fingerprintOf(message, stack);
     let seen = []; try { seen = JSON.parse(sessionStorage.getItem('expo-bug-auto-fps') || '[]'); } catch { /* */ }
