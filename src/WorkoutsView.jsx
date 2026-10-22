@@ -755,11 +755,17 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                             {/* Week to log into — chosen here, before the logger opens. */}
                             {/* the weeks and the days as equal-cell grids (5.10 #574; the W chips stood
                                 24px beside 36px buttons). CoachDemo's Workouts tab mirrors both. */}
-                            {pw>1 && <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:8}}>
-                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,flexShrink:0}}>{tt('LOG INTO')}</span>
-                              <ChipGrid ariaLabel={tt('LOG INTO')} soft value={selWeek} onChange={(wn)=>setWeekByPlan(m=>({...m,[p.id]:wn}))} style={{flex:'1 1 auto'}}
+                            {/* ONE STRUCTURE (#895, Ohad 22.10: "buttons are bad ocd design"): the weeks row started 64px in
+                                (after LOG INTO) and the days row at the edge - two grids, two start lines. Now one label column
+                                and one button column: both rows start and end on the same x, and with 4 weeks / 2 days every
+                                day spans exactly two weeks, so the cell lines meet. */}
+                            <div style={{display:'grid',gridTemplateColumns:'max-content minmax(0,1fr)',columnGap:10,rowGap:8,alignItems:'center'}}>
+                            {pw>1 && <>
+                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm}}>{tt('LOG INTO')}</span>
+                              <ChipGrid ariaLabel={tt('LOG INTO')} soft value={selWeek} onChange={(wn)=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
                                 items={Array.from({length:pw},(_,i)=>i+1).map(wn=>({k:wn,label:`W${wn}`}))} />
-                            </div>}
+                            </>}
+                            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm}}>{tt('START')}</span>
                             {(() => { const nextDay = nextDayInWeek(p, selWeek); return (
                               // The next workout gets a subtle tint — like the active/
                               // hovered ATHLETES item in the top nav: faint cyan wash +
@@ -767,6 +773,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                               <ChipGrid ariaLabel={p.name} soft value={nextDay} onChange={(i)=>startWorkout(p,i,selWeek)}
                                 items={(p.dayNames||[]).map((dName,i)=>({k:i,label:`▶ ${dName}`,title:i===nextDay?'Next workout — the one to do now':undefined})).filter((it)=>inWk(p,it.k,selWeek))} />
                             ); })()}
+                            </div>
                           </div>
                           );
                         })}

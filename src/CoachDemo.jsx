@@ -4856,13 +4856,15 @@ function DemoSingle() {
                     return (<>
                       {/* the week and day pickers as equal-cell grids, exactly as WorkoutsView draws them (5.10 #574);
                           the auto-picked week/day keep the soft wash, the NEXT workout is never a loud box */}
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, flexShrink: 0 }}>{T('LOG INTO')}</span>
-                        <ChipGrid ariaLabel={T('LOG INTO')} soft value={autoWeek} style={{ flex: '1 1 auto' }}
+                      {/* one label column + one button column, as WorkoutsView (#895): both rows on one start and end x */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', columnGap: 10, rowGap: 8, alignItems: 'center' }}>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm }}>{T('LOG INTO')}</span>
+                        <ChipGrid ariaLabel={T('LOG INTO')} soft value={autoWeek}
                           items={[1, 2, 3, 4].map(wn => ({ k: wn, label: `W${wn}`, onClick: () => {} }))} />
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm }}>{T('START')}</span>
+                        <ChipGrid ariaLabel={t.name} soft value={autoDay} onChange={(di) => setActive({ name: t.name, day: dayNames[di], week: autoWeek })}
+                          items={dayNames.map((dn, di) => ({ k: di, label: `▶ ${dn}` }))} />
                       </div>
-                      <ChipGrid ariaLabel={t.name} soft value={autoDay} onChange={(di) => setActive({ name: t.name, day: dayNames[di], week: autoWeek })}
-                        items={dayNames.map((dn, di) => ({ k: di, label: `▶ ${dn}` }))} />
                     </>);
                   })()}
                 </div>
