@@ -2112,6 +2112,8 @@ function attendance28(rec, days) {
              360 in a 305px card and the week scrolled sideways. Two columns on
              a phone, like the week grid beside it. */
           .bhbc-micro-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;min-width:0!important}
+          /* an odd count: the last day takes the whole row, never a hole beside it (#886) */
+          .bhbc-micro-grid[data-n="1"] > :last-child, .bhbc-micro-grid[data-n="3"] > :last-child, .bhbc-micro-grid[data-n="5"] > :last-child, .bhbc-micro-grid[data-n="7"] > :last-child{grid-column:1 / -1}
           /* The month grid overflowed by 16px - seven cells at 5px/7px padding
              plus their borders exceed 305/7 = 43.5 each. Trimming the side
              padding to 3 closes it, so the month fits without scrolling. */
@@ -2267,7 +2269,14 @@ function attendance28(rec, days) {
            cut the fifth mid-card ("TUE GA") at 768. Three columns, two rows -
            the phone already gets two. */
         @media (max-width:1100px) and (min-width:621px){
-          .bhbc-micro-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;min-width:0!important}
+          .bhbc-micro-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;min-width:0!important}
+          /* EVERY ROW FULL (#886 sweep 23.10: five days fell 3 + 2 on a tablet): six tracks, a day spans 2 (rows of 3)
+             or 3 (rows of 2) by the count - 4: 2+2, 5: 3+2, 7: 3+3+1 (the last one the whole row), 8: 3+3+2 */
+          .bhbc-micro-grid > *{grid-column:span 2}
+          .bhbc-micro-grid[data-n="1"] > *{grid-column:1 / -1}
+          .bhbc-micro-grid[data-n="2"] > *, .bhbc-micro-grid[data-n="4"] > *{grid-column:span 3}
+          .bhbc-micro-grid[data-n="5"] > :nth-last-child(-n+2), .bhbc-micro-grid[data-n="8"] > :nth-last-child(-n+2){grid-column:span 3}
+          .bhbc-micro-grid[data-n="7"] > :last-child{grid-column:1 / -1}
         }
         /* THE LAST ROW DOES NOT DRAW A RULE INTO THE CARD'S OWN EDGE. Ohad:
            "there shouldnt be a cyan border after the last name and adjust the
@@ -5864,7 +5873,7 @@ function MicrocycleView({ fx, today }) {
         {/* 160, not 120 (29.9 #380): each emphasis phrase stays on one line
             ("hold intensity, cut volume" ~150px) and spilled out of a 120px
             card; the strip scrolls below desktop either way */}
-        <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(150px, 1fr))`, gap: 8, minWidth: days.length * 150 + (days.length - 1) * 8 /* 13.10 #735: 7 x 160 + gaps = 1,168 in a 1,132 card - MD+1 was cut off at 1920 and a scrollbar sat under the cards */ }}>
+        <div className="bhbc-micro-grid" data-n={days.length} style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(150px, 1fr))`, gap: 8, minWidth: days.length * 150 + (days.length - 1) * 8 /* 13.10 #735: 7 x 160 + gaps = 1,168 in a 1,132 card - MD+1 was cut off at 1920 and a scrollbar sat under the cards */ }}>
           {days.map((d) => (
 
   // TODAY AND GAME DAY ARE NOT THE SAME THING AND MUST NOT LOOK IT.

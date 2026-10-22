@@ -1719,6 +1719,12 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
    steps aside on a phone rather than pushing a second row into the title box
    (Ohad 26.9: "never put two rows in a title box ... always one row"). */
 @media (max-width: 620px) { .strip-meta { display: none !important; } }
+/* The exercise form (#886): six tracks, every row full - 3 classification fields, then 2 + 2; one column on a phone */
+.ex-form-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.ex-form-grid > * { grid-column: 1 / -1; }
+.ex-form-grid > .ex-f3 { grid-column: span 2; }
+.ex-form-grid > .ex-f2 { grid-column: span 3; }
+@media (max-width: 620px) { .ex-form-grid > .ex-f3, .ex-form-grid > .ex-f2 { grid-column: 1 / -1; } }
 /* SIX ITEMS, NEVER AN ORPHAN ROW (#886, 22.10): auto-fit put the dashboard's 6 KPI tiles 4 + 2 and the BHBC legend 5 + 1
    at tablet width. 6 across, else 3 + 3, else 2 + 2 + 2. */
 .grid-632 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }

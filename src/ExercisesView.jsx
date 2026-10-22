@@ -656,7 +656,9 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title={tr(readLang(), editId ? 'Edit Exercise' : 'New Exercise')} wide>
         <div data-allow-copy>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
+          {/* EVERY ROW FULL (#886 sweep 23.10: auto-fit left 'Secondary Muscle Groups' alone on a tablet row): six tracks -
+              the three classification fields share a row, the two joint fields the next, the two muscle fields the last */}
+          <div className="ex-form-grid">
             <div style={{ gridColumn: '1 / -1' }}><Input label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Barbell Back Squat" /></div>
             {(() => { const g = classify(form.title); return (!form.resistanceType || !form.bodyPosition || !form.movementType) && g.filled > 0 ? (
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -665,13 +667,13 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — {tt('fills blank fields only')}</span>
               </div>
             ) : null; })()}
-            <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder={tt('Select...')} />
-            <Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({ ...form, bodyPosition: v })} placeholder={tt('Select...')} />
-            <Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({ ...form, movementType: v })} placeholder={tt('Select...')} />
-            <Input label="Primary Joints" value={form.primaryJoints} onChange={e => setForm({ ...form, primaryJoints: e.target.value })} placeholder={tt('Shoulder, Elbow')} />
-            <Input label="Joint Movements" value={form.jointMovements} onChange={e => setForm({ ...form, jointMovements: e.target.value })} placeholder={tt('Shoulder Flexion')} />
-            <Input label="Primary Muscle Groups" value={form.primaryMuscles} onChange={e => setForm({ ...form, primaryMuscles: e.target.value })} placeholder={tt('Quads, Glutes')} />
-            <Input label="Secondary Muscle Groups" value={form.secondaryMuscles} onChange={e => setForm({ ...form, secondaryMuscles: e.target.value })} />
+            <div className="ex-f3"><Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder={tt('Select...')} /></div>
+            <div className="ex-f3"><Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({ ...form, bodyPosition: v })} placeholder={tt('Select...')} /></div>
+            <div className="ex-f3"><Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({ ...form, movementType: v })} placeholder={tt('Select...')} /></div>
+            <div className="ex-f2"><Input label="Primary Joints" value={form.primaryJoints} onChange={e => setForm({ ...form, primaryJoints: e.target.value })} placeholder={tt('Shoulder, Elbow')} /></div>
+            <div className="ex-f2"><Input label="Joint Movements" value={form.jointMovements} onChange={e => setForm({ ...form, jointMovements: e.target.value })} placeholder={tt('Shoulder Flexion')} /></div>
+            <div className="ex-f2"><Input label="Primary Muscle Groups" value={form.primaryMuscles} onChange={e => setForm({ ...form, primaryMuscles: e.target.value })} placeholder={tt('Quads, Glutes')} /></div>
+            <div className="ex-f2"><Input label="Secondary Muscle Groups" value={form.secondaryMuscles} onChange={e => setForm({ ...form, secondaryMuscles: e.target.value })} /></div>
             <div style={{ gridColumn: '1 / -1' }}><Input label="Video Link" value={form.videoLink} onChange={e => setForm({ ...form, videoLink: e.target.value })} placeholder="https://..." /></div>
             {/* One note field only. "Coaching Cues" IS the note — hasNotes(), the
                 cards, and the athlete portal all read `cues`. The separate "Notes"
