@@ -3077,6 +3077,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // "latest block" default is chosen among HIS blocks only
   const ownPlans = selfMemberIdx == null ? sorted : sorted.filter(p => { const mi = memberIndexFromId(p.traineeId, ci); return mi == null || mi === selfMemberIdx; });
   const latestBlock = ownPlans.find(p => blockNum(p.name) !== -Infinity);
+  // Same rule for what he LOGGED: a couple's workouts and weigh-ins share the
+  // couple's client id, so his History and BW chart showed hers too. An entry
+  // is hers when its planId is one of her plans; an old entry with no planId is
+  // hers only when its plan name is hers alone (a name both have stays shown).
+  const isMine = useMemo(() => {
+    if (selfMemberIdx == null) return () => true;
+    const others = sorted.filter(p => { const mi = memberIndexFromId(p.traineeId, ci); return mi != null && mi !== selfMemberIdx; });
+    const otherIds = new Set(others.map(p => p.id).filter(Boolean));
+    const ownNames = new Set(ownPlans.map(p => p.name));
+    const otherOnlyNames = new Set(others.map(p => p.name).filter(n => !ownNames.has(n)));
+    return (planId, planName) => !(planId ? otherIds.has(planId) : otherOnlyNames.has(planName));
+  }, [selfMemberIdx, sorted, ownPlans, ci]);
   const visPlans = ownPlans.filter(p => {
     if (clientName && portalVis) {
       const v = portalVis[visKeyFor(p)];
@@ -3122,7 +3134,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     }
   }, [activePlan?.weeks, wk]);
 
-  const cw = clientWorkouts.filter(w => w.clientId === ci);
+  const cw = clientWorkouts.filter(w => w.clientId === ci && isMine(w.planId, w.planName));
   // Sync the displayed week with reality (client_workouts): when the active
   // block changes, open on the athlete's CURRENT week (next un-logged) — the
   // same week single/group/coach derive. Ref-guarded so it fires only on a real
@@ -3720,7 +3732,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
   // BW Graph tab
   if (vw === 'bwt' && trainee) {
-    const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
+    const bwData = bwLog.filter(b => b.clientId === ci && isMine(b.planId, b.blockName)).sort((a,b) => new Date(a.date) - new Date(b.date));
     const existingBw = bwData.find(b => b.week === wk + 1 && b.blockName === activePlan?.name);
     const bwDisplay = bw || (existingBw ? String(existingBw.bw) : '');
     const bwCanSave = !!(bw && activePlan && !(demoMode && !localWrites));
@@ -3883,7 +3895,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const isHe = (lang || readLang()) === 'he';
     // the tab bar stays OUTSIDE the boundary: a throw in the page must leave him a way to another tab
     return <div data-theme="dark" style={{ background: C.bg, color: C.tx, minHeight: '100vh', maxWidth: 500, margin: '0 auto' }}>{renderTopHeader()}<ErrorBoundary inline><React.Suspense fallback={<div style={{ color: C.tm, fontFamily: FN, fontSize: 11, padding: 20 }}>{tt('LOADING…')}</div>}>
-      <AthleteProgress header={null} week={wk + 1} clientWorkouts={cw} clientId={ci} plans={clientPlans} blockId={(activePlan || visPlans[0] || {}).id || null} blockName={(activePlan || visPlans[0] || {}).name || null} exercises={trainerExercises} weeklyFocus={weeklyFocus} he={isHe} />
+      <AthleteProgress header={null} week={wk + 1} clientWorkouts={cw} clientId={ci} plans={selfMemberIdx == null ? clientPlans : clientPlans.filter(p => { const mi = memberIndexFromId(p.traineeId, ci); return mi == null || mi === selfMemberIdx; })} blockId={(activePlan || visPlans[0] || {}).id || null} blockName={(activePlan || visPlans[0] || {}).name || null} exercises={trainerExercises} weeklyFocus={weeklyFocus} he={isHe} />
     </React.Suspense></ErrorBoundary></div>;
   }
 
@@ -4021,7 +4033,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   </div>;
 
   // Program view
-  if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice().sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-1)[0]?.bw;   // chronologically latest, not last-appended (re-saving an older week reorders the array)
+  if (trainee) { const lb = bwLog.filter(b => b.clientId === ci && isMine(b.planId, b.blockName)).slice().sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-1)[0]?.bw;   // chronologically latest, not last-appended (re-saving an older week reorders the array)
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
