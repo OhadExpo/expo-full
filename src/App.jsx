@@ -1296,11 +1296,11 @@ function AuthedApp() {
     applyClubBranding();
     return () => { if (!CLUB_PATH.test(window.location.pathname)) removeClubBranding(); };   // signed out off the club door: EXPO again
   }, [isBhbcCoach]);
-  // the owner moving between EXPO and the club zone in-app: the tab's title follows (the club's boot branding named it)
+  // the owner moving between EXPO and the club zone in-app: the WHOLE brand follows - title, tab icon, home-screen icon,
+  // manifest (#891, 22.10: only the title used to, so the club zone kept EXPO's tab icon and EXPO kept the club's)
   useEffect(() => {
     if (isBhbcCoach || typeof document === 'undefined') return;
-    const want = CLUB_PATH.test(window.location.pathname) ? 'Bnei Herzliya' : 'EXPO';
-    if (document.title !== want) document.title = want;
+    if (CLUB_PATH.test(window.location.pathname)) applyClubBranding(); else removeClubBranding();
   }, [isBhbcCoach, tab]);
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);

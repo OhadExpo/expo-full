@@ -95,6 +95,10 @@
       if (m) m.setAttribute('href', '/bhbc.webmanifest');
       else { m = document.createElement('link'); m.rel = 'manifest'; m.href = '/bhbc.webmanifest'; document.head.appendChild(m); }
       document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function (l) { l.setAttribute('href', '/bhbc-icon-180.png'); });
+      // the TAB icon too (#891, Ohad 22.10: "bnei hertzeliya websites needs to have its own icon on chrome" / "currently
+      // is still shows expo's") - the crest cropped tight so it reads at 16-32px; same map as src/clubBrand.js
+      var FAV = { '/favicon.ico': '/bhbc-favicon.ico', '/favicon-16x16.png': '/bhbc-favicon-16.png', '/favicon-32x32.png': '/bhbc-favicon-32.png', '/favicon-48x48.png': '/bhbc-favicon-48.png', '/icon-192.png': '/bhbc-icon-192.png', '/icon-512.png': '/bhbc-icon-512.png' };
+      document.querySelectorAll('link[rel~="icon"]').forEach(function (l) { var h = FAV[l.getAttribute('href')]; if (h) l.setAttribute('href', h); });
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.setAttribute('content', 'Bnei Herzliya');
       var c = document.querySelector('meta[name="theme-color"]'); if (c) c.setAttribute('content', '#14294F');
       document.title = 'Bnei Herzliya';   // the tab and the installed app's name (#832)

@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import clubHtml from './scripts/vite-club-html.mjs'
 
 export default defineConfig({
   // No source maps in prod — keeps the readable JS off the public CDN.
@@ -9,6 +10,7 @@ export default defineConfig({
   build: { sourcemap: false },
   plugins: [
     react(),
+    clubHtml(),
     VitePWA({
       // prompt: don't auto-activate a new SW; let SwUpdateBanner show a
       // refresh toast first so users on the installed PWA know to refresh
@@ -35,7 +37,7 @@ export default defineConfig({
         // may still point at either URL; they are simply not precached.
         globIgnores: ['**/og-image*.png'],
       },
-      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css', 'bhbc.webmanifest', 'bhbc-icon-180.png', 'bhbc-icon-192.png', 'bhbc-icon-512.png', 'bhbc-icon-maskable-192.png', 'bhbc-icon-maskable-512.png'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css', 'bhbc.webmanifest', 'bhbc-icon-180.png', 'bhbc-icon-192.png', 'bhbc-icon-512.png', 'bhbc-icon-maskable-192.png', 'bhbc-icon-maskable-512.png', 'bhbc-favicon.ico', 'bhbc-favicon-16.png', 'bhbc-favicon-32.png', 'bhbc-favicon-48.png', 'bhbc-favicon-96.png'],
       manifest: {
         name: 'EXPO',
         short_name: 'EXPO',
