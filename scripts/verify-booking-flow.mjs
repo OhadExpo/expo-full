@@ -13,6 +13,10 @@
 // a probe row left in production once had to be hunted down by hand.
 //
 //   node scripts/verify-booking-flow.mjs <slug> [width]
+// RETIRED 22.10 (#892, Ohad: "combine them"): EXPO's /book/<slug> slot page no longer takes bookings - it forwards to
+// the website's Google booking chooser. This gate drove that page AND left its test bookings in production (two
+// fake confirmed rows on 26.10, removed 22.10). It stops here, saying so, instead of booking anything.
+console.log('RETIRED (#892): /book/<slug> forwards to the Google booking chooser - nothing to test here, nothing booked.'); process.exit(0);
 import P from 'puppeteer-core';
 import { setWidth } from './lib/viewport.mjs';
 

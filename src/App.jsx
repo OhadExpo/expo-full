@@ -317,6 +317,9 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
     { key: 'sensorLab', label: 'Sensor Lab (beta)', onClick: () => { setOpen(false); window.dispatchEvent(new CustomEvent('expo-open-lab')); }, icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6M10 3v6l-4 8a2 2 0 0 0 2 3h8a2 2 0 0 0 2-3l-4-8V3"/></svg>
     ) },
+    { key: 'reportBug', label: 'Report a bug', onClick: () => window.dispatchEvent(new CustomEvent('expo-open-bug-report')), icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5a4 4 0 0 0-4 4v1h8v-1a4 4 0 0 0-4-4Z"/><path d="M5 12a7 7 0 0 1 14 0v3a7 7 0 0 1-14 0Z"/><path d="M12 11v6"/></svg>
+    ) },
     { key: 'password', label: 'Change Password', onClick: onChangePassword, icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     ) },
@@ -324,7 +327,8 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
   // Owner tools (Smart Import / Export / Chat Audit / Bugs) are hidden from
   // staff — they keep only Change Password (+ the Push toggle below). The
   // render relies on Change Password being the last entry, which holds.
-  const items = isOwner ? allItems : allItems.filter(it => it.key === 'password');
+  // staff keep Report a bug too (#893): anyone in the app can reach it on purpose
+  const items = isOwner ? allItems : allItems.filter(it => it.key === 'password' || it.key === 'reportBug');
 
   return (
     <div data-more-menu style={{ display: 'inline-flex' }}>
@@ -654,6 +658,13 @@ function AuthGate() {
   // Public booking — /book/<slug>. Resolves coach + availability via the
   // coach_booking_settings RLS public-read policy. Anon writes a booking
   // via the bookings_public_insert WITH CHECK policy.
+  // ONE BOOKING SYSTEM (#892, Ohad 22.10: "combine them"): clients book through the website's chooser (Google
+  // Appointment Schedules, gym / online). An EXPO /book/<slug> link forwards there; /book/cancel/<id> still cancels a
+  // booking made on the old EXPO page.
+  if (path.startsWith('/book/') && !path.startsWith('/book/cancel/')) {
+    if (typeof window !== 'undefined') { let he = false; try { he = localStorage.getItem('expo-lang') === 'he' || /^he\b/i.test(navigator.language || ''); } catch { /* */ } window.location.replace(he ? 'https://expo-il.co.il/he' : 'https://expo-il.co.il/'); }
+    return <BootSplash />;
+  }
   if (path.startsWith('/book/')) {
     return <><Suspense fallback={<BootSplash />}><BookingPublic /></Suspense><ToastHost /></>;
   }
@@ -1622,8 +1633,10 @@ function AuthedApp() {
   // visibleTabs filter below + the URL guard enforce it). The Portal tab stays
   // for dual-role staff (e.g. Yuval, who is also an athlete) so they can switch
   // to their own training portal. Owner sees the full row.
+  // Portal only for a seat that HAS its own athlete portal (#889 button sweep 22.10: on the partner seat, which has
+  // none, PORTAL ran signOut() - a sign-out wearing a nav tab's name; he was logged out by tapping it).
   const visibleTabs = isOwner
-    ? tabs
+    ? tabs.filter(t => t.key !== 'client' || isBoth)
     : tabs.filter(t => STAFF_TABS.includes(t.key) || (t.key === 'client' && isBoth));
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:

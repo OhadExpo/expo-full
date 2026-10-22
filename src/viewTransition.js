@@ -43,7 +43,8 @@ export function crossFade(commit, { className = 'theme-switching', fallbackMs = 
 
   // Reduced motion, or a browser without the API: commit plainly. The CSS
   // cross-fade in themes.css still softens it where it applies.
-  if (reduced || typeof document.startViewTransition !== 'function') {
+  // a hidden tab cannot run a transition (Chrome aborts it: 'InvalidStateError ... Document hidden') - commit plainly
+  if (reduced || typeof document.startViewTransition !== 'function' || document.visibilityState === 'hidden') {
     commit();
     return;
   }
@@ -52,6 +53,9 @@ export function crossFade(commit, { className = 'theme-switching', fallbackMs = 
     root.classList.add(className);
     const vt = document.startViewTransition(() => { commit(); });
     const done = () => root.classList.remove(className);
+    // an aborted transition rejects ALL its promises; unhandled, they surfaced as page errors (#889 sweep, 22.10)
+    if (vt && vt.ready && typeof vt.ready.catch === 'function') vt.ready.catch(() => {});
+    if (vt && vt.updateCallbackDone && typeof vt.updateCallbackDone.catch === 'function') vt.updateCallbackDone.catch(() => {});
     if (vt && vt.finished && typeof vt.finished.then === 'function') vt.finished.then(done, done);
     else setTimeout(done, fallbackMs);
   } catch {

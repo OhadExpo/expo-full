@@ -28,7 +28,7 @@ Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found al
 | `/coaches/demo` | → `/demo/athlete` | legacy redirect alias |
 | `/coaches/demo/trainee` | → `/demo/athlete` | legacy redirect alias |
 | `/intake/he`, `/intake/en` | `IntakeForm` | token-gated public intake (works in PWA too) |
-| `/book/<slug>` | `BookingPublic` | public booking; anon insert via RLS |
+| `/book/<slug>` | (forward) | ONE booking system since 22.10 (#892): forwards to the website's Google booking chooser (`expo-il.co.il`, `/he` in Hebrew); the old EXPO slot page no longer takes bookings |
 | `/book/cancel/<id>` | `BookingPublic` | the client's own cancellation; the booking uuid is the capability, the work is a SECURITY DEFINER RPC that can only move a confirmed FUTURE booking to canceled |
 | `/p/<token>` | `ProgramShare` | read-only shared program preview |
 | `/sign/<token>` | `ContractSign` | public contract signing; anon UPDATE signature |
@@ -98,6 +98,7 @@ One mechanism, `src/urlState.js` (`useUrlSync` / `useUrlFlag`): open = push, Bac
 | Athlete page pop-ups | `/coach/athletes/<id>/edit` · `/contract` · `/add-payment` · `/edit-payment/<payment>` · `/assign-program` · `/remove-program/<program>` · `/archive` · `/delete` (sections stay `#vitals` … `#club`) |
 | Athlete evaluation (16.10 #837) | `/coach/athletes/<id>/evaluation/new` · `/evaluation/<eval>` (the editor) · `/evaluation-summary/<eval>` (the summary - opens after a save; SUMMARY on every saved evaluation; the demo athlete card: `/demo/coach/trainees/<id>/evaluation-summary`) |
 | BHBC pop-ups (any zone page) | `…/bhbc/<page>/player/<id>` (+ `/game/<date>`) · `/program/<id>` · `/log-lift[/<id>]` · `/log-s-and-c` · `/game-details` · `/minutes-played/<date>` · `/injury/<athlete>[/<injury>]` · `/manage-roster` (`/coach/bhbc/…` owner, `/bhbc/…` club coach) |
+| Report a bug (any coach or athlete page) | `<page>/report-bug` - e.g. `/coach/dashboard/report-bug`, `/athlete/messages/report-bug`; opened from More options -> Report a bug (coach) or the Messages tab's 'Something not working? Report it' (athlete), never a loose header button (#893, 22.10) |
 | Review | `/coach/review/<workout>` (the open review) |
 | Review tools | `/coach/review-tools/movement-lab` · `/lift-metrics` · `/jump-test` · `/live-coach` · `/shot-analyzer` |
 | Coach demo sub-pages | `/demo/coach/review-tools`, `/demo/coach/sessions-single` (were the same URL as Workouts / Group) |

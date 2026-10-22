@@ -4009,6 +4009,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             readReal={coachPreview && previewReal && !!ci && ci !== 'preview'}
             recipientEmail="ohadyproductions@gmail.com"
             senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
+          {/* something broken: a quiet line under the conversation, not a header button (#893 - never pressed by accident) */}
+          {!demoMode && (
+            <div style={{ marginTop: 22, textAlign: 'center' }}>
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('expo-open-bug-report'))}
+                style={{ background: 'none', border: 'none', padding: '8px 4px', cursor: 'pointer', fontFamily: FB, fontSize: 12, color: C.tm, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                {tt('Something not working? Report it')}
+              </button>
+            </div>
+          )}
         </ErrorBoundary>
       ) : null}
     </div>

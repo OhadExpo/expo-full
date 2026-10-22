@@ -16,6 +16,7 @@ import { supabase } from './supabase';
 import { snapshotConsoleBuffer, onError, hasSeenError, snapshotTrail, BUILD_SHA } from './consoleBuffer.js';
 
 import { useT } from './i18n';
+import { useUrlFlag } from './urlState';
 
 function bundleHash() {
   try {
@@ -62,7 +63,8 @@ function gatherContext() {
 
 export default function BugReportButton({ role = 'anon', reporterEmail = '', variant = 'coach' }) {
   const tt = useT();
-  const [open, setOpen] = useState(false);
+  // a reload of <page>/report-bug reopens it (#893)
+  const [open, setOpen] = useState(() => typeof window !== 'undefined' && /\/report-bug\/?$/.test(window.location.pathname));
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [previewCtx, setPreviewCtx] = useState(null);
@@ -89,6 +91,17 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
   useEffect(() => {
     if (open) setPreviewCtx(gatherContext());
   }, [open]);
+  // REACHABLE ON PURPOSE, NEVER BY ACCIDENT (#893, Ohad 22.10: "choose what makes sense but i dont want ppl pressing it
+  // by accident"): the coach's More options menu and the athlete's Messages tab open it with this event - two deliberate
+  // steps, never a loose header button - and nothing is sent without a written description.
+  useEffect(() => {
+    const go = () => setOpen(true);
+    window.addEventListener('expo-open-bug-report', go);
+    return () => window.removeEventListener('expo-open-bug-report', go);
+  }, []);
+  // its own URL (every pop-up has one): <the page it was opened on>/report-bug; a reload reopens it, Back closes it
+  const bugBase = typeof window !== 'undefined' ? window.location.pathname.replace(/\/report-bug\/?$/, '').replace(/\/+$/, '') || '/' : '';
+  useUrlFlag(open, (v) => setOpen(!!v), bugBase, 'report-bug');
 
   const submit = async () => {
     const body = description.trim();

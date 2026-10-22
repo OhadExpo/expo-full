@@ -225,6 +225,34 @@ export async function getTokenScopes() {
 export function consumeCalendarCallback() { return false; }
 export function subscribeAndCacheProviderToken() { return () => {}; }
 
+// ── Who is booked with the coach ─────────────────────────────────────
+
+/**
+ * ONE BOOKING SYSTEM (#892, Ohad 22.10: "combine them"). Clients book through his Google Appointment Schedules (the
+ * marketing site's gym / online links, and every EXPO /book link now lands there too); each booking is an event on
+ * his primary calendar with the client as a guest. This lists those: events in the window that have a guest other
+ * than him, not cancelled, not declined. Returns null when the calendar is not connected (the caller says so),
+ * otherwise [{ id, start_at, duration_min, contact_name, contact_email, title, htmlLink }].
+ */
+export async function listAppointments(fromISO, toISO) {
+  if (!getCachedAccessToken()) return null;
+  const q = new URLSearchParams({ timeMin: fromISO, timeMax: toISO, singleEvents: 'true', orderBy: 'startTime', maxResults: '250' });
+  const out = await gcalFetch(`/calendars/primary/events?${q.toString()}`);
+  const rows = [];
+  for (const ev of (out && out.items) || []) {
+    if (!ev || ev.status === 'cancelled' || !ev.start || !ev.start.dateTime) continue;
+    const guest = (ev.attendees || []).find((a) => a && !a.self && !a.organizer && !a.resource && a.responseStatus !== 'declined');
+    if (!guest) continue;
+    const start = new Date(ev.start.dateTime), end = new Date((ev.end && ev.end.dateTime) || ev.start.dateTime);
+    rows.push({
+      id: `g:${ev.id}`, gcal_event_id: ev.id, start_at: start.toISOString(), duration_min: Math.max(5, Math.round((end - start) / 60000)),
+      contact_name: guest.displayName || '', contact_email: String(guest.email || '').toLowerCase(), title: ev.summary || '', htmlLink: ev.htmlLink || '',
+      status: 'confirmed', source: 'google',
+    });
+  }
+  return rows;
+}
+
 // ── What the coach is already busy with ──────────────────────────────
 
 /**
