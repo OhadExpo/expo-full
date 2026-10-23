@@ -15,7 +15,8 @@ import { useT, readLang } from './i18n';
 //
 // Mounted by App.jsx for /coach/athletes/<id>/preview or /coach/programs/<id>/preview.
 // /coach/trainees/<id>/preview still resolves to the same render for legacy links.
-export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack, showAllBlocks = false, inZone = false, previewReal = true }) {
+export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack, showAllBlocks = false, inZone = false, previewReal = true, providedPlans = null }) {
+  // providedPlans (a club DEMO player, #904): the programs are handed in - no database read, no live channel
   const tt = useT();
   const [plans, setPlans] = useState(null);
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);
@@ -37,6 +38,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   useEffect(() => {
     let alive = true;
     setPlans(null); setError(null);
+    if (providedPlans) { setResolvedTraineeId(traineeId || null); setPlans(providedPlans); return () => { alive = false; }; }
     (async () => {
       try {
         if (planId) {
@@ -72,12 +74,13 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
       }
     })();
     return () => { alive = false; };
-  }, [traineeId, planId, reloadNonce]);
+  }, [traineeId, planId, reloadNonce, providedPlans]);
 
   // Live shared-sheet (read side): when a coach saves this program elsewhere,
   // the editor broadcasts on 'plans-live' and this preview refetches — the
   // athlete-view reflects edits live. Read-only, so there's nothing to clobber.
   useEffect(() => {
+    if (providedPlans) return undefined;
     let disposed = false;
     const ch = supabase.channel('plans-live', { config: { private: true, broadcast: { self: false } } });
     ch.on('broadcast', { event: 'plan-changed' }, ({ payload }) => {
@@ -88,7 +91,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
     });
     ch.subscribe();
     return () => { disposed = true; try { supabase.removeChannel(ch); } catch { /* noop */ } };
-  }, [traineeId, planId]);
+  }, [traineeId, planId, providedPlans]);
 
   const trainee = (trainees||[]).find(t => t.id === resolvedTraineeId);
 

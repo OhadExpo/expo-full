@@ -33,8 +33,24 @@ export default function ClubDemo({ slug }) {
   const shownMedical = useMemo(() => (he ? hebrewMedical(medical) : medical), [medical, he]);
   const shownWarmup = useMemo(() => (seed && he ? hebrewWarmup(seed.gameWarmup) : seed && seed.gameWarmup), [seed, he]);
   const shownPlanIndex = useMemo(() => (seed && he ? hebrewPlanIndex(seed.planIndex) : seed && seed.planIndex), [seed, he]);
+  // THE PLAYER'S OWN APP (the athlete portal, the real one in demo mode): each player's program in the portal's shape,
+  // its exercises as a small library (titles; no videos in a demo). One stable object per player - the portal reloads
+  // when the reference changes.
+  const portal = useMemo(() => {
+    if (!seed) return null;
+    const plans = he ? hebrewPlans(seed.plans) : seed.plans;
+    const lib = new Map();
+    const idOf = (title) => { const id = 'cx_' + String(title).toLowerCase().replace(/[^a-z0-9]+/g, '_'); if (!lib.has(id)) lib.set(id, { id, title }); return id; };
+    const byPlayer = {};
+    for (const p of seed.planIndex) {
+      const full = plans[p.id]; if (!full) continue;
+      byPlayer[p.traineeId] = [{ id: full.id, name: full.name, traineeId: p.traineeId, active: true, weeks: full.weeks || 4, createdAt: new Date(Date.now() - 9 * 86400000).toISOString(),
+        days: (full.days || []).map((d) => ({ name: d.name, exercises: (d.exercises || []).map((e) => ({ eid: idOf(e.title), s: e.sets, r: e.reps, notes: e.notes || '' })) })) }];
+    }
+    return { plansFor: (id) => byPlayer[id] || [], exercises: [...lib.values()] };
+  }, [seed, he]);
   // the banner + tour are drawn INSIDE the zone, in the zone's language (it owns the toggle)
-  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang, staffName: he ? hebrewStaffName : null } : null), [seed, club, he]);
+  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang, staffName: he ? hebrewStaffName : null, portalPlans: portal && portal.plansFor, portalExercises: portal && portal.exercises } : null), [seed, club, he, portal]);
 
   // the club on the tab: its name and its crest (the zone's own shell is EXPO's index.html)
   useEffect(() => {
