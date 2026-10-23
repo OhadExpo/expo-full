@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { NSEG, S, SEGMENTS, PIVOT, fk, segMatrix, sampleTrack } from './rig.js';
+import REST from './restJoints.js';
 
 // a phone (or a low-core device) loads the lighter bake - the same body, joints and rig, ~40% of the vertices and 2.3 MB
 // instead of 3.7 (scripts/anatomy/bake-anatomy.mjs OUT_GLB=... BONE_RATIO=0.3 MUSC_RATIO=0.12 SIMP_ERR=0.03)
@@ -43,12 +44,96 @@ export function loadAnatomyParts(url = ANATOMY_URL) {
         parts.push({ layer, seg, geometry: geo });
       });
       if (!parts.length) throw new Error('anatomy: no parts in ' + url);
+      addFibres(parts);
       return parts;
     }).catch((e) => { loading = null; throw e; });
   }
   return loading;
 }
 
+// THE FIBRES (#907, Ohad 23.10 on an anatomy reel: "our models are not close to this level"). A muscle's fibres run
+// along its long axis; the bake has no UVs, so each muscle's axis is its principal direction (PCA of its rest vertices)
+// and each vertex gets: fiberDir (that axis) and fiberT (0..1 along it - the ends are the tendons). The shader draws
+// striations across the fibres, pale tendon ends and a small tone per muscle - the look of a medical render, live.
+function addFibres(parts) {
+  const ms = parts.filter((p) => p.layer === 'muscle' && p.geometry.attributes.muscleId);
+  const st = new Map();
+  for (const p of ms) {
+    const pos = p.geometry.attributes.position.array, ids = p.geometry.attributes.muscleId;
+    for (let i = 0; i < ids.count; i++) {
+      const k = ids.getX(i); let a = st.get(k);
+      if (!a) { a = new Float64Array(10); st.set(k, a); }
+      const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+      a[0]++; a[1] += x; a[2] += y; a[3] += z; a[4] += x * x; a[5] += x * y; a[6] += x * z; a[7] += y * y; a[8] += y * z; a[9] += z * z;
+    }
+  }
+  const ax = new Map();
+  for (const [k, a] of st) {
+    const n = a[0], mx = a[1] / n, my = a[2] / n, mz = a[3] / n;
+    const c = [a[4] / n - mx * mx, a[5] / n - mx * my, a[6] / n - mx * mz, a[7] / n - my * my, a[8] / n - my * mz, a[9] / n - mz * mz];
+    let v = [0.3, 1, 0.2];
+    for (let it = 0; it < 32; it++) {
+      const w = [c[0] * v[0] + c[1] * v[1] + c[2] * v[2], c[1] * v[0] + c[3] * v[1] + c[4] * v[2], c[2] * v[0] + c[4] * v[1] + c[5] * v[2]];
+      const L = Math.hypot(w[0], w[1], w[2]) || 1; v = [w[0] / L, w[1] / L, w[2] / L];
+    }
+    ax.set(k, { m: [mx, my, mz], v, lo: Infinity, hi: -Infinity });
+  }
+  const proj = (A, pos, i) => (pos[i * 3] - A.m[0]) * A.v[0] + (pos[i * 3 + 1] - A.m[1]) * A.v[1] + (pos[i * 3 + 2] - A.m[2]) * A.v[2];
+  for (const p of ms) {
+    const pos = p.geometry.attributes.position.array, ids = p.geometry.attributes.muscleId;
+    for (let i = 0; i < ids.count; i++) { const A = ax.get(ids.getX(i)), t = proj(A, pos, i); if (t < A.lo) A.lo = t; if (t > A.hi) A.hi = t; }
+  }
+  for (const p of ms) {
+    const pos = p.geometry.attributes.position.array, ids = p.geometry.attributes.muscleId, n = ids.count;
+    const dir = new Float32Array(n * 3), tt = new Float32Array(n), mid = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const k = ids.getX(i), A = ax.get(k);
+      dir[i * 3] = A.v[0]; dir[i * 3 + 1] = A.v[1]; dir[i * 3 + 2] = A.v[2];
+      tt[i] = A.hi > A.lo ? (proj(A, pos, i) - A.lo) / (A.hi - A.lo) : 0.5; mid[i] = k;
+    }
+    p.geometry.setAttribute('fiberDir', new THREE.BufferAttribute(dir, 3));
+    p.geometry.setAttribute('fiberT', new THREE.BufferAttribute(tt, 1));
+    p.geometry.setAttribute('muscleIdF', new THREE.BufferAttribute(mid, 1));
+  }
+}
+// the ids of the muscles whose name matches (both sides unless the pattern says .l / .r) - e.g. /Levator scapulae/
+export function muscleIds(re) { const out = []; (REST.muscles || []).forEach((n, i) => { if (re.test(n)) out.push(i); }); return out; }
+const HI_W = 1024;   // the highlight lookup: one texel per muscle id (610 in the bake)
+// the fibre look + the HIGHLIGHT (a named muscle glows, pulsing, the rest muted - the reel's "this is the muscle")
+function fibres(mat, U) {
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => '';
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 fiberDir;\nattribute float fiberT;\nattribute float muscleIdF;\nvarying float vT;\nvarying float vU;\nvarying float vMid;\nvarying vec3 vFib;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vT = fiberT; vMid = muscleIdF;\n  vec3 acrossR = cross(fiberDir, normal);\n  vU = dot(position, normalize(acrossR + vec3(1e-5)));')
+      .replace('#include <skinnormal_vertex>', '#include <skinnormal_vertex>\n#ifdef USE_SKINNING\n  vFib = normalize(normalMatrix * (skinMatrix * vec4(cross(fiberDir, normal), 0.0)).xyz + vec3(1e-5));\n#else\n  vFib = normalize(normalMatrix * cross(fiberDir, normal) + vec3(1e-5));\n#endif');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying float vT;\nvarying float vU;\nvarying float vMid;\nvarying vec3 vFib;\nuniform float uFreq;\nuniform sampler2D uHiTex;\nuniform int uHiN;\nuniform vec3 uHiCol;\nuniform float uTime;\nfloat fibHi() { return uHiN > 0 ? texelFetch(uHiTex, ivec2(int(vMid + 0.5), 0), 0).r : 0.0; }`)
+      .replace('#include <color_fragment>', '#include <color_fragment>\n  float fTend = smoothstep(0.82, 0.985, abs(vT * 2.0 - 1.0));\n  float fH = fract(sin(vMid * 12.9898) * 43758.5453);\n  float fU = vU * uFreq;\n  float fFade = (1.0 - smoothstep(0.7, 2.4, fwidth(fU))) * (1.0 - fTend);\n  float fSt = sin(fU + 1.6 * sin(vT * 37.0 + vMid));\n  diffuseColor.rgb *= (0.86 + 0.26 * fH) * (1.0 - 0.13 * fFade * (0.5 + 0.5 * fSt));\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.80, 0.70), fTend);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, 0.3, fTend);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n  normal = normalize(normal + vFib * fSt * 0.32 * fFade);')
+      .replace('gl_FragColor.a *= mix(uLo, uHi, fr);', 'gl_FragColor.a *= (uHiN > 0 && fHi > 0.5) ? 1.0 : mix(uLo, uHi, fr);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  float fHi = fibHi();\n  if (uHiN > 0) {\n    if (fHi > 0.5) { float pu = 0.78 + 0.22 * sin(uTime * 3.2); diffuseColor.rgb = mix(diffuseColor.rgb, uHiCol, 0.42); totalEmissiveRadiance += uHiCol * pu * 0.8; }\n    else { float g = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(g), 0.35) * 0.78; }\n  }');
+  };
+  mat.customProgramCacheKey = () => `${prevKey()}-fibres`;
+  return mat;
+}
+// THE GLOW SHELL (#907): the lit muscle drawn a second time, pushed out along its normals by a few millimetres,
+// additive, brightest at the silhouette - the halo of the medical renders without a bloom pass (a bloom pass made the
+// white bones glow too and tinted the plane; this lights only the chosen muscle and costs one cheap pass)
+function glowShell(U) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide });
+  mat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float muscleIdF;\nvarying float vMid;\nvarying vec3 vGN;\nvarying vec3 vGV;\nuniform float uTime;')
+      .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n  vMid = muscleIdF;\n#ifdef USE_SKINNING\n  transformed += normalize(objectNormal) * (0.006 + 0.002 * sin(uTime * 3.2));\n#endif')
+      .replace('#include <project_vertex>', '#include <project_vertex>\n#ifdef USE_SKINNING\n  vGN = normalize(normalMatrix * objectNormal);\n#else\n  vGN = vec3(0.0, 0.0, 1.0);\n#endif\n  vGV = -mvPosition.xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying float vMid;\nvarying vec3 vGN;\nvarying vec3 vGV;\nuniform sampler2D uHiTex;\nuniform int uHiN;\nuniform vec3 uHiCol;\nuniform float uTime;`)
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n  float h = uHiN > 0 ? texelFetch(uHiTex, ivec2(int(vMid + 0.5), 0), 0).r : 0.0;\n  if (h < 0.5) discard;\n  float fr = pow(1.0 - abs(dot(normalize(vGN), normalize(vGV))), 1.6);\n  gl_FragColor = vec4(uHiCol * (0.35 + 1.4 * fr) * (0.8 + 0.2 * sin(uTime * 3.2)), 1.0);`);
+  };
+  mat.customProgramCacheKey = () => 'glow-shell';
+  return mat;
+}
 // materials: matte ivory bone (its ridges read by the grazing key light), deep wet muscle red (research 13.10, 6.2)
 // THE X-RAY LOOK (research 13.10, 6.1): muscles over bones are drawn twice - a depth-only pass first, then one blended
 // colour pass that keeps only the FRONT muscle surface (no inner faces, no sorting flicker), its opacity rising toward
@@ -76,19 +161,23 @@ function layerCut(mat, uDepth) {
   mat.customProgramCacheKey = () => `${prevKey()}-layer`;
   return mat;
 }
-function materials(uDepth) {
+function materials(uDepth, U) {
+  const fib = (m) => fibres(m, U);
   const bone = new THREE.MeshStandardMaterial({ color: 0xe6dcc4, roughness: 0.78, metalness: 0, emissive: 0x1a140c, emissiveIntensity: 0.35, side: THREE.FrontSide });
   const muscle = new THREE.MeshPhysicalMaterial({ color: 0xb03a2f, roughness: 0.5, metalness: 0, sheen: 0.3, sheenColor: new THREE.Color(0xff9a8a), side: THREE.FrontSide });
   const ghost = (m, o) => { const g = m.clone(); g.transparent = true; g.opacity = o; g.depthWrite = false; return g; };
   // see-through muscles: the colour pass (Fresnel alpha) + its depth-only twin
   const muscleT = fresnel(muscle.clone(), 0.18, 0.95); muscleT.transparent = true; muscleT.depthWrite = false; muscleT.depthFunc = THREE.LessEqualDepth;
   const muscleDepth = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true });
+  // FOCUS (#907): a lit muscle under others (levator scapulae under the trapezius) is seen through the rest - the
+  // others are glass with a solid edge, the lit one solid and glowing (the reel's x-ray)
+  const muscleF = fresnel(muscle.clone(), 0.13, 0.78); muscleF.transparent = true; muscleF.depthWrite = false;
   // the clones first (muscleT above, the ghost here), then the cut on each - a clone of a cut material would cut twice
   const muscleG = ghost(muscle, 0.14);
   // the crossfade (13.10 #745): one material per segment while it changes, between the ghost and the solid look
   const boneBase = bone.clone(), muscleBase = muscle.clone();
-  const blend = (layer) => (layer === 'bone' ? ghost(boneBase, 1) : layerCut(ghost(muscleBase, 1), uDepth));
-  return { blend, bone, muscle: layerCut(muscle, uDepth), boneG: ghost(bone, 0.22), muscleG: layerCut(muscleG, uDepth), muscleT: layerCut(muscleT, uDepth), muscleDepth: layerCut(muscleDepth, uDepth) };
+  const blend = (layer) => (layer === 'bone' ? ghost(boneBase, 1) : fib(layerCut(ghost(muscleBase, 1), uDepth)));
+  return { blend, bone, muscle: fib(layerCut(muscle, uDepth)), boneG: ghost(bone, 0.22), muscleG: fib(layerCut(muscleG, uDepth)), muscleT: fib(layerCut(muscleT, uDepth)), muscleDepth: layerCut(muscleDepth, uDepth), muscleF: fib(layerCut(muscleF, uDepth)) };
 }
 // a soft contact shadow on the floor (real-time shadow maps would re-skin ~540k vertices per light every frame)
 function contactShadow() {
@@ -106,7 +195,11 @@ export async function createAnatomyBody({ url } = {}) {
   const bones = SEGMENTS.map((n) => { const b = new THREE.Bone(); b.name = n; b.matrixAutoUpdate = false; return b; });
   const skeleton = new THREE.Skeleton(bones, bones.map(() => new THREE.Matrix4()));
   const uDepth = { value: 1 };
-  const M = materials(uDepth);
+  // the fibre spacing (per metre, ~3 mm a fibre bundle) and the highlight, shared by every muscle material of this body
+  const hiData = new Uint8Array(HI_W), hiTex = new THREE.DataTexture(hiData, HI_W, 1, THREE.RedFormat, THREE.UnsignedByteType);
+  hiTex.magFilter = hiTex.minFilter = THREE.NearestFilter; hiTex.needsUpdate = true;
+  const U = { uFreq: { value: 2100 }, uHiTex: { value: hiTex }, uHiN: { value: 0 }, uHiCol: { value: new THREE.Color(0xff2d8a) }, uTime: { value: 0 } };
+  const M = materials(uDepth, U);
   const mk = (p, mat, order, extra) => {
     const m = new THREE.SkinnedMesh(p.geometry, mat);
     m.bind(skeleton, new THREE.Matrix4());
@@ -117,6 +210,9 @@ export async function createAnatomyBody({ url } = {}) {
   const meshes = parts.map((p) => mk(p, p.layer === 'bone' ? M.bone : M.muscle, p.layer === 'bone' ? 0 : 2));
   // the depth-only twins of the muscles, used in the see-through mode
   const depthTwins = parts.filter((p) => p.layer === 'muscle').map((p) => mk(p, M.muscleDepth, 1, { twin: true }));
+  // the glow twins of the muscles (#907), drawn last, only while a muscle is lit
+  const glowMat = glowShell(U);
+  const glowTwins = parts.filter((p) => p.layer === 'muscle' && p.geometry.attributes.muscleIdF).map((p) => mk(p, glowMat, 4, { glow: true }));
   const shadow = contactShadow(); group.add(shadow);
   const layers = { bones: true, muscles: true, muscleOpacity: 1, depth: 1 };
   let track = null, lastSeen = new Uint8Array(NSEG).fill(1);
@@ -138,14 +234,16 @@ export async function createAnatomyBody({ url } = {}) {
   const QA = PIVOT.map(() => new THREE.Quaternion()), QB = PIVOT.map(() => new THREE.Quaternion()), rootA = new THREE.Vector3(), rootB = new THREE.Vector3();
 
   const look = () => {
-    const through = layers.bones && layers.muscles && layers.muscleOpacity < 1;
+    const focus = layers.muscles && U.uHiN.value > 0;
+    const through = !focus && layers.bones && layers.muscles && layers.muscleOpacity < 1;
     for (const m of meshes) {
       const { layer, seg } = m.userData, seen = lastSeen[seg] !== 0, w = lastW[seg];
       const mid = w > 0.001 && w < 0.999;   // changing: the crossfade (the see-through look keeps its own two)
       if (layer === 'bone') { m.visible = layers.bones; m.material = mid ? blendOf('bone', seg, w) : seen ? M.bone : M.boneG; }
-      else { m.visible = layers.muscles; m.material = mid && !through ? blendOf('muscle', seg, w) : !seen ? M.muscleG : through ? M.muscleT : M.muscle; }
+      else { m.visible = layers.muscles; m.material = focus ? (seen ? M.muscleF : M.muscleG) : mid && !through ? blendOf('muscle', seg, w) : !seen ? M.muscleG : through ? M.muscleT : M.muscle; }
     }
     for (const m of depthTwins) m.visible = through && lastSeen[m.userData.seg] !== 0;
+    for (const m of glowTwins) m.visible = layers.muscles && U.uHiN.value > 0;
   };
   look();
   const apply = (Qs, rootV) => {
@@ -186,8 +284,18 @@ export async function createAnatomyBody({ url } = {}) {
     // where a rest point of a segment is now (e.g. the trails, the camera)
     jointWorld(seg) { return piv[seg].clone(); },
     setLayers(o) { Object.assign(layers, o); uDepth.value = layers.depth || 1; look(); },
+    // light up muscles (ids from muscleIds(), or a RegExp) in a colour; none = the plain look. tick(seconds) pulses it.
+    setHighlight(sel, color) {
+      const ids = !sel ? [] : sel instanceof RegExp ? muscleIds(sel) : sel;
+      hiData.fill(0); let n = 0; for (const id of ids) if (id >= 0 && id < HI_W) { hiData[id] = 255; n++; } hiTex.needsUpdate = true; U.uHiN.value = n;
+      if (color != null) U.uHiCol.value.set(color);
+      look();
+      return U.uHiN.value;
+    },
+    get highlighted() { return U.uHiN.value; },
+    tick(sec) { U.uTime.value = sec; },
     // its own: the materials, the contact shadow (plane, material, canvas texture) and the skeleton; the body's geometries
     // are the page cache's and stay
-    dispose() { for (const k of Object.keys(M)) if (M[k] && M[k].dispose) M[k].dispose(); for (const arr of Object.values(blendM)) for (const m of arr) if (m) m.dispose(); shadow.geometry.dispose(); if (shadow.material.map) shadow.material.map.dispose(); shadow.material.dispose(); skeleton.dispose(); group.removeFromParent(); },
+    dispose() { glowMat.dispose(); hiTex.dispose(); for (const k of Object.keys(M)) if (M[k] && M[k].dispose) M[k].dispose(); for (const arr of Object.values(blendM)) for (const m of arr) if (m) m.dispose(); shadow.geometry.dispose(); if (shadow.material.map) shadow.material.map.dispose(); shadow.material.dispose(); skeleton.dispose(); group.removeFromParent(); },
   };
 }

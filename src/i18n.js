@@ -2725,6 +2725,10 @@ export const HE = {
   'layer·MIDDLE': 'אמצעיים',
   'layer·SURFACE': 'שטחיים',
   'MUSCLE LAYERS': 'שכבות שרירים',
+  // muscle focus (#907) - his words: בטן for core, ישבן for glutes (HEBREW-ANATOMY-GLOSSARY)
+  'MUSCLE FOCUS': 'מיקוד שרירים',
+  'focus·OFF': 'ללא', 'focus·AUTO': 'אוטומטי', 'focus·NECK': 'צוואר', 'focus·SHOULDERS': 'כתפיים', 'focus·CHEST': 'חזה',
+  'focus·BACK': 'גב', 'focus·ARMS': 'ידיים', 'focus·CORE': 'בטן', 'focus·GLUTES': 'ישבן', 'focus·LEGS': 'רגליים',
   // the centre of mass vs mid-foot (13.10 #715) - מרכז הכובד: the clinic / coaching sites' word (he has none)
   'COM (CM)': 'מרכז הכובד (ס״מ)',
   'BAR / HANDS (CM)': 'מוט / ידיים (ס״מ)',

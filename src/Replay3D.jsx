@@ -22,6 +22,7 @@ import { useT, LangCtx } from './i18n';
 import AngleNum, { AngleHead } from './AngleNum';
 import { ChipGrid, JoinedButtons } from './ui';
 import { createAnatomyBody } from './anatomy/AnatomyBody';
+import { FOCUS_KEYS, autoFocus, focusPattern } from './anatomy/muscleFocus';
 import { buildTrack, sampleTrack, fk, carry, modelAngles, S as SEG, PIVOT, RJ, NSEG as SEG_COUNT } from './anatomy/rig';
 import { anatomyFrames } from './anatomy/lift2d';
 import { modelBalance } from './anatomy/balance';
@@ -34,6 +35,12 @@ const FEET = [27, 28, 29, 30, 31, 32];
 // THE LAYERS, as an anatomy app peels them (13.10 #721, Ohad: "skeleton > deeper muscles > superficial (however many
 // layers there are)"): the bake measured three muscle layers; each view shows the skeleton and every layer from the
 // chosen one inward, opaque
+// light the focus on a body (#907): 'off', 'auto' (the joints that moved most in this clip) or a muscle group
+function applyFocus(body, focus) {
+  if (!body) return;
+  const groups = focus === 'off' ? [] : focus === 'auto' ? autoFocus(body.track) : [focus];
+  body.setHighlight(focusPattern(groups), 0xff2d8a);
+}
 const LAYERS = { skeleton: { bones: true, muscles: false }, deep: { bones: true, muscles: true, muscleOpacity: 1, depth: 3 }, middle: { bones: true, muscles: true, muscleOpacity: 1, depth: 2 }, surface: { bones: true, muscles: true, muscleOpacity: 1, depth: 1 } };
 const LAYER_OLD = { bones: 'skeleton', muscles: 'surface', both: 'surface' };   // a choice remembered from before the layers
 
@@ -142,6 +149,9 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   const openedAt = useRef(false);
   const [layer, setLayer] = useState(() => { try { const v = localStorage.getItem('expo-anatomy-layer') || 'surface'; return LAYERS[v] ? v : LAYER_OLD[v] || 'surface'; } catch { return 'surface'; } });
   const layerRef = useRef(layer); layerRef.current = layer;
+  // MUSCLE FOCUS (#907): off / auto (the joint that moved most) / a group - the muscles glow, the rest turn to glass
+  const [focus, setFocus] = useState(() => { try { const v = localStorage.getItem('expo-anatomy-focus'); return FOCUS_KEYS.includes(v) ? v : 'off'; } catch { return 'off'; } });
+  const focusRef = useRef(focus); focusRef.current = focus;
   const trailsRef = useRef(true); trailsRef.current = trails;   // a rebuilt scene keeps the toggle (review 12.10)
   const idxRef = useRef(0); idxRef.current = idx;
   // the original frames, in the replay's order (stableReplayFrames keeps the frames that have world points, in order)
@@ -743,7 +753,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
     fit(facing ? new THREE.Vector3(facing.F[0] * 0.75 + facing.seen[0] * 0.66, 0.36, facing.F[1] * 0.75 + facing.seen[1] * 0.66) : new THREE.Vector3(2.1, 0.5, 2.6));
     const ro = new ResizeObserver(() => { size(); setHostW(host.clientWidth || 0); }); ro.observe(host); setHostW(host.clientWidth || 0);
     let raf = 0, alive = true;
-    const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
+    // a lit muscle pulses (#907): the body's clock
+    const loop = () => { if (!alive) return; controls.update(); if (body && body.highlighted > 0) body.tick(performance.now() / 1000); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
     loop();
     stateRef.current = { pose, camera, controls, centreY, handTrail, hipTrail, fit, size, body: null };
     // a recorder can drive the replay frame by frame (audit-out/_anat-lab-render.mjs: an exact 60 fps video) - inert unless set
@@ -754,6 +765,8 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       createAnatomyBody().then((b) => {
         if (!alive) { b.dispose(); return; }
         body = b; b.setTrack(track); b.setLayers(LAYERS[layerRef.current] || LAYERS.surface);
+        try { if (window.__anatDebugOn) window.__anatBody = b; } catch { /* probes only */ }
+        applyFocus(b, focusRef.current);
         scene.add(b.group);
         for (const m of mannequin) m.visible = false;
         if (stateRef.current) stateRef.current.body = b;
@@ -782,6 +795,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
   // a plane chosen while paused is drawn at once (#820: the sheet moved only when the frame did - 'clicking doesn't do anything')
   useEffect(() => { const s = stateRef.current; if (s && !playingRef.current) s.pose(idxRef.current); }, [plane, anat]);
   useEffect(() => { const s = stateRef.current; if (s && s.body) s.body.setLayers(LAYERS[layer] || LAYERS.surface); try { localStorage.setItem('expo-anatomy-layer', layer); } catch { /* private mode */ } }, [layer]);
+  useEffect(() => { const s = stateRef.current; if (s && s.body) applyFocus(s.body, focus); try { localStorage.setItem('expo-anatomy-focus', focus); } catch { /* private mode */ } }, [focus]);
 
   // follow the clip while not playing on its own
   useEffect(() => {
@@ -942,6 +956,11 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
         // a choice of one = a chip group (the house rule): the chosen layer filled; white resting text on this dark panel
         <ChipGrid value={layer} onChange={setLayer} cols={4} phoneCols={4} style={{ marginBottom: 8, maxWidth: 560 }} ariaLabel={tt('MUSCLE LAYERS')}
           items={[['skeleton', 'SKELETON'], ['deep', 'DEEP'], ['middle', 'MIDDLE'], ['surface', 'SURFACE']].map(([k, en]) => { const key = `layer·${k.toUpperCase()}`, he = tt(key); return { k, label: he === key ? en : he, tone: '#FFF' }; })} />
+      )}
+      {track && anat !== 'error' && (
+        // MUSCLE FOCUS (#907): the same chip group, ten = two full rows
+        <ChipGrid value={focus} onChange={setFocus} cols={5} phoneCols={5} style={{ marginBottom: 8, maxWidth: 640 }} ariaLabel={tt('MUSCLE FOCUS')}
+          items={FOCUS_KEYS.map((k) => { const key = `focus·${k.toUpperCase()}`, he = tt(key); return { k, label: he === key ? k.toUpperCase() : he, tone: '#FFF' }; })} />
       )}
       {MA && (
         // the joint box's plane (#716): the same chip group as the layers
