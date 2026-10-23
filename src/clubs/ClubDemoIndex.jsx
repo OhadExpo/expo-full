@@ -65,7 +65,7 @@ export default function ClubDemoIndex({ lang: lang0 = 'en' }) {
                 <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '0.04em' }}>{he ? c.shortHe : c.short}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>{t.sport[c.sport]}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.7 }}>{t.tour}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: c.palette.accent, marginTop: 6, whiteSpace: 'nowrap' }}>{t.open} {he ? '←' : '→'}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: c.palette.accentTextDark || c.palette.accent /* the club's text colour on dark: red on navy read too weak (#971) */, marginTop: 6, whiteSpace: 'nowrap' }}>{t.open} {he ? '←' : '→'}</span>
               </span>
             </button>
           ))}

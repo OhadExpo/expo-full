@@ -25,11 +25,14 @@ const SQUAD = [
   ['Kwame Mensah', 7, 'Striker', 177, 72, 25, 'GHA', 'xi'], ['Itamar Sela', 9, 'Striker', 186, 81, 27, 'ISR', 'xi'], ['Daniel Ohayon', 11, 'Striker', 173, 67, 22, 'ISR', 'xi'],
   ['Gal Shriki', 17, 'Striker', 180, 74, 24, 'ISR', 'sub'], ['Moshe Avraham', 19, 'Striker', 182, 76, 20, 'ISR', 'res'], ['Lucas Moreau', 21, 'Striker', 184, 78, 23, 'FRA', 'new'],
 ];
-const CLUBS = [
-  ['Hapoel Hadera FC', 'הפועל חדרה'], ['Ironi Kiryat Shmona', 'עירוני קריית שמונה'], ['Hapoel Nof HaGalil', 'הפועל נוף הגליל'], ['Hapoel Jerusalem FC', 'הפועל ירושלים'],
-  ['Hapoel Ramat Gan FC', 'הפועל רמת גן'], ['Hapoel Kfar Saba FC', 'הפועל כפר סבא'], ['Maccabi Jaffa', 'מכבי יפו'], ['Hapoel Afula FC', 'הפועל עפולה'],
-  ['Hapoel Rishon LeZion', 'הפועל ראשון לציון'], ['Hapoel Umm al-Fahm', 'הפועל אום אל פאחם'], ['Ironi Tiberias', 'עירוני טבריה'], ['Hapoel Akko', 'הפועל עכו'],
-  ['Maccabi Kabilio Jaffa', 'מכבי קביליו יפו'], ['Hapoel Petah Tikva', 'הפועל פתח תקווה'], ['Sektzia Ness Ziona', 'סקציה נס ציונה'],
+// THE REAL LEAGUE, 2026/27 (#971): Liga Leumit from the football association's table (football.org.il, read 24.10).
+// The demo club itself is taken out by its matchRe.
+const LEUMIT_FB = [
+  ['Bnei Yehuda Tel Aviv', 'בני יהודה תל אביב'], ['FC Ashdod', 'מ.ס. אשדוד'], ['Hapoel Kfar Shalem', 'הפועל כפר שלם'],
+  ['Hapoel Rishon LeZion', 'הפועל ראשון לציון'], ["Hapoel Ra'anana", 'הפועל רעננה'], ['FC Kiryat Yam', 'מ.ס. קריית ים'],
+  ['Hapoel Afula', 'הפועל עפולה'], ['Maccabi Bnei Reineh', 'מכבי בני ריינה'], ['SC Kafr Qasim', 'מ.ס. כפר קאסם'],
+  ['Hapoel Kfar Saba', 'הפועל כפר סבא'], ['Maccabi Kiryat Gat', 'מכבי קריית גת'], ['Maccabi Ahi Nazareth', 'מכבי אחי נצרת'],
+  ["Ironi Modi'in", 'עירוני מודיעין'], ['Maccabi Herzliya', 'מכבי הרצליה'], ['Maccabi Jaffa', 'מכבי יפו'], ['Hapoel Akko', 'הפועל עכו'],
 ];
 const STAFF = { sc: 'nir.tal@demo.club', head: 'avi.shitrit@demo.club', pt: 'noam.ben@demo.club' };
 
@@ -46,6 +49,7 @@ const WARMUP = {
 const NAME_HE = {1: 'עופר חלפון', 22: 'רועי סבן', 31: 'עילאי דגן', 2: 'גיא חזן', 4: 'מתן אלקיים', 5: 'ניקולה פטרוביץ׳', 3: 'אורן לוי', 13: 'עדן שלום', 15: 'בר קדם', 23: 'יובל אשכנזי', 26: 'שי מלכה', 6: 'דור אמסלם', 8: 'תומאס פריירה', 10: 'ליאור אבידן', 14: 'אמיר ביטון', 16: 'נטע גולן', 18: 'שגיא זכן', 20: 'אליאור מזרחי', 7: 'קוואמה מנסה', 9: 'איתמר סלע', 11: 'דניאל אוחיון', 17: 'גל שריקי', 19: 'משה אברהם', 21: 'לוקה מורו'};
 
 export function buildSoccerSeason(club, today = localToday()) {
+  const CLUBS = LEUMIT_FB.filter((c) => !(club.matchRe && club.matchRe.test(`${c[0]} ${c[1]}`)));
   const R = rng(9041024);
   const between = (a, b) => a + Math.floor(R() * (b - a + 1));
   const T = today;

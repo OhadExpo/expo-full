@@ -1,60 +1,66 @@
-// THE DEMO CLUBS (team version #904). GALIL and SHARON are fictional - no real club, crest or player - and are what
-// /demo/club shows anyone; a prospect's own demo (NETANYA, in clubs.js) is listed here too but never shown there.
+// THE DEMO CLUBS (team version #904). REAL clubs since 24.10 (#971, Ohad: "Use the real logos for the demos. Current
+// seasons logo ... Make it perfect like bhbc" + "All real you choose"): Hapoel Galil Elyon (basketball, Winner League) and
+// Hapoel Kfar Saba (football, Liga Leumit) are what /demo/club shows; a prospect's own demo (NETANYA, in clubs.js) is
+// listed here too but never shown there. Every PLAYER, number and injury in a demo is generated - the banner says so.
+// The crests are the clubs' own artwork and never enter this public repo: they live in the club-assets bucket
+// (scripts/gen-real-club-assets.mjs; sources and dates in ~/expo-private-backups/club-logos/).
 import { NETANYA } from './clubs.js';
-import { CREST_GALIL, CREST_SHARON } from './crests.js';   // #968 generated badges (scripts/gen-club-crests.py)
 
-// basketball: BC Galil, purple and gold
-export const GALIL = {
-  id: 'galil',
+// basketball: Hapoel Galil Elyon - red and blue (from the crest), Kfar Blum hall
+export const GALIL_ELYON = {
+  id: 'galil-elyon',
   sport: 'basketball',
-  name: 'BC Galil', nameHe: 'מועדון הכדורסל גליל',
-  short: 'BC Galil', shortHe: 'גליל',
-  wordmark: 'BC GALIL', wordmarkHe: 'כדורסל גליל',
-  reportPrefix: 'GALIL',
+  name: 'Hapoel Galil Elyon', nameHe: 'הפועל גליל עליון',
+  short: 'Hapoel Galil Elyon', shortHe: 'הפועל גליל עליון',
+  wordmark: 'GALIL ELYON', wordmarkHe: 'גליל עליון',
+  reportPrefix: 'GALIL ELYON',
   medicalBy: 'S&C + physio', medicalByHe: 'כושר + פיזיו',
-  venue: 'Galil Arena', venueHe: 'היכל הגליל',
-  crestW: CREST_GALIL,
-  crest: CREST_GALIL,
-  matchRe: /גליל|galil/i,
+  venue: 'Kfar Blum Hall', venueHe: 'אולם פיס כפר בלום',
+  crest: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/galil-elyon/crest.png?v=mvllse9j',
+  crestW: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/galil-elyon/crest-dark.png?v=mvllse9j',
+  icon: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/galil-elyon/icon.png?v=mvllse9j',
+  og: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/galil-elyon/og.png?v=mvllse9j',
+  matchRe: /גליל עליון|galil el[iy]on/i,
   palette: {
-    primary: '#3B2366', primaryDeep: '#2E1A47', header: '#1E1030',
-    accent: '#F2B705', accentDeep: '#D19E00',
-    onAccent: '#1E1030',
-    accentText: '#7A5A00', accentTextDark: '#F2B705', accentOnPage: '#6B4F00',
-    homeDark: '#C4B5FD', stripDark: '#3B2366',
-    hair: '59,35,102', hairDark: '196,181,253', accentRgb: '242,183,5',
-    accentInk: 'var(--bhbc-orange-text, #7A5A00)',
+    primary: '#1F4A7A', primaryDeep: '#173A61', header: '#0F2742',
+    accent: '#D92B23', accentDeep: '#B5221C',
+    onAccent: '#FFFFFF',
+    accentText: '#A61E18', accentTextDark: '#FF7A70', accentOnPage: '#9C1C16',
+    homeDark: '#9EC1EA', stripDark: '#1F4A7A',
+    hair: '31,74,122', hairDark: '158,193,234', accentRgb: '217,43,35',
+    accentInk: 'var(--bhbc-orange-text, #A61E18)',
   },
-  league: { name: 'Liga Leumit', nameHe: 'הליגה הלאומית' },
-  routeBase: '/demo/club/galil',
+  league: { name: 'Winner League', nameHe: 'ליגת העל' },
+  routeBase: '/demo/club/galil-elyon',
   demo: true,
 };
 
-// soccer: FC Sharon, green and white
-
-export const SHARON = {
-  id: 'sharon',
+// football: Hapoel Kfar Saba - green (from the crest), Levita Stadium
+export const KFAR_SABA = {
+  id: 'kfar-saba',
   sport: 'soccer',
-  name: 'FC Sharon', nameHe: 'מועדון הכדורגל אף.סי. שרון',
-  short: 'FC Sharon', shortHe: 'אף.סי. שרון',
-  wordmark: 'FC SHARON', wordmarkHe: 'אף.סי. שרון',
-  reportPrefix: 'FC SHARON',
+  name: 'Hapoel Kfar Saba', nameHe: 'הפועל כפר סבא',
+  short: 'Hapoel Kfar Saba', shortHe: 'הפועל כפר סבא',
+  wordmark: 'KFAR SABA', wordmarkHe: 'הפועל כפר סבא',
+  reportPrefix: 'KFAR SABA',
   medicalBy: 'S&C + physio', medicalByHe: 'כושר + פיזיו',
-  venue: 'Sharon Stadium', venueHe: 'אצטדיון השרון',
-  crestW: CREST_SHARON,
-  crest: CREST_SHARON,
-  matchRe: /שרון|sharon/i,
+  venue: 'Levita Stadium', venueHe: 'אצטדיון לויטה',
+  crest: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/kfar-saba/crest.png?v=mvllse9j',
+  crestW: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/kfar-saba/crest-dark.png?v=mvllse9j',
+  icon: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/kfar-saba/icon.png?v=mvllse9j',
+  og: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/kfar-saba/og.png?v=mvllse9j',
+  matchRe: /כפר סבא|kfar saba/i,
   palette: {
-    primary: '#0F3D2E', primaryDeep: '#0B2E22', header: '#08241B',
-    accent: '#1E9E5A', accentDeep: '#17824A',
-    onAccent: '#fff',
-    accentText: '#147A43', accentTextDark: '#5FD394', accentOnPage: '#106A39',
-    homeDark: '#8FD9B0', stripDark: '#0F3D2E',
-    hair: '15,61,46', hairDark: '143,217,176', accentRgb: '30,158,90',
-    accentInk: 'var(--bhbc-orange-text, #147A43)',
+    primary: '#216845', primaryDeep: '#1A5537', header: '#0F3322',
+    accent: '#2E9B5F', accentDeep: '#257F4D',
+    onAccent: '#FFFFFF',
+    accentText: '#1D6B41', accentTextDark: '#6FD39A', accentOnPage: '#1A5F3A',
+    homeDark: '#9FE0BB', stripDark: '#216845',
+    hair: '33,104,69', hairDark: '159,224,187', accentRgb: '46,155,95',
+    accentInk: 'var(--bhbc-orange-text, #1D6B41)',
   },
   league: { name: 'Liga Leumit', nameHe: 'הליגה הלאומית' },
-  routeBase: '/demo/club/sharon',
+  routeBase: '/demo/club/kfar-saba',
   demo: true,
 };
 
@@ -63,7 +69,8 @@ export const SHARON = {
 // listed: shown on /demo/club. A prospect's own demo is never listed - it is shared by link.
 export const ALL_DEMO_CLUBS = [
   { club: NETANYA, listed: false },
-  { club: GALIL, listed: true },
-  { club: SHARON, listed: true },
+  { club: GALIL_ELYON, listed: true },
+  { club: KFAR_SABA, listed: true },
 ];
-export const demoClubBySlug = (slug) => (ALL_DEMO_CLUBS.find((d) => d.club.id === slug) || {}).club || null;
+const OLD_SLUGS = { galil: 'galil-elyon', sharon: 'kfar-saba' };   // the fictional clubs' slugs until 24.10
+export const demoClubBySlug = (slug) => (ALL_DEMO_CLUBS.find((d) => d.club.id === (OLD_SLUGS[slug] || slug)) || {}).club || null;

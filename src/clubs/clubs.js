@@ -24,7 +24,6 @@ const HERZLIYA_PALETTE = {
   accentInk: null,
 };
 
-import { CREST_NETANYA } from './crests.js';
 export const HERZLIYA = {
   id: 'bhbc',
   sport: 'basketball',
@@ -68,8 +67,11 @@ export const NETANYA = {
   reportPrefix: 'ELITZUR',
   medicalBy: 'S&C + physio', medicalByHe: 'כושר + פיזיו',
   venue: 'Yeshurun Hall, Netanya', venueHe: 'אולם ישורון, נתניה',
-  crestW: CREST_NETANYA,   // #968 a generated badge in the club's colours - never the club's real crest
-  crest: CREST_NETANYA,
+  // #971 the club's real 2026/27 crest (ibasketball.co.il, Sept 2026) from the club-assets bucket - never in this repo
+  crest: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/netanya/crest.png?v=mvllse9j',
+  crestW: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/netanya/crest-dark.png?v=mvllse9j',
+  icon: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/netanya/icon.png?v=mvllse9j',
+  og: 'https://gtcbfglttoiyfsnfbhdy.supabase.co/storage/v1/object/public/club-assets/netanya/og.png?v=mvllse9j',
   matchRe: /נתניה|netanya/i,
   palette: NETANYA_PALETTE,
   league: { name: 'Liga Leumit', nameHe: 'הליגה הלאומית' },

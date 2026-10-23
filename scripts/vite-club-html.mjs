@@ -45,7 +45,8 @@ export function demoClubHtml(html, c) {
   const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const title = esc(`${c.short} · Performance & S&C`);
   const desc = esc(c.sport === 'soccer' ? 'Football club performance office: availability, readiness, medical, sessions and matches - demo' : 'Basketball club performance office: availability, readiness, medical, sessions and games - demo');
-  const url = `https://expo-app.co.il${c.routeBase}`, img = `https://expo-app.co.il/clubs/${c.id}-og.png`, icon = `/clubs/${c.id}-crest.svg`;
+  // a real club's card and tab icon come from the club-assets bucket (#971); a generated club's from public/clubs
+  const url = `https://expo-app.co.il${c.routeBase}`, img = c.og || `https://expo-app.co.il/clubs/${c.id}-og.png`, icon = c.icon || `/clubs/${c.id}-crest.svg`;
   const swaps = [
     [/<title>[^<]*<\/title>/, `<title>${title}</title>`],
     [/(<meta name="theme-color" content=")[^"]*/, `$1${c.palette.header}`],

@@ -7,7 +7,7 @@ import { FN } from '../theme';
 import { explainAutoTask } from '../autoTasks';
 import { useEscClose } from '../ui';
 
-export function ExplainInfoButton({ note, trainee, color = 'var(--c-ac)' }) {
+export function ExplainInfoButton({ note, trainee, color = 'var(--c-ac)', style = null }) {
   const [open, setOpen] = useState(false);
   if (!note?.auto_kind) return null;
   return (
@@ -16,7 +16,7 @@ export function ExplainInfoButton({ note, trainee, color = 'var(--c-ac)' }) {
         style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
           color, fontSize: 13, padding: '0 2px',
-          lineHeight: 1, flexShrink: 0, fontWeight: 700,
+          lineHeight: 1, flexShrink: 0, fontWeight: 700, ...style,
         }}>ⓘ</button>
       {open && <AutoTaskExplainModal note={note} trainee={trainee} accent={color} onClose={() => setOpen(false)} />}
     </>

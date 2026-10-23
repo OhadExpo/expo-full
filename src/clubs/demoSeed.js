@@ -42,13 +42,30 @@ const SQUAD = [
   ['Darius Holloway', 'דריוס הולוואי', 33, 'Center', 210, 114, 28, 'USA', 'starter-new'],
 ];
 
-// the league (12 clubs; the demo club is one of them). English = the club calendar's spelling, Hebrew = the feed's.
-const LEAGUE_CLUBS = [
-  ['Hapoel Kfar Saba', 'הפועל כפר סבא', 'Kfar Saba'], ['Maccabi Haifa', 'מכבי חיפה', 'Haifa'], ['Elitzur Yavne', 'אליצור יבנה', 'Yavne'],
-  ['Hapoel Ramat Gan', 'הפועל רמת גן גבעתיים', 'Ramat Gan'], ['Hapoel Afula', 'הפועל עפולה', 'Afula'], ['Maccabi Hod HaSharon', 'מכבי הוד השרון', 'Hod HaSharon'],
-  ['Ironi Kiryat Ata', 'עירוני קריית אתא', 'Kiryat Ata'], ['Hapoel Haifa', 'הפועל חיפה', 'Haifa'], ['Maccabi Kiryat Gat', 'מכבי קריית גת', 'Kiryat Gat'],
-  ["Hapoel Ra'anana", 'הפועל רעננה', "Ra'anana"], ["Hapoel Be'er Sheva", 'הפועל באר שבע', "Be'er Sheva"],
+// THE REAL LEAGUES, 2026/27 (#971: the demo clubs are real clubs, so their opponents are the real league - basket.co.il
+// team pages for the Winner League, ibasketball.co.il Liga Leumit page, both read 24.10; sponsor names dropped).
+// [English, Hebrew, city, home arena]. The demo club itself is taken out by its matchRe.
+const WINNER = [
+  ['Maccabi Tel Aviv', 'מכבי תל אביב', 'Tel Aviv', 'Menora Mivtahim Arena'], ['Hapoel Tel Aviv', 'הפועל תל אביב', 'Tel Aviv', 'Shlomo Group Arena'],
+  ['Hapoel Jerusalem', 'הפועל ירושלים', 'Jerusalem', 'Pais Arena'], ['Maccabi Ramat Gan', 'מכבי רמת גן', 'Ramat Gan', 'Zisman Arena'],
+  ['Hapoel Holon', 'הפועל חולון', 'Holon', 'Toto Arena'], ['Ironi Kiryat Ata', 'עירוני קריית אתא', 'Kiryat Ata', 'Remez Hall'],
+  ['Hapoel HaEmek', 'הפועל העמק', 'Gan Ner', 'Haim Ohaion Hall'], ['Ironi Ness Ziona', 'עירוני נס ציונה', 'Ness Ziona', 'Lev HaMoshava Hall'],
+  ["Hapoel Be'er Sheva/Dimona", 'הפועל באר שבע/דימונה', "Be'er Sheva", 'The Shell Arena'], ['Bnei Herzliya', 'בני הרצליה', 'Herzliya', 'HaYovel Hall'],
+  ['Hapoel Galil Elyon', 'הפועל גליל עליון', 'Kfar Blum', 'Kfar Blum Hall'], ['Maccabi Rishon LeZion', 'מכבי ראשון לציון', 'Rishon LeZion', 'Beit Maccabi'],
+  ['Maccabi Ashdod', 'מכבי אשדוד', 'Ashdod', 'HaKirya Arena'], ['Hapoel Eilat', 'הפועל אילת', 'Eilat', 'Begin Arena'],
 ];
+const LEUMIT = [
+  ['Elitzur Netanya', 'אליצור נתניה', 'Netanya', 'Netanya Arena'], ['Hapoel Haifa', 'הפועל חיפה', 'Haifa', 'Romema Hall'],
+  ['Ironi Nahariya', 'עירוני נהריה', 'Nahariya', 'Ein Sara Hall'], ["Maccabi Ra'anana", 'מכבי רעננה', "Ra'anana", 'Metrovest Arena'],
+  ['A.S. Ramat HaSharon', 'א.ס. רמת השרון', 'Ramat HaSharon', 'Kiryat Yearim Hall'], ['Elitzur Shomron', 'אליצור שומרון', 'Bruchin', 'Amit Hall'],
+  ['Maccabi Rehovot', 'מכבי רחובות', 'Rehovot', 'Barzilai Hall'], ['Ironi Ashkelon', 'עירוני אשקלון', 'Ashkelon', 'Ashkelon Sports Hall'],
+  ['M.K. Otef Darom', 'מ.כ. עוטף דרום', 'Kibbutz Magen', 'Magen Hall'], ['Maccabi Petah Tikva', 'מכבי פתח תקווה', 'Petah Tikva', 'Rozmarin Hall'],
+  ['Maccabi Kiryat Motzkin', 'מכבי קריית מוצקין', 'Kiryat Motzkin', 'Navon Hall'], ['A.S. Ashkelon/Kiryat Gat', 'א.ס. אשקלון/קריית גת', 'Kiryat Gat', 'Kiryat Gat Sports Hall'],
+  ['Elitzur Yavne', 'אליצור יבנה', 'Yavne', 'Ralph Klein Hall'], ['Hapoel Migdal HaEmek', 'הפועל מגדל העמק', 'Migdal HaEmek', 'Yaarat HaEmek Hall'],
+  ["Hapoel Hevel Modi'in", 'הפועל חבל מודיעין', 'Shoham', 'Nahshon Hall'],
+];
+const leagueClubsFor = (club) => (club.league && club.league.name === 'Winner League' ? WINNER : LEUMIT)
+  .filter((c) => !(club.matchRe && club.matchRe.test(`${c[0]} ${c[1]}`)));
 
 const STAFF = { sc: 'gil.cohen@demo.club', head: 'ronen.levi@demo.club', pt: 'dan.mor@demo.club', asst: 'shai.amar@demo.club' };
 
@@ -72,6 +89,7 @@ const LIFT_NOTES = ['Lower body strength', 'Upper body + trunk', 'Power: jumps +
 const SC_NOTES = ['Acceleration + change of direction', 'Landing mechanics + reactive jumps', 'Repeat sprint ability', 'Deceleration + closeouts'];
 
 export function buildDemoSeason(club, today = localToday()) {
+  const LEAGUE_CLUBS = leagueClubsFor(club);
   const R = rng(9041023);
   const pick = (arr) => arr[Math.floor(R() * arr.length)];
   const between = (a, b) => a + Math.floor(R() * (b - a + 1));
@@ -102,9 +120,9 @@ export function buildDemoSeason(club, today = localToday()) {
   gameDates.forEach((d, r) => {
     const o = opp[r % opp.length]; const home = r % 2 === 0;
     gameInfo[d] = { round: r + 1, opp: o, home };
-    fixtures.push({ date: d, type: 'game', start: '20:00', end: '22:00', minutes: 120, title: `${home ? 'vs' : '@'} ${o[0]}`, opponent: o[0], home, comp: club.league ? club.league.name : 'League', venue: home ? club.venue : `${o[2]} Sports Hall`, source: 'calendar',
+    fixtures.push({ date: d, type: 'game', start: '20:00', end: '22:00', minutes: 120, title: `${home ? 'vs' : '@'} ${o[0]}`, opponent: o[0], home, comp: club.league ? club.league.name : 'League', venue: home ? club.venue : (o[3] || `${o[2]} Sports Hall`), source: 'calendar',
       ...(!home && r % 4 === 1 ? { travel: { out: { date: d, dep: '15:30', arr: '17:15', label: 'Team bus' }, back: { date: d, dep: '22:45', arr: '00:30', label: 'Team bus' } } } : {}) });
-    fixtures.push({ date: d, type: 'shootaround', start: '11:00', end: '12:00', minutes: 60, title: 'Shootaround', source: 'calendar', location: home ? club.venue : `${o[2]} Sports Hall` });
+    fixtures.push({ date: d, type: 'shootaround', start: '11:00', end: '12:00', minutes: 60, title: 'Shootaround', source: 'calendar', location: home ? club.venue : (o[3] || `${o[2]} Sports Hall`) });
   });
   const SCRIM_OPP = [['Hapoel Even Yehuda', 'Pre-season'], ['Maccabi Ra\'anana', 'Pre-season'], ['Hapoel Hadera', 'Pre-season']];
   scrimDates.forEach((d, i) => { const us = between(74, 92), them = between(70, 90); fixtures.push({ date: d, type: 'scrimmage', start: '17:00', end: '19:00', minutes: 120, title: `Scrimmage vs ${SCRIM_OPP[i][0]}`, opponent: SCRIM_OPP[i][0], comp: 'Pre-season', home: i % 2 === 0, venue: i % 2 === 0 ? club.venue : 'Away', us, them: us === them ? them - 3 : them, played: add(d, 0) < T, source: 'calendar' }); });
@@ -254,17 +272,17 @@ export function buildDemoSeason(club, today = localToday()) {
   }
   fixtures.forEach((f) => { if (f.type === 'game' && ourResults[f.date]) { f.us = ourResults[f.date].us; f.them = ourResults[f.date].them; f.played = true; } });
 
-  // ── the league feed: all 12 clubs, a round a week ──
+  // ── the league feed: every club of the league, a round a week ──
   const teams = [[club.short, leagueName], ...LEAGUE_CLUBS.map((c) => [c[0], c[1]])];
-  const strength = teams.map((_, i) => (i === 0 ? 0 : [6, 4, 2, 1, -1, -2, -3, 3, -5, 0, -4][i - 1]));
+  const strength = teams.map((_, i) => (i === 0 ? 0 : ((i * 37) % 13) - 6));   // any league size (#971: 14 and 15 clubs)
   const games = [];
   gameDates.forEach((d, r) => {
     const g = gameInfo[d];
     const oi = teams.findIndex((t) => t[0] === g.opp[0]);
     const others = teams.map((_, i) => i).filter((i) => i !== 0 && i !== oi);
-    // rotate the other ten into five pairs
+    // rotate the others into pairs (an odd league gives one club the week off)
     const rot = others.map((_, k) => others[(k + r) % others.length]);
-    const pairs = [[0, oi], ...Array.from({ length: 5 }, (_, k) => [rot[k], rot[9 - k]])];
+    const pairs = [[0, oi], ...Array.from({ length: Math.floor(rot.length / 2) }, (_, k) => [rot[k], rot[rot.length - 1 - k]])];
     pairs.forEach(([h0, a0], k) => {
       const [h, a] = k === 0 ? (g.home ? [0, oi] : [oi, 0]) : (r % 2 ? [a0, h0] : [h0, a0]);
       const played = d < T;
@@ -273,7 +291,7 @@ export function buildDemoSeason(club, today = localToday()) {
         if (k === 0) { const res = ourResults[d]; hs = g.home ? res.us : res.them; as = g.home ? res.them : res.us; }
         else { hs = between(72, 92) + strength[h] + 3; as = between(72, 92) + strength[a]; if (hs === as) hs += 2; }
       }
-      games.push({ round: r + 1, stage: null, gameId: `demo-${r + 1}-${k + 1}`, date: d, time: k === 0 ? '20:00' : ['19:00', '19:30', '20:00', '20:30', '21:00'][k - 1], home: teams[h][1], away: teams[a][1], arena: h === 0 ? club.venueHe || club.venue : `אולם ${LEAGUE_CLUBS[h - 1] ? LEAGUE_CLUBS[h - 1][1].split(' ').slice(1).join(' ') : ''}`, played, hs, as });
+      games.push({ round: r + 1, stage: null, gameId: `demo-${r + 1}-${k + 1}`, date: d, time: k === 0 ? '20:00' : ['19:00', '19:30', '20:00', '20:30', '21:00'][(k - 1) % 5], home: teams[h][1], away: teams[a][1], arena: h === 0 ? club.venueHe || club.venue : `אולם ${LEAGUE_CLUBS[h - 1] ? LEAGUE_CLUBS[h - 1][1].split(' ').slice(1).join(' ') : ''}`, played, hs, as });
     });
   });
   const table = teams.map((t) => ({ team: t[1], gp: 0, w: 0, l: 0, pf: 0, pa: 0, form: [] }));

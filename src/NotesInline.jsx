@@ -50,13 +50,15 @@ import { isHebrew } from './script';
 // task row's action button reads as the same shape. 132 px comfortably fits
 // "→ NEW PROGRAM" (the longest label) at fontSize 10 + 0.12em tracking + the
 // 4px 10px padding used here.
+// #972 (Ohad 24.10, phone: "Bad design for the big cards. Way too much wasted space, not asthetic, not ocd, not
+// aligned"): the action is one half of the card's joined footer - EDIT | ACTION, two equal 36px cells
 function pillBtn(color) {
   return {
-    background: 'transparent', border: `1px solid ${color}`, color,
-    fontFamily: 'inherit', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-    padding: '4px 10px', borderRadius: 0, cursor: 'pointer',
-    whiteSpace: 'nowrap', height: 26, width: 132,
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--c-sf)', border: 'none', color,
+    fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.12em',
+    padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', height: 36, width: '100%', minWidth: 0,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box',
   };
 }
 
@@ -186,6 +188,7 @@ export default function NotesInline({
           came out as a bluish-cyan that read like a clickable cyan accent. */}
       <style>{`
         .notes-inline-input::placeholder { color: var(--c-td); opacity: 1; }
+        @media (max-width: 480px) { .ni-time { display: none; } }
       `}</style>
       {/* Cyan header strip — only when standalone. In bareMode the
           parent (TraineeCRM "COACH HISTORY") renders the umbrella
@@ -294,29 +297,26 @@ export default function NotesInline({
             border: `1px solid var(--c-cardBd)`,
             
             borderRadius: 0,
-            padding: '10px 12px',
+            padding: '4px 12px 12px',
             marginBottom: 8,
           }}>
-            {/* Header row — controls + auto-kind pill + timestamp + × */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+            {/* THE META ROW, ONE LINE AT EVERY WIDTH (#972): it wrapped on a phone - the x alone on a second line, the
+                date jumping rows. Left: done, the rule's chip, why. Right: the date, pin, cancel. Never wraps. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 36, flexWrap: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
               <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
                 title={tr(readLang(), 'Mark done')}
-                style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-              <button onClick={() => togglePin(n.id)} title={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')}
-                style={{
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
-                  width: 26, minWidth: 26, textAlign: 'center',
-                }}><PinGlyph on={!!n.pinned} /></button>
+                style={{ width: 16, height: 16, margin: 0, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
               {kindLabel && (
                 <>
                   <span title={`${tr(readLang(), 'Auto-generated:')} ${tr(readLang(), kindLabel)}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-                      color: stripeColor, border: `1px solid ${stripeColor}`, padding: '2px 8px',
+                      color: stripeColor, border: `1px solid ${stripeColor}`, padding: '0 8px', height: 24, boxSizing: 'border-box', whiteSpace: 'nowrap', flexShrink: 0,
                     }}>⚙ {tr(readLang(), kindLabel)}</span>
-                  <ExplainInfoButton note={n} trainee={trainee} color={stripeColor} />
+                  {/* a 25x36 tap area whose glyph sits 8px from the chip, like the chip from the box (#972 measured 19) */}
+                  <ExplainInfoButton note={n} trainee={trainee} color={stripeColor} style={{ minWidth: 0, width: 'auto', height: 36, minHeight: 0, padding: '0 6px', marginInlineStart: -6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} />
                 </>
               )}
               {isStale && (
@@ -324,20 +324,25 @@ export default function NotesInline({
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-                    color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '2px 8px',
+                    color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '0 8px', height: 24, boxSizing: 'border-box', whiteSpace: 'nowrap', flexShrink: 0,
                   }}>⚠ {readLang() === 'he' ? `לחזור לזה · ${staleDays === 1 ? 'יום אחד' : staleDays === 2 ? 'יומיים' : `${staleDays} ימים`}` : `FOLLOW UP ${staleDays}d`}</span>
               )}
-              <span style={{ flex: 1 }} />
-              <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-                {new Date(n.created_at).toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' })} · {new Date(n.created_at).toLocaleTimeString(readLang() === 'he' ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}{/* the month in the page's language ('2 Sept' read inside Hebrew - 12.10 rendered audit) */}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: '0 0 auto' }}>
+                <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', whiteSpace: 'nowrap', marginInlineEnd: 10 /* date, pin and cancel glyphs evenly apart (#972 measured 25 / 40) */ }}>
+                  {new Date(n.created_at).toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' })}<span className="ni-time"> · {new Date(n.created_at).toLocaleTimeString(readLang() === 'he' ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}{/* the month in the page's language ('2 Sept' read inside Hebrew - 12.10 rendered audit) */}
               </span>
-              <button onClick={async () => {
+                </span>
+                <button onClick={() => togglePin(n.id)} title={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')} aria-label={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, width: 32, minWidth: 0, maxWidth: 32, height: 36, minHeight: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><PinGlyph on={!!n.pinned} /></button>
+                <button onClick={async () => {
                   // Cancel ≠ delete — archive to history instead of wiping it.
                   if (await confirmToast('Cancel this task? It moves to history (not deleted).', { okLabel: 'Cancel task', cancelLabel: 'Keep' })) {
                     update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
                   }
                 }} title={tr(readLang(), 'Cancel (archive to history)')}
-                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label={tr(readLang(), 'Cancel task')}>×</button>
+                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 15, padding: 0, width: 32, minWidth: 0, maxWidth: 32, height: 36, minHeight: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label={tr(readLang(), 'Cancel task')}>×</button>
+              </div>
             </div>
 
             {/* Body */}
@@ -358,7 +363,7 @@ export default function NotesInline({
               // flipping the whole line when one language dominates.
               <div dir="auto" style={{
                 fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                marginBottom: actionBtn || !editingThis ? 10 : 0,
+                marginTop: 2, marginBottom: actionBtn || !editingThis ? 12 : 0,
                 fontFamily: FB,
               }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</div>
             )}
@@ -380,17 +385,13 @@ export default function NotesInline({
                 bottom-right, fully separated via space-between so the
                 two controls never visually collide. */}
             {(actionBtn || !editingThis) && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                {!editingThis ? (
+              // EDIT | ACTION: one joined 36px control, two equal halves (#972: a 26px EDIT beside a 132px pill)
+              <div style={{ display: 'grid', gridTemplateColumns: actionBtn && !editingThis ? '1fr 1fr' : '1fr', gap: 1, background: 'var(--c-cardBd)', border: '1px solid var(--c-cardBd)' }}>
+                {!editingThis && (
                   <button onClick={() => startEdit(n)} title={tr(readLang(), 'Edit task')}
-                    style={{
-                      background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
-                      cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,
-                      fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
-                      display: 'inline-flex', alignItems: 'center',
-                    }}>{tr(readLang(), 'EDIT')}</button>
-                ) : <span />}
-                {actionBtn || <span />}
+                    style={{ ...pillBtn('var(--c-tm)') }}>{tr(readLang(), 'EDIT')}</button>
+                )}
+                {actionBtn}
               </div>
             )}
           </div>

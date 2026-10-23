@@ -60,7 +60,7 @@ export default function ClubDemo({ slug }) {
     document.title = `${club.short} · S&C`;
     const icons = [...document.querySelectorAll('link[rel~="icon"]')];
     const prev = icons.map((l) => l.getAttribute('href'));
-    icons.forEach((l) => l.setAttribute('href', club.crest));
+    icons.forEach((l) => l.setAttribute('href', club.icon || club.crest));   // the club's square tab icon (#971)
     const tc = document.querySelector('meta[name="theme-color"]'); const prevTc = tc && tc.getAttribute('content');
     if (tc) tc.setAttribute('content', club.palette.header);
     let robots = document.querySelector('meta[name="robots"]');
