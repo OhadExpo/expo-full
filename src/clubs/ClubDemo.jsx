@@ -10,6 +10,7 @@ import { buildDemoSeason } from './demoSeed';
 import { buildSoccerSeason } from './soccerSeed';
 import { SHARON, GALIL } from './demoClubs';
 import ClubTour from './ClubTour';
+import { hebrewFixtures, hebrewLoads, hebrewMedical, hebrewWarmup, hebrewPlanIndex, hebrewPlans } from './demoHebrew';
 import ClubDemoIndex from './ClubDemoIndex';
 import { readLang } from '../i18n';
 import { C, FN } from '../theme';
@@ -25,9 +26,16 @@ export default function ClubDemo({ slug }) {
   const [medical, setMedical] = useState(() => (seed ? seed.medical : {}));
   // THE NAMES IN THE ZONE'S LANGUAGE: a Hebrew screen says the players' names in Hebrew (the league feed already does)
   const [zoneLang, setZoneLang] = useState('en');
-  const shownTrainees = useMemo(() => (zoneLang === 'he' ? trainees.map((t) => (t && t.nameHe ? { ...t, name: t.nameHe } : t)) : trainees), [trainees, zoneLang]);
+  const he = zoneLang === 'he';
+  const shownTrainees = useMemo(() => (he ? trainees.map((t) => (t && t.nameHe ? { ...t, name: t.nameHe } : t)) : trainees), [trainees, he]);
+  // ...and the season's own text too (notes, opponents, venues, warm-up cues, programs) - display only (demoHebrew.js)
+  const shownLoads = useMemo(() => (he ? hebrewLoads(loads) : loads), [loads, he]);
+  const shownFixtures = useMemo(() => (he ? hebrewFixtures(fixtures, club) : fixtures), [fixtures, he, club]);
+  const shownMedical = useMemo(() => (he ? hebrewMedical(medical) : medical), [medical, he]);
+  const shownWarmup = useMemo(() => (seed && he ? hebrewWarmup(seed.gameWarmup) : seed && seed.gameWarmup), [seed, he]);
+  const shownPlanIndex = useMemo(() => (seed && he ? hebrewPlanIndex(seed.planIndex) : seed && seed.planIndex), [seed, he]);
   // the banner + tour are drawn INSIDE the zone, in the zone's language (it owns the toggle)
-  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang } : null), [seed, club]);
+  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang } : null), [seed, club, he]);
 
   // the club on the tab: its name and its crest (the zone's own shell is EXPO's index.html)
   useEffect(() => {
@@ -52,8 +60,8 @@ export default function ClubDemo({ slug }) {
     <>
       <Suspense fallback={<div style={{ minHeight: '100vh', background: C.bg }} />}>
         <BhbcView club={club} demo={demo}
-          trainees={shownTrainees} setTrainees={setTrainees} bhbcLoads={loads} setBhbcLoads={setLoads} bhbcFixtures={fixtures} setBhbcFixtures={setFixtures}
-          league={seed.league} gameWarmup={seed.gameWarmup} medical={medical} setMedical={setMedical} planIndex={seed.planIndex}
+          trainees={shownTrainees} setTrainees={setTrainees} bhbcLoads={shownLoads} setBhbcLoads={setLoads} bhbcFixtures={shownFixtures} setBhbcFixtures={setFixtures}
+          league={seed.league} gameWarmup={shownWarmup} medical={shownMedical} setMedical={setMedical} planIndex={shownPlanIndex}
           exercises={[]} clientWorkouts={[]} portalVis={{}} bwLog={[]} weeklyFocus={{}}
           coach={false} canMedical canLogLoad currentUser={seed.staff.sc} />
       </Suspense>

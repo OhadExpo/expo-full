@@ -2529,7 +2529,7 @@ function attendance28(rec, days) {
                   copied={briefCopied}
                   onCopy={() => {
                     const txt = staffBriefText({ today, fx, rows, medical, he, tr });
-                    try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
+                    try { const w = navigator.clipboard && navigator.clipboard.writeText(txt); if (w && w.catch) w.catch(() => {}); } catch { /* denied - it is all on screen anyway */ }   // the write is a PROMISE: a refused clipboard rejected it unhandled (#904 click sweep)
                     setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
                   }} />
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
