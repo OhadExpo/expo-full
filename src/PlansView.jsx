@@ -56,6 +56,9 @@ function exByTitle(exercises) {
   return _exTitleMap;
 }
 import { useFullPlan, useAthletePlans, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
+import { analyzeRunner } from './runAnalysis';
+import { runnerZones } from './runZones';
+import { fmtPaceSec } from './runPace';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { NextBlockReport } from './NextBlockReport';
@@ -1987,9 +1990,23 @@ function EditorMoreMenu({ items }) {
 
 // demo (14.10 #760): the coach demo mounts THIS editor on mock programs - autosave stays in the page (onDemoChange),
 // no live channel; nothing reaches the database
-export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef, demo = false, onDemoChange = null }) {
+export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef, demo = false, onDemoChange = null, demoRunPlans = null }) {
   const tt = useAppT();
   const tb = useTB();
+  // HIS TRAINING ZONES (#914): a running block's PACE boxes suggest the five ranges from the athlete's last continuous test
+  // (runZones.js - the same reading as the analysis card). His running blocks are loaded once; the demo passes its own.
+  const { plans: zoneAthPlans, load: loadZoneAthPlans } = useAthletePlans();
+  const zoneTid = String((init && init.traineeId) || '').split('__')[0];
+  const zoneRun = !!init && init.sport === 'running';
+  useEffect(() => { if (!demo && zoneRun && zoneTid) loadZoneAthPlans(zoneTid); }, [demo, zoneRun, zoneTid, loadZoneAthPlans]);
+  const runZ = useMemo(() => {
+    if (!zoneRun) return null;
+    const ps = demo ? (demoRunPlans || []) : (zoneAthPlans || []);
+    if (!ps.length) return null;
+    const z = runnerZones(analyzeRunner(clientWorkouts || [], demo ? 'demo' : zoneTid, ps));
+    return z && z.zones ? z : null;
+  }, [zoneRun, demo, demoRunPlans, zoneAthPlans, clientWorkouts, zoneTid]);
+  const runZoneList = runZ ? `run-zones-${(init && init.id) || 'new'}` : undefined;
   const [plan, setPlan] = useState(init);
   // Always-latest plan (setPlan makes new objects on every edit), so handleSave
   // can tell whether an edit landed DURING its await before declaring clean.
@@ -2675,6 +2692,13 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
         <Input label={tt('Phase / Block')} value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder={tt('Accumulation...')} />
         {/* PROGRAM TYPE (14.10 #769): a RUNNING program uses the same days and rows - REPS, DISTANCE, PACE, HR CAP - and
             the athlete logs each segment's distance, time and heart rate */}
+        {runZ && (
+          // HIS ZONES, ONE TAP AWAY (#914): every PACE box offers the five ranges from his last continuous test
+          <div data-run-zones-hint style={{ gridColumn: '1 / -1', fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.45 }}>
+            {readLang() === 'he' ? `הקצבים שלו מהמבחן של ${runZ.source.date ? new Date(runZ.source.date).getDate() + '.' + (new Date(runZ.source.date).getMonth() + 1) : ''} מופיעים בכל תיבת קצב.` : `His zones from the ${runZ.source.date ? new Date(runZ.source.date).getDate() + '.' + (new Date(runZ.source.date).getMonth() + 1) : ''} test show in every PACE box.`}
+            <datalist id={runZoneList}>{runZ.zones.map((q) => <option key={q.key} value={`${fmtPaceSec(q.lo)}-${fmtPaceSec(q.hi)}`} label={readLang() === 'he' ? q.he : q.en} />)}</datalist>
+          </div>
+        )}
         <Select label={tt('Program type')} options={[{ value: 'strength', label: tt('Strength') }, { value: 'running', label: tt('Running') }]} value={plan.sport === 'running' ? 'running' : 'strength'} onChange={v => setPlan({ ...plan, sport: v === 'running' ? 'running' : undefined })} />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
@@ -2938,7 +2962,7 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
                           {fld(tt('REPS'), perWeekS ? weekRow(ex.wkS, 'wkS', '') : <input dir="auto" value={ex.sets ?? ''} onChange={e => { const v = e.target.value; const n = parseInt(v, 10); update({ sets: (v.trim() !== '' && String(n) === v.trim()) ? n : v }); }} placeholder="1" style={box} />, perWeekS)}
                           {fld(tt('DISTANCE'), perWeek ? weekRow(ex.wk, 'wk', '') : <input dir="auto" value={ex.reps || ''} onChange={e => update({ reps: e.target.value })} placeholder="1 km" style={box} />, perWeek)}
-                          {fld(tt('PACE'), <input dir="auto" value={ex.tempo || ''} onChange={e => update({ tempo: e.target.value })} placeholder="5:00-5:10" style={box} />)}
+                          {fld(tt('PACE'), <input dir="auto" list={runZoneList} value={ex.tempo || ''} onChange={e => update({ tempo: e.target.value })} placeholder="5:00-5:10" style={box} />)}
                           {fld(tt('HR CAP'), <input dir="auto" value={ex.load || ''} onChange={e => update({ load: e.target.value })} placeholder="—" style={box} />)}
                           {fld('RPE', <input dir="auto" value={ex.rpe || ''} onChange={e => update({ rpe: e.target.value })} placeholder="—" style={box} />)}
                           {fld(tt('GRP'), <select value={ex.superset || ''} onChange={e => update({ superset: e.target.value })} title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'} style={{ ...box, padding: '0 22px 0 6px', textAlignLast: 'center', cursor: 'pointer', color: ex.superset ? C.tx : C.td }}>
@@ -3097,11 +3121,11 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                       {plan.sport === 'running' && Array.isArray(ex.wkT) && ex.wkT.length > 0 ? (
                         <div style={{display:"grid", gridTemplateColumns:`repeat(${Math.max(weeks, ex.wkT.length)},minmax(0,1fr))`, gap:2}}>
                           {Array.from({length:Math.max(weeks, ex.wkT.length)}).map((_,wi) => (
-                            <input dir="auto" key={wi} value={ex.wkT[wi]||""} onChange={e=>{const next=resize(ex.wkT,Math.max(weeks, ex.wkT.length),""); next[wi]=e.target.value; update({wkT:next});}}
+                            <input dir="auto" list={runZoneList} key={wi} value={ex.wkT[wi]||""} onChange={e=>{const next=resize(ex.wkT,Math.max(weeks, ex.wkT.length),""); next[wi]=e.target.value; update({wkT:next});}}
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
                         </div>
-                      ) : <input dir="auto" value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder={plan.sport === 'running' ? '5:00-5:10' : '3010'} style={tinyInput} />}
+                      ) : <input dir="auto" list={plan.sport === 'running' ? runZoneList : undefined} value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder={plan.sport === 'running' ? '5:00-5:10' : '3010'} style={tinyInput} />}
                       {plan.sport === 'running' && Array.isArray(ex.wkL) && ex.wkL.length > 0 ? (
                         <div style={{display:"grid", gridTemplateColumns:`repeat(${Math.max(weeks, ex.wkL.length)},minmax(0,1fr))`, gap:2}}>
                           {Array.from({length:Math.max(weeks, ex.wkL.length)}).map((_,wi) => (

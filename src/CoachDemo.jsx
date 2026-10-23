@@ -2480,7 +2480,7 @@ function DemoRealEditor({ program, onBack, onSwitch }) {
       <RealPlanEditor key={program.id} demo plan={plan} onDemoChange={setPlan} onSave={async () => true} onCancel={onBack}
         onSwitchProgram={(id) => onSwitch(id)} trainees={trainees} exercises={lib} setExercises={setLib} planIndex={planIndex}
         onPreviewPlan={noop} onDelete={noop} onNewProgramFor={noop} onShare={noop} onDuplicate={noop} onCopyDays={noop} onCopyWarmup={noop}
-        clientWorkouts={[]} portalVis={{}} setPortalVis={noop} />
+        clientWorkouts={plan && plan.sport === 'running' ? DEMO_RUNNER.workouts : []} demoRunPlans={plan && plan.sport === 'running' ? DEMO_RUNNER.plans : null} portalVis={{}} setPortalVis={noop} />
     </Suspense>
   );
 }
