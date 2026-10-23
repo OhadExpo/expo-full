@@ -155,7 +155,7 @@ check('S11', 'no postMessage to a wildcard origin', () => {
   return { ok: h.length === 0, why: h.length ? h.join('\n') : 'none' };
 });
 check('S12', 'no plaintext http:// endpoint in shipped source', () => {
-  const h = grepFiles([...SRC(), ...SITE()], /["'`]http:\/\/(?!localhost|127\.0\.0\.1)/);
+  const h = grepFiles([...SRC(), ...SITE()], /["'`]http:\/\/(?!localhost|127\.0\.0\.1|www\.w3\.org\/)/);   // a w3.org namespace URI (xmlns) names a vocabulary, nothing is fetched (#904)
   return { ok: h.length === 0, why: h.length ? h.join('\n') : 'none' };
 });
 check('S13', 'no Math.random() minting a token or secret', () => {

@@ -269,6 +269,7 @@ export const HE = {
   'Season average': 'ממוצע עונתי',
   'W': 'נצ׳',
   'L': 'הפ׳',
+  'D': 'ת׳',   // a draw (football, #904)
   'Points for': 'סל זכות',
   'Points against': 'סל חובה',
   'Difference': 'הפרש',
@@ -625,6 +626,7 @@ let _dateLang = 'en';
 export function setBhbcDateLang(l) { _dateLang = l === 'he' ? 'he' : 'en'; }
 // For module-level helpers that build text outside a component (no hook to call).
 export const zoneT = (s) => bhbcT(_dateLang, s);
+export const zoneLang = () => _dateLang;   // the zone's language outside a hook (club names, #904)
 // Counts composed at the call site ('1 מוגבלים', '22d באיחור' on the Hebrew screen, 17.9).
 // A key may carry a singular form as HE['key#1'].
 export const countWord = (n, key) => (_dateLang === 'he' && n === 1 && HE[key + '#1']) ? HE[key + '#1'] : bhbcT(_dateLang, key);

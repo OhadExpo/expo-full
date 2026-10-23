@@ -1,5 +1,11 @@
 {
   "rewrites": [
+    { "source": "/demo/club/netanya", "destination": "/club-netanya.html" },
+    { "source": "/demo/club/netanya/:path*", "destination": "/club-netanya.html" },
+    { "source": "/demo/club/galil", "destination": "/club-galil.html" },
+    { "source": "/demo/club/galil/:path*", "destination": "/club-galil.html" },
+    { "source": "/demo/club/sharon", "destination": "/club-sharon.html" },
+    { "source": "/demo/club/sharon/:path*", "destination": "/club-sharon.html" },
     { "source": "/bhbc", "destination": "/bhbc.html" },
     { "source": "/bhbc/:path*", "destination": "/bhbc.html" },
     { "source": "/coach/bhbc", "destination": "/bhbc.html" },

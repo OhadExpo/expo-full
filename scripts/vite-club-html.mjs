@@ -7,6 +7,8 @@
 // page never silently ships half EXPO.
 import fs from 'node:fs';
 import path from 'node:path';
+import { NETANYA } from '../src/clubs/clubs.js';
+import { GALIL, SHARON } from '../src/clubs/demoClubs.js';
 
 const SWAPS = [
   [/<title>[^<]*<\/title>/, '<title>Bnei Herzliya</title>'],
@@ -37,6 +39,37 @@ export function clubHtml(html) {
   return html;
 }
 
+// A DEMO CLUB'S SHELL (team version #904): dist/club-<id>.html, served for /demo/club/<id>/* (vercel.json). Its title,
+// share card and tab icon are the club's (scripts/gen-club-assets.mjs makes the files); the manifest stays EXPO's.
+export const DEMO_SHELL_CLUBS = [NETANYA, GALIL, SHARON];
+export function demoClubHtml(html, c) {
+  const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const title = esc(`${c.short} · Performance & S&C`);
+  const desc = esc(c.sport === 'soccer' ? 'Football club performance office: availability, readiness, medical, sessions and matches - demo' : 'Basketball club performance office: availability, readiness, medical, sessions and games - demo');
+  const url = `https://expo-app.co.il${c.routeBase}`, img = `https://expo-app.co.il/clubs/${c.id}-og.png`, icon = `/clubs/${c.id}-crest.svg`;
+  const swaps = [
+    [/<title>[^<]*<\/title>/, `<title>${title}</title>`],
+    [/(<meta name="theme-color" content=")[^"]*/, `$1${c.palette.header}`],
+    [/(<meta property="og:site_name" content=")[^"]*/, `$1${esc(c.short)}`],
+    [/(<meta property="og:title" content=")[^"]*/, `$1${title}`],
+    [/(<meta property="og:description" content=")[^"]*/, `$1${desc}`],
+    [/(<meta property="og:url" content=")[^"]*/, `$1${url}`],
+    [/(<meta property="og:image" content=")[^"]*/, `$1${img}`],
+    [/(<meta name="twitter:title" content=")[^"]*/, `$1${title}`],
+    [/(<meta name="twitter:description" content=")[^"]*/, `$1${desc}`],
+    [/(<meta name="twitter:image" content=")[^"]*/, `$1${img}`],
+    [/href="\/favicon\.ico"/g, `href="${icon}"`],
+    [/href="\/favicon-16x16\.png"/, `href="${icon}"`],
+    [/href="\/favicon-32x32\.png"/, `href="${icon}"`],
+    [/href="\/favicon-48x48\.png"/, `href="${icon}"`],
+    [/<\/head>/, '<meta name="robots" content="noindex, nofollow">\n</head>'],
+  ];
+  const missed = [];
+  for (const [re, to] of swaps) { if (!re.test(html)) missed.push(String(re)); html = html.replace(re, to); re.lastIndex = 0; }
+  if (missed.length) throw new Error(`club-${c.id}.html: ${missed.length} swap(s) found nothing in index.html - ${missed.join(' | ')}`);
+  return html;
+}
+
 export default function clubHtmlPlugin() {
   let outDir = 'dist';
   return {
@@ -48,6 +81,7 @@ export default function clubHtmlPlugin() {
       const src = path.join(outDir, 'index.html');
       if (!fs.existsSync(src)) return;
       fs.writeFileSync(path.join(outDir, 'bhbc.html'), clubHtml(fs.readFileSync(src, 'utf8')));
+      for (const c of DEMO_SHELL_CLUBS) fs.writeFileSync(path.join(outDir, `club-${c.id}.html`), demoClubHtml(fs.readFileSync(src, 'utf8'), c));
     },
   };
 }

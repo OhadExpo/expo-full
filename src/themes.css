@@ -1940,6 +1940,17 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { grid-column: 2; grid-row: 1 / span 2; align-self: center; line-height: 16px; white-space: normal; overflow-wrap: break-word; }   /* spans both lines, so a long injury wraps onto the second instead of clipping (770px: 'Lower back L' in 92px; AUDIT-470) */
 }
 
+/* A TABLET BOARD (761-1099, team version #904): the athlete cell is ~165px, the name column takes ~130 of it, and the
+   injury column was left ~20px - 'המסטרינג ימין' / 'HAMSTRING R' stood one letter per line (measured at 820, he and en).
+   Here the injury sits on the position's line instead, after a position slot of one width, so it still starts on one x
+   in every row; a name keeps its own line above. Desktop (1100+) keeps the two-column cell. */
+@media (min-width: 761px) and (max-width: 1099px) {
+  .bhbc-zone .bhbc-load-row > *:nth-child(2) { grid-template-columns: minmax(0, 1fr); }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj { display: flex !important; grid-column: 1; grid-row: 2; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-pos] { grid-column: auto; grid-row: auto; flex: 0 0 auto; min-width: 7.5em; }
+  .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj], .bhbc-zone .bhbc-load-row .bhbc-pos-inj [data-inj-empty] { grid-column: auto; grid-row: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 14px; }
+}
+
 /* BHBC MONTH CALENDAR BELOW DESKTOP (29.9 #380, tablet overflow audit): a
    month column is ~100px on a tablet, so "16:00 PRACTICE" was clipped and a game
    chip broke its venue into one word per line. Each chip stacks the time over a

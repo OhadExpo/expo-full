@@ -183,6 +183,8 @@ const EntryChooser = lazyReload(() => import('./EntryChooser'));
 // Programs, Exercises, Review tabs with mock data). /try is the public
 // engine sandbox (TrySandbox above). /demo/trainee is the client-portal demo.
 const CoachDemo = lazyReload(() => import('./CoachDemo'));
+// /demo/club/<slug> - a club's sales demo of the club zone on a generated season (team version #904)
+const ClubDemo = lazyReload(() => import('./clubs/ClubDemo'));
 const CoachPreviewPortal = lazyReload(() => import('./CoachPreviewPortal'));
 // /intake/<locale>?t=<token> is the public-facing intake form (HE/EN initial
 // + HE progress check-in). /coach/intake (inside AuthedApp) is the coach
@@ -689,6 +691,9 @@ function AuthGate() {
       // visitor got an English portal inside a Hebrew page. Same provider the
       // /demo/athlete route already uses.
       return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox /></Suspense></LangCtx.Provider>;
+    }
+    if (path === '/demo/club' || path === '/demo/club/' || path.startsWith('/demo/club/')) {
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><ClubDemo slug={path.split('/')[3] || ''} /></Suspense><ToastHost /></LangCtx.Provider>;
     }
     if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try') {
       // '/coaches/try' included: its replaceState rewrite runs after render, so
