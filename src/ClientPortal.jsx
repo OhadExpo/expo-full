@@ -45,10 +45,11 @@ import { StoredVideo, StoredLink } from './StoredMedia';   // stored media rende
 import { resolveStoredUrl } from './storageUrl';
 import { summarize as summarizeSet, isUsable as isUsableSetRead, setFrameBudget } from './setAnalysis';   // the athlete's own set read (5.10 #552); the pose engine itself is imported on tap
 import { useUrlSync, useUrlFlag } from './urlState';
+import VideoTrimSheet from './VideoTrimSheet';   // #970 the trimmer, before any clip uploads
 // the portal's pages in the URL, in the tabs' own words (#770)
 const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'progress', msg: 'messages' };   // 16.10 #826: PRs grew into PROGRESS
 const PORTAL_KEY = { ...Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k])), prs: 'pr' };   // an old /prs link still opens it
-const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|progress|prs|messages)(?:\/(jump-test))?)?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
+const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|progress|prs|messages)(?:\/(jump-test|trim))?)?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
 const portalPageFromPath = (p) => { const m = String(p || '').match(PORTAL_BASE); return m && m[2] ? (PORTAL_KEY[m[2]] || null) : null; };
 // a page's own sub-surface (Progress -> /jump-test, #897) is kept while that page stays open: rebuilding the bare page path
 // on load erased the link before the lazy card could read it
@@ -1317,8 +1318,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     vid.onloadedmetadata = () => {
       if (settled) return;
       const duration = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 60;
+      // THE CUT (#970): the encoder plays only [t0, t1], so what it records is the trimmed clip
+      const t0 = Math.max(0, Math.min(duration, Number(opts.start) || 0));
+      const t1 = opts.end != null && Number(opts.end) > t0 ? Math.min(duration, Number(opts.end)) : duration;
+      const span = Math.max(0.5, t1 - t0);
       const targetBits = TARGET_MB * 1024 * 1024 * 8;
-      const computed = Math.floor(targetBits / duration);
+      const computed = Math.floor(targetBits / span);
       const BITRATE = Math.max(MIN_BITRATE, Math.min(MAX_BITRATE, computed));
 
       // Max-width cap handles both landscape (1920x1080 → 1280x720) and portrait
@@ -1375,12 +1380,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         done({ blob, ext, originalSize: file.size, compressedSize: blob.size });
       };
 
-      vid.currentTime = 0;
       // playbackRate = 1 is critical: canvas.captureStream samples at wall-clock,
       // so any speedup bakes fast-motion into the output (8x was the old bug).
       vid.playbackRate = 1;
+      // the first frame recorded is the cut's first: wait for the seek before playing (#970)
+      const atStart = t0 > 0 ? new Promise((res) => { const on = () => { vid.removeEventListener('seeked', on); res(); }; vid.addEventListener('seeked', on); vid.currentTime = t0; setTimeout(on, 4000); }) : Promise.resolve((vid.currentTime = 0));
 
-      vid.play().then(() => {
+      atStart.then(() => vid.play()).then(() => {
         if (settled) return; // aborted while play() was resolving
         recorder.start(100);
         const draw = () => {
@@ -1388,18 +1394,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // Abort if the host component unmounted mid-compression — otherwise
           // the rAF loop + MediaRecorder + video element keep running in memory.
           if (!aliveRef.current) { fail(new Error('aborted')); return; }
-          if (vid.ended || vid.paused || vid.currentTime >= duration) {
+          if (vid.ended || vid.paused || vid.currentTime >= t1) {
             if (recorder.state === 'recording') recorder.stop();
             vid.pause(); return;
           }
           ctx.drawImage(vid, 0, 0, w, h);
           // Clamp to 99 mid-stream; onstop emits the final 100. Guards against a
           // duration fallback (60s on a 30s clip) freezing the bar mid-range.
-          if (onProgress) onProgress(Math.min(99, Math.round((vid.currentTime / duration) * 100)));
+          if (onProgress) onProgress(Math.min(99, Math.max(0, Math.round(((vid.currentTime - t0) / span) * 100))));
           requestAnimationFrame(draw);
         };
         draw();
-        const wallTime = (duration / vid.playbackRate) + 3;
+        const wallTime = (span / vid.playbackRate) + 3;
         setTimeout(() => { if (recorder.state === 'recording') { recorder.stop(); vid.pause(); } }, wallTime * 1000);
       }).catch(fail);
     };
@@ -1523,6 +1529,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     xhr.send(blob); // Send raw blob, NOT FormData
   });
 
+  // #970 THE TRIMMER: every recorded or picked clip opens the cut sheet before anything uploads; askTrim resolves with
+  // the cut ({ start, end, trimmed, smart }) or null when he cancels
+  const [trimReq, setTrimReq] = useState(null);
+  const askTrim = (file) => new Promise((resolve) => setTrimReq({ file, resolve }));
+
+  const trimEl = trimReq ? <VideoTrimSheet file={trimReq.file} he={heCtx} tt={tt}
+    onCancel={() => { const r = trimReq; setTrimReq(null); r.resolve(null); }}
+    onDone={(res) => { const r = trimReq; setTrimReq(null); r.resolve(res); }} /> : null;
+
   const handleVideoUpload = async (e, exIdx, exMeta = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1537,6 +1552,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // of it that drifts — the copy had a red play button on every row, a
       // greeting the portal does not use, and its exercise rows inverted.
       if (onFilmSet) { onFilmSet(file, exMeta || {}, exIdx); return; }
+      if (localWrites) {
+        const cutD = await askTrim(file);
+        if (!cutD) return;
+        if (cutD.trimmed && canCompressVideo()) {
+          setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: URL.createObjectURL(file) + `#t=${cutD.start.toFixed(2)},${cutD.end.toFixed(2)}`, fileName: file.name, uploading: true, uploaded: false, phase: 'cut', compressProgress: 0 }; return n; });
+          try {
+            const r = await compressVideoChrome(file, (pct) => setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], compressProgress: pct }; return n; }), null, { start: cutD.start, end: cutD.end });
+            const localUrl = URL.createObjectURL(r.blob);
+            setFv(prev => { const n = [...prev]; n[exIdx] = { ...n[exIdx], has: true, videoUrl: localUrl, cloudUrl: null, fileName: file.name, uploading: false, uploaded: true, compressProgress: 100, uploadProgress: 100, uploadError: null, phase: null }; return n; });
+            return;
+          } catch { /* the uncut clip below */ }
+        }
+      }
       // THE STANDALONE DEMO KEEPS THE CLIP, IN THE PAGE.
       //
       // "Demo mode — uploads disabled" is the right answer for the coach-side
@@ -1582,6 +1610,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       return;
     }
 
+    // THE CUT (#970) - before the preview, the queue and the upload
+    const cut = await askTrim(file);
+    if (!cut) return;                                   // he cancelled: nothing changes on the slot
+    const trimmedCut = !!(cut.trimmed && cut.end != null);
+
     // Warn only when we can't compress AND the file is huge — at that point
     // the trainee is shipping the raw blob and may run into Supabase upload
     // limits / slow networks. confirmToast is async so the iOS video element
@@ -1606,7 +1639,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       try { await removeBlob(prevPending); } catch {}
     }
 
-    const previewUrl = URL.createObjectURL(file);
+    // the slot previews the CUT while it encodes (a media fragment plays only that range)
+    const previewUrl = URL.createObjectURL(file) + (trimmedCut ? `#t=${cut.start.toFixed(2)},${cut.end.toFixed(2)}` : '');
     setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null, videoError:false, analysis:null}; return n; });   // a new clip drops the old clip's read (5.10 #552)
 
     // Hoist these so the catch handler (offline-queue path) can read them.
@@ -1650,11 +1684,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // Compress if the browser exposes MediaRecorder + captureStream and the
       // file is large enough to be worth re-encoding. Failure here is non-fatal
       // — fall through and upload the original blob so the trainee isn't stuck.
-      const shouldCompress = compressionAvailable && file.size > 15 * 1024 * 1024;
+      // a cut clip always goes through the encoder: it is what makes the upload the cut (#970)
+      const shouldCompress = compressionAvailable && (file.size > 15 * 1024 * 1024 || trimmedCut);
+      if (trimmedCut && !compressionAvailable) toast(tt("This phone can't cut videos here - the full clip is uploading."), 'info', { ttl: 6000 });
 
       if (shouldCompress) {
         inflight.compressing = true;
-        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'compress'}; return n; });
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase: trimmedCut ? 'cut' : 'compress'}; return n; });
         // Compression runs at REAL TIME (playbackRate=1 — speeding it up bakes
         // fast-motion into the output), so a 120s clip needs ~120s to encode. A
         // fixed 40s cap was aborting every long clip → it shipped the
@@ -1687,14 +1723,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           } catch (e) { ctrl.abort(); throw e; }
         };
         try {
-          let result = await runCompress({});
+          const range = trimmedCut ? { start: cut.start, end: cut.end } : {};
+          let result = await runCompress(range);
           // If the encoder ignored the bitrate hint (some iOS builds do) and the
           // result is still over the cap, retry once at a smaller frame + tighter
           // budget — resolution is always respected, so this reliably fits.
           if (result.blob.size > SUPA_MAX_BYTES) {
             console.warn(`Compressed to ${Math.round(result.blob.size/1e6)}MB — retrying at lower resolution`);
             setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:0}; return n; });
-            result = await runCompress({ maxWidth: 640, targetMb: 30 });
+            result = await runCompress({ ...range, maxWidth: 640, targetMb: 30 });
           }
           uploadBlob = result.blob;
           ext = result.ext;
@@ -2196,7 +2233,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wu = warmup[wi] || {};
     const vid = wu.vid ? ytId(wu.vid) : null;
     const vidShort = wu.vid ? ytIsShort(wu.vid) : false;
-    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}{trimEl}
       <div style={{padding:20}}>
         {/* Warm-up screen matches the EXERCISE screen exactly — centred name,
             cyan reps, grey ⏱ tempo — minus find-alternate / set-log grid /
@@ -2274,7 +2311,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         })}
       </div>
     );
-    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}{trimEl}
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
         <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24,unicodeBidi:'plaintext'}}>{tt('How are you feeling today?')} <span style={{color:C.td}}>{tt('(optional)')}</span></div>
@@ -2332,7 +2369,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return out;
   })();
-  if (step === 'end') return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+  if (step === 'end') return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}{trimEl}
     <div style={{padding:20,textAlign:'center'}}>
       <EXPOMark theme="dark" height={36} style={{marginBottom:16}} />
       {/* THE LAST SCREEN OF EVERY WORKOUT SPEAKS HIS LANGUAGE (29.9 #391 pass 7:
@@ -2758,7 +2795,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>{tt('✓ UPLOADED')}</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
-            <span dir="auto" style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? tt('Compressing {n}%').replace('{n}', () => f.compressProgress||0) : tt('Uploading {n}%').replace('{n}', () => f.uploadProgress||0)}</span></div>}
+            <span dir="auto" style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='cut' ? tt('Cutting {n}%').replace('{n}', () => f.compressProgress||0) : f.phase==='compress' ? tt('Compressing {n}%').replace('{n}', () => f.compressProgress||0) : tt('Uploading {n}%').replace('{n}', () => f.uploadProgress||0)}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
@@ -2830,7 +2867,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div>;
   };
 
-  return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+  return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}{trimEl}
     <div style={{padding:20}}>
       {isSuperset && <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
         <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>{tt('SUPERSET')} {group.superset} · {countIn(heCtx ? 'he' : 'en', groupExs.length, 'exercise').toUpperCase()}</div>
@@ -2906,6 +2943,8 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
   // /athlete/history, /athlete/progress, /athlete/messages - the tabs' own words. The same paths hang off wherever the
   // portal is open (/demo/athlete/..., the coach's /coach/athletes/<id>/preview/...); Back follows them.
   const [vw, setVw] = useState(() => portalPageFromPath(typeof window !== 'undefined' ? window.location.pathname : '') || 'prog');
+  // a reload on the page's trim URL cannot bring the chosen clip back (#970): land on the page itself
+  useEffect(() => { if (typeof window !== 'undefined' && /\/trim\/?$/.test(window.location.pathname)) window.history.replaceState(window.history.state, '', window.location.pathname.replace(/\/trim\/?$/, '') + window.location.search); }, []);
   useUrlSync(vw, setVw, { toPath: (v) => portalPath(typeof window !== 'undefined' ? window.location.pathname : '', v), fromPath: (p) => portalPageFromPath(p) || 'prog' });
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
   const [bwHistOpen, setBwHistOpen] = useState(false); // BW weigh-in history list collapsed by default (Ohad)

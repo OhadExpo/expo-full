@@ -90,6 +90,7 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 | `/athlete` HISTORY | past workouts | ✅ pass2 (null-guards fixed, commit 127783f) |
 | `/athlete/progress` PROGRESS (was PRs; 16.10 #826) | `AthleteProgress` (+ `TraineePRsView` embedded) | new 16.10 |
 | `/athlete/progress/jump-test` JUMP TEST (the filming how-to open; also `/demo/athlete/progress/jump-test`) | `JumpTest` in `AthleteProgress` - films one jump, poseLab.jumpMetrics, saves to `athlete_tests`; the coach sees it on the athlete page | new 23.10 #897 |
+| `/athlete/program/trim` THE VIDEO TRIMMER (#970; also `/demo/athlete/program/trim`) | `VideoTrimSheet` from `ClientPortal` StepLogger - opens on every recorded or picked clip before it uploads: the clip looped inside the cut, a filmstrip with two handles, a playhead that scrubs; Back cancels; a reload lands on the page (the file cannot come back) |
 | `/athlete` MESSAGES | `CoachMessages` (page mode) | ✅ pass2 |
 
 
