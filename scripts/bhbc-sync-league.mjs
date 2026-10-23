@@ -106,7 +106,9 @@ async function scrapeOneBoard(page, url) {
       }
       if (el.tagName === 'TR' && /\d{2,3}[-–]\d{2,3}/.test(el.innerText)) {
         const tds = [...el.querySelectorAll('td,th')].map((c) => c.innerText.trim());
-        const scoreCell = tds.find((c) => /^\d{2,3}[-–]\d{2,3}$/.test(c));
+        // an overtime game reads "103-96 (2)" (#940, 23.10: 18.10 vs Ness Ziona went 2 OT and sat as unplayed)
+        const scoreHit = tds.map((c) => c.match(/^(\d{2,3})\s*[-–]\s*(\d{2,3})(?:\s*\(\d+\))?$/)).find(Boolean);
+        const scoreCell = scoreHit ? `${scoreHit[1]}-${scoreHit[2]}` : null;
         const link = [...el.querySelectorAll('a')].map((a) => a.getAttribute('href')).find((h) => /GameId=/i.test(h));
         const gameId = link ? (link.match(/GameId=(\d+)/i) || [])[1] : null;
         // teams: cells that START with an Israeli club prefix — this excludes
@@ -165,7 +167,7 @@ async function evalBox(page) {
   });
 }
 
-// box-score column map (0-indexed): 1=name,3=min,4=pts,7=3Pm/a,9=FTm/a,13=rebTot,16=stl,17=to,18=ast,21=pir,22=+/-
+// box-score column map (0-indexed): 1=name,3=min,4=pts,7=3Pm/a,9=FTm/a,11=DEF reb (הג),12=OFF reb (הת),13=rebTot,16=stl,17=to,18=ast,21=pir,22=+/-
 function playerLine(c) {
   const madeAtt = (s) => { const m = String(s || '').match(/(\d+)\s*\/\s*(\d+)/); return m ? { m: +m[1], a: +m[2] } : { m: 0, a: 0 }; };
   // The whole published line (27.9: "everything from the online league
@@ -175,7 +177,8 @@ function playerLine(c) {
     name: c[1], jersey: c[0] !== '' && /\d/.test(c[0]) ? numOf(c[0]) : null, starter: /\*/.test(c[2] || ''),
     min: numOf(c[3]), pts: numOf(c[4]),
     fg2: madeAtt(c[5]), tp: madeAtt(c[7]), fg3: madeAtt(c[7]), ft: madeAtt(c[9]),
-    oreb: numOf(c[11]), dreb: numOf(c[12]), reb: numOf(c[13]), pf: numOf(c[14]), fd: numOf(c[15]),
+    // הג (defence) comes BEFORE הת (offence) on basket.co.il (#940, 23.10: read the other way round, every split was swapped)
+    oreb: numOf(c[12]), dreb: numOf(c[11]), reb: numOf(c[13]), pf: numOf(c[14]), fd: numOf(c[15]),
     stl: numOf(c[16]), to: numOf(c[17]), ast: numOf(c[18]), blk: numOf(c[19]), blka: numOf(c[20]),
     pir: numOf(c[21]), pm: numOf(c[22]),
   };

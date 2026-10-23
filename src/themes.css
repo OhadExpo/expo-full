@@ -2316,7 +2316,9 @@ html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { 
    label, "S&C ✓ 10′" / Hebrew "כוח ✓ 10′", plus air), CANCEL one width
    (--cx-w), each the chip's full height behind one hairline. A segment tints on
    hover; nothing inside it draws a box. */
-:root { --sc-w: 96px; --cx-w: 76px; --wu-w: 112px; }
+/* #945 (Ohad 23.10: "wtf text overflow?"): measured at 1440 the widest labels are 'WARM-UP 5 MIN' 113px (in a 112 box, no
+   padding) and 'S&C 20 MIN' 85px; Hebrew is narrower (73 / 68). Both now keep ~8px of air each side. */
+:root { --sc-w: 104px; --cx-w: 76px; --wu-w: 130px; }
 /* the columns view stacks a chip's actions one per row (1008z review: three side by side spilled
    out of a 1/7 column); each row the chip's own height, a hairline between them */
 .bhbc-chip-acts-col > .bhbc-seg { border-inline-start: none !important; width: auto !important; flex: 0 0 auto !important; height: calc(var(--btn-h) - 2px) !important; }

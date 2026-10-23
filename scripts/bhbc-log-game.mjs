@@ -79,7 +79,7 @@ function bhBox(tables) {
       const jersey = num(r[0]);
       if (jersey == null || !r[1] || /סה"כ|קבוצתי/.test(r[1])) continue;
       players.push({ jersey, name: r[1], starter: /\*/.test(r[2] || ''), min: num(r[3]), pts: num(r[4]),
-        fg2: ma(r[5]), fg3: ma(r[7]), ft: ma(r[9]), oreb: num(r[11]), dreb: num(r[12]), reb: num(r[13]),
+        fg2: ma(r[5]), fg3: ma(r[7]), ft: ma(r[9]), oreb: num(r[12]), dreb: num(r[11]), reb: num(r[13]),   /* הג (defence) is column 11, הת (offence) 12 - #940 */
         pf: num(r[14]), fd: num(r[15]), stl: num(r[16]), to: num(r[17]), ast: num(r[18]), blk: num(r[19]), blka: num(r[20]),
         pir: num(r[21]), pm: num(r[22]) });
     }

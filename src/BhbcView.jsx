@@ -165,7 +165,9 @@ const BModal = ({ children, title, ...rest }) => {
   return (
   <Modal
     themeAttr={zoneTheme}
-    title={<><img src={CLUB.crest} alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
+    // the crest the zone's own navy header wears (#941, Ohad 23.10: "on a dark mode the blue color of the logo gets swallowed"
+    // + "it should look like the top menu logo"): the plain crest's navy ring vanished into the navy bar
+    title={<><img src={CLUB.crestW || CLUB.crest} alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
     // 12px above and below the 36px row (27.9 #348, Ohad: "the blue title at the
     // top is so big for no reason" - it inherited the dialog's 28px top pad, so
     // the bar stood ~100px for one line); the sides stay on the body's edge.
@@ -1036,8 +1038,6 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   const [editArrival, setEditArrival] = useState(null);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
-  // a lift logged FROM an athlete's popup returns to that popup (#305 A4)
-  const [liftReturn, setLiftReturn] = useState(null);
   // The staff brief's COPY, now that the two reports are one card.
   const [briefCopied, setBriefCopied] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
@@ -2789,8 +2789,8 @@ function attendance28(rec, days) {
       {/* ---- LOG LIFT (one athlete, any day, personal) ---- */}
       {logFor && (
         <LiftModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} loads={bhbcLoads}
-          onClose={() => { setLogFor(null); if (liftReturn) { setDetailFor(liftReturn); setLiftReturn(null); } }}
-          onSave={(payload) => { logLift(payload); setLogFor(null); if (liftReturn) { setDetailFor(liftReturn); setLiftReturn(null); } }} />
+          onClose={() => setLogFor(null)}
+          onSave={(payload) => { logLift(payload); setLogFor(null); }} />
       )}
 
       {/* ---- ATHLETE DETAIL (in-zone) ---- */}
@@ -2816,7 +2816,12 @@ function attendance28(rec, days) {
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
-          onLog={canLog ? () => { setLiftReturn(detailFor); setLogFor(detailFor); setDetailFor(null); } : null}
+          // LOG LIFT OPENS ON TOP OF THE PLAYER (#943, Ohad 23.10: "log lift button is not working"): it used to close the player
+          // and open the lift in one tap. A player opened by a TAP owns a history entry, so its close stepped Back - and that
+          // Back landed after the lift's push and took the lift with it (both gone, from his seat; a player opened from a
+          // link has no entry to step back over, which is why a deep-link test passed). The lift now opens over the player:
+          // Back / close returns to the player, the way every pop-up opened on another one does.
+          onLog={canLog ? () => setLogFor(detailFor) : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
           onOpenPortal={DEMO && !DEMO.portalPlans ? null : () => openPortal(detailFor)}
@@ -3392,7 +3397,21 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             medical, and full history"): what he can do today first, the season's
             numbers after. */}
         {leaguePlayer && (() => {
-          const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+          const leagueLastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+          // THE LAST GAME IS THE CLUB'S LAST GAME, IN ANY COMPETITION (#940, Ohad 23.10: "last game was not ramat gan we had
+          // a game after... all the games from all the leagues and cups we play at"). The league feed only carries the
+          // league's own games (and marks one played only once the league publishes it), so 18.10 and the Champions League
+          // never reached this card. The club's logged game rows (box score per player, every competition) win when newer.
+          const clubLast = (() => {
+            let best = null;
+            for (const [d, list] of Object.entries((rec && rec.sessions) || {})) for (const r of (list || [])) {
+              if (rowKind(r) === 'game' && r.box && !/scrimmage/i.test(`${r.type || ''} ${r.comp || ''}`) && (!best || d > best.date)) best = { date: d, row: r };
+            }
+            return best;
+          })();
+          const lastG = clubLast && (!leagueLastG || clubLast.date > (leagueLastG.date || ''))
+            ? { date: clubLast.date, opp: clubLast.row.opp, min: clubLast.row.min, pts: clubLast.row.box.pts, reb: clubLast.row.box.reb, ast: clubLast.row.box.ast, comp: clubLast.row.comp }
+            : leagueLastG;
           // THE LAST GAME OPENS ITS FULL LINE (27.9, Ohad: "a clickable item or
           // title to expand player stats like in the second screenshot"). The
           // club's own row for that date wins (it carries the whole box and the
@@ -3419,10 +3438,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               {/* WHERE THESE NUMBERS COME FROM, and how old they are (the feed
                   publishes only the league's own games - Ohad read its last
                   game as the club's). In the zone's language (#305 N-D3). */}
-              <PopHead dataKey="league" label={tr('League Stats')} meta={leagueSeason || null} right={leagueUpdatedAt ? (
+              <PopHead dataKey="league" label={tr('Season Stats')} meta={leagueSeason || null} right={leagueUpdatedAt ? (
                 <span className="strip-meta" style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                  title={tr('Official league feed (basket.co.il). Only games the league has published appear here.')}>
-                  {tr('Premier League') + ' · ' + fmtNumericDate(leagueUpdatedAt)}
+                  title={tr('The last game from every competition; the season numbers from every official game with a box score.')}>
+                  {tr('All competitions') + ' · ' + fmtNumericDate(lastG && lastG.date > String(leagueUpdatedAt).slice(0, 10) ? lastG.date : leagueUpdatedAt)}
                 </span>) : null} />
               {lastG && (
                 <div role="button" tabIndex={0} className="bhbc-row" onClick={() => setGameOpen(lastGLine)}

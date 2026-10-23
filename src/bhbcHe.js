@@ -55,6 +55,7 @@ export const HE = {
   "— no active injuries.": "— אין פציעות פעילות.",
   "REPORT": "דיווח",
   "League Stats": "סטטיסטיקות ליגה",
+  "Season Stats": "סטטיסטיקות עונה",
   "Switch to a vertical list of days": "מעבר לרשימת ימים אנכית",
   "Switch to seven day columns": "מעבר לשבע עמודות של ימים",
   "Sort ascending": "מיון בסדר עולה",
@@ -883,6 +884,8 @@ Object.assign(HE, {
   'all out': 'כולם בחוץ',
   // D: staleness
   'Premier League': 'ליגת העל',
+  'All competitions': 'כל המסגרות',
+  'The last game from every competition; the season numbers from every official game with a box score.': 'המשחק האחרון מכל המסגרות; נתוני העונה מכל המשחקים הרשמיים עם דף סטטיסטיקה.',
   'Official league feed (basket.co.il). Only games the league has published appear here.': 'הנתונים הרשמיים של הליגה (basket.co.il). מופיעים כאן רק משחקים שהליגה כבר פרסמה.',
   // E: consistency
   'None assigned': 'עוד אין בלוק',
