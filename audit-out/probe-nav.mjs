@@ -18,7 +18,7 @@ await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } 
 await A.signIn(pg, BASE);
 const out = {};
 for (const lang of ['en', 'he']) {
-  await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
+  await pg.evaluate((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
   await pg.goto(BASE + '/coach?lang=' + lang, { waitUntil: 'domcontentloaded', timeout: 60000 });
   for (let k = 0; k < 40; k++) { await wait(500); if (await pg.evaluate(() => document.body.innerText.length > 300)) break; }
   await wait(2000);

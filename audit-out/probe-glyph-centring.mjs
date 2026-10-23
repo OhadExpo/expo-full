@@ -19,7 +19,7 @@ await pg.setViewport({ width: W, height: 1000 });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
 await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
 await A.signIn(pg, BASE);
-await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 const all = {};
 for (const route of ROUTES) {
   await pg.goto(BASE + route + '?lang=en', { waitUntil: 'domcontentloaded', timeout: 60000 });

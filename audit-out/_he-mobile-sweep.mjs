@@ -13,7 +13,7 @@ const pg = await b.newPage();
 await pg.emulate({ viewport: { width: W, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1200);
 await signIn(pg, BASE);
-await pg.evaluate(() => { localStorage.setItem('expo-lang', 'he'); sessionStorage.setItem('bhbc-lang-session', 'he'); });
+await pg.evaluate(() => { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); sessionStorage.setItem('bhbc-lang-session', 'he'); });
 const out = {};
 for (const r of routes) {
   await pg.goto(`${BASE}${r}?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(7000);

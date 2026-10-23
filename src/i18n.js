@@ -1224,7 +1224,7 @@ export const HE = {
   ANALYZE: 'נתח',
   NEXT: 'הבא',
   'No meals yet. Snap a photo above and the AI will estimate macros.':
-    'עוד אין ארוחות. צלם ארוחה למעלה והמערכת תעריך את המאקרו.',
+    'עוד אין ארוחות. לחץ על ״צלם ארוחה״ למעלה והמערכת תעריך את המאקרו.',
   'No meals on this day.': 'אין ארוחות ביום הזה.',
   'No meals logged yet today.': 'עוד לא נרשמו ארוחות היום.',
 
@@ -1235,7 +1235,7 @@ export const HE = {
   // begins a session. This is a heading over the bodyweight field - a record,
   // not a start - and one word cannot be both.
   'Log week': 'רישום שבוע',
-  'Log at least 2 weigh-ins to see your trend': 'רשום לפחות שתי שקילות כדי לראות מגמה',
+  'Log at least 2 weigh-ins to see your trend': 'תרשום לפחות שתי שקילות ותראה את המגמה',
 
   // ---- athlete portal: chrome the athlete sees on every visit ------------
   // Wired up 2026-09-06, when the portal could finally render Hebrew at all.
@@ -2068,7 +2068,7 @@ export const HE = {
   Gallery: 'גלריה',
   Record: 'הקלטה',
   'Readiness Check-In': 'דיווח מוכנות',
-  'Check-In': 'בדיקה',
+  'Check-In': 'מוכנות',   // the logger's step pill: 'בדיקה' read as a test / an exam (#953, native-checked)
 
   // ---- readiness scale --------------------------------------------------
   SLEEP: 'שינה',

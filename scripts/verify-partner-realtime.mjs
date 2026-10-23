@@ -35,7 +35,7 @@ console.log('1. his seat in the built app: what the page joins, read off the web
   const ctx = await b.createBrowserContext();
   try {
     const pg = await ctx.newPage(); await pg.setViewport({ width: 1366, height: 900 });
-    await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
+    await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) {} });
     const cdp = await pg.createCDPSession(); await cdp.send('Network.enable');
     const joins = [];
     cdp.on('Network.webSocketFrameSent', ({ response }) => {

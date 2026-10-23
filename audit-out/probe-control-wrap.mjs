@@ -35,10 +35,10 @@ const cdpPg = await pg.createCDPSession();
 await cdpPg.send('Network.setBypassServiceWorker', { bypass: true }).catch(() => {});
 await cdpPg.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {});
 await pg.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: W < 500, hasTouch: W < 500 });
-if (LANG) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, LANG);
+if (LANG) await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) {} }, LANG);
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
-if (LANG) await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, LANG);
+if (LANG) await pg.evaluate((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) {} }, LANG);
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await wait(3500);
 await pg.evaluate((email) => {

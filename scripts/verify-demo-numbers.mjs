@@ -41,7 +41,7 @@ async function read(route, lang) {
     await pg.setViewport({ width: 1440, height: 950, deviceScaleFactor: 1 });
     await pg.evaluateOnNewDocument((L) => {
       try {
-        localStorage.setItem('expo-lang', L);
+        (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
         localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
       } catch (e) { /* private mode */ }
     }, lang);

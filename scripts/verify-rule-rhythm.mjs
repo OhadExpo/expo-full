@@ -47,7 +47,7 @@ for (const lang of LANGS) for (const W of WIDTHS) {
   const H = W <= 620 ? 844 : W < 1200 ? 1024 : 950;
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   await setWidth(pg, W, H, { tablet: W > 620 && W < 1200 });
-  await pg.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); sessionStorage.setItem('bhbc-lang-session', L); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, lang);
+  await pg.evaluateOnNewDocument((L) => { try { (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L)); sessionStorage.setItem('bhbc-lang-session', L); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, lang);
   // SIGNED IN FOR REAL, or every /coach route measures the login page and reads
   // "0 findings" (AUDIT-470: the result was ignored and a cold context often
   // showed a blank /login, so signIn returned "already signed in")

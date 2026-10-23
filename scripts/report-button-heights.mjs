@@ -25,7 +25,7 @@ const ROUTES = process.argv.slice(3).length ? process.argv.slice(3) : [
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, 'http://127.0.0.1:5199');
-await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 // THE CLUB ZONE HAS ITS OWN LANGUAGE KEY. Setting expo-lang alone leaves it in
 // Hebrew and the shell check missed it entirely, so /coach/bhbc - the surface
 // the COPY chip lives on - was reported as "did not render" and never measured.

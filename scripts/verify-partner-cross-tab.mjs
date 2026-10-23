@@ -37,7 +37,7 @@ const signInAs = async (pg, email) => {
 };
 try {
   const A = await ctx.newPage(); await A.setViewport({ width: 1366, height: 900 });
-  await A.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
+  await A.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) {} });
   await signInAs(A, 'eladeluz24@gmail.com');
   await A.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' }); await wait(6000);
   ok(await A.evaluate(() => window.__expoSandbox === true), 'tab A (partner) is the sandbox');

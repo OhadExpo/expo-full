@@ -8,7 +8,7 @@
 // page, and the trends graph all read them identically.
 import React from 'react';
 import { C, FN } from './theme';
-import { useT } from './i18n';
+import { useT, useHe } from './i18n';
 
 // Each scale is ordered WORST → BEST, so the index doubles as a 0..3 quality
 // value (3 = best / most ready) for the graph's Y axis.
@@ -18,6 +18,14 @@ export const CHECKIN_METRICS = [
   { key: 'energy', label: 'ENERGY', scale: ['low', 'ok', 'good', 'high'] },
 ];
 const BY_KEY = Object.fromEntries(CHECKIN_METRICS.map(m => [m.key, m]));
+// Each level in Hebrew AGREES WITH ITS OWN NOUN (23.10 #953): שינה and אנרגיה are feminine, כאב masculine. The shared
+// GOOD / HIGH words printed 'שינה טוב' and 'אנרגיה גבוה' in history while the check-in itself said 'טובה' / 'גבוהה'.
+// The same words as the check-in screen (ClientPortal scale(), native-checked in #612).
+export const CHECKIN_HE = {
+  pain: { high: 'חזק', moderate: 'בינוני', mild: 'קל', none: 'אין' },
+  sleep: { poor: 'גרועה', ok: 'בסדר', good: 'טובה', great: 'מצוינת' },
+  energy: { low: 'נמוכה', ok: 'בסדר', good: 'טובה', high: 'גבוהה' },
+};
 
 // Good → bad ramp (mirrors the check-in screen's RAMP).
 const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
@@ -61,6 +69,7 @@ export function hasReadiness(data) {
 // athlete's level, coloured by severity. Renders nothing when empty.
 export default function ReadinessRow({ data, showTitle = false, style }) {
   const tt = useT();
+  const he = useHe();
   if (!hasReadiness(data)) return null;
   const items = CHECKIN_METRICS.filter(m => data[m.key]);
   return (
@@ -76,7 +85,7 @@ export default function ReadinessRow({ data, showTitle = false, style }) {
         {items.map(m => (
           <span key={m.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', lineHeight: 1 }}>
             <span style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, lineHeight: 1 }}>{tt(m.label)}</span>
-            <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1, color: readinessColor(m.key, data[m.key]) || C.tx }}>{tt(String(data[m.key]))}</span>
+            <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1, color: readinessColor(m.key, data[m.key]) || C.tx }}>{(he && (CHECKIN_HE[m.key] || {})[String(data[m.key]).toLowerCase()]) || tt(String(data[m.key]))}</span>
           </span>
         ))}
       </div>

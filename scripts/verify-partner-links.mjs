@@ -45,7 +45,7 @@ try {
     try {
       const pg = await ctx.newPage(); await pg.setViewport({ width: 390, height: 844 });
       for (const [lang, word] of [['en', /sandbox copy/i], ['he', /סביבת ניסוי/]]) {
-        await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (x) {} }, lang);
+        await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (x) {} }, lang);
         await pg.goto(`${process.env.BASE}/p/${tok}?sbx=1`, { waitUntil: 'domcontentloaded' });
         let txt = ''; for (let k = 0; k < 20; k++) { await new Promise((r) => setTimeout(r, 500)); txt = await pg.evaluate(() => document.body.innerText); if (!/LOADING/.test(txt) && txt.length > 20) break; }
         ok(word.test(txt), `a visitor opening his share link sees why it does not open (${lang}): "${(txt.match(word) ? txt.split('\n').find((l) => word.test(l)) : txt.replace(/\s+/g, ' ').slice(0, 60)) || ''}"`);

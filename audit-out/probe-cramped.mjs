@@ -117,7 +117,7 @@ await cdp.send('Network.setBypassServiceWorker', { bypass: true }).catch(() => {
 await cdp.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {});
 await pg.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: W < 500, hasTouch: W < 500 });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
-await pg.evaluate((l) => { try { localStorage.clear(); sessionStorage.clear(); localStorage.setItem('expo-lang', l); localStorage.setItem('bhbc-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, LANG);
+await pg.evaluate((l) => { try { localStorage.clear(); sessionStorage.clear(); (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); localStorage.setItem('bhbc-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, LANG);
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await wait(3500);
 await pg.evaluate((em) => {

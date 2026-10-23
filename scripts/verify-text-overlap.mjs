@@ -204,7 +204,7 @@ async function freshPage(ctx, lang, w) {
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]).catch(() => {});
   await pg.evaluateOnNewDocument((L) => {
     try {
-      localStorage.setItem('expo-lang', L);
+      (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
       sessionStorage.setItem('bhbc-lang-session', L);
       localStorage.setItem('expo-theme', 'dark');
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));

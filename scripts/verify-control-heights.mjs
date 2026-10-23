@@ -119,7 +119,7 @@ for (const [name, route] of SURFACES) {
             await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
             await pg.evaluateOnNewDocument((L, T) => {
               try {
-                localStorage.setItem('expo-lang', L);
+                (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
                 localStorage.setItem('expo-il-lang', L);
                 sessionStorage.setItem('bhbc-lang-session', L);   // the BHBC zone keeps its own language too (usePersistentState, JSON)   // the sales site keeps its own key; without this every "en" run of it was Hebrew
                 localStorage.setItem('expo-theme', T);

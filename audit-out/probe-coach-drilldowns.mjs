@@ -22,7 +22,7 @@ const report = async (label) => {
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
 await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
 await A.signIn(pg, BASE);
-await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 await setWidth(pg, 1400, 900);
 
 async function open(route, clickText, label) {

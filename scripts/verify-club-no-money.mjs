@@ -38,7 +38,7 @@ const pg = await b.newPage();
 const problems = [];
 try {
   await A.signIn(pg, BASE);
-  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
   await setWidth(pg, W, 1100);
 
   // 1. WHO IS A CLUB ATHLETE - asked of the ROSTER, not of a hard-coded list,

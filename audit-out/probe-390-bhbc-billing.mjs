@@ -20,7 +20,7 @@ await A.signIn(pg, BASE);
 await wait(3000);
 await pg.evaluate(() => { const b2 = [...document.querySelectorAll('button,a')].find((x) => /coach|מאמן/i.test((x.textContent || '').trim())); if (b2) b2.click(); });
 await wait(3000);
-await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 
 const overflow = () => pg.evaluate(() => {
   const w = document.documentElement.clientWidth;

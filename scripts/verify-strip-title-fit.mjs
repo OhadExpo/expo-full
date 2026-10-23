@@ -88,7 +88,7 @@ try {
   for (let k = 0; k < 3 && !authed; k++) { await signIn(pg, BASE); authed = await assertAuthed(pg, BASE, '/coach/dashboard'); }
   if (!authed) { console.log('FAIL: could not sign in - nothing measured'); process.exit(1); }
   for (const lang of LANGS) {
-    await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) {} }, lang);
+    await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) {} }, lang);
     for (const w of WIDTHS) {
       const phone = w < 700;
       await pg.emulate({ viewport: { width: w, height: 844, deviceScaleFactor: phone ? 3 : 1, isMobile: true, hasTouch: phone },

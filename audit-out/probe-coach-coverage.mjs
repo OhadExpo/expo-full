@@ -14,8 +14,8 @@ await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } 
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await A.signIn(pg, BASE);
 // Hebrew AFTER the sign-in: the helper recognises the English login only.
-await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) {} });
-await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) {} });
+await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); } catch (e) {} });
 await pg.reload({ waitUntil: 'domcontentloaded' });
 await wait(6000);
 // The owner is DUAL-ROLE: without a portal choice the app can land on the

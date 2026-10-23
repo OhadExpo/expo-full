@@ -18,7 +18,7 @@ for (const lang of ['en', 'he']) {
     // SET the language, do NOT clear storage: the demo seeds itself into
   // localStorage, and clearing on every document left /demo/athlete with an
   // empty page - the probe broke it, not the app.
-  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, lang);
+  await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) { /* ignore */ } }, lang);
   // Size the window BEFORE navigating. Measuring straight after a resize
   // caught an empty frame and reported the demo portal as broken twice.
   await setWidth(pg, 1400, 900);

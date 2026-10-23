@@ -32,7 +32,7 @@ async function settle() {
   await wait(2500);
 }
 async function snap(route, lang) {
-  await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
+  await pg.evaluate((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
   await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await settle();
   return pg.evaluate(collect);

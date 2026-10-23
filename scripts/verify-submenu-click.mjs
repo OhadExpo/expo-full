@@ -17,7 +17,7 @@ for (const w of [1440, 390]) {
     // the owner is dual-role: without the portal choice pinned, signIn's storage
     // wipe leaves the page on CHOOSE YOUR PORTAL and there is no menu to click
     // (29.9: 0 menus at 390, NO SEAT at 1440)
-    await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+    await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
     perWidth[w] = 0;
     const who = await signIn(pg, BASE); if (!who || !who.signedIn) { console.log(`FAIL ${w}: NO SEAT — nothing measured at this width`); continue; }
     await pg.goto(BASE + '/coach/dashboard', { waitUntil: 'domcontentloaded' }); await setWidth(pg, w, 900);

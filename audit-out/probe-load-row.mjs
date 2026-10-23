@@ -11,7 +11,7 @@ await cdp.send('Network.setBypassServiceWorker', { bypass: true }).catch(() => {
 await cdp.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {});
 await pg.setViewport({ width: W, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
-await pg.evaluate(() => { try { localStorage.clear(); localStorage.setItem('expo-lang', 'he'); localStorage.setItem('bhbc-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} });
+await pg.evaluate(() => { try { localStorage.clear(); (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); localStorage.setItem('bhbc-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await wait(3500);
 await pg.evaluate(() => {

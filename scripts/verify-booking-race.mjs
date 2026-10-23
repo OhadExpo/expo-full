@@ -31,7 +31,7 @@ const ctx = await b.createBrowserContext();
 const pg = await ctx.newPage();
 try {
   await pg.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); } catch (e) { /* blocked */ } });
+  await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) { /* blocked */ } });
   await pg.goto(BASE + '/book/' + SLUG, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await wait(9000);
 
@@ -54,7 +54,7 @@ try {
   // is for.
   const pg2 = await (await b.createBrowserContext()).newPage();
   await pg2.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await pg2.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); } catch (e) { /* blocked */ } });
+  await pg2.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) { /* blocked */ } });
   await pg2.goto(BASE + '/book/' + SLUG, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await wait(9000);
   await pg2.evaluate(() => {

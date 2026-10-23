@@ -9,7 +9,7 @@ const ctx = await b.createBrowserContext();
 const pg = await ctx.newPage();
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const latin = (t) => (t.match(/\b[A-Za-z]{2,}\b/g) || []);
-await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await wait(3500);
 await pg.evaluate(() => {

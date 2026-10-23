@@ -396,7 +396,7 @@ async function shoot(job, label) {
     // The app's language goes in AFTER the sign-in (the sign-in helpers know the
     // English login only) and BEFORE the first document of the view: App reads
     // it at mount and writes it straight back.
-    if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, job.appLang);
+    if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) {} }, job.appLang);
 
     // The install prompt mounts a few seconds after load and covers a phone-width
     // view; snoozing it in storage keeps it out of every shot.

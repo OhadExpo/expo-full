@@ -28,7 +28,7 @@ const click = async (re) => {
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
 await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
 await A.signIn(pg, BASE);
-await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, LANG);
+await pg.evaluate((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, LANG);
 await setWidth(pg, 1500, 1000);
 await pg.goto(BASE + '/coach/review', { waitUntil: 'domcontentloaded', timeout: 60000 });
 for (let k = 0; k < 40; k++) { await wait(500); if (await pg.evaluate(() => document.body.innerText.length > 400)) break; }

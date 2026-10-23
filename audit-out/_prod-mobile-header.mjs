@@ -9,7 +9,7 @@ const pg = ctx ? await ctx.newPage() : await b.newPage();
 await pg.emulate({ viewport: { width: 412, height: 915, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36' });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1500);
 await signIn(pg, BASE);
-await pg.evaluate(() => localStorage.setItem('expo-lang', 'en'));
+await pg.evaluate(() => (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')));
 await pg.goto(`${BASE}/coach/dashboard?lang=en`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 const bundle = await pg.evaluate(() => [...document.scripts].map((s) => s.src).find((s) => /index-/.test(s)));
 const m = await pg.evaluate(() => {

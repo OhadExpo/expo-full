@@ -15,7 +15,7 @@ const RUN = WIDTHS.length ? WIDTHS : [1500, 1100, 900, 700, 620, 470, 414, 390, 
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, 'http://127.0.0.1:5199');
-await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 let bad = 0;
 for (const W of RUN) {
   await setWidth(pg, W, 1100);

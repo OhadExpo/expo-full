@@ -10,7 +10,7 @@ const pg = await b.newPage();
 await pg.setViewport({ width: 1400, height: 1000 });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await A.signIn(pg, BASE);
-await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 await pg.goto(BASE + '/coach/athletes', { waitUntil: 'domcontentloaded' });
 await wait(7000);
 const clicked = await pg.evaluate((name) => { const el = [...document.querySelectorAll('button,a,div,span')].find((x) => x.children.length === 0 && (x.textContent || '').trim() === name); if (!el) return false; el.click(); return true; }, NAME);

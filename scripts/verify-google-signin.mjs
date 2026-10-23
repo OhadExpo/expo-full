@@ -47,7 +47,7 @@ for (const [name, ua] of UAS) {
   const pg = await ctx.newPage();
   await pg.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await pg.setUserAgent(ua);
-  await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); } catch (e) { /* blocked */ } });
+  await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) { /* blocked */ } });
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
   await new Promise((r) => setTimeout(r, 6000));
   const clicked = await pg.evaluate(() => {

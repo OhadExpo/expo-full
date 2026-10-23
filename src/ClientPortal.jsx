@@ -2153,7 +2153,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {/* #472 (AUDIT-470): EXIT during a form-video upload orphaned the clip - the
             upload finished into an unmounted logger (no link) or failed into a queue
             entry with no workout. Leaving mid-upload now asks first. */}
-        <button onClick={async () => { if (fv.some((f) => f && f.uploading) && !(await confirmToast(tt('A video is still uploading - leave now and it will not be saved.'), { okLabel: tt('Leave'), cancelLabel: tt('Stay') }))) return; onBack(); }} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
+        <button onClick={async () => { if (fv.some((f) => f && f.uploading) && !(await confirmToast(tt('A video is still uploading - leave now and it will not be saved.'), { okLabel: tt('Leave'), cancelLabel: tt('Stay') }))) return; onBack(); }} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span>{/* this header cluster lays out left to right in both languages, so ← stays on the outer edge pointing out - as the portal header's own exit (#953: a mirrored → pointed INTO the word) */}<span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
       </div></div>
     {sessionAutosave.status === 'error' && (
       <div role="status" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,margin:'0 0 8px',padding:'6px 10px',background:'rgba(224,87,74,0.12)',border:'1px solid rgba(224,87,74,0.55)',color:'#E0574A',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em'}}>
@@ -2719,7 +2719,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               alignItems:'center',marginBottom:0,marginTop:si===0?0:8,
               opacity:0.72,
             }}>
-              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
+              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>{heCtx ? `שב׳ ${prevWeekIdx}` : `W${prevWeekIdx}`}</div>
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{isRun ? (prior.time || '—') : (parseFloat(prior.load) || '—')}</div>
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{isRun ? (prior.hr || '—') : (prior.rpe || '—')}</div>
@@ -3832,7 +3832,7 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
       <div key={`mv-${vw}`} className="motion-view" style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi><bdi>{clientName}</bdi> · {bwData.length} {tt(bwData.length === 1 ? "ENTRY" : "ENTRIES") /* '1 ENTRIES' (audit #612 B10) */}</bdi></div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi><bdi>{clientName}</bdi> · {bwData.length === 1 && (lang || readLang()) === 'he' ? 'רשומה אחת' : <>{bwData.length} {tt(bwData.length === 1 ? "ENTRY" : "ENTRIES")}</>}{/* '1 ENTRIES' (#612 B10); Hebrew says 'רשומה אחת' (#953) */}</bdi></div>
         </div>
 
         {/* One condition for whether SAVE can act, read by both the handler
@@ -3844,7 +3844,7 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
               style={{height:'var(--btn-h)',boxSizing:'border-box',padding:'0 10px',borderRadius:0,border:`${activePlan?.name===p.name?'2px':'0.25px'} solid ${C.ac}${activePlan?.name===p.name?'':'4D'}`,background:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
           </div>}
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
-            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',height:'var(--btn-h)',boxSizing:'border-box',padding:0,borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
+            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',height:'var(--btn-h)',boxSizing:'border-box',padding:0,borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{(lang || readLang()) === 'he' ? `שב׳ ${w+1}` : `W${w+1}`}</button>)}
           </div>}
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>{tt('Log week')} {wk+1} · {activePlan?.name || tt('NO ACTIVE BLOCK')}</div>
           <div style={{display:'flex',gap:8}}>
@@ -4147,7 +4147,7 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
             {(() => {
               const N = activePlan ? (activePlan.weeks || 4) : 4;
               const mk = (w, styles) => activePlan
-                ? <button key={w} onClick={() => setWk(w)} style={styles}>W{w+1}</button>
+                ? <button key={w} onClick={() => setWk(w)} style={styles}>{(lang || readLang()) === 'he' ? w + 1 : `W${w+1}`}</button>   /* under its שבוע label a Hebrew chip is the number - no Latin W (#953, native-checked) */
                 : <div key={w} style={{...styles,opacity:0.3,display:'flex',alignItems:'center',justifyContent:'center',border:styles.border||'none'}}>—</div>;
               // EDITORIAL — underline text (coherent: the nav is underline too)
               if (ident === 'EDITORIAL') return (

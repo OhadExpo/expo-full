@@ -8,7 +8,7 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 const pg = await b.newPage(); await pg.setViewport({ width: 1400, height: 900 });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1500);
 await signIn(pg, BASE);
-await pg.evaluate(() => localStorage.setItem('expo-lang', 'he'));
+await pg.evaluate(() => (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')));
 await pg.goto(`${BASE}/coach/tasks?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(9000);
 await pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find((e) => (e.innerText || '').trim() === 'לוח'); if (b) b.click(); });
 await wait(2500);

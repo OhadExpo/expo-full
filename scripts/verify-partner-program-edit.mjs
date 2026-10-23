@@ -43,7 +43,7 @@ try {
   const { data: realBefore } = await db.from('plans').select('updated_at,data').eq('id', plan.id);
   const { data: sbxBefore } = await db.from('sbx_plans').select('updated_at,data').eq('id', plan.id);
   probeBefore = sbxBefore && sbxBefore[0];
-  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
+  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) {} });
   let authed = false; for (let k = 0; k < 3 && !authed; k++) { await signIn(pg, BASE); authed = await assertAuthed(pg, BASE); }
   if (!authed) throw new Error('could not sign in as the partner');
   ok(await pg.evaluate(() => window.__expoSandbox === true), 'the seat is the sandbox');

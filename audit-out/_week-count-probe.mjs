@@ -13,7 +13,7 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 const pg = await b.newPage();
 try {
   await signIn(pg, BASE);
-  await pg.evaluate(() => { localStorage.setItem('expo-lang', 'en'); sessionStorage.setItem('bhbc-lang-session', 'en'); });
+  await pg.evaluate(() => { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); sessionStorage.setItem('bhbc-lang-session', 'en'); });
   await pg.setViewport({ width: 1500, height: 950, isMobile: false });
   await pg.goto(BASE + '/coach/bhbc', { waitUntil: 'domcontentloaded', timeout: 45000 });
   await new Promise((r) => setTimeout(r, 7000));

@@ -9,7 +9,7 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 const pg = await b.newPage(); await pg.setViewport({ width: 1400, height: 1000 });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1200);
 await signIn(pg, BASE);
-await pg.evaluate(() => localStorage.setItem('expo-lang', 'he'));
+await pg.evaluate(() => (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')));
 const id = await pg.evaluate(async () => { try { const raw = localStorage.getItem('expo-trainees') || ''; const m = raw.match(/"id":"([^"]+)","name":"Diego Day"/); return m ? m[1] : null; } catch { return null; } });
 await pg.goto(`${BASE}/coach/athletes?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 const tid = id || await pg.evaluate(() => { const k = Object.keys(localStorage).find((x) => /trainees/.test(x)); const raw = k ? localStorage.getItem(k) : ''; const m = raw && raw.match(/"id":"([^"]+)"[^}]*?"name":"Diego Day"/); return m ? m[1] : null; });

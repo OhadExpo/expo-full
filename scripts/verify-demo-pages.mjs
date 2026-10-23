@@ -83,7 +83,7 @@ for (const [name, route] of SURFACES) {
         await setWidth(pg, w, h);   // emulate: setViewport() is ignored on the attached Chrome above the phone breakpoint (scripts/lib/viewport.mjs)
         await pg.evaluateOnNewDocument((L) => {
           try {
-            localStorage.setItem('expo-lang', L);
+            (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
             localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
           } catch (e) { /* private mode */ }
         }, lang);

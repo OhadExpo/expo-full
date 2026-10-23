@@ -122,7 +122,7 @@ try {
     // zero. Put it in Hebrew first - that is the state the complaint is about.
     await pg.evaluate(() => {
       try {
-        localStorage.setItem('expo-lang', 'he');
+        (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he'));
         // The club zone has its OWN switch (usePersistentState prefixes keys
         // with expo-collapse:) and it defaults to English, so without this the
         // one dir="rtl" surface in the app renders LTR and the sweep measures

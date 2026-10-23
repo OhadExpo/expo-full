@@ -32,7 +32,7 @@ await cdp.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => 
 const DPR = Number(process.env.DPR || 2);
 await pg.setViewport({ width: W, height: 1000, deviceScaleFactor: DPR });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
-await pg.evaluate((l) => { try { localStorage.clear(); sessionStorage.clear(); localStorage.setItem('expo-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, LANG);
+await pg.evaluate((l) => { try { localStorage.clear(); sessionStorage.clear(); (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, LANG);
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await wait(4000);
 await pg.evaluate(() => {

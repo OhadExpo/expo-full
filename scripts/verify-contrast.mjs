@@ -81,7 +81,7 @@ for (const [name, route] of SURFACES) {
         await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
         await pg.evaluateOnNewDocument((L, T) => {
           try {
-            localStorage.setItem('expo-lang', L);
+            (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
             localStorage.setItem('expo-theme', T);
             localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
           } catch (e) { /* private mode */ }

@@ -56,7 +56,7 @@ const pg = await b.newPage();
 // the language at mount and writes it straight back, so a later setItem loses.
 // Worth a separate run - a broken interpolation can be language-specific.
 if (process.env.LANG_APP) {
-  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
+  await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
 }
 let pageErr = null;
 pg.on('pageerror', (e) => { pageErr = String(e.message).slice(0, 110); });

@@ -151,7 +151,7 @@ try {
   // ── (a) dead wifi, valid token ──────────────────────────────────────────
   phase = 'dead-wifi';
   // this reload runs the portal in HEBREW, so the pill's Hebrew is measured too
-  await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) { /* ignore */ } });
+  await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); } catch (e) { /* ignore */ } });
   cut();
   const t0 = Date.now();
   await pg.reload({ waitUntil: 'domcontentloaded', timeout: 60000 }).catch((e) => fail(`reload: ${String(e.message).slice(0, 80)}`));
@@ -166,7 +166,7 @@ try {
   else if (pa.p.h !== 36) fail(`dead wifi: the pill is ${pa.p.h}px tall, not 36 (house rule for bordered controls)`);
   else if (!/אופליין/.test(pa.p.text)) fail(`dead wifi: the Hebrew portal's pill reads "${pa.p.text}" - not Hebrew`);
   note(`dead wifi: portal from cache in ${deadTotal} ms, pill "${pa.p ? pa.p.text : '-'}" (${pa.p ? pa.p.state : 'none'}) after ${pa.ms} ms, ${held.length} requests held`);
-  await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'en'); } catch (e) { /* ignore */ } });
+  await pg.evaluate(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) { /* ignore */ } });
 
   // ── (b) dead wifi, EXPIRED token ────────────────────────────────────────
   phase = 'expired-boot';

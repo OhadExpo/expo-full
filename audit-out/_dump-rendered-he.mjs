@@ -11,7 +11,7 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 const pg = await b.newPage(); await pg.setViewport({ width: 1400, height: 1000 });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1500);
 await signIn(pg, BASE);
-await pg.evaluate(() => { localStorage.setItem('expo-lang', 'he'); sessionStorage.setItem('bhbc-lang-session', 'he'); });
+await pg.evaluate(() => { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); sessionStorage.setItem('bhbc-lang-session', 'he'); });
 const text = () => pg.evaluate(() => document.body.innerText.split('\n').map((s) => s.trim()).filter((s) => /[\u0590-\u05FF]/.test(s) && s.split(/\s+/).length >= 3).join('\n'));
 const routes = ['/coach/dashboard', '/coach/athletes', '/coach/workouts', '/coach/review', '/coach/billing', '/coach/intake', '/coach/calendar'];
 let all = '';

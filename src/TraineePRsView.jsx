@@ -554,7 +554,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 })()}
 
                 {/* Session history */}
-                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('SESSION HISTORY ·')} {picked.sessionCount} {tt(picked.sessionCount === 1 ? 'ENTRY' : 'ENTRIES')}
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: he ? 0 : '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('SESSION HISTORY ·')} {picked.sessionCount === 1 && he ? 'רשומה אחת' : <>{picked.sessionCount} {tt(picked.sessionCount === 1 ? 'ENTRY' : 'ENTRIES')}</>}
                 </div>
                 <div style={{ border: `1px solid ${C.cardBd}` }}>
                   {picked.series.slice().reverse().map((s, i, arr) => {

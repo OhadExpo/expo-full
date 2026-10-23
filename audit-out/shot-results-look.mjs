@@ -12,10 +12,10 @@ const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:92
 
 for (const lang of (process.env.LANGS || 'he,en').split(',')) {
   const pg = await b.newPage();
-  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, lang);
+  await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) { /* ignore */ } }, lang);
   try {
     await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await pg.evaluate((l) => { try { localStorage.clear(); sessionStorage.clear(); localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, lang);
+    await pg.evaluate((l) => { try { localStorage.clear(); sessionStorage.clear(); (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) { /* ignore */ } }, lang);
     await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await wait(3500);
     await pg.evaluate(() => {

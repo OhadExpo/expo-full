@@ -40,7 +40,7 @@ const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
 try {
   await p.setViewport({ width: W, height: W < 1000 ? 900 : 1000, isMobile: W < 1000, hasTouch: W < 1000 });
   await p.evaluateOnNewDocument((lang) => {
-    try { localStorage.setItem('expo-gate-run', '1'); localStorage.setItem('expo-lang', lang); } catch { /* */ }
+    try { localStorage.setItem('expo-gate-run', '1'); (localStorage.setItem('expo-lang', lang), sessionStorage.setItem('expo-athlete-lang', lang)); } catch { /* */ }
     Object.defineProperty(document, 'visibilityState', { get: () => 'visible' });
     // no realtime: a WebSocket frame is a write the request filter below cannot see
     // (a socket that never opens and sends nothing - throwing here crashed the app's first render)

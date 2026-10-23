@@ -14,7 +14,7 @@ await cdp.send('Network.setBypassServiceWorker', { bypass: true }).catch(() => {
 await cdp.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {});
 await pg.setViewport({ width: Number(process.env.W || 1400), height: 900, deviceScaleFactor: DPR });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
-await pg.evaluate((l) => { try { localStorage.clear(); localStorage.setItem('expo-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, process.env.LANG_APP || 'en');
+await pg.evaluate((l) => { try { localStorage.clear(); (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch (e) {} }, process.env.LANG_APP || 'en');
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' }); await wait(4000);
 await pg.evaluate(() => { const ins = [...document.querySelectorAll('input')]; const set = (el, v) => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); }; const e = ins.find((i) => /email/i.test(i.type + i.placeholder + i.name)); const p = ins.find((i) => i.type === 'password'); if (e) set(e, 'ohadyproductions@gmail.com'); if (p) set(p, '1234'); });
 await wait(500); await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });

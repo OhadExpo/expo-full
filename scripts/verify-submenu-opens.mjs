@@ -41,7 +41,7 @@ for (const [label, mobile] of [['mouse, hover then click', false]]) {
   const page = await b.newPage();
   try {
     await signIn(page, BASE);
-    await page.evaluate(() => localStorage.setItem('expo-lang', 'en'));
+    await page.evaluate(() => (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')));
     await page.setViewport(mobile
       ? { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }
       : { width: 1280, height: 900, deviceScaleFactor: 1 });

@@ -172,7 +172,7 @@ async function openSeat(lang = 'en') {
   const page = await guardedPage(ctx);
   await page.evaluateOnNewDocument((l) => {
     try { localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {}
-    try { if (!localStorage.getItem('expo-lang')) localStorage.setItem('expo-lang', l); } catch (e) {}
+    try { if (!localStorage.getItem('expo-lang')) (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) {}
   }, lang);
   const who = await signIn(page, BASE);
   if (!who || !who.signedIn) throw new Error('could not sign in as the fixture: ' + (who && who.note));
@@ -358,7 +358,7 @@ try {
       const still = await atEnd(page);
       await shot(page, 'd-zero-sets-en');
       // Hebrew: same device, language switched, the draft brings him back to the Complete screen
-      await page.evaluate(() => localStorage.setItem('expo-lang', 'he'));
+      await page.evaluate(() => (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')));
       await portal(page); await clickAction(page, DAY); await wait(1500);
       for (let i = 0; i < 40 && !(await atEnd(page)); i++) { await page.evaluate(() => document.querySelector('[data-step-next]')?.click()); await wait(350); }
       await clickComplete(page); await wait(1200);
@@ -394,7 +394,7 @@ try {
       for (let i = 0; i < 40 && !banner; i++) { banner = await page.evaluate(() => { const b = document.querySelector('[data-unsaved-workouts]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; }); if (!banner) await wait(250); }
       const q = await queueWorkouts(page);
       await shot(page, 'e-not-saved-en');
-      await page.evaluate(() => localStorage.setItem('expo-lang', 'he'));
+      await page.evaluate(() => (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')));
       await portal(page);
       let bannerHe = null;
       for (let i = 0; i < 40 && !bannerHe; i++) { bannerHe = await page.evaluate(() => { const b = document.querySelector('[data-unsaved-workouts]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; }); if (!bannerHe) await wait(250); }

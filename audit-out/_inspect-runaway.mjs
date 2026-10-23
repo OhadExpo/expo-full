@@ -8,7 +8,7 @@ const cdp=await pg.createCDPSession();
 await cdp.send('Network.setBypassServiceWorker',{bypass:true}).catch(()=>{});
 await pg.setViewport({width:W,height:900,deviceScaleFactor:2,isMobile:true,hasTouch:true});
 await pg.goto(BASE+'/login',{waitUntil:'domcontentloaded'});
-await pg.evaluate(()=>{try{localStorage.clear();localStorage.setItem('expo-lang','he');localStorage.setItem('expo-install-snooze-until',String(Date.now()+864e5));}catch(e){}});
+await pg.evaluate(()=>{try{localStorage.clear();(localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he'));localStorage.setItem('expo-install-snooze-until',String(Date.now()+864e5));}catch(e){}});
 await pg.goto(BASE+'/login',{waitUntil:'domcontentloaded'});
 await wait(3500);
 await pg.evaluate(()=>{const ins=[...document.querySelectorAll('input')];const set=(el,v)=>{Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};const e=ins.find(i=>/email/i.test(i.type+i.placeholder+i.name));const p=ins.find(i=>i.type==='password');if(e)set(e,'ohadyproductions@gmail.com');if(p)set(p,'1234');});

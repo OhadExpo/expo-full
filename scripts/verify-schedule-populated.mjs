@@ -20,7 +20,7 @@ const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
 let fail = 0;
 try {
   await setWidth(pg, 1440, 950);
-  await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+  await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
   await signIn(pg, BASE);
   await pg.goto(BASE + '/coach/bhbc', { waitUntil: 'domcontentloaded' });
   for (let i = 0; i < 30; i++) { await wait(700); if (await pg.evaluate(() => document.querySelectorAll('.bhbc-hdr-tabs button').length > 2)) break; }

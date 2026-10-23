@@ -99,7 +99,7 @@ for (const LANG of ['en', 'he']) {
     try {
       await signIn(page, BASE);
       await page.evaluate((l) => {
-        localStorage.setItem('expo-lang', l);
+        (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l));
         sessionStorage.setItem('bhbc-lang-session', l);
       }, LANG);
       await page.setViewport({ width: W, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });

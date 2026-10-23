@@ -162,7 +162,7 @@ for (const [name, route] of SURFACES) {
       });
       try {
         await pg.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: w < 700, hasTouch: w < 700 });
-        await pg.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private */ } }, lang);
+        await pg.evaluateOnNewDocument((L) => { try { (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private */ } }, lang);
         await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
         // WAIT UNTIL IT STOPS GROWING, don't guess a number. A fixed 9s sleep
         // reported /demo/sandbox as DEAD with 135 chars at 1440 — and the same

@@ -115,7 +115,7 @@ const shapeOf = async (pg, url) => {
 // The real app needs the signed-in profile; the demo does not care.
 const pg = await b.newPage();
 await pg.setViewport({ width: 1440, height: 950, deviceScaleFactor: 1 });
-await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); } catch (e) { /* private */ } });
+await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) { /* private */ } });
 
 // SIGN IN AS THE OWNER, never trust the profile's session (11.10): on the 1010s chain the gate browser
 // held the fixture ATHLETE's session for that origin, the 'not a login page' check passed, and the

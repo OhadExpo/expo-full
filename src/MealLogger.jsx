@@ -262,7 +262,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false, r
               background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
               padding: '8px 0', fontFamily: FN, fontSize: 11, fontWeight: 700,
               cursor: 'pointer', borderRadius: 0,
-            }}>←</button>
+            }}>{he ? '→' : '←'}</button>{/* each arrow points OUT along its own edge: in Hebrew the earlier day sits on the right (#953) */}
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>
               {tt('MEAL LOG')}
@@ -278,7 +278,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false, r
                 background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
                 padding: '8px 0', fontFamily: FN, fontSize: 11, fontWeight: 700,
                 cursor: 'pointer', borderRadius: 0,
-              }}>→</button>
+              }}>{he ? '←' : '→'}</button>
           ) : <span aria-hidden="true" />}
         </div>
 
@@ -614,9 +614,15 @@ function MealRow({ meal, page = false }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
             fontVariantNumeric: 'tabular-nums',
           }}>
+            {/* Hebrew names the macro before its number - 'חלבון 48 · פחמ׳ 70 · שומן 18'. The single letters ('48ח 70פ 18ש')
+                are used by no Israeli app and ש reads as שעה (#953, native-checked). English keeps 48P 70C 18F. */}
+            {timeLoc === 'he-IL' ? [['חלבון', meal.protein_g, C.gn], ['פחמ׳', meal.carbs_g, C.or], ['שומן', meal.fat_g, C.ac]].map(([w, g, col]) => (
+              <bdi key={w} style={{ color: col }}><span style={{ color: C.tm, marginInlineEnd: 3, letterSpacing: 0 }}>{w}</span>{g}</bdi>
+            )) : (<>
             <bdi style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('P')}</span></bdi>
             <bdi style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('C')}</span></bdi>
             <bdi style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('F')}</span></bdi>
+            </>)}
           </div>
         </div>
       </div>

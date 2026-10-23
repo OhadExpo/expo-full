@@ -68,7 +68,7 @@ async function freshPage(ctx, lang, w) {
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: THEME }]).catch(() => {});
   await pg.evaluateOnNewDocument((L, T, P) => {
     try {
-      localStorage.setItem('expo-lang', L);
+      (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
       sessionStorage.setItem('bhbc-lang-session', L);   // the BHBC zone keeps its own language (usePersistentState, JSON)
       localStorage.setItem('expo-theme', T);
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));

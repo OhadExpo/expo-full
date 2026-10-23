@@ -36,7 +36,7 @@ const sweep = async (routes, authed) => {
     const pg = await ctx.newPage();
     try {
       await setWidth(pg, w, 900);
-      await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } });
+      await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } });
       if (authed) {
         const who = await signIn(pg, BASE);
         if (!who || !who.signedIn) throw new Error('could not sign in as the owner — the real app was NOT measured');

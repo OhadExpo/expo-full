@@ -42,7 +42,7 @@ try {
   const { error: oe } = await db.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });
   if (oe) throw new Error('owner seat: ' + oe.message);
   const realBefore = JSON.stringify(await roster('store'));
-  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
+  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) {} });
   let authed = false; for (let k = 0; k < 3 && !authed; k++) { await signIn(pg, BASE); authed = await assertAuthed(pg, BASE); }
   if (!authed) throw new Error('could not sign in as the partner');
   ok(await pg.evaluate(() => window.__expoSandbox === true), 'the seat is the sandbox');

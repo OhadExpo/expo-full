@@ -27,7 +27,7 @@ await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-install-
 // keys, and the tab is matched in either language below.
 await pg.evaluateOnNewDocument(() => {
   try {
-    localStorage.setItem('expo-lang', 'en');
+    (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en'));
     sessionStorage.setItem('bhbc-lang-session', 'en');
   } catch (e) {}
 });

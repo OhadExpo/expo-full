@@ -184,7 +184,7 @@ if (PREVIEW_PLAN) {
   }
   } finally {
     // put his language back even when a pass threw (1008d review)
-    if (langRead) { const p1 = await b.newPage(); try { await p1.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await p1.evaluate((v) => { if (v === null) localStorage.removeItem('expo-lang'); else localStorage.setItem('expo-lang', v); }, prevLang); } catch { /* noop */ } finally { await p1.close(); } }
+    if (langRead) { const p1 = await b.newPage(); try { await p1.goto(BASE + '/', { waitUntil: 'domcontentloaded' }); await p1.evaluate((v) => { if (v === null) localStorage.removeItem('expo-lang'); else (localStorage.setItem('expo-lang', v), sessionStorage.setItem('expo-athlete-lang', v)); }, prevLang); } catch { /* noop */ } finally { await p1.close(); } }
   }
   await b.disconnect();
 }

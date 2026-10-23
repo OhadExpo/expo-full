@@ -102,7 +102,7 @@ try {
   let ok = false; for (let k = 0; k < 3 && !ok; k++) { await A.signIn(pg, BASE); ok = await A.assertAuthed(pg, BASE); }
   if (!ok) throw new Error('not signed in - NOT measured');
   for (const lang of LANGS) {
-    await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) { /* private */ } }, lang);
+    await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) { /* private */ } }, lang);
     for (const w of WIDTHS) {
       const phone = w < 700;
       await pg.emulate({ viewport: { width: w, height: phone ? 844 : 900, deviceScaleFactor: phone ? 2 : 1, isMobile: phone, hasTouch: phone }, userAgent: phone ? 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0 Mobile Safari/537.36' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0 Safari/537.36' });

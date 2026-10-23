@@ -153,7 +153,7 @@ try {
   // which makes the zero worthless. Now the run states it and sets it.
   const LANG = process.env.HE === '1' ? 'he' : 'en';
   await page.evaluate((l) => {
-    localStorage.setItem('expo-lang', l);
+    (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l));
     sessionStorage.setItem('bhbc-lang-session', l);
   }, LANG);
   console.log(`language: ${LANG}  ·  ${ROUTES.length} route(s)  ·  ${W}px`);

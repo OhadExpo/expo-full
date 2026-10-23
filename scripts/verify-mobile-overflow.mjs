@@ -58,7 +58,7 @@ const pg = await b.newPage();
 // first document: App reads the language at mount and writes it straight back,
 // so a later setItem is overwritten by the 'en' it booted with.
 if (process.env.LANG_APP) {
-  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
+  await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
 }
 
 const look = () => pg.evaluate(() => {

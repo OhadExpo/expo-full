@@ -73,7 +73,7 @@ pg.on('response', (rs) => { if (/supabase\.co\/(rest|storage)\//.test(rs.url()) 
 pg.on('pageerror', (e) => note('errs', 'pageerror ' + String(e.message || e).slice(0, 90)));
 let fails = 0;
 try {
-  await pg.evaluateOnNewDocument((l, th) => { try { localStorage.setItem('expo-lang', l); if (th) localStorage.setItem('expo-theme', th); } catch (e) {} }, LANG, process.env.THEME || '');
+  await pg.evaluateOnNewDocument((l, th) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); if (th) localStorage.setItem('expo-theme', th); } catch (e) {} }, LANG, process.env.THEME || '');
   await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
   let ok = false; for (let k = 0; k < 3 && !ok; k++) { await signIn(pg, BASE); ok = await assertAuthed(pg, BASE); }
   if (!ok) throw new Error('could not sign in as ' + EMAIL);

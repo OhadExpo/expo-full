@@ -32,7 +32,7 @@ const bad = [];
 pg.on('response', (rs) => { const u = rs.url(); if (/supabase\.co\/storage\//.test(u) && rs.status() >= 400) bad.push(rs.status() + ' ' + u.replace(/^.*\/object\//, '').slice(0, 80)); });
 let fails = 0;
 try {
-  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); } catch (e) {} });
+  await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); } catch (e) {} });
   let ok = false; for (let k = 0; k < 3 && !ok; k++) { await signIn(pg, BASE); ok = await assertAuthed(pg, BASE); }
   if (!ok) throw new Error('could not sign in');
   console.log('seat sandbox flag:', await pg.evaluate(() => window.__expoSandbox));

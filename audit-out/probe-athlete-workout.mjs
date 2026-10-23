@@ -15,7 +15,7 @@ const report = async (label) => {
   const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 18).map(([w, n]) => (n > 1 ? `${w}(${n})` : w)).join(' ');
   console.log(`${label.padEnd(22)} latin=${String(words.length).padStart(3)}  ${top}`);
 };
-await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
 await wait(3500);
 await pg.evaluate(() => {

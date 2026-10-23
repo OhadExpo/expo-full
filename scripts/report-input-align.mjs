@@ -29,7 +29,7 @@ const FREE = /search|filter|find|type |write|note|message|comment|email|name|tit
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, 'http://127.0.0.1:5199');
-await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 await setWidth(pg, 1500, 1100);
 let centred = 0, seen = 0, freeSeen = 0, dead = 0;
 for (const route of ROUTES) {

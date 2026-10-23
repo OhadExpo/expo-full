@@ -135,7 +135,7 @@ try {
   await pg.evaluateOnNewDocument(() => {
     try {
       sessionStorage.setItem('expo-portal-choice', 'trainer');
-      localStorage.setItem('expo-lang', 'he');
+      (localStorage.setItem('expo-lang', 'he'), sessionStorage.setItem('expo-athlete-lang', 'he'));
       sessionStorage.setItem('bhbc-lang-session', 'he');
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
     } catch (e) { /* private mode */ }

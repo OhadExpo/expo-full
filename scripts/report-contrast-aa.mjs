@@ -46,7 +46,7 @@ try {
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await sweep(page, IL, IL_ROUTES, 'expo-il ', false);
   await signIn(page, APP);
-  await page.evaluate(() => { localStorage.setItem('expo-lang', 'en'); sessionStorage.setItem('bhbc-lang-session', 'en'); });
+  await page.evaluate(() => { (localStorage.setItem('expo-lang', 'en'), sessionStorage.setItem('expo-athlete-lang', 'en')); sessionStorage.setItem('bhbc-lang-session', 'en'); });
   await sweep(page, APP, APP_ROUTES, 'app ', true);
 } catch (e) { console.log('ERROR', e.message); }
 finally { await page.close().catch(() => {}); b.disconnect(); }

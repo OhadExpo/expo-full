@@ -180,7 +180,7 @@ async function pageFor(lang, w, h, theme) {
   await setWidth(pg, w, h, { tablet: TABLET });
   await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
   await gateHooks(pg);
-  await pg.evaluateOnNewDocument((L, T) => { try { localStorage.setItem('expo-lang', L); sessionStorage.setItem('bhbc-lang-session', L); localStorage.setItem('expo-shot-lang', L); localStorage.setItem('expo-theme', T); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } }, lang, theme);
+  await pg.evaluateOnNewDocument((L, T) => { try { (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L)); sessionStorage.setItem('bhbc-lang-session', L); localStorage.setItem('expo-shot-lang', L); localStorage.setItem('expo-theme', T); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) { /* private mode */ } }, lang, theme);
   await signIn(pg, BASE);
   const v = { ctx, pg, fresh: false };
   signedCtx.set(key, v);
@@ -199,8 +199,8 @@ for (const lang of LANGS) {
           await pg.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: theme }]);
           await pg.evaluateOnNewDocument((L, T) => {
             try {
-              if (!localStorage.getItem('expo-lang')) localStorage.setItem('expo-lang', L);
-              localStorage.setItem('expo-lang', L);
+              if (!localStorage.getItem('expo-lang')) (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
+              (localStorage.setItem('expo-lang', L), sessionStorage.setItem('expo-athlete-lang', L));
               // the club zone and the Shot Analyzer keep their OWN language keys
               sessionStorage.setItem('bhbc-lang-session', L);
               localStorage.setItem('expo-shot-lang', L);

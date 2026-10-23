@@ -39,7 +39,7 @@ const shoot = async (base, job, tag) => {
   // The club ZONE keeps its own switch under a usePersistentState key; the
   // app-level key does not move it, and a "Hebrew" zone pair taken without this
   // came back English on both sides.
-  if (process.env.LANG_APP) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
+  if (process.env.LANG_APP) await pg.evaluateOnNewDocument((l) => { try { (localStorage.setItem('expo-lang', l), sessionStorage.setItem('expo-athlete-lang', l)); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
   const who = SEATS[job.seat];
   try {
     await pg.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 90000 });
