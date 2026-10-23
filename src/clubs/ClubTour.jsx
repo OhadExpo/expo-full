@@ -33,7 +33,15 @@ const writeStop = (base, n, replace) => {
   if (n) window.dispatchEvent(new PopStateEvent('popstate'));
 };
 
-export default function ClubTour({ he, base, accent, onAccent }) {
+// the tour's own ?tour=<n> on the CURRENT entry, path untouched (the page-follow; Back is the zone's)
+const writeQuery = (n) => {
+  const u = new URL(window.location.href);
+  if (n) u.searchParams.set('tour', String(n)); else u.searchParams.delete('tour');
+  const href = u.pathname + (u.search || '') + u.hash;
+  if (href !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, '', href);
+};
+
+export default function ClubTour({ he, base, accent, onAccent, page }) {
   // a first visit opens on stop 1; a link with ?tour=<n> opens that stop; closed stays closed for the visit
   // a first visit to the demo's FRONT page opens stop 1; a deep link (a page, a pop-up) is never hijacked by the tour
   const [stop, setStop] = useState(() => {
@@ -43,7 +51,21 @@ export default function ClubTour({ he, base, accent, onAccent }) {
     return !closed && (p === base || p === base + '/overview') ? 1 : null;
   });
   useEffect(() => { const onPop = () => setStop(stopFromUrl()); window.addEventListener('popstate', onPop); return () => window.removeEventListener('popstate', onPop); }, []);
-  useEffect(() => { if (stop) writeStop(base, stop, true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  // a first visit (no ?tour in the link) writes stop 1 into the URL - a tick later, so the zone, which mounts AFTER its
+  // child the tour, is listening (it lands on the zone's front page, which is stop 1's)
+  // Decided from the URL AT FIRST RENDER (what the visitor opened), not at the effect: the zone may have rewritten the
+  // URL in between, and a deep link read as a first visit was sent to the front page (#965, measured).
+  const [firstVisit] = useState(() => !stopFromUrl() && [base, base + '/overview'].includes(window.location.pathname.replace(/\/+$/, '')));
+  useEffect(() => { if (!stop || !firstVisit) return undefined; const t = setTimeout(() => writeQuery(stop), 0); return () => clearTimeout(t); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  // THE PAGE WINS (#965, Ohad 23.10 on /schedule?tour=1: "look at the top menu and what its showing"): the card always
+  // talks about the page on screen. A tab pressed with the tour open, or a link whose stop is not its page's, moves the
+  // card to that page's first stop - or hides it where no stop talks about the page (the banner's 'Guided tour' brings
+  // it back). Moving the card never moves the page: the zone owns its page and its URL, the tour only its ?tour.
+  useEffect(() => {
+    if (!stop || !page || STOPS[stop - 1].page === page) return;
+    const i = STOPS.findIndex((x) => x.page === page);
+    if (i >= 0) { writeQuery(i + 1); setStop(i + 1); } else { writeQuery(null); setStop(null); }
+  }, [page, stop]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!stop) return undefined;
     const prev = document.body.style.paddingBottom; document.body.style.paddingBottom = '260px';

@@ -51,7 +51,7 @@ export default function ClubDemo({ slug }) {
     return { plansFor: (id) => byPlayer[id] || none, exercises: [...lib.values()] };
   }, [seed, he]);
   // the banner + tour are drawn INSIDE the zone, in the zone's language (it owns the toggle)
-  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang, staffName: he ? hebrewStaffName : null, portalPlans: portal && portal.plansFor, portalExercises: portal && portal.exercises } : null), [seed, club, he, portal]);
+  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} page={t.view} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang, staffName: he ? hebrewStaffName : null, portalPlans: portal && portal.plansFor, portalExercises: portal && portal.exercises } : null), [seed, club, he, portal]);
 
   // the club on the tab: its name and its crest (the zone's own shell is EXPO's index.html)
   useEffect(() => {

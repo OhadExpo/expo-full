@@ -1201,6 +1201,14 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   // the visitor does is saved), under the club's own header. Opened from the player sheet; Back returns to the page.
   const [portalFor, setPortalFor] = useState(() => { if (typeof window === 'undefined') return null; const root = zoneRootOf(window.location.pathname); const m = root && window.location.pathname.slice(root.length).match(/^\/[a-z]+\/portal\/([^/]+)/); return m ? decodeURIComponent(m[1]) : null; });
   useUrlFlag(portalFor, (v) => setPortalFor(v && v !== true ? v : null), zoneBase, 'portal', { withId: true });
+  // THE PAGE IS WHAT THE MENU SAYS (#965, Ohad 23.10: the menu read SCHEDULE over a player's portal): a tab pressed with
+  // the portal open moved the URL to the new page and left the portal on screen. The portal belongs to the page it was
+  // opened on; a new page closes it (the URL is already the new page's, so nothing is pushed or stepped back).
+  const portalView = useRef(view);
+  useEffect(() => {
+    if (portalView.current === view) return; portalView.current = view;
+    if (portalFor && !atPop('portal', true)) setPortalFor(null);   // Forward onto this page's own portal URL keeps it
+  }, [view]);   // eslint-disable-line react-hooks/exhaustive-deps
   const openPortal = (id) => {
     // the sheet's entry BECOMES the portal's (replace): Back from the portal lands where the sheet was opened from
     if (typeof window !== 'undefined' && zoneBase) window.history.replaceState(null, '', `${zoneBase}/portal/${encodeURIComponent(id)}` + window.location.search);
