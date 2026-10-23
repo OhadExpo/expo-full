@@ -30,7 +30,7 @@ for (const lang of LANGS) for (const theme of THEMES) for (const w of WIDTHS) {
   await p.setViewport({ width: w, height: w < 600 ? 844 : 900, isMobile: w < 600, hasTouch: w < 1100, deviceScaleFactor: 1 });
   const db = [], errs = [];
   p.on('request', (r) => { const u = r.url(); if (/supabase\.co|\/rest\/v1\/|\/rpc\/|\/realtime\/|\/storage\/v1\//.test(u)) db.push(`${r.method()} ${u.slice(0, 120)}`); });
-  p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_BLOCKED_BY_CLIENT|favicon|chrome-extension:/i.test(m.text())) errs.push(m.text().slice(0, 200)); });   // an ad-blocker in the debug profile refusing analytics is not the page's error
   p.on('pageerror', (e) => errs.push('PAGEERROR ' + String(e.message || e).slice(0, 200)));
   for (const pg of PAGES) {
     db.length = 0; errs.length = 0;

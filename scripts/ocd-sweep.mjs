@@ -40,7 +40,7 @@ import { PROBE } from './lib/ocd-probe.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const W = Number((process.argv.find((a) => a.startsWith('--w=')) || '').slice(4)) || 390;
 const ONLY = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
-const SCOPE = process.argv.includes('--every') ? 'every' : process.argv.includes('--expo') ? 'expo' : process.argv.includes('--all') ? 'all' : 'zone';
+const SCOPE = process.argv.includes('--clubs') ? 'clubs' : process.argv.includes('--every') ? 'every' : process.argv.includes('--expo') ? 'expo' : process.argv.includes('--all') ? 'all' : 'zone';
 const SHOOT = !process.argv.includes('--no-shot');
 const DIR = 'audit-out/ocd';
 fs.mkdirSync(DIR, { recursive: true });
@@ -82,7 +82,9 @@ const EVERY = (() => {
   for (const t of ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games']) paths.push(`/coach/bhbc/${t}`);
   return [...new Set(paths)].sort().map((pth) => [pth.replace(/^\//, '').replace(/\//g, '-'), pth, []]);
 })();
-let SURFACES = SCOPE === 'every' ? EVERY : SCOPE === 'expo' ? EXPO : SCOPE === 'all' ? [...ZONE, ...EXPO] : ZONE;
+// --clubs (#904): every page of every demo club (EXPO Teams) by its own URL
+const CLUBS = ['netanya', 'galil', 'sharon'].flatMap((c) => ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'].map((t) => [`club-${c}-${t}`, `/demo/club/${c}/${t}`, []]));
+let SURFACES = SCOPE === 'clubs' ? CLUBS : SCOPE === 'every' ? EVERY : SCOPE === 'expo' ? EXPO : SCOPE === 'all' ? [...ZONE, ...EXPO] : ZONE;
 if (ONLY) SURFACES = SURFACES.filter((s) => s[0].includes(ONLY));
 
 // ---------------------------------------------------------------- the driver

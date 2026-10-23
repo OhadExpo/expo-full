@@ -31,7 +31,7 @@ import { sessionSig, rowKind, ownsScRow, buildScRow, scPrefillNotes, buildWarmup
 import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
-import { LangCtx, BodyLang } from './i18n';
+import { LangCtx, BodyLang, glueSeps } from './i18n';
 import { BHBC_HEAD_COACH_EMAIL } from './authRoles';
 import { isClubAthlete } from './clubAthlete';
 import { isOwnerEmail } from './authRoles';
@@ -118,6 +118,7 @@ const tokensFor = (theme) => (theme === 'dark' ? {
   // The amber that :root declares for a dark page (the light-page one measured
   // 2.15:1 here, which is why it is pinned at all).
   '--bhbc-amber-text': '#E0A73A',
+  '--bhbc-orange-text': PAL.accentTextDark, '--bhbc-orange-on-page': PAL.accentTextDark, '--bhbc-ha-home': PAL.homeDark, '--bhbc-ha-away': PAL.accentTextDark,
 } : TOKENS);
 const tokensBase = () => ({
   '--c-ac': NAVY_DEEP,
@@ -138,6 +139,9 @@ const tokensBase = () => ({
   // every "limited" count and on the overdue flag. Pinned here, where the zone
   // decides its own colours.
   '--bhbc-amber-text': '#8A6410',
+  // THE ACCENT/HOME/AWAY INKS TRAVEL WITH THE TOKENS (#904): a pop-up portals to <body>, outside .bhbc-zone, so it read
+  // :root's - the APP's theme. A dark app over a light zone painted the dark-page orange (Netanya: yellow) on a white card.
+  '--bhbc-orange-text': PAL.accentText, '--bhbc-orange-on-page': PAL.accentOnPage, '--bhbc-ha-home': NAVY, '--bhbc-ha-away': PAL.accentText,
 });
 let TOKENS = tokensBase();
 // EVERY BHBC MODAL CARRIES THE ZONE'S TOKENS.
@@ -2457,7 +2461,7 @@ function attendance28(rec, days) {
           <div data-bhbc-preview style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', columnGap: 12, rowGap: 6, padding: '10px 14px', background: `rgba(${PAL.accentRgb},0.10)`, border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: `var(--bhbc-orange-on-page, ${PAL.accentOnPage})` /* #883: on the bare page ground #B4441A read 3.81:1 */, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>◉ {tr(previewSeat === 'head-coach' ? 'Head coach view' : previewSeat === 'pt' ? 'Physio (PT) view' : 'Coach view')}</span>
             <button onClick={() => setPreviewCoach(false)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>{tr('Exit preview')}</button>
-            <span style={{ gridColumn: '1 / -1', fontFamily: FN, fontSize: 12, color: C.tm, lineHeight: 1.5, overflowWrap: 'break-word' }}>{tr(previewSeat === 'head-coach' ? 'This is exactly what the head coach sees, his own program included. Nothing you do here is saved.' : previewSeat === 'pt' ? 'This is exactly what the physio sees - medical can be edited and loads logged. Nothing you do here is saved.' : 'This is exactly what your BHBC coaches see — no roster management, medical is view-only.')}</span>
+            <span style={{ gridColumn: '1 / -1', fontFamily: FN, fontSize: 12, color: C.tm, lineHeight: 1.5, overflowWrap: 'break-word' }}>{tr(previewSeat === 'head-coach' ? 'This is exactly what the head coach sees, his own program included. Nothing you do here is saved.' : previewSeat === 'pt' ? 'This is exactly what the physio sees - medical can be edited and loads logged. Nothing you do here is saved.' : clubSay('This is exactly what your coaches see — no roster management, medical is view-only.', 'זה בדיוק מה שהמאמנים שלך רואים — בלי ניהול סגל, והמידע הרפואי לצפייה בלבד.', 'This is exactly what your BHBC coaches see — no roster management, medical is view-only.'))}</span>
           </div>
         )}
         {/* (The toolbar that repeated MANAGE ROSTER · LOG LIFT · LOG S&C on every
@@ -2723,7 +2727,7 @@ function attendance28(rec, days) {
       {/* ---- MANAGE ROSTER MODAL ---- */}
       <BModal open={manageOpen} onClose={() => setManageOpen(false)} wide title={tr('Manage roster')}>
         <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 12 }}>
-          {tr('Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the BHBC zone.')}
+          {clubSay(`Tag athletes into ${CLUB.short}. They keep their normal athlete portal — this scopes who appears in the club zone.`, `סמן אילו שחקנים שייכים ל${CLUB.shortHe}. הפורטל האישי שלהם לא משתנה — זה רק קובע מי מופיע באזור המועדון.`, 'Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the BHBC zone.')}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'stretch' }}>
           <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)}
@@ -3179,7 +3183,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
         {readiness.level !== 'unknown' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr(readiness.headline)}</span>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{glueSeps(tr(readiness.headline))}</span>
         </div>
         )}
         {/* Medical / injury — shown on the athlete's profile too, not only the Medical tab */}
@@ -3196,7 +3200,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             return (
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusWord status={inj.status} /></span>
-                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
+                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
@@ -5636,7 +5640,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                 {hasRead && (<div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
-                  <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline)}</span>
+                  <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{glueSeps(tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline))}</span>
                 </div>)}
                 <div data-lbl="actions" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                   {hasLoad && <Sparkline series={series} />}
@@ -5683,6 +5687,18 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
 
 function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, fixtures = [], onOpen, action = null }) {
   const tr = useT();
+  // EVERY ROW FULL (#886 rule; a 14-player squad left 2 cards on a 4-column last row): the columns the 264px cards get
+  // at this width, and when the last row would be short, a grid of cols x k tracks - a card spans k, each card of the
+  // last row spans cols, so it fills the row. A squad that divides evenly keeps the plain auto-fill grid.
+  const gridRef = React.useRef(null);
+  const [cols, setCols] = useState(0);
+  useLayoutEffect(() => {
+    const el = gridRef.current; if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => { const w = el.clientWidth; setCols(w > 0 ? Math.max(1, Math.floor((w + 12) / (264 + 12))) : 0); };
+    measure(); const ro = new ResizeObserver(measure); ro.observe(el); return () => ro.disconnect();
+  }, []);
+  const nCards = (rows || []).length;
+  const fill = cols > 1 && nCards > cols && nCards % cols ? { cols, k: nCards % cols, tracks: cols * (nCards % cols) } : null;
   const settle = useSettleIn((rows || []).length > 0);
   // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
   // first, the league feed only for a player with none - and never a league
@@ -5749,9 +5765,9 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
           sessions · hours - needs ~260px; at 820 three 240px cards clipped
           "23 SESSIONS · 5H" by 20px. 264 gives two columns there, three from
           ~1100. */}
-      <div className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(264px, 1fr))', gap: 12 }}>
-        {rows.map(({ t, acwr, att }) => (
-          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${acwr.band.color}`, padding: '14px 15px 13px' /* 14 on top + 11 under the stat lines: the top block 16 / 16 (was 15 / 17, #735 band probe) */,
+      <div ref={gridRef} className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: fill ? `repeat(${fill.tracks}, minmax(0, 1fr))` : 'repeat(auto-fill, minmax(264px, 1fr))', gap: 12 }}>
+        {rows.map(({ t, acwr, att }, ri) => (
+          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ ...(fill ? { gridColumn: `span ${ri >= rows.length - fill.k ? fill.cols : fill.k}` } : null), position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${acwr.band.color}`, padding: '14px 15px 13px' /* 14 on top + 11 under the stat lines: the top block 16 / 16 (was 15 / 17, #735 band probe) */,
             // EVERY ROSTER CARD IS THE SAME BOX.
             // Measured across ten players: four different heights (93, 96, 99,
             // 102) because a Hebrew name renders taller than a Latin one, the
@@ -6681,7 +6697,7 @@ function ScheduleMonth({ fixtures, today }) {
             {/* one word, never broken: the full kind, or its short form when the
                 column is too narrow (SegWord measures) */}
             <span className="bhbc-cal-kind" style={{ color: FX_COLOR[f.type] || NAVY, display: 'flex', minWidth: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
-            {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="ltr">{fxWhere(f)}</span> : null}
+            {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="ltr">{glueSeps(fxWhere(f))}</span> : null}
           </div>
         ))}
         {items.length > 3 && <div className="bhbc-cal-more" style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>{tr('+{n} more').replace('{n}', items.length - 3)}</div>}
@@ -7789,7 +7805,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   // first - the order above, so the arrow says what the order already is.
   // Since = the onset date, newest first; the injury and the author by the
   // words on screen, A->Z.
-  const injText = (inj) => [inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ');
+  const injText = (inj) => [inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0');
   const sort = useSort(rows, {
     name: { get: (r) => r.t.name, asc: true },
     injury: { get: (r) => injText(r.inj), asc: true },
@@ -7854,7 +7870,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   </div>
-                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0')}</div>
                   <StatusWord status={inj.status} />
                   {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
                       reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
@@ -7914,7 +7930,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? fmtNumericDate(inj.onsetDate) : ''}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap' }}>{tr('Cleared')}</span>
-                  <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
+                  <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0')}</span>
                 </div>
               ))}
               </NameScopeProvider>

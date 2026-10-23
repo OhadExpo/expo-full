@@ -35,7 +35,13 @@ const writeStop = (base, n, replace) => {
 
 export default function ClubTour({ he, base, accent, onAccent }) {
   // a first visit opens on stop 1; a link with ?tour=<n> opens that stop; closed stays closed for the visit
-  const [stop, setStop] = useState(() => stopFromUrl() || (sessionStorage.getItem('club-tour-closed') ? null : 1));
+  // a first visit to the demo's FRONT page opens stop 1; a deep link (a page, a pop-up) is never hijacked by the tour
+  const [stop, setStop] = useState(() => {
+    const n = stopFromUrl(); if (n) return n;
+    let closed = false; try { closed = !!sessionStorage.getItem('club-tour-closed'); } catch { /* storage blocked */ }
+    const p = window.location.pathname.replace(/\/+$/, '');
+    return !closed && (p === base || p === base + '/overview') ? 1 : null;
+  });
   useEffect(() => { const onPop = () => setStop(stopFromUrl()); window.addEventListener('popstate', onPop); return () => window.removeEventListener('popstate', onPop); }, []);
   useEffect(() => { if (stop) writeStop(base, stop, true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
