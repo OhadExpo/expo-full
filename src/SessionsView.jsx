@@ -617,7 +617,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <BackBar label={tt('GROUP SESSION')} onBack={onBack} />
         <Card title={tt('START A GROUP SESSION')}>
-          <div style={{ padding: '5px 2px 14px' /* midway between the strip and the button (14.10 #735: 25 / 21.8) */, color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ margin: '-5px 0 0', padding: '0 2px 7px' /* the ink 14 from the strip, the button and the card's foot (#964 photo: 22 / 19 / 14 - the 1.6 leading adds ~6 above the caps) */, color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
             {tt('Add the athletes training now, check them in as they arrive, and log all their sets in one grid. Built to run on a big screen on the floor.')}
           </div>
           <button onClick={() => setPicking(true)} style={primaryBtn}>{tt('+ START SESSION')}</button>

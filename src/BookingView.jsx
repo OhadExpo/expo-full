@@ -134,7 +134,7 @@ export default function BookingView({ trainees }) {
         )}
         {gError && <div style={{ margin: '0 0 10px', fontFamily: FB, fontSize: 12, color: C.rd }}>{gError}</div>}
         {rows.length === 0 ? (
-          <div style={{ padding: '14px 14px 12px', textAlign: 'center', color: C.td, fontSize: 13 }}>{tt('No bookings in the next 30 days.')}</div>
+          <div style={{ padding: '6px 14px 0' /* the section's own padding is the bottom (#964: 12 more made 29 under it vs 13 above) */, textAlign: 'center', color: C.td, fontSize: 13 }}>{tt('No bookings in the next 30 days.')}</div>
         ) : rows.map((b, i) => {
           const dayKey = new Date(b.start_at).toDateString();
           const showDay = i === 0 || dayKey !== new Date(rows[i - 1].start_at).toDateString();

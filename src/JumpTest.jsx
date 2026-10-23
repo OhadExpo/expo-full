@@ -112,7 +112,7 @@ export default function JumpTest({ clientId, he, demo = false, readOnly = false,
         </>}
 
         {list.length > 1 && (
-          <div style={{ marginTop: 12 }} data-jump-history>
+          <div style={{ marginTop: 12, marginBottom: -8 }} data-jump-history>{/* the last 32px row carries ~8px under its words: pulled back so the body ends even with its top (#964) */}
             {list.slice(0, 8).map((t, i) => (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 32, borderTop: i ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
                 <span style={{ color: C.tm }}><Ltr>{dm(t.tested_at)}</Ltr></span>
