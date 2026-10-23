@@ -17,7 +17,8 @@ export const C = {
   // grey; nobody will see the change and a screen-reader user's contrast
   // checker will stop flagging it.
   tm: '#7E7E8C',
-  td: '#444450',
+  // the app's dim grey (#872, 23.10): #444450 read 2.06:1 on the dark ground, #666674 reads 3.1-3.5 and stays under tm
+  td: '#666674',
 
   ac: '#39BDFF',
   acD: 'rgba(57,189,255,0.10)',

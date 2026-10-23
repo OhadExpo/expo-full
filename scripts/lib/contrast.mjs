@@ -78,20 +78,16 @@ export const CONTRAST_FN = `
     //   white on brand cyan #39BDFF (2.12) - the active nav pill and primary
     //     CTAs. Ohad: the cyan stays bright, the brand wins; a contrast-led
     //     palette was proposed once and rejected outright.
-    //   muted grey #444450 on the near-black ground (2.06) - dark-mode
-    //     secondary text, same ruling.
+    //   (the muted grey #444450 on the near-black ground was the second; Ohad
+    //     approved #666674 on 23.10 (#872), so a #444450 that still renders is a
+    //     spot the token change missed - reported again.)
     // Anything else under 2.2 is a real finding and still reported. The BHBC
     // amber that this exclusion let surface was exactly that: a token with a
     // light-mode value that the medical labels were simply not using.
     const fg = (cs.color || '').replace(/\\s/g, '');
     const bgRaw = bgOf(el) || '';
     const bgc = bgRaw.replace(/\\s/g, '');
-    // Match the PAIRING, not one exact ground: the same muted grey sits on the
-    // near-black card, the black page and the demo stage, and pinning exact
-    // triples just moved the noise around.
-    const bgLum = (() => { const m = bgRaw.match(/[\\d.]+/g); if (!m || m.length < 3) return 255; /* Chrome reports some grounds as color(srgb 0.05 0.09 0.12) - 0..1, not 0..255. */ const v = m.slice(0, 3).map(Number).map((x) => (x <= 1 ? x * 255 : x)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; })();
-    const ruledOn = (/^rgba?\\(255,255,255/.test(fg) && bgc === 'rgb(57,189,255)')
-      || (fg === 'rgb(68,68,80)' && bgLum < 40);
+    const ruledOn = (/^rgba?\\(255,255,255/.test(fg) && bgc === 'rgb(57,189,255)');
     // THE BAR IS A PARAMETER NOW.
     //
     // 2.2 is the "can a human see this at all" line and it is the right default
