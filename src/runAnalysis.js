@@ -103,6 +103,8 @@ function readRun(w, day) {
   if (!main.length) { const longest = segs.filter((s) => s.logged).sort((a, b) => b.km - a.km)[0]; if (longest) main = [longest]; }
   // the kind: the day's name, else what its main segment's prescription says
   let kind = runKind(day ? day.name : w.dayName);
+  // a test segment on a Day A/B/C (the 3 km time trial preset, #901): the day's name stays his, the run reads as a test
+  if (kind !== 'test' && segs.some((s) => s.role === 'main' && s.logged && /מבחן|time[\s-]?trial|\btest\b/i.test(s.title))) kind = 'test';
   let guess = null;
   if (kind === 'run' && main.length) {
     const m = main[0];

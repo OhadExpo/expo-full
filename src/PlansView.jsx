@@ -134,12 +134,23 @@ function useScrollbarInset(active) {
 const RUN_SEGMENTS = [
 // (#866: on the Hebrew app the whole prescription is Hebrew, as his running plans write it - 1 ק״מ, 600 מ׳, 40 דק׳)
   { key: 'warmup', label: 'Warm-up', he: 'חימום', sets: 1, dist: '1 km', pace: 'easy', rest: '', distHe: '1 ק״מ', paceHe: 'קל' },
-  { key: 'easy', label: 'Easy run', he: 'ריצה קלה', sets: 1, dist: '5 km', pace: '6:00-6:30', rest: '', distHe: '5 ק״מ' },
-  { key: 'long', label: 'Long run', he: 'ריצה ארוכה', sets: 1, dist: '7 km', pace: '5:45-5:55', rest: '', distHe: '7 ק״מ' },
-  { key: 'tempo', label: 'Tempo', he: 'טמפו', sets: 3, dist: '1.5 km', pace: '5:30-5:35', rest: '1 min walk', distHe: '1.5 ק״מ', restHe: '1 דק׳ הליכה' },
-  { key: 'intervals', label: 'Intervals', he: 'חזרות', sets: 5, dist: '1 km', pace: '5:00-5:05', rest: '2.5 min walk', distHe: '1 ק״מ', restHe: '2.5 דק׳ הליכה' },
+  { key: 'easy', label: 'Easy run', he: 'ריצה קלה', sets: 1, dist: '5 km', pace: '6:00-6:30', rest: '', distHe: '5 ק״מ', zone: 'E' },
+  { key: 'long', label: 'Long run', he: 'ריצה ארוכה', sets: 1, dist: '7 km', pace: '5:45-5:55', rest: '', distHe: '7 ק״מ', zone: 'E' },
+  { key: 'tempo', label: 'Tempo', he: 'טמפו', sets: 3, dist: '1.5 km', pace: '5:30-5:35', rest: '1 min walk', distHe: '1.5 ק״מ', restHe: '1 דק׳ הליכה', zone: 'T' },
+  { key: 'intervals', label: 'Intervals', he: 'חזרות', sets: 5, dist: '1 km', pace: '5:00-5:05', rest: '2.5 min walk', distHe: '1 ק״מ', restHe: '2.5 דק׳ הליכה', zone: 'I' },
   { key: 'strides', label: 'Strides', he: 'האצות', sets: 4, dist: '100 m', pace: 'fast, relaxed', rest: 'walk back', distHe: '100 מ׳', paceHe: 'מהיר ומשוחרר', restHe: 'הליכה חזרה להתחלה' },
   { key: 'cooldown', label: 'Cool-down', he: 'שחרור', sets: 1, dist: '1 km', pace: 'easy', rest: '', distHe: '1 ק״מ', paceHe: 'קל' },
+];
+// WHOLE SESSIONS, one tap (23.10 #901, Ohad: "...have its own complete separate library for running... make the system way
+// more efficient"): warm-up + the main work + cool-down in one go, each piece priced from the athlete's own zones when he
+// has a test (runZones, #914). The time trial IS that test - one continuous all-out 3 km - so a block can close with it.
+const RS = Object.fromEntries(RUN_SEGMENTS.map((s) => [s.key, s]));
+const RUN_WARMUP2 = { ...RS.warmup, dist: '2 km', distHe: '2 ק״מ' };
+const RUN_TT = { key: 'tt', label: '3 km time trial', he: 'מבחן 3 ק״מ', sets: 1, dist: '3 km', distHe: '3 ק״מ', pace: 'all-out', paceHe: 'מאמץ מלא', rest: '' };
+const RUN_SESSIONS = [
+  { key: 'session-intervals', label: 'Interval session', he: 'אימון חזרות', parts: [RUN_WARMUP2, RS.intervals, RS.cooldown] },
+  { key: 'session-tempo', label: 'Tempo session', he: 'אימון טמפו', parts: [RUN_WARMUP2, RS.tempo, RS.cooldown] },
+  { key: 'session-tt', label: '3 km time trial', he: 'מבחן 3 ק״מ', parts: [RUN_WARMUP2, RUN_TT, RS.cooldown] },
 ];
 function PatternCoverage({ plan, exercises, cols = 5 }) {
   const tt = useAppT();
@@ -2325,14 +2336,25 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
   // cues/notes, no video. exerciseId stays "" so the row renders via ex.title.
   // Lets the coach sketch a whole program fast, then attach details later.
   // a run segment (#769): a name-only row with the segment's usual prescription, titled in the coach's language
-  const addRunSegment = (dayIdx, sg) => {
+  // one preset as a plan row; its pace from HIS zone when he has a test (#901 / #914), else the preset's own default
+  const runSegEx = (sg, order) => {
     const ex = defaultPlanEx();
-    const day = plan.days[dayIdx];
-    ex.order = day?.exercises.length || 0;
+    ex.order = order;
     const he = readLang() === 'he';
     ex.title = he ? sg.he : sg.label;
     ex.sets = sg.sets; ex.reps = he ? sg.distHe || sg.dist : sg.dist; ex.tempo = he ? sg.paceHe || sg.pace : sg.pace; ex.rest = (he ? sg.restHe || sg.rest : sg.rest) || '';
-    updateDay(dayIdx, { exercises: [...(day?.exercises || []), ex] });
+    const zq = sg.zone && runZ ? runZ.zones.find((q) => q.key === sg.zone) : null;
+    if (zq) ex.tempo = `${fmtPaceSec(zq.lo)}-${fmtPaceSec(zq.hi)}`;
+    return ex;
+  };
+  const addRunSegment = (dayIdx, sg) => {
+    const day = plan.days[dayIdx];
+    updateDay(dayIdx, { exercises: [...(day?.exercises || []), runSegEx(sg, day?.exercises.length || 0)] });
+  };
+  const addRunSession = (dayIdx, sess) => {
+    const day = plan.days[dayIdx];
+    const n = day?.exercises.length || 0;
+    updateDay(dayIdx, { exercises: [...(day?.exercises || []), ...sess.parts.map((sg, i) => runSegEx(sg, n + i))] });
   };
   const addExByName = (name) => {
     const t = (name || '').trim();
@@ -3187,6 +3209,12 @@ export function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trai
                     <button key={sg.key} type="button" onClick={() => addRunSegment(dayIdx, sg)} style={{ height: 36, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {tt(sg.label)}</button>
                   ))}
                   {/* a narrow pane: ADD SEGMENT is the grid's 8th cell (7 presets alone left one orphan under two rows of three) */}
+                  {/* the whole sessions (#901): a full row of their own, the same 36px cells */}
+                  <div data-run-sessions style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: runCards ? 'minmax(0, 1fr)' : 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+                    {RUN_SESSIONS.map((ss) => (
+                      <button key={ss.key} type="button" onClick={() => addRunSession(dayIdx, ss)} title={ss.parts.map((p) => (readLang() === 'he' ? p.he : p.label)).join(' + ')} style={{ height: 36, border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {readLang() === 'he' ? ss.he : ss.label}</button>
+                    ))}
+                  </div>
                   {runCards && <button type="button" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{ height: 36, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: readLang() === 'he' ? 0 : '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: 0 }}>+ {tt('ADD SEGMENT')}</button>}
                 </div>
               )}
