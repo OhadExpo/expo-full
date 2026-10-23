@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-23T17:42:56.696Z",
- "hash": "2de6d82a93d078cf77ba4b10f7e9acf26c16f2f6e11d87a32d54d3f3f968e236",
+ "generatedAt": "2026-10-23T17:53:11.593Z",
+ "hash": "df830ad989bc9dd465c89a95bc66da4a7fb44bd7792d140de91acdeb8c55332d",
  "manifest": {
   "rls": [
    {
@@ -105,6 +105,10 @@
    },
    {
     "t": "coaching_contracts",
+    "on": true
+   },
+   {
+    "t": "health_rls_baseline",
     "on": true
    },
    {
@@ -1781,6 +1785,24 @@
    {
     "f": "health_owner_subs(p_secret text)",
     "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "health_rls_baseline_check(p_secret text, p_live_hash text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "health_rls_baseline_owner()",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "health_rls_baseline_set(p_hash text, p_manifest jsonb, p_reason text)",
+    "anon": false,
     "authed": true,
     "secdef": true
    },

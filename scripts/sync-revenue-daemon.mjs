@@ -295,6 +295,25 @@ function runClubSync() {
   });
 }
 setTimeout(() => { runClubSync(); setInterval(runClubSync, 20 * 60 * 1000); }, 17 * 60 * 1000);
+// A DRIFT THAT IS A COMMITTED MIGRATION HEALS ITSELF (#963, Ohad 23.10: "Why is this not automatically fixed?"): every 5
+// minutes scripts/rls-drift-heal.mjs compares the live policy / function manifest with the stored baseline; when every
+// difference is created or dropped by a migration committed here, the baseline takes it (the health cron's 15-minute grace
+// covers the gap). Unexplained drift is logged and left to page. Quiet when in step.
+let healRunning = false;
+function runRlsHeal() {
+  if (healRunning) return;
+  healRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/rls-drift-heal.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', (code) => {
+    healRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 500);
+    if (line || code) say(`rls heal: exit ${code} ${line}`);
+  });
+}
+setTimeout(() => { runRlsHeal(); setInterval(runRlsHeal, 5 * 60 * 1000); }, 2 * 60 * 1000);
 // 15 minutes in: the shootarounds (it writes expo-bhbc-loads - clear of the warm-up step's write)
 setTimeout(() => { runShootarounds(); setInterval(runShootarounds, 20 * 60 * 1000); }, 15 * 60 * 1000);
 // 7 minutes after the owed cycle: both download through the same Chrome (1010c review)
