@@ -242,11 +242,13 @@ export default async function handler(req, res) {
     }
     checks.videoUpload = 'ok';
 
-    // 8. STORAGE CAP WATCH — form-videos accumulates and never self-deletes;
-    // the free-plan project cap is 1GB. Hitting it 413s EVERY upload for EVERY
-    // athlete (a worse Ron incident). Page at 88% so there's runway to prune
-    // old clips or upgrade before the wall. ~672MB / 1GB as of 2026-06-12.
-    const STORAGE_CAP_BYTES = 1024 * 1024 * 1024;
+    // 8. STORAGE CAP WATCH — form-videos accumulates and never self-deletes.
+    // The project is on Supabase PRO since 2026-08-14 (100GB storage included);
+    // the old 1GB here was the free-plan cap and paged a false "BROKEN" at
+    // 1.9GB on 2026-10-23 (#908). Page at 88% so there's runway to prune or
+    // raise the plan. ~1.9GB / 100GB, growing ~0.25GB a month, as of 2026-10-23.
+    const STORAGE_CAP_GB = 100;
+    const STORAGE_CAP_BYTES = STORAGE_CAP_GB * 1024 * 1024 * 1024;
     const STORAGE_WARN_FRAC = 0.88;
     const su = await fetch(`${SUPA_URL}/rest/v1/rpc/health_storage_usage`, {
       method: 'POST', headers: ah, body: JSON.stringify({ p_secret: process.env.HEALTH_SECRET }),
@@ -256,7 +258,7 @@ export default async function handler(req, res) {
       const bytes = Number(usage?.bytes || 0);
       checks.storagePct = `${Math.round((bytes / STORAGE_CAP_BYTES) * 100)}%`;
       if (bytes > STORAGE_CAP_BYTES * STORAGE_WARN_FRAC) {
-        throw new Error(`form-videos storage at ${checks.storagePct} of 1GB cap (${Math.round(bytes / 1e6)}MB) — prune old clips or upgrade before uploads start failing project-wide`);
+        throw new Error(`form-videos storage at ${checks.storagePct} of ${STORAGE_CAP_GB}GB cap (${Math.round(bytes / 1e6)}MB) — prune old clips or upgrade before uploads start failing project-wide`);
       }
     } // soft-fail: if the probe errors, the drift check below still runs
 

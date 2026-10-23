@@ -161,9 +161,16 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
     return s;
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
+  // Opens COLLAPSED on every page open - the score line is the summary, the grid is a tap away
+  // (#911, Ohad 23.10: "takes too much space and should be collapsed when opening a page").
+  const [open, setOpen] = useState(false);
   if (exercises.length === 0) return null;
-  return (<div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
-    <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>{tt('PATTERN COVERAGE:')} {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
+  return (<div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: open ? 12 : '0 12px', marginBottom: 16 }}>
+    <div {...asButton(() => setOpen(o => !o))} aria-expanded={open} style={{ minHeight: open ? 0 : 36, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: open ? 8 : 0, letterSpacing:'0.06em' }}>
+      <span style={{ display:'inline-block', transform: open ? 'none' : 'rotate(-90deg)', transition:'transform 180ms ease', lineHeight:1 }}><CaretGlyph /></span>
+      <span>{tt('PATTERN COVERAGE:')} {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</span>
+    </div>
+    {open && <>
     {/* minmax(0,1fr): a bare 1fr floors at min-content, so long labels
         (Carry/Loaded Locomotion) widened their column and narrow panes got
         visibly unequal boxes. height:100% makes every badge fill its grid
@@ -172,6 +179,7 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
         wrap in that width) — drop to 2 columns on phones and let labels wrap. */}
     <style>{`@media (max-width:760px){ .pattern-cov-grid{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }`}</style>
     <div className="pattern-cov-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: 5 }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={{ width:'100%', height:'100%', minHeight:0, boxSizing:'border-box', justifyContent:'center', alignItems:'center', textAlign:'center', display:'inline-flex', whiteSpace:'normal', lineHeight:1.15, padding:'5px 4px', ...(pats.has(p) ? {} : {fontWeight:500,opacity:0.65}) }}>{pats.has(p) ? "✓" : "✗"} {taxoHe(p, isHe ? 'he' : 'en')}</Badge>)}</div>
+    </>}
   </div>);
 }
 

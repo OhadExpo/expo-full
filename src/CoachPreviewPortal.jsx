@@ -47,7 +47,9 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           if (!alive) return;
           const p = Array.isArray(data) && data[0];
           if (!p) { setError(readLang() === 'he' ? 'התוכנית לא נמצאה.' : 'Program not found.'); return; }
-          setResolvedTraineeId(p.trainee_id || null);
+          // A couple member's block (tr_x__0 / __1) previews as the couple: the portal only knows the parent
+          // record, and the member id left it on 'Loading your program' forever (#910, a couple's Block #9).
+          setResolvedTraineeId(p.trainee_id ? String(p.trainee_id).split('__')[0] : null);
           setPlans([reshape(p)]);
           return;
         }

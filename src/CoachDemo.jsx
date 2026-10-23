@@ -2485,6 +2485,31 @@ function DemoRealEditor({ program, onBack, onSwitch }) {
   );
 }
 
+// PATTERN COVERAGE mock - mirrors the real PlanEditor's PatternCoverage, which opens COLLAPSED on every page
+// open (#911): the score line is the summary, a tap opens the pattern list.
+function DemoPatternCoverage({ title, items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ border: `1px solid rgba(255,165,2,0.4)`, padding: open ? 12 : '0 12px', marginBottom: 16 }}>
+      <div role="button" tabIndex={0} aria-expanded={open} onClick={() => setOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
+        style={{ minHeight: open ? 0 : 36, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: open ? 8 : 0 }}>
+        <CaretGlyph rot={open ? 0 : -90} /><span>{title}</span>
+      </div>
+      {open && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {items.map((p, i) => (
+          <span key={i} style={{
+            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+            padding: '4px 10px', borderRadius: 0,
+            border: `1px solid ${p.hit ? 'rgba(46,213,115,0.502)' : C.bd2}`,
+            color: p.hit ? C.gn : C.td,
+            background: 'transparent',
+          }}>{p.hit ? '✓' : 'x'} {p.label.toUpperCase()}</span>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
 function DemoPrograms({ resetToken = 0 }) {
   const settle = useSettleIn();   // the real phone list's first-paint fade (4.10 #539 parity)
   const rail = useNarrowRail();
@@ -3099,29 +3124,7 @@ function DemoPrograms({ resetToken = 0 }) {
 
         {/* PATTERN COVERAGE chart (mock) — mirrors the real PlanEditor's
             PatternCoverage component. */}
-        <div style={{ border: `1px solid rgba(255,165,2,0.4)`, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>{T('PATTERN COVERAGE: 5/8')}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Horizontal Push', hit: true },
-              { label: 'Horizontal Pull', hit: true },
-              { label: 'Vertical Push', hit: true },
-              { label: 'Vertical Pull', hit: false },
-              { label: 'Hip Hinge', hit: true },
-              { label: 'Squat', hit: true },
-              { label: 'Lunge', hit: false },
-              { label: 'Carry/Loaded Locomotion', hit: false },
-            ].map((p, i) => (
-              <span key={i} style={{
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-                padding: '4px 10px', borderRadius: 0,
-                border: `1px solid ${p.hit ? 'rgba(46,213,115,0.502)' : C.bd2}`,
-                color: p.hit ? C.gn : C.td,
-                background: 'transparent',
-              }}>{p.hit ? '✓' : 'x'} {p.label.toUpperCase()}</span>
-            ))}
-          </div>
-        </div>
+        <DemoPatternCoverage title={T('PATTERN COVERAGE: 5/8')} items={[{ label: 'Horizontal Push', hit: true }, { label: 'Horizontal Pull', hit: true }, { label: 'Vertical Push', hit: true }, { label: 'Vertical Pull', hit: false }, { label: 'Hip Hinge', hit: true }, { label: 'Squat', hit: true }, { label: 'Lunge', hit: false }, { label: 'Carry/Loaded Locomotion', hit: false }]} />
 
         {/* Foldable warm-up — same shape the real PlanEditor uses. */}
         {Array.isArray(block.warmup) && block.warmup.length > 0 && (
@@ -3401,29 +3404,7 @@ function DemoPrograms({ resetToken = 0 }) {
 
               {/* PATTERN COVERAGE chart on the compare side too — matches the
                   left half so the WARM-UP + DAY A boxes line up vertically. */}
-              <div style={{ border: `1px solid rgba(255,165,2,0.4)`, padding: 12, marginBottom: 16 }}>
-                <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>{T('PATTERN COVERAGE: 4/8')}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Horizontal Push', hit: false },
-                    { label: 'Horizontal Pull', hit: true },
-                    { label: 'Vertical Push', hit: false },
-                    { label: 'Vertical Pull', hit: true },
-                    { label: 'Hip Hinge', hit: true },
-                    { label: 'Squat', hit: true },
-                    { label: 'Lunge', hit: false },
-                    { label: 'Carry/Loaded Locomotion', hit: false },
-                  ].map((p, i) => (
-                    <span key={i} style={{
-                      fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-                      padding: '4px 10px', borderRadius: 0,
-                      border: `1px solid ${p.hit ? 'rgba(46,213,115,0.502)' : C.bd2}`,
-                      color: p.hit ? C.gn : C.td,
-                      background: 'transparent',
-                    }}>{p.hit ? '✓' : 'x'} {p.label.toUpperCase()}</span>
-                  ))}
-                </div>
-              </div>
+              <DemoPatternCoverage title={T('PATTERN COVERAGE: 4/8')} items={[{ label: 'Horizontal Push', hit: false }, { label: 'Horizontal Pull', hit: true }, { label: 'Vertical Push', hit: false }, { label: 'Vertical Pull', hit: true }, { label: 'Hip Hinge', hit: true }, { label: 'Squat', hit: true }, { label: 'Lunge', hit: false }, { label: 'Carry/Loaded Locomotion', hit: false }]} />
               {Array.isArray(cmpBlock.warmup) && cmpBlock.warmup.length > 0 && (
                 <div style={{ border: `1px solid ${C.cardBd}`, padding: 10, marginBottom: 12 }}>
                   <button onClick={() => setCmpWarmOpen(o => !o)}
