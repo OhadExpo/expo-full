@@ -137,7 +137,7 @@ ${css}
   </div>
   <section>
     <h2>How to read this</h2>
-    <p class="lead">Left is expo-app.co.il as it stands right now — the athlete portal exactly as before the deploy. Right is this branch served locally. Same athlete seat (Amit), same route, same width, the language set to Hebrew before the first document, taken minutes apart.</p>
+    <p class="lead">Left is expo-app.co.il as it stands right now — the athlete portal exactly as before the deploy. Right is this branch served locally. Same athlete seat, same route, same width, the language set to Hebrew before the first document, taken minutes apart.</p>
   </section>
   ${PAIRS.map(pairSection).join('')}
 

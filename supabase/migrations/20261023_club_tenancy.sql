@@ -1,5 +1,7 @@
--- TEAM VERSION, PHASE B1 - club tenancy (#904). PROPOSED, NOT APPLIED. Apply only with Ohad, after the runbook
--- (docs/team-version-phase-b.md): snapshot first, apply, run the checks at the bottom, then dual-read.
+-- TEAM VERSION, PHASE B1 - club tenancy (#904). APPLIED to prod 23.10 (Ohad: '1 ok') via the Supabase MCP, after a
+-- snapshot of every expo-bhbc-* store row; the four checks at the bottom passed in a rolled-back test (anon denied,
+-- club A's coach reads 0 of B, a coach's medical read has no notes / pain / progress, every read logged). The tables
+-- are empty: steps 3-8 of docs/team-version-phase-b.md (club rows, backfill, dual-read) come next.
 --
 -- Shape: one row per club; members by email + role (replaces the JS + SQL email lists); the zone's eight store keys
 -- become club-scoped rows (club_store) so the zone's code moves from useSupaStore(key) to a club-keyed store with the
@@ -117,6 +119,9 @@ create policy club_medical_update on public.club_medical for update to authentic
 create policy club_medical_reads_owner on public.club_medical_reads for select to authenticated using (club_id in (select public.my_clubs(array['owner'])));
 
 revoke all on public.clubs, public.club_members, public.club_store, public.club_medical, public.club_medical_reads from anon;
+-- explicit grants (Supabase stops auto-granting new public tables on 2026-10-30); RLS above decides the rows
+grant select, insert, update, delete on public.clubs, public.club_members, public.club_store, public.club_medical, public.club_medical_reads to authenticated;
+grant select, insert, update, delete on public.clubs, public.club_members, public.club_store, public.club_medical, public.club_medical_reads to service_role;
 
 -- ── checks to run after applying (each must return the stated result) ──────────────────────────────────────────────
 -- 1. anon sees nothing:                   set role anon; select count(*) from public.club_store;          -> error / 0

@@ -166,7 +166,7 @@ const getPaymentStatus = (t, payments) => {
 
 // Last workout label for the card: pulls from BOTH coach-logged workouts and
 // portal-logged client_workouts so a trainee who only trains via portal
-// (Amit) still surfaces activity. Returns null when the trainee has no logs.
+// still surfaces activity. Returns null when the trainee has no logs.
 // Latest workout timestamp (ms since epoch) used by the sort comparator.
 // Returns 0 when the trainee has never trained so they pool at the
 // "least recent" end with stable ordering.

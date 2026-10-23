@@ -152,7 +152,9 @@ export function watchStuck(label, ms = 20000) {
   if (typeof window === 'undefined') return () => {};
   const t = setTimeout(() => {
     if (document.visibilityState !== 'visible') return;   // a background tab is allowed to wait
-    autoReport(`STUCK · ${label} still on screen after ${Math.round(ms / 1000)}s`, '', `stuck:${location.pathname}`);
+    // the route is in the MESSAGE (ids become <id> in the fingerprint), so two different screens stuck on the same
+    // words are two reports, not one (#933 review: the portal and the couple preview both say 'Loading your program')
+    autoReport(`STUCK · ${label} still on screen after ${Math.round(ms / 1000)}s on ${location.pathname}`, '', `stuck:${location.pathname}`);
   }, ms);
   return () => clearTimeout(t);
 }

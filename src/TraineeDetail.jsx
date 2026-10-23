@@ -153,7 +153,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
   const tPay=(payments||[]).filter(p=>_allIds.has(p.traineeId));
   // Portal-logged workouts (the trainee's own session logs from their portal).
   // We merge these with in-person `tw` for the Recent Workouts feed below —
-  // without that merge, clients who train solo from the portal (Amit, Roey)
+  // without that merge, clients who train solo from the portal
   // looked totally inactive in their detail view.
   const tcw = (clientWorkouts || []).filter(w => _allIds.has(w.clientId));
   const lineageMap = useMemo(() => Object.fromEntries((trainees || []).map(t => [t.id, t.name])), [trainees]);

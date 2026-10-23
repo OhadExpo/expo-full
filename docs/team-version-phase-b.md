@@ -10,7 +10,7 @@ All club data today lives in eight shared `store` rows (`expo-bhbc-*`). Any seco
 
 1. Snapshot every `expo-bhbc-*` store row to a dated JSON file (the restore point). Record the production SHA.
 
-2. Apply `supabase/proposed/20261023_club_tenancy.sql` (additive: new tables, functions, RLS; nothing existing changes). Run the four checks at the bottom of the file.
+2. ~~Apply `supabase/migrations/20261023_club_tenancy.sql`~~ DONE 23.10: applied after a snapshot (`~/expo-private-backups/snapshots/bhbc-store-before-phaseB-*.json`); the four checks at the bottom of the file passed in a rolled-back test. Tables empty until step 3.
 
 3. Insert the club rows (`bhbc`, then the new club) and their members (`club_members`, accepted).
 

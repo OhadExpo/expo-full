@@ -1,5 +1,5 @@
 // TEAM VERSION PHASE B, STEP 4 - copy Herzliya's club data into the club tables (#904). Run ONLY with Ohad, after
-// supabase/proposed/20261023_club_tenancy.sql is applied and checked (docs/team-version-phase-b.md).
+// supabase/migrations/20261023_club_tenancy.sql is applied and checked (docs/team-version-phase-b.md).
 //
 //   node scripts/club-tenancy-backfill.mjs            DRY RUN (default): reads the eight store rows, prints what would be
 //                                                     written - rows, sizes, a hash per key - and writes NOTHING

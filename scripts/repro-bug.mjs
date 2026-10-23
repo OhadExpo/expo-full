@@ -1,7 +1,9 @@
 // READ-ONLY reproduction of one reported bug, for the headless triage (#909, Ohad 23.10: "make some sort of autonomous
 // check everytime a message like this pops up... So I will stop needing to screenshot and send you the errors").
-// Opens ONE page of production as the owner in the debug Chrome, with every write refused in the browser (REST
-// insert/update/delete, storage uploads, /api posts, RPCs whose name says they write), waits for the screen to settle,
+// Opens ONE page of production as the owner in the debug Chrome, with every write refused in the browser from the very
+// first request (#933): nothing but GET / HEAD / OPTIONS goes out, except the sign-in token call and RPCs on a READ-ONLY
+// allowlist (a write RPC whose name says nothing - purge_trainee_data, sign_contract - is refused by default), and the
+// page gets no WebSocket (realtime broadcasts cannot be intercepted). Waits for the screen to settle,
 // then prints what a person would have seen: the screen text, page errors, console errors, failed or 4xx/5xx
 // requests, how many writes it refused, and a screenshot path (Read it to look).
 //   node scripts/repro-bug.mjs </path or https://expo-app.co.il/path> [--width 412] [--lang en|he] [--wait 25]
@@ -22,7 +24,10 @@ if (!/^\/[A-Za-z0-9/_\-.%?=&#]*$/.test(route)) { console.log(`refused: "${target
 const W = Math.min(Math.max(parseInt(arg('--width', '412'), 10) || 412, 320), 1920);
 const LANG = arg('--lang', 'en') === 'he' ? 'he' : 'en';
 const WAIT = Math.min(parseInt(arg('--wait', '25'), 10) || 25, 60);
-const WRITE_RPC = /\/rpc\/[a-z_]*(append|set|save|insert|update|delete|remove|mark|claim|reset|upsert|create|book|cancel|send|log|write|bump|touch|merge|archive)/i;
+// read-only RPCs the app calls while it loads; anything else non-GET is refused (default deny)
+const READ_RPC = /\/rest\/v1\/rpc\/(my_trainee|my_clubs|current_client_id|current_trainee_id|is_[a-z_]+|get_[a-z_]+|list_[a-z_]+|search_[a-z_]+)(\?|$)/;
+const STORAGE_LIST = /supabase\.co\/storage\/v1\/object\/list\//;   // a POST that only lists files
+const SIGN_IN = /supabase\.co\/auth\/v1\/token\?grant_type=(password|refresh_token)$/;
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
 const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
@@ -31,8 +36,12 @@ try {
   await p.evaluateOnNewDocument((lang) => {
     try { localStorage.setItem('expo-gate-run', '1'); localStorage.setItem('expo-lang', lang); } catch { /* */ }
     Object.defineProperty(document, 'visibilityState', { get: () => 'visible' });
+    // no realtime: a WebSocket frame is a write the request filter below cannot see
+    // (a socket that never opens and sends nothing - throwing here crashed the app's first render)
+    window.WebSocket = class NoSocket { constructor() { this.readyState = 0; } send() {} close() { this.readyState = 3; } addEventListener() {} removeEventListener() {} };
+    Object.assign(window.WebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
   }, LANG);
-  const errs = []; const bad = []; let refused = 0; let signedIn = false;
+  const errs = []; const bad = []; let refused = 0;
   p.on('pageerror', (e) => errs.push('page error: ' + String(e.message).slice(0, 300)));
   p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 300)); });
   p.on('requestfailed', (r) => { const t = (r.failure() || {}).errorText || ''; if (!/BLOCKED_BY_CLIENT/.test(t)) bad.push(`FAILED ${r.method()} ${r.url().slice(0, 140)} ${t}`); });
@@ -40,14 +49,10 @@ try {
   await p.setRequestInterception(true);
   p.on('request', (r) => {
     const u = r.url(); const m = r.method();
-    if (signedIn && !['GET', 'HEAD', 'OPTIONS'].includes(m)) {
-      const write = (/supabase\.co\/(rest|storage)\//.test(u) && !/\/rest\/v1\/rpc\//.test(u)) || WRITE_RPC.test(u) || (/expo-app\.co\.il\/api\//.test(u));
-      if (write) { refused += 1; r.abort(); return; }
-    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(m) && !SIGN_IN.test(u) && !READ_RPC.test(u) && !STORAGE_LIST.test(u)) { refused += 1; r.abort(); return; }
     r.continue();
   });
   await signIn(p, BASE);
-  signedIn = true;
   errs.length = 0; bad.length = 0;
   const t0 = Date.now();
   await p.goto(BASE + route, { waitUntil: 'domcontentloaded' });

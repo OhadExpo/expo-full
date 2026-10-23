@@ -1,8 +1,16 @@
 {
- "generatedAt": "2026-06-12T12:47:59.121Z",
- "hash": "f29ff4b7cd585a99f445c1cf416c7f80a18230800641929b232ee6b9267f3353",
+ "generatedAt": "2026-10-23T11:35:38.010Z",
+ "hash": "c24dcc8424e918866dbae961f82be4d303e0cff765b31479c5e34a8dec5600a5",
  "manifest": {
   "rls": [
+   {
+    "t": "api_daily_budget",
+    "on": true
+   },
+   {
+    "t": "athlete_app_opens",
+    "on": true
+   },
    {
     "t": "athlete_meals",
     "on": true
@@ -44,7 +52,31 @@
     "on": true
    },
    {
+    "t": "club_medical",
+    "on": true
+   },
+   {
+    "t": "club_medical_reads",
+    "on": true
+   },
+   {
+    "t": "club_members",
+    "on": true
+   },
+   {
+    "t": "club_store",
+    "on": true
+   },
+   {
+    "t": "clubs",
+    "on": true
+   },
+   {
     "t": "coach_booking_settings",
+    "on": true
+   },
+   {
+    "t": "coach_booking_settings_backup_20260922",
     "on": true
    },
    {
@@ -92,7 +124,27 @@
     "on": true
    },
    {
+    "t": "nadlan_cards",
+    "on": true
+   },
+   {
+    "t": "nadlan_meta",
+    "on": true
+   },
+   {
+    "t": "nadlan_thumbs",
+    "on": true
+   },
+   {
+    "t": "nadlan_votes",
+    "on": true
+   },
+   {
     "t": "plans",
+    "on": true
+   },
+   {
+    "t": "plans_backup_20260729",
     "on": true
    },
    {
@@ -105,6 +157,174 @@
    },
    {
     "t": "push_subscriptions",
+    "on": true
+   },
+   {
+    "t": "revenue_cell_history",
+    "on": true
+   },
+   {
+    "t": "revenue_month_total",
+    "on": true
+   },
+   {
+    "t": "revenue_owed",
+    "on": true
+   },
+   {
+    "t": "revenue_sheet_event",
+    "on": true
+   },
+   {
+    "t": "sbx_alias",
+    "on": true
+   },
+   {
+    "t": "sbx_athlete_app_opens",
+    "on": true
+   },
+   {
+    "t": "sbx_athlete_meals",
+    "on": true
+   },
+   {
+    "t": "sbx_availability_rules",
+    "on": true
+   },
+   {
+    "t": "sbx_bit_payment_requests",
+    "on": true
+   },
+   {
+    "t": "sbx_bookings",
+    "on": true
+   },
+   {
+    "t": "sbx_bug_reports",
+    "on": true
+   },
+   {
+    "t": "sbx_bw_logs",
+    "on": true
+   },
+   {
+    "t": "sbx_challenge_participants",
+    "on": true
+   },
+   {
+    "t": "sbx_challenges",
+    "on": true
+   },
+   {
+    "t": "sbx_chat_logs",
+    "on": true
+   },
+   {
+    "t": "sbx_client_workouts",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_booking_settings",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_messages",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_note_comments",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_note_events",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_notes",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_payment_settings",
+    "on": true
+   },
+   {
+    "t": "sbx_coach_tasks",
+    "on": true
+   },
+   {
+    "t": "sbx_coaching_contracts",
+    "on": true
+   },
+   {
+    "t": "sbx_intake_submissions",
+    "on": true
+   },
+   {
+    "t": "sbx_intake_tokens",
+    "on": true
+   },
+   {
+    "t": "sbx_invoices",
+    "on": true
+   },
+   {
+    "t": "sbx_leads",
+    "on": true
+   },
+   {
+    "t": "sbx_plans",
+    "on": true
+   },
+   {
+    "t": "sbx_program_shares",
+    "on": true
+   },
+   {
+    "t": "sbx_revenue_cell_history",
+    "on": true
+   },
+   {
+    "t": "sbx_revenue_month_total",
+    "on": true
+   },
+   {
+    "t": "sbx_revenue_owed",
+    "on": true
+   },
+   {
+    "t": "sbx_revenue_owed_bak_20261004",
+    "on": true
+   },
+   {
+    "t": "sbx_revenue_sheet_event",
+    "on": true
+   },
+   {
+    "t": "sbx_store",
+    "on": true
+   },
+   {
+    "t": "sbx_subscriptions",
+    "on": true
+   },
+   {
+    "t": "sbx_trainee_activity",
+    "on": true
+   },
+   {
+    "t": "sbx_trainee_evaluations",
+    "on": true
+   },
+   {
+    "t": "sbx_trainee_next_actions",
+    "on": true
+   },
+   {
+    "t": "sbx_weekly_focus",
+    "on": true
+   },
+   {
+    "t": "sbx_workout_drafts",
     "on": true
    },
    {
@@ -130,17 +350,39 @@
    {
     "t": "weekly_focus",
     "on": true
+   },
+   {
+    "t": "workout_drafts",
+    "on": true
    }
   ],
   "policies": [
    {
+    "c": "INSERT",
+    "p": "athlete_app_opens_insert_self",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "athlete_app_opens",
+    "w": "(email = ( SELECT (auth.jwt() ->> 'email'::text)))"
+   },
+   {
+    "c": "SELECT",
+    "p": "athlete_app_opens_select",
+    "q": "((( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text) OR (email = ( SELECT (auth.jwt() ->> 'email'::text))))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "athlete_app_opens",
+    "w": ""
+   },
+   {
     "c": "ALL",
     "p": "meals_athlete_own",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "athlete_meals",
-    "w": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))"
+    "w": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))"
    },
    {
     "c": "ALL",
@@ -172,7 +414,7 @@
    {
     "c": "SELECT",
     "p": "bit_req_athlete_read",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "bit_payment_requests",
@@ -194,7 +436,7 @@
     "r": "{anon,authenticated}",
     "s": "public",
     "t": "bookings",
-    "w": "((length(contact_name) > 0) AND (length(coach_email) > 0) AND (start_at > now()) AND (source = 'public'::text))"
+    "w": "((source = 'public'::text) AND (status = 'confirmed'::text) AND (trainee_id IS NULL) AND ((length(COALESCE(contact_name, ''::text)) >= 1) AND (length(COALESCE(contact_name, ''::text)) <= 120)) AND (length(COALESCE(contact_email, ''::text)) <= 200) AND (length(COALESCE(contact_phone, ''::text)) <= 40) AND (length(COALESCE(notes, ''::text)) <= 1000) AND booking_slot_is_offered(coach_email, start_at, duration_min) AND booking_rate_ok(coach_email, source_ip))"
    },
    {
     "c": "ALL",
@@ -314,6 +556,87 @@
     "w": "(is_staff() OR (client_id = current_client_id()))"
    },
    {
+    "c": "UPDATE",
+    "p": "club_medical_update",
+    "q": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text, 'pt'::text]) AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_medical",
+    "w": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text, 'pt'::text]) AS my_clubs))"
+   },
+   {
+    "c": "INSERT",
+    "p": "club_medical_write",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_medical",
+    "w": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text, 'pt'::text]) AS my_clubs))"
+   },
+   {
+    "c": "SELECT",
+    "p": "club_medical_reads_owner",
+    "q": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text]) AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_medical_reads",
+    "w": ""
+   },
+   {
+    "c": "ALL",
+    "p": "club_members_manage",
+    "q": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text]) AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_members",
+    "w": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text]) AS my_clubs))"
+   },
+   {
+    "c": "SELECT",
+    "p": "club_members_read",
+    "q": "(club_id IN ( SELECT my_clubs() AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_members",
+    "w": ""
+   },
+   {
+    "c": "SELECT",
+    "p": "club_store_read",
+    "q": "(club_id IN ( SELECT my_clubs() AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_store",
+    "w": ""
+   },
+   {
+    "c": "UPDATE",
+    "p": "club_store_update",
+    "q": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text, 'coach'::text, 'pt'::text]) AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_store",
+    "w": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text, 'coach'::text, 'pt'::text]) AS my_clubs))"
+   },
+   {
+    "c": "INSERT",
+    "p": "club_store_write",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "club_store",
+    "w": "(club_id IN ( SELECT my_clubs(ARRAY['owner'::text, 'head'::text, 'coach'::text, 'pt'::text]) AS my_clubs))"
+   },
+   {
+    "c": "SELECT",
+    "p": "clubs_read",
+    "q": "(id IN ( SELECT my_clubs() AS my_clubs))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "clubs",
+    "w": ""
+   },
+   {
     "c": "SELECT",
     "p": "cbs_public_read",
     "q": "true",
@@ -334,16 +657,16 @@
    {
     "c": "UPDATE",
     "p": "coach_messages_athlete_mark_read",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "coach_messages",
-    "w": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))"
+    "w": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))"
    },
    {
     "c": "SELECT",
     "p": "coach_messages_athlete_read",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "coach_messages",
@@ -356,7 +679,7 @@
     "r": "{authenticated}",
     "s": "public",
     "t": "coach_messages",
-    "w": "((sender_role = 'athlete'::text) AND ((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text))))"
+    "w": "((sender_role = 'athlete'::text) AND ((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id())))"
    },
    {
     "c": "ALL",
@@ -460,7 +783,7 @@
    {
     "c": "SELECT",
     "p": "invoices_athlete_self",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "invoices",
@@ -512,9 +835,63 @@
     "w": "is_trainer()"
    },
    {
+    "c": "ALL",
+    "p": "nadlan_cards_staff",
+    "q": "is_staff()",
+    "r": "{public}",
+    "s": "public",
+    "t": "nadlan_cards",
+    "w": "is_staff()"
+   },
+   {
+    "c": "ALL",
+    "p": "nadlan_meta_staff",
+    "q": "is_staff()",
+    "r": "{public}",
+    "s": "public",
+    "t": "nadlan_meta",
+    "w": "is_staff()"
+   },
+   {
+    "c": "ALL",
+    "p": "nadlan_thumbs_staff",
+    "q": "is_staff()",
+    "r": "{public}",
+    "s": "public",
+    "t": "nadlan_thumbs",
+    "w": "is_staff()"
+   },
+   {
+    "c": "SELECT",
+    "p": "nadlan_votes_read",
+    "q": "is_staff()",
+    "r": "{public}",
+    "s": "public",
+    "t": "nadlan_votes",
+    "w": ""
+   },
+   {
+    "c": "ALL",
+    "p": "nadlan_votes_write",
+    "q": "is_staff()",
+    "r": "{public}",
+    "s": "public",
+    "t": "nadlan_votes",
+    "w": "(is_staff() AND (voter =\nCASE lower(COALESCE((auth.jwt() ->> 'email'::text), ''::text))\n    WHEN 'ohadyproductions@gmail.com'::text THEN 'ohad'::text\n    WHEN 'yuvalberkovitch@gmail.com'::text THEN 'yuval'::text\n    ELSE NULL::text\nEND))"
+   },
+   {
+    "c": "SELECT",
+    "p": "bhbc staff read bhbc plans",
+    "q": "(is_bhbc_coach() AND is_bhbc_athlete(trainee_id))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "plans",
+    "w": ""
+   },
+   {
     "c": "SELECT",
     "p": "client_read_own_plans",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)) OR (current_client_id() ~~ (split_part(trainee_id, '__'::text, 1) || '%'::text)))",
+    "q": "((current_client_id() IS NOT NULL) AND ((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id())))",
     "r": "{authenticated}",
     "s": "public",
     "t": "plans",
@@ -528,15 +905,6 @@
     "s": "public",
     "t": "plans",
     "w": "is_staff()"
-   },
-   {
-    "c": "SELECT",
-    "p": "shares_public_read",
-    "q": "true",
-    "r": "{anon,authenticated}",
-    "s": "public",
-    "t": "program_shares",
-    "w": ""
    },
    {
     "c": "ALL",
@@ -584,6 +952,447 @@
     "w": "(( SELECT (auth.jwt() ->> 'email'::text)) = user_email)"
    },
    {
+    "c": "ALL",
+    "p": "revenue_cell_history_owner",
+    "q": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "revenue_cell_history",
+    "w": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)"
+   },
+   {
+    "c": "ALL",
+    "p": "revenue_month_total_owner",
+    "q": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "revenue_month_total",
+    "w": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)"
+   },
+   {
+    "c": "ALL",
+    "p": "revenue_owed_owner",
+    "q": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "revenue_owed",
+    "w": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)"
+   },
+   {
+    "c": "ALL",
+    "p": "revenue_sheet_event_owner",
+    "q": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "revenue_sheet_event",
+    "w": "(( SELECT (auth.jwt() ->> 'email'::text)) = 'ohadyproductions@gmail.com'::text)"
+   },
+   {
+    "c": "SELECT",
+    "p": "sbx_alias_owner_read",
+    "q": "( SELECT is_trainer() AS is_trainer)",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_alias",
+    "w": ""
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_athlete_app_opens",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_athlete_meals",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_availability_rules",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_bit_payment_requests",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_bookings",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_bug_reports",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_bw_logs",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_challenge_participants",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_challenges",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_chat_logs",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_client_workouts",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_booking_settings",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_messages",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_note_comments",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_note_events",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_notes",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_payment_settings",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coach_tasks",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_coaching_contracts",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_intake_submissions",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_intake_tokens",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_invoices",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_leads",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_plans",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_program_shares",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_revenue_cell_history",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_revenue_month_total",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_revenue_owed",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_revenue_sheet_event",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_store",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_subscriptions",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_trainee_activity",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_trainee_evaluations",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_trainee_next_actions",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_weekly_focus",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "ALL",
+    "p": "sbx_rw",
+    "q": "( SELECT (is_partner() OR is_trainer()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "sbx_workout_drafts",
+    "w": "( SELECT (is_partner() OR is_trainer()))"
+   },
+   {
+    "c": "INSERT",
+    "p": "store_bhbc_coach_insert",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "(is_bhbc_coach() AND bhbc_coach_writable_key(key))"
+   },
+   {
+    "c": "SELECT",
+    "p": "store_bhbc_coach_read",
+    "q": "(is_bhbc_coach() AND (key = ANY (ARRAY['expo-bhbc-roster'::text, 'expo-bhbc-loads'::text, 'expo-bhbc-fixtures'::text, 'expo-bhbc-league'::text, 'expo-bhbc-medical'::text, 'expo-bhbc-plans'::text, 'expo-bhbc-gamewarmup'::text])))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": ""
+   },
+   {
+    "c": "UPDATE",
+    "p": "store_bhbc_coach_write",
+    "q": "(is_bhbc_coach() AND bhbc_coach_writable_key(key))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "(is_bhbc_coach() AND bhbc_coach_writable_key(key))"
+   },
+   {
+    "c": "DELETE",
+    "p": "store_bhbc_coach_write_ceiling_delete",
+    "q": "(NOT bhbc_coach_write_blocked(key))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": ""
+   },
+   {
+    "c": "INSERT",
+    "p": "store_bhbc_coach_write_ceiling_insert",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "(NOT bhbc_coach_write_blocked(key))"
+   },
+   {
+    "c": "UPDATE",
+    "p": "store_bhbc_coach_write_ceiling_update",
+    "q": "(NOT bhbc_coach_write_blocked(key))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "(NOT bhbc_coach_write_blocked(key))"
+   },
+   {
+    "c": "INSERT",
+    "p": "store_bhbc_pt_medical_insert",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "(is_bhbc_pt() AND (key = 'expo-bhbc-medical'::text))"
+   },
+   {
+    "c": "UPDATE",
+    "p": "store_bhbc_pt_medical_write",
+    "q": "(is_bhbc_pt() AND (key = 'expo-bhbc-medical'::text))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "(is_bhbc_pt() AND (key = 'expo-bhbc-medical'::text))"
+   },
+   {
     "c": "SELECT",
     "p": "store_exercises_read",
     "q": "(key = 'expo-exercises'::text)",
@@ -602,13 +1411,40 @@
     "w": ""
    },
    {
-    "c": "ALL",
-    "p": "store_presence_rw",
+    "c": "DELETE",
+    "p": "store_presence_delete_own",
+    "q": "((current_client_id() IS NOT NULL) AND ((key = ('expo-presence-'::text || current_client_id())) OR (regexp_replace(key, '__[0-9]+$'::text, ''::text) = ('expo-presence-'::text || current_client_id()))))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": ""
+   },
+   {
+    "c": "INSERT",
+    "p": "store_presence_insert_own",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "((current_client_id() IS NOT NULL) AND ((key = ('expo-presence-'::text || current_client_id())) OR (regexp_replace(key, '__[0-9]+$'::text, ''::text) = ('expo-presence-'::text || current_client_id()))))"
+   },
+   {
+    "c": "SELECT",
+    "p": "store_presence_read",
     "q": "(key ~~ 'expo-presence-%'::text)",
     "r": "{authenticated}",
     "s": "public",
     "t": "store",
-    "w": "(key ~~ 'expo-presence-%'::text)"
+    "w": ""
+   },
+   {
+    "c": "UPDATE",
+    "p": "store_presence_update_own",
+    "q": "((current_client_id() IS NOT NULL) AND ((key = ('expo-presence-'::text || current_client_id())) OR (regexp_replace(key, '__[0-9]+$'::text, ''::text) = ('expo-presence-'::text || current_client_id()))))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "store",
+    "w": "((current_client_id() IS NOT NULL) AND ((key = ('expo-presence-'::text || current_client_id())) OR (regexp_replace(key, '__[0-9]+$'::text, ''::text) = ('expo-presence-'::text || current_client_id()))))"
    },
    {
     "c": "ALL",
@@ -622,7 +1458,7 @@
    {
     "c": "SELECT",
     "p": "subscriptions_athlete_self",
-    "q": "((trainee_id = current_client_id()) OR (trainee_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((trainee_id = current_client_id()) OR (regexp_replace(trainee_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "subscriptions",
@@ -667,7 +1503,7 @@
    {
     "c": "SELECT",
     "p": "wf_own_read",
-    "q": "((client_id = current_client_id()) OR (client_id ~~ (current_client_id() || '__%'::text)))",
+    "q": "((client_id = current_client_id()) OR (regexp_replace(client_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
     "r": "{authenticated}",
     "s": "public",
     "t": "weekly_focus",
@@ -680,6 +1516,24 @@
     "r": "{authenticated}",
     "s": "public",
     "t": "weekly_focus",
+    "w": "is_staff()"
+   },
+   {
+    "c": "ALL",
+    "p": "wd_own",
+    "q": "((client_id = current_client_id()) OR (regexp_replace(client_id, '__[0-9]+$'::text, ''::text) = current_client_id()))",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "workout_drafts",
+    "w": "(((client_id = current_client_id()) OR (regexp_replace(client_id, '__[0-9]+$'::text, ''::text) = current_client_id())) AND starts_with(id, (('expo-stepLogger-'::text || client_id) || '-'::text)))"
+   },
+   {
+    "c": "ALL",
+    "p": "wd_staff_all",
+    "q": "is_staff()",
+    "r": "{authenticated}",
+    "s": "public",
+    "t": "workout_drafts",
     "w": "is_staff()"
    },
    {
@@ -698,7 +1552,7 @@
     "r": "{authenticated}",
     "s": "storage",
     "t": "objects",
-    "w": "(bucket_id = 'coaching-contracts'::text)"
+    "w": "((bucket_id = 'coaching-contracts'::text) AND is_staff())"
    },
    {
     "c": "INSERT",
@@ -719,13 +1573,49 @@
     "w": "((bucket_id = 'form-videos'::text) AND (is_trainer() OR ((current_trainee_id() IS NOT NULL) AND ((storage.foldername(name))[1] = current_trainee_id()))))"
    },
    {
+    "c": "SELECT",
+    "p": "meals_read_own_and_staff",
+    "q": "((bucket_id = 'meal-photos'::text) AND (is_staff() OR ((current_trainee_id() IS NOT NULL) AND (regexp_replace((storage.foldername(name))[1], '__[0-9]+$'::text, ''::text) = regexp_replace(current_trainee_id(), '__[0-9]+$'::text, ''::text)))))",
+    "r": "{authenticated}",
+    "s": "storage",
+    "t": "objects",
+    "w": ""
+   },
+   {
     "c": "INSERT",
     "p": "meals_write_authed",
     "q": "",
     "r": "{authenticated}",
     "s": "storage",
     "t": "objects",
-    "w": "(bucket_id = 'meal-photos'::text)"
+    "w": "((bucket_id = 'meal-photos'::text) AND (is_staff() OR ((current_trainee_id() IS NOT NULL) AND (regexp_replace((storage.foldername(name))[1], '__[0-9]+$'::text, ''::text) = regexp_replace(current_trainee_id(), '__[0-9]+$'::text, ''::text)))))"
+   },
+   {
+    "c": "INSERT",
+    "p": "partner_insert_own_voice",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "storage",
+    "t": "objects",
+    "w": "(( SELECT is_partner() AS is_partner) AND (bucket_id = 'coach-voice'::text) AND ((storage.foldername(name))[1] = 'sbx-elad'::text) AND (lower(storage.extension(name)) = ANY (ARRAY['webm'::text, 'm4a'::text])))"
+   },
+   {
+    "c": "SELECT",
+    "p": "partner_read_objects",
+    "q": "(( SELECT is_partner() AS is_partner) AND (bucket_id = ANY (ARRAY['form-videos'::text, 'coach-voice'::text, 'meal-photos'::text, 'coaching-contracts'::text])))",
+    "r": "{authenticated}",
+    "s": "storage",
+    "t": "objects",
+    "w": ""
+   },
+   {
+    "c": "SELECT",
+    "p": "voice_read_authed",
+    "q": "((bucket_id = 'coach-voice'::text) AND (is_staff() OR ((current_trainee_id() IS NOT NULL) AND (regexp_replace((storage.foldername(name))[1], '__[0-9]+$'::text, ''::text) = regexp_replace(current_trainee_id(), '__[0-9]+$'::text, ''::text)))))",
+    "r": "{authenticated}",
+    "s": "storage",
+    "t": "objects",
+    "w": ""
    },
    {
     "c": "INSERT",
@@ -734,15 +1624,81 @@
     "r": "{authenticated}",
     "s": "storage",
     "t": "objects",
-    "w": "(bucket_id = 'coach-voice'::text)"
+    "w": "((bucket_id = 'coach-voice'::text) AND (is_staff() OR ((current_trainee_id() IS NOT NULL) AND (regexp_replace((storage.foldername(name))[1], '__[0-9]+$'::text, ''::text) = regexp_replace(current_trainee_id(), '__[0-9]+$'::text, ''::text)))))"
    }
   ],
   "functions": [
+   {
+    "f": "api_budget_take(p_bucket text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "bhbc_activity_append(p_kind text, p_what text)",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "bhbc_coach_writable_key(k text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "bhbc_coach_write_blocked(k text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "booking_rate_ok(p_coach text, p_ip text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "booking_slot_is_offered(p_coach text, p_start timestamp with time zone, p_duration integer)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "bookings_public_stamp()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "bug_reports_reporter_fn()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "cancel_booking(p_id uuid)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
    {
     "f": "cleanup_push_subscription(sub_id bigint)",
     "anon": false,
     "authed": true,
     "secdef": true
+   },
+   {
+    "f": "club_medical_get(p_club text)",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "coach_messages_athlete_edit_guard()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
    },
    {
     "f": "cron_cleanup_push_subscription(cron_secret text, sub_id bigint)",
@@ -781,6 +1737,18 @@
     "secdef": true
    },
    {
+    "f": "expo_can_read_live_topic(topic text)",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "expo_can_write_live_topic(topic text)",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
     "f": "get_contract_by_token(p_token text)",
     "anon": true,
     "authed": true,
@@ -799,6 +1767,12 @@
     "secdef": true
    },
    {
+    "f": "health_cron_refusals(p_secret text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
     "f": "health_owner_subs(p_secret text)",
     "anon": true,
     "authed": true,
@@ -811,7 +1785,37 @@
     "secdef": true
    },
    {
+    "f": "health_rls_manifest_owner()",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
     "f": "health_storage_usage(p_secret text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "is_bhbc_athlete(tid text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "is_bhbc_coach()",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "is_bhbc_pt()",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "is_partner()",
     "anon": true,
     "authed": true,
     "secdef": true
@@ -841,10 +1845,34 @@
     "secdef": true
    },
    {
+    "f": "my_clubs(p_roles text[])",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
     "f": "my_trainee()",
     "anon": true,
     "authed": true,
     "secdef": true
+   },
+   {
+    "f": "nadlan_watchdog()",
+    "anon": false,
+    "authed": false,
+    "secdef": true
+   },
+   {
+    "f": "plan_days_carry_log_names()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "plans_stamp_day_ids()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
    },
    {
     "f": "purge_trainee_data(p_trainee_id text)",
@@ -853,10 +1881,142 @@
     "secdef": true
    },
    {
+    "f": "push_owner_subs(p_secret text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "push_subscriptions_cap_fn()",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
     "f": "rls_auto_enable()",
     "anon": false,
     "authed": false,
     "secdef": true
+   },
+   {
+    "f": "sbx_cancel_booking(p_id uuid)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_factor(seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake(n numeric, seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake2(n numeric, seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake_json(j jsonb, seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake_json2(j jsonb, seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake_money_text(s text, seed text, times boolean)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake_price_text(s text, seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake_text(s text, seed text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_fake_total(n numeric, month_key text)",
+    "anon": false,
+    "authed": false,
+    "secdef": false
+   },
+   {
+    "f": "sbx_get_contract_by_token(p_token text)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_get_occupied_slots(p_coach_email text, p_from timestamp with time zone, p_to timestamp with time zone)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_get_shared_program(p_token text)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_key(nm text, tid text)",
+    "anon": false,
+    "authed": false,
+    "secdef": true
+   },
+   {
+    "f": "sbx_mark_intake_token_used(p_token text)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_purge_trainee_data(p_trainee_id text)",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "sbx_reset()",
+    "anon": false,
+    "authed": false,
+    "secdef": true
+   },
+   {
+    "f": "sbx_sign_contract(p_token text, p_signature text)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_submit_intake_form(p_token text, p_payload jsonb, p_email text, p_name text)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "sbx_verify_intake_token(p_token text)",
+    "anon": false,
+    "authed": true,
+    "secdef": false
    },
    {
     "f": "set_updated_at_coach_notes()",
@@ -877,6 +2037,18 @@
     "secdef": true
    },
    {
+    "f": "store_block_catastrophic_shrink()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "store_touch_updated_at_fn()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
     "f": "submit_intake_form(p_token text, p_payload jsonb, p_email text, p_name text)",
     "anon": true,
     "authed": true,
@@ -893,6 +2065,24 @@
     "anon": true,
     "authed": true,
     "secdef": true
+   },
+   {
+    "f": "workout_day_name_from_plan()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
+   },
+   {
+    "f": "workout_drafts_clear_on_log()",
+    "anon": false,
+    "authed": false,
+    "secdef": true
+   },
+   {
+    "f": "workout_drafts_touch()",
+    "anon": true,
+    "authed": true,
+    "secdef": false
    }
   ]
  }

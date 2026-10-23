@@ -2,7 +2,7 @@
 //
 // HISTORY (why each layer exists):
 //   * 2026-06-06 — an RLS lock on `store` silently broke the athlete LOGIN
-//     gate. Unnoticed ~2 days until a real client (Omer) was locked out.
+//     gate. Unnoticed ~2 days until a real client was locked out.
 //     → v1: log in AS an athlete, walk the core read path, page on failure.
 //   * 2026-06-12 — a dropped EXECUTE grant on current_trainee_id() broke
 //     every athlete VIDEO UPLOAD while v1 stayed green (it never exercised
@@ -158,6 +158,8 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
+  // the once-a-day Vercel run (CRON_SECRET) is the one that can see the 10-minute runs being refused (step 10)
+  const dailyRun = !!process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`;
   // The fixture's password is the system default every verify script signs in
   // with ('1234'). CANARY_PASSWORD drifted from it (21.10) and the monitor went
   // blind for two days over a Vercel setting. The env var is tried first; when
@@ -300,13 +302,32 @@ export default async function handler(req, res) {
       throw new Error(`RLS DRIFT detected (${diffs.length} changes): ${diffs.slice(0, 6).join(' | ')}${diffs.length > 6 ? ' | …' : ''}`);
     }
     checks.rlsDrift = 'none';
+
+    // 10. THE 10-MINUTE RUNS THEMSELVES (#932, 23.10): pg_cron kept sending an old token after the secret was rotated,
+    // every run came back 401 and nothing said so - only this daily run was checking anything. The daily run reads the
+    // last 3 hours of pg_net responses; refusals and not one success = the every-10-minutes watch is locked out.
+    if (dailyRun) {
+      const cr = await fetch(`${SUPA_URL}/rest/v1/rpc/health_cron_refusals`, {
+        method: 'POST', headers: ah, body: JSON.stringify({ p_secret: process.env.HEALTH_SECRET }),
+      });
+      const c = cr.ok ? await cr.json() : null;
+      if (c) {
+        checks.cronRuns = `${c.ok} ok / ${c.refused} refused in 3h`;
+        if (Number(c.refused) >= 3 && Number(c.ok) === 0) {
+          throw new Error(`the 10-minute health check is being refused (${c.refused}x 401 in 3h, last success ${c.last_ok || 'never in the log'}) - pg_cron's token no longer matches HEALTH_SECRET`);
+        }
+      }
+    }
   } catch (e) {
     failure = e?.message || 'unknown failure';
   }
 
   if (failure) {
-    const alert = await pageCoaches(failure, blind);
-    const filed = await fileHealthReport(failure, blind);
+    // both at once, so a run near its time limit still files the report (#933 review: filing came after paging and
+    // was the part an outage-length run lost)
+    const [pa, fi] = await Promise.allSettled([pageCoaches(failure, blind), fileHealthReport(failure, blind)]);
+    const alert = pa.status === 'fulfilled' ? pa.value : `page failed: ${pa.reason?.message || pa.reason}`;
+    const filed = fi.status === 'fulfilled' ? fi.value : `file failed: ${fi.reason?.message || fi.reason}`;
     res.status(200).json({ ok: false, blind, failure, checks, alert, filed });
     return;
   }
