@@ -801,7 +801,10 @@ export function CollapsibleSection({ title, titleShort, titleNode, count, right,
           {/* Rail on the BODY, not the whole section - same reason as Card:
               alongside the title strip it reads as a stripe on the title.
               Ohad: "only next to the white part of the card". */}
-          <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px`,
+          {/* EVEN TOP AND BOTTOM (23.10 #964, Ohad: "The text is not vertically center aligned within the box" +
+              "Everywhere!!!! All platforms"): the body was 12 on top and padY (14) below, so every card body on every
+              platform sat 2px high before any of its own spacing. */}
+          <div data-section-body="" style={{ padding: bare ? '8px 0 0' : `${padY}px ${padX}px ${padY}px`,
             // was: a 3px rail on the inline-start edge only (see leftStripe above)
             ...(leftStripe && !bare ? { border: `1px solid ${leftStripe}` } : null) }}>
             {children}

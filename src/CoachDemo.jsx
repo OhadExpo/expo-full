@@ -823,7 +823,7 @@ function Panel({ title, tint, icon, children, cyanBorder, edge = null }) {
       boxShadow: cyanBorder ? undefined : C.cardShadow,
       boxSizing: 'border-box',
     }}>
-      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
+      <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 16px' /* 16: the 26px number's glyph box rides 2px over its line box - even top and bottom (#964) */, padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em' /* the house strip title, as the real alert strips (OCD #494: 11 / 0.04em) */, color: 'var(--c-stripTx)', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
           {icon && <DemoSectionIcon kind={icon} />}{title}
         </span>

@@ -184,7 +184,7 @@ export default function BillingView({ trainees, onSelectTrainee }) {
               same margin from that edge.
                 The strip also takes the app's one strip height (41, flex-centred,
                 as RefinedHeaderStrip): as a padded block its words rode 3px low. */}
-            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}` }}>
+            <div className="title-strip" style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 16px' /* 16: the 26px number's glyph box rides 2px over its line box - even top and bottom (#964) */, padding: '0 18px', minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}` }}>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 7, width: '100%' }}>
                 <span className="kpi-title" style={{ fontFamily: FN, fontSize: 13 /* the dashboard KPI tiles' spec, phone rule included (OCD #494: 12 everywhere) */, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{s.label}</span>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0, boxShadow: `0 0 5px ${s.dot}66` }} />
@@ -268,14 +268,16 @@ export default function BillingView({ trainees, onSelectTrainee }) {
         {/* the section body opens with 12px; a row list starts at the strip so the
             first name sits centred between the strip and its rule, like every
             other row (verify-rule-rhythm FIRSTGAP: 22 above / 10 below, 4.10) */}
-        <div style={{ marginTop: -12 }}>
+        <div>
         {(() => {
           // ONLY A REQUEST GETS A ROW (9.10 audit #612 A7: 13 rows of NO REQUEST, ~400px, one fact).
           // The athletes with none share one line at the end, by name.
           const active = (trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t));
           const withReq = active.filter(t => rosterSummary[t.id]);
           const noReq = active.filter(t => !rosterSummary[t.id]);
-          return (<>
+          // the -12 pull is for a ROW LIST (first row centred between the strip and its rule); with no request rows the
+          // names line IS the body and sits on the body's own even padding (23.10 #964: 12 above / 24 below on his phone)
+          return (<div style={{ marginTop: withReq.length ? -PAD : 0 }}>
         {withReq.map((t, i, arr) => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
@@ -294,14 +296,14 @@ export default function BillingView({ trainees, onSelectTrainee }) {
           );
         })}
         {noReq.length > 0 && (
-          <div data-no-request="" style={{ display: 'flex', alignItems: 'baseline', gap: 12, minHeight: 36, boxSizing: 'border-box', padding: '10px 0 6px' }}>
+          <div data-no-request="" style={{ display: 'flex', alignItems: 'baseline', gap: 12, minHeight: 36, boxSizing: 'border-box', padding: withReq.length ? '10px 0 6px' : 0 }}>
             <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tm, lineHeight: 1.6 }}>
               {noReq.map((t, i) => <React.Fragment key={t.id}>{i > 0 && <span style={{ color: C.td }}>{'\u00A0· '}</span>}<bdi style={{ whiteSpace: 'nowrap' }}>{t.name}</bdi></React.Fragment>)}
             </span>
             <span style={{ fontFamily: FN, fontSize: 9, color: C.td, fontWeight: 700, letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>{tt('NO REQUEST')} · {noReq.length}</span>
           </div>
         )}
-          </>);
+          </div>);
         })()}
         </div>
       </CollapsibleSection>
