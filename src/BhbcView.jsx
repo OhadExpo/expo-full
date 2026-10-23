@@ -16,7 +16,7 @@ import React, { useMemo, useState, useEffect, useCallback, useRef, useLayoutEffe
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import ErrorBoundary from './ErrorBoundary';
 import { gwDrill, gwSection } from './gameWarmupText';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, useSettleIn, usePhone, JoinedButtons, ChipGrid } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast as appToast, confirmToast, usePersistentState, useEdgeFade, useRailTrailMask, SegWord, CrossGlyph, PencilGlyph, CaretGlyph, useSettleIn, usePhone, JoinedButtons, ChipGrid } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -1030,6 +1030,22 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
     trackRef.current('open', 'opened the club zone');
   }, [activityLoaded]);
   const [gamesSub, setGamesSub] = usePersistentState('bhbc-games-sub', 'games');
+  // #944: the season view every game / stats surface reads. Its URL is ?comp=<view> on whatever page shows it (a reload
+  // or a shared link opens the same view); it REPLACES the entry - switching a view is not a new place to go Back from.
+  const [compViewRaw, setCompViewRaw] = usePersistentState('bhbc-comp-view', 'all');
+  const compView = COMP_VIEWS.includes(compViewRaw) ? compViewRaw : 'all';
+  const setCompView = useCallback((v) => {
+    const next = COMP_VIEWS.includes(v) ? v : 'all';
+    setCompViewRaw(next);
+    try { const u = new URL(window.location.href); if (next === 'all') u.searchParams.delete('comp'); else u.searchParams.set('comp', next); window.history.replaceState(window.history.state, '', u.pathname + u.search + u.hash); } catch { /* */ }
+  }, [setCompViewRaw]);
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('comp');
+      if (q && COMP_VIEWS.includes(q)) { if (q !== compView) setCompViewRaw(q); }
+      else if (compView !== 'all') setCompView(compView);   // the remembered view, said on the URL too
+    } catch { /* */ }
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   // Which already-landed athlete has had their date re-opened for editing in
@@ -2596,7 +2612,7 @@ function attendance28(rec, days) {
 
             {!portalFor && shownView === 'roster' && (
               <>
-                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} fixtures={bhbcFixtures} onOpen={setDetailFor}
+                <RosterGrid rows={rows} ghosts={ghosts} medical={medical} league={league} loads={bhbcLoads} fixtures={bhbcFixtures} onOpen={setDetailFor} view={compView}
                   action={!asCoach ? <StripBtn onClick={() => setManageOpen(true)}>{tr('Manage roster')}</StripBtn> : null} />
               </>
             )}
@@ -2605,12 +2621,14 @@ function attendance28(rec, days) {
               {/* GAMES | GAME WARM-UP (10.10 #647): the warm-up he reads at the game, from his sheet */}
               <KindChips value={gamesSub} onChange={setGamesSub} style={{ marginBottom: 16 }}
                 items={[{ k: 'games', label: tr('Games') }, { k: 'warmup', label: tr('Game warm-up') }]} />
+              {gamesSub !== 'warmup' && CLUB.sport === 'soccer' && <CompChips value={compView} onChange={setCompView} counts={compCounts(bhbcFixtures, today)} style={{ marginBottom: 16 }} />}
               {gamesSub === 'warmup'
                 ? <GameWarmupView data={gameWarmup} />
                 : CLUB.sport === 'soccer'
-                  ? <SoccerLeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor} bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />
+                  ? <SoccerLeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor} bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} view={compView} />
                   : <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
-                    bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />}
+                    bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} view={compView}
+                    viewChips={<CompChips value={compView} onChange={setCompView} counts={compCounts(bhbcFixtures, today)} style={{ marginBottom: 14 }} />} />}
             </>)}
 
             {!portalFor && shownView === 'activity' && !asCoach && (
@@ -2629,6 +2647,8 @@ function attendance28(rec, days) {
       <style>{`
         /* Legible secondary text: brighter muted/dim greys, theme-aware, scoped to
            the zone (Ohad: dark-mode grey text was too faded). */
+        /* #942: a phone gives the name the room - four 38px number columns (a 46px column cut 'DAESHON FRANCIS' at 412) */
+        @media (max-width: 520px) { .gl-box-row { grid-template-columns: minmax(0, 1fr) repeat(4, 38px) !important; column-gap: 6px !important; } }
         .bhbc-zone{ --c-tm:#4F5663; --c-td:#565D6A; }   /* #883: #6B727B read 3.34:1 on the page, 4.26 on the rows */
         .bhbc-zone[data-theme="dark"]{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
         :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${PAL.accentText}; --bhbc-amber-text: #8A6410; --bhbc-orange-text: ${PAL.accentText}; --bhbc-orange-on-page: ${PAL.accentOnPage}; }   /* #883: AWAY in ORANGE_DEEP read 4.01:1 on white */
@@ -2827,7 +2847,8 @@ function attendance28(rec, days) {
           onOpenPortal={DEMO && !DEMO.portalPlans ? null : () => openPortal(detailFor)}
           onCycleAvail={canLog ? (code) => cycleAvail(detailFor, code) : null}
           onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
-          onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
+          onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)}
+          view={compView} onView={setCompView} />;
       })()}
     </div>
     </BhbcTheme.Provider>
@@ -2952,7 +2973,7 @@ function GameLineModal({ line, onClose }) {
   );
 }
 
-function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onOpenPortal, onCycleAvail, onEditSession, onDeleteSession, fixtures = [], medicalAll = null }) {
+function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueLog = [], leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onOpenPortal, onCycleAvail, onEditSession, onDeleteSession, fixtures = [], medicalAll = null, view = 'all', onView = null }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const heM = useHe();
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
@@ -2992,7 +3013,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   // "vs who? instead of game. then pop up option with all the stats").
   const gameLineOf = (d, s) => ({ date: d, opp: s.opp || null, comp: s.comp || null, home: s.home ?? null, start: s.start || '', min: s.min, box: s.box || null, source: s.source || null });
   Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push(rowKind(s) === 'game' ? {
-    kind: 'game', date: d, note: s.note || '', gameLine: gameLineOf(d, s),
+    kind: 'game', comp: compKeyOf(s, d, fixtures), date: d, note: s.note || '', gameLine: gameLineOf(d, s),
     label: `${s.opp ? `${tr('vs')} ${s.opp}` : tr('Game')} · ${s.min ? s.min + '\u00a0' + tr('min') : tr('played')}`,
     load: null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) }, by: s.by || null,
   } : { kind: rowKind(s), date: d, note: s.rpe == null ? (s.note || '') : '', label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}` : `${s.start ? s.start + ' · ' : ''}${rowLabel(s)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
@@ -3033,7 +3054,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   (leagueLog || []).forEach((g) => {
     if (!g.date || loggedGameDays.has(g.date)) return;
     const opp = g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : null;
-    activity.push({ kind: 'game', date: g.date, game: { opp: opp || '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, gameLine: { date: g.date, opp, min: g.min, box: g, source: 'basket.co.il' }, load: null });
+    activity.push({ kind: 'game', comp: 'season', date: g.date, game: { opp: opp || '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, gameLine: { date: g.date, opp, min: g.min, box: g, source: 'basket.co.il' }, load: null });
   });
   activity.sort((a, b) => b.date.localeCompare(a.date));
   // THIS SEASON ONLY (27.9, Ohad: "only this year. last year as a toggle or
@@ -3056,7 +3077,8 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
   activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
   const kindChips = ['game', 'practice', 'sc', 'warmup', 'lift', 'note', 'other'].filter((k) => kindCount[k]);
   const effKind = histKind === 'all' || kindChips.includes(histKind) ? histKind : 'all';
-  const shownActivity = effKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === effKind);
+  // the GAMES list follows the season view (#944); every other kind is a log of its own
+  const shownActivity = effKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === effKind && (effKind !== 'game' || view === 'all' || a.comp === view));
   const monthKeys = [];
   const byMonth = {};
   shownActivity.forEach((a) => { const m = String(a.date).slice(0, 7); if (!byMonth[m]) { byMonth[m] = []; monthKeys.push(m); } byMonth[m].push(a); });
@@ -3275,6 +3297,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             <KindChips value={effKind} onChange={setHistKind} style={{ margin: '8px 12px' }}
               items={['all', ...kindChips].map((k) => ({ k, label: tr(k === 'all' ? 'All' : KIND_LABEL[k]), n: k === 'all' ? activity.length : kindCount[k] }))} />
           )}
+          {effKind === 'game' && onView && (() => {
+            const cc = { all: 0 }; activity.forEach((a) => { if (a.kind === 'game') { cc.all += 1; cc[a.comp || 'season'] = (cc[a.comp || 'season'] || 0) + 1; } });
+            return <CompChips value={view} onChange={onView} counts={cc} style={{ margin: '0 12px 8px' }} />;
+          })()}
           {pastSeasons.length > 0 && (
             <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
               <button type="button" aria-pressed={showPast} onClick={() => setShowPast((v) => !v)} className="bhbc-ghost-btn"
@@ -3425,8 +3451,9 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
         {/* LEAGUE STATS LAST (29.9 #406, Ohad: "leage stats should be last, after
             medical, and full history"): what he can do today first, the season's
             numbers after. */}
-        {leaguePlayer && (() => {
-          const leagueLastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+        {(leaguePlayer || Object.values((rec && rec.sessions) || {}).some((l) => (l || []).some((r) => rowKind(r) === 'game'))) && (() => {
+          const lp = leagueFeedServes(view) && leaguePlayer ? leaguePlayer : {};
+          const leagueLastG = (lp.log || []).length ? [...lp.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
           // THE LAST GAME IS THE CLUB'S LAST GAME, IN ANY COMPETITION (#940, Ohad 23.10: "last game was not ramat gan we had
           // a game after... all the games from all the leagues and cups we play at"). The league feed only carries the
           // league's own games (and marks one played only once the league publishes it), so 18.10 and the Champions League
@@ -3434,7 +3461,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           const clubLast = (() => {
             let best = null;
             for (const [d, list] of Object.entries((rec && rec.sessions) || {})) for (const r of (list || [])) {
-              if (rowKind(r) === 'game' && r.box && !/scrimmage/i.test(`${r.type || ''} ${r.comp || ''}`) && (!best || d > best.date)) best = { date: d, row: r };
+              if (rowKind(r) === 'game' && r.box && (view === 'preseason' || !/scrimmage/i.test(`${r.type || ''} ${r.comp || ''}`)) && inCompView(view, r, d, fixtures) && (!best || d > best.date)) best = { date: d, row: r };
             }
             return best;
           })();
@@ -3459,9 +3486,10 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           // ONE PPG EVERYWHERE (5.10 #578): the club's season numbers first (every
           // official game, every competition), the league feed only for a figure
           // the logged games do not carry - the rule Player Stats uses.
-          const cs = clubSeasonStats(row.t, { [row.t.id]: rec }, fixtures) || {};
-          const pick = (k) => (cs[k] != null ? cs[k] : leaguePlayer[k]);
-          const avg = [['PTS', pick('ppg')], ['REB', pick('rpg')], ['AST', pick('apg')], ['MIN', pick('mpg')], ['3P%', pick('tpp') + '%'], ['FT%', pick('ftp') + '%'], ['PIR', pick('pirpg')], ['GP', cs.gp != null ? cs.gp : leaguePlayer.gp]];
+          const cs = clubSeasonStats(row.t, { [row.t.id]: rec }, fixtures, view) || {};
+          const pick = (k) => (cs[k] != null ? cs[k] : lp[k] != null ? lp[k] : null);
+          const pct = (v) => (v == null ? '—' : v + '%');
+          const avg = [['PTS', pick('ppg') ?? '—'], ['REB', pick('rpg') ?? '—'], ['AST', pick('apg') ?? '—'], ['MIN', pick('mpg') ?? '—'], ['3P%', pct(pick('tpp'))], ['FT%', pct(pick('ftp'))], ['PIR', pick('pirpg') ?? '—'], ['GP', cs.gp != null ? cs.gp : (lp.gp ?? 0)]];
           return (
             <div style={{ border: `1px solid ${C.cardBd}` }}>
               {/* WHERE THESE NUMBERS COME FROM, and how old they are (the feed
@@ -3470,8 +3498,11 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
               <PopHead dataKey="league" label={tr('Season Stats')} meta={leagueSeason || null} right={leagueUpdatedAt ? (
                 <span className="strip-meta" style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                   title={tr('The last game from every competition; the season numbers from every official game with a box score.')}>
-                  {tr('All competitions') + ' · ' + fmtNumericDate(lastG && lastG.date > String(leagueUpdatedAt).slice(0, 10) ? lastG.date : leagueUpdatedAt)}
+                  {(view === 'all' ? tr('All competitions') : COMP_VIEW_LABEL[heM ? 'he' : 'en'][view]) + ' · ' + fmtNumericDate(lastG && lastG.date > String(leagueUpdatedAt).slice(0, 10) ? lastG.date : leagueUpdatedAt)}
                 </span>) : null} />
+              {/* THE SEASON VIEW (#944): the same six chips as the Games tab, the same choice */}
+              {onView && <CompChips value={view} onChange={onView} style={{ margin: '10px 12px' }} />}
+              {!lastG && <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '4px 12px 12px' }}>{tr('No games in this view yet.')}</div>}
               {lastG && (
                 <div role="button" tabIndex={0} className="bhbc-row" onClick={() => setGameOpen(lastGLine)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGameOpen(lastGLine); } }} style={{ cursor: 'pointer' }}>
@@ -5709,7 +5740,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
   );
 }
 
-function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, fixtures = [], onOpen, action = null }) {
+function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, fixtures = [], onOpen, action = null, view = 'all' }) {
   const tr = useT();
   // EVERY ROW FULL (#886 rule; a 14-player squad left 2 cards on a 4-column last row): the columns the 264px cards get
   // at this width, and when the last row would be short, a grid of cols x k tracks - a card spans k, each card of the
@@ -5732,10 +5763,10 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
   const startYr = nowS.getMonth() >= 7 ? nowS.getFullYear() : nowS.getFullYear() - 1;
   const leaguePast = !!league.season && String(league.season).replace(/\s+/g, '') !== `${startYr}/${String((startYr + 1) % 100).padStart(2, '0')}`;
   const ppgFor = (t) => {
-    const club = clubSeasonStats(t, loads, fixtures);
+    const club = clubSeasonStats(t, loads, fixtures, view);
     // per field, like Player Stats: a club row with no box has no points (27.9 review)
     if (club && club.ppg != null) return club.ppg;
-    const lp = leaguePast ? null : leaguePlayerFor(league, t);
+    const lp = leaguePast || !leagueFeedServes(view) ? null : leaguePlayerFor(league, t);
     return lp && lp.ppg != null ? lp.ppg : null;
   };
   // A PHONE READS THE ROSTER AS A LIST (3.10 #522/#523, Ohad: "make the tables on
@@ -6892,16 +6923,69 @@ function StandingsTable({ standings }) {
 // club calendar has a scrimmage that day and no game, and the row has no box.
 // The same function feeds the roster cards, the roster list, Player Stats and
 // the player popup, so the number is one number wherever it appears.
-const clubSeasonStats = (t, loads, fixtures = null) => {
+// THE SIX VIEWS OF A SEASON (#944, Ohad 23.10: "anywhere were games and player stats are logged, i wanna be able to
+// choose a view of all\preaseason\season\playoff\cup\bcl" + "make sure you intergrate it perfectly everywhere"). One
+// rule decides which view a game belongs to, and every surface that counts games reads it: the Games tab (player stats,
+// the games list, the results), the player popup's season card and history, the roster's points per game.
+const COMP_VIEWS = ['all', 'preseason', 'season', 'playoff', 'cup', 'bcl'];
+const compWordKey = (words) => {
+  const w = String(words || '');
+  if (/champions|\bbcl\b|europe|fiba/i.test(w)) return 'bcl';
+  if (/play-?offs?|final|semi|quarter|פלייאוף|גמר/i.test(w)) return 'playoff';
+  if (/cup|גביע/i.test(w)) return 'cup';
+  if (/pre-?season|scrimmage|טרום|אימון/i.test(w)) return 'preseason';
+  if (/league|ליגה/i.test(w)) return 'season';
+  return null;
+};
+// a calendar game / scrimmage -> its view
+const compKeyOfFx = (f) => (!f ? null : String(f.type || '').toLowerCase() === 'scrimmage' ? 'preseason' : compWordKey(`${f.comp || ''} ${f.stage || ''}`) || 'season');
+// a logged game row on date d -> its view: the row's own competition first, else the calendar's slot that day
+const compKeyOf = (r, d, fixtures) => {
+  const own = compWordKey(`${(r && r.comp) || ''} ${(r && r.stage) || ''}`);
+  if (own) return own;
+  if (/scrimmage/i.test((r && r.type) || '')) return 'preseason';
+  const fx = (fixtures || []).filter((f) => f && f.date === d && !isCancelled(f) && (f.type === 'game' || f.type === 'scrimmage'));
+  if (fx.length) return fx.some((f) => f.type === 'game') ? compKeyOfFx(fx.find((f) => f.type === 'game')) : 'preseason';
+  // a box score from the medical group's photos with no calendar slot is a scrimmage sheet (the official games all
+  // come from the league / BCL sites and carry their competition)
+  return /whatsapp/i.test((r && r.source) || '') ? 'preseason' : 'season';
+};
+const inCompView = (view, r, d, fixtures) => !view || view === 'all' || compKeyOf(r, d, fixtures) === view;
+// the league feed only knows the league's own games: it may stand in for a missing figure in All or Season, never in a
+// view it does not cover
+const leagueFeedServes = (view) => !view || view === 'all' || view === 'season';
+const COMP_VIEW_LABEL = {
+  he: { all: 'הכול', preseason: 'טרום עונה', season: 'עונה סדירה', playoff: 'פלייאוף', cup: 'גביע', bcl: 'ליגת האלופות' },
+  en: { all: 'All', preseason: 'Preseason', season: 'Season', playoff: 'Playoff', cup: 'Cup', bcl: 'BCL' },
+};
+function CompChips({ value, onChange, counts = null, style = null }) {
+  const he = useHe();
+  const L = COMP_VIEW_LABEL[he ? 'he' : 'en'];
+  return <KindChips value={value || 'all'} onChange={onChange} style={style}
+    items={COMP_VIEWS.map((k) => ({ k, label: L[k], n: counts ? (counts[k] || 0) : null }))} />;
+}
+// how many games each view holds, from the calendar (played or not) - the chips' counts
+const compCounts = (fixtures, today) => {
+  const out = { all: 0 };
+  for (const f of fixtures || []) {
+    if (!f || isCancelled(f) || !(f.type === 'game' || f.type === 'scrimmage') || !f.date || f.date > today) continue;
+    const k = compKeyOfFx(f); out[k] = (out[k] || 0) + 1; out.all += 1;
+  }
+  return out;
+};
+
+const clubSeasonStats = (t, loads, fixtures = null, view = 'all') => {
   const now = new Date();
   const seasonStart = `${now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1}-08-01`;
-  const kindOn = {};
-  for (const f of fixtures || []) if (f && f.date && !(f.cancelled)) { const k = String(f.type || '').toLowerCase(); (kindOn[f.date] = kindOn[f.date] || new Set()).add(k); }
-  const scrimmageDay = (d) => !!kindOn[d] && kindOn[d].has('scrimmage') && !kindOn[d].has('game');
   const rows = [];
   for (const [d, list] of Object.entries(((loads || {})[t.id] || {}).sessions || {})) {
     if (d < seasonStart) continue;
-    for (const r of (list || [])) if (r && rowKind(r) === 'game' && (r.box || !scrimmageDay(d))) rows.push(r);
+    for (const r of (list || [])) {
+      if (!r || rowKind(r) !== 'game' || !inCompView(view, r, d, fixtures)) continue;
+      // ALL is every game the six views hold, the preseason included - the views are one split of it (#944);
+      // the averages read only the games with a box, GP and minutes every game
+      rows.push(r);
+    }
   }
   if (!rows.length) return null;
   const withBox = rows.filter((r) => r.box);
@@ -6919,7 +7003,7 @@ const clubSeasonStats = (t, loads, fixtures = null) => {
   };
 };
 
-function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = null }) {
+function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = null, view = 'all' }) {
   const he = useHe();
   const tr = useT();
   // Ohad: "it doesnt re-order the column based on up and down when i click on
@@ -6945,8 +7029,8 @@ function PlayerStatsTable({ roster, league, onOpen, loads = null, fixtures = nul
   // a box figure the logged games do not carry (no boxed game yet) falls back
   // to the official league feed instead of reading as a dash.
   const merged = (t) => {
-    const club = loads ? clubSeasonStats(t, loads, fixtures) : null;
-    const lg = leaguePlayerFor(league, t);
+    const club = loads ? clubSeasonStats(t, loads, fixtures, view) : null;
+    const lg = leagueFeedServes(view) ? leaguePlayerFor(league, t) : null;
     if (!club) return lg;
     if (!lg) return club;
     const out = { ...club };
@@ -7048,8 +7132,10 @@ function GameSection({ label, count, children, first = false, last = false }) {
 }
 const HA_TEXT = (bhHome, tr) => <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: bhHome ? 'var(--bhbc-ha-home)' : 'var(--bhbc-ha-away)', minWidth: 44, textAlign: 'end' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>;
 
-function ResultsList({ games, bhbcOnly, fixtures = [], onPick = null }) {
+function ResultsList({ games: allGames0, bhbcOnly, fixtures = [], onPick = null, view = 'all' }) {
   const tr = useT();
+  // #944: a result / fixture belongs to a view by its competition (or its stage) - a scrimmage to Preseason
+  const games = view === 'all' ? allGames0 : (allGames0 || []).filter((g) => (compWordKey(`${g.comp || ''} ${g.stage || ''}`) || (String(g.type || '').toLowerCase() === 'scrimmage' ? 'preseason' : 'season')) === view);
   const played = games.filter((g) => g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
   const todayStr = todayISO();
   // A GAME ROW OPENS ITS GAME (27.9, Ohad: "all tables ... clickable"): a game
@@ -7203,7 +7289,7 @@ function GameWarmupView({ data = {} }) {
 // Same cards as the basketball tab, in football's own numbers: the table is W-D-L, goals for / against, points; the
 // player numbers are appearances, minutes, goals, assists and cards. Data: league.soccer = { table, players } from the
 // club's league source (a demo club: src/clubs/demoSeed.js). Results and the minutes list are the shared ones.
-function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes }) {
+function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes, view = 'all' }) {
   const tr = useT();
   const heS = useHe();
   // A PHONE GETS THE COLUMNS THAT DECIDE THE TABLE (his phone rule: never a sideways table): P, +/-, Pts
@@ -7298,21 +7384,21 @@ function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, to
       </Card>
 
       <Card padding={14} leftStripe={NAVY} header={secTitle('Games')}>
-        <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} />
-        <ResultsList games={[...played, ...upcoming]} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} />
+        <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} roster={roster} league={league} view={view} />
+        <ResultsList games={[...played, ...upcoming]} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} view={view} />
       </Card>
     </>
   );
 }
 
-function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes }) {
+function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes, view = 'all', viewChips = null }) {
   const tr = useT();
   const heL = useHe();
   const leagueGames = Array.isArray(league.games) ? league.games : [];
   const playedGames = leagueGames.filter((g) => g.played).map((g) => { const o = calendarOpp(fixtures, g.date); return o ? { ...g, oppName: o } : g; });
-  // A season whose every game is already played is HISTORICAL (last season) —
-  // don't badge it "Live". A season with any unplayed game is in progress.
-  const historical = leagueGames.length > 0 && playedGames.length === leagueGames.length;
+  // LIVE OR LAST SEASON IS THE SEASON'S OWN DATES (pastData below), not "every listed game is played" (#944 audit, 23.10:
+  // once 18.10's overtime score was read, every game the board LISTED was played and the strip said 'Last season' over
+  // 2026/27 - the board lists rounds only as they are scheduled).
   // Merge: played results from basket.co.il + upcoming from the club fixtures.
   const upcomingFx = fixturesToGames(fixtures).filter((g) => !playedGames.some((p) => p.date === g.date));
   const allGames = [...playedGames, ...upcomingFx];
@@ -7344,7 +7430,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
         pastData
           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)' /* #883 */ }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C828B' }} />{currentSeason} · {tr('Pre-season')}</span>
-          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? tr('Last season') : tr('Live')}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt, heL)}` : ''}</span>
+          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: pastData ? '#7C828B' : '#4ED88A' }} />{pastData ? tr('Last season') : tr('Live')}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt, heL)}` : ''}</span>
       }>
         {showCurrent ? (
           <div className="bhbc-team-sum" /* 4 across, or 2 x 2 on a phone - dividers only BETWEEN tiles (#547: auto-fit gave a 3+1 wrap and a stray line on the row-2 tile) */>
@@ -7376,6 +7462,8 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
         )}
       </Card>
 
+      {/* THE SEASON VIEW (#944) - over the two cards it filters; Team Stats above is the league's own record */}
+      {viewChips}
       {/* Player stats — the roster, with official league numbers */}
       <Card padding={14} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{tr('tap a column to sort')}</span>}>
         {pastData ? (
@@ -7387,8 +7475,8 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
           </>
         ) : (
           <>
-            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} loads={bhbcLoads} fixtures={fixtures} />
-            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>{tr('Every official game this season - cup, league and Europe; scrimmages do not count. Points, rebounds, assists and shooting come from the games with a box score. Tap an athlete for his games.')}</div>
+            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} loads={bhbcLoads} fixtures={fixtures} view={view} />
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>{view === 'all' ? tr('Every game this season, the preseason included.') : `${COMP_VIEW_LABEL[heL ? 'he' : 'en'][view]}.`} {tr('Points, rebounds, assists and shooting come from the games with a box score. Tap an athlete for his games.')}</div>
           </>
         )}
       </Card>
@@ -7399,20 +7487,20 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
         {/* MINUTES PLAYED -> LOAD. Until now a 32-minute game and a DNP were
             identical to the load board, so every ACWR figure in the zone was
             computed on a week with its biggest day missing. */}
-        <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} />
+        <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} roster={roster} league={league} view={view} />
         {pastData ? (
           <>
-            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>}
+            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} view={view} /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>}
             {playedGames.length > 0 && (
               <div style={{ marginTop: 14 }}>
                 <CollapsibleSection domId="bhbc-lastseason-games" storageKey="bhbc-lastseason-games" defaultOpen={false} title={`${league.season} · ${tr('Last season results')}`} bare padX={0}>
-                  <ResultsList games={playedGames} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} />
+                  <ResultsList games={playedGames} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} view={view} />
                 </CollapsibleSection>
               </div>
             )}
           </>
         ) : (
-          allGames.length ? <ResultsList games={allGames} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>
+          allGames.length ? <ResultsList games={allGames} bhbcOnly fixtures={fixtures} onPick={onPickMinutes} view={view} /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>
         )}
       </Card>
     </>
@@ -7621,46 +7709,87 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
   );
 }
 
-// Played BHBC games, most recent first, each opening the minutes editor.
-// Shows at a glance which games still have no minutes recorded, because a game
-// nobody logged is a hole in every load number that week.
-function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
+// THE GAMES, WITH WHO PLAYED AND FOR HOW LONG (#942, Ohad 23.10: "minutes played inside games table, and the entire
+// table should be designed to be more readable its very useless this way"). Each played game is one row - date, the
+// matchup, its competition and the result - and opens IN PLACE to its box: every player who played, his minutes and his
+// line, most minutes first. The newest game opens by itself. EDIT MINUTES opens the minutes sheet; a game with no
+// minutes yet says ADD MINUTES, in the zone's action orange. Filtered by the season view (#944).
+function GameMinutesList({ fixtures, today, bhbcLoads, onPick, roster = [], league = null, view = 'all' }) {
   const tr = useT();
-  // A GAME THAT HAS NOT TIPPED OFF HAS NO MINUTES TO ADD (#305 N-I2): today's
-  // 19:00 game sat here all afternoon asking for them. A start not on the
-  // calendar yet cannot be judged, so that one stays.
+  // A GAME THAT HAS NOT TIPPED OFF HAS NO MINUTES TO ADD (#305 N-I2); a CANCELLED one neither (1.10 review).
   const nowD = new Date();
   const nowHHMM = `${String(nowD.getHours()).padStart(2, '0')}:${String(nowD.getMinutes()).padStart(2, '0')}`;
   const games = React.useMemo(() => (fixtures || [])
-    // a CANCELLED game has no minutes to add either (1.10 code review: a cancelled scrimmage
-    // sat here as ADD MINUTES forever and its "N to add" never cleared)
     .filter((f) => f && !isCancelled(f) && (f.type === 'game' || f.type === 'scrimmage') && f.date && (f.date < today || (f.date === today && (!f.start || f.start <= nowHHMM))))
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
-    .slice(0, 8), [fixtures, today, nowHHMM]);
-  if (!games.length) return null;
-  // THE SAME ROW AS EVERY OTHER GAME (#411): date, the matchup over its kind,
-  // and one end column - "9 LOGGED" once done, ADD MINUTES (the one thing still
-  // to do, in the zone's action orange) until then. Words wrap whole, never cut
-  // (19.9), and every row has the same two lines (27.9).
-  const todo = games.filter((g) => !Object.values(gameMinutesOf(bhbcLoads || {}, g.date)).some((m) => Number(m) > 0)).length;
+    .filter((f) => view === 'all' || compKeyOfFx(f) === view)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date))), [fixtures, today, nowHHMM, view]);
+  const [openKey, setOpenKey] = React.useState(null);   // null = the newest game; '' = all closed
+  if (!games.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0 14px' }}>{tr('No games in this view yet.')}</div>;
+  const keyOf = (g) => `${g.date}|${g.start || ''}`;
+  const shownOpen = openKey == null ? keyOf(games[0]) : openKey;
+  const lgGames = (league && Array.isArray(league.games)) ? league.games : [];
+  const resultOf = (g) => {
+    const x = lgGames.find((y) => y && y.date === g.date && y.played && (isBH(y.home) || isBH(y.away)));
+    if (!x || x.hs == null || x.as == null) return null;
+    const bh = isBH(x.home) ? x.hs : x.as, op = isBH(x.home) ? x.as : x.hs;
+    return { win: bh > op, text: `${bh}-${op}` };
+  };
+  const linesOf = (g) => Object.entries(gameMinutesOf(bhbcLoads || {}, g.date))
+    .filter(([, m]) => Number(m) > 0)
+    .map(([id, m]) => {
+      const t = (roster || []).find((x) => x && x.id === id) || null;
+      const row = ((((bhbcLoads || {})[id] || {}).sessions || {})[g.date] || []).find((r) => rowKind(r) === 'game') || null;
+      return { id, t, min: Number(m), box: row && row.box ? row.box : null };
+    })
+    .sort((a, b) => b.min - a.min || ((a.t && a.t.jersey) ?? 999) - ((b.t && b.t.jersey) ?? 999));
+  const todo = games.filter((g) => !linesOf(g).length).length;
+  const COLS = 'minmax(0, 1fr) repeat(4, 46px)';
+  const numCell = { fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', textAlign: 'end' };
+  const headCell = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, textAlign: 'end' };
   return (
     <div style={{ marginBottom: 18 }}>
-      <GameSection label={tr('Minutes played')} count={todo ? `${todo} ${tr('to add')}` : null} first>
+      <GameSection label={tr('Games played')} count={todo ? `${todo} ${tr('to add')}` : games.length} first>
         {games.map((g) => {
-          const mins = gameMinutesOf(bhbcLoads || {}, g.date);
-          const n = Object.values(mins).filter((m) => Number(m) > 0).length;
+          const k = keyOf(g);
+          const lines = linesOf(g);
+          const open = shownOpen === k && lines.length > 0;
+          const res = resultOf(g);
+          const comp = g.type === 'scrimmage' ? tr('Scrimmage') : (g.comp ? tr(g.comp) : tr('Game'));
           return (
-            <GameRow key={`${g.date}|${g.opponent || ''}`} dataKey={g.date} onClick={() => onPick(g)} date={ddmm(g.date)}
-              title={g.opponent ? `${g.home === false ? '@' : tr('vs')} ${g.opponent}` : tr(FX_LABEL[g.type] || 'Game')}
-              detail={[tr(FX_LABEL[g.type] || (g.type === 'scrimmage' ? 'Scrimmage' : 'Game')), g.comp && tr(g.comp)].filter(Boolean).join(' · ')}
-              end={(
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                  color: n ? C.tm : ACCENT_INK, border: n ? 'none' : '1px solid ' + ORANGE,
-                  height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  padding: n ? 0 : '0 12px', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                  {n ? `${n} ${tr('logged')}` : tr('ADD MINUTES')}
-                </span>
-              )} />
+            <div key={k} data-game={g.date}>
+              <GameRow dataKey={g.date} date={ddmm(g.date)} onClick={lines.length ? () => setOpenKey(open ? '' : k) : () => onPick(g)}
+                title={g.opponent ? `${g.home === false ? '@' : tr('vs')} ${g.opponent}` : tr(FX_LABEL[g.type] || 'Game')}
+                detail={[comp, res && `${res.win ? tr('W') : tr('L')} ${res.text}`, lines.length ? `${lines.length} ${tr('played')}` : null].filter(Boolean).join(' · ')}
+                end={lines.length ? (
+                  <span aria-hidden="true" style={{ display: 'inline-flex', width: 'var(--btn-h)', height: 'var(--btn-h)', alignItems: 'center', justifyContent: 'center', color: C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}><CaretGlyph /></span>
+                ) : (
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT_INK, border: '1px solid ' + ORANGE,
+                    height: 'var(--btn-h)', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px', lineHeight: 1, whiteSpace: 'nowrap' }}>{tr('ADD MINUTES')}</span>
+                )} />
+              {open && (
+                <div style={{ borderBottom: `1px solid ${C.cardBd}`, padding: '0 0 12px' }}>
+                  <div role="row" className="gl-box-row" style={{ display: 'grid', gridTemplateColumns: COLS, columnGap: 10, alignItems: 'center', minHeight: 32, borderBottom: `1px solid ${C.cardBd}` }}>
+                    <span style={{ ...headCell, textAlign: 'start' }}>{tr('Player')}</span>
+                    {['MIN', 'PTS', 'REB', 'AST'].map((h) => <span key={h} style={headCell}>{tr(h)}</span>)}
+                  </div>
+                  {lines.map((x) => (
+                    <div key={x.id} role="row" className="gl-box-row" style={{ display: 'grid', gridTemplateColumns: COLS, columnGap: 10, alignItems: 'center', minHeight: 36, borderBottom: `1px solid ${C.cardBd}` }}>
+                      <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                        <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', minWidth: 18, textAlign: 'end', unicodeBidi: 'isolate' }}>{x.t && x.t.jersey != null ? x.t.jersey : ''}</span>
+                        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tx, overflowWrap: 'anywhere', lineHeight: 1.2 }}>{x.t ? x.t.name : x.id}</span>
+                      </span>
+                      <span style={numCell}>{x.min}</span>
+                      <span style={numCell}>{x.box && x.box.pts != null ? x.box.pts : '—'}</span>
+                      <span style={numCell}>{x.box && x.box.reb != null ? x.box.reb : '—'}</span>
+                      <span style={numCell}>{x.box && x.box.ast != null ? x.box.ast : '—'}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 12 }}>
+                    <Btn variant="ghost" onClick={() => onPick(g)}>{tr('Edit minutes')}</Btn>
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
       </GameSection>
