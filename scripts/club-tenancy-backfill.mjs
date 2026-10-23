@@ -44,7 +44,9 @@ try {
 
   for (const p of plan) {
     const row = p.table === 'club_medical' ? { club_id: CLUB, value: p.value ?? {}, updated_by: 'backfill' } : { club_id: CLUB, key: p.key, value: p.value ?? null, updated_by: 'backfill' };
-    const { error } = await s.from(p.table).upsert(row);
+    // club_medical has NO select policy (reads go through club_medical_get, which logs them), and an upsert's ON CONFLICT
+    // needs to see the row - RLS refused it (23.10 first run). Medical is a plain insert: the table holds one row per club.
+    const { error } = p.table === 'club_medical' ? await s.from(p.table).insert(row) : await s.from(p.table).upsert(row);
     if (error) throw new Error(`${p.table}/${p.key}: ${error.message}`);
   }
   // read back and compare

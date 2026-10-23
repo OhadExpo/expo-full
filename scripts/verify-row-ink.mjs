@@ -319,7 +319,7 @@ const SCAN = `(() => {
 })()`;
 
 const run = async () => {
-  const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+  const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
   const pg = await b.newPage();
   await pg.setBypassServiceWorker(true);
   await pg.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });

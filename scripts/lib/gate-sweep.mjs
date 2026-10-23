@@ -140,7 +140,7 @@ export async function runSweep({ name, measure }) {
   const PUBLIC_ROUTES = pick(DEMO);
   const planned = (AUTHED_ROUTES.length + PUBLIC_ROUTES.length) * LANGS.length * WIDTHS.length;
 
-  const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 180000 });
+  const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 180000 });
   let pages = 0, elements = 0;
   const failures = [];
   const skipped = [];

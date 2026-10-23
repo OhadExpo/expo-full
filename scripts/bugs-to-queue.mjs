@@ -13,6 +13,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { ownerClient } from './lib/store-client.mjs';
 import { pushOwner } from './db-watchdog.mjs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const DRY = process.argv.includes('--dry');
 const QDIR = path.join(os.homedir(), 'expo-private-backups', 'queue');
@@ -23,8 +25,49 @@ const say = (m) => console.log(`[bugs-to-queue] ${m}`);
 let state = { since: new Date(Date.now() - 7 * 86400000).toISOString() };
 try { state = JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch { /* first run: the last 7 days */ }
 
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// FIXED WHEN LIVE (#917, Ohad 23.10 on the bug system phase 2: "this is only for you since you fix the bugs"): a commit on
+// origin/master - what production runs - whose message carries 'Fixes-Bug: <first 8 of the id>' closes that report and
+// every open report with the same fingerprint, stamps the commit, and ticks the report's queue line. So a shipped fix
+// leaves the queue by itself, and the queue only holds what is still broken.
+async function closeFixed(s) {
+  spawnSync('git', ['fetch', '-q', 'origin', 'master'], { cwd: REPO, timeout: 60000, windowsHide: true });
+  // BUGS_FIX_REF: a test reads another ref (default: what production runs)
+  const log = spawnSync('git', ['log', process.env.BUGS_FIX_REF || 'origin/master', '--since=30.days', '--format=%H%x1f%B%x1e'], { cwd: REPO, encoding: 'utf8', timeout: 30000, windowsHide: true }).stdout || '';
+  const fixes = new Map();   // id8 -> the commit that fixed it
+  for (const entry of log.split('\x1e')) {
+    const [sha, body] = entry.split('\x1f');
+    if (!body) continue;
+    for (const m of body.matchAll(/Fixes-Bug:\s*([0-9a-f]{8})/gi)) if (!fixes.has(m[1].toLowerCase())) fixes.set(m[1].toLowerCase(), sha.trim());
+  }
+  if (!fixes.size) return 0;
+  const { data: open, error } = await s.from('bug_reports').select('id, context').neq('status', 'fixed').limit(1000);
+  if (error || !open) return 0;
+  const fpOf = (r) => (r.context && r.context.fingerprint) || null;
+  const close = new Map();   // row id -> sha
+  for (const r of open) {
+    const sha = fixes.get(r.id.slice(0, 8)); if (!sha) continue;
+    close.set(r.id, sha);
+    const fp = fpOf(r);
+    if (fp) for (const o of open) if (fpOf(o) === fp) close.set(o.id, sha);
+  }
+  let n = 0;
+  let q = ''; try { q = fs.readFileSync(QUEUE, 'utf8'); } catch { /* no queue yet */ }
+  for (const [id, sha] of close) {
+    if (DRY) { say(`would close ${id.slice(0, 8)} - fixed in ${sha.slice(0, 8)}`); n += 1; continue; }
+    const { error: e } = await s.from('bug_reports').update({ status: 'fixed', fixed_in_commit: sha }).eq('id', id);
+    if (e) { say(`close ${id.slice(0, 8)} failed: ${e.message}`); continue; }
+    n += 1;
+    q = q.split(`- [ ] BUG ${id.slice(0, 8)} (`).join(`- [x] BUG ${id.slice(0, 8)} (FIXED in ${sha.slice(0, 8)}, live on master) (`);
+  }
+  if (!DRY && n) fs.writeFileSync(QUEUE, q);
+  if (n) say(`${n} report(s) closed by their fix commits`);
+  return n;
+}
+
 const s = await ownerClient();
 try {
+  await closeFixed(s);
   const { data: rows, error } = await s.from('bug_reports').select('id, created_at, status, role, reporter_email, url, description, context')
     .gt('created_at', state.since).neq('status', 'fixed').order('created_at', { ascending: true }).limit(200);
   if (error) { say(`read failed: ${error.message}`); process.exit(1); }

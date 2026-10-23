@@ -26,7 +26,7 @@ const PATTERNS = [
   ['US', /(?<![\d/])(0?[1-9]|1[0-2])\/(1[3-9]|2\d|3[01])(\/(20)?\d{2})?(?![\d/])/g],
 ];
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 180000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 180000 });
 let pages = 0, chars = 0;
 const bad = [];
 async function scan(pg, label) {

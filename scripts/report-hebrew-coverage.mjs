@@ -103,7 +103,7 @@ const routesFromSurfaces = () => {
 };
 const ROUTES = process.argv.slice(3).length ? process.argv.slice(3) : routesFromSurfaces();
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 const misses = new Map();     // string -> Set(routes)
 let He = 0, En = 0, Data = 0, dead = 0, measured = 0;

@@ -119,7 +119,7 @@ say('debug Chrome is up');
   let signedIn = false;
   try {
     const b = await Promise.race([
-      P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null }),
+      P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('CDP connect timeout after 15s')), 15000)),
     ]);
     try { signedIn = (await b.cookies()).some((c) => GOOGLE_SESSION.has(c.name) && c.domain === '.google.com'); }

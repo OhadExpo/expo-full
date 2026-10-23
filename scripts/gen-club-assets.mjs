@@ -13,7 +13,7 @@ fs.mkdirSync('public/clubs', { recursive: true });
 const svgOf = (dataUri) => decodeURIComponent(dataUri.replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
 const font = fs.readFileSync('public/fonts/Nord-Bold.woff2').toString('base64');
 
-const br = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const br = await puppeteer.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null });
 const ctx = await br.createBrowserContext(); const p = await ctx.newPage();
 await p.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
 for (const c of CLUBS) {

@@ -26,7 +26,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const NAME = 'GATE ' + Date.now().toString(36).toUpperCase();
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 const problems = [];
 // SAY WHY IT FAILED, not just that it did. The first run reported two missing

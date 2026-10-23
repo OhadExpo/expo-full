@@ -10,7 +10,7 @@ const W = Number(process.env.W || 1440);
 const LANG = process.env.LANG_ZONE || 'en';
 const PAGES = (process.env.PAGES || 'overview,roster,schedule,practices,lifts,medical,games,activity').split(',');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
+const b = await puppeteer.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 120000 });
 const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
 await p.setViewport({ width: W, height: 900, isMobile: W < 600, hasTouch: W < 1100 });
 await p.evaluateOnNewDocument((l) => { try { sessionStorage.setItem('club-tour-closed', '1'); sessionStorage.setItem('bhbc-lang-session', l); } catch { /* */ } window.__dlg = 0; }, LANG);

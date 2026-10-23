@@ -22,7 +22,7 @@ const LIVE = /herzliy|הרצליה|\bBHBC\b|bnei/i;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(OUT, { recursive: true });
 
-const br = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const br = await puppeteer.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null });
 let fails = 0, checked = 0;
 for (const lang of LANGS) for (const theme of THEMES) for (const w of WIDTHS) {
   const ctx = await br.createBrowserContext(); const p = await ctx.newPage();

@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-23T11:35:38.010Z",
- "hash": "c24dcc8424e918866dbae961f82be4d303e0cff765b31479c5e34a8dec5600a5",
+ "generatedAt": "2026-10-23T17:42:56.696Z",
+ "hash": "2de6d82a93d078cf77ba4b10f7e9acf26c16f2f6e11d87a32d54d3f3f968e236",
  "manifest": {
   "rls": [
    {
@@ -1690,6 +1690,12 @@
    },
    {
     "f": "club_medical_get(p_club text)",
+    "anon": false,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "club_medical_put(p_club text, p_value jsonb)",
     "anon": false,
     "authed": true,
     "secdef": true

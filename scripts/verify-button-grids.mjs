@@ -60,7 +60,7 @@ const MEASURE = () => {
   return { grids: grids.length, findings: out };
 };
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await puppeteer.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 300000 });
 const all = []; let measured = 0, empty = 0;
 for (const lang of ['he', 'en']) {
   const ctx = await b.createBrowserContext(); const p = await ctx.newPage();

@@ -26,7 +26,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const NAME = 'RACE ' + Date.now().toString(36).toUpperCase();
 
 const problems = [];
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 300000 });
 const ctx = await b.createBrowserContext();
 const pg = await ctx.newPage();
 try {

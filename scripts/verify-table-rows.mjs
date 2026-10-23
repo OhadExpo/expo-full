@@ -27,7 +27,7 @@ const DEMO = ['/demo/coach', '/demo/coach/trainees', '/demo/coach/programs', '/d
 const REAL = [...new Set((fs.readFileSync('docs/SURFACES.md', 'utf8').match(/`\/coach\/[a-z/-]+`/g) || []).map((s) => s.slice(1, -1)))];
 const WIDTHS = [390, 768];
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 300000 });
 let loads = 0, tables = 0;
 const short = [];
 const sweep = async (routes, authed) => {

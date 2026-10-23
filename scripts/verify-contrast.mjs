@@ -67,7 +67,7 @@ const THEMES = ['dark', 'light'];
 const findings = [];
 const add = (o) => { findings.push(o); console.log(`${o.kind.padEnd(10)} ${o.id.padEnd(26)} ${o.detail}`); };
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9444'   /* #958: off-screen Chrome; CDP=9222 to use his */, defaultViewport: null, protocolTimeout: 300000 });
 let measured = 0, nodes = 0, unmeasured = 0;
 
 for (const [name, route] of SURFACES) {

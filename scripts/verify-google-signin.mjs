@@ -41,7 +41,7 @@ const UAS = [
 ];
 
 const problems = [];
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 for (const [name, ua] of UAS) {
   const ctx = await b.createBrowserContext();
   const pg = await ctx.newPage();

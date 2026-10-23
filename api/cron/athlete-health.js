@@ -64,7 +64,19 @@ async function pageCoaches(failure, blind = false) {
   // BLIND = the canary could not log in but Supabase Auth itself is answering:
   // athletes are probably fine, yet NOTHING behind the login is being checked
   // until the fixture password is fixed. Different words, same urgency.
-  const payload = JSON.stringify(blind ? {
+  // A DRIFT is not an outage (#963, 23.10: a function added by a migration paged 'Athlete experience is BROKEN - clients
+  // are hitting this right now'; nothing was broken). It still pages - an unexplained rule change can be a hole - but
+  // says what it is.
+  const drift = /^RLS DRIFT/.test(String(failure || ''));
+  const payload = JSON.stringify(drift ? {
+    title: '⚠️ Database rules changed',
+    body: `${failure}. Nothing here is known to be broken: a security rule or function changed without its baseline. If no release was made just now, check it.`,
+    url: '/coach/dashboard',
+    tag: 'athlete-health-drift',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    requireInteraction: true,
+  } : blind ? {
     title: '⚠️ Athlete monitor is BLIND',
     body: `The test athlete cannot log in (${failure}). Supabase Auth is up, so athletes are probably fine — but no athlete path is being checked until this is fixed.`,
     url: '/coach/dashboard',
