@@ -59,7 +59,7 @@ const presFor = (ex, week) => {
   // a run's pace and HR cap per week (#898 step 2): blank = the base
   const tempo = Array.isArray(ex.wkT) && ex.wkT[w] != null && ex.wkT[w] !== '' ? ex.wkT[w] : ex.tempo;
   const load = Array.isArray(ex.wkL) && ex.wkL[w] != null && ex.wkL[w] !== '' ? ex.wkL[w] : ex.load;
-  return { reps, sets, tempo, load, title: ex.title };
+  return { reps, sets, tempo, load, rest: ex.rest, title: ex.title };   // rest: a test with rests is not one continuous effort (runZones, #914)
 };
 const weeksOf = (plan) => { const w = Array.isArray(plan.weeks) ? plan.weeks.length : Number(plan.weeks); return isFinite(w) && w > 0 ? w : 1; };
 
@@ -235,6 +235,8 @@ export function analyzeRunner(clientWorkouts, traineeId, plans, { viewedId = nul
   else if (!anyTarget) { tone = 'info'; headline = 'noTargets'; }
   return {
     plan: { id: plan.id, name: plan.name, weeks: weeksN, days: (plan.days || []).map((d) => d.name) },
+    // every TEST he ran, in any running block, newest first: the last block's test sets the next block's paces (runZones, #914)
+    tests: readAll.filter((x) => x.r.kind === 'test').map((x) => x.r).sort((p, q) => new Date(q.date) - new Date(p.date)),
     runs, plannedTotal, plannedDue, weekReached, plannedKm: Math.round(plannedKm * 10) / 10, kmPartial, doneKm: Math.round(doneKm * 10) / 10,
     weeks, ramp, spikes, hardReads, easyReads, fastStarts, capHits, easyFastHrOk, easyFastHrHigh, flags, anyTarget,
     upcomingTest: upcomingTest ? upcomingTest.name : null,

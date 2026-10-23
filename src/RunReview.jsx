@@ -6,6 +6,7 @@
 import React from 'react';
 import { C, FN, FB } from './theme';
 import { fmtPaceSec } from './runPace';
+import { runnerZones } from './runZones';
 
 const L = (he, en, hb) => (he ? hb : en);
 const pace = (s) => (s ? fmtPaceSec(s) : '—');
@@ -72,6 +73,64 @@ function vsWord(r, he) {
   return { c: d.dir === 'fast' ? C.or : C.ac, t: he ? `${d.dir === 'fast' ? 'מהר יותר' : 'לאט יותר'} ב־${I(d.by)} שנ׳` : `${d.by} s ${d.dir}` };
 }
 
+// PACES FROM HIS TEST (#914): his training paces from one continuous all-out effort (runZones.js, Daniels' VDOT), and
+// the block's targets read against them. Without such a test it says why and names the test that sets them - it never
+// turns a paced session into a fitness number.
+const ZONE_FOR = { E: ['easy and long runs', 'ריצות קלות וארוכות'], M: ['steady long-run finishes', 'סיומי ריצה ארוכה'], T: ['tempo', 'טמפו'], I: ['intervals', 'אינטרוולים'], R: ['short fast reps', 'חזרות קצרות ומהירות'] };
+function PacesCard({ a, he, strip, sub }) {
+  const z = runnerZones(a);
+  if (!z) return null;
+  const head = <div style={strip}><span>{L(he, 'Paces from his test', 'קצבים מהמבחן שלו')}</span><span style={sub}>{z.zones ? <Ltr>{`VDOT ${z.vdot} · Daniels`}</Ltr> : L(he, 'needs one continuous test', 'צריך מבחן רציף אחד')}</span></div>;
+  if (!z.zones) {
+    const t = z.test;
+    // Hebrew says it in words ('5 חזרות של 1 ק״מ ב־5:00–5:05'): a × between numbers in a Hebrew line detaches (#955)
+    const multi = t && (parseInt(t.sets, 10) || 1) > 1;
+    const what = t && t.reps ? (he
+      ? `${multi ? `${I(t.sets)} חזרות של ` : ''}${t.reps}${t.tempo ? ` ב־${I(t.tempo)}` : ''}`
+      : `${multi ? `${t.sets} × ` : ''}${t.reps}${t.tempo ? ` at ${t.tempo}` : ''}`) : null;
+    const text = z.why === 'paced'
+      ? (he ? `המבחן של ${I(dm(t.date))} היה בקצב שנקבע מראש${what ? ` (${what})` : ''}, אז אי אפשר לגזור ממנו את קצבי האימון שלו. מבחן רציף אחד במאמץ מלא קובע אותם: אחרי חימום, 3 ק״מ בקצב הכי מהיר שהוא יכול להחזיק - וכל הקצבים נגזרים מהזמן הזה.`
+        : `His ${dm(t.date)} test was paced${what ? ` (${what})` : ''}, so it can't set his training paces. One continuous all-out effort does: after a warm-up, 3 km as fast as he can hold it - every pace follows from that time.`)
+      : L(he, 'No test logged yet. One continuous all-out effort sets his training paces: after a warm-up, 3 km as fast as he can hold it.', 'עוד לא נרשם מבחן. מבחן רציף אחד במאמץ מלא קובע את קצבי האימון שלו: אחרי חימום, 3 ק״מ בקצב הכי מהיר שהוא יכול להחזיק.');
+    return <div style={card} data-run-paces="none">{head}<div style={{ padding: '10px 14px', fontFamily: FB, fontSize: 13, lineHeight: 1.5, color: C.tx }}>{text}</div></div>;
+  }
+  const s = z.source;
+  // this block's targets per kind of run, to read against the zone that kind should sit in
+  const targetsOf = (kinds) => [...new Map(a.runs.filter((r) => kinds.includes(r.kind) && r.target).map((r) => [r.target.join('-'), r.target])).values()];
+  return (
+    <div style={card} data-run-paces="zones">
+      {head}
+      <div style={{ padding: '10px 14px 4px', fontFamily: FB, fontSize: 12.5, color: C.tm }}>
+        {he ? `מהמבחן של ${I(dm(s.date))}: ${I(km1(s.km))} ק״מ ב־${I(pace(s.sec))} (${I(pace(s.pace))} לק״מ).` : `From the ${dm(s.date)} test: ${km1(s.km)} km in ${pace(s.sec)} (${pace(s.pace)} /km).`}
+      </div>
+      <div style={{ padding: '4px 14px 10px' }}>
+        {z.zones.map((q) => {
+          const ts = targetsOf(q.use);
+          return (
+            <div key={q.key} data-zone={q.key} style={{ padding: '8px 0', borderTop: `1px solid ${C.cardBd}` }}>
+              {/* one line: the zone and its range; under it what it is for, then each of the block's targets on its own
+                  line - in a third column they wrapped mid-phrase on a phone */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: track(he, '0.08em'), textTransform: 'uppercase', color: C.tx }}>{he ? q.he : q.en}</span>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap' }}><Ltr>{pace(q.lo)}–{pace(q.hi)}</Ltr> {L(he, '/km', 'לק״מ')}</span>
+              </div>
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 2 }}>{L(he, ZONE_FOR[q.key][0], ZONE_FOR[q.key][1])}</div>
+              {ts.map((t) => {
+                const off = t[1] < q.lo - 3 ? 'fast' : t[0] > q.hi + 3 ? 'slow' : null;
+                return (
+                  <div key={t.join('-')} style={{ fontFamily: FB, fontSize: 12, marginTop: 2, color: off ? C.or : C.gn }}>
+                    {L(he, 'This block', 'בבלוק')} <Ltr>{pace(t[0])}–{pace(t[1])}</Ltr> · {off === 'fast' ? L(he, 'faster than the zone', 'מהיר מהאזור') : off === 'slow' ? L(he, 'slower than the zone', 'איטי מהאזור') : L(he, 'in the zone', 'בתוך האזור')}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function RunReview({ a, he }) {
   const v = a.verdict;
   const strip = { borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', minHeight: 41, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: track(he, '0.1em'), textTransform: 'uppercase', color: 'var(--c-stripTx, ' + C.tx + ')', background: 'var(--c-stripBg, var(--c-sf))' };
@@ -104,6 +163,8 @@ export default function RunReview({ a, he }) {
         <Tile he={he} v={hardWithTarget.length ? `${hardOn}/${hardWithTarget.length}` : '—'} l={L(he, 'Hard days on target', 'אימוני איכות בטווח')} color={!hardWithTarget.length ? C.tm : hardOn === hardWithTarget.length ? C.gn : C.or} />
         <Tile he={he} v={easyRead.length ? `${easyHrOk}/${easyRead.length}` : '—'} l={L(he, 'Easy days, HR in check', 'ריצות קלות בדופק תקין')} s={easyRead.length ? null : L(he, 'no heart-rate cap set', 'לא נקבעה תקרת דופק')} color={!easyRead.length ? C.tm : easyHrOk === easyRead.length ? C.gn : C.or} />
       </div>
+
+      <PacesCard a={a} he={he} strip={strip} sub={sub} />
 
       {/* RUN BY RUN */}
       <div style={card}>

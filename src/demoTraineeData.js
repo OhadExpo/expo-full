@@ -265,6 +265,8 @@ const RUNNER_PLANS = [
       { name: RD.aEasy, exercises: [{ title: EASYRUN, sets: 1, reps: KM(6), tempo: EASY, load: '150' }] },
       { name: RD.tempo, exercises: [{ title: WU, sets: 1, reps: KM1, tempo: EASY }, { title: TEMPO, sets: 1, reps: KM(3), tempo: '5:20-5:30', load: '165' }, { title: CD, sets: 1, reps: KM1, tempo: EASY }] },
       { name: RD.c, exercises: [{ title: LONGRUN, sets: 1, reps: KM(8), wk: [KM(8), KM(8), KM(9), KM(10)], tempo: '6:10-6:30', load: '155' }] },
+      // the block closes with a 3 km time trial: one continuous all-out effort that prices the next block (#914)
+      { name: HE_RUN ? 'מבחן · 3 ק״מ' : 'Test · 3 km', onlyWeek: 4, exercises: [{ title: WU, sets: 1, reps: KM(2), tempo: EASY }, { title: HE_RUN ? 'מבחן 3 ק״מ' : '3 km time trial', sets: 1, reps: KM(3), tempo: HE_RUN ? 'מאמץ מלא' : 'all-out' }, { title: CD, sets: 1, reps: KM1, tempo: EASY }] },
     ],
   },
   {
@@ -305,6 +307,7 @@ const RUNNER_WORKOUTS = [
   runLog('dr-1-b4', B1, RD.aEasy, 4, [4, 0], [{ title: EASYRUN, sets: [runSet(6, '37:50', 146)] }]),
   runLog('dr-1-t4', B1, RD.tempo, 4, [4, 2], [{ title: WU, sets: [runSet(1, '6:22', 129)] }, { title: TEMPO, sets: [runSet(3, '16:03', 163)] }, { title: CD, sets: [runSet(1, '6:42', 137)] }]),
   runLog('dr-1-c4', B1, RD.c, 4, [4, 4], [{ title: LONGRUN, sets: [runSet(10, '63:40', 152)] }]),
+  runLog('dr-1-tt', B1, HE_RUN ? 'מבחן · 3 ק״מ' : 'Test · 3 km', 4, [4, 6], [{ title: WU, sets: [runSet(2, '13:10', 132)] }, { title: HE_RUN ? 'מבחן 3 ק״מ' : '3 km time trial', sets: [runSet(3, '14:45', 179)] }, { title: CD, sets: [runSet(1, '7:05', 141)] }]),
   runLog('dr-2-a1', B2, RD.a, 1, [3, 0], intervals([['5:08', 163], ['5:06', 166], ['5:05', 168], ['5:07', 169], ['5:04', 171]]),
     { notes: HE_RUN ? 'הדופק עלה מהר מהחזרה השלישית' : 'HR climbed fast from rep 3', autoregulation: { pain: 'none', sleep: 'ok', energy: 'ok' } }),
   runLog('dr-2-b1', B2, RD.b, 1, [3, 2], [{ title: EASYRUN, sets: [runSet(6, '37:30', 146)] }]),
