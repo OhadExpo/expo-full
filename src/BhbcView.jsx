@@ -7209,7 +7209,7 @@ function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, to
         {me ? (
           <div className="bhbc-team-sum">
             {tile(tr('Record'), `${me.w}–${me.d}–${me.l}`, C.tx, heS ? 'נ - ת - ה' : 'W - D - L')}
-            {tile(tr('Points'), me.pts, C.tx, `${me.rank}${heS ? ' בטבלה' : ' in the table'}`)}
+            {tile(tr('Points'), me.pts, C.tx, heS ? `מקום ${me.rank} בטבלה` : `Position ${me.rank}`)}
             {tile(heS ? 'שערי זכות' : 'Goals for', me.gf, C.tx, heS ? 'כל העונה' : 'season')}
             {tile(heS ? 'שערי חובה' : 'Goals against', me.ga, C.tx, heS ? 'כל העונה' : 'season')}
           </div>

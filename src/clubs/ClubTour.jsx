@@ -6,7 +6,7 @@ import { FN, FB } from '../theme';
 
 const STOPS = [
   { page: 'overview', en: ['The morning brief', 'Open the zone at 08:00 and the day is already read: who is available, who needs a change today, what is next on the schedule. The brief is built from the check-ins, the medical files and the calendar - nobody types it.'],
-    he: ['תדריך הבוקר', 'פותחים את המערכת ב-08:00 והיום כבר מסודר: מי זמין, מי צריך שינוי היום ומה הבא בלוח. התדריך נבנה מהצ׳ק-אין, מהתיקים הרפואיים ומהלוח - אף אחד לא מקליד אותו.'] },
+    he: ['תדריך הבוקר', 'פותחים את המערכת ב-08:00 והיום כבר מסודר: מי זמין, מי צריך התאמה באימון היום ומה הבא בלוח. התדריך נבנה מהצ׳ק-אין, מהתיקים הרפואיים ומהלוח - אף אחד לא מקליד אותו.'] },
   { page: 'overview', en: ['Readiness, every morning', 'The squad check-in takes a minute: sleep, energy and pain for each player. Pain 4+ or a bad night turns into a concrete nudge for today\'s session, and the brief names the player.'],
     he: ['מוכנות, כל בוקר', 'הצ׳ק-אין של הסגל לוקח דקה: שינה, אנרגיה וכאב לכל שחקן. כאב 4 ומעלה או לילה רע הופכים להמלצה מעשית לאימון של היום, והתדריך מציין את השחקן בשם.'] },
   { page: 'roster', en: ['The squad', 'One card per player: availability today, attendance over 28 days, minutes, body weight and league stats. Tap a player for his full file.'],
