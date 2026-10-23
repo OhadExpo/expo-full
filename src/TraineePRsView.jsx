@@ -440,7 +440,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
                     <bdi>{picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>{tt('KG')}</span></bdi>
                     {picked.allTimePRReps > 0 && (
-                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>× {picked.allTimePRReps}</span>
+                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>× <bdi>{picked.allTimePRReps}</bdi></span>
                     )}
                   </div>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: he ? 0 : 1, fontWeight: 700, marginTop: 10 }}>
@@ -573,7 +573,8 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                         </div>
                         <div dir={he ? 'rtl' : undefined} style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>
                           <bdi>{s.load}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>{tt('KG')}</span></bdi>
-                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}>× {s.reps}</span>}
+                          {/* the reps isolated (#955: in Hebrew '72.5 ק״ג × 8' drew the × at the far end) */}
+                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}>× <bdi>{s.reps}</bdi></span>}
                           {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginInlineStart: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
                           {/* the chip rides its own text's baseline and hung 1.5 px low (#735 band probe 15.10: 13 above / 10 below
                               in the row) - lifted visually, the line box unchanged */}

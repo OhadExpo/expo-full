@@ -29,6 +29,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import { quietPage } from './lib/quiet-page.mjs';
 
 const ID = '18TdfofxAOd1d_EkOjbhYOBjWflqlfkAzY8sI52xJnOc';
 const GID = process.argv[2] || '1803423381';
@@ -46,7 +47,7 @@ const OUT = path.resolve('audit-out/sheet');
 async function fetchCsv() {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
-  const page = await browser.newPage();
+  const page = await quietPage(browser);   // #958: a background tab - his window keeps its tab and its focus
   try {
     const client = await page.target().createCDPSession();
     await client.send('Browser.setDownloadBehavior', { behavior: 'allowAndName', downloadPath: OUT, eventsEnabled: true });

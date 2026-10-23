@@ -634,6 +634,10 @@ textarea:focus-visible, [role="button"]:focus-visible, [role="tab"]:focus-visibl
   outline: 2px solid var(--c-ac) !important;
   outline-offset: 2px;
 }
+/* A FIELD'S RING IS DRAWN INSIDE ITS BOX (23.10 #960, Ohad: "Button is different size than the box next to it. Should
+   never happen anywhere"). A text field matches :focus-visible on every tap, not only on the keyboard, and a ring 2px
+   OUTSIDE made the focused field stand 8px taller than the 36px button beside it. Inside, the box keeps its height. */
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: -2px; }
 
 /* Always reserve the vertical scrollbar gutter so switching tabs/views (or any
    click that changes content height across the viewport threshold) never
@@ -1315,41 +1319,19 @@ html.theme-switching *::after {
 [data-rail-ease] { transition: clip-path 150ms ease; }
 @media (prefers-reduced-motion: reduce) { [data-rail-ease] { transition: none; } }
 
-/* MANAGE ROSTER row: one line on a desktop, two on a phone - and the second
-   line starts on the NAME column, not under the checkbox. */
-.bhbc-manage-row{display:grid;grid-template-columns:16px 24px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:7px}
-/* The trailing LANDS block gets a FIXED track, not `auto`. Rows differ in what
-   they put there - a date field (124px) on someone still to arrive, one muted
-   LANDED word (46px) on someone already here - and an auto track is the width
-   of its own content, so the two kinds started 77px apart at 1500 and 83px
-   apart at 390. Ohad: "lands and date boxes need to be lined in the same
-   horizontal spot from one row to another." 136 clears the widest of the two
-   at both widths. */
-.bhbc-manage-meta{display:grid;grid-template-columns:minmax(0,1fr) 136px;align-items:center;gap:12px;min-width:0}
-.bhbc-manage-meta>:last-child{justify-self:start}
-@media (max-width:620px){
-  .bhbc-manage-row{grid-template-columns:16px 24px minmax(0,1fr)}
-  /* WRAP RATHER THAN TRUNCATE THE POSITION.
-     At 390 the LANDS label and the native date input take ~196px of the 255px
-     column, so the position was ellipsed to "POINT G..." and "FORWAR..." -
-     unreadable, and sitting hard against the word LANDS. Found by the OCD
-     sweep on 21.9; the CLIPPED rule skips text-overflow:ellipsis by design
-     ("an ellipsis is a choice, not a slice"), so it was the collision that
-     surfaced it.
-     Wrapping is adaptive: there is room for one line on a wide screen and the
-     date block drops below the position on a phone, so nothing is cut at any
-     width and no wording changes. */
-  /* A GRID, not a wrapping flex row. space-between + wrap put the date block
-     on its own line whenever the position was long enough to fill the first
-     one - and a lone item under space-between goes to the START, so AMIT
-     MENACHEM's date input sat ~140px left of every other row's. The column
-     stopped being a column exactly on the row that needed it most.
-     Two tracks: the position takes the space and wraps inside it, the LANDS
-     block keeps its own track at the end. Every row's date input then starts
-     at the same x whether the position fits on one line or two. */
-  .bhbc-manage-meta{grid-column:3;display:grid;grid-template-columns:minmax(0,1fr) 136px;align-items:center;gap:8px}
-  .bhbc-manage-meta>:first-child{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word}
-}
+/* MANAGE ROSTER (redesigned 23.10 #961). The add row: field + button, one 36px height. A row: checkbox, jersey, name,
+   GHOST on the first line; position + LANDS on a second line that starts on the NAME column. The LANDS block keeps a
+   FIXED track (136px) so every row's date field starts at the same x (Ohad 21.9: "lands and date boxes need to be lined
+   in the same horizontal spot"). Rows are hairlines - no boxes, no fills. */
+.bhbc-manage-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:6px}
+.bhbc-manage-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:14px;padding:0 2px 6px;border-bottom:1px solid var(--c-tx);font-family:'Nord','Heebo','DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-tm)}
+.bhbc-manage-row{display:grid;grid-template-columns:16px 24px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:8px;min-height:var(--btn-h);padding:8px 2px;box-sizing:border-box;border-bottom:1px solid var(--c-cardBd,rgba(128,128,128,0.25));cursor:pointer}
+.bhbc-manage-row.is-on{cursor:default}
+.bhbc-manage-name{min-width:0;white-space:normal;overflow-wrap:break-word}
+.bhbc-manage-meta{grid-column:3 / -1;display:grid;grid-template-columns:minmax(0,1fr) 172px;align-items:center;gap:12px;min-width:0}
+.bhbc-manage-meta>:last-child{justify-self:stretch}
+.bhbc-manage-meta>button{justify-self:start}
+.bhbc-lands-box{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;cursor:pointer}
 
 /* ── BHBC ON A TABLET AND A PHONE ─────────────────────────────────────────────
    Ohad, 24.9: "text overflows and icons and buttons not vertically center

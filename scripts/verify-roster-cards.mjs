@@ -28,7 +28,7 @@ await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-install-
 await pg.evaluateOnNewDocument(() => {
   try {
     localStorage.setItem('expo-lang', 'en');
-    localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('en'));
+    sessionStorage.setItem('bhbc-lang-session', 'en');
   } catch (e) {}
 });
 let bad = 0;

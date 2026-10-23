@@ -131,7 +131,7 @@ for (const seat of ['owner', 'partner', 'athlete', 'none', 'marketing']) {
       if (!ok) throw new Error('could not sign in as ' + seat);
     }
     for (const lang of LANGS) {
-      await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); } catch (e) {} }, lang);
+      await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); sessionStorage.setItem('bhbc-lang-session', l); } catch (e) {} }, lang);
       for (const w of WIDTHS) {
         await pg.emulate({ viewport: { width: w, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0 Mobile Safari/537.36' });
         // the partner seat is the owner's screens plus a one-row banner: measured at the NARROWEST width only

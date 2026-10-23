@@ -100,7 +100,7 @@ for (const LANG of ['en', 'he']) {
       await signIn(page, BASE);
       await page.evaluate((l) => {
         localStorage.setItem('expo-lang', l);
-        localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l));
+        sessionStorage.setItem('bhbc-lang-session', l);
       }, LANG);
       await page.setViewport({ width: W, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
       for (const [name, route, openers] of SURFACES) {

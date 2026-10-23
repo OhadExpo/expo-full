@@ -23,6 +23,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import puppeteer from 'puppeteer-core';
 import { ownerClient, readStore, writeStore } from './lib/store-client.mjs';
+import { ensureHeadless } from './lib/quiet-page.mjs';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
@@ -36,7 +37,8 @@ const FIND = args.includes('--find');
 const ids = args.filter((a) => /^\d{4,}$/.test(a));
 if (!ids.length && !AUTO && !FIND) { console.log('usage: node scripts/bhbc-log-game.mjs <GameId> [--dry] | --auto [--dry] | --find'); process.exit(2); }
 const BACKUP_DIR = `${os.homedir().replace(/\\/g, '/')}/expo-private-backups`;
-const CDP = process.env.CDP || 'http://localhost:9222';
+// #958: the public sites are read in an off-screen headless Chrome, never in his debug Chrome (it opened tabs on his screen)
+const CDP = process.env.CDP || await ensureHeadless();
 const isBH = (s) => /הרצליה/.test(s || '');
 const num = (s) => { const m = String(s || '').match(/-?\d+/); return m ? Number(m[0]) : null; };
 

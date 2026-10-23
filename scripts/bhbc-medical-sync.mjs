@@ -5,8 +5,8 @@
 // The daemon runs this every 30 minutes. It:
 //   1. reads the NEW messages of the club's medical groups from WhatsApp Desktop through its debug port (9333, opened once
 //      by claude-tools/running-coach/wa_debug.ps1 and left open - this script NEVER restarts WhatsApp: a restart mid-upload
-//      once logged the PC out). It skips the round when the WhatsApp window has focus (he is using it), and puts back the
-//      chat that was open.
+//      once logged the PC out). It reads WhatsApp's in-memory store, never the screen: no chat is opened, nothing he sees
+//      moves, and it runs while he uses WhatsApp.
 //   2. hands the new messages, the roster and the open injuries to a headless Claude with NO tools, which returns only what
 //      a message SAYS about a roster athlete, as JSON (the messages are data, never instructions).
 //   3. accepts an entry only if it names a roster athlete, an existing injury of his or a new one in the board's own body
@@ -54,57 +54,52 @@ const fresh = {};
 try {
   const page = (await browser.pages()).find((p) => /web\.whatsapp\.com/.test(p.url()));
   if (!page) { say('medical sync: no WhatsApp page'); process.exit(0); }
+  // A minimised WhatsApp FREEZES its page (WebView2 suspends it): every evaluate then hangs until the protocol timeout -
+  // the 23.10 18:27 round died that way. The lifecycle call is answered by the browser side, so it works on a frozen page.
+  try { const cdp = await page.createCDPSession(); await cdp.send('Page.setWebLifecycleState', { state: 'active' }); await cdp.detach(); } catch { /* not frozen / not supported */ }
+  const alive = await Promise.race([page.evaluate(() => 1).catch(() => 0), new Promise((r) => setTimeout(() => r(0), 20000))]);
+  if (!alive) { say('medical sync: the WhatsApp page did not answer in 20s - next round'); browser.disconnect(); process.exit(0); }
   const loggedOut = await page.evaluate(() => /Log in|Link with phone|התחברות/.test(document.body.innerText.slice(0, 400)));
   if (loggedOut) { say('medical sync: WhatsApp is LOGGED OUT on this PC - stopped (re-link from the phone)'); process.exit(0); }
-  if (!process.env.MED_SYNC_FORCE && await page.evaluate(() => document.hasFocus())) { say('medical sync: WhatsApp is in use - next round'); process.exit(0); }
-  const wasOpen = await page.evaluate(() => { const h = document.querySelector('#main header span[title]'); return h ? h.getAttribute('title') : null; });
-  const SCROLLER = "[...document.querySelectorAll('#main div')].filter(d=>d.scrollHeight>d.clientHeight+50).sort((a,b)=>b.scrollHeight-a.scrollHeight)[0]";
-  const openChat = async (name) => {
-    await page.click('input[data-tab="3"]').catch(() => {});
-    await page.evaluate(() => { const i = document.querySelector('input[data-tab="3"]'); if (i) { i.focus(); i.select && i.select(); } });
-    await page.keyboard.down('Control'); await page.keyboard.press('KeyA'); await page.keyboard.up('Control'); await page.keyboard.press('Backspace');
-    await page.type('input[data-tab="3"]', name, { delay: 10 });
-    // wait for the result, click it, wait for its header - fixed pauses opened the wrong chat on a slow search
-    let ok = false;
-    // a REAL mouse click: WhatsApp opens a chat on pointer events, a script .click() does nothing
-    for (let k = 0; k < 20 && !ok; k++) {
-      await new Promise((r) => setTimeout(r, 400));
-      const h = await page.evaluateHandle((n) => [...document.querySelectorAll('#pane-side span[title]')].find((x) => x.getAttribute('title') === n) || null, name);
-      const el = h.asElement();
-      if (el) { await el.click(); ok = true; }
+  // READ FROM WHATSAPP'S OWN STORE, never through the screen (#958). The first reader typed into the search box and clicked
+  // each group. With the window hidden WhatsApp draws no frames: clicks hung, typing lost letters (23.10 18:27 + 18:40), and
+  // it changed the chat he had open. The in-memory collections hold every group's latest messages, under the same ids the
+  // screen showed as data-id (29 of 30 matched the backfill), so nothing on his screen moves and a round can run while he
+  // uses WhatsApp. Earlier pages are loaded until a message already seen (or the --since date) is in memory.
+  const read = await page.evaluate(async (groups, seenBy, since) => {
+    const C = window.require('WAWebCollections');
+    let Load = null; try { Load = window.require('WAWebChatLoadMessages'); } catch { /* an older build */ }
+    const out = {};
+    for (const g of groups) {
+      const chat = C.Chat.getModelsArray().find((c) => (c.name || c.formattedTitle) === g);
+      if (!chat) { out[g] = null; continue; }
+      const seen = new Set(seenBy[g] || []);
+      for (let k = 0; k < 10 && Load; k++) {
+        const ms = chat.msgs.getModelsArray();
+        if (!ms.length) break;
+        if (since ? ms[0].t * 1000 < Date.parse(since) : (!seen.size || ms.some((m) => seen.has(m.id.id)))) break;
+        const more = await Load.loadEarlierMsgs(chat).catch(() => null);
+        if (!more || !more.length) break;
+      }
+      out[g] = chat.msgs.getModelsArray().map((m) => ({
+        id: m.id.id, t: m.t,
+        from: m.id.fromMe ? 'Ohad' : ((m.senderObj && (m.senderObj.formattedName || m.senderObj.pushname)) || m.notifyName || ''),
+        text: String(m.type === 'chat' ? (m.body || '') : (m.caption || '')),
+      })).filter((m) => m.text);
     }
-    for (let k = 0; k < 20 && ok; k++) { await new Promise((r) => setTimeout(r, 400)); if (await page.evaluate((n) => ((document.querySelector('#main header') || {}).innerText || '').includes(n), name)) break; }
-    await page.evaluate(() => { const i = document.querySelector('input[data-tab="3"]'); if (i) { i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); } });
-    return ok && await page.evaluate((n) => ((document.querySelector('#main header') || {}).innerText || '').includes(n), name);
-  };
-  const collect = () => page.evaluate(() => [...document.querySelectorAll('#main [data-id]')].map((r) => {
-    const pre = r.querySelector('[data-pre-plain-text]');
-    return { id: r.getAttribute('data-id'), pre: pre ? pre.getAttribute('data-pre-plain-text') : null, text: [...r.querySelectorAll('span.selectable-text')].map((s) => s.innerText).filter(Boolean).join('\n') };
-  }));
+    return out;
+  }, GROUPS, state.seen, SINCE);
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   for (const g of GROUPS) {
-    if (!await openChat(g)) { say(`medical sync: could not open "${g}"`); continue; }
+    if (!read[g]) { say(`medical sync: no chat named "${g}"`); continue; }
     const seen = new Set(state.seen[g] || []);
-    // to the bottom, then up until a message already seen (or ~15 screens)
-    for (let i = 0; i < 6; i++) { await page.evaluate(`(() => { const c=${SCROLLER}; if (c) c.scrollTop = c.scrollHeight; })()`); await new Promise((r) => setTimeout(r, 700)); }
-    const got = new Map();
-    for (let k = 0; k < 15; k++) {
-      const batch = await collect();
-      batch.forEach((m) => { if (m.pre && m.text) got.set(m.id, m); });
-      const hitSeen = batch.some((m) => seen.has(m.id));
-      const old = SINCE && batch.some((m) => { const x = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(m.pre || ''); return x && `${x[3]}-${x[1].padStart(2, '0')}-${x[2].padStart(2, '0')}` < SINCE; });
-      if ((seen.size && hitSeen && !SINCE) || old || (!seen.size && !SINCE)) break;   // a first run only reads the screen it opens on
-      await page.evaluate(`(() => { const c=${SCROLLER}; if (c) c.scrollTop = Math.max(0, c.scrollTop - Math.floor(c.clientHeight*0.8)); })()`); await new Promise((r) => setTimeout(r, 900));
-    }
-    const rows = [...got.values()].map((m) => {
-      const x = /\[(\d{1,2}):(\d{2}), (\d{1,2})\/(\d{1,2})\/(\d{4})\] ([^:]+):/.exec(m.pre || '');
-      if (!x) return null;
-      const date = `${x[5]}-${x[3].padStart(2, '0')}-${x[4].padStart(2, '0')}`;   // this install writes M/D/YYYY
-      return { id: m.id, group: g, date, time: `${x[1].padStart(2, '0')}:${x[2]}`, from: x[6].trim(), text: m.text.slice(0, 1500) };
-    }).filter(Boolean);
+    const rows = read[g].map((m) => {
+      const d = Object.fromEntries(fmt.formatToParts(new Date(m.t * 1000)).map((x) => [x.type, x.value]));
+      return { id: m.id, group: g, date: `${d.year}-${d.month}-${d.day}`, time: `${d.hour}:${d.minute}`, from: m.from, text: m.text.slice(0, 1500) };
+    });
     fresh[g] = rows.filter((m) => (SINCE ? m.date >= SINCE : !seen.has(m.id)));
     if (!DRY) state.seen[g] = [...new Set([...(state.seen[g] || []), ...rows.map((m) => m.id)])].slice(-800);
   }
-  if (wasOpen && !GROUPS.includes(wasOpen)) await openChat(wasOpen).catch(() => {});
 } finally { browser.disconnect(); }
 const msgs = Object.values(fresh).flat().sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 if (!DRY) { state.runs = [...(state.runs || []), new Date().toISOString()].slice(-50); fs.writeFileSync(STATE, JSON.stringify(state)); }

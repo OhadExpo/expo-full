@@ -29,7 +29,7 @@ await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal
 // THE CLUB ZONE HAS ITS OWN LANGUAGE KEY. Setting expo-lang alone leaves it in
 // Hebrew and the shell check missed it entirely, so /coach/bhbc - the surface
 // the COPY chip lives on - was reported as "did not render" and never measured.
-await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('en')); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('bhbc-lang-session', 'en'); } catch (e) {} });
 const tally = new Map();
 let dead = 0, total = 0;
 for (const route of ROUTES) {

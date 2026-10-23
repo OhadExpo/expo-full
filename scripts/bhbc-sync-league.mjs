@@ -18,6 +18,7 @@
 // Board=5 = Ligat HaAl (Winner League). BHBC shows as "בני Penlink הרצליה".
 import puppeteer from 'puppeteer-core';
 import { createClient } from '@supabase/supabase-js';
+import { ensureHeadless } from './lib/quiet-page.mjs';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
@@ -25,7 +26,8 @@ const DRY = args.includes('--dry');
 const nowD = new Date();
 const cYear = Number(args.find((a) => /^\d{4}$/.test(a))) || (nowD.getMonth() >= 7 ? nowD.getFullYear() + 1 : nowD.getFullYear());
 const seasonLabel = `${cYear - 1}/${String(cYear).slice(2)}`;
-const CDP = (process.env.CDP || 'http://localhost:9222');
+// #958: the public sites are read in an off-screen headless Chrome, never in his debug Chrome (it opened tabs on his screen)
+const CDP = process.env.CDP || await ensureHeadless();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isBHBC = (name) => /הרצליה/.test(name || '');
 // Canonical team name: strip Latin sponsor tokens (Penlink/Rapyd/IBI/Rivulis/…)

@@ -31,7 +31,7 @@ const OPENERS = /^(manage roster|\+ report injury|\+ generate link|\+ new progra
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, 'http://127.0.0.1:5199');
-await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('en')); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); localStorage.setItem('expo-lang', 'en'); sessionStorage.setItem('bhbc-lang-session', 'en'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 
 const scan = () => pg.evaluate((TOL) => {
   const shell = /DASHBOARD|OVERVIEW|ROSTER/i.test(document.body.innerText || '');

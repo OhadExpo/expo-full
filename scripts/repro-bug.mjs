@@ -8,6 +8,7 @@
 // requests, how many writes it refused, and a screenshot path (Read it to look).
 //   node scripts/repro-bug.mjs </path or https://expo-app.co.il/path> [--width 412] [--lang en|he] [--wait 25]
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { signIn } from './lib/authed-page.mjs';
@@ -29,7 +30,12 @@ const READ_RPC = /\/rest\/v1\/rpc\/(my_trainee|my_clubs|current_client_id|curren
 const STORAGE_LIST = /supabase\.co\/storage\/v1\/object\/list\//;   // a POST that only lists files
 const SIGN_IN = /supabase\.co\/auth\/v1\/token\?grant_type=(password|refresh_token)$/;
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
+// ITS OWN HEADLESS BROWSER (#958, Ohad 23.10: "make sure you work in the background since every few minutes you pop open a
+// new chrome tab"): it used to open its page in his debug Chrome, a window on his screen every time a report came in. It
+// launches a throwaway headless Chrome now (signs in itself, nothing of his profile needed) and removes it after.
+const CHROME = process.env.CHROME_EXE || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const PROFILE = path.join(os.tmpdir(), `expo-repro-${process.pid}`);
+const b = await puppeteer.launch({ executablePath: CHROME, headless: true, userDataDir: PROFILE, defaultViewport: null, protocolTimeout: 120000, args: ['--no-first-run', '--disable-gpu'] });
 const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
 try {
   await p.setViewport({ width: W, height: W < 1000 ? 900 : 1000, isMobile: W < 1000, hasTouch: W < 1000 });
@@ -70,5 +76,6 @@ try {
   console.log(`writes refused: ${refused}`);
   console.log(`screenshot: ${shot}`);
 } finally {
-  await ctx.close(); b.disconnect();
+  await ctx.close().catch(() => {}); await b.close().catch(() => {});
+  try { fs.rmSync(PROFILE, { recursive: true, force: true }); } catch { /* a locked file goes with the next temp clean */ }
 }

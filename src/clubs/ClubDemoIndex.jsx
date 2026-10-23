@@ -40,7 +40,7 @@ export default function ClubDemoIndex({ lang: lang0 = 'en' }) {
   const [lang, setLang] = useState(lang0 === 'he' ? 'he' : 'en');
   const t = COPY[lang]; const he = lang === 'he';
   const ink = '#0E0F12', dim = '#4F5663', line = 'rgba(14,15,18,0.14)';
-  const go = (club) => { try { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(lang)); } catch { /* */ } window.location.assign(club.routeBase + '/overview'); };
+  const go = (club) => { try { sessionStorage.setItem('bhbc-lang-session', lang); } catch { /* */ }   /* the zone keeps this session's language (#954b) */ window.location.assign(club.routeBase + '/overview'); };
   return (
     <div dir={he ? 'rtl' : 'ltr'} lang={lang} style={{ minHeight: '100vh', background: '#F4F5F7', color: ink, fontFamily: FB }}>
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 16px 48px', boxSizing: 'border-box' }}>

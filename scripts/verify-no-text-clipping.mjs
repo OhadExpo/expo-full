@@ -154,7 +154,7 @@ try {
   const LANG = process.env.HE === '1' ? 'he' : 'en';
   await page.evaluate((l) => {
     localStorage.setItem('expo-lang', l);
-    localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l));
+    sessionStorage.setItem('bhbc-lang-session', l);
   }, LANG);
   console.log(`language: ${LANG}  ·  ${ROUTES.length} route(s)  ·  ${W}px`);
   for (const route of ROUTES) {

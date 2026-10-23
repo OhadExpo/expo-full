@@ -26,7 +26,7 @@ if (mode === 'shoot') {
   let n = 0;
   for (const lang of LANGS) for (const theme of THEMES) {
     const ctx = await br.createBrowserContext(); const p = await ctx.newPage();
-    await p.evaluateOnNewDocument((l, th) => { try { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); localStorage.setItem('expo-collapse:bhbc-theme', JSON.stringify(th)); localStorage.setItem('expo-gate-run', '1'); } catch { /* */ } }, lang, theme);
+    await p.evaluateOnNewDocument((l, th) => { try { sessionStorage.setItem('bhbc-lang-session', l); localStorage.setItem('expo-collapse:bhbc-theme', JSON.stringify(th)); localStorage.setItem('expo-gate-run', '1'); } catch { /* */ } }, lang, theme);
     await p.setViewport({ width: 1440, height: 900 });
     await signIn(p, BASE);
     for (const w of WIDTHS) {

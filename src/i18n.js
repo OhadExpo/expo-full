@@ -3316,8 +3316,35 @@ export function useHe() {
 // dir="auto", and it reads both languages correctly.
 export const dirOfText = (s) => (/^[^\p{L}]*[֐-׿]/u.test(String(s || '')) ? 'rtl' : 'ltr');
 
+// THE ATHLETE APP OPENS IN ENGLISH, EVERY TIME (23.10 #954 / #954b, Ohad: "Athlete app should always open on English
+// automatically (they can turn it to heb if they want when they're inside)" + "All versions"). The language of an
+// athlete surface (the real portal, the demo athlete, the athlete sandbox) is: a ?lang= link (the Hebrew website
+// sends one), else THIS SESSION's switch, else English - never the language a past session left stored. It is held for
+// the page (PAGE_LANG), so every readLang() caller agrees without writing the stored language: a demo opened beside
+// the coach app must not flip the coach tabs (they follow the stored language, #860). The real portal stores it itself.
+export const ATHLETE_LANG_KEY = 'expo-athlete-lang';
+let PAGE_LANG = null;
+export function athleteOpenLang() {
+  let want = 'en';
+  try {
+    const hint = new URLSearchParams(window.location.search).get('lang');
+    // a link's language is taken ONCE (the switch inside then wins on reload, with the same ?lang= still in the URL)
+    if ((hint === 'he' || hint === 'en') && sessionStorage.getItem(ATHLETE_LANG_KEY + '-hint') !== hint) {
+      sessionStorage.setItem(ATHLETE_LANG_KEY + '-hint', hint); sessionStorage.setItem(ATHLETE_LANG_KEY, hint);
+    }
+    if (sessionStorage.getItem(ATHLETE_LANG_KEY) === 'he') want = 'he';
+  } catch { /* private mode */ }
+  PAGE_LANG = want;
+  return want;
+}
+export function setAthleteSessionLang(l) {
+  try { sessionStorage.setItem(ATHLETE_LANG_KEY, l); } catch { /* private mode */ }
+  PAGE_LANG = l;
+}
+
 let HINT_WRITTEN = false;
 export function readLang() {
+  if (PAGE_LANG) return PAGE_LANG;   // an athlete surface's language for this page (#954)
   try {
     const hint = new URLSearchParams(window.location.search).get('lang');
     if (hint === 'he' || hint === 'en') {

@@ -127,7 +127,7 @@ try {
         // with expo-collapse:) and it defaults to English, so without this the
         // one dir="rtl" surface in the app renders LTR and the sweep measures
         // nothing while reporting a clean zero.
-        localStorage.setItem('expo-collapse:bhbc-lang', '"he"');
+        sessionStorage.setItem('bhbc-lang-session', 'he');
       } catch (e) {}
     });
     let rtlPages = 0;

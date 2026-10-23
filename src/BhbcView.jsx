@@ -955,6 +955,7 @@ function zoneRootOf(pth) {
 }
 // the club's own words: Herzliya's go through the zone dictionary exactly as before
 const clubSay = (en, he, key) => (CLUB === HERZLIYA ? zoneT(key || en) : (zoneLang() === 'he' ? he : en));
+export const BHBC_LANG_SESSION = 'bhbc-lang-session';   // this session's zone language (#954b)
 export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, bhbcLoads = {}, setBhbcLoads: setBhbcLoadsReal, bhbcFixtures = [], setBhbcFixtures: setBhbcFixturesReal, league = {}, gameWarmup = {}, medical = {}, setMedical: setMedicalReal, planIndex = [], exercises = [], clientWorkouts = [], portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false, myProgram = null, club = null, demo = null }) {
   // THE CLUB THIS ZONE WEARS (#904): Herzliya unless a club is passed. A DEMO club (demo = { activity, plans }) keeps
   // every read and write in memory - nothing in the zone touches the database.
@@ -965,9 +966,11 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   // on every render — the toggle in the header still works, so a coach who
   // deliberately switches to dark inside the zone keeps it for the session.
   // Hebrew for the zone. The club's coaches are Israeli; the S&C zone was
-  // English-only. Persisted per person, defaults to English so nothing moves
-  // for anyone who does not ask for it.
-  const [bhbcLang, setBhbcLang] = usePersistentState('bhbc-lang', 'en');
+  // English-only. THE ZONE OPENS IN ENGLISH, EVERY TIME (23.10 #954b, Ohad: "same for bhbc" + "All versions"): the
+  // EN/עב switch holds for this session only (sessionStorage), so the next open is English again - every seat, the
+  // owner's, a club coach's, Elad's, Yuval's and the demo clubs. It was stored per person, so one tap stuck for good.
+  const [bhbcLang, setBhbcLangState] = useState(() => { try { return sessionStorage.getItem(BHBC_LANG_SESSION) === 'he' ? 'he' : 'en'; } catch { return 'en'; } });
+  const setBhbcLang = useCallback((l) => { try { sessionStorage.setItem(BHBC_LANG_SESSION, l); } catch { /* private mode */ } setBhbcLangState(l); }, []);
   // a demo club hears the zone's language (its players' names follow it, #904)
   useEffect(() => { if (demo && demo.onLang) demo.onLang(bhbcLang); }, [bhbcLang]);   // eslint-disable-line react-hooks/exhaustive-deps
   // The zone's OWN light/dark, persisted per person. Defaults to light so the
@@ -2748,62 +2751,73 @@ function attendance28(rec, days) {
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
       <BModal open={manageOpen} onClose={() => setManageOpen(false)} wide title={tr('Manage roster')}>
-        <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 12 }}>
-          {clubSay(`Tag athletes into ${CLUB.short}. They keep their normal athlete portal — this scopes who appears in the club zone.`, `סמן אילו שחקנים שייכים ל${CLUB.shortHe}. הפורטל האישי שלהם לא משתנה — זה רק קובע מי מופיע באזור המועדון.`, 'Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the BHBC zone.')}
-        </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'stretch' }}>
-          <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) addAthlete(); }}
-            placeholder={tr('Add a new athlete — full name')} style={{ flex: 1, height: 38, boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px' }} />
-          <Btn disabled={!newAthlete.trim()} onClick={addAthlete}
-            style={{ height: 38, boxSizing: 'border-box', background: newAthlete.trim() ? ORANGE : undefined, borderColor: newAthlete.trim() ? ORANGE : undefined, color: newAthlete.trim() ? ON_ACCENT : undefined }}>{tr('+ Add')}</Btn>
-        </div>
-        <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* club first, by jersey; everyone else by name, so a player is findable (#305 N-A7) */}
-          {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => ((b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)) || (a.team === 'BHBC' ? (a.jersey ?? 999) - (b.jersey ?? 999) : String(a.name || '').localeCompare(String(b.name || '')))).map((t) => {
-            const on = t.team === 'BHBC';
-            return (
-              <div key={t.id} className="bhbc-manage-row" style={{ padding: '9px 12px', border: `1px solid ${C.cardBd}`, borderInlineStart: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
-                <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
-                <span style={{ width: 24, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>{on && t.jersey != null && <Jersey n={t.jersey} size={22} />}</span>
-                <span style={{ minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
-                {on && (
-                  <button type="button" aria-pressed={!!t.bhbcGhost} onClick={() => setGhost(t.id, !t.bhbcGhost)} className="bhbc-ghost-btn" title={tr('A ghost stays on the roster but is not counted anywhere')}
-                    style={{ flexShrink: 0, height: 26, minHeight: 26, padding: '0 9px', boxSizing: 'border-box', fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.bhbcGhost ? C.tx : C.td, background: t.bhbcGhost ? 'var(--c-sf2)' : 'transparent', border: `1px ${t.bhbcGhost ? 'solid' : 'dashed'} ${C.cardBd}`, borderRadius: 0, cursor: 'pointer' }}>{tr('Ghost')}</button>
-                )}
-                {on && (
-                  <span className="bhbc-manage-meta">
-                    <span style={{ minWidth: 0, fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(t.position) || ''}</span>
-                    {/* A LANDING DATE ONLY MATTERS UNTIL THEY LAND.
-                        Ohad, 21.9: "make sure that i only see when the players
-                        landed where it matters... its old news and it's showing
-                        everywhere right now". This modal put a date field on
-                        every row, so twenty players who arrived months ago each
-                        carried a stale date at full strength. Future or unset ->
-                        the field, because it is a fact still ahead of you or one
-                        to record. Already landed -> one muted word, and clicking
-                        it brings the field back so a wrong date is still
-                        fixable. The roster-card badge was already future-only.
-
-                        LABEL ABOVE THE FIELD, not beside it (Ohad, same day:
-                        "they should stack vertically one above each other").
-                        Side by side the label ate the width the position needed
-                        and the pair read as two loose items. */}
-                    {(!t.arrival || t.arrival > todayISO() || editArrival === t.id) ? (
-                      <span style={{ flexShrink: 0, display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }} title={tr('Landing / arrival date')}>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr('Lands')}</span>
-                        <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 6px' }} />
-                      </span>
-                    ) : (
-                      <button type="button" onClick={() => setEditArrival(t.id)} title={tr('Landing / arrival date')}
-                        style={{ flexShrink: 0, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>{tr('Landed')}</button>
-                    )}
-                  </span>
-                )}
+        {(() => {
+          // MANAGE ROSTER, REDESIGNED (23.10 #961 + #960, Ohad: "Button is different size than the box next to it. Should
+          // never happen anywhere. Also this entire page is badly designed"). One field FINDS and ADDS: typing filters both
+          // lists, + ADD only creates a name nobody has. Two sections - the roster, then every other EXPO athlete - so the
+          // checkbox is not the only thing saying who is in. GHOST sits on the name line (it wrapped under the checkbox on
+          // a phone); every bordered control is the house 36px; rows are hairlines with no fills; and the page scrolls as
+          // one, with no scroll box nested inside the pop-up.
+          const q = newAthlete.trim().toLowerCase();
+          const live = trainees.filter((t) => t.status !== 'Archived');
+          const hit = (t) => !q || String(t.name || '').toLowerCase().includes(q);
+          const onRoster = live.filter((t) => t.team === 'BHBC' && hit(t)).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999) || String(a.name || '').localeCompare(String(b.name || '')));
+          const others = live.filter((t) => t.team !== 'BHBC' && hit(t)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+          const taken = !!q && live.some((t) => String(t.name || '').trim().toLowerCase() === q);
+          const canAdd = !!q && !taken;
+          const head = (label, n) => (
+            <div className="bhbc-manage-head"><span>{label}</span><span style={{ fontVariantNumeric: 'tabular-nums' }}>{n}</span></div>
+          );
+          const box = { height: 'var(--btn-h)', boxSizing: 'border-box', borderRadius: 0 };
+          return (<>
+            <div style={{ fontFamily: FB, fontSize: 13, lineHeight: 1.45, color: C.td, marginBottom: 12 }}>
+              {clubSay(`Tick who plays for ${CLUB.short}. Their EXPO portal stays the same.`, `סמן מי משחק ב${CLUB.shortHe}. הפורטל האישי שלהם לא משתנה.`, 'Tick who plays for Bnei Herzliya. Their EXPO portal stays the same.')}
+            </div>
+            <div className="bhbc-manage-add">
+              <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)} aria-label={tr('Find or add an athlete')}
+                onKeyDown={(e) => { if (e.key === 'Enter' && canAdd) addAthlete(); }}
+                placeholder={tr('Find or add an athlete')} style={{ ...box, minWidth: 0, textAlign: 'start', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '0 10px' }} />
+              <Btn disabled={!canAdd} onClick={addAthlete} title={taken ? tr('Already in the list') : undefined}
+                style={{ ...box, minHeight: 0, padding: '0 14px', background: canAdd ? ORANGE : undefined, borderColor: canAdd ? ORANGE : undefined, color: canAdd ? ON_ACCENT : undefined }}>{tr('+ Add')}</Btn>
+            </div>
+            {head(tr('On the roster'), onRoster.length)}
+            {onRoster.map((t) => (
+              <div key={t.id} className="bhbc-manage-row is-on">
+                <input type="checkbox" checked onChange={(e) => setTeam(t.id, e.target.checked)} aria-label={t.name} style={{ accentColor: NAVY, width: 16, height: 16, margin: 0, cursor: 'pointer' }} />
+                <span style={{ display: 'inline-flex', justifyContent: 'center' }}>{t.jersey != null && <Jersey n={t.jersey} size={22} />}</span>
+                <span className="bhbc-manage-name" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{t.name}</span>
+                <button type="button" aria-pressed={!!t.bhbcGhost} onClick={() => setGhost(t.id, !t.bhbcGhost)} className="bhbc-ghost-btn" title={tr('A ghost stays on the roster but is not counted anywhere')}
+                  style={{ ...box, minHeight: 0, padding: '0 10px', fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.bhbcGhost ? C.tx : C.td, background: t.bhbcGhost ? 'var(--c-sf2)' : 'transparent', border: `1px ${t.bhbcGhost ? 'solid' : 'dashed'} ${C.cardBd}`, cursor: 'pointer' }}>{tr('Ghost')}</button>
+                <span className="bhbc-manage-meta">
+                  <span style={{ minWidth: 0, fontFamily: FB, fontSize: 11, color: C.td, overflowWrap: 'break-word' }}>{tr(t.position) || '—'}</span>
+                  {/* A LANDING DATE ONLY MATTERS UNTIL THEY LAND (Ohad 21.9): future or unset -> the date, landed -> one
+                      muted word that brings the field back to fix a date. The label lives INSIDE the one 36px box (stacked
+                      above it, the second line stood 60px and the position floated beside it), so the line is one height. */}
+                  {(!t.arrival || t.arrival > todayISO() || editArrival === t.id) ? (
+                    <label className="bhbc-lands-box" title={tr('Landing / arrival date')} style={{ ...box, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr('Lands')}</span>
+                      <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} aria-label={tr('Landing / arrival date')} style={{ height: '100%', minHeight: 0, width: '100%', minWidth: 0, boxSizing: 'border-box', fontFamily: FN, fontSize: 11, color: C.tx, background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }} />
+                    </label>
+                  ) : (
+                    <button type="button" onClick={() => setEditArrival(t.id)} title={tr('Landing / arrival date')}
+                      style={{ height: 'var(--btn-h)', minHeight: 0, display: 'inline-flex', alignItems: 'center', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>{tr('Landed')}</button>
+                  )}
+                </span>
               </div>
-            );
-          })}
-        </div>
+            ))}
+            {head(tr('Other EXPO athletes'), others.length)}
+            {others.map((t) => (
+              <label key={t.id} className="bhbc-manage-row">
+                <input type="checkbox" checked={false} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, margin: 0, cursor: 'pointer' }} />
+                <span />
+                <span className="bhbc-manage-name" style={{ fontFamily: FN, fontSize: 13, fontWeight: 500, color: C.tx }}>{t.name}</span>
+              </label>
+            ))}
+            {q && !onRoster.length && !others.length && (
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.td, padding: '12px 0' }}>{tr('Nobody by that name - + Add creates the athlete.')}</div>
+            )}
+          </>);
+        })()}
       </BModal>
 
       {/* ---- LOG LIFT (one athlete, any day, personal) ---- */}
@@ -5798,9 +5812,9 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
               <span style={{ gridRow: '1 / 3', alignSelf: 'center' }}><Jersey n={t.jersey} size={26} /></span>
               <PlayerName name={t.name} style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }} />
               <span style={{ ...meta, color: ppg != null ? ORANGE_TEXT : C.cardBd, justifySelf: 'end', fontVariantNumeric: 'tabular-nums' }}>{ppg != null ? <span dir="auto" style={{ unicodeBidi: 'isolate' }} /* the number + unit in the unit's language: forced ltr read 'נק׳ למשחק 13.3' backwards (#789b) */>{Number(ppg.toFixed(1))} {tr('PPG')}</span> : '—'}</span>
-              <span style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
-                <span style={{ fontFamily: FB, fontSize: 11, color: C.td, flexShrink: 0 }}>{tr(t.position) || '—'}</span>
-                {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status), whiteSpace: 'nowrap' }}>{injShort}</span>}
+              <span data-pos-row="" style={{ gridColumn: '2 / 4', display: 'flex', alignItems: 'baseline', columnGap: 8, rowGap: 2, flexWrap: 'wrap', minWidth: 0 }}>
+                <span data-pos-word="" style={{ fontFamily: FB, fontSize: 11, color: C.td, flexShrink: 0 }}>{tr(t.position) || '—'}</span>
+                {injShort && <span data-inj-tag="" style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.03em', color: medText(inj.status), whiteSpace: 'nowrap' }}>{injShort}</span>}
                 {lands && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_TEXT }}><Plane size={10} color={ORANGE_DEEP} /> {tr('Lands')} {monDay(t.arrival)}</span>}
               </span>
               {/* the injury takes the whole second line (at 390 it was cut: "KNEE R · AVAILA..."); its colour is its status, the rail is the load band */}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
-import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor, useT, BodyLang } from './i18n';
+import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor, useT, BodyLang, athleteOpenLang, setAthleteSessionLang } from './i18n';
 import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
@@ -710,10 +710,10 @@ function AuthGate() {
     // dead buttons — they DID fire and the confirmation had nowhere to go.
     // Found auditing for his first client demo, 22.9.
     if (path === '/demo/athlete' || path.startsWith('/demo/athlete/') || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
-      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense><ToastHost /></LangCtx.Provider>;
+      return <LangCtx.Provider value={athleteOpenLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense><ToastHost /></LangCtx.Provider>;
     }
     if (path === '/demo/sandbox') {
-      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense><ToastHost /></LangCtx.Provider>;
+      return <LangCtx.Provider value={athleteOpenLang()}><Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense><ToastHost /></LangCtx.Provider>;
     }
     // The coaches' demo LANDING (/demo, /demo/he) is public too — render it
     // BEFORE the auth gate so a signed-in coach can still open the demo to show
@@ -1452,6 +1452,16 @@ function AuthedApp() {
   // LangCtx provider itself, so it reads its own lang state, not the context.
   const tb = useMemo(() => tbFor(lang), [lang]);
   useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
+  // THE ATHLETE APP OPENS IN ENGLISH, EVERY TIME (23.10 #954, Ohad: "Athlete app should always open on English
+  // automatically (they can turn it to heb if they want when they're inside)"). A pure athlete seat ignores the stored
+  // language on open; the EN/עב switch inside holds for that session only (sessionStorage), so the next open is English
+  // again. Before paint, so not one frame shows the last session's language. A coach who also trains (isBoth) keeps his
+  // own language - flipping it would flip his coach app.
+  const pureAthlete = isClient && !isBoth;
+  React.useLayoutEffect(() => {
+    if (pureAthlete) setLang(athleteOpenLang());   // readLang() callers on the page follow it (PAGE_LANG); the effect above stores it
+  }, [pureAthlete]);
+  const setAthleteLang = useCallback((l) => { setAthleteSessionLang(l); setLang(l); }, []);
   // ONE LANGUAGE IN EVERY TAB (17.10 #860): a switch in one tab wrote the stored language under the others, whose
   // components that read it (readLang) turned Hebrew while the rest kept speaking from this state - one card in two
   // languages. Another tab's switch now switches this one too.
@@ -1802,7 +1812,7 @@ function AuthedApp() {
   if (isClient) return (<LangCtx.Provider value={lang}><div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
     <ErrorBoundary inline>
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} loginEmail={email} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
-      lang={lang} onSetLang={setLang}
+      lang={lang} onSetLang={pureAthlete ? setAthleteLang : setLang}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
     </ErrorBoundary>
   </Suspense></div></LangCtx.Provider>);

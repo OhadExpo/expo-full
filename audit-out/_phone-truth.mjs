@@ -44,7 +44,7 @@ const menu = await pg.evaluate(() => {
 console.log('MENU', JSON.stringify(menu));
 await pg.screenshot({ path: `audit-out/shots-0917/phone-menu-${LANG}-${W}.png`, clip: { x: 0, y: 0, width: W, height: 320 } });
 
-await pg.evaluate(() => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')));
+await pg.evaluate(() => sessionStorage.setItem('bhbc-lang-session', 'he'));
 await pg.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((e) => /אחר כך|Later/.test(e.innerText || '')); if (x) x.click(); });
 const tabs = await pg.evaluate(() => {

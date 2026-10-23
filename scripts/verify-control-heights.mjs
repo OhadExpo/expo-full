@@ -121,7 +121,7 @@ for (const [name, route] of SURFACES) {
               try {
                 localStorage.setItem('expo-lang', L);
                 localStorage.setItem('expo-il-lang', L);
-                localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L));   // the BHBC zone keeps its own language too (usePersistentState, JSON)   // the sales site keeps its own key; without this every "en" run of it was Hebrew
+                sessionStorage.setItem('bhbc-lang-session', L);   // the BHBC zone keeps its own language too (usePersistentState, JSON)   // the sales site keeps its own key; without this every "en" run of it was Hebrew
                 localStorage.setItem('expo-theme', T);
                 localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
               } catch (e) { /* private mode */ }

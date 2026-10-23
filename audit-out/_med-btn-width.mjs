@@ -9,7 +9,7 @@ const page = await b.newPage(); await page.setViewport({ width: 1440, height: 10
 await page.goto(BASE, { waitUntil: 'domcontentloaded' }); await w(1500);
 await signIn(page, BASE);
 for (const lang of ['he', 'en']) {
-  await page.evaluate((l) => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)), lang);
+  await page.evaluate((l) => sessionStorage.setItem('bhbc-lang-session', l), lang);
   await page.goto(`${BASE}/coach/bhbc`, { waitUntil: 'domcontentloaded' }); await w(10000);
   const r = await page.evaluate(() => {
     const out = {};
@@ -24,5 +24,5 @@ for (const lang of ['he', 'en']) {
   });
   console.log(lang, JSON.stringify(r));
 }
-await page.evaluate(() => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('en')));
+await page.evaluate(() => sessionStorage.setItem('bhbc-lang-session', 'en'));
 await page.close(); b.disconnect();

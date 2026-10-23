@@ -15,6 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { ownerClient } from './lib/store-client.mjs';
+import { quietPage } from './lib/quiet-page.mjs';
 
 const ID = '1x9EkbQGc-BZIZ1GBVoCOwqM93RMFhKYKlcHm_eygZok';
 const GID = '1434128464';
@@ -29,7 +30,7 @@ const OUT = path.join(os.homedir(), 'expo-private-backups', 'sheets-647');
 async function fetchCsv() {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await puppeteer.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
-  const page = await browser.newPage();
+  const page = await quietPage(browser);   // #958: a background tab - his window keeps its tab and its focus
   try {
     const client = await page.target().createCDPSession();
     await client.send('Browser.setDownloadBehavior', { behavior: 'allowAndName', downloadPath: OUT, eventsEnabled: true });

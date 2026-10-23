@@ -26,7 +26,7 @@ const br = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaul
 let fails = 0, checked = 0;
 for (const lang of LANGS) for (const theme of THEMES) for (const w of WIDTHS) {
   const ctx = await br.createBrowserContext(); const p = await ctx.newPage();
-  await p.evaluateOnNewDocument((l, th) => { try { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); localStorage.setItem('expo-collapse:bhbc-theme', JSON.stringify(th)); sessionStorage.setItem('club-tour-closed', '1'); } catch { /* */ } }, lang, theme);
+  await p.evaluateOnNewDocument((l, th) => { try { sessionStorage.setItem('bhbc-lang-session', l); localStorage.setItem('expo-collapse:bhbc-theme', JSON.stringify(th)); sessionStorage.setItem('club-tour-closed', '1'); } catch { /* */ } }, lang, theme);
   await p.setViewport({ width: w, height: w < 600 ? 844 : 900, isMobile: w < 600, hasTouch: w < 1100, deviceScaleFactor: 1 });
   const db = [], errs = [];
   p.on('request', (r) => { const u = r.url(); if (/supabase\.co|\/rest\/v1\/|\/rpc\/|\/realtime\/|\/storage\/v1\//.test(u)) db.push(`${r.method()} ${u.slice(0, 120)}`); });

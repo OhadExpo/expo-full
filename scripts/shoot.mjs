@@ -41,13 +41,14 @@ async function wsEndpoint() {
     page = await browser.newPage();
     // the install prompt (iOS UA: it opens 1.2 s after load, in either language - the 'maybe later' click below missed
     // the Hebrew one and the late one) is snoozed before the page runs (16.10)
-    // SHOOT_LS='{"key":"raw value"}' seeds localStorage first (a zone's own language, e.g. expo-collapse:bhbc-lang = "he").
+    // SHOOT_LS='{"key":"raw value"}' seeds localStorage first. The BHBC zone's language is per SESSION since 23.10 (#954b):
+    // the key bhbc-lang-session goes to sessionStorage, e.g. SHOOT_LS='{"bhbc-lang-session":"he"}'.
     // This is HIS logged-in profile: what was there before is kept (once per tab, in sessionStorage) and put back when
     // the shot is done (re-review 16.10: a seeded language would have stayed his language).
     await page.evaluateOnNewDocument((j) => { try {
       const seed = { 'expo-install-snooze-until': String(Date.now() + 864e5), ...(j ? JSON.parse(j) : {}) };
       if (!sessionStorage.getItem('__shootPrev')) { const prev = {}; for (const k of Object.keys(seed)) prev[k] = localStorage.getItem(k); sessionStorage.setItem('__shootPrev', JSON.stringify(prev)); }
-      for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
+      for (const [k, v] of Object.entries(seed)) { if (k === 'bhbc-lang-session') sessionStorage.setItem(k, v); else localStorage.setItem(k, v); }
     } catch { /* private */ } }, process.env.SHOOT_LS || '');
     await setWidth(page, parseInt(w) || 1440, parseInt(h) || 900);
     // Re-assert after navigation: a fresh document can come up at the window's

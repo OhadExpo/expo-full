@@ -12,7 +12,7 @@ await pg.evaluate(() => { for (const k of Object.keys(localStorage)) if (/^sb-.*
 await signIn(pg, BASE);
 await pg.evaluate(() => { const el = [...document.querySelectorAll('button, a')].find((e) => /ניהול|COACH|Manage/i.test(e.innerText || '') && e.offsetParent); if (el) el.click(); });
 await wait(2000);
-await pg.evaluate((l) => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)), LANG);
+await pg.evaluate((l) => sessionStorage.setItem('bhbc-lang-session', l), LANG);
 await pg.goto(`${BASE}/coach/bhbc?lang=${LANG}`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 console.log(JSON.stringify(await pg.evaluate(() => {
   const btns = [...document.querySelectorAll('button')].filter((e) => e.offsetParent).map((e) => e.innerText.replace(/\s+/g, ' ').trim());

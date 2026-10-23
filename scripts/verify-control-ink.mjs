@@ -68,7 +68,7 @@ try {
       if (group[0].startsWith('/coach')) await signIn(pg, BASE);
       else await pg.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
       // the language goes in AFTER a page of this origin is open (about:blank has no storage)
-      await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch { /* */ } }, L);
+      await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); sessionStorage.setItem('bhbc-lang-session', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 864e5)); } catch { /* */ } }, L);
       for (const route of group) {
         await pg.goto(BASE + route, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
         await wait(4500);

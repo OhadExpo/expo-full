@@ -52,7 +52,7 @@ for (const lang of ['en', 'he']) {
   const ctx = await b.createBrowserContext(); const pg = await ctx.newPage();
   try {
     await setWidth(pg, 1440, 950);
-    await pg.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
+    await pg.evaluateOnNewDocument((L) => { try { localStorage.setItem('expo-lang', L); sessionStorage.setItem('bhbc-lang-session', L); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
     await signIn(pg, BASE);
     for (const r of COACH) {
       await pg.goto(`${BASE}/coach/${r}`, { waitUntil: 'domcontentloaded' });

@@ -13,7 +13,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 120000 });
 const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
 await p.setViewport({ width: W, height: 900, isMobile: W < 600, hasTouch: W < 1100 });
-await p.evaluateOnNewDocument((l) => { try { sessionStorage.setItem('club-tour-closed', '1'); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); } catch { /* */ } window.__dlg = 0; }, LANG);
+await p.evaluateOnNewDocument((l) => { try { sessionStorage.setItem('club-tour-closed', '1'); sessionStorage.setItem('bhbc-lang-session', l); } catch { /* */ } window.__dlg = 0; }, LANG);
 p.on('dialog', (d) => d.dismiss().catch(() => {}));
 const db = [], errs = [];
 p.on('request', (r) => { if (/supabase\.co|\/rest\/v1\/|\/rpc\/|\/storage\/v1\//.test(r.url())) db.push(`${r.method()} ${r.url().slice(0, 90)}`); });

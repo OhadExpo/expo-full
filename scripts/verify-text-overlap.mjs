@@ -205,7 +205,7 @@ async function freshPage(ctx, lang, w) {
   await pg.evaluateOnNewDocument((L) => {
     try {
       localStorage.setItem('expo-lang', L);
-      localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L));
+      sessionStorage.setItem('bhbc-lang-session', L);
       localStorage.setItem('expo-theme', 'dark');
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
       sessionStorage.setItem('expo-portal-choice', 'trainer');

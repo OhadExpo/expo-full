@@ -69,7 +69,7 @@ async function freshPage(ctx, lang, w) {
   await pg.evaluateOnNewDocument((L, T, P) => {
     try {
       localStorage.setItem('expo-lang', L);
-      localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(L));   // the BHBC zone keeps its own language (usePersistentState, JSON)
+      sessionStorage.setItem('bhbc-lang-session', L);   // the BHBC zone keeps its own language (usePersistentState, JSON)
       localStorage.setItem('expo-theme', T);
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
       // PRESET='{"key":"value"}' opens a view that is not the default (4.10: the

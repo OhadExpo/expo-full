@@ -136,7 +136,7 @@ try {
     try {
       sessionStorage.setItem('expo-portal-choice', 'trainer');
       localStorage.setItem('expo-lang', 'he');
-      localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he'));
+      sessionStorage.setItem('bhbc-lang-session', 'he');
       localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000));
     } catch (e) { /* private mode */ }
   });

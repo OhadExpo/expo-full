@@ -7,7 +7,7 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 const pg = await b.newPage(); await pg.setViewport({ width: 1400, height: 1000, deviceScaleFactor: 1.5 });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1200);
 await signIn(pg, BASE);
-await pg.evaluate(() => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')));
+await pg.evaluate(() => sessionStorage.setItem('bhbc-lang-session', 'he'));
 await pg.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 await pg.evaluate(() => { const el = [...document.querySelectorAll('.bhbc-tab, [role="tab"]')].find((e) => (e.innerText || '').trim() === 'רפואי'); if (el) el.click(); });
 await wait(3000);

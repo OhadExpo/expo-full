@@ -10,7 +10,7 @@ const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
 const page = await b.newPage(); await page.setViewport({ width: 1440, height: 1000 });
 await page.goto(BASE, { waitUntil: 'domcontentloaded' }); await w(1500);
 await signIn(page, BASE);
-await page.evaluate(() => { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')); });
+await page.evaluate(() => { sessionStorage.setItem('bhbc-lang-session', 'he'); });
 await page.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await w(7000);
 const collect = () => page.evaluate(() => {
   const text = new Set(); const attrs = new Set();

@@ -62,7 +62,7 @@ for (const r of routes) {
 }
 // club zone: every tab (its own dictionary, bhbcHe)
 if (process.env.CLUB) {
-  await pg.evaluate(() => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')));
+  await pg.evaluate(() => sessionStorage.setItem('bhbc-lang-session', 'he'));
   await pg.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(8000);
   const tabs = await pg.evaluate(() => [...document.querySelectorAll('.bhbc-tab, [role="tab"]')].filter((e) => e.offsetParent).map((e) => (e.innerText || '').trim()).filter(Boolean));
   for (const tb of tabs) {

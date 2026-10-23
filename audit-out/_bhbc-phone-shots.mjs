@@ -8,7 +8,7 @@ const pg = await b.newPage();
 await pg.emulate({ viewport: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1200);
 await signIn(pg, BASE);
-await pg.evaluate(() => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')));
+await pg.evaluate(() => sessionStorage.setItem('bhbc-lang-session', 'he'));
 await pg.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 const promptDir = await pg.evaluate(() => { const el = [...document.querySelectorAll('div')].find((d) => /תתקין את EXPO/.test(d.innerText || '') && d.innerText.length < 200); return el ? getComputedStyle(el).direction : 'no prompt'; });
 console.log('install prompt direction:', promptDir);

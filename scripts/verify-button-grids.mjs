@@ -64,7 +64,7 @@ const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', default
 const all = []; let measured = 0, empty = 0;
 for (const lang of ['he', 'en']) {
   const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
-  await p.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch { /* */ } }, lang);
+  await p.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); sessionStorage.setItem('bhbc-lang-session', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch { /* */ } }, lang);
   const si = await signIn(p, BASE);
   if (!si || !si.signedIn) { console.log(`NOT MEASURED (${lang}): sign-in failed - ${JSON.stringify(si)}`); await ctx.close(); continue; }
   for (const w of WIDTHS) {

@@ -3928,7 +3928,7 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("CHANGE")}</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
-                  <bdi>{(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)} {tt('KG')}</bdi></div>
+                  <bdi>{/* the signed number is its own left-to-right run (#955: in the right-to-left app '+0.9' drew as '0.9+') */}<span dir="ltr" style={{unicodeBidi:'isolate'}}>{(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}</span> {tt('KG')}</bdi></div>
               </div>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("ENTRIES")}</div>
