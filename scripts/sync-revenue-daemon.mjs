@@ -233,6 +233,24 @@ function runBugs() {
     bugsRunning = false;
     const line = out.trim().replace(/\s+/g, ' ').slice(0, 400);
     if (line && !/nothing new/.test(line)) say(line);
+    runTriage();
+  });
+}
+// CLAUDE CHECKS EACH NEW ALERT ON ITS OWN (#909, 23.10): right after the queue step, a headless read-only Claude
+// reproduces every new report group and writes its verdict under it (pushing Ohad for health / stuck / typed ones).
+// Capped inside the script (2 a run, 6 a day, one run at a time); quiet when nothing is pending.
+let triageRunning = false;
+function runTriage() {
+  if (triageRunning) return;
+  triageRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/bug-triage.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', () => {
+    triageRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 400);
+    if (line && !/nothing new/.test(line)) say(line);
   });
 }
 // 11 minutes in, clear of the owed / game warm-up downloads

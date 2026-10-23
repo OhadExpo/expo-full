@@ -80,37 +80,6 @@ function StatusMenu({ status, onChange }) {
   );
 }
 
-// One canonical "assigned program" card for EVERY programs list — the solo
-// list, the couple member columns, and the couple bottom grid. Those three
-// renderers had drifted: only the solo list showed an "Open →" affordance, the
-// "Only" button was 8px in the couple/member cards but 9px in the solo list,
-// and the visibility toggle came in two sizes (28×16 no-label vs 36×20 ON/OFF).
-// This unifies all of it: a clickable name that opens the editor PLUS an
-// explicit "Open →" button, and consistent ✕ / Only / visibility controls.
-function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }) {
-  const t = useT();
-  const btn = { height:24, boxSizing:'border-box', borderRadius:0, cursor:'pointer', fontFamily:FN, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center' };
-  return (
-    <Card padding={10} style={{ marginBottom:8, paddingBottom:12 }} /* it ends on buttons (no text slack under them): 12, not Card's 10-4; as a style shorthand Card had kept its own 20 (#796: 13 / 20) */>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-        <div style={{ flex:'1 1 140px', minWidth:0, cursor:'pointer' }} onClick={onOpen}>
-          <div style={{ fontWeight:600, color:C.tx, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
-          <div style={{ fontSize:12, color:C.tm, marginTop:2 }}>{readLang()==='he' ? `${daysCount(p.dayCount||0)} · ${exercisesCount(p.exerciseCount||0)}` : `${plur(p.dayCount||0,'day','days')} · ${p.exerciseCount||0} ex`}</div>
-        </div>
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
-          <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label={t('Remove program from athlete')} title={t('Remove program from athlete')} style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
-          <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title={t('Show only this program on the athlete portal — hide all others')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
-          <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={tr(readLang(), isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show')} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
-            <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.tm, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
-            <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{t(isVis?'ON':'OFF')}</span>
-          </button>
-          <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title={t('Open this program in the editor')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>{t('Open →')}</button>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 // Coach-side weigh-in entry. Writes to the shared bwLog with the athlete's
 // clientId, so the point appears on BOTH this chart and the athlete-portal
 // bodyweight graph (bwLog is realtime-synced across coach + portal).
@@ -220,7 +189,8 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
   // Solo programs card: current (front) block always shown; earlier blocks
   // collapse behind the "N previous" pill — mirrors PlansView's table card.
-  const [programsExpanded,setProgramsExpanded]=useState(false);
+  const [progExp,setProgExp]=useState({});
+  const memberLast = (mi) => { const sub = subMemberId(trainee, mi); const w = tcw.filter((x) => x.clientId === sub).sort((a, b) => new Date(b.date) - new Date(a.date))[0]; return w ? w.date : null; }; // which program lists show their earlier blocks: 'solo' / 'm0' / 'm1'
   // sortProgramsRecent is the canonical newest-first program sort; lives
   // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
@@ -455,8 +425,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           {bulkToggleBtn(sorted, memberVisKey)}
         </div>
         {sorted.length===0?<div style={{color:C.td,fontSize:12}}>{t('No programs assigned.')}</div>:
-          sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
-            <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThisMember(visKey)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />)})}
+          renderProgramsList(sorted, memberVisKey, (vk) => onlyThisMember(vk), `m${mi}`, memberLast(mi))}
         </>}
       </div>
     );
@@ -482,17 +451,22 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
   //   visibility → PORTAL toggle (kept GREEN per Ohad)
   //   only-this  → "Only" text action
   //   unassign   → "Remove" text action (red)
-  const renderProgramsList = () => {
-    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
+  // A COUPLE MEMBER GETS THE SAME CARD (#912, Ohad 23.10 on a couple's page: "Each block card is too big. Not astethic
+  // or ocd and takes too much space"): each member's blocks were one tall ProgramCard apiece (name, meta, then a row of
+  // boxed buttons - ~115px a block, 9 blocks a member). The member column now renders this card with its own list,
+  // its own portal keys, its own 'only' and its own previous-blocks fold.
+  const renderProgramsList = (list = tp, visKeyOf = (p) => `${td.name}:${p.name}`, onlyFn = (vk, sl) => onlyThis(vk, sl), xKey = 'solo', lastRaw = null) => {
+    const sorted = [...list].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
     if (sorted.length === 0) return null; // caller renders the empty state
     const cur = sorted[0];
     const earlier = sorted.slice(1);
-    const visKeyOf = (p) => `${td.name}:${p.name}`;
+    const programsExpanded = !!progExp[xKey];
+    const setProgramsExpanded = (fn) => setProgExp((m) => ({ ...m, [xKey]: fn(!!m[xKey]) }));
     // Recency pill mirrors PlansView. No per-block session attribution exists
     // on this page, so it reads the athlete's most recent completed session —
     // on a single-athlete page the current block is what they're training, so
     // athlete-last-session is the honest signal (real data, never fabricated).
-    const lastDateRaw = tAllWorkouts[0]?.date;
+    const lastDateRaw = lastRaw || tAllWorkouts[0]?.date;
     const lastDate = lastDateRaw ? new Date(lastDateRaw) : null;
     const daysSince = (lastDate && !isNaN(lastDate)) ? Math.floor((Date.now() - lastDate.getTime())/86400000) : null;
     const tagColor = daysSince == null ? C.td : daysSince <= 3 ? C.gn : daysSince <= 7 ? C.tm : daysSince <= 14 ? C.or : C.rd;
@@ -502,7 +476,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
     // Shared text-action builders so the current block and the earlier rows
     // stay pixel-consistent (only the font size differs, exactly as PlansView).
     const onlyBtn = (p, fs) => (
-      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title={t('Show only this program on the athlete portal — hide all others')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{t('Only')}</button>
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyFn(visKeyOf(p),sorted);}} title={t('Show only this program on the athlete portal — hide all others')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{t('Only')}</button>
     );
     const removeBtn = (p, fs) => (
       <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title={t('Remove this program from the athlete')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tr(readLang(), 'Remove')}</button>
@@ -1070,8 +1044,7 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
                     {bulkToggleBtn(sorted, memberVisKey)}
                   </div>
                   {sorted.length===0?<div style={{color:C.td,fontSize:12}}>{t('No programs assigned.')}</div>:
-                    sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
-                      <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThisCouple(visKey)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />)})}
+                    renderProgramsList(sorted, memberVisKey, (vk) => onlyThisCouple(vk), `m${mi}`, memberLast(mi))}
                 </div>
               </React.Fragment>
             );

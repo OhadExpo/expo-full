@@ -38,21 +38,33 @@ try {
   }
   const stamp = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '.').replace(',', '');
   const lines = [];
-  let typed = 0;
+  const triage = [];   // #909: each new group also goes to scripts/bug-triage.mjs (a headless, read-only Claude)
+  // a fingerprint already queued in the last 24h is counted, not queued again: the health cron runs every 10 minutes
+  const queued = Object.fromEntries(Object.entries(state.queued || {}).filter(([, t]) => Date.now() - t < 86400000));
+  let typed = 0; let repeats = 0;
   for (const g of groups.values()) {
     const last = g.rows[g.rows.length - 1]; const c = last.context || {};
     const auto = c.auto === true;
+    if (queued[g.key]) { repeats += 1; continue; }
+    queued[g.key] = Date.now();
     if (!auto) typed += 1;
     const route = String(last.url || '').replace(/^https?:\/\/[^/]+/, '') || '?';
     const seats = [...new Set(g.rows.map((r) => r.role || 'anon'))].join('/');
     const trail = (c.trail || []).slice(-8).map((t) => `${t.kind}:${t.what}`).join(' > ');
     const frame = String(c.stack || '').split('\n').find((l) => /\/assets\/|\/src\//.test(l)) || '';
     lines.push(`- [ ] BUG ${last.id.slice(0, 8)} (${stamp}, ${auto ? 'AUTO-CAPTURED' : 'REPORTED by a ' + seats}) x${g.rows.length} on ${route} - "${String(last.description).replace(/\s+/g, ' ').slice(0, 200)}" | release ${c.release || c.bundle || '?'} | ${c.viewport ? c.viewport.w + 'x' + c.viewport.h : '?'} ${c.theme || ''} ${c.locale || ''}${trail ? ` | trail: ${trail}` : ''}${frame ? ` | at ${frame.trim().slice(0, 160)}` : ''} | /coach/bugs, ids ${g.rows.map((r) => r.id.slice(0, 8)).join(',')}`);
+    const desc = String(last.description || '');
+    triage.push({ id: last.id.slice(0, 8), key: g.key, line: lines[lines.length - 1], kind: !auto ? 'typed' : /^HEALTH/.test(desc) ? 'health' : /STUCK/.test(desc) ? 'stuck' : 'auto' });
   }
-  say(`${rows.length} new report(s) in ${groups.size} group(s), ${typed} typed by a person`);
+  say(`${rows.length} new report(s) in ${groups.size} group(s), ${typed} typed by a person${repeats ? `, ${repeats} already queued today` : ''}`);
   if (DRY) { lines.forEach((l) => console.log(l)); process.exit(0); }
-  fs.appendFileSync(QUEUE, `${lines.join('\n')}\n`);
-  fs.writeFileSync(STATE, JSON.stringify({ since: rows[rows.length - 1].created_at, at: new Date().toISOString() }));
+  if (lines.length) fs.appendFileSync(QUEUE, `${lines.join('\n')}\n`);
+  if (triage.length) {
+    const PENDING = path.join(QDIR, '.triage-pending.json');
+    let prev = []; try { prev = JSON.parse(fs.readFileSync(PENDING, 'utf8')); } catch { /* none */ }
+    fs.writeFileSync(PENDING, JSON.stringify([...prev, ...triage].slice(-40)));
+  }
+  fs.writeFileSync(STATE, JSON.stringify({ since: rows[rows.length - 1].created_at, at: new Date().toISOString(), queued }));
   if (typed) await pushOwner(say, 'EXPO: bug reported', `${typed} new report${typed === 1 ? '' : 's'} - queued for the next session. /coach/bugs`);
 } finally {
   await s.auth.signOut({ scope: 'local' });
