@@ -89,6 +89,7 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 | `/athlete` MEAL LOG | `MealLogger` (page mode) | ✅ pass2 |
 | `/athlete` HISTORY | past workouts | ✅ pass2 (null-guards fixed, commit 127783f) |
 | `/athlete/progress` PROGRESS (was PRs; 16.10 #826) | `AthleteProgress` (+ `TraineePRsView` embedded) | new 16.10 |
+| `/athlete/progress/jump-test` JUMP TEST (the filming how-to open; also `/demo/athlete/progress/jump-test`) | `JumpTest` in `AthleteProgress` - films one jump, poseLab.jumpMetrics, saves to `athlete_tests`; the coach sees it on the athlete page | new 23.10 #897 |
 | `/athlete` MESSAGES | `CoachMessages` (page mode) | ✅ pass2 |
 
 

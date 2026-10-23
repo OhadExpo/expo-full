@@ -337,7 +337,7 @@ export function readStoredSession() {
 // past it would fail closed (read nothing, write nothing) - never touch the
 // real data. scripts/verify-partner-sandbox.mjs proves the database side.
 const SBX_TABLES = new Set([
-  'athlete_app_opens', 'athlete_meals', 'availability_rules', 'bit_payment_requests', 'bookings',
+  'athlete_app_opens', 'athlete_meals', 'athlete_tests', 'availability_rules', 'bit_payment_requests', 'bookings',
   'bug_reports', 'challenge_participants', 'challenges', 'chat_logs', 'client_workouts',
   'coach_booking_settings', 'coach_messages', 'coach_note_comments', 'coach_note_events', 'coach_notes',
   'coach_payment_settings', 'coach_tasks', 'coaching_contracts', 'intake_submissions', 'intake_tokens',

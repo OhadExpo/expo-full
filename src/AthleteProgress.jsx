@@ -16,6 +16,7 @@ import { plannedSessions } from './planWeek';
 import { FitStrip, liftState } from './StrengthReview';
 import { CoachWords } from './BlockTalk';
 import TraineePRsView from './TraineePRsView';
+import JumpTest from './JumpTest';
 
 const L = (he, en, hb) => (he ? hb : en);
 const I = (s) => `⁦${s}⁩`;
@@ -23,7 +24,7 @@ const card = { border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', margi
 const Ltr = ({ children, style }) => <bdi dir="ltr" style={{ unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', ...style }}>{children}</bdi>;
 const km1 = (n) => (Math.round((n || 0) * 10) / 10).toString();
 
-export default function AthleteProgress({ header, clientWorkouts, clientId, plans, exercises, weeklyFocus, he, blockId = null, blockName = null, week = null }) {
+export default function AthleteProgress({ header, clientWorkouts, clientId, plans, exercises, weeklyFocus, he, blockId = null, blockName = null, week = null, demo = false, readOnly = false }) {
   const exMap = useMemo(() => new Map((exercises || []).map((e) => [e.id, e])), [exercises]);
   // ONLY the block he is on and the blocks before it: a newer block the coach is still writing (hidden in his portal) is
   // cut away, so it can never be analysed, named or have its pre-written focus shown. A couple member keeps his own plans.
@@ -127,6 +128,8 @@ export default function AthleteProgress({ header, clientWorkouts, clientId, plan
             </>
           )}
         </div>
+        {/* his own jump test, saved where his coach sees it (#897) */}
+        <JumpTest clientId={clientId} he={he} demo={demo} readOnly={readOnly} />
         <CoachWords ctx={talk} he={he} />
       </div>
     </div>

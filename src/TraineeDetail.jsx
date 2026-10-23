@@ -41,6 +41,7 @@ import { useT, useHe, tr, readLang, daysCount, exercisesCount, daysAgoHe } from 
 // Moved to src/clubAthlete.js - it was defined four times.
 import { isClubAthleteRow } from './clubAthlete';
 import { useUrlFlag, useUrlSync, urlFlagFromPath, segmentAfter } from './urlState';
+import JumpTest from './JumpTest';
 
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
 // no longer inside the EDIT modal (Ohad). Click the status pill → pick a new
@@ -986,6 +987,9 @@ export default function TraineeDetail({ bhbcLoads = {}, trainee, trainees, setTr
           <CheckinTrends workouts={tAllWorkouts} />
         </CollapsibleSection>
       )}
+
+      {/* === JUMP TEST — what the athlete measured himself in the portal (#897); shown once he has tested */}
+      <div style={{ margin: '20px 0 0' }}><JumpTest clientId={String(trainee || '').split('__')[0]} he={readLang() === 'he'} coach /></div>
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare domId="td-sec-workouts" title={tr(readLang(), 'Recent Workouts')} count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>

@@ -3980,7 +3980,7 @@ function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkout
     const isHe = (lang || readLang()) === 'he';
     // the tab bar stays OUTSIDE the boundary: a throw in the page must leave him a way to another tab
     return <div data-theme="dark" style={{ background: C.bg, color: C.tx, minHeight: '100vh', maxWidth: 500, margin: '0 auto' }}>{renderTopHeader()}<ErrorBoundary inline><React.Suspense fallback={<div style={{ color: C.tm, fontFamily: FN, fontSize: 11, padding: 20 }}>{tt('LOADING…')}</div>}>
-      <AthleteProgress header={null} week={wk + 1} clientWorkouts={cw} clientId={ci} plans={clientPlans} blockId={(activePlan || visPlans[0] || {}).id || null} blockName={(activePlan || visPlans[0] || {}).name || null} exercises={trainerExercises} weeklyFocus={weeklyFocus} he={isHe} />
+      <AthleteProgress header={null} week={wk + 1} clientWorkouts={cw} clientId={ci} plans={clientPlans} blockId={(activePlan || visPlans[0] || {}).id || null} blockName={(activePlan || visPlans[0] || {}).name || null} exercises={trainerExercises} weeklyFocus={weeklyFocus} he={isHe} demo={!!demoMode} readOnly={!!localWrites} />
     </React.Suspense></ErrorBoundary></div>;
   }
 
