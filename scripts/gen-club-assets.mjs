@@ -6,10 +6,9 @@
 // Run after changing a demo club's colours or name:  node scripts/gen-club-assets.mjs
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
-import { NETANYA } from '../src/clubs/clubs.js';
-import { GALIL, SHARON } from '../src/clubs/demoClubs.js';
+import { ALL_DEMO_CLUBS } from '../src/clubs/demoClubs.js';
 
-const CLUBS = [NETANYA, GALIL, SHARON];
+const CLUBS = ALL_DEMO_CLUBS.map((d) => d.club);
 fs.mkdirSync('public/clubs', { recursive: true });
 const svgOf = (dataUri) => decodeURIComponent(dataUri.replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
 const font = fs.readFileSync('public/fonts/Nord-Bold.woff2').toString('base64');

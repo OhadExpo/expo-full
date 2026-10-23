@@ -83,7 +83,7 @@ const EVERY = (() => {
   return [...new Set(paths)].sort().map((pth) => [pth.replace(/^\//, '').replace(/\//g, '-'), pth, []]);
 })();
 // --clubs (#904): every page of every demo club (EXPO Teams) by its own URL
-const CLUBS = ['netanya', 'galil', 'sharon'].flatMap((c) => ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'].map((t) => [`club-${c}-${t}`, `/demo/club/${c}/${t}`, []]));
+const CLUBS = (await import('../src/clubs/demoClubs.js')).ALL_DEMO_CLUBS.map((d) => d.club.id).flatMap((c) => ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'].map((t) => [`club-${c}-${t}`, `/demo/club/${c}/${t}`, []]));
 let SURFACES = SCOPE === 'clubs' ? CLUBS : SCOPE === 'every' ? EVERY : SCOPE === 'expo' ? EXPO : SCOPE === 'all' ? [...ZONE, ...EXPO] : ZONE;
 if (ONLY) SURFACES = SURFACES.filter((s) => s[0].includes(ONLY));
 

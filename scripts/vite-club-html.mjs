@@ -7,8 +7,7 @@
 // page never silently ships half EXPO.
 import fs from 'node:fs';
 import path from 'node:path';
-import { NETANYA } from '../src/clubs/clubs.js';
-import { GALIL, SHARON } from '../src/clubs/demoClubs.js';
+import { ALL_DEMO_CLUBS } from '../src/clubs/demoClubs.js';
 
 const SWAPS = [
   [/<title>[^<]*<\/title>/, '<title>Bnei Herzliya</title>'],
@@ -41,7 +40,7 @@ export function clubHtml(html) {
 
 // A DEMO CLUB'S SHELL (team version #904): dist/club-<id>.html, served for /demo/club/<id>/* (vercel.json). Its title,
 // share card and tab icon are the club's (scripts/gen-club-assets.mjs makes the files); the manifest stays EXPO's.
-export const DEMO_SHELL_CLUBS = [NETANYA, GALIL, SHARON];
+export const DEMO_SHELL_CLUBS = ALL_DEMO_CLUBS.map((d) => d.club);
 export function demoClubHtml(html, c) {
   const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const title = esc(`${c.short} · Performance & S&C`);

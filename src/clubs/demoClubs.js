@@ -1,6 +1,6 @@
-// THE PUBLIC DEMO CLUBS (team version #904): fictional - no real club, crest or player. A prospect's own demo (NETANYA)
-// lives in clubs.js and is never listed; these two are what /demo/club shows anyone.
-import { crestSvg } from './clubs.js';
+// THE DEMO CLUBS (team version #904). GALIL and SHARON are fictional - no real club, crest or player - and are what
+// /demo/club shows anyone; a prospect's own demo (NETANYA, in clubs.js) is listed here too but never shown there.
+import { crestSvg, NETANYA } from './clubs.js';
 
 // basketball: BC Galil, purple and gold
 export const GALIL = {
@@ -56,3 +56,13 @@ export const SHARON = {
   routeBase: '/demo/club/sharon',
   demo: true,
 };
+
+// EVERY DEMO CLUB, ONE LIST (the route, the HTML shell + share card, the asset generator, the sweeps read it). A new
+// club = a record above (or in clubs.js) + one line here + its two rewrites in vercel.json; docs/team-version.md.
+// listed: shown on /demo/club. A prospect's own demo is never listed - it is shared by link.
+export const ALL_DEMO_CLUBS = [
+  { club: NETANYA, listed: false },
+  { club: GALIL, listed: true },
+  { club: SHARON, listed: true },
+];
+export const demoClubBySlug = (slug) => (ALL_DEMO_CLUBS.find((d) => d.club.id === slug) || {}).club || null;

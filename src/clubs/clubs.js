@@ -76,4 +76,3 @@ export const NETANYA = {
   demo: true,
 };
 
-export const DEMO_CLUBS = { netanya: NETANYA };

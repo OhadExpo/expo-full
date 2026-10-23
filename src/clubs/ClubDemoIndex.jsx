@@ -3,7 +3,7 @@
 // today; a prospect's own branded demo (/demo/club/<prospect>) is shared by link and never listed here.
 import React, { useState } from 'react';
 import { FN, FB } from '../theme';
-import { GALIL, SHARON } from './demoClubs';
+import { ALL_DEMO_CLUBS } from './demoClubs';
 
 const COPY = {
   en: {
@@ -62,7 +62,7 @@ export default function ClubDemoIndex({ lang: lang0 = 'en' }) {
 
         <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>{t.demos}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
-          {[GALIL, SHARON].map((c) => (
+          {ALL_DEMO_CLUBS.filter((d) => d.listed).map((d) => d.club).map((c) => (
             <button key={c.id} type="button" data-club-demo={c.id} onClick={() => go(c)}
               style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', border: 'none', borderTop: `4px solid ${c.palette.accent}`, background: c.palette.primaryDeep, color: '#fff', textAlign: 'start', cursor: 'pointer', fontFamily: FN }}>
               <img src={c.crestW} alt="" style={{ width: 44, height: 'auto', flexShrink: 0 }} />

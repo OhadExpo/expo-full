@@ -5,10 +5,9 @@
 // in memory: a director can log a lift, record an injury or move a practice and watch the board change, and a reload
 // starts the same story again. Nothing reads or writes the database.
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { DEMO_CLUBS } from './clubs';
 import { buildDemoSeason } from './demoSeed';
 import { buildSoccerSeason } from './soccerSeed';
-import { SHARON, GALIL } from './demoClubs';
+import { demoClubBySlug } from './demoClubs';
 import ClubTour from './ClubTour';
 import { hebrewFixtures, hebrewLoads, hebrewMedical, hebrewWarmup, hebrewPlanIndex, hebrewPlans, hebrewStaffName } from './demoHebrew';
 import ClubDemoIndex from './ClubDemoIndex';
@@ -18,7 +17,7 @@ import { C, FN } from '../theme';
 const BhbcView = lazy(() => import('../BhbcView'));
 
 export default function ClubDemo({ slug }) {
-  const club = { ...DEMO_CLUBS, sharon: SHARON, galil: GALIL }[slug] || null;
+  const club = demoClubBySlug(slug);
   const seed = useMemo(() => (!club ? null : club.sport === 'soccer' ? buildSoccerSeason(club) : buildDemoSeason(club)), [club]);
   const [trainees, setTrainees] = useState(() => (seed ? seed.trainees : []));
   const [loads, setLoads] = useState(() => (seed ? seed.loads : {}));
