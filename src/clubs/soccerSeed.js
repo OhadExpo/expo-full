@@ -22,8 +22,8 @@ const SQUAD = [
   ['Dor Amsalem', 6, 'Midfielder', 179, 73, 27, 'ISR', 'xi'], ['Tomas Ferreira', 8, 'Midfielder', 176, 71, 26, 'POR', 'xi'], ['Lior Avidan', 10, 'Midfielder', 172, 66, 24, 'ISR', 'xi'],
   ['Amir Biton', 14, 'Midfielder', 181, 75, 29, 'ISR', 'sub'], ['Neta Golan', 16, 'Midfielder', 175, 69, 21, 'ISR', 'sub'], ['Sagi Zaken', 18, 'Midfielder', 177, 72, 19, 'ISR', 'res'],
   ['Elior Mizrahi', 20, 'Midfielder', 174, 68, 23, 'ISR', 'sub'],
-  ['Kwame Mensah', 7, 'Forward', 177, 72, 25, 'GHA', 'xi'], ['Itamar Sela', 9, 'Forward', 186, 81, 27, 'ISR', 'xi'], ['Daniel Ohayon', 11, 'Forward', 173, 67, 22, 'ISR', 'xi'],
-  ['Gal Shriki', 17, 'Forward', 180, 74, 24, 'ISR', 'sub'], ['Moshe Avraham', 19, 'Forward', 182, 76, 20, 'ISR', 'res'], ['Lucas Moreau', 21, 'Forward', 184, 78, 23, 'FRA', 'new'],
+  ['Kwame Mensah', 7, 'Striker', 177, 72, 25, 'GHA', 'xi'], ['Itamar Sela', 9, 'Striker', 186, 81, 27, 'ISR', 'xi'], ['Daniel Ohayon', 11, 'Striker', 173, 67, 22, 'ISR', 'xi'],
+  ['Gal Shriki', 17, 'Striker', 180, 74, 24, 'ISR', 'sub'], ['Moshe Avraham', 19, 'Striker', 182, 76, 20, 'ISR', 'res'], ['Lucas Moreau', 21, 'Striker', 184, 78, 23, 'FRA', 'new'],
 ];
 const CLUBS = [
   ['Hapoel Hadera FC', 'הפועל חדרה'], ['Ironi Kiryat Shmona', 'עירוני קריית שמונה'], ['Hapoel Nof HaGalil', 'הפועל נוף הגליל'], ['Hapoel Jerusalem FC', 'הפועל ירושלים'],
@@ -42,6 +42,9 @@ const WARMUP = {
   ].map((s) => ({ name: s.name, drills: s.drills.map(([name, dose, cue], i) => ({ n: i + 1, name, dose, cue })) })),
 };
 
+// the players' names in Hebrew (a Hebrew screen says them in Hebrew)
+const NAME_HE = {1: 'עופר חלפון', 22: 'רועי סבן', 31: 'עילאי דגן', 2: 'גיא חזן', 4: 'מתן אלקיים', 5: 'ניקולה פטרוביץ׳', 3: 'אורן לוי', 13: 'עדן שלום', 15: 'בר קדם', 23: 'יובל אשכנזי', 26: 'שי מלכה', 6: 'דור אמסלם', 8: 'תומאס פריירה', 10: 'ליאור אבידן', 14: 'אמיר ביטון', 16: 'נטע גולן', 18: 'שגיא זכן', 20: 'אליאור מזרחי', 7: 'קוואמה מנסה', 9: 'איתמר סלע', 11: 'דניאל אוחיון', 17: 'גל שריקי', 19: 'משה אברהם', 21: 'לוקה מורו'};
+
 export function buildSoccerSeason(club, today = localToday()) {
   const R = rng(9041024);
   const between = (a, b) => a + Math.floor(R() * (b - a + 1));
@@ -49,7 +52,7 @@ export function buildSoccerSeason(club, today = localToday()) {
   const ids = SQUAD.map((s) => `demo_${club.id}_${s[1]}`);
   const arrivalOf = { 21: add(T, 5) };
   const trainees = SQUAD.map(([name, jersey, position, heightCm, weight, age, nationality], i) => ({
-    id: ids[i], name, team: 'BHBC', format: club.short, status: 'Active', jersey, position, heightCm, height: (heightCm / 100).toFixed(2), weight, age,
+    id: ids[i], name, nameHe: NAME_HE[jersey], team: 'BHBC', format: club.short, status: 'Active', jersey, position, heightCm, height: (heightCm / 100).toFixed(2), weight, age,
     dob: `${new Date().getFullYear() - age}-${String(1 + (jersey * 5) % 12).padStart(2, '0')}-${String(1 + (jersey * 7) % 27).padStart(2, '0')}`, nationality,
     ...(arrivalOf[jersey] ? { arrival: arrivalOf[jersey] } : {}), startDate: add(T, -80),
   }));
@@ -134,7 +137,7 @@ export function buildSoccerSeason(club, today = localToday()) {
     xi.forEach((x, k) => lines.push({ ...x, min: k < 8 ? 90 : between(60, 78) }));
     subs.forEach((x) => lines.push({ ...x, min: between(10, 30) }));
     const scorers = lines.filter((l) => l.s[2] !== 'Goalkeeper');
-    const weight = (l) => (l.s[2] === 'Forward' ? 5 : l.s[2] === 'Midfielder' ? 2.5 : 0.7) * (l.min / 90);
+    const weight = (l) => (l.s[2] === 'Striker' ? 5 : l.s[2] === 'Midfielder' ? 2.5 : 0.7) * (l.min / 90);
     const pickW = () => { const tot = scorers.reduce((a, l) => a + weight(l), 0); let r = R() * tot; for (const l of scorers) { r -= weight(l); if (r <= 0) return l; } return scorers[0]; };
     const gl = {}, as = {}, yc = {};
     for (let k = 0; k < us; k++) { const sc = pickW(); gl[sc.id] = (gl[sc.id] || 0) + 1; if (R() < 0.75) { let a = pickW(); if (a.id === sc.id) a = pickW(); if (a.id !== sc.id) as[a.id] = (as[a.id] || 0) + 1; } }

@@ -23,8 +23,11 @@ export default function ClubDemo({ slug }) {
   const [loads, setLoads] = useState(() => (seed ? seed.loads : {}));
   const [fixtures, setFixtures] = useState(() => (seed ? seed.fixtures : []));
   const [medical, setMedical] = useState(() => (seed ? seed.medical : {}));
+  // THE NAMES IN THE ZONE'S LANGUAGE: a Hebrew screen says the players' names in Hebrew (the league feed already does)
+  const [zoneLang, setZoneLang] = useState('en');
+  const shownTrainees = useMemo(() => (zoneLang === 'he' ? trainees.map((t) => (t && t.nameHe ? { ...t, name: t.nameHe } : t)) : trainees), [trainees, zoneLang]);
   // the banner + tour are drawn INSIDE the zone, in the zone's language (it owns the toggle)
-  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} /> } : null), [seed, club]);
+  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang } : null), [seed, club]);
 
   // the club on the tab: its name and its crest (the zone's own shell is EXPO's index.html)
   useEffect(() => {
@@ -49,7 +52,7 @@ export default function ClubDemo({ slug }) {
     <>
       <Suspense fallback={<div style={{ minHeight: '100vh', background: C.bg }} />}>
         <BhbcView club={club} demo={demo}
-          trainees={trainees} setTrainees={setTrainees} bhbcLoads={loads} setBhbcLoads={setLoads} bhbcFixtures={fixtures} setBhbcFixtures={setFixtures}
+          trainees={shownTrainees} setTrainees={setTrainees} bhbcLoads={loads} setBhbcLoads={setLoads} bhbcFixtures={fixtures} setBhbcFixtures={setFixtures}
           league={seed.league} gameWarmup={seed.gameWarmup} medical={medical} setMedical={setMedical} planIndex={seed.planIndex}
           exercises={[]} clientWorkouts={[]} portalVis={{}} bwLog={[]} weeklyFocus={{}}
           coach={false} canMedical canLogLoad currentUser={seed.staff.sc} />

@@ -80,10 +80,10 @@ export function buildDemoSeason(club, today = localToday()) {
 
   // ── roster ──
   const arrivalOf = { 33: add(T, 4) };   // the new center lands in four days
-  const trainees = SQUAD.map(([name, , jersey, position, heightCm, weight, age, nationality], i) => {
+  const trainees = SQUAD.map(([name, nameHe, jersey, position, heightCm, weight, age, nationality], i) => {
     const y = new Date().getFullYear() - age;
     return {
-      id: ids[i], name, team: 'BHBC', format: club.short, status: 'Active', jersey, position, heightCm, height: (heightCm / 100).toFixed(2),
+      id: ids[i], name, nameHe, team: 'BHBC', format: club.short, status: 'Active', jersey, position, heightCm, height: (heightCm / 100).toFixed(2),
       weight, age, dob: `${y}-${String(1 + (jersey * 5) % 12).padStart(2, '0')}-${String(1 + (jersey * 7) % 27).padStart(2, '0')}`, nationality,
       ...(arrivalOf[jersey] ? { arrival: arrivalOf[jersey] } : {}), startDate: add(T, -70),
     };

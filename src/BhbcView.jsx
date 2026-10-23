@@ -966,6 +966,8 @@ export default function BhbcView({ trainees = [], setTrainees: setTraineesReal, 
   // English-only. Persisted per person, defaults to English so nothing moves
   // for anyone who does not ask for it.
   const [bhbcLang, setBhbcLang] = usePersistentState('bhbc-lang', 'en');
+  // a demo club hears the zone's language (its players' names follow it, #904)
+  useEffect(() => { if (demo && demo.onLang) demo.onLang(bhbcLang); }, [bhbcLang]);   // eslint-disable-line react-hooks/exhaustive-deps
   // The zone's OWN light/dark, persisted per person. Defaults to light so the
   // club still opens white; the toggle in the header moves this and never the
   // app's theme (see BhbcTheme above).

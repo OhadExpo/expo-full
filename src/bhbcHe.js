@@ -270,6 +270,8 @@ export const HE = {
   'W': 'נצ׳',
   'L': 'הפ׳',
   'D': 'ת׳',   // a draw (football, #904)
+  // football positions (#904 - a soccer club's roster)
+  'Goalkeeper': 'שוער', 'Defender': 'מגן', 'Midfielder': 'קשר', 'Striker': 'חלוץ',
   'Points for': 'סל זכות',
   'Points against': 'סל חובה',
   'Difference': 'הפרש',
