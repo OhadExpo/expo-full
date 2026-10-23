@@ -15,6 +15,7 @@ import { C, FN, FB, FH, CTRL_H } from './theme';
 import { EXPOMark } from './expoMark';
 import CoachChat from './CoachChat';
 import { SegWord } from './ui';
+import DemoSwitch from './DemoSwitch';
 
 // Vercel Analytics is no-op until it's enabled in the project dashboard, so
 // these track() calls are safe to ship before the dashboard is configured.
@@ -658,6 +659,7 @@ export default function CoachLanding({ lang = 'en' }) {
       </header>
 
       <main style={{ flex: 1 }}>
+        <DemoSwitch he={isHe} />
         {/* Hero */}
         <section style={{
           maxWidth: 920, margin: '0 auto', padding: '64px 16px 40px' /* the page's one 16px edge (OCD #494: 20) */, textAlign: 'center',

@@ -21,6 +21,7 @@ import { useUrlSync, useUrlFlag, urlFlagFromPath } from './urlState';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, fmtNumericDate } from './dates';
 import { C, FN, FB, FH, CTRL_H } from './theme';
+import DemoSwitch from './DemoSwitch';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import { layoutIncludes, layoutIncludesAll } from './searchLayout';
@@ -5790,6 +5791,7 @@ export default function CoachDemo() {
           }}>{T('JOIN WAITLIST →')}</a>
         </div>
       </header>
+      <DemoSwitch current="coach" he={readLang() === 'he'} />
 
       {/* The POV banner that sat here — chip, sentence, athlete-view link —
           moved up into the header bar (see .cd-pov). One row, 56px, no void. */}

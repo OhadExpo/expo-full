@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import ClientPortal from './ClientPortal';
 import { useT, readLang, setAthleteSessionLang } from './i18n';
 import { C, FN } from './theme';
+import DemoSwitch from './DemoSwitch';
 import {
   DEMO_CLIENT_ID,
   DEMO_TRAINEE,
@@ -51,6 +52,7 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
           {tt("DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST")}
         </div>
       )}
+      {!isEmbed && <DemoSwitch current="athlete" he={readLang() === 'he'} />}
       {/* localWrites: every setter below is this component's own useState, so a
           write cannot reach Supabase or a real trainee. The coach-side PREVIEW
           also runs ClientPortal in demoMode but with the REAL setters, which is

@@ -3,6 +3,7 @@
 // Close drops the query. Rendered INSIDE the zone (BhbcView's demo.tour), so it wears the club's tokens and language.
 import React, { useEffect, useState } from 'react';
 import { FN, FB } from '../theme';
+import DemoSwitch from '../DemoSwitch';
 
 const STOPS = [
   { page: 'overview', en: ['The morning brief', 'Open the zone at 08:00 and the day is already read: who is available, who needs a change today, what is next on the schedule. The brief is built from the check-ins, the medical files and the calendar - nobody types it.'],
@@ -76,11 +77,14 @@ export default function ClubTour({ he, base, accent, onAccent, page }) {
   const close = () => { try { sessionStorage.setItem('club-tour-closed', '1'); } catch { /* */ } writeStop(base, null, false); setStop(null); };
   // THE BANNER: one row at every width - what this is, and the tour
   const banner = (
+    <>
     <div data-demo-banner style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: 36, padding: '0 12px', background: accent, color: onAccent, fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}
       title={he ? 'הדגמה: כל השחקנים והנתונים נוצרו להדגמה. אפשר ללחוץ על הכל - שום דבר לא נשמר.' : 'Demo: every player and number is generated. Press anything - nothing is saved.'}>
       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{he ? 'הדגמה · שום דבר לא נשמר' : 'Demo · nothing is saved'}</span>
       {!stop && <button type="button" data-tour-open onClick={open} style={{ flexShrink: 0, height: 26, padding: '0 10px', border: `1px solid ${onAccent}`, background: 'transparent', color: onAccent, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{he ? 'סיור מודרך' : 'Guided tour'}</button>}
     </div>
+    <DemoSwitch current="teams" he={he} accent={accent} onAccent={onAccent} />
+    </>
   );
   if (!stop) return banner;
   const s = STOPS[stop - 1]; const [title, body] = he ? s.he : s.en;

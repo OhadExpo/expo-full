@@ -12,6 +12,7 @@ import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { EXPOMark } from './expoMark';
+import DemoSwitch from './DemoSwitch';
 import { todayLocalISO } from './dates';
 import DemoTraineePortal from './DemoTraineePortal';
 import { makeSubjectLock, lockResult, LIVE_POSES } from './subjectLock';
@@ -143,6 +144,7 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
       {!isEmbedded && !isTraineePortal && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
+      {!isEmbedded && !isTraineePortal && <DemoSwitch he={readLang() === 'he'} />}
       {!isEmbedded && !isTraineePortal && <POVBanner pov={pov} />}
       {!isEmbedded && !isTraineePortal && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
       {isTraineePortal ? (
