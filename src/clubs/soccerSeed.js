@@ -70,7 +70,7 @@ export function buildSoccerSeason(club, today = localToday()) {
   const md = (d) => { for (const g of gameDates) { const x = Math.round((new Date(d) - new Date(g)) / 86400000); if (x >= -5 && x <= 1) return x; } return null; };
   for (let n = FIRST; n <= LAST; n++) {
     const d = add(T, n); const m = md(d);
-    if (m === 0 || m === 2 || m == null && new Date(d).getDay() === 6) continue;
+    if (m === 0 || m === -5 || m == null && new Date(d).getDay() === 6) continue;   // match day, and MD+2 (= MD-5) off
     if (m === 1) { fixtures.push({ date: d, type: 'practice', start: '10:00', end: '11:00', minutes: 60, title: 'Recovery', source: 'calendar', location: 'Training ground', optional: true }); continue; }
     if (m === -1) { fixtures.push({ date: d, type: 'practice', start: '10:00', end: '11:00', minutes: 60, title: 'Activation', source: 'calendar', location: club.venue }); continue; }
     fixtures.push({ date: d, type: 'practice', start: '10:00', end: '11:30', minutes: 90, title: 'Training', source: 'calendar', location: 'Training ground' });
