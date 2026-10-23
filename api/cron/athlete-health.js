@@ -105,6 +105,7 @@ async function pageCoaches(failure, blind = false) {
 
 // Stable stringify so the manifest hash is deterministic regardless of
 // property order (jsonb is already canonical, but don't depend on it).
+const DRIFT_GRACE_MIN = 15;   // a drift younger than this does not page (#963)
 function stableStringify(v) {
   if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';
   if (v && typeof v === 'object') {
@@ -309,11 +310,27 @@ export default async function handler(req, res) {
     const manifest = await mf.json();
     if (!manifest) throw new Error('rls manifest returned null (secret mismatch — rotate together!)');
     const liveHash = createHash('sha256').update(stableStringify(manifest)).digest('hex');
-    if (liveHash !== baseline.hash) {
-      const diffs = diffManifest(baseline.manifest, manifest);
-      throw new Error(`RLS DRIFT detected (${diffs.length} changes): ${diffs.slice(0, 6).join(' | ')}${diffs.length > 6 ? ' | …' : ''}`);
-    }
-    checks.rlsDrift = 'none';
+    // THE BASELINE LIVES IN THE DATABASE (#963, 23.10): health_rls_baseline_check compares with the stored baseline and
+    // says how long this drift has lasted. A drift pages only after DRIFT_GRACE_MIN - the daemon's healer accepts one
+    // that is exactly a committed migration within 5 minutes; an unexplained one still pages. Before the table exists
+    // (or if the check fails) the bundled scripts/rls-baseline.json decides, as before.
+    let base = { hash: baseline.hash, manifest: baseline.manifest, minutes: null };
+    try {
+      const bc = await fetch(`${SUPA_URL}/rest/v1/rpc/health_rls_baseline_check`, {
+        method: 'POST', headers: ah, body: JSON.stringify({ p_secret: process.env.HEALTH_SECRET, p_live_hash: liveHash }),
+      });
+      const j = bc.ok ? await bc.json() : null;
+      if (j && j.ok === true) base = null;                                   // in step with the stored baseline
+      else if (j && j.ok === false) base = { hash: j.hash, manifest: j.manifest, minutes: j.minutes };
+    } catch (_) { /* the bundled baseline decides */ }
+    if (base && liveHash !== base.hash) {
+      const diffs = diffManifest(base.manifest, manifest);
+      if (base.minutes != null && base.minutes < DRIFT_GRACE_MIN) {
+        checks.rlsDrift = `pending ${base.minutes} min (${diffs.length} changes) - the healer gets ${DRIFT_GRACE_MIN} min`;
+      } else {
+        throw new Error(`RLS DRIFT detected (${diffs.length} changes${base.minutes != null ? `, ${Math.round(base.minutes)} min old, not explained by a migration` : ''}): ${diffs.slice(0, 6).join(' | ')}${diffs.length > 6 ? ' | …' : ''}`);
+      }
+    } else checks.rlsDrift = 'none';
 
     // 10. THE 10-MINUTE RUNS THEMSELVES (#932, 23.10): pg_cron kept sending an old token after the secret was rotated,
     // every run came back 401 and nothing said so - only this daily run was checking anything. The daily run reads the

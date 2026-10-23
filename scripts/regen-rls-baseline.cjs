@@ -43,6 +43,15 @@ function stableStringify(v) {
   return JSON.stringify(v);
 }
 
+async function ownerToken() {
+  const owner = ownerFromEnv();
+  if (!owner) return null;
+  const t = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: { apikey: KEY, 'content-type': 'application/json' }, body: JSON.stringify(owner),
+  });
+  return t.ok ? (await t.json()).access_token : null;
+}
+
 (async () => {
   const secret = process.env.HEALTH_SECRET || secretFromEnvFile();
   // No secret at hand (#932, 23.10): the OWNER's seat reads the same manifest through health_rls_manifest_owner(), which
@@ -55,13 +64,9 @@ function stableStringify(v) {
       body: JSON.stringify({ p_secret: secret }),
     });
   } else {
-    const owner = ownerFromEnv();
-    if (!owner) { console.error('neither HEALTH_SECRET (env / .env.canary) nor the owner login (EXPO_OWNER_EMAIL / EXPO_OWNER_PW / .env.owner.local).'); process.exit(1); }
-    const t = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
-      method: 'POST', headers: { apikey: KEY, 'content-type': 'application/json' }, body: JSON.stringify(owner),
-    });
-    const tok = t.ok ? (await t.json()).access_token : null;
-    if (!tok) { console.error('owner sign-in failed', t.status); process.exit(1); }
+    if (!ownerFromEnv()) { console.error('neither HEALTH_SECRET (env / .env.canary) nor the owner login (EXPO_OWNER_EMAIL / EXPO_OWNER_PW / .env.owner.local).'); process.exit(1); }
+    const tok = await ownerToken();
+    if (!tok) { console.error('owner sign-in failed'); process.exit(1); }
     r = await fetch(`${URL_}/rest/v1/rpc/health_rls_manifest_owner`, {
       method: 'POST', headers: { apikey: KEY, Authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: '{}',
     });
@@ -75,4 +80,13 @@ function stableStringify(v) {
   console.log('baseline written: scripts/rls-baseline.json');
   console.log('  policies:', manifest.policies.length, '| functions:', manifest.functions.length, '| tables:', manifest.rls.length);
   console.log('  hash:', hash);
+  // THE DATABASE COPY (#963): the cron reads the baseline from health_rls_baseline, so accepting an intended change
+  // needs no deploy. Owner only (health_rls_baseline_set checks is_trainer()). RLS_REASON says why, for the record.
+  const tok = await ownerToken();
+  if (!tok) { console.log('  database baseline NOT written (no owner login) - the cron keeps the bundled file'); return; }
+  const w = await fetch(`${URL_}/rest/v1/rpc/health_rls_baseline_set`, {
+    method: 'POST', headers: { apikey: KEY, Authorization: `Bearer ${tok}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ p_hash: hash, p_manifest: manifest, p_reason: process.env.RLS_REASON || 'regen-rls-baseline.cjs' }),
+  });
+  console.log(w.ok ? '  database baseline written (health_rls_baseline)' : `  database baseline NOT written: HTTP ${w.status} ${(await w.text()).slice(0, 120)}`);
 })().catch(e => { console.error(e); process.exit(1); });
