@@ -120,6 +120,31 @@ function diffManifest(base, live) {
   return out;
 }
 
+// EVERY ALERT ALSO REACHES CLAUDE (#909, Ohad 23.10: "make some sort of autonomous check everytime a message like
+// this pops up... So I will stop needing to screenshot and send you the errors"). The push above goes to his phone
+// only; nothing kept a copy, so a session never saw it. The failure is filed into bug_reports like an auto-captured
+// app error - the daemon's bugs-to-queue step puts it on the live queue with the rest, grouped by this fingerprint
+// (numbers stripped, so a check failing every 10 minutes is ONE queue line counted xN, not a line per run).
+async function fileHealthReport(failure, blind) {
+  try {
+    const fp = `health: ${String(failure).replace(/\d+/g, '#').slice(0, 160)}`;
+    const r = await fetch(`${SUPA_URL}/rest/v1/bug_reports`, {
+      method: 'POST',
+      headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        role: 'anon',
+        url: 'https://expo-app.co.il/api/cron/athlete-health',
+        description: `HEALTH · ${blind ? 'BLIND · ' : ''}${String(failure).slice(0, 400)}`,
+        context: { auto: true, fingerprint: fp, source: 'athlete-health cron', release: process.env.VERCEL_GIT_COMMIT_SHA || '' },
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
+    return r.ok ? 'filed' : `file failed HTTP ${r.status}`;
+  } catch (e) {
+    return `file failed ${e?.message || e}`;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ error: 'GET or POST only' });
@@ -281,7 +306,8 @@ export default async function handler(req, res) {
 
   if (failure) {
     const alert = await pageCoaches(failure, blind);
-    res.status(200).json({ ok: false, blind, failure, checks, alert });
+    const filed = await fileHealthReport(failure, blind);
+    res.status(200).json({ ok: false, blind, failure, checks, alert, filed });
     return;
   }
   res.status(200).json({ ok: true, checks });

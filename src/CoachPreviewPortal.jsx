@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isSafeTraineeId } from './traineeUtils';
+import { StuckWatch } from './ui';
 import ClientPortal from './ClientPortal';
 
 import { useT, readLang } from './i18n';
@@ -98,7 +99,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   const trainee = (trainees||[]).find(t => t.id === resolvedTraineeId);
 
   if (error) return <div style={{padding:40,textAlign:'center',color:C.rd}}>{tt('Failed to load:')} {error}</div>;
-  if (plans === null) return <div style={{padding:40,textAlign:'center',color:C.tm,fontFamily:FN,letterSpacing:'0.18em'}}>{tt('LOADING PREVIEW…')}</div>;
+  if (plans === null) return <div style={{padding:40,textAlign:'center',color:C.tm,fontFamily:FN,letterSpacing:'0.18em'}}>{tt('LOADING PREVIEW…')}<StuckWatch label="LOADING PREVIEW" /></div>;
 
   const headerLabel = planId
     ? <><span className="cpp-prefix">{tt('Previewing')} </span><span style={{color:C.ac,fontWeight:700}}>{plans[0]?.name || tt('Program')}</span>{trainee && <> · {trainee.name}</>}</>

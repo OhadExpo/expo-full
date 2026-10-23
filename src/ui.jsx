@@ -1,4 +1,11 @@
 import React from 'react';
+import { watchStuck } from './consoleBuffer.js';
+
+// Put inside any loading screen: still on screen after 20s = an auto-filed bug report (#909)
+export function StuckWatch({ label }) {
+  React.useEffect(() => watchStuck(label), [label]);
+  return null;
+}
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { lockBodyScroll } from './scrollLock';

@@ -145,6 +145,18 @@ function autoReport(message, stack, source) {
   } catch { /* never */ }
 }
 
+// A SCREEN THAT NEVER LOADS throws nothing (#909, 23.10: a couple's block preview sat on 'Loading your program' for an
+// hour and only Ohad's phone screenshot said so). A loading screen still up after 20s, in a tab someone is looking at,
+// files itself exactly like a thrown error: same table, same queue, grouped by the screen.
+export function watchStuck(label, ms = 20000) {
+  if (typeof window === 'undefined') return () => {};
+  const t = setTimeout(() => {
+    if (document.visibilityState !== 'visible') return;   // a background tab is allowed to wait
+    autoReport(`STUCK · ${label} still on screen after ${Math.round(ms / 1000)}s`, '', `stuck:${location.pathname}`);
+  }, ms);
+  return () => clearTimeout(t);
+}
+
 let trailInstalled = false;
 export function installSelfReporting() {
   if (trailInstalled || typeof window === 'undefined') return;

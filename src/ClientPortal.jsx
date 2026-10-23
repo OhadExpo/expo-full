@@ -33,7 +33,7 @@ import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
-import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
+import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue, StuckWatch } from './ui';
 import { runPace, runKm, hrCap } from './runPace';
 // a logged distance as written for the athlete: '400' under KM is 0.4 (#866 M2)
 const kmText = (v) => { const k = runKm(v); return k == null ? String(v) : String(Math.round(k * 100) / 100); };
@@ -4540,5 +4540,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20,gap:16}}>
     <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
     <div style={{color:C.td,fontSize:13}}>{tt('Loading your program…')}</div>
+    <StuckWatch label="Loading your program" />
   </div>;
 }
