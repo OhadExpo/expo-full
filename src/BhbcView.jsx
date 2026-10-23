@@ -7447,6 +7447,8 @@ const MEDICAL_STATUS_AVAIL = { available: 1, limited: 2, 'non-contact': 3, out: 
 // known, tiny set, so this stays a formatting rule rather than a directory:
 // local part of the address, trailing digits dropped, title-cased.
 export function byName(email) {
+  // a demo club's staff say their names in the zone's language (#904)
+  if (DEMO && DEMO.staffName) { const n = DEMO.staffName(String(email || '')); if (n) return n; }
   // the owner is "Ohad", not his mailbox ("Ohadyproductions" in every history row)
   if (isOwnerEmail(String(email || ''))) return 'Ohad';
   const s = String(email || '').split('@')[0].replace(/[0-9._-]+$/, '').replace(/[._-]+/g, ' ').trim();

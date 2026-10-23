@@ -31,7 +31,7 @@ const CLUBS = [
   ['Hapoel Rishon LeZion', 'הפועל ראשון לציון'], ['Hapoel Umm al-Fahm', 'הפועל אום אל פאחם'], ['Ironi Tiberias', 'עירוני טבריה'], ['Hapoel Akko', 'הפועל עכו'],
   ['Maccabi Kabilio Jaffa', 'מכבי קביליו יפו'], ['Hapoel Petah Tikva', 'הפועל פתח תקווה'], ['Sektzia Ness Ziona', 'סקציה נס ציונה'],
 ];
-const STAFF = { sc: 'nir.tal@demo.club', head: 'avi.shitrit@demo.club', pt: 'noa.ben@demo.club' };
+const STAFF = { sc: 'nir.tal@demo.club', head: 'avi.shitrit@demo.club', pt: 'noam.ben@demo.club' };
 
 const WARMUP = {
   title: 'Warm-Up',

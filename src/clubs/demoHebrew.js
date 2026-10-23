@@ -109,6 +109,9 @@ const TEAM = {
 const CITY = { 'Kfar Saba': 'כפר סבא', Haifa: 'חיפה', Yavne: 'יבנה', 'Ramat Gan': 'רמת גן', Afula: 'עפולה', 'Hod HaSharon': 'הוד השרון', 'Kiryat Ata': 'קריית אתא', 'Kiryat Gat': 'קריית גת', "Ra'anana": 'רעננה', "Be'er Sheva": 'באר שבע' };
 
 const t = (s) => (typeof s === 'string' && HE[s]) || s;
+// the demo staff (by their e-mail, the way the zone stores who did what)
+const STAFF_HE = { 'gil.cohen@demo.club': 'גיל כהן', 'ronen.levi@demo.club': 'רונן לוי', 'dan.mor@demo.club': 'דן מור', 'shai.amar@demo.club': 'שי עמר', 'nir.tal@demo.club': 'ניר טל', 'avi.shitrit@demo.club': 'אבי שטרית', 'noam.ben@demo.club': 'נועם בן' };
+export const hebrewStaffName = (email) => STAFF_HE[String(email || '').toLowerCase()] || null;
 const place = (s) => {
   if (typeof s !== 'string') return s;
   if (HE[s]) return HE[s];

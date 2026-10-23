@@ -50,7 +50,7 @@ const LEAGUE_CLUBS = [
   ["Hapoel Ra'anana", 'הפועל רעננה', "Ra'anana"], ["Hapoel Be'er Sheva", 'הפועל באר שבע', "Be'er Sheva"],
 ];
 
-const STAFF = { sc: 'gil.cohen@demo.club', head: 'ronen.levi@demo.club', pt: 'dana.mor@demo.club', asst: 'shai.amar@demo.club' };
+const STAFF = { sc: 'gil.cohen@demo.club', head: 'ronen.levi@demo.club', pt: 'dan.mor@demo.club', asst: 'shai.amar@demo.club' };
 
 const WARMUP = {
   title: 'Warm-Up',

@@ -10,7 +10,7 @@ import { buildDemoSeason } from './demoSeed';
 import { buildSoccerSeason } from './soccerSeed';
 import { SHARON, GALIL } from './demoClubs';
 import ClubTour from './ClubTour';
-import { hebrewFixtures, hebrewLoads, hebrewMedical, hebrewWarmup, hebrewPlanIndex, hebrewPlans } from './demoHebrew';
+import { hebrewFixtures, hebrewLoads, hebrewMedical, hebrewWarmup, hebrewPlanIndex, hebrewPlans, hebrewStaffName } from './demoHebrew';
 import ClubDemoIndex from './ClubDemoIndex';
 import { readLang } from '../i18n';
 import { C, FN } from '../theme';
@@ -35,7 +35,7 @@ export default function ClubDemo({ slug }) {
   const shownWarmup = useMemo(() => (seed && he ? hebrewWarmup(seed.gameWarmup) : seed && seed.gameWarmup), [seed, he]);
   const shownPlanIndex = useMemo(() => (seed && he ? hebrewPlanIndex(seed.planIndex) : seed && seed.planIndex), [seed, he]);
   // the banner + tour are drawn INSIDE the zone, in the zone's language (it owns the toggle)
-  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang } : null), [seed, club, he]);
+  const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang, staffName: he ? hebrewStaffName : null } : null), [seed, club, he]);
 
   // the club on the tab: its name and its crest (the zone's own shell is EXPO's index.html)
   useEffect(() => {
