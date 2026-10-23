@@ -1676,7 +1676,15 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onSetDue, onA
   );
 }
 
-function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onSetDue, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false, tight = false }) {
+// WHICH META COLUMNS A LIST NEEDS (#949, measured at 1024: the auto-alert titles got 149px and an ellipsis mid-sentence
+// while three EMPTY reserved slots - athlete 104, shared 62, due 132 - sat beside them). A column is still reserved on
+// every row of a list, so titles keep one edge (#207) - but only when some row of THAT list fills it.
+function listSlots(rows) {
+  const named = (r) => { const n = (r.target_kind === 'trainee' && r.target_label) ? r.target_label : null; return !!n && !String(r._display || '').includes(n) && !String(r.body || '').includes(n); };
+  return { athlete: rows.some(named), shared: rows.some((r) => r._owner === 'shared'), date: rows.some((r) => !!r._dueAt) };
+}
+
+function TaskRow({ slots = null, selectSlot = null, row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onSetDue, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false, tight = false }) {
   const tt = useT();
   // On phones, wrap the list row the same way board columns do — title on its
   // own line, meta + status pill below — so nothing gets clipped off-screen.
@@ -1898,7 +1906,7 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
           {/* Athlete chip in an ALWAYS-reserved column (like SHARED/DATE below) so a
               task WITH an athlete can't push the meta cluster wider than one without —
               chips line up vertically and titles keep an identical edge (Ohad #207). */}
-          <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 104, display: 'inline-flex', alignItems: 'center' }}>
+          {(wrapRow || !slots || slots.athlete) && <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 104, display: 'inline-flex', alignItems: 'center' }}>
             {showAthlete && (
               <span title={`${tr(readLang(), 'Athlete:')} ${athleteName}`} style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
@@ -1908,11 +1916,11 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
                 border: 'none', padding: 0,
               }}>{athleteName}</span>
             )}
-          </span>
+          </span>}
           {/* SHARED as a fixed COLUMN — the slot is reserved on EVERY row (even
               non-shared) so shared tags line up vertically (Ohad: "shared a column").
               The date sits to the RIGHT of this column. */}
-          <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 62, display: 'inline-flex', alignItems: 'center' }}>
+          {(wrapRow || !slots || slots.shared) && <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 62, display: 'inline-flex', alignItems: 'center' }}>
             {row._owner === 'shared' && (
               <span title={tt('Shared — Ohad + Yuval')} style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
@@ -1921,12 +1929,12 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
                 border: 'none', padding: 0, textTransform: 'uppercase',
               }}>{tt('Shared')}</span>
             )}
-          </span>
+          </span>}
           {/* DATE as a fixed COLUMN — reserved on EVERY row (like SHARED above)
               so a task WITH a due date can't push its title further in than a
               dateless task: the title's start-edge stays identical down the
               column (#207). Empty slot otherwise; the chip hugs the title side. */}
-          <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 132, display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          {(wrapRow || !slots || slots.date) && <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 132, display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             {dateStr && (
               <span style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1942,7 +1950,7 @@ function TaskRow({ selectSlot = null, row, theme, showAvatar, expanded, onToggle
                 ) : dateStr}
               </span>
             )}
-          </span>
+          </span>}
         </div>
         {showAvatar && !board && !phone && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
@@ -3085,7 +3093,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDragLeave={() => { if (dropOnId === row.id) setDropOnId(null); }}
                     onDrop={e => { e.preventDefault(); reorderOnto(row, section); }}
                     style={{ cursor: isReadOnly(row) ? 'default' : 'grab', boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
-                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow} tight={tight}
+                    <TaskRow slots={listSlots(section.rows)} row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow} tight={tight}
                       theme={theme} showAvatar={owner === 'shared'}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
@@ -3126,7 +3134,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               </div>
               <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
               {autoSection.rows.map(row => (
-                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow} tight={tight}
+                <TaskRow key={row.id} slots={listSlots(autoSection.rows)} row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow} tight={tight}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}

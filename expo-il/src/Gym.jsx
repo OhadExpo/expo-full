@@ -415,7 +415,7 @@ function Approach({ heb }) {
             padding: '28px 22px', position: 'relative', overflow: 'hidden',
           }}>
             <div style={{
-              position: 'absolute', insetInlineEnd: -6, top: -10,
+              position: 'absolute', insetInlineEnd: 14, top: 12, /* the whole numeral inside the corner (#949: it bled 6px off the edge - 'no text overflows anywhere') */
               fontFamily: FN, fontSize: 64, color: `${C.ac}14`, fontWeight: 800,
               letterSpacing: '-0.04em', lineHeight: 1, pointerEvents: 'none',
             }}>{p.n}</div>

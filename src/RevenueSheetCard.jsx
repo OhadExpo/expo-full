@@ -349,7 +349,9 @@ function MonthsPhone({ byMonth, estByMonth, events, openMonth, setOpenMonth, tt 
 // ONE GRID FOR BOTH (9.10 #608 "keep it perfect"): fixed columns at the same widths, so a
 // column of the inactive table sits exactly under the same column above. Wider than a
 // phone on purpose - it scrolls sideways in its ScrollFade, one row per client.
-const CLIENT_COLS = ['20%', '11%', '9%', '12%', '9%', '9%', '9%', '12%', '9%'];
+// #949: 'ESTIMATED TOTAL' needs 117px and 'LAST PAYMENT' 98 at the 880 minimum - 12% / 11% gave 106 / 97 and the words ran
+// into the next column; 3 points come from the client column
+const CLIENT_COLS = ['17%', '12%', '9%', '14%', '9%', '9%', '9%', '12%', '9%'];
 function ClientsTable({ list, open, setOpen, statusOf, tt, th, td: tdIn }) {
   // 13.10 #735: the client names are Hebrew, whose letters stand lower than the Latin caps the 7 / 7 cell was tuned on -
   // they read 13 under the row's line and 9 over the next

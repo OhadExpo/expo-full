@@ -2432,7 +2432,7 @@ html[dir="rtl"] .td-secs-select select, html[dir="rtl"] .td-secs-select label { 
   .bhbc-zone .bhbc-act-row { grid-template-columns: 44px 8px minmax(0, 1fr) !important; row-gap: 3px; padding: 10px 0 10px !important; } /* 13.10 #735 band probe: 9 / 11 read 13 / 15 - the line's caps to the person's baseline, even at 10 / 10 */ /* two lines: the body font sits its letters ~2px low - optical centre (rule-rhythm) */
   .bhbc-zone .bhbc-act-row > .bhbc-act-by { grid-column: 3; }
   /* the count is a number, the time is 'yesterday 21:32' (103px): 92 spilled it 11px (10.10 sweep) */
-  .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 60px 112px !important; }   /* 60: the ACTIONS header */
+  .bhbc-zone .bhbc-act-people { grid-template-columns: minmax(0, 1fr) 60px 128px !important; }   /* 60: the ACTIONS header; 128: YESTERDAY 22:04 at 11px is 122 (#949: 112 let it run 10px past the row) */
 }
 
 /* #530 analysis note composer: its cyan frame is the focus cue - the global ring spilled past it */

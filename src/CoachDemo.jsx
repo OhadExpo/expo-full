@@ -5748,9 +5748,8 @@ export default function CoachDemo() {
               </svg>
               {T('COACH VIEW')}
             </div>
-            <span className="cd-pov-note" style={{ fontFamily: FB, fontSize: 12, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'clip', minWidth: 0 }}>
-              {T('Mock data — nothing here writes to your account.')}
-            </span>
+            {/* the 'Mock data' note is gone (#949): the menu left it 50px even at 1920, so it showed as 'MOCK D'; the DEMO
+                switch under the header says what this is */}
             <a href="/demo/trainee" className="cd-pov-link" style={{
               ...baseBtn, background: 'transparent', color: C.tm,
               border: `1px solid ${C.bd}`, padding: '0 12px', fontSize: 10, letterSpacing: 1.5,

@@ -4061,14 +4061,14 @@ function ActivityView({ activity = [], tr, he }) {
         {people.length === 0
           ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td, minHeight: 36, display: 'flex', alignItems: 'center' }}>{he ? 'עוד אין פעילות רשומה. מעכשיו כל כניסה וכל שינוי יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
           : <>
-            <div className="bhbc-act-people bhbc-act-head" style={{ ...band, borderTop: 'none', marginTop: -14, paddingTop: 3, boxSizing: 'border-box' /* #735: 9.5 / 12.5 -> even */, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12 }}>
+            <div className="bhbc-act-people bhbc-act-head" style={{ ...band, borderTop: 'none', marginTop: -14, paddingTop: 3, boxSizing: 'border-box' /* #735: 9.5 / 12.5 -> even */, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 132px' /* #949: 'YESTERDAY 22:04' is 127px - it ran past 116 to the card's edge */, columnGap: 12 }}>
               <span style={lbl}>{tr('Person')}</span>
               <span style={{ ...lbl, textAlign: 'center' }}>{tr('Actions')}</span>
               <span style={{ ...lbl, textAlign: 'end' }}>{tr('Last seen')}</span>
             </div>
             <div className="hl-rows" style={{ marginBottom: -10 /* #735: the last person sat 15 under his line, 25 over the card's edge */ }}>
               {people.map((p) => (
-                <div key={p.by} className="bhbc-act-people" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 116px', columnGap: 12, alignItems: 'center', minHeight: 40 }}>
+                <div key={p.by} className="bhbc-act-people" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 132px' /* #949: 'YESTERDAY 22:04' is 127px - it ran past 116 to the card's edge */, columnGap: 12, alignItems: 'center', minHeight: 40 }}>
                   <span title={p.by} style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{byName(p.by) || p.by}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.n}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'end', whiteSpace: 'nowrap' }}>{whenText(p.at, he)}</span>
