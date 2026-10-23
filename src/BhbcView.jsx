@@ -3078,6 +3078,35 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             <AvailSelect avail={avail} floor={availFloor} onPick={onCycleAvail} />
           </span>
         </div>
+        {/* THE ACTIONS FIRST (#950, Ohad 23.10: "the buttons here should be at the top of the popup. design it ocd"):
+            what he opens the player for - log a lift, the program, the portal - sits right under who the player is,
+            one row of equal buttons, then the current block (the program VIEW PROGRAM opens); the record follows. */}
+        {/* Equal columns. Ohad: "make sure all buttons no matter the tag are the
+            same horizontal size" - measured here at 134 / 166 / 149px, so the
+            footer read as three different weights. auto-fit keeps them equal
+            whether the owner sees four or a coach sees three, and wraps rather
+            than squeezing below the widest label. */}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(168px, 1fr))`, gap: 8 }}>
+          {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log lift')}</Btn>}
+          {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
+              medical strip above, and the fourth button is what squeezed the row to
+              155px and wrapped its own label onto two lines. Three buttons fit. */}
+          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>{tr('View program')}</Btn>}
+          {onOpenPortal && <Btn variant="ghost" onClick={onOpenPortal} title={tr('The athlete portal as this player sees it - nothing you do there is saved')}>{tr('Athlete portal')}</Btn>}
+        </div>
+        {program && (program.current || program.count > 0) && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, boxSizing: 'border-box', padding: '0 0 12px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, lineHeight: '16px', flexWrap: 'wrap' } /* ONE baseline for label, block, count and link (29.9 #407) */}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Current block')}</span>
+            <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || tr('None assigned')}</span>
+            {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} {tr('total')}</span>}
+            {onOpenExpo && (
+              <button type="button" onClick={onOpenExpo} title={tr('Open this athlete in EXPO')}
+                style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                {tr('Open in EXPO')} ›
+              </button>
+            )}
+          </div>
+        )}
         <div className="hl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {/* The biggest numbers on the card were three em-dashes for anyone whose
               history is gym-only: BHBC gym sessions are minutes with NO sRPE by
@@ -3491,32 +3520,6 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             <div style={{ padding: 12 }}><BWChart entries={bw} /></div>
           </div>
         )}
-        {program && (program.current || program.count > 0) && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minHeight: 40, boxSizing: 'border-box', padding: '12px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, lineHeight: '16px', flexWrap: 'wrap' } /* ONE baseline for label, block, count and link (29.9 #407) */}>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Current block')}</span>
-            <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || tr('None assigned')}</span>
-            {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} {tr('total')}</span>}
-            {onOpenExpo && (
-              <button type="button" onClick={onOpenExpo} title={tr('Open this athlete in EXPO')}
-                style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                {tr('Open in EXPO')} ›
-              </button>
-            )}
-          </div>
-        )}
-        {/* Equal columns. Ohad: "make sure all buttons no matter the tag are the
-            same horizontal size" - measured here at 134 / 166 / 149px, so the
-            footer read as three different weights. auto-fit keeps them equal
-            whether the owner sees four or a coach sees three, and wraps rather
-            than squeezing below the widest label. */}
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(168px, 1fr))`, gap: 8 }}>
-          {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log lift')}</Btn>}
-          {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
-              medical strip above, and the fourth button is what squeezed the row to
-              155px and wrapped its own label onto two lines. Three buttons fit. */}
-          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>{tr('View program')}</Btn>}
-          {onOpenPortal && <Btn variant="ghost" onClick={onOpenPortal} title={tr('The athlete portal as this player sees it - nothing you do there is saved')}>{tr('Athlete portal')}</Btn>}
-        </div>
       </div>
       {gameOpen && <GameLineModal line={gameOpen} onClose={() => setGameOpen(null)} />}
     </BModal>
