@@ -316,6 +316,7 @@ const STRINGS = {
   'footer.copy.tmpl':     { en: '© {year} EXPO · Ohad Yossifoff · All rights reserved', he: '© {year} EXPO · אוהד יוסיפוף · כל הזכויות שמורות' },
   'footer.portal':        { en: 'PORTAL ↗',     he: 'פורטל ↗' },
   'footer.gym':           { en: 'PERFORMANCE CENTER →', he: 'בית הספורטאי ←' },
+  'footer.teams':         { en: 'EXPO TEAMS · FOR CLUBS →', he: 'EXPO TEAMS · למועדונים ←' },   // #962: the club demo's front door
   'footer.instagram':     { en: 'INSTAGRAM ↗',  he: 'אינסטגרם ↗' },
 
   // ─── Detail page ──────────────────────────────────────────────────

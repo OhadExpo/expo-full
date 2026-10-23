@@ -152,6 +152,19 @@ export default function EntryChooser() {
         />
       </div>
 
+      {/* EXPO TEAMS (23.10 #962, Ohad: "Where is the clubs demo in the marketing website"): the club product had no way in
+          from here. One slim strip under the two panels - a club is not a third kind of trainee, so it does not get a
+          third panel - in the words of the clubs page itself, opening its public front door (/demo/club). A prospect's
+          own demo (Netanya) stays link-only and is never listed. */}
+      <a href={`https://expo-app.co.il/demo/club${heb ? '?lang=he' : ''}`} onClick={() => trackAndOpen('chooser_pick', { side: 'teams' })}
+        data-teams-strip
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 14px', minHeight: 52, padding: '10px 20px', boxSizing: 'border-box',
+          borderTop: `1px solid ${C.ac}26`, background: C.bg, color: C.tx, textDecoration: 'none', position: 'relative', zIndex: 2 }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: heb ? 0 : '0.16em', color: C.ac }}>EXPO TEAMS</span>
+        <span style={{ fontFamily: FN, fontSize: 13, color: C.tm }}>{heb ? 'מחלקת הביצועים של המועדון, במקום אחד' : 'The performance office of a club, in one place'}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: heb ? 0 : '0.12em', color: C.ac, whiteSpace: 'nowrap' }}>{heb ? 'לדמו של המועדונים ←' : 'SEE THE CLUB DEMO →'}</span>
+      </a>
+
       <Analytics />
     </div>
   );

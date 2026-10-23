@@ -2666,6 +2666,7 @@ function FAQ() {
 
 function Footer() {
   const t = useT();
+  const [lang] = useLang();
   return (
     <footer className="fv-footer" style={{
       // the bottom clears the round chat button (56px, 20px off the edge), so the
@@ -2692,6 +2693,10 @@ function Footer() {
           <a href="#/gym"
             style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
             {t('footer.gym')}
+          </a>
+          <a href={`https://expo-app.co.il/demo/club${lang === 'he' ? '?lang=he' : ''}`} target="_blank" rel="noopener noreferrer"
+            style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
+            {t('footer.teams')}
           </a>
           <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
             style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
