@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { FN, FB } from '../theme';
 import { ALL_DEMO_CLUBS } from './demoClubs';
+import DemoSwitch from '../DemoSwitch';
 
 const COPY = {
   en: {
@@ -17,7 +18,7 @@ const COPY = {
       ['Games and the league', 'Results, the table and player stats next to the squad\'s training history.'],
       ['Report in one tap', 'The head coach\'s daily report, ready to send on WhatsApp.'],
     ],
-    demos: 'Open a demo', note: 'Demo clubs, players and numbers are generated. Press anything - nothing is saved.', open: 'Open', lang: 'עב',
+    demos: 'Open a demo', note: 'Demo clubs, players and numbers are generated. Press anything - nothing is saved.', open: 'Start the tour', tour: 'Guided tour · 7 stops', lang: 'עב',
     sport: { basketball: 'Basketball', soccer: 'Football' },
   },
   he: {
@@ -31,7 +32,7 @@ const COPY = {
       ['משחקים והליגה', 'תוצאות, טבלה וסטטיסטיקות השחקנים ליד היסטוריית האימונים של הסגל.'],
       ['דוח בלחיצה', 'הדוח היומי של המאמן הראשי, מוכן לשליחה בוואטסאפ.'],
     ],
-    demos: 'פתח הדגמה', note: 'המועדונים, השחקנים והמספרים בהדגמה נוצרו להדגמה. אפשר ללחוץ על הכל - שום דבר לא נשמר.', open: 'פתח', lang: 'EN',
+    demos: 'פתח הדגמה', note: 'המועדונים, השחקנים והמספרים בהדגמה נוצרו להדגמה. אפשר ללחוץ על הכל - שום דבר לא נשמר.', open: 'התחל את הסיור', tour: 'סיור מודרך · 7 תחנות', lang: 'EN',
     sport: { basketball: 'כדורסל', soccer: 'כדורגל' },
   },
 };
@@ -40,9 +41,10 @@ export default function ClubDemoIndex({ lang: lang0 = 'en' }) {
   const [lang, setLang] = useState(lang0 === 'he' ? 'he' : 'en');
   const t = COPY[lang]; const he = lang === 'he';
   const ink = '#0E0F12', dim = '#4F5663', line = 'rgba(14,15,18,0.14)';
-  const go = (club) => { try { sessionStorage.setItem('bhbc-lang-session', lang); } catch { /* */ }   /* the zone keeps this session's language (#954b) */ window.location.assign(club.routeBase + '/overview'); };
+  const go = (club) => { try { sessionStorage.setItem('bhbc-lang-session', lang); } catch { /* */ }   /* the zone keeps this session's language (#954b) */ try { sessionStorage.removeItem('club-tour-closed'); } catch { /* */ } window.location.assign(club.routeBase + '/overview?tour=1'); };
   return (
     <div dir={he ? 'rtl' : 'ltr'} lang={lang} style={{ minHeight: '100vh', background: '#F4F5F7', color: ink, fontFamily: FB }}>
+      <DemoSwitch current="teams" he={he} accent="#0E0F12" onAccent="#FFFFFF" style={{ background: '#F4F5F7', '--c-sf': '#FFFFFF', '--c-cardBd': 'rgba(14,15,18,0.14)', '--c-tx': '#0E0F12', '--c-td': '#4F5663' }} />
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 16px 48px', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 28 }}>
           <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.14em' }}>{t.kicker}</span>
@@ -50,8 +52,27 @@ export default function ClubDemoIndex({ lang: lang0 = 'en' }) {
         </div>
         <h1 style={{ fontFamily: FN, fontSize: 'clamp(24px, 5vw, 38px)', lineHeight: 1.15, fontWeight: 800, margin: '0 0 14px' }}>{t.title}</h1>
         <p style={{ fontSize: 15, lineHeight: 1.6, color: dim, margin: '0 0 30px', maxWidth: 720 }}>{t.sub}</p>
+        {/* THE DEMOS FIRST (#967, Ohad 24.10 'the demo for teams can be way better'; #966 'i had to scroll all the way
+            down'): on a phone the cards sat 3+ screens down under six text cards - now straight after the pitch */}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 1, background: line, border: `1px solid ${line}`, marginBottom: 34 }}>
+        <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>{t.demos}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
+          {ALL_DEMO_CLUBS.filter((d) => d.listed).map((d) => d.club).map((c) => (
+            <button key={c.id} type="button" data-club-demo={c.id} onClick={() => go(c)}
+              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 18px', border: 'none', borderTop: `4px solid ${c.palette.accent}`, background: c.palette.primaryDeep, color: '#fff', textAlign: 'start', cursor: 'pointer', fontFamily: FN }}>
+              <img src={c.crestW} alt="" style={{ width: 64, height: 'auto', flexShrink: 0 }} />
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '0.04em' }}>{he ? c.shortHe : c.short}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>{t.sport[c.sport]}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.7 }}>{t.tour}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: c.palette.accent, marginTop: 6, whiteSpace: 'nowrap' }}>{t.open} {he ? '←' : '→'}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: 12, color: dim, marginTop: 14 }}>{t.note}</p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 1, background: line, border: `1px solid ${line}`, marginTop: 34 }}>
           {t.features.map(([h, b]) => (
             <div key={h} style={{ background: '#fff', padding: '16px 18px' }}>
               <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{h}</div>
@@ -60,21 +81,6 @@ export default function ClubDemoIndex({ lang: lang0 = 'en' }) {
           ))}
         </div>
 
-        <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>{t.demos}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
-          {ALL_DEMO_CLUBS.filter((d) => d.listed).map((d) => d.club).map((c) => (
-            <button key={c.id} type="button" data-club-demo={c.id} onClick={() => go(c)}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', border: 'none', borderTop: `4px solid ${c.palette.accent}`, background: c.palette.primaryDeep, color: '#fff', textAlign: 'start', cursor: 'pointer', fontFamily: FN }}>
-              <img src={c.crestW} alt="" style={{ width: 44, height: 'auto', flexShrink: 0 }} />
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '0.04em' }}>{he ? c.shortHe : c.short}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>{t.sport[c.sport]}</span>
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.palette.accent }}>{t.open} {he ? '←' : '→'}</span>
-            </button>
-          ))}
-        </div>
-        <p style={{ fontSize: 12, color: dim, marginTop: 14 }}>{t.note}</p>
       </div>
     </div>
   );

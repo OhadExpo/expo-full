@@ -1,6 +1,7 @@
 // THE DEMO CLUBS (team version #904). GALIL and SHARON are fictional - no real club, crest or player - and are what
 // /demo/club shows anyone; a prospect's own demo (NETANYA, in clubs.js) is listed here too but never shown there.
-import { crestSvg, NETANYA } from './clubs.js';
+import { NETANYA } from './clubs.js';
+import { CREST_GALIL, CREST_SHARON } from './crests.js';   // #968 generated badges (scripts/gen-club-crests.py)
 
 // basketball: BC Galil, purple and gold
 export const GALIL = {
@@ -12,8 +13,8 @@ export const GALIL = {
   reportPrefix: 'GALIL',
   medicalBy: 'S&C + physio', medicalByHe: 'כושר + פיזיו',
   venue: 'Galil Arena', venueHe: 'היכל הגליל',
-  crestW: crestSvg({ bg: '#2E1A47', ring: '#F2B705', ink: '#FFFFFF', initials: 'BCG', sub: 'GALIL' }),
-  crest: crestSvg({ bg: '#2E1A47', ring: '#F2B705', ink: '#FFFFFF', initials: 'BCG', sub: 'GALIL' }),
+  crestW: CREST_GALIL,
+  crest: CREST_GALIL,
   matchRe: /גליל|galil/i,
   palette: {
     primary: '#3B2366', primaryDeep: '#2E1A47', header: '#1E1030',
@@ -40,8 +41,8 @@ export const SHARON = {
   reportPrefix: 'FC SHARON',
   medicalBy: 'S&C + physio', medicalByHe: 'כושר + פיזיו',
   venue: 'Sharon Stadium', venueHe: 'אצטדיון השרון',
-  crestW: crestSvg({ bg: '#0F3D2E', ring: '#FFFFFF', ink: '#FFFFFF', initials: 'FCS', sub: 'SHARON' }),
-  crest: crestSvg({ bg: '#0F3D2E', ring: '#1E9E5A', ink: '#FFFFFF', initials: 'FCS', sub: 'SHARON' }),
+  crestW: CREST_SHARON,
+  crest: CREST_SHARON,
   matchRe: /שרון|sharon/i,
   palette: {
     primary: '#0F3D2E', primaryDeep: '#0B2E22', header: '#08241B',

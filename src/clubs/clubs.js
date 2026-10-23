@@ -24,6 +24,7 @@ const HERZLIYA_PALETTE = {
   accentInk: null,
 };
 
+import { CREST_NETANYA } from './crests.js';
 export const HERZLIYA = {
   id: 'bhbc',
   sport: 'basketball',
@@ -67,8 +68,8 @@ export const NETANYA = {
   reportPrefix: 'ELITZUR',
   medicalBy: 'S&C + physio', medicalByHe: 'כושר + פיזיו',
   venue: 'Yeshurun Hall, Netanya', venueHe: 'אולם ישורון, נתניה',
-  crestW: crestSvg({ bg: '#111111', ring: '#FFC20E', ink: '#FFC20E', initials: 'EN', sub: 'NETANYA' }),
-  crest: crestSvg({ bg: '#111111', ring: '#FFC20E', ink: '#FFC20E', initials: 'EN', sub: 'NETANYA' }),
+  crestW: CREST_NETANYA,   // #968 a generated badge in the club's colours - never the club's real crest
+  crest: CREST_NETANYA,
   matchRe: /נתניה|netanya/i,
   palette: NETANYA_PALETTE,
   league: { name: 'Liga Leumit', nameHe: 'הליגה הלאומית' },
