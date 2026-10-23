@@ -5699,7 +5699,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
     const measure = () => { const w = el.clientWidth; setCols(w > 0 ? Math.max(1, Math.floor((w + 12) / (264 + 12))) : 0); };
     measure(); const ro = new ResizeObserver(measure); ro.observe(el); return () => ro.disconnect();
   }, []);
-  const nCards = (rows || []).length;
+  const nCards = (rows || []).length;   // the counted squad; a ghost card (after them, same grid) takes a normal card's width
   const fill = cols > 1 && nCards > cols && nCards % cols ? { cols, k: nCards % cols, tracks: cols * (nCards % cols) } : null;
   const settle = useSettleIn((rows || []).length > 0);
   // THE CARD'S PPG IS PLAYER STATS' PPG (#305 J3): the club's own logged games
@@ -5769,7 +5769,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
           ~1100. */}
       <div ref={gridRef} className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: fill ? `repeat(${fill.tracks}, minmax(0, 1fr))` : 'repeat(auto-fill, minmax(264px, 1fr))', gap: 12 }}>
         {rows.map(({ t, acwr, att }, ri) => (
-          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ ...(fill ? { gridColumn: `span ${ri >= rows.length - fill.k ? fill.cols : fill.k}` } : null), position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${acwr.band.color}`, padding: '14px 15px 13px' /* 14 on top + 11 under the stat lines: the top block 16 / 16 (was 15 / 17, #735 band probe) */,
+          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ ...(fill ? { gridColumn: `span ${ri >= nCards - fill.k ? fill.cols : fill.k}` } : null), position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${acwr.band.color}`, padding: '14px 15px 13px' /* 14 on top + 11 under the stat lines: the top block 16 / 16 (was 15 / 17, #735 band probe) */,
             // EVERY ROSTER CARD IS THE SAME BOX.
             // Measured across ten players: four different heights (93, 96, 99,
             // 102) because a Hebrew name renders taller than a Latin one, the
@@ -5875,7 +5875,7 @@ function RosterGrid({ rows, ghosts = [], medical = {}, league = {}, loads = {}, 
             with no load, attendance or medical line to read. */}
         {ghosts.map((t) => (
           <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card"
-            style={{ position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '14px 15px 13px', height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
+            style={{ ...(fill ? { gridColumn: `span ${fill.k}` } : null), position: 'relative', overflow: 'hidden', background: 'transparent', border: `1px dashed ${C.cardBd}`, padding: '14px 15px 13px', height: 'var(--rc-h, auto)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: 0.55 }}>
             <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
             <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 'var(--rc-name, 36px)' }}>{t.name}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 12, minHeight: 'var(--rc-stat, 32px)' }}>

@@ -84,6 +84,8 @@ const EVERY = (() => {
 })();
 // --clubs (#904): every page of every demo club (EXPO Teams) by its own URL
 const CLUBS = (await import('../src/clubs/demoClubs.js')).ALL_DEMO_CLUBS.map((d) => d.club.id).flatMap((c) => ['overview', 'roster', 'schedule', 'practices', 'lifts', 'medical', 'games', 'activity'].map((t) => [`club-${c}-${t}`, `/demo/club/${c}/${t}`, []]));
+// the pop-ups a director opens most: a player's own app and a tour stop
+CLUBS.push(['club-netanya-portal', '/demo/club/netanya/overview/portal/demo_netanya_1', []], ['club-netanya-tour4', '/demo/club/netanya/medical?tour=4', []]);
 let SURFACES = SCOPE === 'clubs' ? CLUBS : SCOPE === 'every' ? EVERY : SCOPE === 'expo' ? EXPO : SCOPE === 'all' ? [...ZONE, ...EXPO] : ZONE;
 if (ONLY) SURFACES = SURFACES.filter((s) => s[0].includes(ONLY));
 

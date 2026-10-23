@@ -14,7 +14,7 @@ All club data today lives in eight shared `store` rows (`expo-bhbc-*`). Any seco
 
 3. Insert the club rows (`bhbc`, then the new club) and their members (`club_members`, accepted).
 
-4. Backfill: copy each `expo-bhbc-*` key into `club_store` (`club_id = 'bhbc'`), medical into `club_medical`. Compare row counts and a JSON hash per key.
+4. Backfill: `node scripts/club-tenancy-backfill.mjs` (dry run, snapshots every key to `~/expo-private-backups/`), then `--apply`: each `expo-bhbc-*` key into `club_store` (`club_id = 'bhbc'`), medical into `club_medical`, read back and compared by a key-sorted hash. The old store rows are not touched.
 
 5. Dual-read: the zone reads `club_store` first and falls back to the old key; writes still go to the old key. One day on production.
 

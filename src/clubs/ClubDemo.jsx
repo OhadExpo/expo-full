@@ -47,7 +47,8 @@ export default function ClubDemo({ slug }) {
       byPlayer[p.traineeId] = [{ id: full.id, name: full.name, traineeId: p.traineeId, active: true, weeks: full.weeks || 4, createdAt: new Date(Date.now() - 9 * 86400000).toISOString(),
         days: (full.days || []).map((d) => ({ name: d.name, exercises: (d.exercises || []).map((e) => ({ eid: idOf(e.title), s: e.sets, r: e.reps, notes: e.notes || '' })) })) }];
     }
-    return { plansFor: (id) => byPlayer[id] || [], exercises: [...lib.values()] };
+    const none = [];   // one empty list: a new [] each render would make the portal reload (it keys on the reference)
+    return { plansFor: (id) => byPlayer[id] || none, exercises: [...lib.values()] };
   }, [seed, he]);
   // the banner + tour are drawn INSIDE the zone, in the zone's language (it owns the toggle)
   const demo = useMemo(() => (seed ? { activity: seed.activity, plans: he ? hebrewPlans(seed.plans) : seed.plans, chrome: (t) => <ClubTour he={t.he} base={club.routeBase} accent={club.palette.accent} onAccent={club.palette.onAccent} />, onLang: setZoneLang, staffName: he ? hebrewStaffName : null, portalPlans: portal && portal.plansFor, portalExercises: portal && portal.exercises } : null), [seed, club, he, portal]);
