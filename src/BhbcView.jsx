@@ -7942,7 +7942,9 @@ function LoadOutputCard({ rows, loads, medical }) {
   );
 }
 
-const INJ_COLS = '190px minmax(0, 1fr) 136px 118px 120px 72px';   // status = the pill's 136 (3.10 #526: at 120 the pill ran into SINCE)
+// status keeps the pill's 136 floor (3.10 #526: at 120 the pill ran into SINCE). #946: the spare width is SHARED - it all
+// went to the injury column, which left one wide empty band in the middle of every row on a desktop.
+const INJ_COLS = 'minmax(170px, 1.15fr) minmax(0, 1.5fr) minmax(136px, 1fr) minmax(108px, 0.85fr) minmax(110px, 0.9fr) 72px';
 
 function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedical = true, onReport, onEdit, onOpen, onLog }) {
   const he = useHe();
@@ -7976,12 +7978,16 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   return (
     <>
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)' }}>{rows.length} {tr('active')} · {canMedical ? clubSay(CLUB.medicalBy || 'S&C + physio', CLUB.medicalByHe || 'כושר + פיזיו', 'Ohad + PT') : tr('view only')}</span>}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 22, position: 'relative', top: -2 /* #735: the counts 16 under the strip, the labels 12 over the edge -> 14 / 14 */ }}>
+        {/* FOUR EQUAL TILES, EACH CENTRED (#946, Ohad 23.10: "injury board design is bad. either redesign or horizontally
+            center everything i dont like the extra space only on one side"): each count sat at the start of its quarter
+            with the rest of it empty. The Team Stats tiles' grid - 4 across, 2 x 2 on a phone, hairlines only BETWEEN
+            tiles - with the number and its word centred in the tile. */}
+        <div className="bhbc-team-sum" style={{ margin: '-14px -14px', position: 'relative' }}>
           {/* colour only the exceptions (#305 E1): cleared is the normal state, so it
               takes the plain ink; limited takes the legible amber token, the raw
               amber measured 2.15:1 on white */}
           {[[tr('Out'), counts.out, '#DE4E3B'], [tr('limited'), counts.limited, 'var(--bhbc-amber-text, #E0A73A)'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, C.tx]].map(([k, n, c]) => (
-            <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '14px 12px', textAlign: 'center' }}>
               <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</span>
             </div>
