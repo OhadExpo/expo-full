@@ -6,6 +6,8 @@
 --      select cron.alter_job(jobid, command := replace(command, 'Bearer <old>', 'Bearer ' ||
 --        (select substring(prosrc from '''([A-Za-z0-9_-]{12,})''') from pg_proc where proname = 'health_storage_usage')))
 --      from cron.job where jobname = 'athlete-health-canary';
+--    And pg_net's default 5 s timeout cut every run off before the answer (the check takes ~20-40 s), so pg_net never
+--    saw a result even with the right token: the job's call now carries timeout_milliseconds := 60000.
 -- 2. The RLS baseline (scripts/rls-baseline.json) was last written 12.6. Regenerating it needs the manifest, and the
 --    manifest needs the secret; the owner's seat can now read it without the secret ever leaving the database
 --    (scripts/regen-rls-baseline.cjs falls back to it when no HEALTH_SECRET is at hand).

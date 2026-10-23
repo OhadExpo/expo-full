@@ -32,6 +32,14 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// A NEW PRECACHE NAME: every browser whose cache holds an HTML page under a chunk's URL downloads everything again into a
+// clean cache; the poisoned one is deleted when this worker activates.
+// IT MUST COME FIRST (#903 audit, 23.10): addPlugins() below creates Workbox's precache controller, which takes the cache
+// name at that moment. Named after it, the files went into the OLD name 'workbox-precache-v2-...' - and the activate
+// handler below, written to delete exactly that name, emptied the precache on every activation: production had no offline
+// copy at all (measured: an activated worker, zero caches).
+setCacheNameDetails({ prefix: 'expo', suffix: 'v3' });
+
 // A SCRIPT IS NEVER CACHED AS A PAGE (23.10, found by the post-deploy smoke: the dashboard rendered 271 characters).
 // A worker that installed while Vercel's edge was still swapping deployments asked for a new chunk the old deployment did
 // not have; the catch-all rewrite answered with index.html and a 200, and Workbox - which trusts a hashed URL - stored
@@ -48,9 +56,6 @@ addPlugins([{
     return response;
   },
 }]);
-// A NEW PRECACHE NAME: every browser whose cache holds an HTML page under a chunk's URL downloads everything again into a
-// clean cache; the poisoned one is deleted when this worker activates.
-setCacheNameDetails({ prefix: 'expo', suffix: 'v3' });
 self.addEventListener('activate', (event) => {
   event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => /^workbox-precache-/.test(k)).map((k) => caches.delete(k)))));
 });
