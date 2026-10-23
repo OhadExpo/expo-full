@@ -189,6 +189,7 @@ const STRINGS = {
   'sticky.waitlist':     { en: 'WAITLIST →',           he: 'לרשימה ←' },
   'footer.line':         { en: '· COACHING PLATFORM · BUILT IN TEL AVIV · © {year} ALL RIGHTS RESERVED', he: '· פלטפורמת אימון · נבנה בתל אביב · © {year} כל הזכויות שמורות' },
   'footer.demo':         { en: 'DEMO',                 he: 'הדגמה' },
+  'footer.clubs':        { en: 'FOR CLUBS',            he: 'למועדונים' },   // EXPO Teams (#904): /demo/club
   'footer.signin':       { en: 'SIGN IN',              he: 'התחברות' },
 
   // <title>
@@ -943,6 +944,8 @@ export default function CoachLanding({ lang = 'en' }) {
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, display: 'inline-flex', alignItems: 'center' }}>
           <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 4px' }}>{t('footer.demo')}</a>
+          <span style={{ margin: '0 4px' }}>·</span>
+          <a href="/demo/club" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 4px' }}>{t('footer.clubs')}</a>
           <span style={{ margin: '0 4px' }}>·</span>
           <a href="/login" style={{ color: C.td, textDecoration: 'none', minHeight: 32, display: 'inline-flex', alignItems: 'center', padding: '0 4px' }}>{t('footer.signin')}</a>
         </span>

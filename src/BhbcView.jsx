@@ -2817,7 +2817,7 @@ function attendance28(rec, days) {
           onLog={canLog ? () => { setLiftReturn(detailFor); setLogFor(detailFor); setDetailFor(null); } : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
-          onOpenPortal={() => openPortal(detailFor)}
+          onOpenPortal={DEMO ? null /* a demo player has no portal in the database (0 reads, #904) */ : () => openPortal(detailFor)}
           onCycleAvail={canLog ? (code) => cycleAvail(detailFor, code) : null}
           onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
