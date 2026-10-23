@@ -257,6 +257,25 @@ function runTriage() {
 setTimeout(() => { runOpenWorkouts(); setInterval(runOpenWorkouts, 20 * 60 * 1000); }, 11 * 60 * 1000);
 // 3 minutes in: reads one small table, writes only the local queue file
 setTimeout(() => { runBugs(); setInterval(runBugs, 20 * 60 * 1000); }, 3 * 60 * 1000);
+// THE MEDICAL WHATSAPP GROUPS -> THE INJURY BOARD (#947, 23.10: "log any injuries or updates automatically ... keep it
+// updated nonstop"): every 30 minutes the new messages of the club's medical groups are read through WhatsApp Desktop's
+// debug port (never a WhatsApp restart; skipped while the window is in use) and what they say about roster athletes is
+// logged by scripts/bhbc-medical-sync.mjs. Quiet when nothing is new.
+let medRunning = false;
+function runMedicalSync() {
+  if (medRunning) return;
+  medRunning = true;
+  let out = '';
+  const p = spawn(process.execPath, ['scripts/bhbc-medical-sync.mjs'], { cwd: REPO, windowsHide: true });
+  p.stdout.on('data', (d) => { out += d; });
+  p.stderr.on('data', (d) => { out += d; });
+  p.on('exit', (code) => {
+    medRunning = false;
+    const line = out.trim().replace(/\s+/g, ' ').slice(0, 600);
+    if (line && !/nothing new|in use - next round/.test(line)) say(`medical: exit ${code} ${line}`);
+  });
+}
+setTimeout(() => { runMedicalSync(); setInterval(runMedicalSync, 30 * 60 * 1000); }, 7 * 60 * 1000);
 // 15 minutes in: the shootarounds (it writes expo-bhbc-loads - clear of the warm-up step's write)
 setTimeout(() => { runShootarounds(); setInterval(runShootarounds, 20 * 60 * 1000); }, 15 * 60 * 1000);
 // 7 minutes after the owed cycle: both download through the same Chrome (1010c review)

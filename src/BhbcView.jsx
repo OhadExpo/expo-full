@@ -3113,7 +3113,9 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
           {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
               medical strip above, and the fourth button is what squeezed the row to
               155px and wrapped its own label onto two lines. Three buttons fit. */}
-          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>{tr('View program')}</Btn>}
+          {/* ONE STYLE FOR THE THREE (#952, Ohad 23.10: "Why is there one blue button bad design"): View program was the
+              only filled button in a row of outlined ones. */}
+          {onViewProgram && <Btn variant="ghost" onClick={onViewProgram}>{tr('View program')}</Btn>}
           {onOpenPortal && <Btn variant="ghost" onClick={onOpenPortal} title={tr('The athlete portal as this player sees it - nothing you do there is saved')}>{tr('Athlete portal')}</Btn>}
         </div>
         {program && (program.current || program.count > 0) && (

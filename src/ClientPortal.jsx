@@ -2857,7 +2857,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null, inZone = false, previewReal = true, loginEmail = '' }) {
+// THE HEBREW ATHLETE APP READS RIGHT TO LEFT (#915 / #797, Ohad 23.10: "whatever is more ocd since theere's a lot of
+// english text"). The coach app and the club zone set dir=rtl at their roots in Hebrew; the athlete app never did, so
+// only its words mirrored and every row of items ran in English order - measured on the demo, 27 rows of Hebrew items
+// with their first item on the LEFT across six tabs. One wrapper now gives every screen of it (the program, the logger,
+// history, weight, meals, progress, messages) the language's direction; English names and numbers inside keep their
+// own (the bidi isolation already on them). display:contents - the wrapper adds no box, only the direction.
+export default function ClientPortal(props) {
+  const ctxHe = useHe();
+  const he = props.lang ? props.lang === 'he' : ctxHe;
+  return <div dir={he ? 'rtl' : 'ltr'} data-portal-dir="" style={{ display: 'contents' }}><ClientPortalInner {...props} /></div>;
+}
+
+function ClientPortalInner({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, localWrites = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null, lang = null, onSetLang = null, inZone = false, previewReal = true, loginEmail = '' }) {
   const tt = useAppT();
   // EVERY HEBREW LINE IN ITS OWN DIRECTION (29.9 #391 pass 7). The portal keeps
   // its left-to-right LAYOUT (as production), and so every Hebrew sentence in
