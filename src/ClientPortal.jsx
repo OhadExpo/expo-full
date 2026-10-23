@@ -48,9 +48,11 @@ import { useUrlSync, useUrlFlag } from './urlState';
 // the portal's pages in the URL, in the tabs' own words (#770)
 const PORTAL_PAGES = { prog: 'program', bwt: 'bodyweight', meal: 'meal-log', hist: 'history', pr: 'progress', msg: 'messages' };   // 16.10 #826: PRs grew into PROGRESS
 const PORTAL_KEY = { ...Object.fromEntries(Object.entries(PORTAL_PAGES).map(([k, w]) => [w, k])), prs: 'pr' };   // an old /prs link still opens it
-const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|progress|prs|messages))?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
+const PORTAL_BASE = /^(\/athlete|\/try|\/demo\/athlete|\/demo\/trainee|\/coach\/(?:athletes|trainees)\/[^/]+\/preview|\/coach\/programs\/[^/]+\/preview|\/(?:coach\/)?bhbc\/[a-z]+\/portal\/[^/]+|\/(?:coach\/)?bhbc\/my-program(?:\/preview\/head-coach)?)(?:\/(program|bodyweight|meal-log|history|progress|prs|messages)(?:\/(jump-test))?)?\/?$/;   // the tail = a portal page ONLY: /try/analyze is the sandbox's step, not a tab   // + the BHBC portal page (#767) + MY PROGRAM (#769)
 const portalPageFromPath = (p) => { const m = String(p || '').match(PORTAL_BASE); return m && m[2] ? (PORTAL_KEY[m[2]] || null) : null; };
-const portalPath = (p, v) => { const m = String(p || '').match(PORTAL_BASE); return m ? `${m[1]}/${PORTAL_PAGES[v] || 'program'}` : null; };
+// a page's own sub-surface (Progress -> /jump-test, #897) is kept while that page stays open: rebuilding the bare page path
+// on load erased the link before the lazy card could read it
+const portalPath = (p, v) => { const m = String(p || '').match(PORTAL_BASE); if (!m) return null; if (m[3] && m[2] && PORTAL_KEY[m[2]] === v) return `${m[1]}/${m[2]}/${m[3]}`; return `${m[1]}/${PORTAL_PAGES[v] || 'program'}`; };
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
