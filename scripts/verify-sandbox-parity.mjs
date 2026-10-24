@@ -77,3 +77,8 @@ select 'COLUMN_MISSING', r.t, r.col from real r where exists (select 1 from sbx 
 order by 1, 2, 3;`;
 // Known, expected TABLE_NO_TWIN rows (11.10): api_daily_budget (server-side API budget),
 // push_subscriptions + push_nudge_log (push is a no-op in the sandbox), *_backup_* tables.
+// 24.10 (drift SQL at the 1024n cut): clubs, club_members, club_store, club_medical, club_medical_reads (team-version
+// Phase B, #904 - only scripts/club-tenancy-sync.mjs touches them; the client still reads the store, and the partner
+// seat has no club) and health_rls_baseline (the RLS-drift healer's server-side baseline). The client calls none of
+// them (the routing check above would fail if it did) - when the Phase B switch moves the app onto club_*, the
+// partner question comes back: his seat has no BHBC zone, so list them here with that reason or give them twins.

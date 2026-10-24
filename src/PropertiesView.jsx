@@ -58,6 +58,11 @@ const SRC_HE = { yad2: 'יד2', madlan: 'מדלן', homeless: 'הומלס', onma
 const srcHe = (s) => SRC_HE[s] || (String(s || '').startsWith('signal') ? 'אות מוקדם' : s);
 // a history note written by the old scraper sheet ("auto-found by scraper ...") is noise, not a founder's note
 const seenNote = (n) => (n && !/scraper|auto-found|^auto/i.test(n) ? n : '');
+// #859 (Ohad 16.10: 'the assets page can be better designed for hebrew use'): a date in a Hebrew line is written the way
+// he writes one - 16.10 (the year only when it is not this one), never the engine's 2026-10-16 - and a date-time is ONE
+// left-to-right unit that never breaks: inside an RTL line '24.10, 06:01' reordered around its comma and wrapped mid-time.
+const heDate = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); if (!m) return d || ''; const yy = +m[1] === new Date().getFullYear() ? '' : '.' + m[1].slice(2); return `${+m[3]}.${+m[2]}${yy}`; };
+const When = ({ children }) => <bdi dir="ltr" style={{ whiteSpace: 'nowrap' }}>{children}</bdi>;
 const floorHe = (f) => (f == null ? '?' : f === 0 ? 'קרקע' : f < 0 ? `מרתף ${f}` : String(f));
 
 const chip = (kind) => ({   // a tag is coloured words, never a filled pill
@@ -130,7 +135,7 @@ const PropertyCard = React.memo(function PropertyCard({ c, mine, others, thumb, 
       <div style={{ padding: '12px 14px', display: 'grid', gap: 10, alignContent: 'start', minWidth: 0, direction: 'rtl', textAlign: 'right' }}>
         <header style={{ display: 'grid', gap: 2 }}>
           <h3 style={{ margin: 0, ...T(16, 700), color: C.tx }}>{title}</h3>
-          <div style={{ ...T(12), color: C.tm }}>{place}{c.first_seen ? `${place ? ' ·\u00A0' : ''}נמצא ${c.first_seen}` : ''}{c.broker ? ' ·\u00A0תיווך' : ''}</div>
+          <div style={{ ...T(12), color: C.tm }}>{place}{c.first_seen ? <>{place ? ' ·\u00A0' : ''}נמצא <When>{heDate(c.first_seen)}</When></> : ''}{c.broker ? ' ·\u00A0תיווך' : ''}</div>
         </header>
         <Facts c={c} />
         {(g.why_he || g.analysis_he) && (
@@ -193,7 +198,7 @@ function OppCard({ o }) {
     <article style={{ border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', background: C.sf, display: 'grid', gap: 6, textAlign: 'right' }}>
       <h3 style={{ margin: 0, ...T(15, 700), color: C.tx }}>{o.title}</h3>
       {o.kind === 'signal' && <div style={{ ...T(12, 700), color: o.level === 'high' ? RED : o.level === 'med' ? ORANGE : C.tm }}>אות מוקדם{o.level === 'high' ? ' · חזק' : ''}</div>}
-      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : srcHe(o.src), o.city, o.date].filter(Boolean).join(' ·\u00A0')}</div>
+      <div style={{ ...T(12), color: C.tm }}>{[o.deal && DEAL_HE[o.deal], o.kind === 'signal' ? null : srcHe(o.src), o.city, o.date && heDate(o.date)].filter(Boolean).join(' ·\u00A0')}</div>
       {(o.size_m2 || o.price || o.asking) && (
         <div style={{ ...T(13, 600), color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{[o.size_m2 && `${Math.round(o.size_m2)} מ״ר`, o.price && `₪${fmt(o.price)} לחודש`, o.asking && `מבקשים ₪${fmt(o.asking)}`].filter(Boolean).join(' · ')}</div>
       )}
@@ -382,12 +387,12 @@ export default function PropertiesView() {
     <div lang="he" dir="rtl" style={{ display: 'grid', gap: 12, direction: 'rtl' }} className="nadlan-view">
       {dry && (
         <div role="status" style={{ border: `1px solid ${ORANGE}`, color: ORANGE, padding: '10px 12px', ...T(13, 600) }}>
-          המנוע פועל, אבל לא נאסף מידע חדש מהאתרים מאז {colLabel} ({Math.round(colH)} שעות).
+          המנוע פועל, אבל לא נאסף מידע חדש מהאתרים מאז <When>{colLabel}</When> ({Math.round(colH)} שעות).
         </div>
       )}
       {stale && (
         <div role="alert" style={{ border: `1px solid ${RED}`, color: RED, padding: '10px 12px', ...T(13, 600) }}>
-          המנוע לא עדכן מאז {runLabel} ({Math.round(ageH)} שעות). הרשימה כאן עלולה להיות ישנה.
+          המנוע לא עדכן מאז <When>{runLabel}</When> ({Math.round(ageH)} שעות). הרשימה כאן עלולה להיות ישנה.
         </div>
       )}
       <ChipGrid ariaLabel="לשוניות נכסים" soft cols={5} /* #896 (Ohad 23.10: "buttons in properties at the top or not ocd enough"): no forced 3 on a phone - 3 + 2 left a hole; the grid's own rule fills every row (2 + 2 + 1 across) */ value={tab} onChange={setTab}
@@ -398,7 +403,7 @@ export default function PropertiesView() {
       )}
       <div className="nadlan-status" style={{ ...T(12), display: 'grid', gap: 2, color: stale ? RED : C.tm }}>
         <div>{TAB_HINT[tab]}</div>
-        <div role="status" aria-live="polite">{status || [runLabel && `עדכון אחרון של המנוע: ${runLabel}`, colLabel && `סריקה אחרונה: ${colLabel}`].filter(Boolean).join(' · ')}{!me && !status ? ' · ההחלטות כבויות עד שהזהות שלך נטענת' : ''}</div>
+        <div role="status" aria-live="polite">{status || <>{runLabel && <>עדכון אחרון של המנוע: <When>{runLabel}</When></>}{runLabel && colLabel ? ' · ' : ''}{colLabel && <>סריקה אחרונה: <When>{colLabel}</When></>}</>}{!me && !status ? ' · ההחלטות כבויות עד שהזהות שלך נטענת' : ''}</div>
       </div>
       {tab === 'opportunities' ? (
         opps.length ? opps.slice(0, limit).map(o => <OppCard key={o.id || o.url} o={o} />)
