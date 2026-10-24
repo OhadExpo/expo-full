@@ -6887,7 +6887,7 @@ function StandingsTable({ standings }) {
     { k: 'gp', h: 'GP', he: 'GP' }, { k: 'w', h: 'W', he: 'W' }, { k: 'l', h: 'L', he: 'L' },
     { k: 'pf', h: 'PF', he: 'Points for' }, { k: 'pa', h: 'PA', he: 'Points against' }, { k: 'diff', h: '+/–', he: 'Difference' },
   ];
-  const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, padding: '8px 10px', textAlign: 'end', whiteSpace: 'nowrap' };
+  const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, padding: '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'end', whiteSpace: 'nowrap' };   // one 36px band (#969)
   // the league's own order (rank) until a header is tapped; Form = wins in it
   const sort = useSort(standings, {
     rank: { get: (s) => s.rank, asc: true },
@@ -7331,7 +7331,7 @@ function SoccerLeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, to
       {sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{sub}</div>}
     </div>
   );
-  const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: phoneS ? '0.04em' : '0.08em', textTransform: 'uppercase', color: C.tm, padding: phoneS ? '8px 6px' : '8px 10px', textAlign: 'center', whiteSpace: 'nowrap' };
+  const th = { fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: phoneS ? '0.04em' : '0.08em', textTransform: 'uppercase', color: C.tm, padding: phoneS ? '0 6px' : '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' };   // one 36px band (#969)
   const td = { fontFamily: FN, fontSize: 13, color: C.tx, padding: phoneS ? '9px 6px' : '9px 10px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
   const players = (S.players || []).map((p) => ({ p, t: (roster || []).find((t) => Number(t.jersey) === Number(p.jersey)) || null })).filter((x) => x.t)
     .sort((a, b) => (b.p.goals - a.p.goals) || (b.p.assists - a.p.assists) || (b.p.min - a.p.min));

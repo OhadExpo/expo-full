@@ -127,7 +127,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
     // plain ones bright - the row read as random); the sorted one is cyan
     const color = refined ? 'var(--c-stripTx)' : (sort === k ? C.ac : C.tm);
     return (
-      <th className={cls} onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+      <th className={cls} onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '0 12px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
         {label}{sort === k && <span style={{ marginInlineStart: 5 }}><SortArrow up={dir === 1} /></span>}
       </th>
     );

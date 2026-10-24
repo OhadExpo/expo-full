@@ -255,7 +255,7 @@ export default function OverloadChart({ workouts, exercises }) {
 
   const th = (key, label, align = 'start', cls) => (
     <th className={cls} onClick={() => setSortKey(key)} style={{
-      textAlign: align, padding: '8px 10px', cursor: 'pointer', userSelect: 'none',
+      textAlign: align, padding: '0 10px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', cursor: 'pointer', userSelect: 'none',   // the table system's one 36px header band (#969: 26)
       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
       color: sort.key === key ? C.ac : C.td, whiteSpace: 'nowrap',
       borderBottom: `1px solid ${C.cardBd}`,
