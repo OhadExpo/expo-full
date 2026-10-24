@@ -20,7 +20,7 @@ import { frameToPoints3D, stableReplayFrames, lmVisible } from './poseLab';
 import { C, FN } from './theme';
 import { useT, LangCtx } from './i18n';
 import AngleNum, { AngleHead } from './AngleNum';
-import { ChipGrid, JoinedButtons } from './ui';
+import { ChipGrid, JoinedButtons, SegWord } from './ui';
 import { createAnatomyBody } from './anatomy/AnatomyBody';
 import { FOCUS_KEYS, autoFocus, focusPattern } from './anatomy/muscleFocus';
 import { buildTrack, sampleTrack, fk, carry, modelAngles, S as SEG, PIVOT, RJ, NSEG as SEG_COUNT } from './anatomy/rig';
@@ -960,7 +960,7 @@ export default function Replay3D({ frames, playheadT = null, onUnsupported, onSe
       {track && anat !== 'error' && (
         // MUSCLE FOCUS (#907): the same chip group, ten = two full rows
         <ChipGrid value={focus} onChange={setFocus} cols={5} phoneCols={5} style={{ marginBottom: 8, maxWidth: 640 }} ariaLabel={tt('MUSCLE FOCUS')}
-          items={FOCUS_KEYS.map((k) => { const key = `focus·${k.toUpperCase()}`, he = tt(key); return { k, label: he === key ? k.toUpperCase() : he, tone: '#FFF' }; })} />
+          items={FOCUS_KEYS.map((k) => { const key = `focus·${k.toUpperCase()}`, he = tt(key); return { k, label: he !== key ? he : k === 'shoulders' ? <SegWord full="SHOULDERS" short="SHLDR" /> : k.toUpperCase(), tone: '#FFF' }; })} />
       )}
       {MA && (
         // the joint box's plane (#716): the same chip group as the layers

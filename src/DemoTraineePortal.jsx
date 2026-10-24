@@ -40,10 +40,11 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
     // rollout is gated to the coach app only.
     <div data-theme="dark" style={{ position: 'relative', minHeight: '100vh', background: C.bg }}>
       {!isEmbed && <DemoSwitch current="athlete" he={readLang() === 'he'} />}
-      {/* Demo banner — slim, fixed at the top, non-intrusive */}
+      {/* Demo banner — slim, at the top, non-intrusive. It scrolls away with the page (#1027): stuck at top 0 with no
+          background it drew over the portal's own sticky block header - two lines of text on top of each other. */}
       {!isEmbed && (
         <div style={{
-          position: 'sticky', top: 0, zIndex: 60,
+          position: 'relative', zIndex: 60,
           background: 'transparent',
           borderBottom: `1px solid ${C.ac}`,
           padding: '6px 14px',

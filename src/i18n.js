@@ -1100,6 +1100,7 @@ export const HE = {
   'Pause': 'השהיה',
   'Start of the clip': 'תחילת הקטע',
   'End of the clip': 'סוף הקטע',
+  'Reset the cut': 'איפוס החיתוך',
   "This phone can't cut videos here - the full clip is uploading.": 'הטלפון הזה לא יכול לחתוך כאן סרטון - הסרטון המלא עולה.',
   Save: 'שמירה',
   Package: 'חבילה',

@@ -382,6 +382,25 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
 
   useEffect(() => { reload(); }, [reload]);
 
+  // THE NEWEST MESSAGE IS ON SCREEN (#1028, found filming the demo 24.10): the list is a 360px scroller that opened at its
+  // TOP - a long thread opened on its oldest messages, and the message he had just sent landed below the fold, as if it
+  // had not been sent. Now: the thread opens at the bottom; a new message brings the list down to it when it is his own,
+  // or when he was already at the bottom (one he is reading further up is left where it is).
+  const listRef = useRef(null);
+  const seenLen = useRef(0);
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;   // still loading: counted once the list exists
+    const prev = seenLen.current; seenLen.current = rows.length;
+    if (!rows.length) return;
+    if (!prev) { el.scrollTop = el.scrollHeight; return; }
+    if (rows.length <= prev) return;
+    const last = el.lastElementChild;
+    const gap = el.scrollHeight - el.scrollTop - el.clientHeight - (last ? last.offsetHeight : 0);
+    const mine = rows[rows.length - 1] && rows[rows.length - 1].sender_role === role;
+    if (mine || gap < 80) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [rows, role, loading]);
+
   // Live: the other party's message appears in an OPEN thread without a reload.
   // coach_messages is already in the realtime publication (the Dashboard inbox
   // card subscribes to it), so this needs no DDL — just a filtered INSERT
@@ -482,7 +501,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
           {tt('No messages yet.')} {role === 'coach' ? tt('Drop a voice note or a quick check-in below.') : tt('Your coach will message you here.')}
         </div>
       ) : (
-        <div style={{ maxHeight: 360, overflowY: 'auto', paddingInlineEnd: 4 }}>
+        <div ref={listRef} data-msg-list style={{ maxHeight: 360, overflowY: 'auto', paddingInlineEnd: 4 }}>
           {rows.map(m => <MessageBubble key={m.id} msg={m} viewerRole={role} />)}
         </div>
       )}

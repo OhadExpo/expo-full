@@ -12,6 +12,10 @@
 //
 // Smoothness rules: one seek in flight at a time (a drag never queues a backlog of seeks); fast keyframe seeks while a
 // handle moves, one exact seek when it lands; the playhead is moved by style, not by React state, at 60fps.
+// #1025 (Ohad: "Scrolling through the video should be way smoother"): a finger no longer waits for a seek at all. The
+// worker decodes the clip once at small size (src/trimThumbs.worker.js) and a drag draws the nearest of those frames on
+// a canvas over the video the moment the finger moves; the video seeks once, where the finger lets go, and the canvas
+// steps aside when that exact frame is on screen. Until the frames exist, the old fast seeks carry the drag.
 // The sheet has its own URL (the page's path + /trim): Back cancels it. A reload cannot bring the chosen file back, so a reload of
 // that URL lands on the page (ClientPortal drops the tail).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -23,6 +27,7 @@ const MIN_LEN = 1;          // seconds: the shortest cut
 const HANDLE = 16;          // px: the handle's drawn width
 const HIT = 24;             // px: extra grab margin around a handle (a thumb, not a cursor)
 const STRIP_H = 56;         // px: the filmstrip's height
+const SCRUB_LONG = 640;     // px: the scrub frames' long side (a phone shows the clip ~390 x 690 CSS px: sharp enough mid-drag)
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const mmss = (s) => { s = Math.round(Math.max(0, s || 0)); const m = Math.floor(s / 60); return `${m}:${String(s - m * 60).padStart(2, '0')}`; };   // the cut's length: rounded (6.9 s reads 0:07)
@@ -32,7 +37,7 @@ const buzz = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms); } cat
 export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCancel, onDone }) {
   const url = useMemo(() => URL.createObjectURL(file), [file]);
   useEffect(() => () => { try { URL.revokeObjectURL(url); } catch { /* */ } }, [url]);
-  const vidRef = useRef(null), stripRef = useRef(null), headRef = useRef(null);
+  const vidRef = useRef(null), stripRef = useRef(null), headRef = useRef(null), scrubRef = useRef(null);
   const [dur, setDur] = useState(0);
   const [cut, setCut] = useState({ start: 0, end: 0 });
   const cutRef = useRef(cut); cutRef.current = cut;
@@ -70,9 +75,54 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
     try { if (!s.exact && typeof v.fastSeek === 'function') v.fastSeek(t); else v.currentTime = t; } catch { s.busy = false; }
   }, []);
   const seek = useCallback((t, exact = true) => { const s = seekRef.current; s.want = t; s.exact = exact; if (!s.busy) doSeek(); }, [doSeek]);
+  // the scrub frames (#1025): JPEGs from the worker, a few decoded at a time, the newest wish drawn (never a backlog)
+  const proxyRef = useRef({ n: 0, blobs: [], cache: new Map(), want: -1, shown: -1, busy: false, hideOnSeek: false });
+  const drawProxy = useCallback(async () => {
+    const P = proxyRef.current, cv = scrubRef.current;
+    if (P.busy || !cv) return;
+    P.busy = true;
+    while (P.want >= 0 && P.want !== P.shown) {
+      const k = P.want;
+      let bmp = P.cache.get(k);
+      if (bmp) P.cache.delete(k);
+      else { try { bmp = await createImageBitmap(P.blobs[k]); } catch { break; } }
+      P.cache.set(k, bmp);
+      if (P.cache.size > 24) { const [ok, ob] = P.cache.entries().next().value; P.cache.delete(ok); try { ob.close(); } catch { /* */ } }
+      if (P.want < 0) break;   // the exact frame arrived while this one decoded
+      if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
+      cv.getContext('2d').drawImage(bmp, 0, 0);
+      P.shown = k; cv.style.visibility = 'visible'; cv.dataset.f = k;   // data-f: which frame (the smoothness probe reads it)
+    }
+    P.busy = false;
+  }, []);
+  // the nearest frame to t, if the worker has made it (or one within two frames of it); false = seek the video instead
+  const showProxy = useCallback((t, d) => {
+    const P = proxyRef.current;
+    if (!P.n || !(d > 0)) return false;
+    const i = clamp(Math.floor((t / d) * P.n), 0, P.n - 1);
+    let k = -1;
+    for (let j = 0; j <= 2 && k < 0; j++) { if (P.blobs[i - j]) k = i - j; else if (P.blobs[i + j]) k = i + j; }
+    if (k < 0) return false;
+    P.want = k; P.hideOnSeek = false; drawProxy();
+    return true;
+  }, [drawProxy]);
+  const hideProxy = useCallback(() => {
+    const P = proxyRef.current, cv = scrubRef.current;
+    P.want = -1; P.shown = -1; P.hideOnSeek = false;
+    if (cv) cv.style.visibility = 'hidden';
+  }, []);
   useEffect(() => {
     const v = vidRef.current; if (!v) return undefined;
-    const onSeeked = () => { seekRef.current.busy = false; if (seekRef.current.want != null) doSeek(); };
+    const onSeeked = () => {
+      seekRef.current.busy = false;
+      if (seekRef.current.want != null) { doSeek(); return; }
+      if (proxyRef.current.hideOnSeek) {
+        // Safari says 'seeked' before the frame is drawn: wait for the frame (or 150 ms)
+        let gone = false; const go = () => { if (gone || !proxyRef.current.hideOnSeek) return; gone = true; hideProxy(); };
+        if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(go);
+        setTimeout(go, 150);
+      }
+    };
     const onMeta = () => {
       const d = v.duration;
       if (!Number.isFinite(d) || d <= 0) { whyRef.current = `duration ${d}`; setFailed(true); return; }
@@ -87,7 +137,7 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
     // and a sheet that cannot read its clip in 6 s gives the clip back uncut instead of hanging invisible
     const watchdog = setTimeout(() => { if (!(v.duration > 0)) { whyRef.current = `no metadata in 6 s (readyState ${v.readyState})`; setFailed(true); } }, 6000);
     return () => { clearTimeout(watchdog); v.removeEventListener('seeked', onSeeked); v.removeEventListener('loadedmetadata', onMeta); v.removeEventListener('error', onErr); };
-  }, [doSeek]);
+  }, [doSeek, hideProxy]);
   // a clip that cannot be read here (a codec this browser lacks) uploads uncut - never blocks the athlete
   useEffect(() => {
     if (!failed) return;
@@ -102,7 +152,9 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
       const v = vidRef.current, h = headRef.current, c = cutRef.current;
       if (v && dur > 0) {
         if (!v.paused && (v.currentTime >= c.end - 0.04 || v.currentTime < c.start - 0.25)) { v.currentTime = c.start; }
-        if (h && stripW) h.style.transform = `translateX(${(v.currentTime / dur) * stripW}px)`;
+        const g = grab.current;
+        const at = g && g.t != null ? g.t : v.currentTime;   // a drag: where the finger is, not where the video has got to
+        if (h && stripW) h.style.transform = `translateX(${(at / dur) * stripW}px)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -148,12 +200,14 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
         if (dead) { resolve(); return; }
         clearTimeout(stall);
         if (m.n) { list = new Array(m.n).fill(null); setThumbs([...list]); }
-        else if (m.blob) { const u = URL.createObjectURL(m.blob); urls.push(u); list[m.i] = u; setThumbs([...list]); }
+        else if (m.blob && m.pi == null) { const u = URL.createObjectURL(m.blob); urls.push(u); list[m.i] = u; setThumbs([...list]); }
         else if (m.done) resolve();
         else if (m.error) reject(new Error(m.error));
+        else if (m.pn) { const P = proxyRef.current; P.n = m.pn; P.blobs = new Array(m.pn).fill(null); }
+        if (m.pi != null && m.blob) { const P = proxyRef.current, cv = scrubRef.current; P.blobs[m.pi] = m.blob; if (cv) { cv.dataset.n = P.n; cv.dataset.have = (Number(cv.dataset.have) || 0) + 1; } }
       };
       worker.onerror = (ev) => { clearTimeout(stall); reject(new Error((ev && ev.message) || 'worker error')); };
-      worker.postMessage({ file, dur, width, stripH: STRIP_H, dpr: Math.min(2, window.devicePixelRatio || 1) });
+      worker.postMessage({ file, dur, width, stripH: STRIP_H, dpr: Math.min(2, window.devicePixelRatio || 1), long: SCRUB_LONG });
     });
     const run = async () => {
       try { await viaKeyframes(); return; } catch { if (dead) return; try { worker && worker.terminate(); } catch { /* */ } worker = null; /* the <video> way below */ }
@@ -174,7 +228,10 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
       }
     };
     run();
-    return () => { dead = true; try { worker && worker.terminate(); } catch { /* */ } urls.forEach((u) => { try { URL.revokeObjectURL(u); } catch { /* */ } }); try { v.removeAttribute('src'); v.load(); } catch { /* */ } };
+    return () => {
+      dead = true;
+      const P = proxyRef.current; P.n = 0; P.blobs = []; P.cache.forEach((b) => { try { b.close(); } catch { /* */ } }); P.cache.clear();
+      try { worker && worker.terminate(); } catch { /* */ } urls.forEach((u) => { try { URL.revokeObjectURL(u); } catch { /* */ } }); try { v.removeAttribute('src'); v.load(); } catch { /* */ } };
   }, [dur, stripW > 0, url]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- the strip's gestures ----
@@ -209,16 +266,17 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
       const want = tOf(x + g.off);
       const s = clamp(want, 0, c.end - MIN_LEN);
       if (want > c.end - MIN_LEN && c.start < c.end - MIN_LEN - 0.01) buzz(12);
-      setCut({ start: s, end: c.end }); seek(s, false);
+      setCut({ start: s, end: c.end }); g.t = s; if (!showProxy(s, dur)) seek(s, false);
     } else if (g.what === 'end') {
       const want = tOf(x + g.off);
       const en = clamp(want, c.start + MIN_LEN, dur);
       if (want < c.start + MIN_LEN && c.end > c.start + MIN_LEN + 0.01) buzz(12);
-      setCut({ start: c.start, end: en }); seek(en, false);
+      setCut({ start: c.start, end: en }); g.t = en; if (!showProxy(en, dur)) seek(en, false);
     } else {
       // GOOGLE PHOTOS' SCRUB: the playhead follows the finger inside the cut, the picture follows the playhead
       const t = clamp(tOf(x), c.start, c.end);
-      seek(t, false);
+      g.t = t;
+      if (!showProxy(t, dur)) seek(t, false);
       const h = headRef.current; if (h) h.style.transform = `translateX(${xOf(t)}px)`;
     }
   };
@@ -227,7 +285,8 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
     grab.current = null; setDragging(null);
     const v = vidRef.current; if (!v) return;
     const c = cutRef.current;
-    if (g.what === 'scrub') { seek(clamp(v.currentTime, c.start, c.end), true); return; }   // stays on the frame he chose
+    proxyRef.current.hideOnSeek = proxyRef.current.shown >= 0;   // the canvas steps aside when the exact frame is painted
+    if (g.what === 'scrub') { seek(clamp(g.t != null ? g.t : v.currentTime, c.start, c.end), true); return; }   // stays on the frame he chose
     seek(c.start, true);
     v.play().then(() => setPlaying(true)).catch(() => {});
   };
@@ -236,6 +295,13 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
     const v = vidRef.current; if (!v) return;
     if (v.paused) { const c = cutRef.current; if (v.currentTime < c.start || v.currentTime >= c.end - 0.05) v.currentTime = c.start; v.play().then(() => setPlaying(true)).catch(() => {}); }
     else { v.pause(); setPlaying(false); }
+  };
+  const trimmedNow = dur > 0 && (cut.start > 0.05 || cut.end < dur - 0.05);
+  const reset = () => {
+    if (!trimmedNow) return;
+    const v = vidRef.current; hideProxy();
+    setCut({ start: 0, end: dur }); seek(0, true);
+    if (v) v.play().then(() => setPlaying(true)).catch(() => {});
   };
   const done = () => {
     const c = cutRef.current;
@@ -256,6 +322,8 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
   const len = Math.max(0, cut.end - cut.start);
   const xs = xOf(cut.start), xe = xOf(cut.end);
   const ink = '#FFFFFF', dim = 'rgba(255,255,255,0.62)';
+  const TOP = 36;
+  const round = { width: TOP, height: TOP, padding: 0, border: 'none', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
   const btn = { height: 36, minWidth: 0, padding: '0 12px', border: 'none', borderRadius: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: he ? 0 : '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' };
 
   return createPortal(
@@ -263,20 +331,28 @@ export default function VideoTrimSheet({ file, he = false, tt = (s) => s, onCanc
       style={{ position: 'fixed', inset: 0, zIndex: 1200, background: '#000', color: ink, display: 'flex', flexDirection: 'column', fontFamily: FB,
         paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none',
         opacity: dur > 0 ? 1 : 0, transition: 'opacity 160ms ease' /* shown once the clip reads: a file this browser cannot read never flashes the sheet */ }}>
-      {/* the top: cancel, the cut's length, its range */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', minHeight: 56, padding: '0 16px', gap: 12 }}>
-        <button type="button" data-trim-cancel onClick={() => close(onCancel)} style={{ ...btn, justifySelf: 'start', background: 'transparent', color: ink, border: '1px solid rgba(255,255,255,0.35)' }}>{tt('Cancel')}</button>
-        <div style={{ textAlign: 'center', lineHeight: 1.15 }} dir="ltr">
-          <div data-trim-len style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{mmss(len)}</div>
-          <div data-trim-range style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: dim, fontVariantNumeric: 'tabular-nums' }}>{mmssT(cut.start)} – {mmssT(cut.end)}</div>
+      {/* the top (#1025): close, the cut (its length + where it starts and ends), reset - one row, one 36px height */}
+      <div style={{ display: 'grid', gridTemplateColumns: `${TOP}px minmax(0, 1fr) ${TOP}px`, alignItems: 'center', height: 60, padding: '0 16px', gap: 12 }}>
+        <button type="button" data-trim-cancel aria-label={tt('Cancel')} onClick={() => close(onCancel)} style={round}>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg>
+        </button>
+        <div style={{ justifySelf: 'center', display: 'flex', alignItems: 'center', height: TOP, maxWidth: '100%', padding: '0 14px', gap: 10, borderRadius: 18, background: 'rgba(255,255,255,0.1)', boxSizing: 'border-box', fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden' }} dir="ltr">
+          <span data-trim-len style={{ fontSize: 15, letterSpacing: '0.02em' }}>{mmss(len)}</span>
+          <span aria-hidden="true" style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.28)', flex: 'none' }} />
+          <span data-trim-range style={{ fontSize: 11, letterSpacing: '0.04em', color: dim }}>{mmssT(cut.start)} – {mmssT(cut.end)}</span>
         </div>
-        <span />
+        <button type="button" data-trim-reset aria-label={tt('Reset the cut')} title={tt('Reset the cut')} onClick={reset} disabled={!trimmedNow}
+          style={{ ...round, opacity: trimmedNow ? 1 : 0.3, cursor: trimmedNow ? 'pointer' : 'default', transition: 'opacity 160ms ease' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ transform: he ? 'scaleX(-1)' : 'none' }}><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </div>
 
       {/* the clip: a tap plays / pauses */}
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={togglePlay}>
         <video ref={vidRef} src={url} muted playsInline preload="auto" data-trim-video
-          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block', background: '#000' }} />
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#000' }} />
+        <canvas ref={scrubRef} data-trim-scrub aria-hidden="true"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', visibility: 'hidden', pointerEvents: 'none' }} />
         {!playing && !dragging && dur > 0 && (
           <button type="button" aria-label={tt('Play')} onClick={(e) => { e.stopPropagation(); togglePlay(); }}
             style={{ position: 'absolute', width: 64, height: 64, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
