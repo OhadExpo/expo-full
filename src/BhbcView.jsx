@@ -6786,7 +6786,7 @@ function ScheduleMonth({ fixtures, today }) {
             {/* one word, never broken: the full kind, or its short form when the
                 column is too narrow (SegWord measures) */}
             <span className="bhbc-cal-kind" style={{ color: FX_COLOR[f.type] || NAVY, display: 'flex', minWidth: 0, whiteSpace: 'nowrap' }}><SegWord full={fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} short={fxShortFor(f.type, FX_LABEL_SHORT[f.type] || FX_LABEL[f.type] || 'Session')} /></span>
-            {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="ltr">{glueSeps(fxWhere(f))}</span> : null}
+            {fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span className="bhbc-cal-where" style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9, flexBasis: '100%' }} dir="auto" /* #789b: the line takes the direction of its first word - forced ltr, a Hebrew 'vs' line laid its vs word at the left end and read backwards */>{glueSeps(fxWhere(f))}</span> : null}
           </div>
         ))}
         {items.length > 3 && <div className="bhbc-cal-more" style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>{tr('+{n} more').replace('{n}', items.length - 3)}</div>}

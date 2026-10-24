@@ -306,7 +306,7 @@ const STRINGS = {
     en: "WhatsApp is the fastest — replies inside the same day, usually within a couple of hours. Tell me what you train for, your equipment, and how many days a week you can give me, and I'll point you at the right program.",
     he: 'וואטסאפ הכי מהיר. אני עונה באותו יום, בדרך כלל תוך כמה שעות. תספר לי לאיזו מטרה אתה מתאמן, איזה ציוד יש לך, וכמה ימים בשבוע אתה יכול להתאמן — ואני אכוון אותך לתוכנית הנכונה.',
   },
-  'contact.hours':       { en: 'Reply window: Sun–Thu 09:00–20:00 (Israel time). Friday/Saturday — slower but I read everything.', he: 'שעות מענה: א׳–ה׳, 09:00–20:00 שעון ישראל. שישי–שבת איטי יותר אבל אני קורא הכל.' },
+  'contact.hours':       { en: 'Reply window: Sun–Thu 09:00–20:00 (Israel time). Friday/Saturday — slower but I read everything.', he: 'שעות מענה: א׳–ה׳, בין 09:00 ל-20:00 שעון ישראל. שישי–שבת איטי יותר אבל אני קורא הכל.' },   // #789b: a time range in words - '09:00–20:00' read backwards in the RTL line (bidi gate)
   'contact.cta.whatsapp': { en: 'WHATSAPP',      he: 'וואטסאפ' },
   'contact.cta.email':    { en: 'EMAIL',         he: 'אימייל' },
   'contact.cta.instagram': { en: 'INSTAGRAM',    he: 'אינסטגרם' },
