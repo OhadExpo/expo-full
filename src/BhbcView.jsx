@@ -506,6 +506,11 @@ const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: 
 const LIFT_DUE_DAYS = 6;
 const LIFTS_NAME_W = 212;   // the longest FULL name fits (LUCAS GOLDENBERG) - one name form per table needs every row to (11.10 #673); 212 + 150 + 31 x 24 = 1106 in the 1162 card
 const LIFTS_LAST_W = 150;
+// SQUARE DAYS (#975, Ohad 24.10 on the attendance grid: "Too much wasted horizontal and vertical space on each box ...
+// Make the rows more square"): a day column stretched to fill the card and every row held 36px - a 14px mark in a 24 x 36
+// box. A day is now a square (aspect-ratio 1, CELL..DAY_MAX wide), the row is as tall as its squares (24px floor), and
+// the name column takes any width left over.
+const DAY_MAX = 28;
 // THE INNER LINES of the two month grids (16.10 #831 / #821): a light line between every two days, through the header,
 // the rows and the footer, and light lines between the rows - the name and last columns keep the full-strength line.
 const GRID_IN = 'color-mix(in srgb, var(--c-cardBd) 50%, transparent)';
@@ -5247,7 +5252,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           of 36 (they were 26 - under the zone's row height). */}
       <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* #735: the two-line day heads 8.2 / 10.7 -> even */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `minmax(var(--lifts-name-w, ${LIFTS_NAME_W}px), 1fr) repeat(${days.list.length}, minmax(${CELL}px, ${DAY_MAX}px)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* #735: the two-line day heads 8.2 / 10.7 -> even */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}` }}>
             <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }} />
             {days.list.map((d, di) => (
               d.future
@@ -5262,8 +5267,8 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
               <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                 onClick={onOpen ? () => onOpen(t.id) : undefined}
                 onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
+                style={{ display: 'grid', gridTemplateColumns: `minmax(var(--lifts-name-w, ${LIFTS_NAME_W}px), 1fr) repeat(${cells.length}, minmax(${CELL}px, ${DAY_MAX}px)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', background: 'var(--c-sf)', padding: '0 14px', minHeight: 24, cursor: onOpen ? 'pointer' : 'default' }} className="bhbc-sq-row">
+                <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 24, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                   <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, textAlign: 'right' /* the ones digits in one column, in either direction (#831) */, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                   <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
@@ -5280,12 +5285,12 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
                   if (showLift && c.lift) overlays.push(FX_COLOR.lift);
                   return (
                     <span key={c.iso} title={label}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 36, alignSelf: 'stretch', boxSizing: 'border-box', background: 'transparent', borderInlineStart: dayLine(ci) }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1', minHeight: 24, alignSelf: 'center', boxSizing: 'border-box', background: 'transparent', borderInlineStart: dayLine(ci) }}>
                       <AttMark mark={mark} overlays={overlays} label={label} />
                     </span>
                   );
                 })}
-                <span data-end-cell="" style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 36, paddingInlineStart: 10, alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                <span data-end-cell="" style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, minHeight: 24, paddingInlineStart: 10, alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }}>
                   <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: pctInk(pct({ went, owed })), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end', unicodeBidi: 'isolate' }}>
                     {owed ? `${went}/${owed}` : tr('none')}
@@ -5296,7 +5301,7 @@ function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = []
           </div>
           </NameScopeProvider>
           {/* the day's count is the footer - the BHBC table system (#673), as on Lifts */}
-          <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `minmax(var(--lifts-name-w, ${LIFTS_NAME_W}px), 1fr) repeat(${days.list.length}, minmax(${CELL}px, ${DAY_MAX}px)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
             <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('present')}</span>
             {perDay.map((v, i) => (
               // nobody was expected (the whole squad out) is a dash, not "0 there" (#305 B8); a day ahead says nothing
@@ -5485,7 +5490,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
         <div ref={scrollRef} className="bhbc-lifts-scroll bhbc-month-scroll" style={{ overflowX: 'auto' }}>
           {/* the column widths are CSS variables: a phone narrows them (themes.css, 1.10 #499) */}
           <div style={{ minWidth: `calc(var(--lifts-name-w, ${LIFTS_NAME_W}px) + var(--lifts-last-w, ${LIFTS_LAST_W}px) + ${28 + days.list.length * CELL}px)` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* the two-line day heads, as Attendance's (#735) */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `minmax(var(--lifts-name-w, ${LIFTS_NAME_W}px), 1fr) repeat(${days.list.length}, minmax(${CELL}px, ${DAY_MAX}px)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '2.5px 14px 0' /* the two-line day heads, as Attendance's (#735) */, minHeight: 36, boxSizing: 'border-box', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, gap: 0 }}>
               <SortHeader k="name" sort={sort} label={tr('Athlete')} style={{ ...pinStart('var(--c-sf2)'), alignSelf: 'stretch', display: 'flex', alignItems: 'center' /* the whole header row high: shorter, the scrolled day heads showed over and under it (14.10 #756, tablet) */, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }} />
               {days.list.map((d, di) => (
                 d.future
@@ -5501,8 +5506,8 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
-                  style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${cells.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 36, cursor: onOpen ? 'pointer' : 'default' }}>
-                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 36, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
+                  style={{ display: 'grid', gridTemplateColumns: `minmax(var(--lifts-name-w, ${LIFTS_NAME_W}px), 1fr) repeat(${cells.length}, minmax(${CELL}px, ${DAY_MAX}px)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center' /* a tap-target row is 40px on a phone; its 26px content sits on its centre, not its top (26.9) */, background: 'var(--c-sf)', padding: '0 14px', minHeight: 24 /* #975 square days set the row */, cursor: onOpen ? 'pointer' : 'default' }} className="bhbc-sq-row">
+                  <span style={{ ...pinStart('var(--c-sf)'), display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, minHeight: 24, alignSelf: 'stretch', borderInlineEnd: `1px solid ${C.cardBd}` }}>
                     <span title={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-label={todayCode > 1 ? tr(AVAIL[todayCode].label) : undefined} aria-hidden={todayCode > 1 ? undefined : 'true'} style={{ width: 7, height: 7, borderRadius: '50%', background: todayCode > 1 ? AVAIL[todayCode].color : 'transparent', flexShrink: 0 }} /* the slot is always there, so every name starts on one x (26.9) */ />
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, textAlign: 'right' /* the ones digits in one column, in either direction (#831) */, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <PlayerName name={t.name} className="lifts-name" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flex: '1 1 auto' }} />
@@ -5514,14 +5519,14 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
                     const title = `${monDay(c.iso)}${c.lift ? ` · ${tr('Lift')}${c.mins ? ` · ${c.mins} ${tr('min')}` : ''}` : ''}${showSc && c.sc ? ` · ${tr('S&C')}` : ''}`;
                     return (
                       <span key={c.iso} title={c.future ? monDay(c.iso) : title}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 36, alignSelf: 'stretch', boxSizing: 'border-box', background: 'transparent', borderInlineStart: dayLine(ci) }}>
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1', minHeight: 24, alignSelf: 'center', boxSizing: 'border-box', background: 'transparent', borderInlineStart: dayLine(ci) }}>
                         <CellMarks bands={bands} label={title} />
                       </span>
                     );
                   })}
                   {/* flexShrink:0 and marginInlineStart:auto: pinned to the end
                       and unshrinkable, the chips give way instead (OCD sweep, 22.9). */}
-                  <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 36, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                  <span data-end-cell="" title={last ? monDay(last) : undefined} style={{ ...pinEnd('var(--c-sf)'), display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%', minHeight: 24, paddingInlineStart: 10, flexShrink: 0, alignSelf: 'stretch', borderInlineStart: `1px solid ${C.cardBd}` }}>
                     <span className="lifts-last-date" style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since, todayCode, !(t.arrival && t.arrival > today)), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 80 /* room for its longest word (YESTERDAY, ~76px measured): at 46 the dates beside a long age stood further in than the rest (4.10 #550 sweep) - a phone sets it to 0 */, textAlign: 'end' }}>
                       {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? <><span className="lifts-age-long">{tr('yesterday')}</span><span className="lifts-age-short">{he ? tr('yesterday') /* 'אתמול' is shorter than the '1 ימים' it replaced (#547) */ : '1d'}</span></> : (he ? `${since} ${tr('days')}` : `${since}d`)}
@@ -5534,7 +5539,7 @@ function LiftsTab({ rows = [], loads = {}, medical = {}, today, onOpen, action =
             {/* THE DAY'S COUNT IS THE FOOTER (11.10 #673 BHBC table system): one header band, rows with
                 hairlines only, the totals in a band like the header at the bottom - it was a second, smaller
                 band under the header that read as a row of data. */}
-            <div style={{ display: 'grid', gridTemplateColumns: `var(--lifts-name-w, ${LIFTS_NAME_W}px) repeat(${days.list.length}, minmax(${CELL}px, 1fr)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `minmax(var(--lifts-name-w, ${LIFTS_NAME_W}px), 1fr) repeat(${days.list.length}, minmax(${CELL}px, ${DAY_MAX}px)) var(--lifts-last-w, ${LIFTS_LAST_W}px)`, alignItems: 'center', padding: '0 14px', minHeight: 36, background: 'var(--c-sf2)', borderTop: `1px solid ${C.cardBd}` }}>
               <span style={{ ...pinStart('var(--c-sf2)'), display: 'flex', alignItems: 'center', alignSelf: 'stretch', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, borderInlineEnd: `1px solid ${C.cardBd}` }}>{tr('lifted')}</span>
               {liftedPerDay.map((n, i) => (
                 <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: n == null ? C.cardBd : C.tm, textAlign: 'center', fontVariantNumeric: 'tabular-nums', alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', borderInlineStart: dayLine(i) }}>{days.list[i].future ? '' : n == null ? '—' : n}</span>

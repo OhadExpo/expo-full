@@ -2543,3 +2543,7 @@ body[data-lang="he"] .nadlan-view, body[data-lang="he"] .nadlan-view *:not(svg):
    badge, not the name, is the row's first ink (9 under the rule, the last line 15 over the next): its content 3px lower,
    the row's height unchanged (one row height, badge or not - #752) */
 .prog-phone-list [role="button"]:has(.prog-badge-slot > *) { padding-top: 13px !important; padding-bottom: 7px !important; }
+
+/* #975 SQUARE DAYS: an attendance / lifts row is as tall as its square day cells - the phone's tap floor for a
+   role=button row (36 / 40px) is what stretched every 14px mark into a 24 x 36 box. The whole row stays the target. */
+.bhbc-zone .bhbc-sq-row { min-height: 24px !important; height: auto !important; }
