@@ -108,10 +108,11 @@ export default function BookingView({ trainees }) {
 
   if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(lang, 'Loading…')}</div>;
 
+  // a Google schedule URL is 100 opaque characters: the row names its host and Copy carries the whole link (#949 gate 24.10: it was ellipsised)
   const linkRow = (key, label, url) => (
     <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 36, padding: '6px 0', borderBottom: key !== 'online' ? `1px solid ${C.cardBd}` : 'none' }}>
       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx, width: 110, flexShrink: 0 }}>{label}</span>
-      <a href={url} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 11, color: C.acText || C.ac, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url.replace(/^https:\/\//, '')}</a>
+      <a href={url} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 11, color: C.acText || C.ac, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{/calendar\.google\.com/.test(url) ? 'calendar.google.com' : url.replace(/^https:\/\//, '')}</a>
       <button type="button" onClick={() => copy(key, url)} style={{ ...stripBtnBase, height: 26, flexShrink: 0, border: `1px solid ${C.cardBd}`, color: copied === key ? C.gn : C.tm, minWidth: 64 }}>{copied === key ? tt('Copied') : tt('Copy')}</button>
     </div>
   );

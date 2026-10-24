@@ -91,7 +91,7 @@ const APP_SURFACES = [
   // /coach/programs: they CREATE a plan on the tap. Twin-label buttons hold both languages, in either order by UI language.
   ['app-dlg-add-exercise', '/coach/exercises', '^\\+ (Add Exercise|Add|הוספת תרגיל|הוסף)$'],
   ['app-dlg-start-session', '/coach/sessions', '^(\\+ START SESSION|\\+ התחל אימון)$'],
-  ['app-dlg-payment-request', '/coach/billing', '^\\+ (NEW REQUEST|בקשה חדשה)(\\+ (NEW REQUEST|בקשה חדשה))?$'],
+  ['app-dlg-payment-request', '/coach/billing', '^\\+ (NEW REQUEST|בקשה חדשה)(\\+ (NEW REQUEST|בקשה חדשה|חדשה))?$'],   // he: the phone word is '+ חדשה'
   ['app-dlg-new-challenge', '/coach/challenges', '^\\+ (NEW CHALLENGE|אתגר חדש)(\\+ (NEW CHALLENGE|אתגר חדש))?$'],
   ['app-dlg-intake-link', '/coach/intake', '^\\+ (Generate Link|קישור חדש)(\\+ (Generate Link|קישור חדש))?$'],
 ];
