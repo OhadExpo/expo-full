@@ -1715,10 +1715,18 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
   // world points carry no visibility in every build - borrow the image landmark's
   const withVis = (w, l) => (w && l ? w.map((p, i) => (p && p.visibility == null && l[i] && l[i].visibility != null ? { ...p, visibility: l[i].visibility } : p)) : w);
   // 1. left/right continuity
+  // A SWAP THAT LASTS IS A FALSE ONE (24.10 #918): each frame is compared with the previous REPAIRED frame, so one false
+  // swap made every following (correct) frame look swapped too and the repair held the sides inverted - 7.4 s of c20,
+  // 11.6 s of c38's squat. Scored on 218 hand-labelled frames (facing / back): raw MediaPipe 4.1% wrong, this repair
+  // 15.1%, with the run capped at 400 ms 4.1%. A real label flip lasts a frame or two; a run longer than LR_RUN_MS is
+  // undone and the raw frames lead again.
+  const LR_RUN_MS = 400;
   const fixed = [];
-  let prev = null;
-  for (const f of frames) {
+  let prev = null, runStart = -1;
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i];
     let lm = f.landmarks || null, wl = withVis(f.worldLandmarks || null, f.landmarks);
+    let swapped = false;
     if (prev && wl) {
       let keep = 0, swap = 0, used = 0;
       for (const [l, r] of LR_TEST) {
@@ -1726,10 +1734,16 @@ export function stabilizeWorldFrames(frames, { minVis = VIS_MIN, swapRatio = 0.6
         if (!confident(pl) || !confident(pr) || !cl || !cr) continue;
         keep += dist3(cl, pl) + dist3(cr, pr); swap += dist3(cl, pr) + dist3(cr, pl); used++;
       }
-      if (used >= 3 && swap < keep * swapRatio) { wl = swapLR(wl); lm = swapLR(lm); }
+      if (used >= 3 && swap < keep * swapRatio) { wl = swapLR(wl); lm = swapLR(lm); swapped = true; }
+    }
+    if (swapped && runStart < 0) runStart = i;
+    if (!swapped) runStart = -1;
+    fixed.push({ ...f, landmarks: lm, worldLandmarks: wl });
+    if (swapped && isReal(f.t) && isReal(frames[runStart].t) && f.t - frames[runStart].t > LR_RUN_MS) {
+      for (let k = runStart; k <= i; k++) fixed[k] = { ...frames[k], landmarks: frames[k].landmarks || null, worldLandmarks: withVis(frames[k].worldLandmarks || null, frames[k].landmarks) };
+      wl = fixed[i].worldLandmarks; runStart = -1;
     }
     if (wl) prev = wl;
-    fixed.push({ ...f, landmarks: lm, worldLandmarks: wl });
   }
   // smoothing next (One-Euro, the display smoother), so the bone rebuild below
   // is the LAST step and no filter can stretch a limb again afterwards

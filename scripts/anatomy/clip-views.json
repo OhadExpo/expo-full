@@ -1,9 +1,9 @@
 {
-  "_": "Where the camera stands for each corpus clip, read off its video contact sheets (17.10, #817; audit-out/rh/facing). front / side / rear = the subject seen from the front, the side, the back (-oblique = about 45 degrees); lying = on a bench or the floor; mixed = walks in or turns during the set. A rear view shows no nose, so the 2D 'side-on' read (shoulder width + nose) is MediaPipe's guess there and verify-anatomy-facing does not score it.",
-  "c01": "side", "c02": "front", "c03": "mixed", "c04": "mixed", "c05": "lying", "c06": "lying", "c07": "front", "c08": "front",
+  "_": "Where the camera stands for each corpus clip, read off its video contact sheets (17.10, #817; audit-out/rh/facing). front / side / rear = the subject seen from the front, the side, the back (-oblique = about 45 degrees); lying = on a bench or the floor; mixed = walks in or turns during the set. 24.10 (#918): c08 / c20 / c37 relabelled front -> mixed (out-and-back walks: the back to the camera going out, the front coming back) and c34 front-oblique -> mixed (side-on loading the bar, then front) - read off 6-frame contact sheets; both pose models had agreed 88-98% with each other against the old labels. A rear view shows no nose, so the 2D 'side-on' read (shoulder width + nose) is MediaPipe's guess there and verify-anatomy-facing does not score it.",
+  "c01": "side", "c02": "front", "c03": "mixed", "c04": "mixed", "c05": "lying", "c06": "lying", "c07": "front", "c08": "mixed",
   "c09": "side", "c10": "front", "c11": "side", "c12": "rear-oblique", "c13": "side", "c14": "side", "c15": "side", "c16": "side",
-  "c17": "lying", "c18": "front", "c19": "rear-oblique", "c20": "front", "c21": "rear-oblique", "c22": "rear", "c23": "mixed", "c24": "side",
+  "c17": "lying", "c18": "front", "c19": "rear-oblique", "c20": "mixed", "c21": "rear-oblique", "c22": "rear", "c23": "mixed", "c24": "side",
   "c25": "side", "c26": "side-oblique", "c27": "lying", "c28": "lying", "c29": "front-oblique", "c30": "rear-oblique", "c31": "side", "c32": "rear",
-  "c33": "side", "c34": "front-oblique", "c35": "side", "c36": "lying", "c37": "front", "c38": "rear-oblique", "c39": "side", "c40": "side",
+  "c33": "side", "c34": "mixed", "c35": "side", "c36": "lying", "c37": "mixed", "c38": "rear-oblique", "c39": "side", "c40": "side",
   "c41": "side"
 }

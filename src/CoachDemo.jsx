@@ -499,7 +499,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
               <div key={i} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' /* the real metricStyle: centred in the row's height (#404, ported #460) */, gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}{lab}</span>
                 <span dir="ltr" style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', lineHeight: 1.15 /* as the real tile (#467) */, fontVariantNumeric: 'tabular-nums', textAlign: 'start', unicodeBidi: 'isolate' }}>₪{val}</span>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2, display: 'flex', whiteSpace: 'nowrap' }}>{sub}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em', marginTop: 2, ...(i === 0 ? { display: 'flex', whiteSpace: 'nowrap' } : null) /* as the real tiles: only the MRR word (a SegWord that shortens itself) holds one line - 'מול 30 הימים הקודמים' at 360 ran 4px out of its tile (#949 gate, 24.10) */ }}>{sub}</span>
               </div>
             ))}
           </div>
