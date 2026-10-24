@@ -741,7 +741,7 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
       {(() => {
         const q = rosterFilter.trim().toLowerCase();
         const rows = MOCK_TRAINEES.filter((t) => !q || String(t.name).toLowerCase().includes(q)).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
-        const th = (h, opt, sorted) => <th key={h} className={opt ? (opt === 'mid' ? 'dash-opt dash-mid' : 'dash-opt') : undefined} style={{ textAlign: 'center', padding: '0 12px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', whiteSpace: 'nowrap', fontSize: 9, fontFamily: FN, color: sorted ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h)}{sorted && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>;
+        const th = (h, opt, sorted) => <th key={h} className={opt ? (opt === 'mid' ? 'dash-opt dash-mid' : 'dash-opt') : undefined} style={{ textAlign: 'center', padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', whiteSpace: 'nowrap', fontSize: 9, fontFamily: FN, color: sorted ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h === 'Sessions' && readLang() === 'he' ? 'נותרו' : T(h)}{sorted && <span style={{ marginInlineStart: 5 }}><SortArrow up /></span>}</th>;
         return (
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 8 }}>
             <div className="title-strip" onClick={() => setRosterOpen((o) => !o)} style={{ cursor: 'pointer', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: 'var(--c-stripTx)', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
@@ -770,15 +770,15 @@ function DemoDashboard({ onJumpToTrainee, onNav }) {
                           onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' /* the real row: a button (a finger's 40px on a phone), height from its 12px cells + the real badge - was 44 / 36 against 43 / 40 (AUDIT-470) */ }}>
-                          <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontWeight: 600, color: C.tx, verticalAlign: 'middle' }}>{t.name}</td>
-                          <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><AppBadge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</AppBadge></td>
-                          <td className="dash-opt dash-mid" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
-                          <td className="dash-opt dash-mid" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
-                          <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
-                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
-                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
-                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
-                          <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', textAlign: 'center', fontFamily: FN, color: C.tm, fontSize: 12 }}>{planCount(t)}</td>
+                          <td style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', fontWeight: 600, color: C.tx }}>{t.name}</td>
+                          <td style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center' }}><AppBadge color={t.dormantDays != null ? C.tm : C.ac}>{T(t.status)}</AppBadge></td>
+                          <td className="dash-opt dash-mid" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', color: C.tm, fontSize: 12 }}>{T(t.format)}</td>
+                          <td className="dash-opt dash-mid" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', color: C.tm, fontSize: 12 }}>{t.isCouple ? T('12 Sessions') : T('8 Sessions')}</td>
+                          <td style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
+                          <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
+                          <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay === '—' ? '—' : fmtNumericDate(lastPay)}</td>
+                          <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', fontFamily: FN, color: C.tx }}>{workouts}</td>
+                          <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center', fontFamily: FN, color: C.tm, fontSize: 12 }}>{planCount(t)}</td>
                         </tr>
                       );
                     })}

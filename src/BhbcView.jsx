@@ -2292,7 +2292,7 @@ function attendance28(rec, days) {
              and beside the 136px status column the word squeezed the injury onto
              two lines.
              Every line starts on the name's x (jersey 22 + gap 9). */
-          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:7px 12px!important}
+          .bhbc-inj-row{grid-template-columns:minmax(0,1fr) auto!important;gap:7px 12px!important;padding:11px 0!important;min-height:0!important}
           .bhbc-inj-row>:nth-child(1){grid-area:1/1!important}
           .bhbc-inj-row>:nth-child(3){grid-area:1/2!important;justify-self:end!important}
           .bhbc-inj-row>:nth-child(2){grid-area:2/1/3/3!important;padding-inline-start:31px!important}
@@ -3287,7 +3287,7 @@ function AthleteModal({ initialKind = 'all', row, rec, days28, bw = [], program 
             return (
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ width: 124, flexShrink: 0, display: 'inline-flex' }}><StatusWord status={inj.status} /></span>
-                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0')}</span>
+                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
@@ -4073,7 +4073,7 @@ function ActivityView({ activity = [], tr, he }) {
             </div>
             <div className="hl-rows" style={{ marginBottom: -10 /* #735: the last person sat 15 under his line, 25 over the card's edge */ }}>
               {people.map((p) => (
-                <div key={p.by} className="bhbc-act-people" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 132px' /* #949: 'YESTERDAY 22:04' is 127px - it ran past 116 to the card's edge */, columnGap: 12, alignItems: 'center', minHeight: 40 }}>
+                <div key={p.by} className="bhbc-act-people" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px 132px' /* #949: 'YESTERDAY 22:04' is 127px - it ran past 116 to the card's edge */, columnGap: 12, alignItems: 'center', minHeight: 36 /* #975: one line, the house 36 (40 was air) */ }}>
                   <span title={p.by} style={{ unicodeBidi: 'isolate', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{byName(p.by) || p.by}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.n}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'end', whiteSpace: 'nowrap' }}>{whenText(p.at, he)}</span>
@@ -4102,7 +4102,7 @@ function ActivityView({ activity = [], tr, he }) {
                     // ONE LINE A CHANGE (5.10 #575). The "by" column only when more than
                     // one person has been in: with one coach it said OHAD under every
                     // row and doubled the height of the whole trail for nothing.
-                    <div key={i} className="bhbc-act-row" data-solo={people.length < 2 ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: people.length < 2 ? '44px 8px minmax(0, 1fr)' : '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'center' /* centred, not baseline: baseline sat the ink 1px high on two lines and 1px low on one (rule rhythm, measured 11/13 and 13/11) */, minHeight: 40, padding: '9px 0 7px' /* #735 band probe: 14.5 / 16.5 -> even */, boxSizing: 'border-box' }}>
+                    <div key={i} className="bhbc-act-row" data-solo={people.length < 2 ? '' : undefined} style={{ display: 'grid', gridTemplateColumns: people.length < 2 ? '44px 8px minmax(0, 1fr)' : '44px 8px minmax(0, 1fr) auto', columnGap: 10, alignItems: 'center' /* centred, not baseline: baseline sat the ink 1px high on two lines and 1px low on one (rule rhythm, measured 11/13 and 13/11) */, minHeight: 36 /* #975 */, padding: '9px 0 7px' /* #735 band probe: 14.5 / 16.5 -> even */, boxSizing: 'border-box' }}>
                       <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{hhmm(e.at)}</span>
                       <span aria-hidden title={KIND[e.kind] || e.kind} style={{ width: 8, height: 8, boxSizing: 'border-box', background: e.kind === 'open' ? 'transparent' : (KIND_INK[e.kind] || C.tm), border: e.kind === 'open' ? `1.5px solid ${C.tm}` : 'none', alignSelf: 'center' }} />
                       <span style={{ fontFamily: FB, fontSize: 13, lineHeight: '18px' /* even leading: a wrapped line sat 11 / 13 in its row */, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>
@@ -7991,7 +7991,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   // first - the order above, so the arrow says what the order already is.
   // Since = the onset date, newest first; the injury and the author by the
   // words on screen, A->Z.
-  const injText = (inj) => [inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0');
+  const injText = (inj) => [inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ');
   const sort = useSort(rows, {
     name: { get: (r) => r.t.name, asc: true },
     injury: { get: (r) => injText(r.inj), asc: true },
@@ -8055,12 +8055,12 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
               return (
                 <div key={t.id + inj.id} className="bhbc-row bhbc-inj-row" onClick={rowOpens ? () => openRow(t, inj) : undefined}
                   role={rowOpens ? 'button' : undefined} tabIndex={rowOpens ? 0 : undefined}
-                  onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
+                  onKeyDown={rowOpens ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openRow(t, inj); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: 0, minHeight: 36, boxSizing: 'border-box' /* #975: 11px pads round a 36px status floor stood one line 59px */, borderBottom: `1px solid ${C.cardBd}`, cursor: rowOpens ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <span style={{ display: 'inline-block', width: 22, textAlign: 'end', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   </div>
-                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0')}</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</div>
                   <StatusWord status={inj.status} />
                   {/* HIS PAIN RULE (CLAUDE.md: 0-3 fine, 4-5 modify, 6+ stop and
                       reassess): a latest pain of 6+ reads red, 4-5 amber (#305 F3) */}
@@ -8084,7 +8084,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                     );
                   })()}
                   </div>
-                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_TEXT }}>{canMedical ? tr('Update ›') : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_TEXT, whiteSpace: 'nowrap' }}>{canMedical ? tr('Update ›') : ''}</div>
                 </div>
               );
             })}
@@ -8120,7 +8120,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <PlayerName name={t.name} style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }} />
                   <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inj.onsetDate ? fmtNumericDate(inj.onsetDate) : ''}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', whiteSpace: 'nowrap' }}>{tr('Cleared')}</span>
-                  <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join(' ·\u00a0')}</span>
+                  <span style={{ gridColumn: '2 / -1', fontFamily: FB, fontSize: 12, lineHeight: '14px' /* the '·' pulled a fallback font with an 18px line: rows with a separator stood 4px taller (#735) */, color: C.tm, minWidth: 0, overflowWrap: 'anywhere' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).map((x) => tr(x)).join('\u00a0· ')}</span>
                 </div>
               ))}
               </NameScopeProvider>

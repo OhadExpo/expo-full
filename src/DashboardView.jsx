@@ -127,7 +127,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
     // plain ones bright - the row read as random); the sorted one is cyan
     const color = refined ? 'var(--c-stripTx)' : (sort === k ? C.ac : C.tm);
     return (
-      <th className={cls} onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '0 12px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+      <th className={cls} onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
         {label}{sort === k && <span style={{ marginInlineStart: 5 }}><SortArrow up={dir === 1} /></span>}
       </th>
     );
@@ -1015,33 +1015,33 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  {/* 13.10 #735: Nord's caps sit 1px low in a 13px line - 11.5 / 12.5 puts names and the taller digits midway between the row's lines (18 / 16 -> even) */}
-                  <td style={{ padding: '11.5px 12px 12.5px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
-                  <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
-                  <td className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
-                  <td className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
-                  <td style={{ padding: '11.5px 12px 12.5px', textAlign: 'center' }}>
+                  {/* #975: a 36px row (11.5 / 12.5 padding stood it 43px for one line). Nord's caps sit 1px low in a 13px line (13.10 #735) - the 1px under the words keeps names and digits midway between the row's lines */}
+                  <td style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
+                  <td style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
+                  <td className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
+                  <td className={isOwner ? 'dash-opt dash-mid' : 'dash-opt'} style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  {isOwner && <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {isOwner && <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {/* Show what the header says + what the sort orders by: TOTAL PAID
                         (sum of this athlete's payments), not the monthly rate — else
                         clicking the TOTAL PAID sort reorders by an invisible metric
                         and reads as "nothing changed" (Ohad). */}
                     {t.totalPaid > 0 ? `₪${Math.round(t.totalPaid).toLocaleString()}` : '—'}
                   </td>}
-                  {isOwner && <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {isOwner && <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {(() => { const d = t.lastPay?.date || t.lastPayment; return d ? new Date(d).toLocaleDateString('en-GB') : '—'; })()}
                   </td>}
-                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
                   </td>
                   {/* Programs count recedes to muted grey (like the Format/Package
                       cells — "gym single" / "monthly"), not bright primary — it's a
                       reference number, not a headline metric (Ohad 2026-08-12). */}
-                  <td className="dash-opt" style={{ padding: '11.5px 12px 12.5px', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td className="dash-opt" style={{ padding: '0 12px 1px', height: 36, boxSizing: 'border-box', verticalAlign: 'middle', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.planCount || '—'}
                   </td>
                 </tr>
