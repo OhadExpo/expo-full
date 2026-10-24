@@ -108,22 +108,32 @@ export default function BookingView({ trainees }) {
 
   if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(lang, 'Loading…')}</div>;
 
-  // a Google schedule URL is 100 opaque characters: the row names its host and Copy carries the whole link (#949 gate 24.10: it was ellipsised)
-  const linkRow = (key, label, url) => (
-    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 36, padding: '6px 0', borderBottom: key !== 'online' ? `1px solid ${C.cardBd}` : 'none' }}>
-      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx, width: 110, flexShrink: 0 }}>{label}</span>
-      <a href={url} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ flex: 1, minWidth: 0, fontFamily: FN, fontSize: 11, color: C.acText || C.ac, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{/calendar\.google\.com/.test(url) ? 'calendar.google.com' : url.replace(/^https:\/\//, '')}</a>
-      <button type="button" onClick={() => copy(key, url)} style={{ ...stripBtnBase, height: 26, flexShrink: 0, border: `1px solid ${C.cardBd}`, color: copied === key ? C.gn : C.tm, minWidth: 64 }}>{copied === key ? tt('Copied') : tt('Copy')}</button>
-    </div>
-  );
+  // three cells per row in one grid: the label column is as wide as the widest label in this language (it was a fixed 110),
+  // and a Google schedule (100 opaque characters) reads "Google Calendar" - Copy carries the whole link (#949 gate 24.10: ellipsised)
+  const linkRow = (key, label, url) => {   // the gaps are cell padding, so each row's hairline runs unbroken
+    const cell = { display: 'flex', alignItems: 'center', minHeight: 36, padding: '6px 0', boxSizing: 'border-box', borderBottom: key !== 'online' ? `1px solid ${C.cardBd}` : 'none' };
+    return (
+      <React.Fragment key={key}>
+        <span style={{ ...cell, paddingInlineEnd: 10, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx }}>{label}</span>
+        <span style={{ ...cell, minWidth: 0 }}>
+          <a href={url} target="_blank" rel="noopener noreferrer" dir="ltr" style={{ minWidth: 0, fontFamily: FN, fontSize: 11, color: C.acText || C.ac, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{/calendar\.google\.com/.test(url) ? 'Google Calendar' : url.replace(/^https:\/\//, '')}</a>
+        </span>
+        <span style={{ ...cell, paddingInlineStart: 10 }}>
+          <button type="button" onClick={() => copy(key, url)} style={{ ...stripBtnBase, height: 26, border: `1px solid ${C.cardBd}`, color: copied === key ? C.gn : C.tm, minWidth: 64 }}>{copied === key ? tt('Copied') : tt('Copy')}</button>
+        </span>
+      </React.Fragment>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <CollapsibleSection title={tt('Booking links')} storageKey="cal-links" padX={PAD} padY={8} style={{ marginBottom: 0 }}>
         <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, margin: '4px 0 6px' }}>{tt('Where clients book - the same page as the website.')}</div>
-        {linkRow('home', tt('Booking page'), BOOKING_HOME(lang))}
-        {linkRow('gym', tt('Gym'), GCAL_GYM)}
-        {linkRow('online', tt('Online'), GCAL_ONLINE)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr) auto' }}>
+          {linkRow('home', tt('Booking page'), BOOKING_HOME(lang))}
+          {linkRow('gym', tt('Gym'), GCAL_GYM)}
+          {linkRow('online', tt('Online'), GCAL_ONLINE)}
+        </div>
       </CollapsibleSection>
 
       <CollapsibleSection title={tt('UPCOMING')} count={rows.length} storageKey="cal-upcoming" padX={PAD} padY={PAD} style={{ marginBottom: 0 }}
